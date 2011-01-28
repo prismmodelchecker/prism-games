@@ -232,17 +232,30 @@ public class ExpressionFunc extends Expression
 
 	public Object evaluateFloor(EvaluateContext ec) throws PrismLangException
 	{
-		return new Integer((int) Math.floor(getOperand(0).evaluateDouble(ec)));
+		double d = Math.floor(getOperand(0).evaluateDouble(ec));
+		// Check for NaN or +/-inf, otherwise possible errors lost in cast to int
+		if (Double.isNaN(d) || Double.isInfinite(d))
+			throw new PrismLangException("Cannot take floor() of " + d, this);
+		return new Integer((int) d);
 	}
 
 	public Object evaluateCeil(EvaluateContext ec) throws PrismLangException
 	{
-		return new Integer((int) Math.ceil(getOperand(0).evaluateDouble(ec)));
+		double d = Math.ceil(getOperand(0).evaluateDouble(ec));
+		// Check for NaN or +/-inf, otherwise possible errors lost in cast to int
+		if (Double.isNaN(d) || Double.isInfinite(d))
+			throw new PrismLangException("Cannot take ceil() of " + d, this);
+		return new Integer((int) d);
 	}
 
 	public Object evaluatePow(EvaluateContext ec) throws PrismLangException
 	{
-		double res = Math.pow(getOperand(0).evaluateDouble(ec), getOperand(1).evaluateDouble(ec));
+		double base = getOperand(0).evaluateDouble(ec);
+		double exp = getOperand(1).evaluateDouble(ec);
+		// Not allowed to do e.g. pow(2,-2) because of typing (should be pow(2.0,-2) instead)
+		if (type instanceof TypeInt && (exp < 0))
+			throw new PrismLangException("Negative exponent not allowed for integer power", this);
+		double res = Math.pow(base, exp);
 		if (type instanceof TypeInt) {
 			if (res > Integer.MAX_VALUE)
 				throw new PrismLangException("Overflow evaluating integer power", this);
@@ -257,9 +270,12 @@ public class ExpressionFunc extends Expression
 	{
 		int i = getOperand(0).evaluateInt(ec);
 		int j = getOperand(1).evaluateInt(ec);
-		if (j == 0)
-			throw new PrismLangException("Attempt to compute modulo zero", this);
-		return new Integer(i % j);
+		// Non-positive divisor not allowed 
+		if (j <= 0)
+			throw new PrismLangException("Attempt to compute modulo with non-positive divisor", this);
+		// Take care of negative case (% is remainder, not modulo)
+		int rem = i % j;
+		return new Integer(rem < 0 ? rem + j : rem);
 	}
 
 	public Object evaluateLog(EvaluateContext ec) throws PrismLangException

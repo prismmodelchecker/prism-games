@@ -96,10 +96,10 @@ public class DigitalClocks
 	/**
 	 * Main method - translate.
 	 */
-	public void translate(ModulesFile modulesFile, PropertiesFile propertiesFile) throws PrismLangException
+	public void translate(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression propertyToCheck) throws PrismLangException
 	{
 		int i, n;
-		ASTTraverse astt;
+		ASTElement ast;
 		ASTTraverseModify asttm;
 
 		mainLog.println("\nPerforming digital clocks translation...");
@@ -111,31 +111,29 @@ public class DigitalClocks
 		// TODO: need property constants too?
 		varList = modulesFile.createVarList();
 
-		// Check that model (and properties) are closed and diagonal-free
-		astt = new ASTTraverse()
-		{
-			// Clock constraints
-			public void visitPost(ExpressionBinaryOp e) throws PrismLangException
+		// Check that model does not contain any closed clock constraints
+		// (don't need to check for diagonal-free-ness)
+		ast = findAStrictClockConstraint(modulesFile);
+		if (ast != null)
+			throw new PrismLangException("Strict clock constraints are not allowed when using the digital clocks method", ast);
+
+		// ACheck for any references to clocks in rewards structures - not allowed.
+		for (RewardStruct rs : modulesFile.getRewardStructs()) {
+			rs.accept(new ASTTraverseModify()
 			{
-				if (e.getOperand1().getType() instanceof TypeClock) {
-					if (e.getOperand2().getType() instanceof TypeClock) {
-						throw new PrismLangException(
-								"Diagonal clock constraints are not allowed when using the digital clocks method", e);
+				public Object visit(ExpressionVar e) throws PrismLangException
+				{
+					if (e.getType() instanceof TypeClock) {
+						throw new PrismLangException("Reward structures cannot contain references to clocks", e);
 					} else {
-						if (e.getOperator() == ExpressionBinaryOp.GT || e.getOperator() == ExpressionBinaryOp.LT)
-							throw new PrismLangException(
-									"Strict clock constraints are not allowed when using the digital clocks method", e);
+						return e;
 					}
-				} else if (e.getOperand2().getType() instanceof TypeClock) {
-					if (e.getOperator() == ExpressionBinaryOp.GT || e.getOperator() == ExpressionBinaryOp.LT)
-						throw new PrismLangException(
-								"Strict clock constraints are not allowed when using the digital clocks method", e);
 				}
-			}
-		};
-		modulesFile.accept(astt);
-		if (propertiesFile != null)
-			propertiesFile.accept(astt);
+			});
+		}
+		// Check that the property is suitable for checking with digital clocks
+		if (propertyToCheck != null)
+			checkProperty(propertyToCheck);
 
 		// Choose a new action label to represent time
 		timeAction = "time";
@@ -165,8 +163,7 @@ public class DigitalClocks
 				if (e.getDeclType() instanceof DeclarationClock) {
 					int cMax = cci.getScaledClockMax(e.getName());
 					if (cMax < 0)
-						throw new PrismLangException("Clock " + e.getName()
-								+ " is unbounded since there are no references to it in the model");
+						throw new PrismLangException("Clock " + e.getName() + " is unbounded since there are no references to it in the model");
 					DeclarationType declType = new DeclarationInt(Expression.Int(0), Expression.Int(cMax + 1));
 					Declaration decl = new Declaration(e.getName(), declType);
 					return decl;
@@ -274,18 +271,14 @@ public class DigitalClocks
 		if (pf != null)
 			pf = (PropertiesFile) pf.accept(asttm);
 
-		// Change state rewards in reward structures to use time action
-		// TODO: need to check properties file and see if used in non-cumulative way
+		// Change state rewards in reward structures to use time action)
+		// (transition rewards can be left unchanged)
+		// Note: only cumulative (F) properties supported currently.
 		for (RewardStruct rs : mf.getRewardStructs()) {
-			if (rs.getNumStateItems() == 0)
-				continue;
-			// TODO: handle this case
-			if (rs.getNumTransItems() > 0)
-				throw new PrismLangException(
-						"Translation of reward structures with both state/transition items is not yet supported");
 			n = rs.getNumItems();
 			for (i = 0; i < n; i++) {
 				RewardStructItem rsi = rs.getRewardStructItem(i);
+				// Convert state rewards
 				if (!rsi.isTransitionReward()) {
 					rsi = new RewardStructItem(timeAction, rsi.getStates().deepCopy(), rsi.getReward().deepCopy());
 					rs.setRewardStructItem(i, rsi);
@@ -297,6 +290,94 @@ public class DigitalClocks
 		mf.tidyUp();
 		if (pf != null)
 			pf.tidyUp();
+	}
+
+	/**
+	 * Check that a property is checkable with the digital clocks method.
+	 * Throw an explanatory exception if not.
+	 */
+	public void checkProperty(Expression propertyToCheck) throws PrismLangException
+	{
+		ASTElement ast;
+
+		// Bounded properties not yet handled.
+		try {
+			propertyToCheck.accept(new ASTTraverse()
+			{
+				public void visitPost(ExpressionTemporal e) throws PrismLangException
+				{
+					if (e.getLowerBound() != null || e.getUpperBound() != null)
+						throw new PrismLangException("The digital clocks method does not yet support bounded properties");
+				}
+			});
+		} catch (PrismLangException e) {
+			e.setASTElement(propertyToCheck);
+			throw e;
+		}
+
+		// Check that there are no nested probabilistic operators
+		if (propertyToCheck.computeProbNesting() > 1) {
+			throw new PrismLangException("Nested P operators are not allowed when using the digital clocks method", propertyToCheck);
+		}
+
+		// Check for presence of strict clock constraints
+		// TODO: also need to look in any required properties file labels
+		// (currently, these cannot even contain clocks so not an issue)
+		ast = findAStrictClockConstraint(propertyToCheck);
+		if (ast != null)
+			throw new PrismLangException("Strict clock constraints are not allowed when using the digital clocks method", ast);
+	}
+
+	/**
+	 * Look for a strict clock constraint. If found return the offending element. Else, return null.
+	 */
+	public ASTElement findAStrictClockConstraint(ASTElement ast) throws PrismLangException
+	{
+		try {
+			ASTTraverse astt = new ASTTraverse()
+			{
+				// Clock constraints
+				public void visitPost(ExpressionBinaryOp e) throws PrismLangException
+				{
+					if (e.getOperand1().getType() instanceof TypeClock) {
+						if (e.getOperator() == ExpressionBinaryOp.GT || e.getOperator() == ExpressionBinaryOp.LT)
+							throw new PrismLangException("Found one", e);
+					} else if (e.getOperand2().getType() instanceof TypeClock) {
+						if (e.getOperator() == ExpressionBinaryOp.GT || e.getOperator() == ExpressionBinaryOp.LT)
+							throw new PrismLangException("Found one", e);
+					}
+				}
+			};
+			ast.accept(astt);
+		} catch (PrismLangException e) {
+			return e.getASTElement();
+		}
+		return null;
+	}
+
+	/**
+	 * Look for a diagonal clock constraint. If found return the offending element. Else, return null.
+	 */
+	public ASTElement findADiagonalClockConstraint(ASTElement ast) throws PrismLangException
+	{
+		try {
+			ASTTraverse astt = new ASTTraverse()
+			{
+				// Clock constraints
+				public void visitPost(ExpressionBinaryOp e) throws PrismLangException
+				{
+					if (e.getOperand1().getType() instanceof TypeClock) {
+						if (e.getOperand2().getType() instanceof TypeClock) {
+							throw new PrismLangException("Found one", e);
+						}
+					}
+				}
+			};
+			modulesFile.accept(astt);
+		} catch (PrismLangException e) {
+			return e.getASTElement();
+		}
+		return null;
 	}
 
 	/**

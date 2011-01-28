@@ -35,14 +35,8 @@ import javax.swing.table.*;
 import parser.ast.*;
 import prism.*;
 
-/**
- *
- * @author  ug60axh
- */
- 
 public class GUIExperimentTable extends JTable
 {
-	
 	private ExperimentTableModel expModel;
 	private GUIMultiProperties guiProps;
 	
@@ -121,11 +115,11 @@ public class GUIExperimentTable extends JTable
 
 	class ExperimentTableModel extends AbstractTableModel
 	{
-		ArrayList experiments;
+		ArrayList<GUIExperiment> experiments;
 		
 		public ExperimentTableModel()
 		{
-			experiments = new ArrayList();
+			experiments = new ArrayList<GUIExperiment>();
 		}
 		
 		public String getColumnName(int index)
@@ -198,7 +192,7 @@ public class GUIExperimentTable extends JTable
 		
 		public GUIExperiment getExperiment(int i)
 		{
-			return (GUIExperiment)experiments.get(i);
+			return experiments.get(i);
 		}
 		
 		public int getNumExperiments()

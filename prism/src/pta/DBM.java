@@ -57,7 +57,7 @@ public class DBM extends Zone
 		return pta;
 	}
 
-	/* Zone operations */
+	// Zone operations (modify the zone)
 
 	/**
 	 * Conjunction: add constraint x-y db
@@ -225,6 +225,40 @@ public class DBM extends Zone
 		canonicalise();
 	}
 
+	// Zone operations (create new zone)
+	
+	/**
+	 * Complement this DBM; creates a new DBM list as result.
+	 */
+	public DBMList createComplement()
+	{
+		DBMList list = new DBMList(pta);
+		DBM dbmNew;
+		int i, j, n;
+		// Special case: complement of empty DBM is True
+		if (isEmpty()) {
+			list.addDBM(createTrue(pta));
+			return list;
+		}
+		n = d.length - 1;
+		for (i = 0; i < n + 1; i++) {
+			for (j = 0; j < n + 1; j++) {
+				if (i == j)
+					continue;
+				if (DB.isInfty(d[i][j]))
+					continue;
+				dbmNew = (DBM) new DBMFactory().createTrue(pta);
+				dbmNew.addConstraint(j, i, DB.dual(d[i][j]));
+				if (!dbmNew.isEmpty()) {
+					list.addDBM(dbmNew);
+				}
+			}
+		}
+		return list;
+	}
+
+	// Zone queries (do not modify the zone)
+	
 	/**
 	 * Is this zone empty (i.e. inconsistent)?
 	 */
@@ -263,7 +297,7 @@ public class DBM extends Zone
 	/**
 	 * Get the minimum value of a clock. 
 	 */
-	public int getMin(int x)
+	public int getClockMin(int x)
 	{
 		return -DB.getSignedDiff(d[0][x]);
 	}
@@ -271,36 +305,36 @@ public class DBM extends Zone
 	/**
 	 * Get the maximum value of a clock. 
 	 */
-	public int getMax(int x)
+	public int getClockMax(int x)
 	{
 		return DB.getSignedDiff(d[x][0]);
 	}
 	
 	/**
-	 * Complement this DBM; creates a new DBM list as result.
+	 * Check if a clock is unbounded (can be infinite).
 	 */
-	public DBMList createComplement()
+	public boolean clockIsUnbounded(int x)
 	{
-		DBMList list = new DBMList(pta);
-		DBM dbmNew;
-		int i, j, n;
-		n = d.length - 1;
-		for (i = 0; i < n + 1; i++) {
-			for (j = 0; j < n + 1; j++) {
-				if (i == j)
-					continue;
-				if (DB.isInfty(d[i][j]))
-					continue;
-				dbmNew = (DBM) new DBMFactory().createTrue(pta);
-				dbmNew.addConstraint(j, i, DB.dual(d[i][j]));
-				if (!dbmNew.isEmpty()) {
-					list.addDBM(dbmNew);
-				}
+		return DB.isInfty(d[x][0]);
+	}
+	
+	/**
+	 * Check if all clocks are unbounded (can be infinite).
+	 */
+	public boolean allClocksAreUnbounded()
+	{
+		int i, n;
+		n = pta.numClocks;
+		for (i = 1; i < n + 1; i++) {
+			if (!DB.isInfty(d[i][0])) {
+				return false;
 			}
 		}
-		return list;
+		return true;
 	}
-
+	
+	// Misc
+	
 	/**
 	 * Clone this zone
 	 */
@@ -316,6 +350,14 @@ public class DBM extends Zone
 			}
 		}
 		return copy;
+	}
+
+	/**
+	 * Get storage info string
+	 */
+	public String storageInfo()
+	{
+		return "DBM with " + pta.numClocks + " clocks";
 	}
 
 	// Standard Java methods
@@ -413,14 +455,6 @@ public class DBM extends Zone
 		}
 		s += " ]";
 		return s;
-	}
-
-	/**
-	 * Get storage info string
-	 */
-	public String storageInfo()
-	{
-		return "DBM with " + pta.numClocks + " clocks";
 	}
 
 	/* Private utility methods */

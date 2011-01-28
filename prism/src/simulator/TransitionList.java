@@ -72,7 +72,7 @@ public class TransitionList
 		numTransitions += tr.size();
 		probSum += tr.getProbabilitySum();
 	}
-
+	
 	// ACCESSORS
 
 	/**
@@ -147,9 +147,9 @@ public class TransitionList
 
 	/**
 	 * Get a reference to a transition according to a total probability (rate) sum, x.
-	 * i.e.the first transition for which the sum of probabilities of all prior transitions
-	 * (across all choices) exceeds x.
-	 * Note: this only really makes sense for models where these are rates, rather than probabilities.
+	 * i.e.the first transition for which the sum of probabilities of that and all prior
+	 * transitions (across all choices) exceeds x. Really, this is designed for the case
+	 * where these are rates, rather than probabilities.
 	 * @param x Probability (or rate) sum
 	 * @param ref Empty transition reference to store result
 	 */
@@ -167,7 +167,7 @@ public class TransitionList
 		// Pick transition within choice 
 		choice = getChoice(i - 1);
 		if (choice.size() > 1) {
-			ref.offset = choice.getIndexByProbabilitySum(tot - d);
+			ref.offset = choice.getIndexByProbabilitySum(x - (tot - d));
 		} else {
 			ref.offset = 0;
 		}
@@ -221,13 +221,25 @@ public class TransitionList
 	{
 		return getChoiceOfTransition(index).computeTarget(transitionOffsets.get(index), currentState);
 	}
-
+	
+	// Other checks and queries
+	
 	/**
 	 * Is there a deadlock (i.e. no available transitions)?
 	 */
 	public boolean isDeadlock()
 	{
 		return numChoices == 0;
+	}
+
+	/**
+	 * Are the choices deterministic? (i.e. a single probability 1.0 transition)
+	 * (will also return true for a continuous-time model matching this
+	 * definition, since TransitionList does not know about model type)
+	 */
+	public boolean isDeterministic()
+	{
+		return numTransitions == 1 && getChoice(0).getProbability(0) == 1.0;
 	}
 
 	/**
@@ -258,6 +270,30 @@ public class TransitionList
 		return true;
 	}
 
+	/**
+	 * Check the validity of the available transitions for a given model type.
+	 * Throw a PrismException if an error is found.
+	 */
+	public void checkValid(ModelType modelType) throws PrismException
+	{
+		for (Choice ch : choices) {
+			ch.checkValid(modelType);
+		}
+	}
+	
+	/**
+	 * Check whether the available transitions (from a particular state)
+	 * would cause any errors, mainly variable overflows.
+	 * Variable ranges are specified in the passed in VarList.
+	 * Throws an exception if such an error occurs.
+	 */
+	public void checkForErrors(State currentState, VarList varList) throws PrismException
+	{
+		for (Choice ch : choices) {
+			ch.checkForErrors(currentState, varList);
+		}
+	}
+	
 	@Override
 	public String toString()
 	{

@@ -141,8 +141,8 @@ public class Update extends ASTElement
 	 * Execute this update, based on variable values specified as a Values object,
 	 * returning the result as a new Values object copied from the existing one.
 	 * Values of any constants should also be provided.
-	 * @param constantValues: Values for constants
-	 * @param oldValues: Variable values in current state
+	 * @param constantValues Values for constants
+	 * @param oldValues Variable values in current state
 	 */
 	public Values update(Values constantValues, Values oldValues) throws PrismLangException
 	{
@@ -160,9 +160,9 @@ public class Update extends ASTElement
 	 * Execute this update, based on variable values specified as a Values object,
 	 * applying changes in variables to a second Values object. 
 	 * Values of any constants should also be provided.
-	 * @param constantValues: Values for constants
-	 * @param oldValues: Variable values in current state
-	 * @param oldValues: Values object to apply changes to
+	 * @param constantValues Values for constants
+	 * @param oldValues Variable values in current state
+	 * @param newValues Values object to apply changes to
 	 */
 	public void update(Values constantValues, Values oldValues, Values newValues) throws PrismLangException
 	{
@@ -177,7 +177,7 @@ public class Update extends ASTElement
 	 * Execute this update, based on variable values specified as a State object,
 	 * returning the result as a new State object copied from the existing one.
 	 * It is assumed that any constants have already been defined.
-	 * @param oldState: Variable values in current state
+	 * @param oldState Variable values in current state
 	 */
 	public State update(State oldState) throws PrismLangException
 	{
@@ -196,8 +196,8 @@ public class Update extends ASTElement
 	 * Apply changes in variables to a provided copy of the State object.
 	 * (i.e. oldState and newState should be equal when passed in.) 
 	 * It is assumed that any constants have already been defined.
-	 * @param oldState: Variable values in current state
-	 * @param newState: State object to apply changes to
+	 * @param oldState Variable values in current state
+	 * @param newState State object to apply changes to
 	 */
 	public void update(State oldState, State newState) throws PrismLangException
 	{
@@ -217,9 +217,9 @@ public class Update extends ASTElement
 	 * Only variables in this subset are updated.
 	 * But if doing so requires old values for variables outside the subset, this will cause an exception. 
 	 * It is assumed that any constants have already been defined.
-	 * @param oldState: Variable values in current state
-	 * @param newState: State object to apply changes to
-	 * @param varMap: A mapping from indices (over all variables) to the subset (-1 if not in subset). 
+	 * @param oldState Variable values in current state
+	 * @param newState State object to apply changes to
+	 * @param varMap A mapping from indices (over all variables) to the subset (-1 if not in subset). 
 	 */
 	public void updatePartially(State oldState, State newState, int[] varMap) throws PrismLangException
 	{
@@ -231,6 +231,25 @@ public class Update extends ASTElement
 				newState.setValue(j, getExpression(i).evaluate(new EvaluateContextSubstate(oldState, varMap)));
 			}
 		}
+	}
+
+	/**
+	 * Check whether this update (from a particular state) would cause any errors, mainly variable overflows.
+	 * Variable ranges are specified in the passed in VarList.
+	 * Throws an exception if such an error occurs.
+	 */
+	public State checkUpdate(State oldState, VarList varList) throws PrismLangException
+	{
+		int i, n, valNew;
+		State res;
+		res = new State(oldState);
+		n = exprs.size();
+		for (i = 0; i < n; i++) {
+			valNew = varList.encodeToInt(i, getExpression(i).evaluate(oldState));
+			if (valNew < varList.getLow(i) || valNew > varList.getHigh(i))
+				throw new PrismLangException("Value of variable " + getVar(i) + " overflows", getExpression(i));
+		}
+		return res;
 	}
 
 	// Methods required for ASTElement:

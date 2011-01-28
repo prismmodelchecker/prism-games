@@ -36,7 +36,7 @@ public class Filter extends ASTElement
 {
 	private Expression expr = null;
 	// Either "min" or "max", or neither or both.
-	// In the latter case, this means "range"
+	// In the latter two cases, this means "range"
 	private boolean minReq = false;
 	private boolean maxReq = false;
 
@@ -57,13 +57,11 @@ public class Filter extends ASTElement
 	public void setMinRequested(boolean b)
 	{
 		minReq = b;
-		maxReq = !b;
 	}
 
 	public void setMaxRequested(boolean b)
 	{
 		maxReq = b;
-		minReq = !b;
 	}
 	
 	// Get methods
@@ -86,7 +84,6 @@ public class Filter extends ASTElement
 	/**
 	 * Get (as a string) the operator for this filter
 	 * (as need to construct an ExpressionFilter object)
-	 * @return
 	 */
 	public String getFilterOpString()
 	{

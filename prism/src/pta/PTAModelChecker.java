@@ -31,7 +31,9 @@ import java.util.*;
 import parser.*;
 import parser.ast.*;
 import parser.type.*;
+import parser.visitor.ASTTraverseModify;
 import prism.*;
+import simulator.sampler.Sampler;
 import explicit.*;
 
 /**
@@ -49,7 +51,7 @@ public class PTAModelChecker
 	private PropertiesFile propertiesFile;
 	// Constants from model
 	private Values constantValues;
-	// Label list
+	// Label list (combined: model/properties file)
 	private LabelList labelList;
 	// PTA
 	private PTA pta;
@@ -115,8 +117,28 @@ public class PTAModelChecker
 		pta = m2pta.translate();
 		mainLog.println("\nPTA: " + pta.infoString());
 
+		// Check for references to clocks - not allowed (yet)
+		// (do this before modifications below for better error reporting)
+		expr.accept(new ASTTraverseModify()
+		{
+			public Object visit(ExpressionVar e) throws PrismLangException
+			{
+				if (e.getType() instanceof TypeClock) {
+					throw new PrismLangException("Properties cannot contain references to clocks (try the digital clocks engine instead)", e);
+				} else {
+					return e;
+				}
+			}
+		});
+		
+		// Take a copy of property, since will modify
+		expr = expr.deepCopy();
+		// Remove labels from property, using combined label list 
+		expr = (Expression) expr.expandLabels(labelList);
 		// Evaluate constants in property (easier to do now)
-		expr = (Expression) expr.deepCopy().replaceConstants(constantValues);
+		expr = (Expression) expr.replaceConstants(constantValues);
+		// Also simplify expression to optimise model checking
+		expr = (Expression) expr.simplify();
 
 		// Do model checking
 		res = checkExpression(expr);
@@ -149,7 +171,7 @@ public class PTAModelChecker
 		else if (expr instanceof ExpressionReward)
 			res = checkExpressionReward((ExpressionReward) expr);
 		else
-			throw new PrismException("PTA model checking not supported for this operator");
+			throw new PrismException("PTA model checking not yet supported for this operator (try the digital clocks engine)");
 
 		return res;
 	}
@@ -169,17 +191,17 @@ public class PTAModelChecker
 
 		// Check whether Pmin=? or Pmax=? (only two cases allowed)
 		if (expr.getProb() != null) {
-			throw new PrismException("PTA model checking currently only supports Pmin=? and Pmax=? properties");
+			throw new PrismException("PTA model checking currently only supports Pmin=? and Pmax=? properties (try the digital clocks engine instead)");
 		}
 		min = expr.getRelOp().equals("min=");
 
 		// Check this is a F path property (only case allowed at the moment)
 		if (!(expr.getExpression() instanceof ExpressionTemporal))
-			throw new PrismException("PTA model checking currently only supports the F path operator");
+			throw new PrismException("PTA model checking currently only supports the F path operator (try the digital clocks engine instead)");
 		exprTemp = (ExpressionTemporal) expr.getExpression();
-		if (exprTemp.getOperator() != ExpressionTemporal.P_F)
-			throw new PrismException("PTA model checking currently only supports the F path operator");
-
+		if (exprTemp.getOperator() != ExpressionTemporal.P_F || !exprTemp.isSimplePathFormula())
+			throw new PrismException("PTA model checking currently only supports the F path operator (try the digital clocks engine instead)");
+		
 		// Determine locations satisfying target
 		exprTarget = exprTemp.getOperand2();
 		targetLocs = checkLocationExpression(exprTarget);
@@ -247,8 +269,6 @@ public class PTAModelChecker
 					for (Edge e : trNew.getEdges()) {
 						if (targetLocs.get(e.getDestination())) {
 							e.setDestination(newTargetLoc);
-							toTarget = true;
-							break;
 						}
 					}
 					if (timeBoundStrict)
@@ -308,12 +328,13 @@ public class PTAModelChecker
 	 */
 	private Result checkExpressionReward(ExpressionReward expr) throws PrismException
 	{
-		throw new PrismException("Not yet supported");
+		throw new PrismException("Reward properties not yet supported for PTA model checking (try the digital clocks engine instead)");
 	}
 
 	/**
 	 * Determine which locations in the PTA satisfy a (Boolean) expression.
 	 * Note: This is rather inefficiently at the moment.
+	 * TODO: potentially use explicit.StateMC on dummy model eventually
 	 */
 	private BitSet checkLocationExpression(Expression expr) throws PrismException
 	{
@@ -321,6 +342,7 @@ public class PTAModelChecker
 		BitSet res;
 
 		// Labels - expand and recurse
+		// (note: currently not used - these are expanded earlier)
 		if (expr instanceof ExpressionLabel) {
 			ExpressionLabel exprLabel = (ExpressionLabel) expr;
 			if (exprLabel.getName().equals("deadlock"))

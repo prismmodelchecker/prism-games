@@ -69,10 +69,13 @@ endif
 # For Macs, we decide whether to build in 64-bit mode based on
 # whether java is 32/64-bit (since these need to match)
 ifeq ($(OSTYPE),darwin)
-	JAVA_VERSION_STRING = $(shell java -version 2>&1)
-	ifneq (, $(or $(findstring 64-bit, $(JAVA_VERSION_STRING)), $(findstring 64-Bit, $(JAVA_VERSION_STRING)) ))
-		ARCH = x86_64
-	endif
+    JAVA_VERSION_STRING = $(shell java -version 2>&1)
+    ifneq (, $(findstring 64-bit, $(JAVA_VERSION_STRING)) )
+        ARCH = x86_64
+    endif
+    ifneq (, $(findstring 64-Bit, $(JAVA_VERSION_STRING)) )
+        ARCH = x86_64
+    endif
 endif
 
 ########
@@ -431,8 +434,10 @@ tarcf:
 	echo Building tar file "../"$$TARCF_DIR".tar.gz" && \
 	(cd ..; tar cfz $$TARCF_DIR".tar.gz" $$TARCF_DIR)
 
+PRISM_CLASSPATH = "$(CLASSES_DIR)$(CLASSPATHSEP)$(LIB_DIR)/jcommon.jar$(CLASSPATHSEP)$(LIB_DIR)/jfreechart.jar$(CLASSPATHSEP)$(LIB_DIR)/epsgraphics.jar"
+
 javadoc:
-	@JAVADOC_DIRS=`echo $(MAKE_DIRS) | sed 's/\//./g' | sed 's/ /:/g'` && \mkdir -p javadoc; javadoc -d javadoc -classpath $(SRC_DIR) -subpackages $$JAVADOC_DIRS
+	@JAVADOC_DIRS=`echo $(MAKE_DIRS) | sed 's/\//./g' | sed 's/ /:/g'` && \mkdir -p javadoc; javadoc -d javadoc -classpath $(SRC_DIR)$(CLASSPATHSEP)$(PRISM_CLASSPATH) -subpackages $$JAVADOC_DIRS
 
 clean: checks
 	@(for dir in $(MAKE_DIRS); do \
@@ -529,8 +534,7 @@ checks:
 	fi; \
 	echo "OSTYPE/ARCH: $(OSTYPE) $(ARCH)"; \
 	echo "JAVA_DIR: $(JAVA_DIR)"; \
-	echo "JAVAC: "`which $(JAVAC)`; \
-	echo "JAVACC: "`which $(JAVACC)` \
+	echo "JAVAC: "`which $(JAVAC)` \
 	)
 
 #################################################

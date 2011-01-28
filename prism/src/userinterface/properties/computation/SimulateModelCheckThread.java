@@ -4,6 +4,7 @@
 //	Authors:
 //	* Andrew Hinton <ug60axh@cs.bham.ac.uk> (University of Birmingham)
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Vincent Nimal <vincent.nimal@comlab.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -33,6 +34,7 @@ import javax.swing.*;
 import parser.*;
 import parser.ast.*;
 import prism.*;
+import simulator.method.SimulationMethod;
 import userinterface.*;
 import userinterface.util.*;
 import userinterface.properties.*;
@@ -52,22 +54,12 @@ public class SimulateModelCheckThread extends GUIComputationThread
 	private Values definedMFConstants;
 	private Values definedPFConstants;
 	private Values initialState;
-	private int noIterations;
 	private int maxPathLength;
 	private SimulationInformation info;
-	
+
 	/** Creates a new instance of SimulateModelCheckThread */
-	public SimulateModelCheckThread
-		(GUIMultiProperties parent,
-		ModulesFile m,
-		PropertiesFile prFi,
-		ArrayList<GUIProperty> guiProps,
-		Values definedMFConstants,
-		Values definedPFConstants,
-		Values initialState,
-		int noIterations,
-		int maxPathLength,
-		SimulationInformation info)
+	public SimulateModelCheckThread(GUIMultiProperties parent, ModulesFile m, PropertiesFile prFi, ArrayList<GUIProperty> guiProps, Values definedMFConstants,
+			Values definedPFConstants, SimulationInformation info)
 	{
 		super(parent);
 		this.parent = parent;
@@ -76,18 +68,20 @@ public class SimulateModelCheckThread extends GUIComputationThread
 		this.guiProps = guiProps;
 		this.definedMFConstants = definedMFConstants;
 		this.definedPFConstants = definedPFConstants;
-		this.initialState = initialState;
-		this.noIterations = noIterations;
-		this.maxPathLength = maxPathLength;
 		this.info = info;
+		this.initialState = info.getInitialState();
+		this.maxPathLength = info.getMaxPathLength();
 	}
-    
+
 	public void run()
 	{
 		boolean allAtOnce = prism.getSettings().getBoolean(PrismSettings.SIMULATOR_SIMULTANEOUS);
 		
-		if(mf == null) return;
+		SimulationMethod method = info.createSimulationMethod();
 		
+		if (mf == null)
+			return;
+
 		//Notify user interface of the start of computation
 		SwingUtilities.invokeLater(new Runnable()
 		{
@@ -98,35 +92,29 @@ public class SimulateModelCheckThread extends GUIComputationThread
 				parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, parent));
 			}
 		});
-		
+
 		//Set icon for all properties to be verified to a clock
-		for(int i = 0; i < guiProps.size(); i++)
-		{
+		for (int i = 0; i < guiProps.size(); i++) {
 			GUIProperty gp = guiProps.get(i);
 			gp.setStatus(GUIProperty.STATUS_DOING);
 			parent.repaintList();
 		}
-		
-		IconThread ic = new IconThread(null);
-		
+
 		// do all at once if requested
-		if(allAtOnce)
-		{
+		if (allAtOnce) {
 			Result results[] = null;
 			Exception resultError = null;
-			ArrayList<Expression> properties = new ArrayList<Expression> ();
+			ArrayList<Expression> properties = new ArrayList<Expression>();
 			ArrayList<IconThread> clkThreads = new ArrayList<IconThread>();
-			for(int i = 0; i < guiProps.size(); i++)
-			{
+			for (int i = 0; i < guiProps.size(); i++) {
 				GUIProperty gp = guiProps.get(i);
 				properties.add(gp.getProperty());
-				ic = new IconThread(gp);
-				ic.start();
-				clkThreads.add(ic);
+				IconThread ict = new IconThread(gp);
+				ict.start();
+				clkThreads.add(ict);
 			}
-			
-			try
-			{
+
+			try {
 				// display info
 				logln("\n-------------------------------------------");
 				log("\nSimulating");
@@ -138,30 +126,35 @@ public class SimulateModelCheckThread extends GUIComputationThread
 						logln(" " + properties.get(i));
 					}
 				}
-				if (definedMFConstants != null) if (definedMFConstants.getNumValues() > 0) logln("Model constants: " + definedMFConstants);
-				if (definedPFConstants != null) if (definedPFConstants.getNumValues() > 0) logln("Property constants: " + definedPFConstants);
-				log("Simulation parameters: approx = "+info.getApprox()+", conf = "+info.getConfidence()+", num samples = "+noIterations+", max path len = "+maxPathLength+")\n");
+				if (definedMFConstants != null)
+					if (definedMFConstants.getNumValues() > 0)
+						logln("Model constants: " + definedMFConstants);
+				if (definedPFConstants != null)
+					if (definedPFConstants.getNumValues() > 0)
+						logln("Property constants: " + definedPFConstants);
 				
 				// do simulation
-				results = prism.modelCheckSimulatorSimultaneously(mf, pf, properties, initialState, noIterations, maxPathLength);
-			}
-			catch(PrismException e)
-			{
+				results = prism.modelCheckSimulatorSimultaneously(mf, pf, properties, initialState, maxPathLength, method);
+				method.reset();
+			} catch (PrismException e) {
 				// in the case of an error which affects all props, store/report it
 				resultError = e;
 				error(e.getMessage());
 			}
 			//after collecting the results stop all of the clock icons
-			for(int i =0; i < clkThreads.size(); i++)
-				{
-				IconThread ict = (IconThread)clkThreads.get(i);
+			for (int i = 0; i < clkThreads.size(); i++) {
+				IconThread ict = (IconThread) clkThreads.get(i);
 				ict.interrupt();
-				while(!ict.canContinue)
-				{}
+				while (!ict.canContinue) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
 			}
 			// store results
-			for(int i = 0; i < guiProps.size(); i++)
-			{
+			for (int i = 0; i < guiProps.size(); i++) {
 				GUIProperty gp = guiProps.get(i);
 				gp.setResult((results == null) ? new Result(resultError) : results[i]);
 				gp.setMethodString("Simulation");
@@ -169,37 +162,44 @@ public class SimulateModelCheckThread extends GUIComputationThread
 			}
 		}
 		// do each property individually
-		else
-		{
+		else {
 			Result result = null;
-			for(int i = 0; i < pf.getNumProperties(); i++)
-			{
+			for (int i = 0; i < pf.getNumProperties(); i++) {
 				// get property
 				GUIProperty gp = guiProps.get(i);
 				// animate it's clock icon
-				ic = new IconThread(gp);
-				ic.start();
+				IconThread ict = new IconThread(gp);
+				ict.start();
 				// do model checking
-				try
-				{
+				try {
 					logln("\n-------------------------------------------");
-					logln("\nSimulating"+": " + pf.getProperty(i));
-					if (definedMFConstants != null) if (definedMFConstants.getNumValues() > 0) logln("Model constants: " + definedMFConstants);
-					if (definedPFConstants != null) if (definedPFConstants.getNumValues() > 0) logln("Property constants: " + definedPFConstants);
-					log("Simulation parameters: approx = "+info.getApprox()+", conf = "+info.getConfidence()+", num samples = "+noIterations+", max path len = "+maxPathLength+")\n");
-					result = prism.modelCheckSimulator(mf, pf,  pf.getProperty(i), initialState, noIterations, maxPathLength);
+					logln("\nSimulating" + ": " + pf.getProperty(i));
+					if (definedMFConstants != null)
+						if (definedMFConstants.getNumValues() > 0)
+							logln("Model constants: " + definedMFConstants);
+					if (definedPFConstants != null)
+						if (definedPFConstants.getNumValues() > 0)
+							logln("Property constants: " + definedPFConstants);
+					result = prism.modelCheckSimulator(mf, pf,  pf.getProperty(i), initialState, maxPathLength, method);
+					method.reset();
 				}
 				catch(PrismException e)
 				{
 					result = new Result(e);
 					error(e.getMessage());
 				}
-				ic.interrupt();
-				while(!ic.canContinue) {}
+				ict.interrupt();
+				while (!ict.canContinue) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
 				gp.setResult(result);
 				gp.setMethodString("Simulation");
 				gp.setConstants(definedMFConstants, definedPFConstants);
-				
+
 				parent.repaintList();
 			}
 		}
@@ -214,12 +214,13 @@ public class SimulateModelCheckThread extends GUIComputationThread
 			}
 		});
 	}
-    
+
 	class IconThread extends Thread
 	{
 		GUIProperty gp;
 		ImageIcon[] images;
 		boolean canContinue = false;
+
 		public IconThread(GUIProperty gp)
 		{
 			this.gp = gp;
@@ -233,25 +234,23 @@ public class SimulateModelCheckThread extends GUIComputationThread
 			images[6] = GUIPrism.getIconFromImage("smallClockAnim7.png");
 			images[7] = GUIPrism.getIconFromImage("smallClockAnim8.png");
 		}
+
 		public void run()
 		{
-			try
-			{
+			try {
 				int counter = 0;
-				while(!interrupted() && gp != null)
-				{
-					//System.out.println("counter = "+counter);
+				while (!interrupted() && gp != null) {
+					//System.out.println("counter = " + counter);
 					counter++;
-					counter = counter%8;
+					counter = counter % 8;
 					gp.setDoingImage(images[counter]);
 					parent.repaintList();
 					sleep(150);
 				}
+			} catch (InterruptedException e) {
+			} finally {
+				canContinue = true;
 			}
-			catch(InterruptedException e)
-			{
-			}
-			canContinue = true;
 		}
 	}
 }

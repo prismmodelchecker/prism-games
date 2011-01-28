@@ -28,6 +28,7 @@ package pta;
 
 import java.util.*;
 
+import prism.ModelType;
 import prism.PrismException;
 import explicit.*;
 
@@ -35,7 +36,7 @@ import explicit.*;
  * Probabilistic reachability for PTAs, using abstraction/refinement of stochastic games.
  * See: "Stochastic Games for Verification of Probabilistic Timed Automata" (FORMATS'09).
  */
-public class PTAAbstractRefine extends STPGAbstractRefine
+public class PTAAbstractRefine extends QuantAbstractRefine
 {
 	// PTA, target info
 	protected PTA pta = null;
@@ -51,6 +52,16 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 	// bit of time, but at the expense of some space). 
 	boolean storeValidZones = true;
 
+	/**
+	 * Default constructor.
+	 */
+	public PTAAbstractRefine()
+	{
+		// Just do basic config for QuantAbstractRefine
+		setModelType(ModelType.MDP);
+		setPropertyType(QuantAbstractRefine.PropertyType.PROB_REACH);
+	}
+	
 	/**
 	 * Compute min/max PTA reachability probabilities using STPG abstraction refinement. 
 	 */
@@ -68,6 +79,7 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 
 	// Implementation of initialise() for abstraction-refinement loop; see superclass for details 
 
+	@Override
 	protected void initialise() throws PrismException
 	{
 		ForwardsReach forwardsReach;
@@ -110,6 +122,7 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 
 	// Implementation of rebuildAbstraction(...) for abstraction-refinement loop; see superclass for details 
 
+	@Override
 	protected void rebuildAbstraction(Set<Integer> rebuildStates) throws PrismException
 	{
 		for (int src : rebuildStates) {
@@ -194,13 +207,10 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 		if (level == numValids) {
 			// Check this combination of transitions is non-empty  
 			if (!valid.isEmpty()) {
-				// Check for the case where it is possible that no transitions are enabled.
-				// We disallow this (time-divergence restrictions on PTAs that we can handle). 
-				if (bitSet.cardinality() == 0) {
-					String s = "Possibility of time divergence in PTA location ";
-					s += pta.getLocationNameString(graph.states.get(src).loc);
-					throw new PrismException(s);
-				}
+				// Ignore the case where no transitions are enabled
+				// (has been dealt with earlier by adding explicit "diverge" transition)
+				if (bitSet.cardinality() == 0)
+					return;
 				// Create distribution set for this combination of transitions
 				distrSet = stpg.newDistributionSet(null);
 				// If using BitSets for action labels (as opposed to storing the zones directly)
@@ -238,13 +248,14 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 					distrSet.setAction(actionBitSet);
 				stpg.addDistributionSet(src, distrSet);
 			}
-
 		} else {
 			// Recursive step
 			// Note that the construction of the validity constraint for
 			// transition combinations is done recursively - this gives big gains in efficiency.
 			// Note also that, the first thing added to the conjunction (i.e. the validity constraint)
-			// before recursion starts is the symbolic state zone. Generally, it is better to
+			// before recursion starts is the symbolic state zone. We can only do this because at
+			// least one transition is enabled in this combination, so its validity will need to include
+			// the symbolic state zone. Generally, it is better to
 			// add non-complemented zones, like this, early to avoid blowups
 			// (in terms of conjunctions on complements, which are typically large DBM lists).
 			// Finally, note that use of combined intersectComplement operation is, like
@@ -272,6 +283,7 @@ public class PTAAbstractRefine extends STPGAbstractRefine
 	//  - abstraction (new states, initial states and transitions)
 	//  - target set 
 
+	@Override
 	protected int splitState(int splitState, List<List<Integer>> choiceLists, Set<Integer> rebuiltStates,
 			Set<Integer> rebuildStates) throws PrismException
 	{

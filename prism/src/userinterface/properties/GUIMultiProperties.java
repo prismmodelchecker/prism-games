@@ -5,6 +5,7 @@
 //	* Andrew Hinton <ug60axh@cs.bham.ac.uk> (University of Birmingham)
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
 //	* Mark Kattenbelt <mark.kattenbelt@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Vincent Nimal <vincent.nimal@comlab.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -61,14 +62,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public static final int WARN_INVALID_PROPS = 1;
 	public static final int NEVER_INVALID_PROPS = 2;
 
-	//ATTRIBUTES
+	// ATTRIBUTES
 
-	// current model (gets updated only by event listening to GUIModel)
+	// Current model (gets updated only by event listening to GUIModel)
 	private ModulesFile parsedModel;
 	private Model builtModel;
-	private Values lastBuildValues;
+	// Constants for model (updated by events or locally)
+	private Values mfConstants;
 
-	//state
+	// State
 	private boolean modified;
 	private boolean modifiedSinceBuild;
 	private boolean computing;
@@ -77,10 +79,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private PropertiesFile parsedProperties;
 	private ArrayList<GUIProperty> propertiesToBeVerified;
 	private File activeFile;
-	private Values lastPFConstants;
-	private Values lastSimulateValues;
+	private Values pfConstants;
 
-	//gui
+	// GUI
 	private GUIPrismFileFilter propsFilter[];
 	private GUIPrismFileFilter textFilter[];
 	private JMenu propMenu;
@@ -90,11 +91,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private JScrollPane expScroller;
 	private JLabel fileLabel;
 	private Vector clipboardVector;
-
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults, exportResults, simulate, details;
 
-	//current properties
+	// Current properties
 	private GUIPropertiesList propList;
 	private GUIPropConstantList consTable;
 	private GUIPropLabelList labTable;
@@ -103,7 +103,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private Font displayFontFast;
 	private Color backgroundFast, warningFast;
 
-	//CONSTRUCTORS
+	// CONSTRUCTORS
 
 	/** Creates a new instance of GUIMultiProperties */
 	public GUIMultiProperties(GUIPrism pr, GUISimulator simulator)
@@ -184,14 +184,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	protected void verifyAfterBuild()
 	{
 		verifyAfterReceiveBuildNotification = false;
-		
-		// Re-enable GUI elements
-		propList.setEnabled(true);
-		consTable.setEnabled(true);
-		labTable.setEnabled(true);
+
 		// Start model check process
 		if (builtModel != null && parsedProperties != null && propertiesToBeVerified != null) {
-			Thread t = new ModelCheckThread(this, builtModel, parsedProperties, propertiesToBeVerified, lastBuildValues, lastPFConstants);
+			Thread t = new ModelCheckThread(this, builtModel, parsedProperties, propertiesToBeVerified, mfConstants, pfConstants);
 			t.setPriority(Thread.NORM_PRIORITY);
 			t.start();
 		}
@@ -200,52 +196,61 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	protected void verifyAfterParse()
 	{
 		ArrayList<GUIProperty> validGUIProperties;
-		Values buildValues;
 		UndefinedConstants uCon;
-		
+
 		verifyAfterReceiveParseNotification = false;
-		
-		// Get valid/selected properties
+
 		try {
+			// Get valid/selected properties
 			String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedString();
 			// Get PropertiesFile for valid/selected properties
 			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
 			// And get list of corresponding GUIProperty objects
 			validGUIProperties = propList.getValidSelectedProperties();
-		} catch (PrismException e) {
-			error(e.getMessage());
-			return;
-		}
 
-		// Query user for undefined constant values (if required)
-		try {
+			// Query user for undefined constant values (if required)
 			uCon = new UndefinedConstants(parsedModel, parsedProperties);
 			if (uCon.getMFNumUndefined() + uCon.getPFNumUndefined() > 0) {
-				int result = GUIConstantsPicker.defineConstantsWithDialog(this.getGUI(), uCon, lastBuildValues, lastPFConstants);
+				// Use previous constant values as defaults in dialog
+				int result = GUIConstantsPicker.defineConstantsWithDialog(this.getGUI(), uCon, mfConstants, pfConstants);
 				if (result != GUIConstantsPicker.VALUES_DONE)
 					return;
 			}
-			buildValues = uCon.getMFConstantValues();
-			lastPFConstants = uCon.getPFConstantValues();
-			parsedProperties.setUndefinedConstants(lastPFConstants);
+			// Store model constants (even though will be stored again after build)
+			// Don't set in model: this will be done during build process
+			mfConstants = uCon.getMFConstantValues();
+			// Store property constants and set in file
+			pfConstants = uCon.getPFConstantValues();
+			parsedProperties.setUndefinedConstants(pfConstants);
+
+			// Store properties to be verified
+			propertiesToBeVerified = validGUIProperties;
+			// If required, trigger build then verify
+			if (parsedModel.getModelType() != ModelType.PTA) {
+				verifyAfterReceiveBuildNotification = true;
+				notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_BUILD, mfConstants));
+			}
+			// If no build required (e.g. for PTAs), just do model checking now
+			else {
+				// Start model check process
+				parsedModel.setUndefinedConstants(mfConstants);
+				if (parsedProperties != null && propertiesToBeVerified != null) {
+					Thread t = new ModelCheckThread(this, parsedModel, parsedProperties, propertiesToBeVerified, mfConstants, pfConstants);
+					t.setPriority(Thread.NORM_PRIORITY);
+					t.start();
+				}
+			}
 		} catch (PrismException e) {
 			error(e.getMessage());
 			return;
 		}
-		
-		// Disable GUI elements in Properties tab 
-		propList.setEnabled(false);
-		consTable.setEnabled(false);
-		// Trigger build then verify
-		verifyAfterReceiveBuildNotification = true;
-		propertiesToBeVerified = validGUIProperties;
-		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_BUILD, buildValues));
 	}
 
 	public void simulateAfterParse()
 	{
 		simulateAfterReceiveParseNotification = false;
 		ArrayList<GUIProperty> validGUIProperties, simulatableGUIProperties;
+		ArrayList<Expression> simulatableExprs;
 		UndefinedConstants uCon;
 		try {
 			parsedProperties = getPrism().parsePropertiesString(parsedModel,
@@ -260,13 +265,16 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			return;
 		}
 
-		// See which of the selected properties are ok for simulation
+		// See which of the (valid) selected properties are ok for simulation
+		// Also store a list of the expression themselves
 		simulatableGUIProperties = new ArrayList<GUIProperty>();
+		simulatableExprs = new ArrayList<Expression>();
 		for (int i = 0; i < validGUIProperties.size(); i++) {
 			GUIProperty guiP = validGUIProperties.get(i);
 			try {
 				getPrism().checkPropertyForSimulation(guiP.getProperty());
 				simulatableGUIProperties.add(guiP);
+				simulatableExprs.add(guiP.getProperty());
 			} catch (PrismException e) {
 				// do nothing
 			}
@@ -285,31 +293,31 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		try {
 			uCon = new UndefinedConstants(parsedModel, parsedProperties);
 			if (uCon.getMFNumUndefined() + uCon.getPFNumUndefined() > 0) {
-				int result = GUIConstantsPicker.defineConstantsWithDialog(this.getGUI(), uCon, lastSimulateValues, lastPFConstants);
+				// Use previous constant values as defaults in dialog
+				int result = GUIConstantsPicker.defineConstantsWithDialog(this.getGUI(), uCon, mfConstants, pfConstants);
 				if (result != GUIConstantsPicker.VALUES_DONE)
 					return;
 			}
+			
+			// Store model/property constants and set in files
+			mfConstants = uCon.getMFConstantValues();
+			pfConstants = uCon.getPFConstantValues();
+			parsedModel.setUndefinedConstants(mfConstants);
+			parsedProperties.setUndefinedConstants(pfConstants);
 
-			lastSimulateValues = uCon.getMFConstantValues();
-			lastPFConstants = uCon.getPFConstantValues();
-			parsedModel.setUndefinedConstants(lastSimulateValues);
-			parsedProperties.setUndefinedConstants(lastPFConstants);
-
-			SimulationInformation info = GUISimulationPicker.defineSimulationWithDialog(this.getGUI(), parsedModel.getInitialValues(), parsedModel);
+			// Get simulation info with dialog
+			SimulationInformation info = GUISimulationPicker.defineSimulationWithDialog(this.getGUI(), simulatableExprs, parsedModel, null);
+			
+			// If user cancelled simulation, quit 
 			if (info == null)
 				return;
-			Values initialState = info.getInitialState();
-
-			int noIterations = info.getNoIterations();
-			int maxPathLength = info.getMaxPathLength();
-
-			if (parsedModel != null && parsedProperties != null && validGUIProperties != null) {
+			
+			if (parsedModel != null && parsedProperties != null) {
 				if (info.isDistributed()) {
-					new GUISimulatorDistributionDialog(getGUI(), getPrism().getSimulator(), true).show(this, parsedModel, parsedProperties, validGUIProperties,
+					new GUISimulatorDistributionDialog(getGUI(), getPrism().getSimulator(), true).show(this, parsedModel, parsedProperties, simulatableGUIProperties,
 							info);
 				} else {
-					Thread t = new SimulateModelCheckThread(this, parsedModel, parsedProperties, validGUIProperties, lastSimulateValues, lastPFConstants,
-							initialState, noIterations, maxPathLength, info);
+					Thread t = new SimulateModelCheckThread(this, parsedModel, parsedProperties, simulatableGUIProperties, mfConstants, pfConstants, info);
 					t.setPriority(Thread.NORM_PRIORITY);
 					t.start();
 				}
@@ -353,7 +361,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			error("Cannot create an experiment because there are no constants with undefined values");
 			return;
 		}
-		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, type instanceof TypeInt || type instanceof TypeDouble, gp
+		boolean offerGraph = type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval; 
+		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, offerGraph, gp
 				.isValidForSimulation());
 		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
 			showGraphDialog = true;
@@ -541,8 +550,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		newProperty.setEnabled(!computing);
 		editProperty.setEnabled(!computing && propList.getSelectedProperties().size() > 0);
 		// constants list
+		consTable.setEnabled(!computing);
 		removeConstant.setEnabled(consTable.getSelectedRowCount() > 0);
 		// label list
+		labTable.setEnabled(!computing);
 		removeLabel.setEnabled(labTable.getSelectedRowCount() > 0);
 
 		// newExperiment: enabled if there is exactly one prop selected and it is valid
@@ -555,7 +566,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (experiments.getSelectedRowCount() == 1) {
 			GUIExperiment exp = experiments.getExperiment(experiments.getSelectedRow());
 			Type type = exp.getPropertyType();
-			plotResults.setEnabled(type instanceof TypeInt || type instanceof TypeDouble);
+			plotResults.setEnabled(type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval);
 		} else {
 			plotResults.setEnabled(false);
 		}
@@ -940,7 +951,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		exp = experiments.getExperiment(experiments.getSelectedRow());
 		// check its type
 		type = exp.getPropertyType();
-		if (!(type instanceof TypeInt || type instanceof TypeDouble)) {
+		if (!(type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval)) {
 			message("Can only plot results if the property is of type int or double");
 			return;
 		}
@@ -1032,7 +1043,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			} else if (me.getID() == GUIModelEvent.MODEL_BUILT) {
 				setBuiltModel(me.getModel());
 				if (me.getBuildValues() != null)
-					lastBuildValues = me.getBuildValues();
+					mfConstants = me.getBuildValues();
 				modifiedSinceBuild = false;
 				if (verifyAfterReceiveBuildNotification)
 					verifyAfterBuild();
@@ -1820,7 +1831,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		stopExperiment.putValue(Action.LONG_DESCRIPTION, "Stops the Experiment that is currently running");
 		stopExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStop.png"));
 		stopExperiment.setEnabled(false);
-
 	}
 
 	/**

@@ -29,7 +29,6 @@ package userinterface.util;
 import javax.swing.table.TableModel;
 
 /**
- * @author mxk
  * An interface which extends {@link TableModel} such that also group information can 
  * be extracted automatically. Note that groups are always non-empty.
  */
@@ -44,7 +43,7 @@ public interface GUIGroupedTableModel extends TableModel
 	 * Retrieves the name of a group.
 	 * @param groupIndex The index of a group.
 	 * @return The name of the nth group, where n = groupIndex.
-	 * @see TableModel.getColumnName(int columnIndex). 
+	 * @see #getColumnName(int columnIndex). 
 	 */
 	public String getGroupName(int groupIndex);
 		

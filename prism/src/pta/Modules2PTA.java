@@ -84,14 +84,14 @@ public class Modules2PTA
 		// Clone the model file, replace any constants with values,
 		// and simplify any expressions as much as possible.
 		modulesFile = (ModulesFile) modulesFile.deepCopy().replaceConstants(constantValues).simplify();
-		
+
 		// Remove formulas/labels from (cloned) model - these are not translated.
 		modulesFile.setFormulaList(new FormulaList());
 		modulesFile.setLabelList(new LabelList());
-		
+
 		// Also remove reward structures - these are not currently used
 		modulesFile.clearRewardStructs();
-		
+
 		// Go through list of modules
 		numModules = modulesFile.getNumModules();
 		pcStates = new ArrayList<ArrayList<State>>(numModules);
@@ -125,7 +125,7 @@ public class Modules2PTA
 			pta = (pta == null) ? pta2 : new PTAParallel().compose(pta, pta2);
 		}
 		//mainLog.println(pta);
-		
+
 		// Pass the list of non-clock variables to the PTA  
 		pta.setLocationNameVars(allNonClocks);
 
@@ -188,8 +188,15 @@ public class Modules2PTA
 				pcValues.setValue(pc, i);
 				// Evaluate (partially) invariant for this PC value
 				invar = (Expression) invar.evaluatePartially(null, pcValues).simplify();
-				// Add invariant to transition (unless "true")
+				// The (partial) invariant should now be a conjunction of clock constraints (or true)
+				// Split into parts, convert to constraints and add to PTA (unless "true")
+				// If expression is not (syntactically) convex, complain
 				exprs = ParserUtils.splitConjunction(invar);
+				for (Expression ex : exprs) {
+					if (!(Expression.isTrue(ex) || Expression.isFalse(ex))) {
+						checkIsSimpleClockConstraint(ex);
+					}
+				}
 				for (Expression ex : exprs) {
 					if (!Expression.isTrue(ex)) {
 						for (Constraint c : exprToConstraint(ex, pta)) {
@@ -210,12 +217,18 @@ public class Modules2PTA
 			pcValues = new Values();
 			pcValues.setValue(pc, pcVal);
 			// RHS of guard should be conjunction of clock constraints (or true)
-			// Split into parts, convert to constraints and add to new PTA transition 
+			// Split into parts, convert to constraints and add to new PTA transition
+			// If expression is not (syntactically) convex, complain
 			tr = pta.addTransition(pcVal, command.getSynch());
 			exprs = ParserUtils.splitConjunction(((ExpressionBinaryOp) command.getGuard()).getOperand2());
 			for (Expression ex : exprs) {
-				if (!Expression.isTrue(ex)) {
-					for (Constraint c : exprToConstraint(ex, pta)) {
+				if (!(Expression.isTrue(ex) || Expression.isFalse(ex))) {
+					checkIsSimpleClockConstraint(ex);
+				}
+			}
+			for (Expression ex2 : exprs) {
+				if (!Expression.isTrue(ex2)) {
+					for (Constraint c : exprToConstraint(ex2, pta)) {
 						tr.addGuardConstraint(c);
 					}
 				}
@@ -253,7 +266,63 @@ public class Modules2PTA
 	}
 
 	/**
-	 * Convert a PRISM expression representing a clock constraint into
+	 * Check whether a PRISM expression (over clock variables) is a "simple" clock constraint, i.e. of the form
+	 * x~c or x~y where x and y are clocks, c is an integer-valued expression and ~ is one of <, <=, >=, >, =.
+	 * Throws an explanatory exception if not.
+	 * @param expr: The expression to be checked.
+	 */
+	private void checkIsSimpleClockConstraint(Expression expr) throws PrismLangException
+	{
+		ExpressionBinaryOp exprRelOp;
+		Expression expr1, expr2;
+		int op, clocks = 0;
+
+		// Check is rel op
+		if (!Expression.isRelOp(expr))
+			throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+		// Split into parts
+		exprRelOp = (ExpressionBinaryOp) expr;
+		op = exprRelOp.getOperator();
+		expr1 = exprRelOp.getOperand1();
+		expr2 = exprRelOp.getOperand2();
+		// Check operator is of allowed type
+		if (!ExpressionBinaryOp.isRelOp(op))
+			throw new PrismLangException("Can't use operator " + exprRelOp.getOperatorSymbol() + " in clock constraint \"" + expr + "\"", expr);
+		if (op == ExpressionBinaryOp.NE)
+			throw new PrismLangException("Can't use negation in clock constraint \"" + expr + "\"", expr);
+		// LHS
+		if (expr1.getType() instanceof TypeClock) {
+			if (!(expr1 instanceof ExpressionVar)) {
+				throw new PrismLangException("Invalid clock expression \"" + expr1 + "\"", expr1);
+			}
+			clocks++;
+		} else if (expr1.getType() instanceof TypeInt) {
+			if (!expr1.isConstant()) {
+				throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+			}
+		} else {
+			throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+		}
+		// RHS
+		if (expr2.getType() instanceof TypeClock) {
+			if (!(expr2 instanceof ExpressionVar)) {
+				throw new PrismLangException("Invalid clock expression \"" + expr2 + "\"", expr2);
+			}
+			clocks++;
+		} else if (expr2.getType() instanceof TypeInt) {
+			if (!expr2.isConstant()) {
+				throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+			}
+		} else {
+			throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+		}
+		// Should be at least one clock
+		if (clocks == 0)
+			throw new PrismLangException("Invalid clock constraint \"" + expr + "\"", expr);
+	}
+
+	/**
+	 * Convert a PRISM expression representing a (simple) clock constraint into
 	 * the Constraint data structures used in the pta package.
 	 * Actually creates a list of constraints (since e.g. x=c maps to multiple constraints) 
 	 * @param expr: The expression to be converted.
@@ -378,8 +447,7 @@ public class Modules2PTA
 	 * @param pcVars: The variables that should be converted to a PC.
 	 * @param pcStates: An empty ArrayList into which PC value states will be stored.
 	 */
-	private Module convertModuleToPCForm(Module module, List<String> pcVars, ArrayList<State> pcStates)
-			throws PrismLangException
+	private Module convertModuleToPCForm(Module module, List<String> pcVars, ArrayList<State> pcStates) throws PrismLangException
 	{
 		// Info about variables in model to be used as program counter
 		int pcNumVars;
@@ -453,72 +521,80 @@ public class Modules2PTA
 		states.add(state);
 		explore.add(state);
 		src = -1;
-		while (!explore.isEmpty()) {
-			// Pick next state to explore
-			// (they are stored in order found so know index is src+1)
-			state = explore.removeFirst();
-			src++;
-			// Build expression for this PC state
-			exprPc = new ExpressionVar(pc, TypeInt.getInstance());
-			exprPc = new ExpressionBinaryOp(ExpressionBinaryOp.EQ, exprPc, Expression.Int(src));
-			// For each command in the module
-			numCommands = module.getNumCommands();
-			for (i = 0; i < numCommands; i++) {
-				command = module.getCommand(i);
-				// See if guard is potentially true for this PC value
-				guard = command.getGuard();
-				guard = (Expression) guard.deepCopy().evaluatePartially(state, varMap).simplify();
-				if (!Expression.isFalse(guard)) {
-					// If so, build a new command
-					commandNew = new Command();
-					commandNew.setSynch(command.getSynch());
-					guardNew = Expression.And(exprPc, guard);
-					commandNew.setGuard(guardNew);
-					// Go through updates, modifying them 
-					updates = command.getUpdates();
-					updatesNew = new Updates();
-					numUpdates = updates.getNumUpdates();
-					for (j = 0; j < numUpdates; j++) {
-						update = updates.getUpdate(j);
-						// Determine successor (PC) state
-						stateNew = new State(state);
-						update.updatePartially(state, stateNew, varMap);
-						// If new, add it to explore list
-						if (states.add(stateNew)) {
-							explore.add(stateNew);
-						}
-						dest = states.getIndexOfLastAdd();
-						// Build new update
-						updateNew = new Update();
-						updateNew.addElement(new ExpressionIdent(pc), Expression.Int(dest));
-						numElements = update.getNumElements();
-						// Copy across rest of old update  
-						for (k = 0; k < numElements; k++) {
-							if (varMap[update.getVarIndex(k)] == -1) {
-								updateNew.addElement(update.getVarIdent(k), update.getExpression(k));
+		try {
+			while (!explore.isEmpty()) {
+				// Pick next state to explore
+				// (they are stored in order found so know index is src+1)
+				state = explore.removeFirst();
+				src++;
+				// Build expression for this PC state
+				exprPc = new ExpressionVar(pc, TypeInt.getInstance());
+				exprPc = new ExpressionBinaryOp(ExpressionBinaryOp.EQ, exprPc, Expression.Int(src));
+				// For each command in the module
+				numCommands = module.getNumCommands();
+				for (i = 0; i < numCommands; i++) {
+					command = module.getCommand(i);
+					// See if guard is potentially true for this PC value
+					guard = command.getGuard();
+					guard = (Expression) guard.deepCopy().evaluatePartially(state, varMap).simplify();
+					if (!Expression.isFalse(guard)) {
+						// If so, build a new command
+						commandNew = new Command();
+						commandNew.setSynch(command.getSynch());
+						guardNew = Expression.And(exprPc, guard);
+						commandNew.setGuard(guardNew);
+						// Go through updates, modifying them 
+						updates = command.getUpdates();
+						updatesNew = new Updates();
+						numUpdates = updates.getNumUpdates();
+						for (j = 0; j < numUpdates; j++) {
+							update = updates.getUpdate(j);
+							// Determine successor (PC) state
+							stateNew = new State(state);
+							update.updatePartially(state, stateNew, varMap);
+							// If new, add it to explore list
+							if (states.add(stateNew)) {
+								explore.add(stateNew);
 							}
+							dest = states.getIndexOfLastAdd();
+							// Build new update
+							updateNew = new Update();
+							updateNew.addElement(new ExpressionIdent(pc), Expression.Int(dest));
+							numElements = update.getNumElements();
+							// Copy across rest of old update  
+							for (k = 0; k < numElements; k++) {
+								if (varMap[update.getVarIndex(k)] == -1) {
+									updateNew.addElement(update.getVarIdent(k), update.getExpression(k));
+								}
+							}
+							updatesNew.addUpdate(updates.getProbability(j), updateNew);
 						}
-						updatesNew.addUpdate(updates.getProbability(j), updateNew);
+						// Add new stuff to new module
+						commandNew.setUpdates(updatesNew);
+						moduleNew.addCommand(commandNew);
 					}
-					// Add new stuff to new module
-					commandNew.setUpdates(updatesNew);
-					moduleNew.addCommand(commandNew);
 				}
-			}
 
-			// Also generate the (clock) invariant for this state
-			invar = module.getInvariant();
-			if (invar != null) {
-				// Get (copy of) existing invariant for module
-				invar = invar.deepCopy();
-				// Evaluate (partially) invariant for this PC value
-				invar = (Expression) invar.evaluatePartially(state, varMap).simplify();
-				// If not "true", add into new invariant
-				if (!Expression.isTrue(invar)) {
-					invar = Expression.Parenth(Expression.Implies(exprPc, invar));
-					invarNew = (invarNew == null) ? invar : Expression.And(invarNew, invar);
+				// Also generate the (clock) invariant for this state
+				invar = module.getInvariant();
+				if (invar != null) {
+					// Get (copy of) existing invariant for module
+					invar = invar.deepCopy();
+					// Evaluate (partially) invariant for this PC value
+					invar = (Expression) invar.evaluatePartially(state, varMap).simplify();
+					// If not "true", add into new invariant
+					if (!Expression.isTrue(invar)) {
+						invar = Expression.Parenth(Expression.Implies(exprPc, invar));
+						invarNew = (invarNew == null) ? invar : Expression.And(invarNew, invar);
+					}
 				}
 			}
+		}
+		// Catch a (possibly) common source of mem-out errors during explicit-state reachability
+		catch (OutOfMemoryError e) {
+			states.clear();
+			System.gc();
+			throw new PrismLangException("Out of memory after exploring " + (src + 1) + " states of module " + module.getName(), module);
 		}
 
 		// Set the invariant for the new module

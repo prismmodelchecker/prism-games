@@ -212,6 +212,14 @@ public class StateValuesMTBDD implements StateValues
 		values = JDD.Apply(JDD.TIMES, values, filter);
 	}
 	
+	// apply max operator, i.e. vec[i] = max(vec[i], vec2[i]), where vec2 is an mtbdd
+	
+	public void maxMTBDD(JDDNode vec2)
+	{
+		JDD.Ref(vec2);
+		values = JDD.Apply(JDD.MAX, values, vec2);
+	}
+	
 	// clear
 	
 	public void clear()
@@ -497,10 +505,10 @@ public class StateValuesMTBDD implements StateValues
 	
 	/**
 	 * Print vector to a log/file.
-	 * @param log: The log
-	 * @param printSparse: Print non-zero elements only? 
-	 * @param printMatlab: Print in Matlab format?
-	 * @param printStates: Print states (variable values) for each element? 
+	 * @param log The log
+	 * @param printSparse Print non-zero elements only? 
+	 * @param printMatlab Print in Matlab format?
+	 * @param printStates Print states (variable values) for each element? 
 	 */
 	public void print(PrismLog log, boolean printSparse, boolean printMatlab, boolean printStates) throws PrismException
 	{
@@ -576,8 +584,8 @@ public class StateValuesMTBDD implements StateValues
 
 	/**
 	 * Print part of a vector to a log/file (non-zero entries only).
-	 * @param log: The log
-	 * @param filter: A BDD specifying which states to print for.
+	 * @param log The log
+	 * @param filter A BDD specifying which states to print for.
 	 */
 	public void printFiltered(PrismLog log, JDDNode filter) throws PrismException
 		{
@@ -610,11 +618,11 @@ public class StateValuesMTBDD implements StateValues
 	
 	/**
 	 * Print part of a vector to a log/file (non-zero entries only).
-	 * @param log: The log
-	 * @param filter: A BDD specifying which states to print for.
-	 * @param printSparse: Print non-zero elements only? 
-	 * @param printMatlab: Print in Matlab format?
-	 * @param printStates: Print states (variable values) for each element? 
+	 * @param log The log
+	 * @param filter A BDD specifying which states to print for.
+	 * @param printSparse Print non-zero elements only? 
+	 * @param printMatlab Print in Matlab format?
+	 * @param printStates Print states (variable values) for each element? 
 	 */
 	public void printFiltered(PrismLog log, JDDNode filter, boolean printSparse, boolean printMatlab, boolean printStates) throws PrismException
 	{

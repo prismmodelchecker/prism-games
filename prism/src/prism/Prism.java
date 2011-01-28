@@ -39,15 +39,19 @@ import hybrid.*;
 import parser.*;
 import parser.ast.*;
 import simulator.*;
+import simulator.method.SimulationMethod;
 import pta.*;
 
-// prism class - main class for model checker
-// (independent of user interface (command line or gui))
-
+/**
+ * Main class for all PRISM's core functionality.
+ * This is independent of the user interface (command line or gui).
+ */
 public class Prism implements PrismSettingsListener
 {
 	// prism version
-	private static String version = "3.3.dev";
+	private static String version = "4.0.beta";
+	// prism version suffix
+	private static String versionSuffix = ""; //".rXXXX";;
 	
 	//------------------------------------------------------------------------------
 	// Constants
@@ -156,19 +160,20 @@ public class Prism implements PrismSettingsListener
 	
 	private boolean cuddStarted = false;
 
-	
-	
 	//------------------------------------------------------------------------------
 	// methods
 	//------------------------------------------------------------------------------
 	
-	// constructor
-	
-	public Prism(PrismLog l1, PrismLog l2)
+	/**
+	 * Construct a new Prism object.
+	 * @param mainLog PrismLog where messages and model checking output will be sent.
+	 * @param techLog PrismLog for output of detailed technical info (not really used).
+	 */
+	public Prism(PrismLog mainLog, PrismLog techLog)
 	{
 		// set up logs
-		mainLog = l1;
-		techLog = l2;
+		this.mainLog = mainLog;
+		this.techLog = techLog;
 		
 		// set up some default options
 		settings = new PrismSettings();
@@ -201,8 +206,11 @@ public class Prism implements PrismSettingsListener
 		sumRoundOff = 1e-5;
 	}
 	
-	// set methods
+	// Set methods
 	
+	/**
+	 * Set the PrismLog where messages and model checking output will be sent.
+	 */
 	public void setMainLog(PrismLog l)
 	{
 		// store new log
@@ -213,6 +221,9 @@ public class Prism implements PrismSettingsListener
 		PrismHybrid.setMainLog(mainLog);
 	}
 	
+	/**
+	 * Set the PrismLog for output of detailed technical info (not really used).
+	 */
 	public void setTechLog(PrismLog l)
 	{
 		// store new log
@@ -224,8 +235,8 @@ public class Prism implements PrismSettingsListener
 		PrismHybrid.setTechLog(techLog);
 	}
 	
-	// set methods for main prism settings
-	// provided for convenience and for compatability with old code
+	// Set methods for main prism settings
+	// (provided for convenience and for compatibility with old code)
 	
 	public void setEngine(int e) throws PrismException
 	{
@@ -342,7 +353,7 @@ public class Prism implements PrismSettingsListener
 		settings.set(PrismSettings.PRISM_EXPORT_ADV_FILENAME, s);
 	}
 	
-	// set methods for miscellaneous options
+	// Set methods for miscellaneous options
 	
 	public void setExportTarget(boolean b) throws PrismException
 	{
@@ -379,10 +390,10 @@ public class Prism implements PrismSettingsListener
 		sumRoundOff = d;
 	}
 	
-	// get methods
+	// Get methods
 	
 	public static String getVersion()
-	{ return version; }
+	{ return version + versionSuffix; }
 	
 	public PrismLog getMainLog()
 	{ return mainLog; }
@@ -390,8 +401,8 @@ public class Prism implements PrismSettingsListener
 	public PrismLog getTechLog()
 	{ return techLog; }
 	
-	// get methods for main prism settings
-	// as above, provided for convenience and for compatability with old code
+	// Get methods for main prism settings
+	// (as above, provided for convenience and for compatibility with old code)
 	
 	public int getEngine()
 	{ return settings.getInteger(PrismSettings.PRISM_ENGINE)+1; } //note the correction
@@ -462,7 +473,7 @@ public class Prism implements PrismSettingsListener
 	public String getExportAdvFilename()
 	{ return settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME); }
 	
-	// get methods for miscellaneous options
+	// Get methods for miscellaneous options
 	
 	public boolean getExportTarget()
 	{return exportTarget; }
@@ -485,12 +496,12 @@ public class Prism implements PrismSettingsListener
 	public double getSumRoundOff()
 	{ return sumRoundOff; }
 	
-	// get/release (exclusive) access to the prism parser
-	
-	// note: this mutex mechanism is based on public domain code by Doug Lea
-	
+	/**
+	 * Get (exclusive) access to the PRISM parser.
+	 */
 	public static PrismParser getPrismParser() throws InterruptedException
 	{
+		// Note: this mutex mechanism is based on public domain code by Doug Lea
 		if (Thread.interrupted()) throw new InterruptedException();
 		// this code is synchronized on the whole Prism class
 		// (because this is a static method)
@@ -511,14 +522,18 @@ public class Prism implements PrismSettingsListener
 		}
 	}
 	
+	/**
+	 * Release (exclusive) access to the PRISM parser.
+	 */
 	public static synchronized void releasePrismParser()
 	{
 		prismParserInUse = false;
 		Prism.class.notify(); 
 	}
 
-	// get Simulator object, creating if necessary
-	
+	/**
+	 * Get the SimulatorEngine object for PRISM, creating if necessary.
+	 */
 	public SimulatorEngine getSimulator()
 	{
 		if (theSimulator == null) {
@@ -530,7 +545,6 @@ public class Prism implements PrismSettingsListener
 	/**
 	 * Get an SCCComputer object.
 	 * Type (i.e. algorithm) depends on SCCMethod PRISM option.
-	 * @return
 	 */
 	public SCCComputer getSCCComputer(Model model)
 	{
@@ -540,7 +554,6 @@ public class Prism implements PrismSettingsListener
 	/**
 	 * Get an SCCComputer object.
 	 * Type (i.e. algorithm) depends on SCCMethod PRISM option.
-	 * @return
 	 */
 	public SCCComputer getSCCComputer(JDDNode reach, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars)
 	{
@@ -561,8 +574,9 @@ public class Prism implements PrismSettingsListener
 		return sccComputer;
 	}
 	
-	// Let PrismSettings object notify us things have changed
-	
+	/**
+	 * Let PrismSettings object notify us things have changed
+	 */
 	public void notifySettings(PrismSettings settings)
 	{
 		if (cuddStarted)
@@ -572,14 +586,16 @@ public class Prism implements PrismSettingsListener
 		}
 	}
 
-	// Compare two version numbers of PRISM (strings)
-	// Returns: 1 if v1>v2, -1 if v1<v2, 0 if v1=v2
-	// Example ordering: { "1", "2", "2.0", "2.1.beta", "2.1.beta4", "2.1", "2.1.dev", "2.1.dev1", "2.1.dev2", "2.1.2", "2.9", "3", "3.4"}
-	
+	/**
+	 * Compare two version numbers of PRISM (strings).
+	 * Example ordering: { "1", "2.0", "2.1.alpha", "2.1.alpha.r5555", "2.1.alpha.r5557", "2.1.beta", "2.1.beta4", "2.1", "2.1.dev", "2.1.dev.r6666", "2.1.dev1", "2.1.dev2", "2.1.2", "2.9", "3", "3.4"};
+	 * Returns: 1 if v1>v2, -1 if v1<v2, 0 if v1=v2
+	 */
 	public static int compareVersions(String v1, String v2)
 	{
 		String ss1[], ss2[], tmp[];
-		int s1 = 0, s2 = 0, i, n;
+		int i, n, x;
+		double s1 = 0, s2 = 0;
 		boolean s1num, s2num;
 		
 		// Exactly equal
@@ -603,35 +619,55 @@ public class Prism implements PrismSettingsListener
 		}
 		// Loop through sections of string
 		for (i = 0; i < n; i++) {
+			// 2.1.alpha < 2.1, etc.
+			// 2.1.alpha < 2.1.alpha2 < 2.1.alpha3, etc.
+			// so replace alphax with -10000+x
+			if (ss1[i].matches("alpha.*")) {
+				try { if (ss1[i].length() == 5) x = 0; else x = Integer.parseInt(ss1[i].substring(5)); } catch (NumberFormatException e) { x = 0; }
+				ss1[i] = "" + (-10000 + x);
+			}
+			if (ss2[i].matches("alpha.*")) {
+				try { if (ss2[i].length() == 5) x = 0; else x = Integer.parseInt(ss2[i].substring(5)); } catch (NumberFormatException e) { x = 0; }
+				ss2[i] = "" + (-10000 + x);
+			}
 			// 2.1.beta < 2.1, etc.
+			// 2.1.beta < 2.1.beta2 < 2.1.beta3, etc.
+			// so replace betax with -100+x
 			if (ss1[i].matches("beta.*")) {
-				if (ss2[i].matches("beta.*")) {
-					// 2.1.beta < 2.1.beta2 < 2.1.beta3, etc.
-					try { if (ss1[i].length() == 4) s1 = 0; else s1 = Integer.parseInt(ss1[i].substring(4)); } catch (NumberFormatException e) { return 0; }
-					try { if (ss2[i].length() == 4) s2 = 0; else s2 = Integer.parseInt(ss2[i].substring(4)); } catch (NumberFormatException e) { return 0; }
-					if (s1 == s2) return 0; else return (s1 > s2) ? 1 : -1;
-				}
-				else return -1;
+				try { if (ss1[i].length() == 4) x = 0; else x = Integer.parseInt(ss1[i].substring(4)); } catch (NumberFormatException e) { x = 0; }
+				ss1[i] = "" + (-100 + x);
 			}
-			if (ss2[i].matches("beta.*")) return 1;
+			if (ss2[i].matches("beta.*")) {
+				try { if (ss2[i].length() == 4) x = 0; else x = Integer.parseInt(ss2[i].substring(4)); } catch (NumberFormatException e) { x = 0; }
+				ss2[i] = "" + (-100 + x);
+			}
 			// 2 < 2.1, etc.
-			if (ss1[i].equals("")) { if (ss2[i].equals("")) return 0; else return -1; }
-			if (ss2[i].equals("")) return 1;
+			// so treat 2 as 2.0
+			if (ss1[i].equals("")) ss1[i] = "0";
+			if (ss2[i].equals("")) ss2[i] = "0";
 			// 2.1 < 2.1.dev, etc.
+			// 2.1.dev < 2.1.dev2 < 2.1.dev3, etc.
+			// so replace devx with 0.5+x/1000
 			if (ss1[i].matches("dev.*")) {
-				if (ss2[i].matches("dev.*")) {
-					// 2.1.dev < 2.1.dev2 < 2.1.dev3, etc.
-					try { if (ss1[i].length() == 3) s1 = 0; else s1 = Integer.parseInt(ss1[i].substring(3)); } catch (NumberFormatException e) { return 0; }
-					try { if (ss2[i].length() == 3) s2 = 0; else s2 = Integer.parseInt(ss2[i].substring(3)); } catch (NumberFormatException e) { return 0; }
-					if (s1 == s2) return 0; else return (s1 > s2) ? 1 : -1;
-				}
-				else return -1;
+				try { if (ss1[i].length() == 3) x = 0; else x = Integer.parseInt(ss1[i].substring(3)); } catch (NumberFormatException e) { x = 0; }
+				ss1[i] = "" + (0.5 + x / 1000.0);
 			}
-			if (ss2[i].matches("dev.*")) return 1;
+			if (ss2[i].matches("dev.*")) {
+				try { if (ss2[i].length() == 3) x = 0; else x = Integer.parseInt(ss2[i].substring(3)); } catch (NumberFormatException e) { x = 0; }
+				ss2[i] = "" + (0.5 + x / 1000.0);
+			}
+			// replace rx (e.g. as in 4.0.alpha.r5555) with x
+			if (ss1[i].matches("r.*")) {
+				try { x = Integer.parseInt(ss1[i].substring(1)); } catch (NumberFormatException e) { x = 0; }
+				ss1[i] = "" + x;
+			}
+			if (ss2[i].matches("r.*")) {
+				try { x = Integer.parseInt(ss2[i].substring(1)); } catch (NumberFormatException e) { x = 0; }
+				ss2[i] = "" + x;
+			}
 			// See if strings are integers
-			try { s1num = true; s1 = Integer.parseInt(ss1[i]); } catch (NumberFormatException e) { s1num = false; }
-			try { s2num = true; s2 = Integer.parseInt(ss2[i]); } catch (NumberFormatException e) { s2num = false; }
-			// 2.5 < 3.1, etc. 
+			try { s1num = true; s1 = Double.parseDouble(ss1[i]); } catch (NumberFormatException e) { s1num = false; }
+			try { s2num = true; s2 = Double.parseDouble(ss2[i]); } catch (NumberFormatException e) { s2num = false; }
 			if (s1num && s2num) {
 				if (s1 < s2) return -1;
 				if (s1 > s2) return 1;
@@ -642,12 +678,50 @@ public class Prism implements PrismSettingsListener
 		return 0;
 	}
 
-	// initialise
+	/*// Simple test harness for compareVersions
+	public static void main(String[] args)
+	{
+		 String v[] =  { "1", "2.0", "2.1.alpha", "2.1.alpha.r5555", "2.1.alpha.r5557", "2.1.beta", "2.1.beta4", "2.1", "2.1.dev", "2.1.dev.r6666", "2.1.dev1", "2.1.dev2", "2.1.2", "2.9", "3", "3.4"};
+		 for (int i = 0; i < v.length; i++) {
+			 for (int j = 0; j < v.length; j++) {
+				 int d = compareVersions(v[i], v[j]);
+				 System.out.print(d == 1 ? ">" : d==0 ? "=" : d==-1 ? "<" : "?");
+				 if (d != compareVersions(""+i, ""+j))
+					 System.out.print("ERR(" + v[i] + "," + v[j] + ")");
+					 
+			 }
+			 System.out.println();
+		 }
+	}*/
 	
+    /**
+	 * Get access to the list of all PRISM language keywords.
+	 */
+	public static List<String> getListOfKeyords()
+	{
+		try {
+			// obtain exclusive access to the prism parser
+			// (don't forget to release it afterwards)
+			try {
+				return getPrismParser().getListOfKeywords();
+			}
+			finally {
+				// release prism parser
+				releasePrismParser();
+			}
+		}
+		catch(InterruptedException ie) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Initialise PRISM.
+	 */
 	public void initialise() throws PrismException
 	{
 		mainLog.print("PRISM\n=====\n");
-		mainLog.print("\nVersion: " + version + "\n");
+		mainLog.print("\nVersion: " + getVersion() + "\n");
 		mainLog.print("Date: " + new java.util.Date() + "\n");
 		try {
 			String h = java.net.InetAddress.getLocalHost().getHostName();
@@ -937,6 +1011,10 @@ public class Prism implements PrismSettingsListener
 	{
 		long l; // timer
 		Model model;
+		
+		if (modulesFile.getModelType() == ModelType.PTA) {
+			throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
+		}
 		
 		mainLog.print("\nBuilding model");
 		if (msg != null) if (msg.length() > 0) mainLog.print(" (" + msg + ")");
@@ -1340,9 +1418,9 @@ public class Prism implements PrismSettingsListener
 	
 	/**
 	 * Perform model checking of a property on a model and return result.
-	 * @param model: The model (DTMC, CTMC or MDP)
-	 * @param propertiesFile: Parent property file of property (for labels/constants/...)
-	 * @param expr: The property
+	 * @param model The model (DTMC, CTMC or MDP)
+	 * @param propertiesFile Parent property file of property (for labels/constants/...)
+	 * @param expr The property
 	 */
 	public Result modelCheck(Model model, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
@@ -1374,9 +1452,9 @@ public class Prism implements PrismSettingsListener
 	
 	/**
 	 * Perform model checking of a property on a PTA model and return result.
-	 * @param model: The PTA model (language-level)
-	 * @param propertiesFile: Parent property file of property (for labels/constants/...)
-	 * @param expr: The property
+	 * @param modulesFile The PTA model (language-level)
+	 * @param propertiesFile Parent property file of property (for labels/constants/...)
+	 * @param expr The property
 	 */
 	public Result modelCheckPTA(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
@@ -1393,21 +1471,6 @@ public class Prism implements PrismSettingsListener
 		return res;
 	}
 	
-	// compute parameters for simulation
-	
-	public double computeSimulationApproximation(double confid, int numSamples)
-	{
-		return getSimulator().computeSimulationApproximation(confid, numSamples);
-	}
-	public double computeSimulationConfidence(double approx, int numSamples)
-	{
-		return getSimulator().computeSimulationConfidence(approx, numSamples);
-	}
-	public int computeSimulationNumSamples(double approx, double confid)
-	{
-		return getSimulator().computeSimulationNumSamples(approx, confid);
-	}
-
 	// check if a property is suitable for analysis with the simulator
 	
 	public void checkPropertyForSimulation(Expression expr) throws PrismException
@@ -1418,7 +1481,7 @@ public class Prism implements PrismSettingsListener
 	// model check using simulator
 	// returns result or throws an exception in case of error
 	
-	public Result modelCheckSimulator(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, Values initialState, int noIterations, int maxPathLength) throws PrismException
+	public Result modelCheckSimulator(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, Values initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
 		Object res = null;
 		
@@ -1426,7 +1489,7 @@ public class Prism implements PrismSettingsListener
 		expr.checkValid(modulesFile.getModelType());
 		
 		// Do model checking
-		res = getSimulator().modelCheckSingleProperty(modulesFile, propertiesFile, expr, new State(initialState), noIterations, maxPathLength);
+		res = getSimulator().modelCheckSingleProperty(modulesFile, propertiesFile, expr, new State(initialState), maxPathLength, simMethod);
 		
 		return new Result(res);
 	}
@@ -1435,7 +1498,7 @@ public class Prism implements PrismSettingsListener
 	// returns an array of results, some of which may be Exception objects if there were errors
 	// in the case of an error which affects all properties, an exception is thrown
 	
-	public Result[] modelCheckSimulatorSimultaneously(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, Values initialState, int noIterations, int maxPathLength) throws PrismException
+	public Result[] modelCheckSimulatorSimultaneously(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, Values initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
 		Object[] res = null;
 		
@@ -1444,7 +1507,7 @@ public class Prism implements PrismSettingsListener
 			expr.checkValid(modulesFile.getModelType());
 		
 		// Do model checking
-		res = getSimulator().modelCheckMultipleProperties(modulesFile, propertiesFile, exprs, new State(initialState), noIterations, maxPathLength);
+		res = getSimulator().modelCheckMultipleProperties(modulesFile, propertiesFile, exprs, new State(initialState), maxPathLength, simMethod);
 		
 		Result[] resArray = new Result[res.length];
 		for (int i = 0; i < res.length; i++) resArray[i] = new Result(res[i]);
@@ -1455,26 +1518,51 @@ public class Prism implements PrismSettingsListener
 	// results are stored in the ResultsCollection, some of which may be Exception objects if there were errors
 	// in the case of an error which affects all properties, an exception is thrown
 	
-	public void modelCheckSimulatorExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants, ResultsCollection results, Expression propertyToCheck, Values initialState, int noIterations, int pathLength) throws PrismException, InterruptedException
+	public void modelCheckSimulatorExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants, ResultsCollection results, Expression propertyToCheck, Values initialState, int pathLength, SimulationMethod simMethod) throws PrismException, InterruptedException
 	{
-		getSimulator().modelCheckExperiment(modulesFile, propertiesFile, undefinedConstants, results, propertyToCheck, new State(initialState), pathLength, noIterations);
+		getSimulator().modelCheckExperiment(modulesFile, propertiesFile, undefinedConstants, results, propertyToCheck, new State(initialState), pathLength, simMethod);
 	}
 	
-	// generate a random path through the model using the simulator
-	
+	/**
+	 * Generate a random path through the model using the simulator.
+	 * @param modulesFile The model
+	 * @param initialState Initial state (if null, is selected randomly)
+	 * @param details Information about the path to be generated
+	 * @param file File to output the path to (stdout if null)
+	 */
 	public void generateSimulationPath(ModulesFile modulesFile, String details, int maxPathLength, File file) throws PrismException, PrismLangException
 	{
-		// do path generation
 		GenerateSimulationPath genPath = new GenerateSimulationPath(getSimulator(), mainLog);
 		genPath.generateSimulationPath(modulesFile, modulesFile.getInitialValues(), details, maxPathLength, file);
 	}
 	
-	// do steady state
-	
+	/**
+	 * Compute steady-state probabilities (for a DTMC or CTMC).
+	 * Output probability distribution to log. 
+	 */
 	public void doSteadyState(Model model) throws PrismException
+	{
+		doSteadyState(model, EXPORT_PLAIN, null);
+	}
+	
+	/**
+	 * Compute steady-state probabilities (for a DTMC or CTMC).
+	 * Output probability distribution to a file (or, if file is null, to log). 
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 */
+	public void doSteadyState(Model model, int exportType, File fileOut) throws PrismException
 	{
 		long l = 0; // timer
 		StateValues probs = null;
+		PrismLog tmpLog;
+		
+		if (fileOut != null && getEngine() == MTBDD)
+			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
+		
+		// no specific states format for MRMC
+		if (exportType == EXPORT_MRMC) exportType = EXPORT_PLAIN;
+		// rows format does not apply to states output
+		if (exportType == EXPORT_ROWS) exportType = EXPORT_PLAIN;
 		
 		mainLog.println("\nComputing steady-state probabilities...");
 		l = System.currentTimeMillis();
@@ -1493,17 +1581,37 @@ public class Prism implements PrismSettingsListener
 		
 		l = System.currentTimeMillis() - l;
 		
-		// print out probabilities
-		mainLog.print("\nProbabilities: \n");
-		probs.print(mainLog);
-		probs.clear();
+		// print message
+		mainLog.print("\nPrinting steady-state probabilities ");
+		switch (exportType) {
+		case EXPORT_PLAIN: mainLog.print("in plain text format "); break;
+		case EXPORT_MATLAB: mainLog.print("in Matlab format "); break;
+		}
+		if (fileOut != null) mainLog.println("to file \"" + fileOut + "\"..."); else mainLog.println("below:");
 		
-		// print out model checking time
+		// create new file log or use main log
+		if (fileOut != null) {
+			tmpLog = new PrismFileLog(fileOut.getPath());
+			if (!tmpLog.ready()) {
+				throw new PrismException("Could not open file \"" + fileOut + "\" for output");
+			}
+		} else {
+			tmpLog = mainLog;
+		}
+		
+		// print out or export probabilities
+		probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
+		
+		// print out computation time
 		mainLog.println("\nTime for steady-state probability computation: " + l/1000.0 + " seconds.");
+		
+		// tidy up
+		probs.clear();
+		if (fileOut != null) tmpLog.close();
 	}
 	
 	/**
-	 * Compute transient probabilities (for DTMC or CTMC).
+	 * Compute transient probabilities (for a DTMC or CTMC).
 	 * Output probability distribution to log. 
 	 */
 	public void doTransient(Model model, double time) throws PrismException
@@ -1512,7 +1620,7 @@ public class Prism implements PrismSettingsListener
 	}
 	
 	/**
-	 * Compute transient probabilities (for DTMC or CTMC).
+	 * Compute transient probabilities (for a DTMC or CTMC).
 	 * Output probability distribution to a file (or, if file is null, to log). 
 	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
@@ -1575,7 +1683,7 @@ public class Prism implements PrismSettingsListener
 		// print out or export probabilities
 		probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
 		
-		// print out model checking time
+		// print out computation time
 		mainLog.println("\nTime for transient probability computation: " + l/1000.0 + " seconds.");
 
 		// tidy up
@@ -1600,7 +1708,7 @@ public class Prism implements PrismSettingsListener
 		}
 	}
 	
-	//access method for the settings
+	// Access method for the settings
 	
 	public PrismSettings getSettings()
 	{

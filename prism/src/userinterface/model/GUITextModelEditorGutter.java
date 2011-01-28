@@ -52,12 +52,10 @@ import prism.PrismSettings;
 import userinterface.GUIPrism;
 import userinterface.OptionsPanel;
 
-/** Information gutter for the text model editor. It displays line numbers for 
+/**
+ * Information gutter for the text model editor. It displays line numbers for 
  * the text in the given text pane and the location of a parsing error. The 
  * font the panel uses is taken from the font for the given text pane.
- * 
- * @author Charles Harley (cd.harley@talk21.com)
- * @version 1.1.1 27/11/2006
  */
 public class GUITextModelEditorGutter extends JPanel implements PropertyChangeListener, DocumentListener
 {

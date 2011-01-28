@@ -26,16 +26,14 @@
 //==============================================================================
 
 package userinterface.properties;
+
 import userinterface.*;
 import parser.ast.*;
 import prism.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.awt.*;
-/**
- *
- * @author  ug60axh
- */
+
 public class GUIPropertyEditor extends javax.swing.JDialog implements ActionListener, KeyListener
 {
 	
@@ -62,8 +60,6 @@ public class GUIPropertyEditor extends javax.swing.JDialog implements ActionList
 	/** Creates a new GUIPropertyEditor with its parent GUIPrism, a boolean stating
 	 * whether the dialog should be modal and a Vector of properties to be displayed
 	 * for user browsing/copying.
-	 * @param parent the parent GUIPrism
-	 * @param props a Vector of properties intended for user browsing / copying
 	 */
 	public GUIPropertyEditor(GUIMultiProperties props, ModulesFile parsedModel, int strategy) //Adding constructor
 	{
@@ -74,9 +70,6 @@ public class GUIPropertyEditor extends javax.swing.JDialog implements ActionList
 	 * whether the dialog should be modal, a Vector of properties to be displayed
 	 * for user browsing/copying and a string showing the default value of the
 	 * property text box.
-	 * @param parent the parent GUIPrism
-	 * @param props a Vector of properties intended for user browsing / copying
-	 * @param str the string of the property being edited.
 	 */
 	public GUIPropertyEditor(GUIMultiProperties props, ModulesFile parsedModel, GUIProperty prop, int strategy) //Editing constructor
 	{

@@ -63,8 +63,6 @@ import userinterface.util.*;
  *	<LI>Switching this plugin to the front of the gui
  *	<LI>Switching the log of the gui to the front
  * </UL>
- * @author Andrew Hinton
- * @since 21/10/03
  */
 public abstract class GUIPlugin extends JPanel implements GUIEventListener, PrismSettingsListener
 {
@@ -188,7 +186,7 @@ public abstract class GUIPlugin extends JPanel implements GUIEventListener, Pris
 	}
 		
 	/** Determine whether or not this action should be enabled.
-	 * @param: action An action in GUIClipboard (but not undo/redo).
+	 * @param action An action in GUIClipboard (but not undo/redo).
 	 */	
 	public boolean canDoClipBoardAction(Action action)
 	{

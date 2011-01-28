@@ -30,6 +30,8 @@ import java.util.*;
 
 import parser.*;
 import parser.ast.*;
+import prism.ModelType;
+import prism.PrismException;
 import prism.PrismLangException;
 
 public class ChoiceListFlexi implements Choice
@@ -270,7 +272,7 @@ public class ChoiceListFlexi implements Choice
 	/**
 	 * Return the index of a transition according to a probability (or rate) sum, x.
 	 * i.e. return the index of the first transition in this choice for which the
-	 * sum of probabilities/rates for all prior transitions exceeds x.
+	 * sum of probabilities/rates for that and all prior transitions exceeds x.
 	 */
 	public int getIndexByProbabilitySum(double x)
 	{
@@ -284,6 +286,24 @@ public class ChoiceListFlexi implements Choice
 		return i - 1;
 	}
 
+	@Override
+	public void checkValid(ModelType modelType) throws PrismException
+	{
+		// Currently nothing to do here:
+		// Checks for bad probabilities/rates done earlier.
+	}
+	
+	@Override
+	public void checkForErrors(State currentState, VarList varList) throws PrismException
+	{
+		int i, n;
+		n = size();
+		for (i = 0; i < n; i++) {
+			for (Update up : updates.get(i))
+				up.checkUpdate(currentState, varList);
+		}
+	}
+	
 	public String toString()
 	{
 		int i, n;

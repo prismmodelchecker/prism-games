@@ -27,10 +27,6 @@
 
 package userinterface.util;
 
-/**
- *
- * @author  ug60axh
- */
 public class GUILogEvent extends GUIEvent
 {
     public static final int PRINTLN = 0;
@@ -38,7 +34,7 @@ public class GUILogEvent extends GUIEvent
     
     /**
      * Constructs an instance of <code>GUILogEvent</code> with the specified detail message.
-     * @param msg the detail message.
+     * @param message the detail message.
      */
     public GUILogEvent(int type, Object message)
     {

@@ -42,6 +42,7 @@ public class Updater
 	protected ModulesFile modulesFile;
 	protected ModelType modelType;
 	protected int numModules;
+	protected VarList varList;
 	// Synchronising action info
 	protected Vector<String> synchs;
 	protected int numSynchs;
@@ -61,7 +62,7 @@ public class Updater
 	// (where j=0 denotes independent, otherwise 1-indexed action label)
 	protected BitSet enabledModules[];
 
-	public Updater(SimulatorEngine simulator, ModulesFile modulesFile)
+	public Updater(SimulatorEngine simulator, ModulesFile modulesFile, VarList varList)
 	{
 		int i, j;
 		String s;
@@ -75,6 +76,7 @@ public class Updater
 		synchs = modulesFile.getSynchs();
 		numSynchs = synchs.size();
 		numRewardStructs = modulesFile.getNumRewardStructs();
+		this.varList = varList;
 
 		// Compute count of number of modules using each synch action
 		synchModuleCounts = new int[numSynchs];
@@ -191,7 +193,14 @@ public class Updater
 				transitionList.add(ch);
 			}
 		}
-
+		
+		// Check validity of the computed transitions
+		// (not needed currently)
+		//transitionList.checkValid(modelType);
+		
+		// Check for errors (e.g. overflows) in the computed transitions
+		//transitionList.checkForErrors(state, varList);
+		
 		//System.out.println(transitionList);
 	}
 
@@ -272,7 +281,8 @@ public class Updater
 
 	/**
 	 * Create a new Choice object (currently ChoiceListFlexi) based on an Updates object
-	 * and a (global) state. If appropriate, check probabilities sum to 1 too.
+	 * and a (global) state. Check for negative probabilities/rates and, if appropriate,
+	 * check probabilities sum to 1 too.
 	 * @param moduleOrActionIndex Module/action for the choice, encoded as an integer (see Choice)
 	 * @param ups The Updates object 
 	 * @param state Global state
@@ -290,7 +300,16 @@ public class Updater
 		n = ups.getNumUpdates();
 		sum = 0;
 		for (i = 0; i < n; i++) {
+			// Compute probability/rate
 			p = ups.getProbabilityInState(i, state);
+			// Check for negative/NaN probabilities/rates
+			if (Double.isNaN(p) || p < 0) {
+				String s = modelType.choicesSumToOne() ? "Probability" : "Rate";
+				s += " is invalid (" + p + ") in state " + state.toString(modulesFile);
+				// Note: we indicate error in whole Updates object because the offending
+				// probability expression has probably been simplified from original form.
+				throw new PrismLangException(s, ups);
+			}
 			sum += p;
 			list = new ArrayList<Update>();
 			list.add(ups.getUpdate(i));

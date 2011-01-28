@@ -37,7 +37,6 @@ import org.jfree.data.xy.*;
 
 /**
  * This class is responsible for mapping output of a ResultsCollection to the input of a GraphModel. Used to be called Displayable Data.
- * @author  ug60axh, mxk
  */
 public class GraphResultListener implements ResultListener
 {
@@ -52,7 +51,7 @@ public class GraphResultListener implements ResultListener
 		
 	/** 
 	 * Creates a new instance of GraphResultListener 
-	 * It presumes that the seriesKey is returned by a call of {@link userinterface.graph.graph#addSeries graph.addSeries(...)}. 
+	 * It presumes that the seriesKey is returned by a call of {@link userinterface.graph.Graph#addSeries graph.addSeries(...)}. 
 	 * @param graph The graph to notify when new results are found.
 	 * @param seriesKey The key of the series this listener represents.
 	 * @param rangeConstant The ranging constant (x-axis value) (required to identify the series from the results). 
@@ -87,6 +86,11 @@ public class GraphResultListener implements ResultListener
 			if (x == Double.POSITIVE_INFINITY || x == Double.NEGATIVE_INFINITY || x != x) 
 				return;
 						
+            // For now, to plot intervals, just pick lower value
+            if (result instanceof Interval) {
+            	result = ((Interval) result).lower;
+            }
+            
 			// Get y coordinate
 			if(result instanceof Integer) {	
 				y = ((Integer)result).intValue(); 
