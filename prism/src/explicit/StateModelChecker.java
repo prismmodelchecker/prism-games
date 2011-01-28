@@ -86,7 +86,7 @@ public class StateModelChecker
 
 	// Method used for numerical solution
 	public enum SolnMethod {
-		VALUE_ITERATION
+		VALUE_ITERATION, POLICY_ITERATION
 	};
 
 	// Log setter/getter
