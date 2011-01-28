@@ -31,7 +31,7 @@ import java.util.*;
 import prism.ModelType;
 import prism.PrismException;
 
-public class PrismSTPGAbstractRefine extends STPGAbstractRefine
+public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 {
 	// Inputs
 	protected String traFile; // Model file for concrete model (PRISM explicit output)
