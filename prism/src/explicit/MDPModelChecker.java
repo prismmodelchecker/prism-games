@@ -242,6 +242,9 @@ public class MDPModelChecker extends StateModelChecker
 		case VALUE_ITERATION:
 			res = probReachValIter(mdp, no, yes, min, init, known);
 			break;
+		case POLICY_ITERATION:
+			res = probReachPolIter(mdp, no, yes, min, init, known);
+			break;
 		default:
 			throw new PrismException("Unknown MDP solution method " + solnMethod);
 		}
@@ -338,6 +341,107 @@ public class MDPModelChecker extends StateModelChecker
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		return res;
+	}
+
+	/**
+	 * Compute probabilistic reachability using policy iteration.
+	 * @param mdp: The MDP
+	 * @param no: Probability 0 states
+	 * @param yes: Probability 1 states
+	 * @param min: Min or max probabilities (true=min, false=max)
+	 * @param init: Optionally, an initial solution vector for value iteration 
+	 * @param known: Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 */
+	protected ModelCheckerResult probReachPolIter(MDP mdp, BitSet no, BitSet yes, boolean min, double init[],
+			BitSet known) throws PrismException
+	{
+		ModelCheckerResult res;
+		BitSet unknown;
+		int i, n, iters;
+		double soln[], soln2[], tmpsoln[], initVal;
+		boolean done;
+		long timer;
+		int policy[];
+		DTMCModelChecker mcDTMC;
+
+		// Start value iteration
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting policy iteration (" + (min ? "min" : "max") + ")...");
+
+		// Create a DTMC model checker (for solving policies)
+		mcDTMC = new DTMCModelChecker();
+		mcDTMC.inheritSettings(this);
+		
+		// Store num states
+		n = mdp.getNumStates();
+
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = (init == null) ? new double[n] : init;
+
+		// Generate initial policy
+		policy = new int[n];
+		for (i = 0; i < n; i++)
+			policy[i] = 0;
+		
+		// Solve policy
+		//mcDTMC.probReach(dtmc, target, init, unknown)
+		
+		/*
+		// Initialise solution vectors. Use (where available) the following in order of preference:
+		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3) passed in initial value; (4) initVal
+		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above. 
+		initVal = (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
+		if (init != null) {
+			if (known != null) {
+				for (i = 0; i < n; i++)
+					soln[i] = soln2[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+			} else {
+				for (i = 0; i < n; i++)
+					soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+			}
+		} else {
+			for (i = 0; i < n; i++)
+				soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
+		}
+
+		// Determine set of states actually need to compute values for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(yes);
+		unknown.andNot(no);
+		if (known != null)
+			unknown.andNot(known);
+
+		// Start iterations
+		iters = 0;
+		done = false;
+		while (!done && iters < maxIters) {
+			iters++;
+			// Matrix-vector multiply and min/max ops
+			mdp.mvMultMinMax(soln, min, soln2, unknown, false);
+			// Check termination
+			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished value iteration
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Value iteration (" + (min ? "min" : "max") + ")");
+		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+
+		*/
+		
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = 0; // TODO iters;
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}

@@ -91,6 +91,14 @@ public interface MDP extends Model
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val);
 
 	/**
+	 * Do a single row of matrix-vector multiplication for a specific choice.
+	 * @param s State (row) index
+	 * @param k Choice index
+	 * @param vect Vector to multiply by
+	 */
+	public double mvMultSingle(int s, int k, double vect[]);
+	
+	/**
 	 * Do a matrix-vector multiplication and sum of action reward followed by min/max, i.e. one step of value iteration.
 	 * @param vect Vector to multiply by
 	 * @param min Min or max for (true=min, false=max)

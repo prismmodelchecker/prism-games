@@ -511,7 +511,7 @@ public class MDPSimple extends ModelSimple implements MDP
 			// Output transitions to PRISM language file
 			out = new FileWriter(filename);
 			out.write(getModelType().keyword() + "\n");
-			out.write("module M\nx : [0.." + (numStates-1) + "];\n");
+			out.write("module M\nx : [0.." + (numStates - 1) + "];\n");
 			sorted = new TreeMap<Integer, Double>();
 			for (i = 0; i < numStates; i++) {
 				j = -1;
@@ -551,8 +551,7 @@ public class MDPSimple extends ModelSimple implements MDP
 		s += " (" + getNumInitialStates() + " initial)";
 		s += ", " + numDistrs + " distributions";
 		s += ", " + numTransitions + " transitions";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/"
-				+ PrismUtils.formatDouble2dp(((double) numDistrs) / numStates);
+		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numStates);
 		return s;
 	}
 
@@ -675,6 +674,23 @@ public class MDPSimple extends ModelSimple implements MDP
 		}
 
 		return res;
+	}
+
+	@Override
+	public double mvMultSingle(int s, int k, double vect[])
+	{
+		double d, prob;
+
+		Distribution distr = trans.get(s).get(k);
+		// Compute sum for this distribution
+		d = 0.0;
+		for (Map.Entry<Integer, Double> e : distr) {
+			k = (Integer) e.getKey();
+			prob = (Double) e.getValue();
+			d += prob * vect[k];
+		}
+
+		return d;
 	}
 
 	@Override
