@@ -27,6 +27,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 
 import prism.ModelType;
@@ -585,6 +586,18 @@ public class MDPSimple extends ModelSimple implements MDP
 				return false;
 		}
 		return true;
+	}
+
+	@Override
+	public double getNumTransitions(int s, int i)
+	{
+		return trans.get(s).get(i).size();
+	}
+
+	@Override
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	{
+		return trans.get(s).get(i).iterator();
 	}
 
 	@Override

@@ -27,6 +27,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 
 import prism.ModelType;
@@ -426,6 +427,18 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	}
 
 	// Accessors (for DTMC)
+
+	@Override
+	public double getNumTransitions(int s)
+	{
+		return trans.get(s).size();
+	}
+
+	@Override
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s)
+	{
+		return trans.get(s).iterator();
+	}
 
 	@Override
 	public double getTransitionReward(int s)

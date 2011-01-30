@@ -27,6 +27,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import prism.ModelType;
 import prism.PrismException;
@@ -171,6 +172,18 @@ public class DTMCUniformisedSimple implements DTMC
 	}
 
 	// Accessors (for DTMC)
+
+	public double getNumTransitions(int s)
+	{
+		// TODO
+		throw new RuntimeException("Not implemented yet");
+	}
+
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s)
+	{
+		// TODO
+		throw new RuntimeException("Not implemented yet");
+	}
 
 	public double getTransitionReward(int s)
 	{

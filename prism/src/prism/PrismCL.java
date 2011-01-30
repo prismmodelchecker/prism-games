@@ -67,6 +67,7 @@ public class PrismCL
 	private boolean simulate = false;
 	private boolean simpath = false;
 	private ModelType typeOverride = null;
+	private boolean explicitbuild = false;
 	private boolean explicitbuildtest = false;
 	private boolean nobuild = false;
 
@@ -503,7 +504,7 @@ public class PrismCL
 					lf = new File(importLabelsFilename);
 				}
 				mainLog.println("...");
-				modulesFile = prism.parseExplicitModel(sf, new File(modelFilename), lf, typeOverride);
+				modulesFile = prism.parseModelFromExplicitFiles(sf, new File(modelFilename), lf, typeOverride);
 			} else {
 				mainLog.print("\nParsing model file \"" + modelFilename + "\"...\n");
 				modulesFile = prism.parseModelFile(new File(modelFilename), typeOverride);
@@ -633,7 +634,9 @@ public class PrismCL
 
 		// build model
 		if (importtrans) {
-			model = prism.buildExplicitModel();
+			model = prism.buildModelFromExplicitFiles();
+		} else if (explicitbuild) {
+			model = prism.buildModelExplicit(modulesFileToBuild);
 		} else {
 			model = prism.buildModel(modulesFileToBuild);
 		}
@@ -692,7 +695,7 @@ public class PrismCL
 			try {
 				explicit.ConstructModel constructModel = new explicit.ConstructModel(prism.getSimulator(), mainLog);
 				mainLog.println("\nConstructing model explicitly...");
-				explicit.Model modelExplicit = constructModel.construct(modulesFileToBuild, modulesFileToBuild.getInitialValues());
+				explicit.Model modelExplicit = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues());
 				tmpFile = File.createTempFile("explicitbuildtest", ".tra").getAbsolutePath();
 				tmpFile = "explicitbuildtest.tra";
 				mainLog.println("\nExporting (explicit) model to \"" + tmpFile + "1\"...");
@@ -1729,6 +1732,11 @@ public class PrismCL
 					}
 				}
 
+				// explicit-state model construction
+				else if (sw.equals("explicitbuild")) {
+					explicitbuild = true;
+				}
+				
 				// (hidden) option for testing of prototypical explicit-state model construction
 				else if (sw.equals("explicitbuildtest")) {
 					explicitbuildtest = true;

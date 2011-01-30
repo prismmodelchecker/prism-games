@@ -27,6 +27,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Interface for classes that provide (read-only) access to an explicit-state MDP.
@@ -58,6 +59,16 @@ public interface MDP extends Model
 	 */
 	public boolean someAllSuccessorsInSetForAllChoices(int s, BitSet set1, BitSet set2);
 	
+	/**
+	 * Get the number of transitions from choice i of state s.
+	 */
+	public double getNumTransitions(int s, int i);
+
+	/**
+	 * Get an iterator over the transitions from choice i of state s.
+	 */
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i);
+
 	/**
 	 * Get the transition reward (if any) for choice i of state s.
 	 */

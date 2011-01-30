@@ -27,14 +27,23 @@
 package explicit;
 
 import java.util.*;
-
-import prism.ModelType;
+import java.util.Map.Entry;
 
 /**
  * Interface for classes that provide (read-only) access to an explicit-state DTMC.
  */
 public interface DTMC extends Model
 {
+	/**
+	 * Get the number of transitions from state s.
+	 */
+	public double getNumTransitions(int s);
+
+	/**
+	 * Get an iterator over the transitions from state s.
+	 */
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s);
+
 	/**
 	 * Get the transition reward (if any) for the transitions in state s.
 	 */

@@ -32,6 +32,7 @@ import java.util.*;
 
 import jdd.*;
 import dv.*;
+import explicit.*;
 import odd.*;
 import mtbdd.*;
 import sparse.*;
@@ -41,6 +42,7 @@ import parser.ast.*;
 import simulator.*;
 import simulator.method.SimulationMethod;
 import pta.*;
+import prism.Model;
 
 /**
  * Main class for all PRISM's core functionality.
@@ -145,7 +147,8 @@ public class Prism implements PrismSettingsListener
 	private static PrismParser thePrismParser = null;
 	private static boolean prismParserInUse = false;
 	private Modules2MTBDD mod2mtbdd = null;
-	private Explicit2MTBDD exp2mtbdd = null;
+	private ExplicitFiles2MTBDD expf2mtbdd = null;
+	private ExplicitModel2MTBDD expm2mtbdd = null;
 	
 	//------------------------------------------------------------------------------
 	// model checkers/simulators
@@ -998,16 +1001,13 @@ public class Prism implements PrismSettingsListener
 		return fl;
 	}
 
-	// build model, i.e. convert ModulesFile to Model
-	// optionally pass in a short message to identify the model being built
-	// (typically the values of undefined constants)
-	
+	/**
+	 * Build a model from a PRISM modelling language description, storing it symbolically,
+	 * as MTBDDs) via (MT)BDD-based reachability and model construction.
+	 * It is assumed that all constants in the model file have been defined by now.  
+	 * @param modulesFile Model to build
+	 */
 	public Model buildModel(ModulesFile modulesFile) throws PrismException
-	{
-		return buildModel(modulesFile, "");
-	}
-	
-	public Model buildModel(ModulesFile modulesFile, String msg) throws PrismException
 	{
 		long l; // timer
 		Model model;
@@ -1016,9 +1016,7 @@ public class Prism implements PrismSettingsListener
 			throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
 		}
 		
-		mainLog.print("\nBuilding model");
-		if (msg != null) if (msg.length() > 0) mainLog.print(" (" + msg + ")");
-		mainLog.print("...\n");
+		mainLog.print("\nBuilding model...\n");
 		
 		// create translator
 		mod2mtbdd = new Modules2MTBDD(this, modulesFile);
@@ -1034,39 +1032,77 @@ public class Prism implements PrismSettingsListener
 	}
 	
 	/**
-	 * Builds a model from files containing an explicit list of transitions/etc.
-	 * This is step 1 of the process; buildExplicitModel(...) should be called subsequently.
-	 * @param statesFile File containing the list of states (optional, can be null)
+	 * Builds a ModulesFile from files containing an explicit list of transitions/etc.
+	 * This is step 1 of the process; {@link #buildExplicitModel} should be called subsequently.
+	 * @param statesFile File containing a list of states (optional, can be null)
 	 * @param transFile File containing the list of transitions (required)
+	 * @param labelsFile File containing label definitions (optional, can be null)
 	 * @param typeOverride Type of model to be built (optional, use null if not required)
 	 * @throws PrismException
 	 */
-	public ModulesFile parseExplicitModel(File statesFile, File transFile, File labelsFile, ModelType typeOverride) throws PrismException
+	public ModulesFile parseModelFromExplicitFiles(File statesFile, File transFile, File labelsFile, ModelType typeOverride) throws PrismException
 	{
-		// create Explicit2MTBDD object
-		exp2mtbdd = new Explicit2MTBDD(this, statesFile, transFile, labelsFile, typeOverride);
+		// create ExplicitFiles2MTBDD object
+		expf2mtbdd = new ExplicitFiles2MTBDD(this, statesFile, transFile, labelsFile, typeOverride);
 		
 		// build state space
-		return exp2mtbdd.buildStates();
+		return expf2mtbdd.buildStates();
 	}
 	
 	/**
 	 * Builds a model from files containing an explicit list of transitions/etc.
-	 * This is step 2 of the process; parseExplicitModel(...) should have been called first.
+	 * This is step 2 of the process; {@link #parseExplicitModel} should have been called first.
 	 */
-	public Model buildExplicitModel() throws PrismException
+	public Model buildModelFromExplicitFiles() throws PrismException
 	{
 		long l; // timer
 		Model model;
 		
-		// check Explicit2MTBDD object created
-		if (exp2mtbdd == null) throw new PrismException("Explicit2MTBDD object never created");
+		// check ExplicitFiles2MTBDD object created
+		if (expf2mtbdd == null) throw new PrismException("ExplicitFiles2MTBDD object never created");
 		
 		mainLog.print("\nBuilding model...\n");
 		
 		// build model
 		l = System.currentTimeMillis();
-		model = exp2mtbdd.buildModel();
+		model = expf2mtbdd.buildModel();
+		l = System.currentTimeMillis() - l;
+		
+		mainLog.println("\nTime for model construction: " + l/1000.0 + " seconds.");
+		
+		return model;
+	}
+	
+	/**
+	 * Build a model from a PRISM modelling language description, storing it symbolically,
+	 * as MTBDDs) via explicit-state reachability and model construction.
+	 * It is assumed that all constants in the model file have been defined by now.  
+	 * @param modulesFile Model to build
+	 */
+	public Model buildModelExplicit(ModulesFile modulesFile) throws PrismException
+	{
+		long l; // timer
+		ConstructModel constructModel;
+		explicit.Model modelExpl;
+		Model model;
+		List<State> statesList;
+		
+		if (modulesFile.getModelType() == ModelType.PTA) {
+			throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
+		}
+		
+		mainLog.print("\nBuilding model...\n");
+		
+		constructModel = new ConstructModel(getSimulator(), mainLog);
+		modelExpl = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+		statesList = constructModel.getStatesList();
+		
+		// create Explicit2MTBDD object
+		expm2mtbdd = new ExplicitModel2MTBDD(this);
+		
+		// build model
+		l = System.currentTimeMillis();
+		model = expm2mtbdd.buildModel(modelExpl, statesList, modulesFile, false);
 		l = System.currentTimeMillis() - l;
 		
 		mainLog.println("\nTime for model construction: " + l/1000.0 + " seconds.");
