@@ -273,11 +273,20 @@ public class ConstructModel
 			ModulesFile modulesFile = prism.parseModelFile(new File(args[0]));
 			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
 			if (args.length > 2)
-				undefinedConstants.defineUsingConstSwitch(args[2]);
+				undefinedConstants.defineUsingConstSwitch(args[1]);
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
 			Model model = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
-			model.exportToPrismExplicitTra(args[1]);
+			MDP mdp = (MDP) model;
+			mainLog.println(mdp);
+			mainLog.println(constructModel.getStatesList());
+			MDPModelChecker mc = new MDPModelChecker();
+			mc.setLog(prism.getMainLog());
+			BitSet target = new BitSet();
+			target.set(2);
+			ModelCheckerResult res = mc.probReach(mdp, target, true);
+			mainLog.println(res.soln);
+			
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
