@@ -77,6 +77,13 @@ public class Prism implements PrismSettingsListener
 	public static final int PSOR = 10;
 	public static final int BPSOR = 11;
 	
+	// methods for solving MDPs
+	public static final int MDP_VALITER = 1;
+	public static final int MDP_GAUSSSEIDEL = 2;
+	public static final int MDP_POLITER = 3;
+	public static final int MDP_MODPOLITER = 4;
+	public static final int MDP_LP = 5;
+	
 	// termination criterion for iterative methods
 	public static final int ABSOLUTE = 1;
 	public static final int RELATIVE = 2;
@@ -281,6 +288,11 @@ public class Prism implements PrismSettingsListener
 		settings.set(PrismSettings.PRISM_LIN_EQ_METHOD_PARAM,  d);
 	}
 	
+	public void setMDPSolnMethod(int i) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_MDP_SOLN_METHOD, i-1); // note index offset correction
+	}
+	
 	public void setTermCrit(int i) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_TERM_CRIT, i-1); // note index offset correction
@@ -418,6 +430,9 @@ public class Prism implements PrismSettingsListener
 	
 	public double getLinEqMethodParam()
 	{ return settings.getDouble(PrismSettings.PRISM_LIN_EQ_METHOD_PARAM); }
+	
+	public int getMDPSolnMethod()
+	{ return settings.getInteger(PrismSettings.PRISM_MDP_SOLN_METHOD)+1; } //NOTE THE CORRECTION for the ChoiceSetting index
 	
 	public int getTermCrit()
 	{ return settings.getInteger(PrismSettings.PRISM_TERM_CRIT)+1; } //NOTE THE CORRECTION for the ChoiceSetting index

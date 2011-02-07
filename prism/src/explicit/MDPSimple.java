@@ -595,7 +595,7 @@ public class MDPSimple extends ModelSimple implements MDP
 	}
 
 	@Override
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
 	{
 		return trans.get(s).get(i).iterator();
 	}
@@ -702,6 +702,97 @@ public class MDPSimple extends ModelSimple implements MDP
 			prob = (Double) e.getValue();
 			d += prob * vect[k];
 		}
+
+		return d;
+	}
+
+	@Override
+	public double mvMultGSMinMax(double vect[], boolean min, BitSet subset, boolean complement, boolean absolute)
+	{
+		int s;
+		double d, diff, maxDiff = 0.0;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				d = mvMultJacMinMaxSingle(s, vect, min);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
+	{
+		int k;
+		double diag, d, prob, minmax;
+		boolean first;
+		List<Distribution> step;
+
+		minmax = 0;
+		first = true;
+		step = trans.get(s);
+		for (Distribution distr : step) {
+			diag = 1.0;
+			// Compute sum for this distribution
+			d = 0.0;
+			for (Map.Entry<Integer, Double> e : distr) {
+				k = (Integer) e.getKey();
+				prob = (Double) e.getValue();
+				if (k != s) {
+					d += prob * vect[k];
+				} else {
+					diag -= prob;
+				}
+			}
+			if (diag > 0)
+				d /= diag;
+			// Check whether we have exceeded min/max so far
+			if (first || (min && d < minmax) || (!min && d > minmax))
+				minmax = d;
+			first = false;
+		}
+
+		return minmax;
+	}
+
+	@Override
+	public double mvMultJacSingle(int s, int k, double vect[])
+	{
+		double diag, d, prob;
+		Distribution distr;
+
+		distr = trans.get(s).get(k);
+		diag = 1.0;
+		// Compute sum for this distribution
+		d = 0.0;
+		for (Map.Entry<Integer, Double> e : distr) {
+			k = (Integer) e.getKey();
+			prob = (Double) e.getValue();
+			if (k != s) {
+				d += prob * vect[k];
+			} else {
+				diag -= prob;
+			}
+		}
+		if (diag > 0)
+			d /= diag;
 
 		return d;
 	}

@@ -34,12 +34,16 @@ import prism.PrismException;
 
 /**
  * Simple explicit-state representation of a DTMC, constructed (implicitly) as the embedded DTMC of a CTMC.
+ * i.e. P(i,j) = R(i,j) / E(i) if E(i) > 0 and P(i,i) = 1 otherwise
+ * where E(i) is the exit rate for state i: sum_j R(i,j).
  * This class is read-only: most of data is pointers to other model info.
  */
 public class DTMCEmbeddedSimple implements DTMC
 {
 	// Parent CTMC
 	protected CTMCSimple ctmc;
+	// Also store num states for easy access
+	protected int numStates;
 	// Exit rates vector
 	protected double exitRates[];
 	// Number of extra transitions added (just for stats)
@@ -51,7 +55,7 @@ public class DTMCEmbeddedSimple implements DTMC
 	public DTMCEmbeddedSimple(CTMCSimple ctmc)
 	{
 		this.ctmc = ctmc;
-		int numStates = ctmc.getNumStates();
+		this.numStates = ctmc.getNumStates();
 		exitRates = new double[numStates];
 		numExtraTransitions = 0;
 		for (int i = 0; i < numStates; i++) {
@@ -182,8 +186,7 @@ public class DTMCEmbeddedSimple implements DTMC
 
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement)
 	{
-		int s, numStates;
-		numStates = ctmc.getNumStates();
+		int s;
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
@@ -220,6 +223,72 @@ public class DTMCEmbeddedSimple implements DTMC
 			d /= er;
 		}
 
+		return d;
+	}
+
+	@Override
+	public double mvMultGS(double vect[], BitSet subset, boolean complement, boolean absolute)
+	{
+		int s;
+		double d, diff, maxDiff = 0.0;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public double mvMultJacSingle(int s, double vect[])
+	{
+		int k;
+		double diag, d, er, prob;
+		Distribution distr;
+
+		distr = ctmc.getTransitions(s);
+		diag = d = 0.0;
+		er = exitRates[s];
+		// Exit rate 0: prob 1 self-loop
+		if (er == 0) {
+			return 0.0;
+		}
+		// Exit rate > 0
+		else {
+			// (sum_{j!=s} P(s,j)*vect[j]) / (1-P(s,s))
+			// = (sum_{j!=s} (R(s,j)/E(s))*vect[j]) / (1-(P(s,s)/E(s)))
+			// = (sum_{j!=s} R(s,j)*vect[j]) / (E(s)-P(s,s))
+			for (Map.Entry<Integer, Double> e : distr) {
+				k = (Integer) e.getKey();
+				prob = (Double) e.getValue();
+				// Non-diagonal entries only
+				if (k != s) {
+					d += prob * vect[k];
+				} else {
+					diag = prob;
+				}
+			}
+			d /= (er - diag);
+		}
+		
 		return d;
 	}
 

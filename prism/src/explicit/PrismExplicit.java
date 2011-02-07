@@ -31,7 +31,7 @@ import java.io.*;
 
 import parser.ast.*;
 import prism.*;
-// Override some imports for which there are name clashes
+import parser.*; // Override some imports for which there are name clashes
 import explicit.Model;
 import explicit.StateModelChecker;
 
@@ -46,7 +46,7 @@ public class PrismExplicit
 	private Prism prism = null;
 	// Model checker(s)
 	private StateModelChecker mc = null;
-	
+
 	public PrismExplicit(Prism prism)
 	{
 		this.prism = prism;
@@ -54,11 +54,11 @@ public class PrismExplicit
 
 	// model checking
 	// returns result or throws an exception in case of error
-	
+
 	public Result modelCheck(Model model, String labelsFilename, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
 		Result result = null;
-		
+
 		// Check that property is valid for this model type
 		// and create new model checker object
 		expr.checkValid(model.getModelType());
@@ -73,28 +73,103 @@ public class PrismExplicit
 			mc = new CTMCModelChecker();
 			break;
 		default:
-			throw new PrismException("Unknown model type"+model.getModelType());
+			throw new PrismException("Unknown model type" + model.getModelType());
 		}
-		
+
 		mc.setLog(prism.getMainLog());
-		
+		mc.setPropertiesFile(propertiesFile);
+
+		switch (prism.getTermCrit()) {
+		case Prism.ABSOLUTE:
+			mc.setTermCrit(StateModelChecker.TermCrit.ABSOLUTE);
+			break;
+		case Prism.RELATIVE:
+			mc.setTermCrit(StateModelChecker.TermCrit.RELATIVE);
+			break;
+		}
+		mc.setTermCritParam(prism.getTermCritParam());
+		switch (model.getModelType()) {
+		case DTMC:
+			switch (prism.getLinEqMethod()) {
+			case Prism.GAUSSSEIDEL:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.GAUSS_SEIDEL);
+				break;
+			default:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.VALUE_ITERATION);
+				break;
+			}
+			break;
+		case MDP:
+			switch (prism.getMDPSolnMethod()) {
+			case Prism.MDP_GAUSSSEIDEL:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.GAUSS_SEIDEL);
+				break;
+			case Prism.MDP_POLITER:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.POLICY_ITERATION);
+				break;
+			case Prism.MDP_MODPOLITER:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.MODIFIED_POLICY_ITERATION);
+				break;
+			default:
+				mc.setSolnMethod(StateModelChecker.SolnMethod.VALUE_ITERATION);
+				break;
+			}
+			break;
+		}
+
 		// TODO: pass PRISM settings to mc
-		
+
 		// pass labels info
 		mc.setLabelsFilename(labelsFilename);
-		
+
 		// Do model checking
-//		res = mc.check(expr);
+		//		res = mc.check(expr);
 		result = mc.check(model, expr);
-		
+
 		// Return result
 		return result;
 	}
-	
+
 	/**
 	 * Simple test program.
 	 */
 	public static void main(String args[])
+	{
+		modelCheckFromPrismFile(args);
+		//modelCheckViaExplicitFiles(args);
+	}
+
+	/**
+	 * Simple test program.
+	 */
+	private static void modelCheckFromPrismFile(String args[])
+	{
+		Prism prism;
+		try {
+			PrismLog mainLog = new PrismFileLog("stdout");
+			prism = new Prism(mainLog, mainLog);
+			//prism.initialise();
+			ModulesFile modulesFile = prism.parseModelFile(new File(args[0]));
+			modulesFile.setUndefinedConstants(null);
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(args[1]));
+			propertiesFile.setUndefinedConstants(null);
+			ConstructModel constructModel;
+			constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			Model modelExpl = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+			List<State> statesList = constructModel.getStatesList();
+			PrismExplicit pe = new PrismExplicit(prism);
+			Object res = pe.modelCheck(modelExpl, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));
+		} catch (PrismException e) {
+			System.out.println(e);
+		} catch (FileNotFoundException e) {
+			System.out.println(e);
+		}
+	}
+
+	/**
+	 * Simple test program.
+	 */
+	private static void modelCheckViaExplicitFiles(String args[])
 	{
 		Prism prism;
 		try {

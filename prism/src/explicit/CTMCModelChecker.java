@@ -28,6 +28,7 @@ package explicit;
 
 import java.util.*;
 
+import parser.ast.ExpressionTemporal;
 import prism.*;
 
 /**
@@ -39,6 +40,38 @@ import prism.*;
 public class CTMCModelChecker extends DTMCModelChecker
 {
 	// Model checking functions
+
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr) throws PrismException
+	{
+		double time;
+		BitSet b1, b2;
+		StateValues probs = null;
+		ModelCheckerResult res = null;
+
+		// get info from bounded until
+		time = expr.getUpperBound().evaluateDouble(constantValues, null);
+		if (time < 0) {
+			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<=" + time;
+			throw new PrismException("Invalid bound " + bound + " in bounded until formula");
+		}
+
+		// model check operands first
+		b1 = (BitSet)checkExpression(model, expr.getOperand1());
+		b2 = (BitSet)checkExpression(model, expr.getOperand2());
+
+		// compute probabilities
+
+		// a trivial case: "U<=0"
+		if (time == 0) {
+			// prob is 1 in b2 states, 0 otherwise
+			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
+		} else {
+			res = probReachTimeBounded((CTMC)model, b2, time);
+			probs = StateValues.createFromDoubleArray(res.soln);
+		}
+
+		return probs;
+	}
 
 	/**
 	 * Compute probabilistic reachability.

@@ -1,27 +1,27 @@
 //==============================================================================
-//
-//Copyright (c) 2002-
-//Authors:
-//* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//
+//	
+//	Copyright (c) 2002-
+//	Authors:
+//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	
 //------------------------------------------------------------------------------
-//
-//This file is part of PRISM.
-//
-//PRISM is free software; you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation; either version 2 of the License, or
-//(at your option) any later version.
-//
-//PRISM is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-//
-//You should have received a copy of the GNU General Public License
-//along with PRISM; if not, write to the Free Software Foundation,
-//Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
 //==============================================================================
 
 package explicit;
@@ -33,42 +33,27 @@ import prism.ModelType;
 import prism.PrismException;
 
 /**
-* Simple explicit-state representation of a DTMC, constructed (implicitly) as the uniformised DTMC of a CTMC.
-* This class is read-only: most of data is pointers to other model info.
-*/
-public class DTMCUniformisedSimple implements DTMC
+ * Simple explicit-state representation of a DTMC, constructed (implicitly)
+ * from an MDP and a memoryless adversary, specified as an array of integer indices.
+ * This class is read-only: most of data is pointers to other model info.
+ */
+public class DTMCFromMDPMemorylessAdversary implements DTMC
 {
-	// Parent CTMC
-	protected CTMCSimple ctmc;
+	// Parent MDP
+	protected MDPSimple mdp;
 	// Also store num states for easy access
 	protected int numStates;
-	// Uniformisation rate
-	protected double q;
-	// Number of extra transitions added (just for stats)
-	protected int numExtraTransitions;
+	// Adversary
+	protected int adv[];
 
 	/**
-	 * Constructor: create from CTMC and uniformisation rate q.
+	 * Constructor: create from MDP and simple.
 	 */
-	public DTMCUniformisedSimple(CTMCSimple ctmc, double q)
+	public DTMCFromMDPMemorylessAdversary(MDPSimple mdp, int adv[])
 	{
-		this.ctmc = ctmc;
-		this.numStates = ctmc.getNumStates();
-		this.q = q;
-		numExtraTransitions = 0;
-		for (int i = 0; i < numStates; i++) {
-			if (ctmc.getTransitions(i).get(i) == 0 && ctmc.getTransitions(i).sumAllBut(i) < q) {
-				numExtraTransitions++;
-			}
-		}
-	}
-
-	/**
-	 * Constructor: create from CTMC and its default uniformisation rate.
-	 */
-	public DTMCUniformisedSimple(CTMCSimple ctmc)
-	{
-		this(ctmc, ctmc.getDefaultUniformisationRate());
+		this.mdp = mdp;
+		this.numStates = mdp.getNumStates();
+		this.adv = adv;
 	}
 
 	// Accessors (for Model)
@@ -80,50 +65,47 @@ public class DTMCUniformisedSimple implements DTMC
 
 	public int getNumStates()
 	{
-		return ctmc.getNumStates();
+		return mdp.getNumStates();
 	}
 
 	public int getNumInitialStates()
 	{
-		return ctmc.getNumInitialStates();
+		return mdp.getNumInitialStates();
 	}
 
 	public Iterable<Integer> getInitialStates()
 	{
-		return ctmc.getInitialStates();
+		return mdp.getInitialStates();
 	}
 
 	public int getFirstInitialState()
 	{
-		return ctmc.getFirstInitialState();
+		return mdp.getFirstInitialState();
 	}
 
 	public boolean isInitialState(int i)
 	{
-		return ctmc.isInitialState(i);
+		return mdp.isInitialState(i);
 	}
 
 	public int getNumTransitions()
 	{
-		return ctmc.getNumTransitions() + numExtraTransitions;
+		throw new RuntimeException("Not implemented");
 	}
 
 	public boolean isSuccessor(int s1, int s2)
 	{
-		// TODO
-		throw new Error("Not yet supported");
+		throw new RuntimeException("Not implemented yet");
 	}
 
 	public boolean allSuccessorsInSet(int s, BitSet set)
 	{
-		// TODO
-		throw new Error("Not yet supported");
+		throw new RuntimeException("Not implemented yet");
 	}
 
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
-		// TODO
-		throw new Error("Not yet supported");
+		throw new RuntimeException("Not implemented yet");
 	}
 
 	public int getNumChoices(int s)
@@ -170,7 +152,7 @@ public class DTMCUniformisedSimple implements DTMC
 
 	public String infoString()
 	{
-		return ctmc.infoString() + " + " + numExtraTransitions + " self-loops";
+		return mdp.infoString() + " + " + "???"; // TODO
 	}
 
 	// Accessors (for DTMC)
@@ -190,7 +172,7 @@ public class DTMCUniformisedSimple implements DTMC
 	public double getTransitionReward(int s)
 	{
 		// TODO
-		throw new Error("Not yet supported");
+		return 0;
 	}
 
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement)
@@ -211,27 +193,7 @@ public class DTMCUniformisedSimple implements DTMC
 
 	public double mvMultSingle(int s, double vect[])
 	{
-		int k;
-		double sum, d, prob;
-		Distribution distr;
-
-		distr = ctmc.getTransitions(s);
-		sum = d = 0.0;
-		for (Map.Entry<Integer, Double> e : distr) {
-			k = (Integer) e.getKey();
-			prob = (Double) e.getValue();
-			// Non-diagonal entries
-			if (k != s) {
-				sum += prob;
-				d += (prob / q) * vect[k];
-			}
-		}
-		// Diagonal entry
-		if (sum < q) {
-			d += (1 - sum/q) * vect[s];
-		}
-
-		return d;
+		return mdp.mvMultSingle(s, adv[s], vect);
 	}
 
 	@Override
@@ -268,31 +230,13 @@ public class DTMCUniformisedSimple implements DTMC
 	@Override
 	public double mvMultJacSingle(int s, double vect[])
 	{
-		int k;
-		double sum, d, prob;
-		Distribution distr;
-
-		distr = ctmc.getTransitions(s);
-		sum = d = 0.0;
-		for (Map.Entry<Integer, Double> e : distr) {
-			k = (Integer) e.getKey();
-			prob = (Double) e.getValue();
-			// Non-diagonal entries only
-			if (k != s) {
-				sum += prob;
-				d += (prob / q) * vect[k];
-			}
-		}
-		// Diagonal entry is 1 - sum/q
-		d /= (sum / q);
-
-		return d;
+		return mdp.mvMultJacSingle(s, adv[s], vect);
 	}
 
 	public void mvMultRew(double vect[], double result[], BitSet subset, boolean complement)
 	{
 		int s, numStates;
-		numStates = ctmc.getNumStates();
+		numStates = mdp.getNumStates();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
@@ -308,31 +252,19 @@ public class DTMCUniformisedSimple implements DTMC
 
 	public double mvMultRewSingle(int s, double vect[])
 	{
-		// TODO
-		throw new Error("Not yet supported");
+		throw new RuntimeException("Not implemented yet");
+		//return mdp.mvMultRewSingle(s, adv[s], vect);
 	}
 
 	@Override
 	public String toString()
 	{
-		String s = "";
-		s += "ctmc: " + ctmc;
-		s = ", q: " + q;
-		return s;
+		throw new RuntimeException("Not implemented yet");
 	}
 
 	@Override
 	public boolean equals(Object o)
 	{
-		if (o == null || !(o instanceof DTMCUniformisedSimple))
-			return false;
-		DTMCUniformisedSimple dtmc = (DTMCUniformisedSimple) o;
-		if (!ctmc.equals(dtmc.ctmc))
-			return false;
-		if (q != dtmc.q)
-			return false;
-		if (numExtraTransitions != dtmc.numExtraTransitions)
-			return false;
-		return true;
+		throw new RuntimeException("Not implemented yet");
 	}
 }

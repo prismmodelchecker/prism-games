@@ -29,6 +29,7 @@ package explicit;
 import java.util.*;
 
 import prism.*;
+import explicit.StateValues;
 import parser.ast.*;
 import parser.Values;
 
@@ -122,8 +123,12 @@ public class DTMCModelChecker extends StateModelChecker
 				if (exprTemp.hasBounds()) {
 					probs = checkProbBoundedUntil(model, exprTemp);
 				} else {
-					probs = null; // TODO checkProbUntil(model, exprTemp);
+					probs = checkProbUntil(model, exprTemp);
 				}
+			}
+			// Anything else - convert to until and recurse
+			else {
+				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm());
 			}
 		}
 
@@ -163,6 +168,32 @@ public class DTMCModelChecker extends StateModelChecker
 			res = probReachBounded((DTMC)model, b2, time);
 			probs = StateValues.createFromDoubleArray(res.soln);
 		}
+
+		return probs;
+	}
+
+	// until (unbounded)
+
+	// this method is split into two steps so that the LTL model checker can use the second part directly
+
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr) throws PrismException
+	{
+		BitSet b1, b2;
+		StateValues probs = null;
+		ModelCheckerResult res = null;
+
+		// model check operands first
+		b1 = (BitSet)checkExpression(model, expr.getOperand1());
+		b2 = (BitSet)checkExpression(model, expr.getOperand2());
+
+		// print out some info about num states
+		// mainLog.print("\nb1 = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
+		// allDDRowVars.n()) + " states\n");
+
+		res = probReach((DTMC)model, b2);
+		probs = StateValues.createFromDoubleArray(res.soln);
 
 		return probs;
 	}
@@ -222,7 +253,7 @@ public class DTMCModelChecker extends StateModelChecker
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Prob0");
-		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		return u;
 	}
@@ -286,7 +317,7 @@ public class DTMCModelChecker extends StateModelChecker
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Prob1");
-		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		return u;
 	}
@@ -307,7 +338,7 @@ public class DTMCModelChecker extends StateModelChecker
 	 * Compute probabilistic reachability.
 	 * @param dtmc The DTMC
 	 * @param target Target states
-	 * @param init Optionally, an initial solution vector for value iteration 
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
@@ -363,6 +394,9 @@ public class DTMCModelChecker extends StateModelChecker
 		case VALUE_ITERATION:
 			res = probReachValIter(dtmc, no, yes, init, known);
 			break;
+		case GAUSS_SEIDEL:
+			res = probReachGaussSeidel(dtmc, no, yes, init, known);
+			break;
 		default:
 			throw new PrismException("Unknown DTMC solution method " + solnMethod);
 		}
@@ -384,7 +418,7 @@ public class DTMCModelChecker extends StateModelChecker
 	 * @param dtmc The DTMC
 	 * @param no Probability 0 states
 	 * @param yes Probability 1 states
-	 * @param init Optionally, an initial solution vector for value iteration 
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
@@ -452,7 +486,85 @@ public class DTMCModelChecker extends StateModelChecker
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Value iteration");
-		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		return res;
+	}
+
+	/**
+	 * Compute probabilistic reachability using Gauss-Seidel.
+	 * @param dtmc The DTMC
+	 * @param no Probability 0 states
+	 * @param yes Probability 1 states
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 */
+	protected ModelCheckerResult probReachGaussSeidel(DTMC dtmc, BitSet no, BitSet yes, double init[], BitSet known)
+			throws PrismException
+	{
+		ModelCheckerResult res;
+		BitSet unknown;
+		int i, n, iters;
+		double soln[], initVal, maxDiff;
+		boolean done;
+		long timer;
+
+		// Start value iteration
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting Gauss-Seidel...");
+
+		// Store num states
+		n = dtmc.getNumStates();
+
+		// Create solution vector
+		soln = (init == null) ? new double[n] : init;
+
+		// Initialise solution vector. Use (where available) the following in order of preference:
+		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3) passed in initial value; (4) initVal
+		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above. 
+		initVal = (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
+		if (init != null) {
+			if (known != null) {
+				for (i = 0; i < n; i++)
+					soln[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+			} else {
+				for (i = 0; i < n; i++)
+					soln[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+			}
+		} else {
+			for (i = 0; i < n; i++)
+				soln[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
+		}
+
+		// Determine set of states actually need to compute values for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(yes);
+		unknown.andNot(no);
+		if (known != null)
+			unknown.andNot(known);
+
+		// Start iterations
+		iters = 0;
+		done = false;
+		while (!done && iters < maxIters) {
+			iters++;
+			// Matrix-vector multiply
+			maxDiff = dtmc.mvMultGS(soln, unknown, false, termCrit == TermCrit.ABSOLUTE);
+			// Check termination
+			done = maxDiff < termCritParam;
+		}
+
+		// Finished Gauss-Seidel
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Gauss-Seidel");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Return results
 		res = new ModelCheckerResult();
@@ -537,7 +649,7 @@ public class DTMCModelChecker extends StateModelChecker
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Bounded probabilistic reachability");
-		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Return results
 		res = new ModelCheckerResult();
@@ -563,7 +675,7 @@ public class DTMCModelChecker extends StateModelChecker
 	 * Compute expected reachability.
 	 * @param dtmc The DTMC
 	 * @param target Target states
-	 * @param init Optionally, an initial solution vector for value iteration 
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
@@ -629,7 +741,7 @@ public class DTMCModelChecker extends StateModelChecker
 	 * @param dtmc The DTMC
 	 * @param target Target states
 	 * @param inf States for which reward is infinite
-	 * @param init Optionally, an initial solution vector for value iteration 
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
@@ -697,7 +809,7 @@ public class DTMCModelChecker extends StateModelChecker
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Value iteration");
-		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Return results
 		res = new ModelCheckerResult();

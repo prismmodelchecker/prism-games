@@ -28,6 +28,7 @@ package explicit;
 
 import java.util.*;
 
+import parser.State;
 import prism.ModelType;
 import prism.PrismException;
 
@@ -40,6 +41,8 @@ public abstract class ModelSimple implements Model
 	public int numStates;
 	// Initial states
 	public List<Integer> initialStates; // TODO: should be a (linkedhash?) set really
+	// State info
+	public List<State> statesList;
 	
 	// Mutators
 	

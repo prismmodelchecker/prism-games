@@ -441,7 +441,7 @@ public abstract class QuantAbstractRefine
 		}
 		mc.inheritSettings(mcOptions);
 		// But limit verbosity (since model checking will be done many times)
-		mc.setVerbosity(verbosity - 1);
+		//mc.setVerbosity(verbosity - 1);
 
 		// Init timers, etc.
 		timerTotal = System.currentTimeMillis();
@@ -524,7 +524,7 @@ public abstract class QuantAbstractRefine
 				// Compute... note lbsoln for both is ok sinec = ubsoln
 				lb = ((STPG) abstraction).mvMultMinMaxSingle(i, lbSoln, true, min);
 				ub = ((STPG) abstraction).mvMultMinMaxSingle(i, lbSoln, false, min);
-				mainLog.println(((STPG) abstraction).getChoices(i));
+				mainLog.println(((STPGAbstrSimple) abstraction).getChoices(i));
 				mainLog.println("XX " + i + ": old=[" + lbSoln[i] + "," + ubSoln[i] + "], new=[" + lb + "," + ub + "]");
 				if (PrismUtils.doublesAreClose(ub, lb, refineTermCritParam, refineTermCrit == RefineTermCrit.ABSOLUTE)) {
 					lbSoln[i] = ubSoln[i] = lb;
@@ -1219,14 +1219,14 @@ public abstract class QuantAbstractRefine
 	private static void exportToDotFile(String filename, Model abstraction, BitSet known, double lbSoln[],
 			double ubSoln[]) throws PrismException
 	{
-		STPG stpg;
+		STPGAbstrSimple stpg;
 		int i, j, k;
 		String nij, nijk;
 		
 		if (abstraction instanceof STPG) {
-			stpg = (STPG) abstraction;
+			stpg = (STPGAbstrSimple) abstraction;
 		} else if (abstraction instanceof MDPSimple) {
-			stpg = new STPG((MDPSimple) abstraction);
+			stpg = new STPGAbstrSimple((MDPSimple) abstraction);
 		} else {
 			throw new PrismException("Cannot export this model type to a dot file");
 		}
@@ -1234,7 +1234,7 @@ public abstract class QuantAbstractRefine
 		try {
 			FileWriter out = new FileWriter(filename);
 			out.write("digraph " + "STPG" + " {\nsize=\"8,5\"\nnode [shape=box];\n");
-			for (i = 0; i < stpg.numStates; i++) {
+			for (i = 0; i < stpg.getNumStates(); i++) {
 				if (known.get(i))
 					out.write(i + " [label=\"" + i + " {" + lbSoln[i] + "}" + "\" style=filled  fillcolor=\"#cccccc\"");
 				else

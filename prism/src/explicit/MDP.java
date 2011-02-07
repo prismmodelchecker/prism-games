@@ -79,8 +79,8 @@ public interface MDP extends Model
 	 * @param vect Vector to multiply by
 	 * @param min Min or max for (true=min, false=max)
 	 * @param result Vector to store result in
-	 * @param subset Only do multiplication for these rows
-	 * @param complement If true, 'subset' is taken to be its complement
+	 * @param subset Only do multiplication for these rows (ignored if null)
+	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 */
 	public void mvMultMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement);
 
@@ -110,12 +110,45 @@ public interface MDP extends Model
 	public double mvMultSingle(int s, int k, double vect[]);
 	
 	/**
+	 * Do a Gauss-Seidel-style matrix-vector multiplication followed by min/max.
+	 * i.e. for all s: vect[s] = min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * and store new values directly in {@code vect} as computed.
+	 * The maximum (absolute/relative) difference between old/new
+	 * elements of {@code vect} is also returned.
+	 * @param vect Vector to multiply by (and store the result in)
+	 * @param min Min or max for (true=min, false=max)
+	 * @param subset Only do multiplication for these rows (ignored if null)
+	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
+	 * @param absolute If true, compute absolute, rather than relative, difference
+	 * @return The maximum difference between old/new elements of {@code vect}
+	 */
+	public double mvMultGSMinMax(double vect[], boolean min, BitSet subset, boolean complement, boolean absolute);
+
+	/**
+	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
+	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * @param s Row index
+	 * @param vect Vector to multiply by
+	 * @param min Min or max for (true=min, false=max)
+	 */
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min);
+
+	/**
+	 * Do a single row of Jacobi-style matrix-vector multiplication for a specific choice.
+	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * @param s Row index
+	 * @param k Choice index
+	 * @param vect Vector to multiply by
+	 */
+	public double mvMultJacSingle(int s, int k, double vect[]);
+
+	/**
 	 * Do a matrix-vector multiplication and sum of action reward followed by min/max, i.e. one step of value iteration.
 	 * @param vect Vector to multiply by
 	 * @param min Min or max for (true=min, false=max)
 	 * @param result Vector to store result in
-	 * @param subset Only do multiplication for these rows
-	 * @param complement If true, 'subset' is taken to be its complement
+	 * @param subset Only do multiplication for these rows (ignored if null)
+	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 */
 	public void mvMultRewMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement);
 

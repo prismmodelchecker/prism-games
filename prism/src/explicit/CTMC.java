@@ -33,6 +33,7 @@ public interface CTMC extends DTMC
 {
 	/**
 	 * Compute the maximum exit rate.
+	 * i.e. max_i { sum_j R(i,j) }
 	 */
 	public double getMaxExitRate();
 	

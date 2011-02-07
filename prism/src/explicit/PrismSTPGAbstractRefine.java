@@ -150,7 +150,7 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 			// TODO: ((CTMDP) abstraction).unif = ((CTMCSimple) modelConcrete).unif;
 			break;
 		case MDP:
-			abstraction = new STPG(nAbstract);
+			abstraction = new STPGAbstrSimple(nAbstract);
 			break;
 		default:
 			throw new PrismException("Cannot handle model type " + modelType);
@@ -183,7 +183,7 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 				break;
 			case MDP:
 				set = buildAbstractDistributionSet(c, (MDPSimple) modelConcrete, (STPG) abstraction);
-				j = ((STPG) abstraction).addDistributionSet(a, set);
+				j = ((STPGAbstrSimple) abstraction).addDistributionSet(a, set);
 				break;
 			default:
 				throw new PrismException("Cannot handle model type " + modelType);
@@ -208,7 +208,7 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 	 */
 	protected DistributionSet buildAbstractDistributionSet(int c, MDPSimple mdp, STPG stpg)
 	{
-		DistributionSet set = ((STPG) stpg).newDistributionSet(null);
+		DistributionSet set = ((STPGAbstrSimple) stpg).newDistributionSet(null);
 		for (Distribution distr : mdp.getChoices(c)) {
 			set.add(distr.map(concreteToAbstract));
 		}
@@ -338,7 +338,7 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 					break;
 				case MDP:
 					set = buildAbstractDistributionSet(c, (MDPSimple) modelConcrete, (STPG) abstraction);
-					j = ((STPG) abstraction).addDistributionSet(a, set);
+					j = ((STPGAbstrSimple) abstraction).addDistributionSet(a, set);
 					break;
 				default:
 					throw new PrismException("Cannot handle model type " + modelType);

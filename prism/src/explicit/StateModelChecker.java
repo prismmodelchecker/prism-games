@@ -32,6 +32,7 @@ import java.util.*;
 import jdd.JDD;
 import jdd.JDDNode;
 
+import parser.State;
 import parser.ast.*;
 import parser.type.*;
 import prism.PrismException;
@@ -49,6 +50,9 @@ public class StateModelChecker
 {
 	// Log for output (default to System.out)
 	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
+
+	// Properties file (for labels, constants etc)
+	protected PropertiesFile propertiesFile;
 
 	// The result of model checking will be stored here
 	protected Result result;
@@ -86,11 +90,11 @@ public class StateModelChecker
 
 	// Method used for numerical solution
 	public enum SolnMethod {
-		VALUE_ITERATION, POLICY_ITERATION
+		VALUE_ITERATION, GAUSS_SEIDEL, POLICY_ITERATION, MODIFIED_POLICY_ITERATION
 	};
 
-	// Log setter/getter
-	
+	// Setters/getters
+
 	/**
 	 * Set log for output.
 	 */
@@ -105,6 +109,14 @@ public class StateModelChecker
 	public PrismLog getLog()
 	{
 		return mainLog;
+	}
+
+	/**
+	 * Set PropertiesFile (for e.g. constants/labels when model checking)
+	 */
+	public void setPropertiesFile(PropertiesFile propertiesFile)
+	{
+		this.propertiesFile = propertiesFile;
 	}
 
 	// Set methods for flags/settings
@@ -244,7 +256,7 @@ public class StateModelChecker
 		setValIterDir(other.getValIterDir());
 		setSolnMethod(other.getSolnMethod());
 	}
-	
+
 	/**
 	 * Print summary of current settings.
 	 */
@@ -264,7 +276,7 @@ public class StateModelChecker
 	}
 
 	// Model checking functions
-	
+
 	/**
 	 * Model check an expression, process and return the result.
 	 */
@@ -282,6 +294,9 @@ public class StateModelChecker
 		// Create storage for result
 		result = new Result();
 
+		// Remove labels from property, using combined label list (on a copy of the expression) 
+		expr = (Expression) expr.deepCopy().expandLabels(propertiesFile.getCombinedLabelList());
+
 		// Do model checking and store result vector
 		timer = System.currentTimeMillis();
 		vals = checkExpression(model, expr);
@@ -292,7 +307,7 @@ public class StateModelChecker
 		if (expr.getType() instanceof TypeBool) {
 
 			// Cast to Bitset
-			valsBitSet = (BitSet)vals;
+			valsBitSet = (BitSet) vals;
 			// And check how many states are satisfying
 			numSat = valsBitSet.cardinality();
 
@@ -352,8 +367,8 @@ public class StateModelChecker
 			// and whether it is just a single value (e.g. from if the top-level operator is a filter)
 
 			// Cast to Bitset
-			valsSV = (StateValues)vals;
-			
+			valsSV = (StateValues) vals;
+
 			// Case where this is a single value (e.g. filter)
 			if (expr.returnsSingleValue()) {
 				// Get result for initial state (although it is the same for all states)
@@ -425,6 +440,14 @@ public class StateModelChecker
 		// Labels
 		else if (expr instanceof ExpressionLabel) {
 			res = checkExpressionLabel(model, (ExpressionLabel) expr);
+		} else if (expr.getType() instanceof TypeBool) {
+			int numStates = model.getNumStates();
+			BitSet bs = new BitSet(numStates);
+			List<State> statesList = ((ModelSimple) model).statesList;
+			for (int i = 0; i < numStates; i++) {
+				bs.set(i, expr.evaluateBoolean(statesList.get(i)));
+			}
+			res = bs;
 		}
 		// Anything else - error
 		else {
@@ -433,7 +456,7 @@ public class StateModelChecker
 
 		return res;
 	}
-	
+
 	/**
 	 * Model check a literal.
 	 */
@@ -474,9 +497,17 @@ public class StateModelChecker
 			//JDD.Ref(dd);
 			//return new StateValuesMTBDD(dd, model);
 		} else {
-			labels = loadLabelsFile(getLabelsFilename());
+			ll = propertiesFile.getCombinedLabelList();
+			i = ll.getLabelIndex(expr.getName());
+			if (i == -1)
+				throw new PrismException("Unknown label \"" + expr.getName() + "\" in property");
+			// check recursively
+			return checkExpression(model, ll.getLabel(i));
+
+			// TODO: remove this:
+			//labels = loadLabelsFile(getLabelsFilename());
 			// get expression associated with label
-			return labels.get(expr.getName());
+			//return labels.get(expr.getName());
 		}
 	}
 
@@ -554,10 +585,10 @@ public class StateModelChecker
 			throw new PrismException("Error in labels file");
 		}
 	}
-	
+
 	// (TEMPORARY)
 	protected String labelsFilename = null;
-	
+
 	/**
 	 * (TEMPORARY)
 	 * Set the labels file associated with this model.
@@ -566,7 +597,7 @@ public class StateModelChecker
 	{
 		labelsFilename = filename;
 	}
-	
+
 	/**
 	 * (TEMPORARY)
 	 * Get the labels file associated with this model.

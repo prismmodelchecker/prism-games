@@ -486,6 +486,62 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	}
 
 	@Override
+	public double mvMultGS(double vect[], BitSet subset, boolean complement, boolean absolute)
+	{
+		int s;
+		double d, diff, maxDiff = 0.0;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacSingle(s, vect);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public double mvMultJacSingle(int s, double vect[])
+	{
+		int k;
+		double diag, d, prob;
+		Distribution distr;
+
+		distr = trans.get(s);
+		diag = 1.0;
+		d = 0.0;
+		for (Map.Entry<Integer, Double> e : distr) {
+			k = (Integer) e.getKey();
+			prob = (Double) e.getValue();
+			if (k != s) {
+				d += prob * vect[k];
+			} else {
+				diag -= prob;
+			}
+		}
+		if (diag > 0)
+			d /= diag;
+
+		return d;
+	}
+
+	@Override
 	public void mvMultRew(double vect[], double result[], BitSet subset, boolean complement)
 	{
 		int s;
