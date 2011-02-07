@@ -66,7 +66,8 @@ public interface STPG extends Model
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean min1, boolean min2, BitSet result);
 	
 	/**
-	 * Do a matrix-vector multiplication followed by two min/max ops, i.e. one step of value iteration.
+	 * Do a matrix-vector multiplication followed by two min/max ops, i.e. one step of value iteration,
+	 * i.e. for all s: result[s] = min/max_{k1,k2} { sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param vect Vector to multiply by
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
@@ -77,7 +78,8 @@ public interface STPG extends Model
 	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement);
 
 	/**
-	 * Do a single row of matrix-vector multiplication followed by min/max.
+	 * Do a single row of matrix-vector multiplication followed by min/max,
+	 * i.e. return min/max_{k1,k2} { sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param s Row index
 	 * @param vect Vector to multiply by
 	 * @param min1 Min or max for player 1 (true=min, false=max)

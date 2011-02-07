@@ -75,7 +75,8 @@ public interface MDP extends Model
 	public double getTransitionReward(int s, int i);
 
 	/**
-	 * Do a matrix-vector multiplication followed by min/max, i.e. one step of value iteration.
+	 * Do a matrix-vector multiplication followed by min/max, i.e. one step of value iteration,
+	 * i.e. for all s: result[s] = min/max_k { sum_j P_k(s,j)*vect[j] }
 	 * @param vect Vector to multiply by
 	 * @param min Min or max for (true=min, false=max)
 	 * @param result Vector to store result in
@@ -85,7 +86,8 @@ public interface MDP extends Model
 	public void mvMultMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement);
 
 	/**
-	 * Do a single row of matrix-vector multiplication followed by min/max.
+	 * Do a single row of matrix-vector multiplication followed by min/max,
+	 * i.e. return min/max_k { sum_j P_k(s,j)*vect[j] }
 	 * @param s Row index
 	 * @param vect Vector to multiply by
 	 * @param min Min or max for (true=min, false=max)
