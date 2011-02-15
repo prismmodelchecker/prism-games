@@ -32,7 +32,6 @@ import java.io.*;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismUtils;
-import sun.util.logging.resources.logging;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game (STPG),

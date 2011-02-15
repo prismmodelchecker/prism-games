@@ -42,23 +42,23 @@ public interface STPG extends Model
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some player 1 choices, for all/some player 2 choices,
 	 * there is a transition to a state in {@code u}.
-	 * Quantification for player 1/2 choices is determined by {@code forall1}, {@code forall2}.
+	 * Quantification over player 1/2 choices is determined by {@code forall1}, {@code forall2}.
 	 * @param subset Only compute for these states
 	 * @param u Set of states {@code u}
 	 * @param forall1 For-all or there-exists for player 1 (true=for-all, false=there-exists)
 	 * @param forall2 For-all or there-exists for player 2 (true=for-all, false=there-exists)
 	 * @param result Store results here
 	 */
-	public void prob0step(BitSet subset, BitSet u, boolean min1, boolean min2, BitSet result);
+	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean min2, BitSet result);
 	
 	/**
 	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some player 1 choices, for all/some player 2 choices,
-	 * there is a transition to a state in {@code u} and all transitions go to states in {@code v}.
-	 * Quantification for player 1/2 choices is determined by {@code forall1}, {@code forall2}.
+	 * there is a transition to a state in {@code v} and all transitions go to states in {@code u}.
+	 * Quantification over player 1/2 choices is determined by {@code forall1}, {@code forall2}.
 	 * @param subset Only compute for these states
 	 * @param u Set of states {@code u}
-	 * @param u Set of states {@code v}
+	 * @param v Set of states {@code v}
 	 * @param forall1 For-all or there-exists for player 1 (true=for-all, false=there-exists)
 	 * @param forall2 For-all or there-exists for player 2 (true=for-all, false=there-exists)
 	 * @param result Store results here

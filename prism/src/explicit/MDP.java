@@ -35,31 +35,6 @@ import java.util.Map.Entry;
 public interface MDP extends Model
 {
 	/**
-	 * Check if any successor states are in a set for all choices of a state.
-	 * @param s The state to check
-	 * @param set The set to test for inclusion
-	 */
-	public boolean someSuccessorsInSetForAllChoices(int s, BitSet set);
-	
-	/**
-	 * Check if any successor states are in set1 and all successor states
-	 * are in set2 for some choices of a state.
-	 * @param s The state to check
-	 * @param set1 The set to test for inclusion (some)
-	 * @param set2 The set to test for inclusion (all)
-	 */
-	public boolean someAllSuccessorsInSetForSomeChoices(int s, BitSet set1, BitSet set2);
-	
-	/**
-	 * Check if any successor states are in set1 and all successor states
-	 * are in set2 for all choices of a state.
-	 * @param s The state to check
-	 * @param set1 The set to test for inclusion (some)
-	 * @param set2 The set to test for inclusion (all)
-	 */
-	public boolean someAllSuccessorsInSetForAllChoices(int s, BitSet set1, BitSet set2);
-	
-	/**
 	 * Get the number of transitions from choice i of state s.
 	 */
 	public double getNumTransitions(int s, int i);
@@ -74,6 +49,31 @@ public interface MDP extends Model
 	 */
 	public double getTransitionReward(int s, int i);
 
+	/**
+	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff, for all/some choices,
+	 * there is a transition to a state in {@code u}.
+	 * Quantification over choices is determined by {@code forall}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param forall For-all or there-exists (true=for-all, false=there-exists)
+	 * @param result Store results here
+	 */
+	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result);
+	
+	/**
+	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff, for all/some choices,
+	 * there is a transition to a state in {@code v} and all transitions go to states in {@code u}.
+	 * Quantification over choices is determined by {@code forall}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param v Set of states {@code v}
+	 * @param forall For-all or there-exists (true=for-all, false=there-exists)
+	 * @param result Store results here
+	 */
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result);
+	
 	/**
 	 * Do a matrix-vector multiplication followed by min/max, i.e. one step of value iteration,
 	 * i.e. for all s: result[s] = min/max_k { sum_j P_k(s,j)*vect[j] }

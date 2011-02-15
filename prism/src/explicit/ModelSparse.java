@@ -34,9 +34,9 @@ import prism.ModelType;
 import prism.PrismException;
 
 /**
- * Base class for simple explicit-state model representations.
+ * Base class sparse matrix-based (non-mutable) explicit-state model representations
  */
-public abstract class ModelSimple implements Model
+public abstract class ModelSparse implements Model
 {
 	// Number of states
 	protected int numStates;
@@ -52,7 +52,7 @@ public abstract class ModelSimple implements Model
 	/**
 	 * Initialise: create new model with fixed number of states.
 	 */
-	public void initialise(int numStates)
+	protected void initialise(int numStates)
 	{
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
@@ -67,21 +67,6 @@ public abstract class ModelSimple implements Model
 		initialStates.add(i);
 	}
 	
-	/**
-	 * Clear all information for a state (i.e. remove all transitions).
-	 */
-	public abstract void clearState(int i);
-	
-	/**
-	 * Add a new state and return its index.
-	 */
-	public abstract int addState();
-
-	/**
-	 * Add multiple new states.
-	 */
-	public abstract void addStates(int numToAdd);
-
 	/**
 	 * Build (anew) from a list of transitions exported explicitly by PRISM (i.e. a .tra file).
 	 */

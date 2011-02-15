@@ -612,8 +612,7 @@ public class PrismExplicitCL
 		// build model
 		ConstructModel constructModel;
 		constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-		modelExpl = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues());
-		((ModelSimple) modelExpl).statesList = constructModel.getStatesList();
+		modelExpl = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues(), false, true);
 		statesList = constructModel.getStatesList();
 		
 		// TODO: add -importtrans case using model.buildFromPrismExplicit(...);
@@ -1387,6 +1386,9 @@ public class PrismExplicitCL
 					}
 				}
 				// MDP solution method
+				else if (sw.equals("valiter")) {
+					prism.setMDPSolnMethod(Prism.MDP_VALITER);
+				}
 				else if (sw.equals("politer")) {
 					prism.setMDPSolnMethod(Prism.MDP_POLITER);
 				}

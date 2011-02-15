@@ -662,9 +662,9 @@ public abstract class QuantAbstractRefine
 		case STPG:
 			if (optimise && refinementNum > 0) {
 				mc.setValIterDir(MDPModelChecker.ValIterDir.BELOW);
-				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, true, min, lbSoln, known);
+				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, null, true, min, lbSoln, known);
 			} else {
-				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, true, min, null, null);
+				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, null, true, min, null, null);
 			}
 			break;
 		default:
@@ -698,14 +698,14 @@ public abstract class QuantAbstractRefine
 			if (optimise) {
 				if (above) {
 					mc.setValIterDir(ValIterDir.ABOVE);
-					res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, false, min, ubSoln, known);
+					res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, null, false, min, ubSoln, known);
 				} else {
 					mc.setValIterDir(ValIterDir.BELOW);
 					double lbCopy[] = Utils.cloneDoubleArray(lbSoln);
-					res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, false, min, lbCopy, known);
+					res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, null, false, min, lbCopy, known);
 				}
 			} else {
-				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, false, min, null, null);
+				res = ((STPGModelChecker) mc).probReach((STPG) abstraction, target, null, false, min, null, null);
 			}
 			break;
 		default:

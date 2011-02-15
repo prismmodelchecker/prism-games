@@ -36,6 +36,9 @@ import prism.PrismUtils;
 
 /**
  * Simple explicit-state representation of an MDP.
+ * The implementation is far from optimal, both in terms of memory usage and speed of access.
+ * The model is, however, easy to manipulate. For a static model (i.e. one that does not change
+ * after creation), consider MDPSparse, which is more efficient. 
  */
 public class MDPSimple extends ModelSimple implements MDP
 {
@@ -559,36 +562,6 @@ public class MDPSimple extends ModelSimple implements MDP
 	// Accessors (for MDP)
 
 	@Override
-	public boolean someSuccessorsInSetForAllChoices(int s, BitSet set)
-	{
-		for (Distribution distr : trans.get(s)) {
-			if (!distr.containsOneOf(set))
-				return false;
-		}
-		return true;
-	}
-
-	@Override
-	public boolean someAllSuccessorsInSetForSomeChoices(int s, BitSet set1, BitSet set2)
-	{
-		for (Distribution distr : trans.get(s)) {
-			if (distr.containsOneOf(set1) && distr.isSubsetOf(set2))
-				return true;
-		}
-		return false;
-	}
-
-	@Override
-	public boolean someAllSuccessorsInSetForAllChoices(int s, BitSet set1, BitSet set2)
-	{
-		for (Distribution distr : trans.get(s)) {
-			if (!distr.containsOneOf(set1) || !distr.isSubsetOf(set2))
-				return false;
-		}
-		return true;
-	}
-
-	@Override
 	public double getNumTransitions(int s, int i)
 	{
 		return trans.get(s).get(i).size();
@@ -609,6 +582,60 @@ public class MDPSimple extends ModelSimple implements MDP
 		if (transRewards == null || (list = transRewards.get(s)) == null)
 			return 0.0;
 		return list.get(i);
+	}
+
+	@Override
+	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
+	{
+		int i;
+		boolean b1, b2;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
+	}
+
+	@Override
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
+	{
+		int i;
+		boolean b1, b2;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
 	}
 
 	@Override

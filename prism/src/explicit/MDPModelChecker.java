@@ -28,9 +28,7 @@ package explicit;
 
 import java.util.*;
 
-import parser.ast.Expression;
-import parser.ast.ExpressionProb;
-import parser.ast.ExpressionTemporal;
+import parser.ast.*;
 import prism.*;
 
 /**
@@ -164,7 +162,7 @@ public class MDPModelChecker extends StateModelChecker
 		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
 		// allDDRowVars.n()) + " states\n");
 
-		res = probReach((MDP) model, b2, min);
+		res = probUntil((MDP) model, b1, b2, min);
 		probs = StateValues.createFromDoubleArray(res.soln);
 
 		return probs;
@@ -172,12 +170,18 @@ public class MDPModelChecker extends StateModelChecker
 
 	/**
 	 * Prob0 precomputation algorithm.
+	 * i.e. determine the states of an MDP which, with min/max probability 0,
+	 * reach a state in {@code target}, while remaining in those in @{code remain}.
+	 * {@code min}=true gives Prob0E, {@code min}=false gives Prob0A. 
+	 * @param mdp The MDP
+	 * @param target Target states
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public BitSet prob0(MDP mdp, BitSet target, boolean min)
+	public BitSet prob0(MDP mdp, BitSet target, BitSet remain, boolean min)
 	{
-		int i, n, iters;
-		boolean b2;
-		BitSet u, soln;
+		int n, iters;
+		BitSet u, soln, unknown;
 		boolean u_done;
 		long timer;
 
@@ -194,27 +198,27 @@ public class MDPModelChecker extends StateModelChecker
 
 		// Initialise vectors
 		n = mdp.getNumStates();
-		u = (BitSet) target.clone();
+		u = new BitSet(n);
 		soln = new BitSet(n);
+
+		// Determine set of states actually need to perform computation for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(target);
+		if (remain != null)
+			unknown.and(remain);
 
 		// Fixed point loop
 		iters = 0;
 		u_done = false;
 		// Least fixed point - should start from 0 but we optimise by
-		// starting from 'target' (see above) thus bypassing first iteration 
+		// starting from 'target', thus bypassing first iteration
+		u.or(target);
+		soln.or(target);
 		while (!u_done) {
 			iters++;
-			for (i = 0; i < n; i++) {
-				// Need either that i is a target state or
-				// (for min) all choices have a transition to u
-				// (for max) some choice has a transition to u
-				if (min) {
-					b2 = target.get(i) || mdp.someSuccessorsInSetForAllChoices(i, u);
-				} else {
-					b2 = target.get(i) || mdp.someSuccessorsInSet(i, u);
-				}
-				soln.set(i, b2);
-			}
+			// Single step of Prob0
+			mdp.prob0step(unknown, u, min, soln);
 			// Check termination
 			u_done = soln.equals(u);
 			// u = soln
@@ -235,12 +239,18 @@ public class MDPModelChecker extends StateModelChecker
 
 	/**
 	 * Prob1 precomputation algorithm.
+	 * i.e. determine the states of an MDP which, with min/max probability 1,
+	 * reach a state in {@code target}, while remaining in those in @{code remain}.
+	 * {@code min}=true gives Prob1A, {@code min}=false gives Prob1E. 
+	 * @param mdp The MDP
+	 * @param target Target states
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public BitSet prob1(MDP mdp, BitSet target, boolean min)
+	public BitSet prob1(MDP mdp, BitSet target, BitSet remain, boolean min)
 	{
-		int i, n, iters;
-		boolean b2;
-		BitSet u, v, soln;
+		int n, iters;
+		BitSet u, v, soln, unknown;
 		boolean u_done, v_done;
 		long timer;
 
@@ -259,6 +269,13 @@ public class MDPModelChecker extends StateModelChecker
 		v = new BitSet(n);
 		soln = new BitSet(n);
 
+		// Determine set of states actually need to perform computation for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(target);
+		if (remain != null)
+			unknown.and(remain);
+		
 		// Nested fixed point loop
 		iters = 0;
 		u_done = false;
@@ -266,21 +283,16 @@ public class MDPModelChecker extends StateModelChecker
 		u.set(0, n);
 		while (!u_done) {
 			v_done = false;
-			// Least fixed point
+			// Least fixed point - should start from 0 but we optimise by
+			// starting from 'target', thus bypassing first iteration
 			v.clear();
+			v.or(target);
+			soln.clear();
+			soln.or(target);
 			while (!v_done) {
 				iters++;
-				for (i = 0; i < n; i++) {
-					// Need either that i is a target state or
-					// (for min) all choices have all transitions to u and a transition to v
-					// (for max) some choice has all transitions to u and a transition to v
-					if (min) {
-						b2 = target.get(i) || mdp.someAllSuccessorsInSetForAllChoices(i, v, u);
-					} else {
-						b2 = target.get(i) || mdp.someAllSuccessorsInSetForSomeChoices(i, v, u);
-					}
-					soln.set(i, b2);
-				}
+				// Single step of Prob1
+				mdp.prob1step(unknown, u, v, min, soln);
 				// Check termination (inner)
 				v_done = soln.equals(v);
 				// v = soln
@@ -304,25 +316,43 @@ public class MDPModelChecker extends StateModelChecker
 
 	/**
 	 * Compute probabilistic reachability.
+	 * i.e. compute the min/max probability of reaching a state in {@code target}.
 	 * @param mdp The MDP
 	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
 	 */
 	public ModelCheckerResult probReach(MDP mdp, BitSet target, boolean min) throws PrismException
 	{
-		return probReach(mdp, target, min, null, null);
+		return probReach(mdp, target, null, min, null, null);
+	}
+
+	/**
+	 * Compute probabilistic unbounded until.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param mdp The MDP
+	 * @param remain Remain in these states
+	 * @param target Target states
+	 * @param min Min or max probabilities (true=min, false=max)
+	 */
+	public ModelCheckerResult probUntil(MDP mdp, BitSet remain, BitSet target, boolean min) throws PrismException
+	{
+		return probReach(mdp, target, remain, min, null, null);
 	}
 
 	/**
 	 * Compute probabilistic reachability.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
 	 * @param mdp The MDP
 	 * @param target Target states
+	 * @param remain Remain in these states (optional: null means "all")
 	 * @param min Min or max probabilities (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult probReach(MDP mdp, BitSet target, boolean min, double init[], BitSet known) throws PrismException
+	public ModelCheckerResult probReach(MDP mdp, BitSet target, BitSet remain, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		BitSet no, yes;
@@ -351,14 +381,14 @@ public class MDPModelChecker extends StateModelChecker
 		// Precomputation
 		timerProb0 = System.currentTimeMillis();
 		if (precomp && prob0) {
-			no = prob0(mdp, target, min);
+			no = prob0(mdp, target, remain, min);
 		} else {
 			no = new BitSet();
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
 		if (precomp && prob1) {
-			yes = prob1(mdp, target, min);
+			yes = prob1(mdp, target, remain, min);
 		} else {
 			yes = (BitSet) target.clone();
 		}
@@ -367,7 +397,7 @@ public class MDPModelChecker extends StateModelChecker
 		// Print results of precomputation
 		numYes = yes.cardinality();
 		numNo = no.cardinality();
-		mainLog.println("yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
+		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// Compute probabilities
 		switch (solnMethod) {
@@ -577,6 +607,9 @@ public class MDPModelChecker extends StateModelChecker
 		int policy[];
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
+		
+		// Re-use solution to solve each new new policy?
+		boolean reUseSoln = true;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -590,9 +623,13 @@ public class MDPModelChecker extends StateModelChecker
 		// Store num states
 		n = mdp.getNumStates();
 
-		// Create solution vector(s)
-		soln = null; // new double[n];
+		// Create solution vectors
+		soln = new double[n];
 		soln2 = new double[n];
+
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = soln2[i] = yes.get(i) ? 1.0 : 0.0;
 
 		// Generate initial policy
 		policy = new int[n];
@@ -604,11 +641,9 @@ public class MDPModelChecker extends StateModelChecker
 		done = false;
 		while (!done) {
 			iters++;
-			// TODO: optimise: create soln, pass in as init so it gets reused
-			// TODO: also, can/should we initialise to last solution? (ok for mod pol iter)
 			// Solve policy
-			dtmc = new DTMCFromMDPMemorylessAdversary((MDPSimple) mdp, policy); // TODO: MDPSimple -> MDP?
-			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, null, null); // TODO: safe to skip precomp?
+			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, policy);
+			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, reUseSoln ? soln : null, null);
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
@@ -616,6 +651,9 @@ public class MDPModelChecker extends StateModelChecker
 			done = true;
 			diff = 0;
 			for (i = 0; i < n; i++) {
+				// NB: We must not check 'no' states (may look non-optimal)
+				if (no.get(i) || yes.get(i))
+					continue;
 				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 					done = false;
 					diff++;
@@ -690,8 +728,8 @@ public class MDPModelChecker extends StateModelChecker
 		while (!done) {
 			iters++;
 			// Solve policy
-			dtmc = new DTMCFromMDPMemorylessAdversary((MDPSimple) mdp, policy); // TODO: MDPSimple -> MDP?
-			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, soln, null); // TODO: safe to skip precomp?
+			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, policy);
+			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, soln, null);
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
@@ -699,6 +737,9 @@ public class MDPModelChecker extends StateModelChecker
 			done = true;
 			diff = 0;
 			for (i = 0; i < n; i++) {
+				// NB: We must not check 'no' states (may look non-optimal)
+				if (no.get(i) || yes.get(i))
+					continue;
 				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 					done = false;
 					diff++;
@@ -875,7 +916,7 @@ public class MDPModelChecker extends StateModelChecker
 
 		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
-		inf = prob1(mdp, target, !min);
+		inf = prob1(mdp, target, null, !min);
 		inf.flip(0, n);
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 

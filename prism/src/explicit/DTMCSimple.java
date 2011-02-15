@@ -451,6 +451,32 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	}
 
 	@Override
+	public void prob0step(BitSet subset, BitSet u, BitSet result)
+	{
+		int i;
+		Distribution distr;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				distr = trans.get(i);
+				result.set(i, distr.containsOneOf(u));
+			}
+		}
+	}
+
+	@Override
+	public void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result)
+	{
+		int i;
+		Distribution distr;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				distr = trans.get(i);
+				result.set(i, distr.containsOneOf(v) && distr.isSubsetOf(u));
+			}
+		}
+	}
+
+	@Override
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement)
 	{
 		int s;

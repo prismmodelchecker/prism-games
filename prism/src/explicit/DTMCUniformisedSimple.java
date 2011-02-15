@@ -29,6 +29,8 @@ package explicit;
 import java.util.*;
 import java.util.Map.Entry;
 
+import parser.State;
+import parser.Values;
 import prism.ModelType;
 import prism.PrismException;
 
@@ -103,6 +105,16 @@ public class DTMCUniformisedSimple implements DTMC
 		return ctmc.isInitialState(i);
 	}
 
+	public List<State> getStatesList()
+	{
+		return ctmc.getStatesList();
+	}
+	
+	public Values getConstantValues()
+	{
+		return ctmc.getConstantValues();
+	}
+	
 	public int getNumTransitions()
 	{
 		return ctmc.getNumTransitions() + numExtraTransitions;
@@ -188,6 +200,18 @@ public class DTMCUniformisedSimple implements DTMC
 	}
 
 	public double getTransitionReward(int s)
+	{
+		// TODO
+		throw new Error("Not yet supported");
+	}
+
+	public void prob0step(BitSet subset, BitSet u, BitSet result)
+	{
+		// TODO
+		throw new Error("Not yet supported");
+	}
+
+	public void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result)
 	{
 		// TODO
 		throw new Error("Not yet supported");

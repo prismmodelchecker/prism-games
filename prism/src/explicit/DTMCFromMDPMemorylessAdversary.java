@@ -29,27 +29,29 @@ package explicit;
 import java.util.*;
 import java.util.Map.Entry;
 
+import parser.State;
+import parser.Values;
 import prism.ModelType;
 import prism.PrismException;
 
 /**
- * Simple explicit-state representation of a DTMC, constructed (implicitly)
+ * Explicit-state representation of a DTMC, constructed (implicitly)
  * from an MDP and a memoryless adversary, specified as an array of integer indices.
  * This class is read-only: most of data is pointers to other model info.
  */
 public class DTMCFromMDPMemorylessAdversary implements DTMC
 {
 	// Parent MDP
-	protected MDPSimple mdp;
+	protected MDP mdp;
 	// Also store num states for easy access
 	protected int numStates;
 	// Adversary
 	protected int adv[];
 
 	/**
-	 * Constructor: create from MDP and simple.
+	 * Constructor: create from MDP and memoryless adversary.
 	 */
-	public DTMCFromMDPMemorylessAdversary(MDPSimple mdp, int adv[])
+	public DTMCFromMDPMemorylessAdversary(MDP mdp, int adv[])
 	{
 		this.mdp = mdp;
 		this.numStates = mdp.getNumStates();
@@ -88,6 +90,16 @@ public class DTMCFromMDPMemorylessAdversary implements DTMC
 		return mdp.isInitialState(i);
 	}
 
+	public List<State> getStatesList()
+	{
+		return mdp.getStatesList();
+	}
+	
+	public Values getConstantValues()
+	{
+		return mdp.getConstantValues();
+	}
+	
 	public int getNumTransitions()
 	{
 		throw new RuntimeException("Not implemented");
@@ -173,6 +185,18 @@ public class DTMCFromMDPMemorylessAdversary implements DTMC
 	{
 		// TODO
 		return 0;
+	}
+
+	public void prob0step(BitSet subset, BitSet u, BitSet result)
+	{
+		// TODO
+		throw new Error("Not yet supported");
+	}
+
+	public void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result)
+	{
+		// TODO
+		throw new Error("Not yet supported");
 	}
 
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement)

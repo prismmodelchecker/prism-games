@@ -42,7 +42,7 @@ public interface DTMC extends Model
 	/**
 	 * Get an iterator over the transitions from state s.
 	 */
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s);
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s);
 
 	/**
 	 * Get the transition reward (if any) for the transitions in state s.
@@ -59,6 +59,25 @@ public interface DTMC extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 */
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement);
+
+	/**
+	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff there is a transition to a state in {@code u}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param result Store results here
+	 */
+	public void prob0step(BitSet subset, BitSet u, BitSet result);
+
+	/**
+	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff there is a transition to a state in {@code v} and all transitions go to states in {@code u}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param v Set of states {@code v}
+	 * @param result Store results here
+	 */
+	public void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result);
 
 	/**
 	 * Do a single row of matrix-vector multiplication for

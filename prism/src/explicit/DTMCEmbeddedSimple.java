@@ -29,6 +29,8 @@ package explicit;
 import java.util.*;
 import java.util.Map.Entry;
 
+import parser.State;
+import parser.Values;
 import prism.ModelType;
 import prism.PrismException;
 
@@ -97,6 +99,16 @@ public class DTMCEmbeddedSimple implements DTMC
 		return ctmc.isInitialState(i);
 	}
 
+	public List<State> getStatesList()
+	{
+		return ctmc.getStatesList();
+	}
+	
+	public Values getConstantValues()
+	{
+		return ctmc.getConstantValues();
+	}
+	
 	public int getNumTransitions()
 	{
 		return ctmc.getNumTransitions() + numExtraTransitions;
@@ -182,6 +194,26 @@ public class DTMCEmbeddedSimple implements DTMC
 	{
 		// TODO
 		return 0;
+	}
+
+	public void prob0step(BitSet subset, BitSet u, BitSet result)
+	{
+		int i;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				result.set(i, someSuccessorsInSet(i, u));
+			}
+		}
+	}
+
+	public void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result)
+	{
+		int i;
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+				result.set(i, someSuccessorsInSet(i, v) && allSuccessorsInSet(i, u));
+			}
+		}
 	}
 
 	public void mvMult(double vect[], double result[], BitSet subset, boolean complement)

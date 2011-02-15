@@ -33,6 +33,7 @@ import jdd.JDD;
 import jdd.JDDNode;
 
 import parser.State;
+import parser.Values;
 import parser.ast.*;
 import parser.type.*;
 import prism.PrismException;
@@ -53,6 +54,9 @@ public class StateModelChecker
 
 	// Properties file (for labels, constants etc)
 	protected PropertiesFile propertiesFile;
+	
+	// Constants
+	protected Values constantValues;
 
 	// The result of model checking will be stored here
 	protected Result result;
@@ -66,7 +70,7 @@ public class StateModelChecker
 	// Parameter for iterative numerical method termination criteria
 	protected double termCritParam = 1e-8;
 	// Max iterations for numerical solution
-	protected int maxIters = 100000;
+	protected int maxIters = 100000; // TODO: make same as PRISM?
 	// Use precomputation algorithms in model checking?
 	protected boolean precomp = true;
 	protected boolean prob0 = true;
@@ -291,11 +295,19 @@ public class StateModelChecker
 		boolean satInit = false;
 		int numSat = 0;
 
+		// Get combined constant values from model/properties
+		constantValues = new Values();
+		constantValues.addValues(model.getConstantValues());
+		if (propertiesFile != null)
+			constantValues.addValues(propertiesFile.getConstantValues());
+
 		// Create storage for result
 		result = new Result();
 
 		// Remove labels from property, using combined label list (on a copy of the expression) 
 		expr = (Expression) expr.deepCopy().expandLabels(propertiesFile.getCombinedLabelList());
+		// Also evaluate/replace any constants
+		expr = (Expression) expr.replaceConstants(constantValues);
 
 		// Do model checking and store result vector
 		timer = System.currentTimeMillis();
@@ -443,7 +455,7 @@ public class StateModelChecker
 		} else if (expr.getType() instanceof TypeBool) {
 			int numStates = model.getNumStates();
 			BitSet bs = new BitSet(numStates);
-			List<State> statesList = ((ModelSimple) model).statesList;
+			List<State> statesList = model.getStatesList();
 			for (int i = 0; i < numStates; i++) {
 				bs.set(i, expr.evaluateBoolean(statesList.get(i)));
 			}
