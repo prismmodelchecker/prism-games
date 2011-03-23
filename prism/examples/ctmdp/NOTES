@@ -1,3 +1,7 @@
+
+prism-explicit examples/ctmdp/Neu10.sm -csl 'const double T; Pmax=?[F<=T "target"]' -const T=1
+prism-explicit examples/ctmdp/jsp.sm -csl 'const double T; Pmax=?[F<=T "done"]' -const T=0:14 -exportresults stdout
+
 prism examples/ctmdp/Neu10.sm -noprobchecks -exporttrans examples/ctmdp/Neu10.tra -exportlabels examples/ctmdp/Neu10.lab
 
 java -cp classes explicit.CTMDPModelChecker examples/ctmdp/Neu10.{tra,lab} target 1 -max

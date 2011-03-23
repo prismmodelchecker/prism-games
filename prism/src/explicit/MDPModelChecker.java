@@ -34,69 +34,9 @@ import prism.*;
 /**
  * Explicit-state model checker for Markov decision processes (MDPs).
  */
-public class MDPModelChecker extends StateModelChecker
+public class MDPModelChecker extends ProbModelChecker
 {
 	// Model checking functions
-
-	/**
-	 * Model check an expression and return the values for all states.
-	 */
-	public Object checkExpression(Model model, Expression expr) throws PrismException
-	{
-		Object res;
-
-		// P operator
-		if (expr instanceof ExpressionProb) {
-			res = checkExpressionProb(model, (ExpressionProb) expr);
-		}
-		// Otherwise, use the superclass
-		else {
-			res = super.checkExpression(model, expr);
-		}
-
-		return res;
-	}
-
-	/**
-	 * Model check a P operator expression and return the values for all states.
-	 */
-	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
-	{
-		String relOp; // relational operator
-		boolean min; // are we finding min (true) or max (false) probs
-
-		StateValues probs = null;
-
-		// Get info from prob operator
-		relOp = expr.getRelOp();
-
-		// Check for unhandled cases
-		if (expr.getProb() != null)
-			throw new PrismException("Bounded P operators not yet supported");
-
-		// Determine whether min or max probabilities needed
-		if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
-			// min
-			min = true;
-		} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
-			// max
-			min = false;
-		} else {
-			throw new PrismException("Can't use \"P=?\" for MDPs; use \"Pmin=?\" or \"Pmax=?\"");
-		}
-
-		// Compute probabilities
-		probs = checkProbPathFormula(model, expr.getExpression(), min);
-
-		// Print out probabilities
-		if (getVerbosity() > 5) {
-			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
-			mainLog.print(probs);
-		}
-
-		// For =? properties, just return values
-		return probs;
-	}
 
 	/**
 	 * Compute probabilities for the contents of a P operator.
@@ -125,7 +65,7 @@ public class MDPModelChecker extends StateModelChecker
 			// Until
 			if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
 				if (exprTemp.hasBounds()) {
-					probs = null;//checkProbBoundedUntil(model, exprTemp);
+					probs = checkProbBoundedUntil(model, exprTemp, min);
 				} else {
 					probs = checkProbUntil(model, exprTemp, min);
 				}
@@ -138,6 +78,48 @@ public class MDPModelChecker extends StateModelChecker
 
 		if (probs == null)
 			throw new PrismException("Unrecognised path operator in P operator");
+
+		return probs;
+	}
+
+	// bounded until
+
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min) throws PrismException
+	{
+		int time;
+		BitSet b1, b2;
+		StateValues probs = null;
+		ModelCheckerResult res = null;
+
+		// get info from bounded until
+		time = expr.getUpperBound().evaluateInt(constantValues, null);
+		if (expr.upperBoundIsStrict())
+			time--;
+		if (time < 0) {
+			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<=" + time;
+			throw new PrismException("Invalid bound " + bound + " in bounded until formula");
+		}
+
+		// model check operands first
+		b1 = (BitSet) checkExpression(model, expr.getOperand1());
+		b2 = (BitSet) checkExpression(model, expr.getOperand2());
+
+		// print out some info about num states
+		// mainLog.print("\nb1 = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
+		// allDDRowVars.n()) + " states\n");
+
+		// Compute probabilities
+
+		// a trivial case: "U<=0"
+		if (time == 0) {
+			// prob is 1 in b2 states, 0 otherwise
+			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
+		} else {
+			res = computeBoundedUntilProbs((MDP) model, b1, b2, time, min);
+			probs = StateValues.createFromDoubleArray(res.soln);
+		}
 
 		return probs;
 	}
@@ -162,10 +144,127 @@ public class MDPModelChecker extends StateModelChecker
 		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
 		// allDDRowVars.n()) + " states\n");
 
-		res = probUntil((MDP) model, b1, b2, min);
+		res = computeUntilProbs((MDP) model, b1, b2, min);
 		probs = StateValues.createFromDoubleArray(res.soln);
 
 		return probs;
+	}
+
+	// Numerical computation functions
+
+	/**
+	 * Compute reachability probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target}.
+	 * @param mdp The MDP
+	 * @param target Target states
+	 * @param min Min or max probabilities (true=min, false=max)
+	 */
+	public ModelCheckerResult computeReachProbs(MDP mdp, BitSet target, boolean min) throws PrismException
+	{
+		return computeReachProbs(mdp, null, target, min, null, null);
+	}
+
+	/**
+	 * Compute until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param mdp The MDP
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min Min or max probabilities (true=min, false=max)
+	 */
+	public ModelCheckerResult computeUntilProbs(MDP mdp, BitSet remain, BitSet target, boolean min) throws PrismException
+	{
+		return computeReachProbs(mdp, remain, target, min, null, null);
+	}
+
+	/**
+	 * Compute reachability/until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param mdp The MDP
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min Min or max probabilities (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 */
+	public ModelCheckerResult computeReachProbs(MDP mdp, BitSet remain, BitSet target, boolean min, double init[], BitSet known) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		BitSet no, yes;
+		int i, n, numYes, numNo;
+		long timer, timerProb0, timerProb1;
+
+		// Start probabilistic reachability
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting probabilistic reachability...");
+
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		mdp.checkForDeadlocks(target);
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		// Optimise by enlarging target set (if more info is available)
+		if (init != null && known != null) {
+			BitSet targetNew = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 1.0));
+			}
+			target = targetNew;
+		}
+
+		// Precomputation
+		timerProb0 = System.currentTimeMillis();
+		if (precomp && prob0) {
+			no = prob0(mdp, remain, target, min);
+		} else {
+			no = new BitSet();
+		}
+		timerProb0 = System.currentTimeMillis() - timerProb0;
+		timerProb1 = System.currentTimeMillis();
+		if (precomp && prob1) {
+			yes = prob1(mdp, remain, target, min);
+		} else {
+			yes = (BitSet) target.clone();
+		}
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+
+		// Print results of precomputation
+		numYes = yes.cardinality();
+		numNo = no.cardinality();
+		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
+
+		// Compute probabilities
+		switch (solnMethod) {
+		case VALUE_ITERATION:
+			res = computeReachProbsValIter(mdp, no, yes, min, init, known);
+			break;
+		case GAUSS_SEIDEL:
+			res = computeReachProbsGaussSeidel(mdp, no, yes, min, init, known);
+			break;
+		case POLICY_ITERATION:
+			res = computeReachProbsPolIter(mdp, no, yes, min);
+			break;
+		case MODIFIED_POLICY_ITERATION:
+			res = computeReachProbsModPolIter(mdp, no, yes, min);
+			break;
+		default:
+			throw new PrismException("Unknown MDP solution method " + solnMethod);
+		}
+
+		// Finished probabilistic reachability
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timeProb0 = timerProb0 / 1000.0;
+		res.timePre = (timerProb0 + timerProb1) / 1000.0;
+
+		return res;
 	}
 
 	/**
@@ -174,11 +273,11 @@ public class MDPModelChecker extends StateModelChecker
 	 * reach a state in {@code target}, while remaining in those in @{code remain}.
 	 * {@code min}=true gives Prob0E, {@code min}=false gives Prob0A. 
 	 * @param mdp The MDP
-	 * @param target Target states
 	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public BitSet prob0(MDP mdp, BitSet target, BitSet remain, boolean min)
+	public BitSet prob0(MDP mdp, BitSet remain, BitSet target, boolean min)
 	{
 		int n, iters;
 		BitSet u, soln, unknown;
@@ -243,11 +342,11 @@ public class MDPModelChecker extends StateModelChecker
 	 * reach a state in {@code target}, while remaining in those in @{code remain}.
 	 * {@code min}=true gives Prob1A, {@code min}=false gives Prob1E. 
 	 * @param mdp The MDP
-	 * @param target Target states
 	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public BitSet prob1(MDP mdp, BitSet target, BitSet remain, boolean min)
+	public BitSet prob1(MDP mdp, BitSet remain, BitSet target, boolean min)
 	{
 		int n, iters;
 		BitSet u, v, soln, unknown;
@@ -315,122 +414,7 @@ public class MDPModelChecker extends StateModelChecker
 	}
 
 	/**
-	 * Compute probabilistic reachability.
-	 * i.e. compute the min/max probability of reaching a state in {@code target}.
-	 * @param mdp The MDP
-	 * @param target Target states
-	 * @param min Min or max probabilities (true=min, false=max)
-	 */
-	public ModelCheckerResult probReach(MDP mdp, BitSet target, boolean min) throws PrismException
-	{
-		return probReach(mdp, target, null, min, null, null);
-	}
-
-	/**
-	 * Compute probabilistic unbounded until.
-	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * while remaining in those in @{code remain}.
-	 * @param mdp The MDP
-	 * @param remain Remain in these states
-	 * @param target Target states
-	 * @param min Min or max probabilities (true=min, false=max)
-	 */
-	public ModelCheckerResult probUntil(MDP mdp, BitSet remain, BitSet target, boolean min) throws PrismException
-	{
-		return probReach(mdp, target, remain, min, null, null);
-	}
-
-	/**
-	 * Compute probabilistic reachability.
-	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * while remaining in those in @{code remain}.
-	 * @param mdp The MDP
-	 * @param target Target states
-	 * @param remain Remain in these states (optional: null means "all")
-	 * @param min Min or max probabilities (true=min, false=max)
-	 * @param init Optionally, an initial solution vector (may be overwritten) 
-	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
-	 */
-	public ModelCheckerResult probReach(MDP mdp, BitSet target, BitSet remain, boolean min, double init[], BitSet known) throws PrismException
-	{
-		ModelCheckerResult res = null;
-		BitSet no, yes;
-		int i, n, numYes, numNo;
-		long timer, timerProb0, timerProb1;
-
-		// Start probabilistic reachability
-		timer = System.currentTimeMillis();
-		mainLog.println("Starting probabilistic reachability...");
-
-		// Check for deadlocks in non-target state (because breaks e.g. prob1)
-		mdp.checkForDeadlocks(target);
-
-		// Store num states
-		n = mdp.getNumStates();
-
-		// Optimise by enlarging target set (if more info is available)
-		if (init != null && known != null) {
-			BitSet targetNew = new BitSet(n);
-			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 1.0));
-			}
-			target = targetNew;
-		}
-
-		// Precomputation
-		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
-			no = prob0(mdp, target, remain, min);
-		} else {
-			no = new BitSet();
-		}
-		timerProb0 = System.currentTimeMillis() - timerProb0;
-		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
-			yes = prob1(mdp, target, remain, min);
-		} else {
-			yes = (BitSet) target.clone();
-		}
-		timerProb1 = System.currentTimeMillis() - timerProb1;
-
-		// Print results of precomputation
-		numYes = yes.cardinality();
-		numNo = no.cardinality();
-		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
-
-		// Compute probabilities
-		switch (solnMethod) {
-		case VALUE_ITERATION:
-			res = probReachValIter(mdp, no, yes, min, init, known);
-			break;
-		case GAUSS_SEIDEL:
-			res = probReachGaussSeidel(mdp, no, yes, min, init, known);
-			break;
-		case POLICY_ITERATION:
-			res = probReachPolIter(mdp, no, yes, min);
-			break;
-		case MODIFIED_POLICY_ITERATION:
-			res = probReachModPolIter(mdp, no, yes, min);
-			break;
-		default:
-			throw new PrismException("Unknown MDP solution method " + solnMethod);
-		}
-
-		// Finished probabilistic reachability
-		timer = System.currentTimeMillis() - timer;
-		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
-
-		// Update time taken
-		res.timeTaken = timer / 1000.0;
-		res.timeProb0 = timerProb0 / 1000.0;
-		res.timePre = (timerProb0 + timerProb1) / 1000.0;
-
-		return res;
-	}
-
-	/**
-	 * Compute probabilistic reachability using value iteration.
+	 * Compute reachability probabilities using value iteration.
 	 * @param mdp The MDP
 	 * @param no Probability 0 states
 	 * @param yes Probability 1 states
@@ -439,7 +423,7 @@ public class MDPModelChecker extends StateModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	protected ModelCheckerResult probReachValIter(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known) throws PrismException
+	protected ModelCheckerResult computeReachProbsValIter(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
 		BitSet unknown;
@@ -513,7 +497,7 @@ public class MDPModelChecker extends StateModelChecker
 	}
 
 	/**
-	 * Compute probabilistic reachability using Gauss-Seidel.
+	 * Compute reachability probabilities using Gauss-Seidel (including Jacobi-style updates).
 	 * @param mdp The MDP
 	 * @param no Probability 0 states
 	 * @param yes Probability 1 states
@@ -522,7 +506,7 @@ public class MDPModelChecker extends StateModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	protected ModelCheckerResult probReachGaussSeidel(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known) throws PrismException
+	protected ModelCheckerResult computeReachProbsGaussSeidel(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
 		BitSet unknown;
@@ -591,24 +575,24 @@ public class MDPModelChecker extends StateModelChecker
 	}
 
 	/**
-	 * Compute probabilistic reachability using policy iteration.
+	 * Compute reachability probabilities using policy iteration.
 	 * @param mdp: The MDP
 	 * @param no: Probability 0 states
 	 * @param yes: Probability 1 states
 	 * @param min: Min or max probabilities (true=min, false=max)
 	 */
-	protected ModelCheckerResult probReachPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
+	protected ModelCheckerResult computeReachProbsPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
 	{
 		ModelCheckerResult res;
 		int i, n, iters, totalIters, diff;
 		double soln[], soln2[];
 		boolean done;
 		long timer;
-		int policy[];
+		int adv[];
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
 		
-		// Re-use solution to solve each new new policy?
+		// Re-use solution to solve each new adversary?
 		boolean reUseSoln = true;
 
 		// Start value iteration
@@ -631,19 +615,19 @@ public class MDPModelChecker extends StateModelChecker
 		for (i = 0; i < n; i++)
 			soln[i] = soln2[i] = yes.get(i) ? 1.0 : 0.0;
 
-		// Generate initial policy
-		policy = new int[n];
+		// Generate initial adversary
+		adv = new int[n];
 		for (i = 0; i < n; i++)
-			policy[i] = 0;
+			adv[i] = 0;
 
 		// Start iterations
 		iters = totalIters = 0;
 		done = false;
 		while (!done) {
 			iters++;
-			// Solve policy
-			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, policy);
-			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, reUseSoln ? soln : null, null);
+			// Solve induced DTMC for adversary
+			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, adv);
+			res = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, yes, reUseSoln ? soln : null, null);
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
@@ -658,7 +642,9 @@ public class MDPModelChecker extends StateModelChecker
 					done = false;
 					diff++;
 					List<Integer> opt = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln2[i]);
-					policy[i] = opt.get(0);
+					// If update adversary if strictly better
+					if (!opt.contains(adv[i]))
+						adv[i] = opt.get(0);
 				}
 			}
 		}
@@ -677,13 +663,13 @@ public class MDPModelChecker extends StateModelChecker
 	}
 
 	/**
-	 * Compute probabilistic reachability using modified policy iteration.
+	 * Compute reachability probabilities using modified policy iteration.
 	 * @param mdp: The MDP
 	 * @param no: Probability 0 states
 	 * @param yes: Probability 1 states
 	 * @param min: Min or max probabilities (true=min, false=max)
 	 */
-	protected ModelCheckerResult probReachModPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
+	protected ModelCheckerResult computeReachProbsModPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
 	{
 		ModelCheckerResult res;
 		int i, n, iters, totalIters, diff;
@@ -729,7 +715,7 @@ public class MDPModelChecker extends StateModelChecker
 			iters++;
 			// Solve policy
 			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, policy);
-			res = mcDTMC.probReachGaussSeidel(dtmc, no, yes, soln, null);
+			res = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, yes, soln, null);
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
@@ -779,28 +765,49 @@ public class MDPModelChecker extends StateModelChecker
 	}
 
 	/**
-	 * Compute bounded probabilistic reachability.
+	 * Compute bounded reachability probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target} within k steps.
 	 * @param mdp The MDP
 	 * @param target Target states
 	 * @param k Bound
-	 * @param min Min or max probabilities for (true=min, false=max)
+	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public ModelCheckerResult probReachBounded(MDP mdp, BitSet target, int k, boolean min) throws PrismException
+	public ModelCheckerResult computeBoundedReachProbs(MDP mdp, BitSet target, int k, boolean min) throws PrismException
 	{
-		return probReachBounded(mdp, target, k, min, null, null);
+		return computeBoundedReachProbs(mdp, null, target, k, min, null, null);
 	}
 
 	/**
-	 * Compute bounded probabilistic reachability.
+	 * Compute bounded until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * within k steps, and while remaining in states in @{code remain}.
 	 * @param mdp The MDP
+	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
 	 * @param k Bound
-	 * @param min Min or max probabilities for (true=min, false=max)
-	 * @param init Initial solution vector - pass null for default
-	 * @param results Optional array of size b+1 to store (init state) results for each step (null if unused)
+	 * @param min Min or max probabilities (true=min, false=max)
 	 */
-	public ModelCheckerResult probReachBounded(MDP mdp, BitSet target, int k, boolean min, double init[], double results[]) throws PrismException
+	public ModelCheckerResult computeBoundedUntilProbs(MDP mdp, BitSet remain, BitSet target, int k, boolean min) throws PrismException
 	{
+		return computeBoundedReachProbs(mdp, remain, target, k, min, null, null);
+	}
+
+	/**
+	 * Compute bounded reachability/until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * within k steps, and while remaining in states in @{code remain}.
+	 * @param mdp The MDP
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param k Bound
+	 * @param min Min or max probabilities (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
+	 * @param results Optional array of size k+1 to store (init state) results for each step (null if unused)
+	 */
+	public ModelCheckerResult computeBoundedReachProbs(MDP mdp, BitSet remain, BitSet target, int k, boolean min, double init[], double results[]) throws PrismException
+	{
+		// TODO: implement until
+		
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
@@ -874,9 +881,9 @@ public class MDPModelChecker extends StateModelChecker
 	 * @param target Target states
 	 * @param min Min or max rewards (true=min, false=max)
 	 */
-	public ModelCheckerResult expReach(MDP mdp, BitSet target, boolean min) throws PrismException
+	public ModelCheckerResult computeReachRewards(MDP mdp, BitSet target, boolean min) throws PrismException
 	{
-		return expReach(mdp, target, min, null, null);
+		return computeReachRewards(mdp, target, min, null, null);
 	}
 
 	/**
@@ -888,7 +895,7 @@ public class MDPModelChecker extends StateModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult expReach(MDP mdp, BitSet target, boolean min, double init[], BitSet known) throws PrismException
+	public ModelCheckerResult computeReachRewards(MDP mdp, BitSet target, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		BitSet inf;
@@ -916,7 +923,7 @@ public class MDPModelChecker extends StateModelChecker
 
 		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
-		inf = prob1(mdp, target, null, !min);
+		inf = prob1(mdp, null, target, !min);
 		inf.flip(0, n);
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
@@ -928,7 +935,7 @@ public class MDPModelChecker extends StateModelChecker
 		// Compute rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = expReachValIter(mdp, target, inf, min, init, known);
+			res = computeReachRewardsValIter(mdp, target, inf, min, init, known);
 			break;
 		default:
 			throw new PrismException("Unknown MDP solution method " + solnMethod);
@@ -955,7 +962,7 @@ public class MDPModelChecker extends StateModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult expReachValIter(MDP mdp, BitSet target, BitSet inf, boolean min, double init[], BitSet known) throws PrismException
+	protected ModelCheckerResult computeReachRewardsValIter(MDP mdp, BitSet target, BitSet inf, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
 		BitSet unknown;
@@ -1073,7 +1080,7 @@ public class MDPModelChecker extends StateModelChecker
 				else if (args[i].equals("-nopre"))
 					mc.setPrecomp(false);
 			}
-			res = mc.probReach(mdp, target, min);
+			res = mc.computeReachProbs(mdp, target, min);
 			System.out.println(res.soln[init.nextSetBit(0)]);
 		} catch (PrismException e) {
 			System.out.println(e);

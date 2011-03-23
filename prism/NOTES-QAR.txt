@@ -1,0 +1,24 @@
+stack:
+
+- can we speed up stpg val iter with gs?
+  implemented seems to work, need to look up
+  need to clarify prob 1 self-loop issues (easy-ish i think; mdps too)
+  (not policy iter though i guess?)
+
+bugs:
+
+- can have dupe initial states - oops
+
+notes:
+
+- implemented policy iteration
+- still a few todos
+- also is "implicit" method really best for dtmc from mdp+adv?
+
+thoughts:
+
+- need basic access to models: getProb(i, k, j) etc.
+- (and tidy up other stats e.g. numTransitions in MDP.java, maxNumDistrs() etc.)
+- then shouldn't need to re-implement non-fast methods (e.g. exportToDot)
+- but where to put them? superclass? MDPExplicit? shared between e.g. simple/sparse
+- also push e.g. initial state stuff into ModelExplicit?

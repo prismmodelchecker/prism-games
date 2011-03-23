@@ -365,10 +365,10 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 			mcDtmc.inheritSettings(mcOptions);
 			switch (propertyType) {
 			case PROB_REACH:
-				res = mcDtmc.probReach((DTMC) modelConcrete, targetConcrete);
+				res = mcDtmc.computeReachProbs((DTMC) modelConcrete, targetConcrete);
 				break;
 			case PROB_REACH_BOUNDED:
-				res = mcDtmc.probReachBounded((DTMC) modelConcrete, targetConcrete, reachBound);
+				res = mcDtmc.computeBoundedReachProbs((DTMC) modelConcrete, targetConcrete, reachBound);
 				break;
 			case EXP_REACH:
 				break;
@@ -393,10 +393,10 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 			mcMdp.inheritSettings(mcOptions);
 			switch (propertyType) {
 			case PROB_REACH:
-				res = mcMdp.probReach((MDP) modelConcrete, targetConcrete, min);
+				res = mcMdp.computeReachProbs((MDP) modelConcrete, targetConcrete, min);
 				break;
 			case PROB_REACH_BOUNDED:
-				res = mcMdp.probReachBounded((MDP) modelConcrete, targetConcrete, reachBound, min);
+				res = mcMdp.computeBoundedReachProbs((MDP) modelConcrete, targetConcrete, reachBound, min);
 				break;
 			case EXP_REACH:
 				break;

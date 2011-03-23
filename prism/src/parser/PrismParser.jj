@@ -359,6 +359,7 @@ TOKEN :
 |	< CLOCK:			"clock" >
 |	< CONST:			"const" >
 |	< CTMC:				"ctmc" >
+|	< CTMDP:			"ctmdp" >
 |	< C:				"C" >
 |	< DOUBLE:			"double" >
 |	< DTMC:				"dtmc" >
@@ -400,6 +401,7 @@ TOKEN :
 |	< R:				"R" >
 |	< S:				"S" >
 |	< STOCHASTIC:		"stochastic" >
+|	< STPG:				"stpg" >
 |	< SYSTEM:			"system" >
 |	< TRUE:				"true" >
 |	< U:				"U" >
@@ -455,7 +457,7 @@ TOKEN :
 
 ModulesFile ModulesFile() throws PrismLangException :
 {
-	int type = 0;
+	ModelType type = ModelType.MDP;
 	int typeCount = 0;
 	Token typeDupe = null;
 	Declaration global;
@@ -504,21 +506,8 @@ ModulesFile ModulesFile() throws PrismLangException :
 			throw new PrismLangException("There were multiple system...endsystem constructs", sysDupe);
 		}
 		
-		// Set type (default is MDP)
-		switch (type) {
-			case PROBABILISTIC:
-			case DTMC:
-				mf.setModelType(ModelType.DTMC); break;
-			case NONDETERMINISTIC:
-			case MDP:
-				mf.setModelType(ModelType.MDP); break;
-			case STOCHASTIC:
-			case CTMC:
-				mf.setModelType(ModelType.CTMC); break;
-			case PTA:
-				mf.setModelType(ModelType.PTA); break;
-			default : mf.setModelType(ModelType.MDP); break;
-		}
+		// Set model type (note default is MDP)
+		mf.setModelType(type);
 		
 		// Return completed ModulesFile object
 		mf.setPosition(begin != null? begin: getToken(0), getToken(0));
@@ -595,12 +584,19 @@ Expression SingleExpression() :
 
 // Keyword denoting model type
 
-int ModulesFileType() :
+ModelType ModulesFileType() :
 {
+	ModelType modelType = null;
 }
 {
-	( <DTMC>|<PROBABILISTIC> | <MDP>|<NONDETERMINISTIC> | <CTMC>|<STOCHASTIC> | <PTA> )
-	{ return getToken(0).kind; }
+	( (<DTMC>|<PROBABILISTIC>) { modelType=ModelType.DTMC; }
+	| (<MDP>|<NONDETERMINISTIC>) { modelType=ModelType.MDP; }
+	| (<CTMC>|<STOCHASTIC>) { modelType=ModelType.CTMC; }
+	| <CTMDP> { modelType=ModelType.CTMDP; }
+	| <PTA> { modelType=ModelType.PTA; }
+	| <STPG> { modelType=ModelType.STPG; }
+	)
+	{ return modelType; }
 }
 
 // Formula definition

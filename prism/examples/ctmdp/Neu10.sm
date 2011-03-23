@@ -4,7 +4,7 @@
 // exact answer is 1 + 19/24 e^-3 - 3/2 e^-1 = (approx.) 0.48759
 // discretisation (k = 4500, tau = 0.0002222...) gives 0.487552953296395
 
-mdp
+ctmdp
 
 module M
 

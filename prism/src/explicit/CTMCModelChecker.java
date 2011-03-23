@@ -56,8 +56,8 @@ public class CTMCModelChecker extends DTMCModelChecker
 		}
 
 		// model check operands first
-		b1 = (BitSet)checkExpression(model, expr.getOperand1());
-		b2 = (BitSet)checkExpression(model, expr.getOperand2());
+		b1 = (BitSet) checkExpression(model, expr.getOperand1());
+		b2 = (BitSet) checkExpression(model, expr.getOperand2());
 
 		// compute probabilities
 
@@ -66,7 +66,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 			// prob is 1 in b2 states, 0 otherwise
 			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
 		} else {
-			res = probReachTimeBounded((CTMC)model, b2, time);
+			res = probReachTimeBounded((CTMC) model, b2, time);
 			probs = StateValues.createFromDoubleArray(res.soln);
 		}
 
@@ -82,7 +82,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 	{
 		mainLog.println("Building embedded DTMC...");
 		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return probReach(dtmc, target);
+		return computeReachProbs(dtmc, target);
 	}
 
 	/**
@@ -97,7 +97,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 	{
 		mainLog.println("Building embedded DTMC...");
 		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return probReach(dtmc, target, null, init, known);
+		return computeReachProbs(dtmc, null, target, init, known);
 	}
 
 	/**

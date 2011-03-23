@@ -29,23 +29,17 @@ package explicit;
 import java.io.*;
 import java.util.*;
 
-import jdd.JDD;
-import jdd.JDDNode;
-
 import parser.State;
 import parser.Values;
 import parser.ast.*;
 import parser.type.*;
 import prism.PrismException;
-import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
 import prism.Result;
 
-import prism.StateValuesMTBDD;
-
 /**
- * Super class for explicit-state probabilistic model checkers
+ * Super class for explicit-state model checkers
  */
 public class StateModelChecker
 {

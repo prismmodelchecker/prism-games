@@ -100,6 +100,7 @@ public class ConstructModel
 		DTMCSimple dtmc = null;
 		CTMCSimple ctmc = null;
 		MDPSimple mdp = null;
+		CTMDPSimple ctmdp = null;
 		Model model = null;
 		Distribution distr = null;
 		// Misc
@@ -134,6 +135,9 @@ public class ConstructModel
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
 				break;
+			case CTMDP:
+				modelSimple = ctmdp = new CTMDPSimple();
+				break;
 			}
 		}
 
@@ -160,7 +164,7 @@ public class ConstructModel
 			// Look at each outgoing choice in turn
 			nc = engine.getNumChoices();
 			for (i = 0; i < nc; i++) {
-				if (!justReach && modelType == ModelType.MDP) {
+				if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.CTMDP)) {
 					distr = new Distribution();
 				}
 				// Look at each transition in the choice
@@ -189,11 +193,18 @@ public class ConstructModel
 						case MDP:
 							distr.add(dest, engine.getTransitionProbability(i, j));
 							break;
+						case CTMDP:
+							distr.add(dest, engine.getTransitionProbability(i, j));
+							break;
 						}
 					}
 				}
-				if (!justReach && modelType == ModelType.MDP) {
-					mdp.addChoice(src, distr);
+				if (!justReach) {
+					if (modelType == ModelType.MDP) {
+						mdp.addChoice(src, distr);
+					} else if (modelType == ModelType.CTMDP) {
+						ctmdp.addChoice(src, distr);
+					}
 				}
 			}
 			// Print some progress info occasionally
@@ -220,38 +231,50 @@ public class ConstructModel
 			}
 		}
 
+		boolean sort = true;
+		int permut[] = null;
+		
+		if (sort) {
 		// Sort states and convert set to list
 		mainLog.println("Sorting reachable states list...");
-		int permut[] = states.buildSortingPermutation();
+		permut = states.buildSortingPermutation();
 		statesList = states.toPermutedArrayList(permut);
+		//mainLog.println(permut);
+		} else {
+			statesList = states.toArrayList();
+		}
 		states.clear();
 		states = null;
-		//mainLog.println(permut);
 		//mainLog.println(statesList);
 
 		// Construct new explicit-state model (with correct state ordering)
 		if (!justReach) {
 			switch (modelType) {
 			case DTMC:
-				model = new DTMCSimple(dtmc, permut);
+				model = sort ? new DTMCSimple(dtmc, permut) : (DTMCSimple) dtmc;
 				((ModelSimple) model).statesList = statesList;
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case CTMC:
-				model = new CTMCSimple(ctmc, permut);
+				model = sort ? new CTMCSimple(ctmc, permut) : (CTMCSimple) ctmc;
 				((ModelSimple) model).statesList = statesList;
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case MDP:
 				if (buildSparse) {
-					model = new MDPSparse(mdp, true, permut);
+					model = sort ? new MDPSparse(mdp, true, permut) : new MDPSparse(mdp);
 					((ModelSparse) model).statesList = statesList;
 					((ModelSparse) model).constantValues = new Values(modulesFile.getConstantValues());
 				} else {
-					model = new MDPSimple(mdp, permut);
+					model = sort ? new MDPSimple(mdp, permut) : mdp;
 					((ModelSimple) model).statesList = statesList;
 					((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				}
+				break;
+			case CTMDP:
+				model = sort ? new CTMDPSimple(ctmdp, permut) : mdp;
+				((ModelSimple) model).statesList = statesList;
+				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			}
 			//mainLog.println("Model: " + model);

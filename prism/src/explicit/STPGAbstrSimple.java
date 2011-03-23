@@ -899,10 +899,10 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 			target = new BitSet();
 			target.set(3);
 			stpg.exportToDotFile("stpg.dot", target);
-			System.out.println("min min: " + mc.probReach(stpg, target, true, true).soln[0]);
-			System.out.println("max min: " + mc.probReach(stpg, target, false, true).soln[0]);
-			System.out.println("min max: " + mc.probReach(stpg, target, true, false).soln[0]);
-			System.out.println("max max: " + mc.probReach(stpg, target, false, false).soln[0]);
+			System.out.println("min min: " + mc.computeReachProbs(stpg, target, true, true).soln[0]);
+			System.out.println("max min: " + mc.computeReachProbs(stpg, target, false, true).soln[0]);
+			System.out.println("min max: " + mc.computeReachProbs(stpg, target, true, false).soln[0]);
+			System.out.println("max max: " + mc.computeReachProbs(stpg, target, false, false).soln[0]);
 		} catch (PrismException e) {
 			System.out.println(e);
 		}

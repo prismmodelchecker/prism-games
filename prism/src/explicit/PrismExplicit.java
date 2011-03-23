@@ -72,6 +72,9 @@ public class PrismExplicit
 		case CTMC:
 			mc = new CTMCModelChecker();
 			break;
+		case CTMDP:
+			mc = new CTMDPModelChecker();
+			break;
 		default:
 			throw new PrismException("Unknown model type" + model.getModelType());
 		}
@@ -79,6 +82,7 @@ public class PrismExplicit
 		mc.setLog(prism.getMainLog());
 		mc.setPropertiesFile(propertiesFile);
 
+		mc.setPrecomp(prism.getPrecomp());
 		switch (prism.getTermCrit()) {
 		case Prism.ABSOLUTE:
 			mc.setTermCrit(StateModelChecker.TermCrit.ABSOLUTE);

@@ -724,19 +724,20 @@ public class MDPSparse extends ModelSparse implements MDP
 				vect[s] = d;
 			}
 		} else {
-			for (s = numStates - 1; s >= 0; s--) {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+			// Use this code instead for backwards Gauss-Seidel
+			/*for (s = numStates - 1; s >= 0; s--) {
 				if (subset.get(s)) {
 					d = mvMultJacMinMaxSingle(s, vect, min);
 					diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
 					maxDiff = diff > maxDiff ? diff : maxDiff;
 					vect[s] = d;
 				}
-			}
-			/*for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
 			}*/
 		}
 		return maxDiff;

@@ -1,4 +1,4 @@
-mdp
+ctmdp
 
 const double lambda1 = 0.25;
 const double lambda2 = 0.33;

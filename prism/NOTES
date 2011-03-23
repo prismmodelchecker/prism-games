@@ -8,18 +8,17 @@ Remove for beta distributions:
 TODO (before public release of 4.0)
 =======================================================
 
-PRIORITY (first beta, w/ CAV paper)
---------
-
-* JAVADOC
-
-* BENCHMARKS!
-
-* Integrate stat-mc (patch done)
-
-
 PRIORITY (next betas)
 --------
+
+* Benchmarks
+  - Get tar files online
+  - Check/tidy
+  - Links to e.g CTMCs props from below CTMCs table
+  - Links from each prop to corr model table?
+  - More labels
+  - ctmc steady-state split up?
+  - unique prop names across models?
 
 * Intervals (e.g. for multiple initial states) plotted in graphs
 
@@ -34,6 +33,7 @@ PRIORITY (next betas)
     Result objects returned from SimEngine + explanation strings
   
 * PTA fix: convex, non-diagonal, etc.
+  (see DigitalClocks.java.patch)
   cases to consider:
   - implications in invariants
   - Pmax=? [ F "end" & (x<=5) ]
@@ -53,6 +53,8 @@ Documentation:
 * New -exporttarget switch
 * Extra reach info switches?
 * Some pointers for where to start with PTAs, e.g. where examples are
+* SimulatorEngine JavaDoc
+* Update other-downloads.php
 
 Filters, property semantics, etc.
 * Integer-valued props displayed as doubles when printed as vector
@@ -112,6 +114,7 @@ PTAs:
     (then test on Arnd's BRP model + Marco's + others)
 
 Simulator:
+* New display progress meter for simulation?
 * SimMethod deal with possibility of more iters than expected
   - recalc some stats on computeMissingParameterAfterSim?
   - max 100% for getProgress?
@@ -123,6 +126,10 @@ Simulator:
 * store log for likelihood ratio?
 * make percentage from getProgress more accurate, do mod 10 after
 * do we stil need reset() in SimMethod? Don't delete, just check
+
+General:
+* finish -explicitbuild (e.g. no labels, rewards), currently in -qar
+* postpone reward struct constr until needed?
 
 =======================================================
 =======================================================
