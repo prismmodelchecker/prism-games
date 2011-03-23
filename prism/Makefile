@@ -261,7 +261,9 @@ ifeq ($(OSTYPE),linux)
 	BIN_PRISM_SRC=src/bin/prism.linux
 	BIN_XPRISM=bin/xprism
 	BIN_XPRISM_SRC=src/bin/xprism.linux
-	BIN_TARGETS=$(BIN_PRISM) $(BIN_XPRISM)
+	BIN_PRISM_EXPLICIT=bin/prism-explicit
+	BIN_PRISM_EXPLICIT_SRC=src/bin/prism-explicit.linux
+	BIN_TARGETS=$(BIN_PRISM) $(BIN_XPRISM) $(BIN_PRISM_EXPLICIT)
 endif
 ifeq ($(OSTYPE),solaris)
 	BIN_PRISM=bin/prism
@@ -286,7 +288,9 @@ ifeq ($(OSTYPE),darwin)
 	BIN_PRISM_SRC=src/bin/prism.darwin
 	BIN_XPRISM=bin/xprism
 	BIN_XPRISM_SRC=src/bin/xprism.linux
-	BIN_TARGETS=$(BIN_PRISM) $(BIN_XPRISM)
+	BIN_PRISM_EXPLICIT=bin/prism-explicit
+	BIN_PRISM_EXPLICIT_SRC=src/bin/prism-explicit.linux
+	BIN_TARGETS=$(BIN_PRISM) $(BIN_XPRISM) $(BIN_PRISM_EXPLICIT)
 endif
 
 .PHONY: clean javadoc
@@ -366,6 +370,9 @@ $(BIN_PRISM_BAT): $(BIN_PRISM_BAT_SRC)
 	@echo "$< -> $@"; cp $< $@
 
 $(BIN_XPRISM_BAT): $(BIN_XPRISM_BAT_SRC)
+	@echo "$< -> $@"; cp $< $@
+
+$(BIN_PRISM_EXPLICIT): $(BIN_PRISM_EXPLICIT_SRC)
 	@echo "$< -> $@"; cp $< $@
 
 VERSION=# default value for VERSION is blank to force provision at command-line 
