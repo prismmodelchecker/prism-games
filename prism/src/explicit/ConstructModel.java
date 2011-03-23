@@ -309,7 +309,7 @@ public class ConstructModel
 			mc.setLog(prism.getMainLog());
 			BitSet target = new BitSet();
 			target.set(2);
-			ModelCheckerResult res = mc.probReach(mdp, target, true);
+			ModelCheckerResult res = mc.computeReachProbs(mdp, target, true);
 			mainLog.println(res.soln);
 			
 		} catch (FileNotFoundException e) {
