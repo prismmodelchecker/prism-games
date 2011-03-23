@@ -1,6 +1,6 @@
 // model of 2 sensors
 
-mdp
+stpg
 
 // parameters
 const int T_size = 2;

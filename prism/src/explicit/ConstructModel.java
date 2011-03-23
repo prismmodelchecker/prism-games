@@ -46,11 +46,61 @@ public class ConstructModel
 	// Details of built model
 	private List<State> statesList;
 
+	// Partition of modules into players
+	private Set<String> player1mods;
+	private Set<String> player2mods;
+	// Partition of synchronised actions
+	private Set<String> player1syncs;
+	private Set<String> player2syncs;
+
 	public ConstructModel(SimulatorEngine engine, PrismLog mainLog)
 	{
 		this.engine = engine;
 		this.mainLog = mainLog;
+
+		this.player1mods = new HashSet<String>();
+		this.player2mods = new HashSet<String>();
+
+		this.player1syncs = new HashSet<String>();
+		this.player2syncs = new HashSet<String>();
+
+		initSensors();
 	}
+
+	/** Test method to initialise module and action allocation */
+	private void initSensors()
+	{
+		player1mods.add("scheduler");
+		player1mods.add("task_generator");
+		player1mods.add("sensor1");
+		player1mods.add("sensor3");
+		player1mods.add("sensor5");
+		player1mods.add("sensor7");
+
+		player2mods.add("sensor2");
+		player2mods.add("sensor4");
+		player2mods.add("sensor6");
+
+		player1syncs.add("initialise");
+		player1syncs.add("scheduling");
+
+		player1syncs.add("str1");
+		player1syncs.add("str2");
+		player1syncs.add("str3");
+		player1syncs.add("str4");
+		player1syncs.add("str5");
+		player1syncs.add("str6");
+		player1syncs.add("str7");
+
+		player1syncs.add("fin1");
+		player1syncs.add("fin2");
+		player1syncs.add("fin3");
+		player1syncs.add("fin4");
+		player1syncs.add("fin5");
+		player1syncs.add("fin6");
+		player1syncs.add("fin7");
+	}
+
 
 	public List<State> getStatesList()
 	{
@@ -95,18 +145,23 @@ public class ConstructModel
 		IndexedSet<State> states;
 		LinkedList<State> explore;
 		State state, stateNew;
+		List<Integer> stateLabels;
+		List<State> statesref = null;
 		// Explicit model storage
 		ModelSimple modelSimple = null;
 		DTMCSimple dtmc = null;
 		CTMCSimple ctmc = null;
 		MDPSimple mdp = null;
-		CTMDPSimple ctmdp = null;
+		STPGExplicit stpg = null;
 		Model model = null;
 		Distribution distr = null;
 		// Misc
 		int i, j, nc, nt, src, dest;
 		long timer, timerProgress;
 		boolean fixdl = false;
+		String actionLabel = null;
+		int player;
+		int id;
 
 		// Don't support multiple initial states
 		if (modulesFile.getInitialStates() != null) {
@@ -114,12 +169,16 @@ public class ConstructModel
 		}
 
 		// Starting reachability...
-		mainLog.print("\nComputing reachable states...");
+		mainLog.print("\nComputing reachable states...\n");
 		mainLog.flush();
 		timer = timerProgress = System.currentTimeMillis();
 
 		// Initialise simulator for this model
 		modelType = modulesFile.getModelType();
+
+		// TODO HACK!
+		//modelType = ModelType.STPG;
+
 		engine.createNewOnTheFlyPath(modulesFile);
 
 		// Create model storage
@@ -135,23 +194,37 @@ public class ConstructModel
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
 				break;
-			case CTMDP:
-				modelSimple = ctmdp = new CTMDPSimple();
+			case STPG:
+				modelSimple = stpg = new STPGExplicit();
 				break;
+
 			}
 		}
 
 		// Initialise states storage
 		states = new IndexedSet<State>(true);
 		explore = new LinkedList<State>();
+		stateLabels = new ArrayList<Integer>();
 		// Add initial state to lists/model
 		state = new State(modulesFile.getInitialValues());
 		states.add(state);
 		explore.add(state);
 		if (!justReach) {
-			modelSimple.addState();
+			if (modelType == ModelType.STPG) {
+				engine.initialisePath(state);
+				actionLabel = engine.getTransitionModuleOrAction(0, 0);
+				if (actionLabel != null) {
+					id = stpg.addState(getPlayer(actionLabel));
+					stateLabels.add(1);
+				} else
+					throw new PrismException(
+							"Every state must have an action. Cannot determine the player which owns the state.");
+			} else
+				modelSimple.addState();
+
 			modelSimple.addInitialState(0);
 		}
+
 		// Explore...
 		src = -1;
 		while (!explore.isEmpty()) {
@@ -159,25 +232,42 @@ public class ConstructModel
 			// (they are stored in order found so know index is src+1)
 			state = explore.removeFirst();
 			src++;
+			// System.out.println(src);
+
 			// Use simulator to explore all choices/transitions from this state
 			engine.initialisePath(state);
 			// Look at each outgoing choice in turn
 			nc = engine.getNumChoices();
 			for (i = 0; i < nc; i++) {
-				if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.CTMDP)) {
+				if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG)) {
 					distr = new Distribution();
 				}
 				// Look at each transition in the choice
 				nt = engine.getNumTransitions(i);
 				for (j = 0; j < nt; j++) {
 					stateNew = engine.computeTransitionTarget(i, j);
+
+					// labeling the source state with player
+					if (modelType == ModelType.STPG && j == 0) {
+						actionLabel = engine.getTransitionModuleOrAction(i, j);
+						if (actionLabel != null)
+							stateLabels.set(src, getPlayer(actionLabel));
+						else
+							throw new PrismException(
+									"Every state must have an action. Cannot determine the player which owns the state.");
+					}
+
 					// Is this a new state?
 					if (states.add(stateNew)) {
 						// If so, add to the explore list
 						explore.add(stateNew);
 						// And to model
-						if (!justReach)
-							modelSimple.addState();
+						if (!justReach) {
+							if (modelType == ModelType.STPG)
+								stateLabels.add(stpg.addState());
+							else
+								modelSimple.addState();
+						}
 					}
 					// Get index of state in state set
 					dest = states.getIndexOfLastAdd();
@@ -193,20 +283,20 @@ public class ConstructModel
 						case MDP:
 							distr.add(dest, engine.getTransitionProbability(i, j));
 							break;
-						case CTMDP:
+						case STPG:
 							distr.add(dest, engine.getTransitionProbability(i, j));
 							break;
 						}
 					}
 				}
 				if (!justReach) {
-					if (modelType == ModelType.MDP) {
+					if (modelType == ModelType.MDP)
 						mdp.addChoice(src, distr);
-					} else if (modelType == ModelType.CTMDP) {
-						ctmdp.addChoice(src, distr);
-					}
+					else if (modelType == ModelType.STPG)
+						stpg.addDistribution(src, distr);
 				}
 			}
+
 			// Print some progress info occasionally
 			if (System.currentTimeMillis() - timerProgress > 3000) {
 				mainLog.print(" " + (src + 1));
@@ -215,13 +305,19 @@ public class ConstructModel
 			}
 		}
 
+		// labeling states
+		if (modelType == ModelType.STPG)
+			for (int st = 0; st < stateLabels.size(); st++) {
+
+				stpg.setPlayer(st, stateLabels.get(st));
+			}
 		// Finish progress display
 		mainLog.println(" " + (src + 1));
 
 		// Reachability complete
 		mainLog.print("Reachable states exploration" + (justReach ? "" : " and model construction"));
 		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
-		//mainLog.println(states);
+		// mainLog.println(states);
 
 		// Fix deadlocks (if required)
 		if (!justReach && fixdl) {
@@ -231,53 +327,44 @@ public class ConstructModel
 			}
 		}
 
-		boolean sort = true;
-		int permut[] = null;
-		
-		if (sort) {
 		// Sort states and convert set to list
 		mainLog.println("Sorting reachable states list...");
-		permut = states.buildSortingPermutation();
+		int permut[] = states.buildSortingPermutation();
 		statesList = states.toPermutedArrayList(permut);
-		//mainLog.println(permut);
-		} else {
-			statesList = states.toArrayList();
-		}
 		states.clear();
 		states = null;
-		//mainLog.println(statesList);
+		// mainLog.println(permut);
+		// mainLog.println(statesList);
 
 		// Construct new explicit-state model (with correct state ordering)
 		if (!justReach) {
 			switch (modelType) {
 			case DTMC:
-				model = sort ? new DTMCSimple(dtmc, permut) : (DTMCSimple) dtmc;
+				model = new DTMCSimple(dtmc, permut);
 				((ModelSimple) model).statesList = statesList;
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case CTMC:
-				model = sort ? new CTMCSimple(ctmc, permut) : (CTMCSimple) ctmc;
+				model = new CTMCSimple(ctmc, permut);
 				((ModelSimple) model).statesList = statesList;
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case MDP:
 				if (buildSparse) {
-					model = sort ? new MDPSparse(mdp, true, permut) : new MDPSparse(mdp);
+					model = new MDPSparse(mdp, true, permut);
 					((ModelSparse) model).statesList = statesList;
 					((ModelSparse) model).constantValues = new Values(modulesFile.getConstantValues());
 				} else {
-					model = sort ? new MDPSimple(mdp, permut) : mdp;
+					model = new MDPSimple(mdp, permut);
 					((ModelSimple) model).statesList = statesList;
 					((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				}
 				break;
-			case CTMDP:
-				model = sort ? new CTMDPSimple(ctmdp, permut) : mdp;
-				((ModelSimple) model).statesList = statesList;
-				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
+			case STPG:
+				model = modelSimple;
 				break;
 			}
-			//mainLog.println("Model: " + model);
+			mainLog.println("Model: " + model);
 		}
 
 		// Discard permutation
@@ -286,11 +373,49 @@ public class ConstructModel
 		return model;
 	}
 
+	
+	/**
+	 * Extracts player information from the action label
+	 * 
+	 * @param actionLabel action label
+	 * @return STPGExplicit.{PLAYER_1,PLAYER_2}
+	 * @throws PrismException when the action label is not assigned to any
+	 *           player
+	 */
+	private int getPlayer(String actionLabel) throws PrismException
+	{
+		int player;
+		if (actionLabel.startsWith("[")) {
+			actionLabel = actionLabel.substring(1, actionLabel.length() - 1);
+			if (player1syncs.contains(actionLabel))
+				player = STPGExplicit.PLAYER_1;
+			else if (player2syncs.contains(actionLabel))
+				player = STPGExplicit.PLAYER_2;
+			else
+				throw new PrismException("Synchronised action label '" + actionLabel
+						+ "' is not assigned to any player.");
+		} else {
+			if (player1mods.contains(actionLabel))
+				player = STPGExplicit.PLAYER_1;
+			else if (player2mods.contains(actionLabel))
+				player = STPGExplicit.PLAYER_2;
+			else
+				throw new PrismException("Module '" + actionLabel + "' is not assigned to any player.");
+		}
+		return player;
+	}
+	
 	/**
 	 * Test method.
 	 */
 	public static void main(String[] args)
 	{
+
+		// TODO HACK!
+		testSTPG(args[0]);
+		if (1 == 1)
+			return;
+
 		try {
 			// Simple example: parse a PRISM file from a file, construct the model and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
@@ -312,6 +437,47 @@ public class ConstructModel
 			ModelCheckerResult res = mc.computeReachProbs(mdp, target, true);
 			mainLog.println(res.soln);
 			
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+	}
+
+
+	/** Method to test STPG construction */ 
+	public static void testSTPG(String filename)
+	{
+		try {
+			// Simple example: parse a PRISM file from a file, construct the model
+			// and export to a .tra file
+			PrismLog mainLog = new PrismPrintStreamLog(System.out);
+			Prism prism = new Prism(mainLog, mainLog);
+			ModulesFile modulesFile = prism.parseModelFile(new File(filename));
+			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
+
+			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
+
+			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+
+			Model model = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+
+			STPGExplicit stpg = (STPGExplicit) model;
+			mainLog.println(stpg);
+			mainLog.println(constructModel.getStatesList());
+			STPGModelChecker mc = new STPGModelChecker();
+
+			mc.setLog(prism.getMainLog());
+			BitSet target = new BitSet();
+			target.set(8);
+			stpg.exportToDotFile("stpg.dot", target);
+			System.out.println("min min: " + mc.computeReachProbs(stpg, target, true, true).soln[0]);
+			System.out.println("max min: " + mc.computeReachProbs(stpg, target, false, true).soln[0]);
+			System.out.println("min max: " + mc.computeReachProbs(stpg, target, true, false).soln[0]);
+			System.out.println("max max: " + mc.computeReachProbs(stpg, target, false, false).soln[0]);
+
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);

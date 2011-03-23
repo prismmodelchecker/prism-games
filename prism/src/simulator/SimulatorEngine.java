@@ -791,6 +791,15 @@ public class SimulatorEngine
 	{
 		return transitionList.getChoiceIndexOfTransition(index);
 	}
+	
+	/**
+	 * Get a string describing the action/module of a transition, specified by
+	 * its index/offset.
+	 */
+	public String getTransitionModuleOrAction(int i, int offset)
+	{
+		return transitionList.getTransitionModuleOrAction(transitionList.getTotalIndexOfTransition(i, offset));
+	}
 
 	/**
 	 * Get a string describing the action/module of a transition, specified by its index.
