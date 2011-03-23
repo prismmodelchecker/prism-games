@@ -1,51 +1,43 @@
-// ==============================================================================
+//==============================================================================
 //	
-// Copyright (c) 2002-
-// Authors:
-// * Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	Copyright (c) 2002-
+//	Authors:
+//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
 //	
-// ------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //	
-// This file is part of PRISM.
+//	This file is part of PRISM.
 //	
-// PRISM is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
 //	
-// PRISM is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
 //	
-// You should have received a copy of the GNU General Public License
-// along with PRISM; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //	
-// ==============================================================================
+//==============================================================================
 
 package explicit;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+import java.io.*;
 
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismUtils;
 
 /**
- * Simple explicit-state representation of a stochastic two-player game
- * (STPG), as used for abstraction of MDPs, i.e. with strict cycling between
- * player 1, player 2 and probabilistic states. Thus, we store this a set of
- * sets of distributions for each state.
+ * Simple explicit-state representation of a stochastic two-player game (STPG),
+ * as used for abstraction of MDPs, i.e. with strict cycling between player 1,
+ * player 2 and probabilistic states. Thus, we store this a set of sets of
+ * distributions for each state.
  */
 public class STPGAbstrSimple extends ModelSimple implements STPG
 {
@@ -83,8 +75,8 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	/**
-	 * Constructor: build an STPG from an MDP. Data is copied directly from the
-	 * MDP so take a copy first if you plan to keep/modify the MDP.
+	 * Constructor: build an STPG from an MDP.
+	 * Data is copied directly from the MDP so take a copy first if you plan to keep/modify the MDP.
 	 */
 	public STPGAbstrSimple(MDPSimple m)
 	{
@@ -128,8 +120,8 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 			for (Distribution distr : set)
 				numTransitions -= distr.size();
 		}
-		// TODO: recompute maxNumDistrSets
-		// TODO: recompute maxNumDistrs
+		//TODO: recompute maxNumDistrSets
+		//TODO: recompute maxNumDistrs
 		// Remove all distribution sets
 		trans.set(i, new ArrayList<DistributionSet>(0));
 	}
@@ -198,8 +190,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 						distr = new Distribution();
 						// Only for a new state or distribution set...
 						if (i != iLast || k1 != k1Last) {
-							// Add any previous distribution set to the last state, create
-							// new one
+							// Add any previous distribution set to the last state, create new one
 							if (distrs != null) {
 								addDistributionSet(iLast, distrs);
 							}
@@ -235,10 +226,9 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	// Mutators (other)
 
 	/**
-	 * Creates a new distribution set suitable for passing to
-	 * addDistributionSet(...) i.e. a data structure consistent with the
-	 * internals of the this class. An optional action label (any Object type)
-	 * can be specified; null if not needed.
+	 * Creates a new distribution set suitable for passing to addDistributionSet(...)
+	 * i.e. a data structure consistent with the internals of the this class.
+	 * An optional action label (any Object type) can be specified; null if not needed.
 	 */
 	public DistributionSet newDistributionSet(Object action)
 	{
@@ -246,10 +236,11 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	/**
-	 * Add distribution set 'newSet' to state s (which must exist). Distribution
-	 * set is only actually added if it does not already exists for state s.
-	 * (Assuming 'allowDupes' flag is not enabled.) Returns the index of the
-	 * (existing or newly added) set. Returns -1 in case of error.
+	 * Add distribution set 'newSet' to state s (which must exist).
+	 * Distribution set is only actually added if it does not already exists for state s.
+	 * (Assuming 'allowDupes' flag is not enabled.)
+	 * Returns the index of the (existing or newly added) set.
+	 * Returns -1 in case of error.
 	 */
 	public int addDistributionSet(int s, DistributionSet newSet)
 	{
@@ -427,17 +418,14 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 					k = -1;
 					for (Distribution distr : distrs) {
 						k++;
-						// Extract transitions and sort by destination state index (to
-						// match PRISM-exported files)
+						// Extract transitions and sort by destination state index (to match PRISM-exported files)
 						for (Map.Entry<Integer, Double> e : distr) {
 							sorted.put(e.getKey(), e.getValue());
 						}
 						// Print out (sorted) transitions
 						for (Map.Entry<Integer, Double> e : distr) {
-							// Note use of PrismUtils.formatDouble to match PRISM-exported
-							// files
-							out.write(i + " " + j + " " + k + " " + e.getKey() + " "
-									+ PrismUtils.formatDouble(e.getValue()) + "\n");
+							// Note use of PrismUtils.formatDouble to match PRISM-exported files
+							out.write(i + " " + j + " " + k + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()) + "\n");
 						}
 						sorted.clear();
 					}
@@ -585,8 +573,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
-			boolean complement)
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement)
 	{
 		int s;
 		// Loop depends on subset/complement arguments
@@ -649,7 +636,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 
 		// Create data structures to store strategy
 		res = new ArrayList<Integer>();
-		// One row of matrix-vector operation
+		// One row of matrix-vector operation 
 		j = -1;
 		step = trans.get(s);
 		for (DistributionSet distrs : step) {
@@ -670,11 +657,10 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 				first2 = false;
 			}
 			// Store strategy info if value matches
-			// if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit ==
-			// TermCrit.ABSOLUTE)) {
+			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 			if (PrismUtils.doublesAreClose(val, minmax2, 1e-12, false)) {
 				res.add(j);
-				// res.add(distrs.getAction());
+				//res.add(distrs.getAction());
 			}
 		}
 
@@ -682,8 +668,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
-			boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;
@@ -775,8 +760,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	/**
-	 * Get the total number of player 1 choices (distribution sets) over all
-	 * states.
+	 * Get the total number of player 1 choices (distribution sets) over all states.
 	 */
 	public int getNumPlayer1Choices()
 	{
@@ -792,8 +776,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	}
 
 	/**
-	 * Get the maximum number of player 1 choices (distribution sets) in any
-	 * state.
+	 * Get the maximum number of player 1 choices (distribution sets) in any state.
 	 */
 	public int getMaxNumPlayer1Choices()
 	{
@@ -864,8 +847,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 
 		// Simple example: Create and solve the stochastic game from:
 		// Mark Kattenbelt, Marta Kwiatkowska, Gethin Norman, David Parker
-		// A Game-based Abstraction-Refinement Framework for Markov Decision
-		// Processes
+		// A Game-based Abstraction-Refinement Framework for Markov Decision Processes
 		// Formal Methods in System Design 36(3): 246-280, 2010
 
 		try {
@@ -913,7 +895,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 
 			// Model check
 			mc = new STPGModelChecker();
-			// mc.setVerbosity(2);
+			//mc.setVerbosity(2);
 			target = new BitSet();
 			target.set(3);
 			stpg.exportToDotFile("stpg.dot", target);
