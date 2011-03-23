@@ -388,7 +388,11 @@ TOKEN :
 |	< X:				"X" >
 |	< NONDETERMINISTIC:	"nondeterministic" >
 //|	< OF:				"of" >
+|	< PMAXMAX:			"Pmaxmax" >
+|	< PMAXMIN:			"Pmaxmin" >
 |	< PMAX:				"Pmax" >
+|	< PMINMAX:			"Pminmax" >
+|	< PMINMIN:			"Pminmin" >
 |	< PMIN:				"Pmin" >
 |	< P:				"P" >
 |	< PROBABILISTIC:	"probabilistic" >
@@ -1416,11 +1420,22 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	// Various options for "P" keyword and attached symbols
 	(( begin = <P> (( r = LtGt() prob = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
 	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
-	       |( <MIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	       |( <MAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )))
+	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       ))
+	       |( <MAX> (( <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	       ))
+	))
 	// These two are dupes of above but allow space to be omitted
 	|( begin = <PMIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	|( begin = <PMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } ))
+	|( begin = <PMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	|( begin = <PMINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	|( begin = <PMINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	|( begin = <PMAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	|( begin = <PMAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } ))
 	// Path formula, optional filter
 	<LBRACKET> expr = Expression(prop, true) (filter = Filter())? <RBRACKET>
 	{

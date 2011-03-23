@@ -1597,6 +1597,20 @@ public class PrismExplicitCL
 					}
 				}
 
+				// game model checker options string (append if already partially specified)
+				else if (sw.equals("gameoptions")) {
+					if (i < args.length - 1) {
+						String gameOptions = prism.getSettings().getString(PrismSettings.PRISM_GAME_OPTIONS);
+						if ("".equals(gameOptions))
+							gameOptions = args[++i].trim();
+						else
+							gameOptions += "," + args[++i].trim();
+						prism.getSettings().set(PrismSettings.PRISM_GAME_OPTIONS, gameOptions);
+					} else {
+						errorAndExit("No parameter specified for -" + sw + " switch");
+					}
+				}
+
 				// explicit-state model construction
 				else if (sw.equals("explicitbuild")) {
 					explicitbuild = true;

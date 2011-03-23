@@ -28,13 +28,129 @@ package explicit;
 
 import java.util.*;
 
+import parser.ast.Expression;
+import parser.ast.ExpressionTemporal;
 import prism.*;
 
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
  */
-public class STPGModelChecker extends StateModelChecker
+public class STPGModelChecker extends ProbModelChecker
 {
+	// Model checking functions
+
+	/**
+	 * Compute probabilities for the contents of a P operator.
+	 */
+	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
+		// Test whether this is a simple path formula (i.e. PCTL)
+		// and then pass control to appropriate method. 
+		if (expr.isSimplePathFormula()) {
+			return checkProbPathFormulaSimple(model, expr, min1, min2);
+		} else {
+			throw new PrismException("LTL-style path formulas are not yet supported");
+		}
+	}
+
+	/**
+	 * Compute probabilities for a simple, non-LTL path operator.
+	 */
+	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
+		StateValues probs = null;
+
+		// Temporal operators
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			// Until
+			if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+				if (exprTemp.hasBounds()) {
+					probs = checkProbBoundedUntil(model, exprTemp, min1, min2);
+				} else {
+					probs = checkProbUntil(model, exprTemp, min1, min2);
+				}
+			}
+			// Anything else - convert to until and recurse
+			else {
+				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min1, min2);
+			}
+		}
+
+		if (probs == null)
+			throw new PrismException("Unrecognised path operator in P operator");
+
+		return probs;
+	}
+
+	/**
+	 * Compute probabilities for a bounded until operator.
+	 */
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	{
+		int time;
+		BitSet b1, b2;
+		StateValues probs = null;
+		ModelCheckerResult res = null;
+
+		// get info from bounded until
+		time = expr.getUpperBound().evaluateInt(constantValues, null);
+		if (expr.upperBoundIsStrict())
+			time--;
+		if (time < 0) {
+			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<=" + time;
+			throw new PrismException("Invalid bound " + bound + " in bounded until formula");
+		}
+
+		// model check operands first
+		b1 = (BitSet) checkExpression(model, expr.getOperand1());
+		b2 = (BitSet) checkExpression(model, expr.getOperand2());
+
+		// print out some info about num states
+		// mainLog.print("\nb1 = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
+		// allDDRowVars.n()) + " states\n");
+
+		// Compute probabilities
+
+		// a trivial case: "U<=0"
+		if (time == 0) {
+			// prob is 1 in b2 states, 0 otherwise
+			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
+		} else {
+			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, min1, min2);
+			probs = StateValues.createFromDoubleArray(res.soln);
+		}
+
+		return probs;
+	}
+
+	/**
+	 * Compute probabilities for an (unbounded) until operator.
+	 */
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	{
+		BitSet b1, b2;
+		StateValues probs = null;
+		ModelCheckerResult res = null;
+
+		// model check operands first
+		b1 = (BitSet) checkExpression(model, expr.getOperand1());
+		b2 = (BitSet) checkExpression(model, expr.getOperand2());
+
+		// print out some info about num states
+		// mainLog.print("\nb1 = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
+		// allDDRowVars.n()) + " states\n");
+
+		res = computeUntilProbs((STPG) model, b1, b2, min1, min2);
+		probs = StateValues.createFromDoubleArray(res.soln);
+
+		return probs;
+	}
+
 	// Numerical computation functions
 
 	/**
@@ -502,7 +618,7 @@ public class STPGModelChecker extends StateModelChecker
 	/**
 	 * Compute bounded reachability probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target} within k steps.
-	 * @param mdp The MDP
+	 * @param stpg The STPG
 	 * @param target Target states
 	 * @param k Bound
 	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
@@ -517,7 +633,7 @@ public class STPGModelChecker extends StateModelChecker
 	 * Compute bounded until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
 	 * within k steps, and while remaining in states in @{code remain}.
-	 * @param mdp The MDP
+	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
 	 * @param k Bound
@@ -542,11 +658,11 @@ public class STPGModelChecker extends StateModelChecker
 	 * @param init Initial solution vector - pass null for default
 	 * @param results Optional array of size k+1 to store (init state) results for each step (null if unused)
 	 */
-	public ModelCheckerResult computeBoundedReachProbs(STPG stpg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, double init[], double results[])
-			throws PrismException
+	public ModelCheckerResult computeBoundedReachProbs(STPG stpg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, double init[],
+			double results[]) throws PrismException
 	{
 		// TODO: implement until
-		
+
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];

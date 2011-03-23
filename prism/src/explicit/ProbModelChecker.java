@@ -26,8 +26,6 @@
 
 package explicit;
 
-import java.util.*;
-
 import parser.ast.*;
 import prism.*;
 
@@ -62,8 +60,11 @@ public class ProbModelChecker extends StateModelChecker
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
 	{
-		String relOp; // Relational operator
-		boolean min = false; // For nondeterministic models, are we finding min (true) or max (false) probs
+		// Relational operator
+		String relOp;
+		// For nondeterministic models, are we finding min (true) or max (false) probs
+		boolean min1 = false;
+		boolean min2 = false;
 		ModelType modelType = model.getModelType();
 
 		StateValues probs = null;
@@ -77,14 +78,32 @@ public class ProbModelChecker extends StateModelChecker
 
 		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
-			if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
-				// min
-				min = true;
-			} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
-				// max
-				min = false;
+			if (modelType != ModelType.STPG) {
+				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
+					// min
+					min1 = true;
+				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
+					// max
+					min1 = false;
+				} else {
+					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+				}
 			} else {
-				throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+				if (relOp.equals("minmin=")) {
+					min1 = true;
+					min2 = true;
+				} else if (relOp.equals("minmax=")) {
+					min1 = true;
+					min2 = false;
+				} else if (relOp.equals("maxmin=")) {
+					min1 = false;
+					min2 = true;
+				} else if (relOp.equals("maxmax=")) {
+					min1 = false;
+					min2 = false;
+				} else {
+					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
+				}
 			}
 		}
 
@@ -94,17 +113,17 @@ public class ProbModelChecker extends StateModelChecker
 			probs = ((CTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case CTMDP:
-			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min);
+			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
 			break;
 		case DTMC:
 			probs = ((DTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case MDP:
-			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min);
+			probs = ((MDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
 			break;
-		/*case STPG:
-			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min);
-			break;*/
+		case STPG:
+			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2);
+			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
 		}

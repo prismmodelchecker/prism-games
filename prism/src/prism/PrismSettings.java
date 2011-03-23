@@ -94,6 +94,7 @@ public class PrismSettings implements Observer
 	public static final String PRISM_SYMM_RED_PARAMS					= "prism.symmRedParams";
 	public static final String PRISM_PTA_METHOD					= "prism.ptaMethod";
 	public static final String PRISM_AR_OPTIONS					= "prism.arOptions";
+	public static final String PRISM_GAME_OPTIONS					= "prism.gameOptions";
 	public static final String PRISM_EXPORT_ADV					= "prism.exportAdv";
 	public static final String PRISM_EXPORT_ADV_FILENAME			= "prism.exportAdvFilename";
 	
@@ -219,6 +220,8 @@ public class PrismSettings implements Observer
 																			"Parameters for symmetry reduction (format: \"i j\" where i and j are the number of modules before and after the symmetric ones; empty string means symmetry reduction disabled)." },
 			{ STRING_TYPE,		PRISM_AR_OPTIONS,						"Abstraction refinement options",		"3.3",			"",																	"",																
 																			"Various options passed to the asbtraction-refinement engine (e.g. for PTA model checking)." },
+			{ STRING_TYPE,		PRISM_GAME_OPTIONS,						"Game model checker options",			"4.0",			"",																	"",																
+																			"Various options passed to the game model checker." },
 			// OUTPUT OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_VERBOSE,							"Verbose output",						"2.1",			new Boolean(false),															"",																							
 																			"Display verbose output to log." },
