@@ -317,7 +317,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	@Override
 	public ModelType getModelType()
 	{
-		return ModelType.MDP;
+		return ModelType.STPG;
 	}
 
 	@Override
