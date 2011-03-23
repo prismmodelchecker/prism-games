@@ -362,6 +362,8 @@ public class ConstructModel
 				break;
 			case STPG:
 				model = modelSimple;
+				((ModelSimple) model).statesList = statesList;
+				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			}
 			mainLog.println("Model: " + model);

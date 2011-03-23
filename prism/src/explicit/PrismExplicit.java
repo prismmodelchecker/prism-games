@@ -75,8 +75,11 @@ public class PrismExplicit
 		case CTMDP:
 			mc = new CTMDPModelChecker();
 			break;
+		case STPG:
+			mc = new STPGModelChecker();
+			break;
 		default:
-			throw new PrismException("Unknown model type" + model.getModelType());
+			throw new PrismException("Unknown model type " + model.getModelType());
 		}
 
 		mc.setLog(prism.getMainLog());
