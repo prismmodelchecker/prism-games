@@ -1,0 +1,3 @@
+// Eventually all sensors are scheduled
+P>=1 [F !(all_not_sched)]
+
