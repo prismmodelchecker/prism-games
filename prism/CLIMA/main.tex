@@ -1,7 +1,16 @@
 \documentclass{llncs}
 
 \usepackage{llncsdoc}
-%
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{algorithmicx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{soul}
+\usepackage{color}
+
+
 \begin{document}
 
 \title{Verifying Team Formation Protocols in PRISM\thanks{This work is supported by
@@ -30,6 +39,113 @@ the ERC Advanced Grant VERIWARE.}}
 \subsection{Stochastic Two-Player Game}
 
 \section{Protocol Modeling and Verification}
+
+\begin{definition}
+An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where  
+\noindent
+\begin{itemize}
+\item $A= \{ a_1,a_2,...,a_n \} $ is a set of agents,
+\item $N=\{\{a_i,a_j \}\ :$ ``$a_i$ and $a_j$ are neighbours'' $\}$ is a neighbourhood relation,
+\item $R=\{r_1,r_2,\dots,r_k\}$ is a set of resource types,
+\item $R_A=\{R_{a_1}, R_{a_2}, \dots, R_{a_n}\}$ is a set of agent resources where $r_j \in R_{a_i} $ $\iff$ ``agent $a_i$ has a resource $r_j$''.  
+\end{itemize}
+\end{definition}
+
+\begin{definition}
+A \textbf{task} $T_i=\{r_i\ :\ $``$r_i$ is required by the task $i$''$\}$ is a set of resources that are required to complete it. By $T=\{T_1, T_2,\dots, T_t\}$ we denote a collection of tasks.
+\end{definition}
+
+\begin{definition}
+A \textbf{team} of agents is denoted by $M_i=\{a_i\ :\ $``$a_i$ is a member of team $i$''$\}$, and the set of all teams is $M=\{M_1, M_2,\dots , M_m\}$. By $\bar{M} = \bigcup_{M_i \in M} M_i$ we denote the set of all agents that are committed to some team. $R_{M_i}=\bigcup_{a \in M_i}R_{a}$ is the set of resources that the team $M_i$ has. The team $M_i$ is said to be able to complete the task $T_j$ iff $T_j \subseteq R_{M_i}$.
+\end{definition}
+
+\begin{definition}
+Team \textbf{initiation probability} for agent $a$ is the ratio between neighbours that are not committed to any team and total number of neighbours:
+
+\begin{equation}
+IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}
+\label{eq:init_prob}
+\end{equation} 
+ 
+\end{definition}
+
+
+\begin{algorithm}[H]
+\caption{Offline and online versions of the algorithm}
+\label{alg:main_process}
+\begin{scriptsize}
+\begin{algorithmic}
+\Procedure{Offline}{$t$} \Comment{$t$ - number of tasks}
+  \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams}
+  \State $T = \{T_i\neq \emptyset\ :\ T_i \subseteq_{random} R,\ 1\leq i \leq t\}$ \Comment{initialise tasks at random}
+  \ForAll {$a \in A$ in random order}
+    \State \Call{JoinTeam}{$a$, $T$, $M$}
+  \EndFor
+  \State perform tasks and compute rewards
+\EndProcedure
+\Statex
+\Procedure{Online}{$t$} \Comment{$t$ - number of tasks}
+  \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams} 
+  \ForAll {$a \in A$ in random order}
+    \State \Call{JoinTeam}{$a$, $T$, $M$}
+  \EndFor
+  \State $T = \{T_i\neq \emptyset\ :\ T_i \subseteq_{random} R,\ 1\leq i \leq t\}$ \Comment{initialise tasks at random}
+  \State perform tasks and compute rewards
+\EndProcedure
+
+\end{algorithmic}
+\end{scriptsize}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Team joining algorithm (probabilistic and deterministic)}
+\label{alg:join_team_org}
+\begin{scriptsize}
+\begin{algorithmic}
+\Procedure{JoinTeam}{$a$, $T$, $M$}
+  \ForAll {$T_i \in T$ in random order} 
+    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
+      \If {$|M_i|=0$} \Comment{team for task i is empty}
+	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
+	  \State with probability $IP_a$: $M_i \leftarrow M_i \cup \{a\}$ \Comment{initiate a team}
+	\EndIf
+      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
+	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
+	  \State $M_i \leftarrow M_i \cup \{a\}$ \Comment{join team}
+	\EndIf
+      \EndIf
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{scriptsize}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Team joining algorithm (non-deterministic)}
+\label{alg:join_team_nondet}
+\begin{scriptsize}
+\begin{algorithmic}
+\Procedure{JoinTeam}{$a$, $T$, $M$}
+  \ForAll {$T_i \in T$ in \hl{arbitrary} order} 
+    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
+      \If {$|M_i|=0$} \Comment{team for task i is empty}
+	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
+	    \State \hl{$M_i \leftarrow M_i \cup \{a\}$  \textbf{or} $M_i \leftarrow M_i$} \Comment{initiate a team or do nothing}
+	\EndIf
+      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
+	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
+	  \State \hl{$M_i \leftarrow M_i \cup \{a\}$ \textbf{or} $M_i \leftarrow M_i$} \Comment{join a team or do nothing}
+	\EndIf
+      \EndIf
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{scriptsize}
+\end{algorithm}
+
+
 
 \subsection{DTMC}
 \subsubsection{Protocol}
