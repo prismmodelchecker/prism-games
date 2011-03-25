@@ -30,7 +30,6 @@ the ERC Advanced Grant VERIWARE.}}
 
 \section{Introduction}
 
- 
 
 \section{Preliminaries}
 
@@ -63,32 +62,42 @@ A \textbf{team} of agents is denoted by $M_i=\{a_i\ :\ $``$a_i$ is a member of t
 Team \textbf{initiation probability} for agent $a$ is the ratio between neighbours that are not committed to any team and total number of neighbours:
 
 \begin{equation}
-IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}
+IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
 \label{eq:init_prob}
 \end{equation} 
  
 \end{definition}
 
 \begin{definition}
-We define two types of \textbf{reward} for agent $a$. Type $W_1$ rewards agent with 1 point if it is in the team which was able to complete its task after team formation is over or 0 otherwise.Type $W_2$ rewards 1 point to the team which was able to complete its task, and 0 otherwise and the reward is shared equally between team members. More formally,
+We define two types of \textbf{reward} for agent $a$. Type $W_1$ rewards agent with 1 point if it is in the team which was able to complete its task after team formation is over or 0 otherwise.Type $W_2$ rewards 1 point to the team which was able to complete its task, and 0 otherwise and the reward is shared equally between team members,
 
 \begin{equation}
 W_1(a) = \left\{
   \begin{array}{l l}
-    1 & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$}\\
-    0 & \quad \text{otherwise.}\\
+    1 & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$,}\\
+    0 & \quad \text{otherwise,}\\
   \end{array} \right. 
+\label{eq:w1agent}
 \end{equation}
 \begin{equation}
 W_2(a) = \left\{
   \begin{array}{l l}
-    \frac{1}{|M_i|} & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$}\\
+    \frac{1}{|M_i|} & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$,}\\
     0 & \quad \text{otherwise.}\\
   \end{array} \right. 
+\label{eq:w2agent}
 \end{equation}
 
+The rewards of an agent organisation $O$ are defined accordingly as the total reward achieved by its members,
+\begin{equation}
+ W_1(O) = \sum_{a \in A} W_1(a),
+\label{eq:w1organisation}
+\end{equation}
+\begin{equation}
+ W_2(O) = \sum_{a \in A} W_2(a).
+\label{eq:w2organisation}
+\end{equation}
 
- 
 \end{definition}
 
 
