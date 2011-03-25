@@ -69,6 +69,29 @@ IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{
  
 \end{definition}
 
+\begin{definition}
+We define two types of \textbf{reward} for agent $a$. Type $W_1$ rewards agent with 1 point if it is in the team which was able to complete its task after team formation is over or 0 otherwise.Type $W_2$ rewards 1 point to the team which was able to complete its task, and 0 otherwise and the reward is shared equally between team members. More formally,
+
+\begin{equation}
+W_1(a) = \left\{
+  \begin{array}{l l}
+    1 & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$}\\
+    0 & \quad \text{otherwise.}\\
+  \end{array} \right. 
+\end{equation}
+\begin{equation}
+W_2(a) = \left\{
+  \begin{array}{l l}
+    \frac{1}{|M_i|} & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$}\\
+    0 & \quad \text{otherwise.}\\
+  \end{array} \right. 
+\end{equation}
+
+
+ 
+\end{definition}
+
+
 
 \begin{algorithm}[H]
 \caption{Offline and online versions of the algorithm}
@@ -164,6 +187,18 @@ IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{
 
 \section{Conclusions and Future Work}
 
-\paragraph{Acknowledgments}
+We would like to outline several directions for future work:
+\begin{itemize}
+
+ \item Conducting experiments with agents having multiple resources, allowing agents to change teams until stable point is reached and check whether it can reached, what is the expected number of steps to reach the stable configuration, etc.
+
+\item Verifying dual properties, i.e. rather than asking ``what is the expected reward for a strategy'', we would like to be able to model-check the properties of the form ``whats is the probability of reaching reward value R with a strategy?''.  
+
+ \item In this paper we only considered sequential execution of agent algorithms, in future work we would like to explore parallel execution (i.e. interleaving steps of JoinTeam algorithm for multiple agents), and see what effect this has for agent strategies in both online and offline versions of the algorithm. Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently. 
+
+ \item Another interesting question is construction of optimal agent organisations given the set of tasks and their distributions.This problem is an instance of mechanism design problem in game-theoretic settings, where the designer can have control over neighbourhood structure or agent resources or both.
+
+\end{itemize}
+
 
 \end{document} 
