@@ -33,20 +33,220 @@ the ERC Advanced Grant VERIWARE.}}
 
 \section{Preliminaries}
 
-\subsection{Discrete-Time Markov Chain}
+%% G. Norman and V. Shmatikov.
+
+%Analysis of Probabilistic Contract Signing.
+%
+%Journal of Computer Security, 14(6), pages 561-589, IOS Press.
+%
+%November 2006.
+
+\subsection{Probabilistic Model Checking}
+Probabilistic model checking is an automated technique for
+the formal verification of systems that exhibit stochastic behavior. It can, for example
+calculate the likelihood of the occurrence of certain events
+during the execution of a system, and can be useful to establish performance
+measures. It is based on the construction and analysis of a
+mathematical model of the system, usually from a specification
+in some high-level description language. This model
+generally comprises a set of states, representing all the possible
+configurations of the system, the transitions that can
+occur between these states, and information about when and
+with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to
+analyze the state space and calculate performance measures.
+
+\subsection{PRISM model checker}
+
+We use PRISM. The current implementation of PRISM supports the analysis of finite state
+probabilistic models of the following three types: discrete-time Markov chains,
+continuous-time Markov chains and Markov decision processes. These models are
+described in a high-level language, a variant of reactive modules [2] based on guarded
+commands. The basic components of the language are modules and variables. A
+system is constructed as a number of modules which can interact with each other.
+A module contains a number of variables which express the state of the module,
+and its behavior is given by a set of guarded commands of the form:
+
+[] $<$guard$>$ \! $<$command$>$;
+
+The guard is a predicate over the variables of the system and the command describes
+a transition which the module can make if the guard is true (using primed variables
+to denote the next values of variables). If a transition is probabilistic, then the
+command is specified as:
+
+<prob> : <command> + ...+ <prob> : <command>
+
+PRISM accepts specifications in either PCTL, or CSL logic depending on the model
+type. The model checker then analyses the model and checks if the property holds in each
+state. 
+The reader is invited to consult the PRISM
+web site \cite{} for detailed information and corresponding
+publications about all of these.
+
+%
+%
+%In this paper, the modelling formalism we use is discretetime
+%Markov chains (DTMCs), where time is modelled as
+%discrete steps and the probability of making each transition
+%is given by a discrete probability distribution. Other model
+%types commonly used are continuous-time Markov chains
+%(CTMCs), Markov decision processes (MDPs), and probabilistic
+%timed automata (PTAs); see [25] for more detailed information
+%about these.We use the probabilistic model checking
+%tool PRISM [12, 23]. This allows construction of models
+%via specification in a high-level description language, based
+%on the parallel composition of several modules described in
+%a guarded command notation. We will illustrate the workings
+%of this language in more detail later in the paper.
+%Models constructed in PRISM are analysed by formally
+%specifying formulas in temporal logic. This allows a precise,
+%unambiguous description of a wide range of properties, such
+%as ¡°the probability of shutdown occurring within 24 hours¡±
+%or ¡°the long-run probability that the system is stable¡±. In
+%addition, by assigning real-valued costs (or, conversely, rewards)
+%to states and transitions of the model, we can also reason
+%about, for example, ¡°expected time¡± or ¡°expected power
+%consumption¡±.
+%PRISM automatically ascertains values for such properties
+%by performing probabilistic model checking, which includes
+%both graph-based analysis and numerical computation.
+%For the case of DTMCs, the latter usually constitutes
+%solving a linear equation system of size equal to the number
+%of states in the model. For this, PRISM uses iterative numerical
+%solution techniques such as the Gauss-Seidel method,
+%which are well suited to large problems of this type.
+%Furthermore, a significant amount of work has gone into
+%the development of efficient, symbolic implementation techniques
+%for numerical computation in PRISM. These use data
+%structures such as binary decision diagrams (BDDs) [5] and
+%their extensions, e.g. multi-terminal BDDs (MTBDDs) [6,
+%1], to allow compact storage and manipulation of extremely
+%large models. We rely heavily on this efficiency for the case
+%study presented in this paper.
+%The PRISM tool has already been successfully used to
+%perform analysis of, and identify interesting behaviour, in a
+%wide range of case studies. This includes the study of ¡°quality
+%of service¡± properties for components of real-time probabilistic
+%communication protocols, e.g. IEEE 1394 FireWire
+%[7, 16], IEEE 802.3 CSMA/CD [17, 8], Zeroconf [13] and
+%IEEE 802.11 wireless LANs [15, 24]. It has also been used to
+%verify randomised distributed algorithms for leader election,
+%consensus [14], Byzantine agreement [10], self-stabilisation
+%and mutual exclusion, and probabilistic security protocols
+%for anonymity [27], fair exchange and contract signing [20].
+%Finally, PRISM has been applied to analysing the performance
+%and reliability of many different types of applications:
+%dynamic power management schemes [19], NAND
+%multiplexing for nanotechnology [18], computer networks,
+%queueing systems, manufacturing processes and embedded
+%systems [11]. 
+
+
+
+\paragraph{Discrete-Time Markov Chain.}
+
+One of basic models used in probabilistic model checking is \emph{discrete time Markov chains} (DTMCs). A DTMC is defined by a 
+set of states $S$ and a probability transition matrix
+$\mathbf{P} : S\times S \rightarrow [0, 1]$, where
+$\sum_{s'\in S} \mathbf{P}(s, s') = 1$ for all $s \in  S$. This gives the probability $\mathbf{P}(s, s')$ that a transition
+will take place from state $s$ to state $s'$.
+
+
 \subsection{Markov Decision Process}
+
+%M. Duflot, L. Fribourg, T. H¨¦rault, R. Lassaigne, F. Magniette, S. Messika, S. Peyronnet and C. Picaronny.
+%
+%Probabilistic model checking of the CSMA/CD protocol using PRISM and APMC.
+
+
+%Markov Decision Processes (MDP) (also called Probabilistic Nondetermin-
+%istic Systems (PNS) [7]) allow accurate modelling of systems which exhibit
+%both probabilistic and nondeterministic behavior. A common example of this
+%is the interleaved parallel composition of several probabilistic processes, but
+%nondeterminism can also be useful to leave parts of a system underspecified
+%and to model interaction with an unknown environment. Formally:
+%Definition 5.1 A Markov decision process (MDP) is a tuple (S, s,Act, Steps)
+%where S is a finite set of states, s is the initial state, Act is a set of actions
+%and Steps  S ¡Á Act ¡Á Dist(S) is a probabilistic transition relation.
+%An MDP transition s
+%a,¦Ì
+%.! s0 is made from a state s 2 S first by nonde-
+%terministically selecting an action-distribution pair (a, ¦Ì) such that (s, a, ¦Ì) 2
+%7
+%steps, and second by making a probabilistic choice of the target state s0 accord-
+%ing to the distribution ¦Ì, such that ¦Ì(s0) > 0. A path represents a particular
+%resolution of both nondeterminism and probability: it is a non-empty finite
+%or infinite sequence of probabilistic transitions  = s0
+%a0,¦Ì0 ...! s1
+%a1,¦Ì1 ...! ¡¤ ¡¤ ¡¤ such
+%that s0 = s. We denote by (i) the (i + 1)-th state of  and last() the
+%last state of  if  is finite. An adversary represents a particular resolution
+%of nondeterminism only. Formally, an adversary of a MDP is a function A
+%mapping every finite path  to a pair (a, ¦Ì) such that (last(), a, ¦Ì) 2 Steps.
+%The evolution of the MDP according to a particular adversary A is a
+%measurable set of infinite paths associated with A, which can classically be
+%provided with a probability measure. Given a set F  S of target states, let:
+%P(s A.!
+%
+%F) denote the probability of reaching F starting from the initial state
+%under A.
+%The maximal reachability probability Pmax(s ! F), (resp. minimal reach-
+%ability probability Pmin(s ! F)), is the maximum (resp. minimum) proba-
+%bility over all the adversaries, with which a given set of states can be reached
+%from the initial state: Pmax(s ! F) = maxA{P(s A.!
+%
+%F)} (resp. Pmin(s !
+%F) = minA{P(s A.!
+%
+%F)}).
+%Informally, Pmax(s ! F) (resp. Pmin(s ! F)) represents the probability
+%that the MDP reaches F, when all non deterministic choices are as favorable
+%(resp. unfavorable) as possible.
+%Specification of reachability properties to be checked on a MDP may be
+%expressed in PCTL, which is a probabilistic extension of the popular temporal
+%logic CTL. In [7] the authors provide an algorithm to enrich the usual algo-
+%rithm to check a CTL formula on a finite state system, with the computation
+%of maximal and minimal probabilities. This can be done in polynomial time
+%by solving linear programming systems.
+%PRISM [20] is a probabilistic model checker which provides support for
+%analysis of Markov decision processes and performs verification of PCTL for-
+%mulae for MDPs, using the model checking algorithm of [7]. The most expen-
+%sive part of this is the computation of reachability probabilities. For this there
+%are two options, either solution of a linear optimization problem or iterative
+%numerical solution techniques (based on dynamic programming). PRISM uses
+%the second of these. Each iteration computes new values for the reachability
+%probabilities, tending towards the exact solution. The computation is ter-
+%minated when it has converged to within the desired precision (parameter "
+%specified by the user).
+%To analyse an MDP, PRISM has to construct the full reachable state space
+%and the transition matrix which represents it. However, the tool can often
+%handle very large models because it uses symbolic model checking techniques.
+%It uses BDD (binary decision diagram) based data structures, in particular
+%MTBDDs (multi-terminal BDDs, see e.g. [15]).
+%In this paper, we have made use of a prototype extension of PRISM which
+%8
+%provides support for analysis of properties based on costs (or conversely, re-
+%wards) [22]. Each state or transition of the model can be assigned a cost.
+%PRISM allows computation of, for example, the expected amount of cost cu-
+%mulated before a certain set of states is reached. Because we use MDPs,
+%we must compute either the minimum or maximum expected cost (over all
+%resolutions of nondeterminism). In PRISM, these properties are expressed as
+%(i) Rmin[true Ugoal ]
+%(ii) Rmax[true Ugoal ].
+%PRISM uses the algorithms of [3] to perform model checking of these for-
+%mulas.
+
 \subsection{Stochastic Two-Player Game}
 
 \section{Protocol Modeling and Verification}
 
 \begin{definition}
-An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where  
+An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where
 \noindent
 \begin{itemize}
 \item $A= \{ a_1,a_2,...,a_n \} $ is a set of agents,
 \item $N=\{\{a_i,a_j \}\ :$ ``$a_i$ and $a_j$ are neighbours'' $\}$ is a neighbourhood relation,
 \item $R=\{r_1,r_2,\dots,r_k\}$ is a set of resource types,
-\item $R_A=\{R_{a_1}, R_{a_2}, \dots, R_{a_n}\}$ is a set of agent resources where $r_j \in R_{a_i} $ $\iff$ ``agent $a_i$ has a resource $r_j$''.  
+\item $R_A=\{R_{a_1}, R_{a_2}, \dots, R_{a_n}\}$ is a set of agent resources where $r_j \in R_{a_i} $ $\iff$ ``agent $a_i$ has a resource $r_j$''.
 \end{itemize}
 \end{definition}
 
@@ -64,8 +264,8 @@ Team \textbf{initiation probability} for agent $a$ is the ratio between neighbou
 \begin{equation}
 IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
 \label{eq:init_prob}
-\end{equation} 
- 
+\end{equation}
+
 \end{definition}
 
 \begin{definition}
@@ -76,7 +276,7 @@ W_1(a) = \left\{
   \begin{array}{l l}
     1 & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$,}\\
     0 & \quad \text{otherwise,}\\
-  \end{array} \right. 
+  \end{array} \right.
 \label{eq:w1agent}
 \end{equation}
 \begin{equation}
@@ -84,7 +284,7 @@ W_2(a) = \left\{
   \begin{array}{l l}
     \frac{1}{|M_i|} & \quad \text{if $\exists M_i . a \in M_i \wedge T_i \subseteq R_{M_i}$,}\\
     0 & \quad \text{otherwise.}\\
-  \end{array} \right. 
+  \end{array} \right.
 \label{eq:w2agent}
 \end{equation}
 
@@ -117,7 +317,7 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 \EndProcedure
 \Statex
 \Procedure{Online}{$t$} \Comment{$t$ - number of tasks}
-  \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams} 
+  \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams}
   \ForAll {$a \in A$ in random order}
     \State \Call{JoinTeam}{$a$, $T$, $M$}
   \EndFor
@@ -135,7 +335,7 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 \begin{scriptsize}
 \begin{algorithmic}
 \Procedure{JoinTeam}{$a$, $T$, $M$}
-  \ForAll {$T_i \in T$ in random order} 
+  \ForAll {$T_i \in T$ in random order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
       \If {$|M_i|=0$} \Comment{team for task i is empty}
 	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
@@ -159,7 +359,7 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 \begin{scriptsize}
 \begin{algorithmic}
 \Procedure{JoinTeam}{$a$, $T$, $M$}
-  \ForAll {$T_i \in T$ in \hl{arbitrary} order} 
+  \ForAll {$T_i \in T$ in \hl{arbitrary} order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
       \If {$|M_i|=0$} \Comment{team for task i is empty}
 	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
@@ -201,9 +401,9 @@ We would like to outline several directions for future work:
 
  \item Conducting experiments with agents having multiple resources, allowing agents to change teams until stable point is reached and check whether it can reached, what is the expected number of steps to reach the stable configuration, etc.
 
-\item Verifying dual properties, i.e. rather than asking ``what is the expected reward for a strategy'', we would like to be able to model-check the properties of the form ``whats is the probability of reaching reward value R with a strategy?''.  
+\item Verifying dual properties, i.e. rather than asking ``what is the expected reward for a strategy'', we would like to be able to model-check the properties of the form ``whats is the probability of reaching reward value R with a strategy?''.
 
- \item In this paper we only considered sequential execution of agent algorithms, in future work we would like to explore parallel execution (i.e. interleaving steps of JoinTeam algorithm for multiple agents), and see what effect this has for agent strategies in both online and offline versions of the algorithm. Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently. 
+ \item In this paper we only considered sequential execution of agent algorithms, in future work we would like to explore parallel execution (i.e. interleaving steps of JoinTeam algorithm for multiple agents), and see what effect this has for agent strategies in both online and offline versions of the algorithm. Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently.
 
  \item Another interesting question is construction of optimal agent organisations given the set of tasks and their distributions.This problem is an instance of mechanism design problem in game-theoretic settings, where the designer can have control over neighbourhood structure or agent resources or both.
 
