@@ -25,24 +25,28 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
+We use probabilistic model checking technique to verify a team formation protocol in multi-agent systems.
 
 \end{abstract}
 
 \section{Introduction}
 
+\paragraph{Contributions.}
+
+\paragraph{Related works.}
+
+\paragraph{Structure of the paper.}
+
 
 \section{Preliminaries}
 
 %% G. Norman and V. Shmatikov.
-
 %Analysis of Probabilistic Contract Signing.
-%
 %Journal of Computer Security, 14(6), pages 561-589, IOS Press.
-%
-%November 2006.
+
 
 \subsection{Probabilistic Model Checking}
-Probabilistic model checking is an automated technique for
+\emph{Probabilistic model checking} is an automated technique for
 the formal verification of systems that exhibit stochastic behavior. It can, for example
 calculate the likelihood of the occurrence of certain events
 during the execution of a system, and can be useful to establish performance
@@ -52,8 +56,7 @@ in some high-level description language. This model
 generally comprises a set of states, representing all the possible
 configurations of the system, the transitions that can
 occur between these states, and information about when and
-with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to
-analyze the state space and calculate performance measures.
+with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to analyze the state space and calculate performance measures.
 
 \subsection{PRISM model checker}
 
@@ -66,18 +69,18 @@ system is constructed as a number of modules which can interact with each other.
 A module contains a number of variables which express the state of the module,
 and its behavior is given by a set of guarded commands of the form:
 
-[] $<$guard$>$ \! $<$command$>$;
+[] $\langle$guard$>$ \! $\langle$command$>$;
 
 The guard is a predicate over the variables of the system and the command describes
 a transition which the module can make if the guard is true (using primed variables
 to denote the next values of variables). If a transition is probabilistic, then the
 command is specified as:
 
-<prob> : <command> + ...+ <prob> : <command>
+$\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
 
 PRISM accepts specifications in either PCTL, or CSL logic depending on the model
 type. The model checker then analyses the model and checks if the property holds in each
-state. 
+state.
 The reader is invited to consult the PRISM
 web site \cite{} for detailed information and corresponding
 publications about all of these.
@@ -138,13 +141,14 @@ publications about all of these.
 %dynamic power management schemes [19], NAND
 %multiplexing for nanotechnology [18], computer networks,
 %queueing systems, manufacturing processes and embedded
-%systems [11]. 
+%systems [11].
 
-
+Below we give a short introduction on the models we shall use in
+this paper.
 
 \paragraph{Discrete-Time Markov Chain.}
 
-One of basic models used in probabilistic model checking is \emph{discrete time Markov chains} (DTMCs). A DTMC is defined by a 
+One of basic models used in probabilistic model checking is \emph{discrete time Markov chains} (DTMCs). A DTMC is defined by a
 set of states $S$ and a probability transition matrix
 $\mathbf{P} : S\times S \rightarrow [0, 1]$, where
 $\sum_{s'\in S} \mathbf{P}(s, s') = 1$ for all $s \in  S$. This gives the probability $\mathbf{P}(s, s')$ that a transition
@@ -161,9 +165,9 @@ will take place from state $s$ to state $s'$.
 Markov Decision Processes (MDP) allow accurate modelling of systems which exhibit
 both probabilistic and nondeterministic behavior. Formally:
 
-A Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a finite set of states, 
+A Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a finite set of states,
 $s_0$ is the initial state, $Act$ is a set of actions
-and $Steps  S ¡Á Act ¡Á Dist(S) is a probabilistic transition relation.
+and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition relation.
 %An MDP transition s
 %a,¦Ì
 %.! s0 is made from a state s 2 S first by nonde-
@@ -232,7 +236,7 @@ and $Steps  S ¡Á Act ¡Á Dist(S) is a probabilistic transition relation.
 %PRISM uses the algorithms of [3] to perform model checking of these for-
 %mulas.
 
-\subsection{Stochastic Two-Player Game}
+\paragraph{Stochastic Two-Player Game}
 
 \section{Protocol Modeling and Verification}
 
