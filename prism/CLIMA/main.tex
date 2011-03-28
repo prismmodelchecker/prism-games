@@ -151,22 +151,19 @@ $\sum_{s'\in S} \mathbf{P}(s, s') = 1$ for all $s \in  S$. This gives the probab
 will take place from state $s$ to state $s'$.
 
 
-\subsection{Markov Decision Process}
+\paragraph{Markov Decision Process}
 
 %M. Duflot, L. Fribourg, T. H¨¦rault, R. Lassaigne, F. Magniette, S. Messika, S. Peyronnet and C. Picaronny.
 %
 %Probabilistic model checking of the CSMA/CD protocol using PRISM and APMC.
 
 
-%Markov Decision Processes (MDP) (also called Probabilistic Nondetermin-
-%istic Systems (PNS) [7]) allow accurate modelling of systems which exhibit
-%both probabilistic and nondeterministic behavior. A common example of this
-%is the interleaved parallel composition of several probabilistic processes, but
-%nondeterminism can also be useful to leave parts of a system underspecified
-%and to model interaction with an unknown environment. Formally:
-%Definition 5.1 A Markov decision process (MDP) is a tuple (S, s,Act, Steps)
-%where S is a finite set of states, s is the initial state, Act is a set of actions
-%and Steps  S ¡Á Act ¡Á Dist(S) is a probabilistic transition relation.
+Markov Decision Processes (MDP) allow accurate modelling of systems which exhibit
+both probabilistic and nondeterministic behavior. Formally:
+
+A Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a finite set of states, 
+$s_0$ is the initial state, $Act$ is a set of actions
+and $Steps  S ¡Á Act ¡Á Dist(S) is a probabilistic transition relation.
 %An MDP transition s
 %a,¦Ì
 %.! s0 is made from a state s 2 S first by nonde-
