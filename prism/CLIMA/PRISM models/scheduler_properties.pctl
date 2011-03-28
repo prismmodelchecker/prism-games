@@ -1,3 +1,5 @@
 // Eventually all sensors are scheduled
-P>=1 [F !(all_not_sched)]
+P>=1 [ F !(all_not_sched) ]
+
+P=? [F  "sensor1_joins_successful_team"]
 

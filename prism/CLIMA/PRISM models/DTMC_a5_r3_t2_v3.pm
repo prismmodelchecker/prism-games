@@ -2,7 +2,7 @@ dtmc
 
 // parameters
 const int n_resources = 3;
-const int n_tasks = 3;
+const int n_tasks = 2;
 const int n_sensors = 5;
 
 
@@ -13,10 +13,36 @@ const int resource3 = 1;
 const int resource4 = 1;
 const int resource5 = 1;
 
+// network configuration
+const int e12=1;
+const int e13=1;
+const int e14=1;
+const int e15=1;
+
+const int e21=e12;
+const int e23=1;
+const int e24=1;
+const int e25=1;
+
+const int e31=e13;
+const int e32=e23;
+const int e34=1;
+const int e35=1;
+
+const int e41=e14;
+const int e42=e24;
+const int e43=e34;
+const int e45=1;
+
+const int e51=e15;
+const int e52=e25;
+const int e53=e35;
+const int e54=e45;
+
 module controller // schedules the algorithm
 
 	// algorithm status
-	status : [0..100];
+	status : [0..7];
 
 	// task resource indicator variables
 	t1_r1 : [0..1];
@@ -28,11 +54,11 @@ module controller // schedules the algorithm
 	t2_r3 : [0..1];
 
 	// schedule placeholders
-	turn1 : [0..5];
-	turn2 : [0..5];
-	turn3 : [0..5];
-	turn4 : [0..5];
-	turn5 : [0..5];
+	turn1 : [0..n_sensors];
+	turn2 : [0..n_sensors];
+	turn3 : [0..n_sensors];
+	turn4 : [0..n_sensors];
+	turn5 : [0..n_sensors];
 
 	// selecting schedule uniformly at random
 	[] status=0 -> 1/120 : (turn1'=1) & (turn2'=2) & (turn3'=3) & (turn4'=4) & (turn5'=5) & (status'=1)
@@ -277,15 +303,15 @@ endmodule
 
 module sensor1
 
-	state1 : [0..4];
+	state1 : [0..3];
 
 	// team membership indicators
 	m1_t1 : [0..1];
 	m1_t2 : [0..1];
 
 	// task scheduling
-	turn1_1 : [0..2];
-	turn2_1 : [0..2];
+	turn1_1 : [0..n_tasks];
+	turn2_1 : [0..n_tasks];
 
 
 
@@ -293,28 +319,27 @@ module sensor1
 	[str1] state1=0 -> 1/2 : (turn1_1'=1) & (turn2_1'=2) & (state1'=1)
 			 + 1/2 : (turn1_1'=2) & (turn2_1'=1) & (state1'=1);
 
-	// if there is not team and has required skill - initiating the team
-	[] state1=1 & turn1_1=1 & !committed & team_size_t1=0 & has_resource_t1 -> (m1_t1'=1) & (state1'=2);
+	// if there is no team and has required skill - initiating the team
+	[] state1=1 & turn1_1=1 & !committed & team_size_t1=0 & has_resource_t1 -> IP : (m1_t1'=1) & (state1'=3) + (1-IP) : (state1'=2);
 	[] state1=1 & turn1_1=1 & !committed & team_size_t1=0 & !has_resource_t1 -> (state1'=2);
-	[] state1=1 & turn1_1=2 & !committed & team_size_t2=0 & has_resource_t2 -> (m1_t2'=1) & (state1'=2);
+	[] state1=1 & turn1_1=2 & !committed & team_size_t2=0 & has_resource_t2 -> IP : (m1_t2'=1) & (state1'=3) + (1-IP) : (state1'=2);
 	[] state1=1 & turn1_1=2 & !committed & team_size_t2=0 & !has_resource_t2 -> (state1'=2);
 
-	[] state1=2 & turn2_1=1 & !committed & team_size_t1=0 & has_resource_t1 -> (m1_t1'=1) & (state1'=3);
-	[] state1=2 & turn2_1=1 & !committed & team_size_t1=0 & !has_resource_t1 -> (state1'=3);
-	[] state1=2 & turn2_1=2 & !committed & team_size_t2=0 & has_resource_t2 -> (m1_t2'=1) & (state1'=3);
-	[] state1=2 & turn2_1=2 & !committed & team_size_t2=0 & !has_resource_t2 -> (state1'=3);
+	[fin1] state1=2 & turn2_1=1 & !committed & team_size_t1=0 & has_resource_t1 -> IP : (m1_t1'=1) & (state1'=3) + (1-IP) : (state1'=3);
+	[fin1] state1=2 & turn2_1=1 & !committed & team_size_t1=0 & !has_resource_t1 -> (state1'=3);
+	[fin1] state1=2 & turn2_1=2 & !committed & team_size_t2=0 & has_resource_t2 -> IP : (m1_t2'=1) & (state1'=3) + (1-IP) : (state1'=3);
+	[fin1] state1=2 & turn2_1=2 & !committed & team_size_t2=0 & !has_resource_t2 -> (state1'=3);
 
-	// if team already exists - joining the team 
-	[] state1=1 & turn1_1=1 & !committed & team_size_t1>0 & has_resource_t1 & !resource_filled_t1 -> (m1_t1'=1) & (state1'=2);
-	[] state1=1 & turn1_1=1 & !committed & team_size_t1>0 & (!has_resource_t1 | resource_filled_t1) -> (state1'=2);
-	[] state1=1 & turn1_1=2 & !committed & team_size_t2>0 & has_resource_t2 & !resource_filled_t2 -> (m1_t2'=1) & (state1'=2);
-	[] state1=1 & turn1_1=2 & !committed & team_size_t2>0 & (!has_resource_t2 | resource_filled_t2) -> (state1'=2);
+	// if team already exists and one of the neighbours is in it - joining the team 
+	[] state1=1 & turn1_1=1 & !committed & team_size_t1>0 & can_join_t1 & has_resource_t1 & !resource_filled_t1 -> (m1_t1'=1) & (state1'=3);
+	[] state1=1 & turn1_1=1 & !committed & team_size_t1>0 & (!has_resource_t1 | resource_filled_t1 | !can_join_t1) -> (state1'=2);
+	[] state1=1 & turn1_1=2 & !committed & team_size_t2>0 & can_join_t2 & has_resource_t2 & !resource_filled_t2 -> (m1_t2'=1) & (state1'=3);
+	[] state1=1 & turn1_1=2 & !committed & team_size_t2>0 & (!has_resource_t2 | resource_filled_t2 | !can_join_t2) -> (state1'=2);
 
-	[] state1=2 & turn2_1=1 & !committed & team_size_t1>0 & has_resource_t1 & !resource_filled_t1 -> (m1_t1'=1) & (state1'=3);
-	[] state1=2 & turn2_1=1 & !committed & team_size_t1>0 & (!has_resource_t1 | resource_filled_t1) -> (state1'=3);
-	[] state1=2 & turn2_1=2 & !committed & team_size_t2>0 & has_resource_t2 & !resource_filled_t2 -> (m1_t2'=1) & (state1'=3);
-	[] state1=2 & turn2_1=2 & !committed & team_size_t2>0 & (!has_resource_t2 | resource_filled_t2) -> (state1'=3);
-
+	[fin1] state1=2 & turn2_1=1 & !committed & team_size_t1>0 & can_join_t1 & has_resource_t1 & !resource_filled_t1 -> (m1_t1'=1) & (state1'=3);
+	[fin1] state1=2 & turn2_1=1 & !committed & team_size_t1>0 & (!has_resource_t1 | resource_filled_t1 | !can_join_t1) -> (state1'=3);
+	[fin1] state1=2 & turn2_1=2 & !committed & team_size_t2>0 & can_join_t2 & has_resource_t2 & !resource_filled_t2 -> (m1_t2'=1) & (state1'=3);
+	[fin1] state1=2 & turn2_1=2 & !committed & team_size_t2>0 & (!has_resource_t2 | resource_filled_t2 | !can_join_t2) -> (state1'=3);
 
 	[fin1] state1=3 | committed  -> true; 
 
@@ -337,7 +362,17 @@ module sensor2 = sensor1
 	turn2_1=turn2_2,
 
 	resource1=resource2,	
-	resource2=resource1
+	resource2=resource1,
+
+	e12=e21,
+	e13=e23,
+	e14=e24,
+	e15=e25,
+
+	e21=e12,
+	e23=e13,
+	e24=e14,
+	e25=e15
 ] 
 endmodule
 
@@ -356,7 +391,17 @@ module sensor3 = sensor1
 	turn2_1=turn2_3,
 
 	resource1=resource3,	
-	resource3=resource1
+	resource3=resource1,
+
+	e12=e32,
+	e13=e31,
+	e14=e34,
+	e15=e35,
+
+	e31=e13,
+	e32=e12,
+	e34=e14,
+	e35=e15
 ] 
 endmodule
 
@@ -377,7 +422,17 @@ module sensor4 = sensor1
 	turn2_1=turn2_4,
 
 	resource1=resource4,	
-	resource4=resource1
+	resource4=resource1,
+
+	e12=e42,
+	e13=e43,
+	e14=e41,
+	e15=e45,
+
+	e41=e14,
+	e42=e12,
+	e43=e13,
+	e45=e15
 ] 
 endmodule
 
@@ -398,7 +453,17 @@ module sensor5 = sensor1
 	turn2_1=turn2_5,
 
 	resource1=resource5,	
-	resource5=resource1
+	resource5=resource1,
+
+	e12=e52,
+	e13=e53,
+	e14=e54,
+	e15=e51,
+
+	e51=e15,
+	e52=e12,
+	e53=e13,
+	e54=e14
 ] 
 endmodule
 
@@ -419,6 +484,10 @@ formula committed = (m1_t1+m1_t2) > 0;
 formula team_size_t1 = m1_t1+m2_t1+m3_t1+m4_t1+m5_t1;
 formula team_size_t2 = m1_t2+m2_t2+m3_t2+m4_t2+m5_t2;
 
+// formulae to check whether the agent can join the team
+formula can_join_t1 = e12*m2_t1 + e13*m3_t1 + e14*m4_t1 + e15*m5_t1 > 0;
+formula can_join_t2 = e12*m2_t2 + e13*m3_t2 + e14*m4_t2 + e15*m5_t2 > 0;
+
 // formulae to check whether agent has the resource required by the task
 formula has_resource_t1 = ( (t1_r1=1&resource1=1) | (t1_r2=1&resource1=2) | (t1_r3=1&resource1=3) );
 formula has_resource_t2 = ( (t2_r1=1&resource1=1) | (t2_r2=1&resource1=2) | (t2_r3=1&resource1=3) );
@@ -427,6 +496,8 @@ formula has_resource_t2 = ( (t2_r1=1&resource1=1) | (t2_r2=1&resource1=2) | (t2_
 formula resource_filled_t1 = (m2_t1=1 & resource1=resource2) | (m3_t1=1 & resource1=resource3) | (m4_t1=1 & resource1=resource4) | (m5_t1=1 & resource1=resource5);
 formula resource_filled_t2 = (m2_t2=1 & resource1=resource2) | (m3_t2=1 & resource1=resource3) | (m4_t2=1 & resource1=resource4) | (m5_t2=1 & resource1=resource5);
 
+// formula to compute team initiation probability (assuming each agent has at least one connection)
+formula IP = (e12*(1-((m2_t1+m2_t2)=0?0:1))+e13*(1-((m3_t1+m3_t2)=0?0:1))+e14*(1-((m4_t1+m4_t2)=0?0:1))+e15*(1-((m5_t1+m5_t2)=0?0:1))) / (e12+e13+e14+e15);
 
 
 // rewards
