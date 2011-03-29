@@ -7,11 +7,11 @@ const int n_sensors = 5;
 
 
 // sensor resources
-const int resource1 = 2;
-const int resource2 = 1;
-const int resource3 = 1;
-const int resource4 = 1;
-const int resource5 = 1;
+const int resource1;
+const int resource2;
+const int resource3;
+const int resource4;
+const int resource5;
 
 // network configuration
 const int e12=1;
@@ -500,31 +500,45 @@ formula resource_filled_t2 = (m2_t2=1 & resource1=resource2) | (m3_t2=1 & resour
 formula IP = (e12*(1-((m2_t1+m2_t2)=0?0:1))+e13*(1-((m3_t1+m3_t2)=0?0:1))+e14*(1-((m4_t1+m4_t2)=0?0:1))+e15*(1-((m5_t1+m5_t2)=0?0:1))) / (e12+e13+e14+e15);
 
 
-// rewards
-rewards "scheduling_steps"
-    [] true : 1;
-endrewards 
 
-// labels
-label "sensor1_joins_successful_team" = 
-					(m1_t1=1 & (t1_r1=1 => 
-							( resource1=1 | (m2_t1=1 & resource2=1) | (m3_t1=1 & resource3=1) | (m4_t1=1 & resource4=1) | (m5_t1=1 & resource5=1) )
-						   )
-						 & (t1_r2=1 =>
-							( resource1=2 | (m2_t1=1 & resource2=2) | (m3_t1=1 & resource3=2) | (m4_t1=1 & resource4=2) | (m5_t1=1 & resource5=2) )
-						   )
-						 & (t1_r3=1 =>
-							( resource1=3 | (m2_t1=1 & resource2=3) | (m3_t1=1 & resource3=3) | (m4_t1=1 & resource4=3) | (m5_t1=1 & resource5=3) )
-						   )
-  					) 
-					|
-					(m1_t2=1 & (t2_r1=1 => 
-							( resource1=1 | (m2_t2=1 & resource2=1) | (m3_t2=1 & resource3=1) | (m4_t2=1 & resource4=1) | (m5_t2=1 & resource5=1) )
-						   )
-						 & (t2_r2=1 =>
-							( resource1=2 | (m2_t2=1 & resource2=2) | (m3_t2=1 & resource3=2) | (m4_t2=1 & resource4=2) | (m5_t2=1 & resource5=2) )
-						   )
-						 & (t2_r3=1 =>
-							( resource1=3 | (m2_t2=1 & resource2=3) | (m3_t2=1 & resource3=3) | (m4_t2=1 & resource4=3) | (m5_t2=1 & resource5=3) )
-						   )
-  					);
+
+// labels and formulae for property specification 
+formula finished = (status=7);
+
+formula sensor1_joins_successful_team = (task1_completed & m1_t1=1) | (task2_completed & m1_t2=1);
+formula sensor1_joins_successful_team_of_1 = (task1_completed & m1_t1=1 & team_size_t1=1) | (task2_completed & m1_t2=1 & team_size_t2=1);
+formula sensor1_joins_successful_team_of_2 = (task1_completed & m1_t1=1 & team_size_t1=2) | (task2_completed & m1_t2=1 & team_size_t2=2);
+formula sensor1_joins_successful_team_of_3 = (task1_completed & m1_t1=1 & team_size_t1=3) | (task2_completed & m1_t2=1 & team_size_t2=3);
+
+formula sensor2_joins_successful_team = (task1_completed & m2_t1=1) | (task2_completed & m2_t2=1);
+formula sensor2_joins_successful_team_of_1 = (task1_completed & m2_t1=1 & team_size_t1=1) | (task2_completed & m2_t2=1 & team_size_t2=1);
+formula sensor2_joins_successful_team_of_2 = (task1_completed & m2_t1=1 & team_size_t1=2) | (task2_completed & m2_t2=1 & team_size_t2=2);
+formula sensor2_joins_successful_team_of_3 = (task1_completed & m2_t1=1 & team_size_t1=3) | (task2_completed & m2_t2=1 & team_size_t2=3);
+
+formula sensor3_joins_successful_team = (task1_completed & m3_t1=1) | (task2_completed & m3_t2=1);
+formula sensor3_joins_successful_team_of_1 = (task1_completed & m3_t1=1 & team_size_t1=1) | (task2_completed & m3_t2=1 & team_size_t2=1);
+formula sensor3_joins_successful_team_of_2 = (task1_completed & m3_t1=1 & team_size_t1=2) | (task2_completed & m3_t2=1 & team_size_t2=2);
+formula sensor3_joins_successful_team_of_3 = (task1_completed & m3_t1=1 & team_size_t1=3) | (task2_completed & m3_t2=1 & team_size_t2=3);
+
+formula sensor4_joins_successful_team = (task1_completed & m4_t1=1) | (task2_completed & m4_t2=1);
+formula sensor4_joins_successful_team_of_1 = (task1_completed & m4_t1=1 & team_size_t1=1) | (task2_completed & m4_t2=1 & team_size_t2=1);
+formula sensor4_joins_successful_team_of_2 = (task1_completed & m4_t1=1 & team_size_t1=2) | (task2_completed & m4_t2=1 & team_size_t2=2);
+formula sensor4_joins_successful_team_of_3 = (task1_completed & m4_t1=1 & team_size_t1=3) | (task2_completed & m4_t2=1 & team_size_t2=3);
+
+formula sensor5_joins_successful_team = (task1_completed & m5_t1=1) | (task2_completed & m5_t2=1);
+formula sensor5_joins_successful_team_of_1 = (task1_completed & m5_t1=1 & team_size_t1=1) | (task2_completed & m5_t2=1 & team_size_t2=1);
+formula sensor5_joins_successful_team_of_2 = (task1_completed & m5_t1=1 & team_size_t1=2) | (task2_completed & m5_t2=1 & team_size_t2=2);
+formula sensor5_joins_successful_team_of_3 = (task1_completed & m5_t1=1 & team_size_t1=3) | (task2_completed & m5_t2=1 & team_size_t2=3);
+
+formula task1_completed = finished 
+		 	 & ((t1_r1=1)=>((m1_t1=1&resource1=1)|(m2_t1=1&resource2=1)|(m3_t1=1&resource3=1)|(m4_t1=1&resource4=1)|(m5_t1=1&resource5=1)))
+			 & ((t1_r2=1)=>((m1_t1=1&resource1=2)|(m2_t1=1&resource2=2)|(m3_t1=1&resource3=2)|(m4_t1=1&resource4=2)|(m5_t1=1&resource5=2)))
+			 & ((t1_r3=1)=>((m1_t1=1&resource1=3)|(m2_t1=1&resource2=3)|(m3_t1=1&resource3=3)|(m4_t1=1&resource4=3)|(m5_t1=1&resource5=3)));
+
+formula task2_completed = finished
+			 & ((t2_r1=1)=>((m1_t2=1&resource1=1)|(m2_t2=1&resource2=1)|(m3_t2=1&resource3=1)|(m4_t2=1&resource4=1)|(m5_t2=1&resource5=1)))
+			 & ((t2_r2=1)=>((m1_t2=1&resource1=2)|(m2_t2=1&resource2=2)|(m3_t2=1&resource3=2)|(m4_t2=1&resource4=2)|(m5_t2=1&resource5=2)))
+			 & ((t2_r3=1)=>((m1_t2=1&resource1=3)|(m2_t2=1&resource2=3)|(m3_t2=1&resource3=3)|(m4_t2=1&resource4=3)|(m5_t2=1&resource5=3)));
+
+
+

@@ -1,5 +1,52 @@
-// Eventually all sensors are scheduled
-P>=1 [ F !(all_not_sched) ]
+P=? [F task1_completed]
 
-P=? [F  "sensor1_joins_successful_team"]
+P=? [F task2_completed]
+
+P=? [F task2_completed & task1_completed]
+
+P=? [ F sensor1_joins_successful_team ]
+
+P=? [ F sensor2_joins_successful_team ]
+
+P=? [ F sensor3_joins_successful_team ]
+
+P=? [ F sensor4_joins_successful_team ]
+
+P=? [ F sensor5_joins_successful_team ]
+
+P=? [ F sensor1_joins_successful_team_of_1 ]
+
+P=? [ F sensor1_joins_successful_team_of_2 ]
+
+P=? [ F sensor1_joins_successful_team_of_3 ]
+
+P=? [ F sensor1_joins_successful_team_of_1 ]
+
+P=? [ F sensor1_joins_successful_team_of_2 ]
+
+P=? [ F sensor1_joins_successful_team_of_3 ]
+
+P=? [ F sensor2_joins_successful_team_of_1 ]
+
+P=? [ F sensor2_joins_successful_team_of_2 ]
+
+P=? [ F sensor2_joins_successful_team_of_3 ]
+
+P=? [ F sensor3_joins_successful_team_of_1 ]
+
+P=? [ F sensor3_joins_successful_team_of_2 ]
+
+P=? [ F sensor3_joins_successful_team_of_3 ]
+
+P=? [ F sensor4_joins_successful_team_of_1 ]
+
+P=? [ F sensor4_joins_successful_team_of_2 ]
+
+P=? [ F sensor4_joins_successful_team_of_3 ]
+
+P=? [ F sensor5_joins_successful_team_of_1 ]
+
+P=? [ F sensor5_joins_successful_team_of_2 ]
+
+P=? [ F sensor5_joins_successful_team_of_3 ]
 

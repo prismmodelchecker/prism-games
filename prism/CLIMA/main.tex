@@ -9,6 +9,17 @@
 \usepackage{amsmath}
 \usepackage{soul}
 \usepackage{color}
+\usepackage{tikz}
+%\usepackage{subfigure}
+\usepackage{subfig}
+
+
+
+
+\newcommand{\LD}{\langle}
+\newcommand{\RD}{\rangle}
+
+
 
 
 \begin{document}
@@ -240,6 +251,8 @@ and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition r
 
 \section{Protocol Modeling and Verification}
 
+\subsection{Definitions}
+
 \begin{definition}
 An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where
 \noindent
@@ -301,6 +314,7 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 
 \end{definition}
 
+\subsection{Algorithms}
 
 
 \begin{algorithm}[H]
@@ -377,6 +391,83 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
+
+\subsection{Network Configurations}
+
+We run our experiments with four different network topologies each consisting of five agents.
+
+\begin{figure}[ht]
+\centering
+\subfloat[Fully connected]{
+  \begin{tikzpicture}
+      \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
+			      inner sep=0pt]
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+	  -- (agent1);
+      \draw (agent1) -- (agent3);
+      \draw (agent1) -- (agent4);
+      \draw (agent2) -- (agent4);
+      \draw (agent2) -- (agent5);
+      \draw (agent3) -- (agent5);
+  \end{tikzpicture}
+  \label{subfig:fully_connected}
+}\ \ \ \ \ \ \ \ \ \ \ \ 
+\subfloat[Ring]{
+  \begin{tikzpicture}
+      \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
+			      inner sep=0pt]
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+	  -- (agent1);
+  \end{tikzpicture}
+  \label{subfig:ring}
+} 
+
+\subfloat[Star]{
+  \begin{tikzpicture}
+      \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
+			      inner sep=0pt]
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
+	   ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
+	   ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
+	   ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+	  -- (agent1);
+      \draw (agent1) -- (agent3);
+      \draw (agent1) -- (agent4);
+  \end{tikzpicture}
+  \label{subfig:star}
+}\ \ \ \ \ \ \ \ \ \ \ \ 
+\subfloat[Isolated]{
+  \begin{tikzpicture}
+      \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
+			      inner sep=0pt]
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {};
+      \draw (agent1) -- (agent3);
+      \draw (agent1) -- (agent4);
+      \draw (agent2) -- (agent4);
+  \end{tikzpicture}
+  \label{subfig:isolated}
+}
+
+\caption{Experimental configurations of the agent network.}
+
+\label{fig:network_configurations}
+\end{figure}
+
+
+
 
 
 
