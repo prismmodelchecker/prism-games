@@ -64,43 +64,38 @@ public class ConstructModel
 		this.player1syncs = new HashSet<String>();
 		this.player2syncs = new HashSet<String>();
 
-		initSensors();
+		loadGameParams("p1m=[scheduler,task_generator,sensor1,sensor3,sensor5,sensor7] p2m=[sensor2,sensor4,sensor6] p1s=[initialise,scheduling,str1,str2,str3,str4,str5,str6,str7,fin1,fin2,fin3,fin4,fin5,fin6,fin7] p2s=[]");
 	}
 
-	/** Test method to initialise module and action allocation */
-	private void initSensors()
+	/** 
+	 *	Methods extracts game parameters: division of modules and synchronised actions from a given string.
+	 *
+	 *	@param params string containing partitions of synchronised actions and 
+	 *	module names for two players. Format for player 1: p1s=[action1,action2,...,actionN]
+	 *	p1m=[module1,module2,...,moduleN]. For player 2 it is the same but names are p2s p2m. 
+	 */
+	private void loadGameParams(String params)
 	{
-		player1mods.add("scheduler");
-		player1mods.add("task_generator");
-		player1mods.add("sensor1");
-		player1mods.add("sensor3");
-		player1mods.add("sensor5");
-		player1mods.add("sensor7");
+		try {
+			Properties props = new Properties();
 
-		player2mods.add("sensor2");
-		player2mods.add("sensor4");
-		player2mods.add("sensor6");
+			for (String p : params.split(" "))
+				props.load(new StringReader(p));
 
-		player1syncs.add("initialise");
-		player1syncs.add("scheduling");
+			if (props.containsKey("p1m"))
+				player1mods.addAll(Arrays.asList(((String) props.get("p1m")).substring(1).split("\\]|,| ")));
+			if (props.containsKey("p2m"))
+				player2mods.addAll(Arrays.asList(((String) props.get("p2m")).substring(1).split("\\]|,| ")));
+			if (props.containsKey("p1s"))
+				player1syncs.addAll(Arrays.asList(((String) props.get("p1s")).substring(1).split("\\]|,| ")));
+			if (props.containsKey("p2s"))
+				player2syncs.addAll(Arrays.asList(((String) props.get("p2s")).substring(1).split("\\]|,| ")));
 
-		player1syncs.add("str1");
-		player1syncs.add("str2");
-		player1syncs.add("str3");
-		player1syncs.add("str4");
-		player1syncs.add("str5");
-		player1syncs.add("str6");
-		player1syncs.add("str7");
-
-		player1syncs.add("fin1");
-		player1syncs.add("fin2");
-		player1syncs.add("fin3");
-		player1syncs.add("fin4");
-		player1syncs.add("fin5");
-		player1syncs.add("fin6");
-		player1syncs.add("fin7");
+		} catch (Exception e) {
+			// Loading of parameters failed.
+			e.printStackTrace();
+		}
 	}
-
 
 	public List<State> getStatesList()
 	{
@@ -137,7 +132,8 @@ public class ConstructModel
 	 * @param justReach If true, just build the reachable state set, not the model
 	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 */
-	public Model constructModel(ModulesFile modulesFile, Values initialState, boolean justReach, boolean buildSparse) throws PrismException
+	public Model constructModel(ModulesFile modulesFile, Values initialState, boolean justReach, boolean buildSparse)
+			throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -375,7 +371,6 @@ public class ConstructModel
 		return model;
 	}
 
-	
 	/**
 	 * Extracts player information from the action label
 	 * 
@@ -406,7 +401,7 @@ public class ConstructModel
 		}
 		return player;
 	}
-	
+
 	/**
 	 * Test method.
 	 */
@@ -438,7 +433,7 @@ public class ConstructModel
 			target.set(2);
 			ModelCheckerResult res = mc.computeReachProbs(mdp, target, true);
 			mainLog.println(res.soln);
-			
+
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
@@ -448,8 +443,7 @@ public class ConstructModel
 		}
 	}
 
-
-	/** Method to test STPG construction */ 
+	/** Method to test STPG construction */
 	public static void testSTPG(String filename)
 	{
 		try {

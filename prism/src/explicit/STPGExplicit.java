@@ -209,7 +209,7 @@ public class STPGExplicit extends STPGAbstrSimple
 		super.addStates(1);
 		stateLabels.add(player);
 
-		System.out.println("State " + (numStates - 1) + " player " + player);
+		//System.out.println("State " + (numStates - 1) + " player " + player);
 
 		return numStates - 1;
 	}
