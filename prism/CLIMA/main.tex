@@ -44,7 +44,13 @@ We use probabilistic model checking technique to verify a team formation protoco
 
 \paragraph{Contributions.}
 
-\paragraph{Related works.}
+\paragraph{Related work.} 
+
+Model checkers: PRISM \cite{KNP11}, MCMAS \cite{lomuscio2006mcmas}.
+
+Gossip protocol \cite{KNP08d}. Byzantine agreement protocol \cite{KN02}.
+
+Team formation algorithm that we use is introduced in \cite{gaston2005agent}.
 
 \paragraph{Structure of the paper.}
 
@@ -302,13 +308,13 @@ W_2(a) = \left\{
 \label{eq:w2agent}
 \end{equation}
 
-The rewards of an agent organisation $O$ are defined accordingly as the total reward achieved by its members,
+The rewards of a set of agents $A$ are defined accordingly as the total reward achieved by its members,
 \begin{equation}
- W_1(O) = \sum_{a \in A} W_1(a),
+ W_1(A) = \sum_{a \in A} W_1(a),
 \label{eq:w1organisation}
 \end{equation}
 \begin{equation}
- W_2(O) = \sum_{a \in A} W_2(a).
+ W_2(A) = \sum_{a \in A} W_2(a).
 \label{eq:w2organisation}
 \end{equation}
 
@@ -392,21 +398,59 @@ The rewards of an agent organisation $O$ are defined accordingly as the total re
 \end{scriptsize}
 \end{algorithm}
 
-\subsection{Network Configurations}
+\subsection{Experimental Setup}
 
-We run our experiments with four different network topologies each consisting of five agents.
+For our experiments we fix four agent organisations having different properties and then explore team formation algorithms using three models: DTMC, MDP, and STPG. For algorithm \ref{alg:join_team_org} DTMC is the natural model as agents' behaviour is either deterministic or probabilistic, then we relax probabilistic constraints and introduce nondeterminism in algorithm \ref{alg:join_team_nondet}, and to analyse it we use MDP and STPG models. Performance of the algorithms for agent organisations is evaluated from three standpoints:
+\begin{enumerate}
+ \item Expected overall organisation rewards using equations \ref{eq:w1organisation} and \ref{eq:w2organisation}.
+ \item Expected individual agent rewards using equations \ref{eq:w1agent} and \ref{eq:w2agent}.
+ \item Expected rewards of agent coalitions using equations \ref{eq:w1organisation} and \ref{eq:w2organisation}.
+\end{enumerate}
 
-\begin{figure}[ht]
+
+Online and offline versions described in algorithm \ref{alg:main_process} are equivalent for DTMC (algorithm \ref{alg:join_team_org}) with respect to the evaluation criteria above, but for MDP and STPG (algorithm \ref{alg:join_team_nondet}) we analyse and compare performances of both online and offline algorithms. 
+
+
+\subsubsection{Agent Organisations.}
+We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations (see figure \ref{fig:network_configurations} for graphical representations of the organisations):
+\begin{itemize}
+ \item Fully connected (figure \ref{subfig:fully_connected}) $O_{fc}=\langle A, N_{fc}, R, R_{A_{fc}}  \rangle$ where
+    \begin{itemize}
+    \item $N_{fc}=\{\{a_i,a_j \}\ : 1 \le i,j \le 5, i\neq j \}$,
+    \item $R_{A_{fc}}=\{R_{a_1}, R_{a_2}, R_{a_3}, R_{a_4}, R_{a_5}\}$ where $R_{a_1}=\{r_1\}$, $R_{a_2}=\{r_1\}$, $R_{a_3}=\{r_1\}$, $R_{a_4}=\{r_1\}$, and $R_{a_5}=\{r_1\}$.
+    \end{itemize}
+ \item Ring (figure \ref{subfig:ring}) $O_r=\langle A, N_r, R, R_{A_r}  \rangle$ where
+    \begin{itemize}
+    \item $N_r=\{\{a_i,a_j \}\ : 1 \le i,j \le 5, i\neq j, i\le 5 \implies j=i+1, i=5 \implies j=1 \}$,
+    \item $R_{A_r}=\{R_{a_1}, R_{a_2}, R_{a_3}, R_{a_4}, R_{a_5}\}$ where $R_{a_1}=\{r_1\}$, $R_{a_2}=\{r_1\}$, $R_{a_3}=\{r_1\}$, $R_{a_4}=\{r_1\}$, and $R_{a_5}=\{r_1\}$.
+    \end{itemize}
+ \item Star (figure \ref{subfig:star}) $O_s=\langle A, N_s, R, R_{A_s}  \rangle$ where
+    \begin{itemize}
+    \item $N_s=\{\{a_i,a_j \}\ : 1 \le i,j \le 5, i\neq j, i=1 \}$,
+    \item $R_{A_s}=\{R_{a_1}, R_{a_2}, R_{a_3}, R_{a_4}, R_{a_5}\}$ where $R_{a_1}=\{r_1\}$, $R_{a_2}=\{r_1\}$, $R_{a_3}=\{r_1\}$, $R_{a_4}=\{r_1\}$, and $R_{a_5}=\{r_1\}$.
+    \end{itemize}
+ \item Isolated agent (figure \ref{subfig:isolated}) $O_{ia}=\langle A, N_{ia}, R, R_{A_{ia}}  \rangle$ where
+    \begin{itemize}
+    \item $N_{ia}=\{\{a_i,a_j \}\ : 1 \le i,j \le 5, i\neq j, (i=5 \vee j=5) \implies (i=4 \vee j=4) \}$,
+    \item $R_{A_{ia}}=\{R_{a_1}, R_{a_2}, R_{a_3}, R_{a_4}, R_{a_5}\}$ where $R_{a_1}=\{r_1\}$, $R_{a_2}=\{r_1\}$, $R_{a_3}=\{r_1\}$, $R_{a_4}=\{r_1\}$, and $R_{a_5}=\{r_1\}$.
+    \end{itemize}
+\end{itemize}
+For simplicity we assign one resource to each agent. Resource allocation for each of the agent organisations has been chosen such than it is optimal with respect to algorithm \ref{alg:join_team_org} and equation \ref{eq:w2organisation}. We chose this criterion because it measures the total number of tasks performed by organisation. Allocations were computed using DTMC model checking in PRISM (see section \ref{subsection:DTMC} for discussion) assuming the task distribution described below.
+
+\subsubsection{Tasks.} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
+ 
+
+\begin{figure}[h]
 \centering
 \subfloat[Fully connected]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
-      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
-	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
-	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
-	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
-	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1\ r_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2\ r_1 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3\ r_1 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4\ r_1 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5\ r_1 \RD$] {}
 	  -- (agent1);
       \draw (agent1) -- (agent3);
       \draw (agent1) -- (agent4);
@@ -415,16 +459,16 @@ We run our experiments with four different network topologies each consisting of
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \ \ \ \ \ \ \ \ \ \ 
+}\ \ \ \ \ 
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
-      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
-	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
-	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
-	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
-	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1\ r_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2\ r_1 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3\ r_1 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4\ r_1 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5\ r_1 \RD$] {}
 	  -- (agent1);
   \end{tikzpicture}
   \label{subfig:ring}
@@ -434,26 +478,26 @@ We run our experiments with four different network topologies each consisting of
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
-      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
-	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
-	   ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
-	   ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
-	   ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {}
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1\ r_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2\ r_1 \RD$] {}
+	   ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3\ r_1 \RD$] {}
+	   ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4\ r_1 \RD$] {}
+	   ++(108:2.0cm) node (agent5) [label=left:$\LD a_5\ r_1 \RD$] {}
 	  -- (agent1);
       \draw (agent1) -- (agent3);
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \ \ \ \ \ \ \ \ \ \ 
+}\ \ \ \ \ 
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
-      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1 \RD$] {}
-	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2 \RD$] {}
-	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3 \RD$] {}
-	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4 \RD$] {}
-	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5 \RD$] {};
+      \draw (0,0) 	 node (agent1) [label=90:$\LD a_1\ r_1 \RD$] {}
+	  -- ++(-36:2.0cm)   node (agent2) [label=right:$\LD a_2\ r_1 \RD$] {}
+	  -- ++(-108:2.0cm) node (agent3) [label=-30:$\LD a_3\ r_1 \RD$] {}
+	  -- ++(-180:2.0cm) node (agent4) [label=210:$\LD a_4\ r_1 \RD$] {}
+	  -- ++(108:2.0cm) node (agent5) [label=left:$\LD a_5\ r_1 \RD$] {};
       \draw (agent1) -- (agent3);
       \draw (agent1) -- (agent4);
       \draw (agent2) -- (agent4);
@@ -461,8 +505,7 @@ We run our experiments with four different network topologies each consisting of
   \label{subfig:isolated}
 }
 
-\caption{Experimental configurations of the agent network.}
-
+\caption{Experimental configurations of the agent organisations.}
 \label{fig:network_configurations}
 \end{figure}
 
@@ -472,9 +515,25 @@ We run our experiments with four different network topologies each consisting of
 
 
 \subsection{DTMC}
+\label{subsection:DTMC}
 \subsubsection{Protocol}
 \subsubsection{Model and Specification}
 \subsubsection{Results}
+\begin{table}
+ \centering
+    \begin{tabular}{ | l | l | l | p{5cm} |}
+    \hline
+    Agents & States & Transitions & Verification Time \\ \hline
+    1 & 11C & 22C & A clear  \\ \hline
+    2 & 9C & 19C & Cloudy  \\ \hline
+    3 & 10C & 21C & Rain \\ \hline
+    4 & 10C & 21C & Rain \\ \hline
+    5 & 10C & 21C & Rain \\ \hline
+    6 & 10C & 21C & Rain\\ \hline    
+\end{tabular}
+
+\caption{DTMC model comparison for different number of agents in fully connected agent organisation. Verification times are for PCTL formula P$_{=?}$ [F ``tasks 1 and 2 completed'']}
+\end{table}
 
 \subsection{MDP}
 \subsubsection{Protocol}
@@ -500,6 +559,7 @@ We would like to outline several directions for future work:
  \item Another interesting question is construction of optimal agent organisations given the set of tasks and their distributions.This problem is an instance of mechanism design problem in game-theoretic settings, where the designer can have control over neighbourhood structure or agent resources or both.
 
 \end{itemize}
-
+\bibliographystyle{plain}
+\bibliography{refs}
 
 \end{document} 
