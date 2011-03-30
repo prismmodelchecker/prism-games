@@ -542,7 +542,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \subsubsection{Results}
 \begin{table}
  \centering
-    \begin{tabular}{ | l | l | l | l |}
+ \begin{tabular}{ | l | l | l | l |}
     \hline
     Agents & States & Transitions & Construction Time \\ \hline
     2 & 1865 & 2256 & 0.112s  \\ \hline
@@ -551,13 +551,28 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     5 & 2366305 & 2893536 & 74.36s \\ \hline   
 \end{tabular}
 
-\caption{DTMC model comparison for different number of agents in fully connected agent organisation. Verification times are for PCTL formula P$_{=?}$ [F ``tasks 1 and 2 completed'']}
+\caption{DTMC model comparison for different number of agents in fully connected agent organisation.}
 \end{table}
 
 \subsection{MDP}
 \subsubsection{Protocol}
 \subsubsection{Model and Specification}
 \subsubsection{Results}
+\begin{table}
+ \centering
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    Agents & States & Transitions & Construction Time \\ \hline
+    2 & 1405 & 1846 & 0.045s  \\ \hline
+    3 & 9721 & 12474 & 0.167s \\ \hline
+    4 & 76865 & 96664 & 1.109s \\ \hline
+    5 & 731233 & 907992 & 5.0536s \\ \hline   
+    6 & 8155873 & 10040112 & 29.74s \\ \hline   
+
+\end{tabular}
+
+\caption{MDP model comparison for different number of agents in fully connected agent organisation.}
+\end{table}
 
 \subsection{STPG}
 \subsubsection{Protocol}
