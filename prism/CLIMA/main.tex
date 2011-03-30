@@ -134,12 +134,12 @@ publications about all of these.
 %Models constructed in PRISM are analysed by formally
 %specifying formulas in temporal logic. This allows a precise,
 %unambiguous description of a wide range of properties, such
-%as ¡°the probability of shutdown occurring within 24 hours¡±
-%or ¡°the long-run probability that the system is stable¡±. In
+%as Â¡Â°the probability of shutdown occurring within 24 hoursÂ¡Â±
+%or Â¡Â°the long-run probability that the system is stableÂ¡Â±. In
 %addition, by assigning real-valued costs (or, conversely, rewards)
 %to states and transitions of the model, we can also reason
-%about, for example, ¡°expected time¡± or ¡°expected power
-%consumption¡±.
+%about, for example, Â¡Â°expected timeÂ¡Â± or Â¡Â°expected power
+%consumptionÂ¡Â±.
 %PRISM automatically ascertains values for such properties
 %by performing probabilistic model checking, which includes
 %both graph-based analysis and numerical computation.
@@ -158,8 +158,8 @@ publications about all of these.
 %study presented in this paper.
 %The PRISM tool has already been successfully used to
 %perform analysis of, and identify interesting behaviour, in a
-%wide range of case studies. This includes the study of ¡°quality
-%of service¡± properties for components of real-time probabilistic
+%wide range of case studies. This includes the study of Â¡Â°quality
+%of serviceÂ¡Â± properties for components of real-time probabilistic
 %communication protocols, e.g. IEEE 1394 FireWire
 %[7, 16], IEEE 802.3 CSMA/CD [17, 8], Zeroconf [13] and
 %IEEE 802.11 wireless LANs [15, 24]. It has also been used to
@@ -188,7 +188,7 @@ will take place from state $s$ to state $s'$.
 
 \paragraph{Markov Decision Process}
 
-%M. Duflot, L. Fribourg, T. H¨¦rault, R. Lassaigne, F. Magniette, S. Messika, S. Peyronnet and C. Picaronny.
+%M. Duflot, L. Fribourg, T. HÅ¡Å rault, R. Lassaigne, F. Magniette, S. Messika, S. Peyronnet and C. Picaronny.
 %
 %Probabilistic model checking of the CSMA/CD protocol using PRISM and APMC.
 
@@ -200,20 +200,20 @@ A Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a
 $s_0$ is the initial state, $Act$ is a set of actions
 and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition relation.
 %An MDP transition s
-%a,¦Ì
+%a,Å ÃŒ
 %.! s0 is made from a state s 2 S first by nonde-
-%terministically selecting an action-distribution pair (a, ¦Ì) such that (s, a, ¦Ì) 2
+%terministically selecting an action-distribution pair (a, Å ÃŒ) such that (s, a, Å ÃŒ) 2
 %7
 %steps, and second by making a probabilistic choice of the target state s0 accord-
-%ing to the distribution ¦Ì, such that ¦Ì(s0) > 0. A path represents a particular
+%ing to the distribution Å ÃŒ, such that Å ÃŒ(s0) > 0. A path represents a particular
 %resolution of both nondeterminism and probability: it is a non-empty finite
 %or infinite sequence of probabilistic transitions  = s0
-%a0,¦Ì0 ...! s1
-%a1,¦Ì1 ...! ¡¤ ¡¤ ¡¤ such
+%a0,Å ÃŒ0 ...! s1
+%a1,Å ÃŒ1 ...! Â¡â‚¬ Â¡â‚¬ Â¡â‚¬ such
 %that s0 = s. We denote by (i) the (i + 1)-th state of  and last() the
 %last state of  if  is finite. An adversary represents a particular resolution
 %of nondeterminism only. Formally, an adversary of a MDP is a function A
-%mapping every finite path  to a pair (a, ¦Ì) such that (last(), a, ¦Ì) 2 Steps.
+%mapping every finite path  to a pair (a, Å ÃŒ) such that (last(), a, Å ÃŒ) 2 Steps.
 %The evolution of the MDP according to a particular adversary A is a
 %measurable set of infinite paths associated with A, which can classically be
 %provided with a probability measure. Given a set F  S of target states, let:
@@ -542,15 +542,13 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \subsubsection{Results}
 \begin{table}
  \centering
-    \begin{tabular}{ | l | l | l | p{5cm} |}
+    \begin{tabular}{ | l | l | l | l |}
     \hline
-    Agents & States & Transitions & Verification Time \\ \hline
-    1 & 11C & 22C & A clear  \\ \hline
-    2 & 9C & 19C & Cloudy  \\ \hline
-    3 & 10C & 21C & Rain \\ \hline
-    4 & 10C & 21C & Rain \\ \hline
-    5 & 10C & 21C & Rain \\ \hline
-    6 & 10C & 21C & Rain\\ \hline
+    Agents & States & Transitions & Construction Time \\ \hline
+    2 & 1865 & 2256 & 0.112s  \\ \hline
+    3 & 17041 & 20904 & 0.311s \\ \hline
+    4 & 184753 & 226736 & 3.347s \\ \hline
+    5 & 2366305 & 2893536 & 74.36s \\ \hline   
 \end{tabular}
 
 \caption{DTMC model comparison for different number of agents in fully connected agent organisation. Verification times are for PCTL formula P$_{=?}$ [F ``tasks 1 and 2 completed'']}
