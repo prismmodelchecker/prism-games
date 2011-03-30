@@ -30,15 +30,15 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import prism.ModelType;
 import prism.PrismException;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game
- * (STPG). States can be labeled arbitrarily with player 1 player 2.
+ * (STPG). States can be labelled arbitrarily with player 1 player 2.
  */
-public class STPGExplicit extends STPGAbstrSimple
+public class STPGExplicit extends MDPSimple implements STPG
 {
-
 	// state labels
 	public static final int PLAYER_1 = 1;
 	public static final int PLAYER_2 = 2;
@@ -53,42 +53,21 @@ public class STPGExplicit extends STPGAbstrSimple
 		stateLabels = new ArrayList<Integer>(numStates);
 	}
 
-	// TODO fix the method
-	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
-			boolean complement)
+	/**
+	 * Construct an STPG from an existing one and a state index permutation,
+	 * i.e. in which state index i becomes index permut[i].
+	 */
+	public STPGExplicit(STPGExplicit stpg, int permut[])
 	{
-		int s;
-		boolean p1min, p2min;
-		p1min = p2min = false;
-
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				if (stateLabels.get(s) == PLAYER_1)
-					p1min = p2min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
-					p1min = p2min = min2;
-
-				result[s] = mvMultMinMaxSingle(s, vect, p1min, p2min);
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
-					p1min = p2min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
-					p1min = p2min = min2;
-
-				result[s] = mvMultMinMaxSingle(s, vect, p1min, p2min);
-			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
-					p1min = p2min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
-					p1min = p2min = min2;
-				result[s] = mvMultMinMaxSingle(s, vect, p1min, p2min);
-			}
+		super(stpg, permut);
+		stateLabels = new ArrayList<Integer>(numStates);
+		// Create blank array of correct size
+		for (int i = 0; i < numStates; i++) {
+			stateLabels.add(0);
+		}
+		// Copy permuted player info
+		for (int i = 0; i < numStates; i++) {
+			stateLabels.set(permut[i], stpg.stateLabels.get(i));
 		}
 	}
 
@@ -96,37 +75,30 @@ public class STPGExplicit extends STPGAbstrSimple
 	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
 	{
 		int i;
-		boolean b1, b2, b3;
-		boolean forall11, forall22;
-		forall11 = forall22 = false;
+		boolean b1, b2;
+		boolean forall = false;
 
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
 				if (stateLabels.get(i) == PLAYER_1)
-					forall11 = forall22 = forall1;
+					forall = forall1;
 				else if (stateLabels.get(i) == PLAYER_2)
-					forall11 = forall22 = forall2;
+					forall = forall2;
 
-				b1 = forall11; // there exists or for all player 1 choices
-				for (DistributionSet distrs : trans.get(i)) {
-					b2 = forall22; // there exists or for all player 2 choices
-					for (Distribution distr : distrs) {
-						b3 = distr.containsOneOf(u);
-						if (forall22) {
-							if (!b3)
-								b2 = false;
-						} else {
-							if (b3)
-								b2 = true;
-						}
-					}
-					if (forall11) {
-						if (!b2)
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(u);
+					if (forall) {
+						if (!b2) {
 							b1 = false;
+							continue;
+						}
 					} else {
-						if (b2)
+						if (b2) {
 							b1 = true;
+							continue;
+						}
 					}
 				}
 				result.set(i, b1);
@@ -138,42 +110,123 @@ public class STPGExplicit extends STPGAbstrSimple
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
 	{
 		int i;
-		boolean b1, b2, b3;
-		boolean forall11, forall22;
-		forall11 = forall22 = false;
+		boolean b1, b2;
+		boolean forall = false;
 
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
 				if (stateLabels.get(i) == PLAYER_1)
-					forall11 = forall22 = forall1;
+					forall = forall1;
 				else if (stateLabels.get(i) == PLAYER_2)
-					forall11 = forall22 = forall2;
+					forall = forall2;
 
-				b1 = forall11; // there exists or for all player 1 choices
-				for (DistributionSet distrs : trans.get(i)) {
-					b2 = forall22; // there exists or for all player 2 choices
-					for (Distribution distr : distrs) {
-						b3 = distr.containsOneOf(v) && distr.isSubsetOf(u);
-						if (forall22) {
-							if (!b3)
-								b2 = false;
-						} else {
-							if (b3)
-								b2 = true;
-						}
-					}
-					if (forall11) {
-						if (!b2)
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
+					if (forall) {
+						if (!b2) {
 							b1 = false;
+							continue;
+						}
 					} else {
-						if (b2)
+						if (b2) {
 							b1 = true;
+							continue;
+						}
 					}
 				}
 				result.set(i, b1);
 			}
 		}
+	}
+
+	// TODO fix the method
+	@Override
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	{
+		int s;
+		boolean min = false;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		}
+	}
+
+	@Override
+	public double mvMultMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
+	{
+		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		return mvMultMinMaxSingle(s, vect, min, null);
+	}
+
+	@Override
+	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min1, boolean min2, double val)
+	{
+		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		return mvMultMinMaxSingleChoices(s, vect, min, val);
+	}
+	
+	@Override
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
+	{
+		int s;
+		double d, diff, maxDiff = 0.0;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		}
+		return maxDiff;
+	}
+	
+	@Override
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
+	{
+		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		return mvMultJacMinMaxSingle(s, vect, min);
 	}
 
 	/**
@@ -241,28 +294,6 @@ public class STPGExplicit extends STPGAbstrSimple
 			stateLabels.set(s, player);
 	}
 
-	/**
-	 * Adds distribution to the distribution set of the given state
-	 * 
-	 * @param s state
-	 * @param dist distribution
-	 */
-	public void addDistribution(int s, Distribution dist)
-	{
-		// initialising distribution set
-		DistributionSet distSet;
-		if (trans.get(s).size() == 0) {
-			distSet = newDistributionSet(null);
-			addDistributionSet(s, distSet);
-		} else {
-			distSet = trans.get(s).get(0);
-		}
-
-		// adding distribution to the set
-		distSet.add(dist);
-
-	}
-
 	/** Checks whether the given player is valid and throws exception otherwise **/
 	private void checkPlayer(int player)
 	{
@@ -285,6 +316,11 @@ public class STPGExplicit extends STPGAbstrSimple
 			checkPlayer(p);
 	}
 
+	@Override
+	public ModelType getModelType()
+	{
+		return ModelType.STPG;
+	}
 	/**
 	 * Get transition function as string.
 	 */
@@ -325,6 +361,7 @@ public class STPGExplicit extends STPGAbstrSimple
 			// Build game
 			stpg = new STPGExplicit();
 
+			/*
 			// state 0
 			stpg.addState(PLAYER_1);
 			set = stpg.newDistributionSet(null);
@@ -406,6 +443,7 @@ public class STPGExplicit extends STPGAbstrSimple
 			distr.set(8, 1.0);
 			set.add(distr);
 			stpg.addDistributionSet(8, set);
+			*/
 
 			// Print game
 			System.out.println(stpg);

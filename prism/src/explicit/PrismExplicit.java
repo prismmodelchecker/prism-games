@@ -43,13 +43,15 @@ import explicit.StateModelChecker;
 public class PrismExplicit
 {
 	// Parent Prism object
-	private Prism prism = null;
+	private PrismLog mainLog = null;
+	private PrismSettings settings = null;
 	// Model checker(s)
 	private StateModelChecker mc = null;
 
-	public PrismExplicit(Prism prism)
+	public PrismExplicit(PrismLog mainLog, PrismSettings settings)
 	{
-		this.prism = prism;
+		this.mainLog = mainLog;
+		this.settings = settings;
 	}
 
 	// model checking
@@ -58,6 +60,7 @@ public class PrismExplicit
 	public Result modelCheck(Model model, String labelsFilename, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
 		Result result = null;
+		String s;
 
 		// Check that property is valid for this model type
 		// and create new model checker object
@@ -82,44 +85,38 @@ public class PrismExplicit
 			throw new PrismException("Unknown model type " + model.getModelType());
 		}
 
-		mc.setLog(prism.getMainLog());
+		mc.setLog(mainLog);
+		mc.setSettings(settings);
+		
 		mc.setPropertiesFile(propertiesFile);
 
-		mc.setPrecomp(prism.getPrecomp());
-		switch (prism.getTermCrit()) {
-		case Prism.ABSOLUTE:
+		mc.setPrecomp(settings.getBoolean(PrismSettings.PRISM_PRECOMPUTATION));
+		s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
+		if (s.equals("Absolute")) {
 			mc.setTermCrit(StateModelChecker.TermCrit.ABSOLUTE);
-			break;
-		case Prism.RELATIVE:
+		} else if (s.equals("Relative")) {
 			mc.setTermCrit(StateModelChecker.TermCrit.RELATIVE);
-			break;
 		}
-		mc.setTermCritParam(prism.getTermCritParam());
+		mc.setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
 		switch (model.getModelType()) {
 		case DTMC:
-			switch (prism.getLinEqMethod()) {
-			case Prism.GAUSSSEIDEL:
+			s = settings.getString(PrismSettings.PRISM_LIN_EQ_METHOD);
+			if (s.equals("Gauss-Seidel")) {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.GAUSS_SEIDEL);
-				break;
-			default:
+			} else {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.VALUE_ITERATION);
-				break;
 			}
 			break;
 		case MDP:
-			switch (prism.getMDPSolnMethod()) {
-			case Prism.MDP_GAUSSSEIDEL:
+			s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
+			if (s.equals("Gauss-Seidel")) {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.GAUSS_SEIDEL);
-				break;
-			case Prism.MDP_POLITER:
+			} else if (s.equals("Policy iteration")) {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.POLICY_ITERATION);
-				break;
-			case Prism.MDP_MODPOLITER:
+			} else if (s.equals("Modified policy iteration")) {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.MODIFIED_POLICY_ITERATION);
-				break;
-			default:
+			} else {
 				mc.setSolnMethod(StateModelChecker.SolnMethod.VALUE_ITERATION);
-				break;
 			}
 			break;
 		}
@@ -164,7 +161,7 @@ public class PrismExplicit
 			constructModel = new ConstructModel(prism.getSimulator(), mainLog);
 			Model modelExpl = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
 			List<State> statesList = constructModel.getStatesList();
-			PrismExplicit pe = new PrismExplicit(prism);
+			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
 			Object res = pe.modelCheck(modelExpl, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));
 		} catch (PrismException e) {
 			System.out.println(e);
@@ -193,7 +190,7 @@ public class PrismExplicit
 			prism.exportLabelsToFile(model, modulesFile, null, Prism.EXPORT_PLAIN, new File("tmp.lab"));
 			DTMCSimple modelExplicit = new DTMCSimple();
 			modelExplicit.buildFromPrismExplicit("tmp.tra");
-			PrismExplicit pe = new PrismExplicit(prism);
+			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
 			Object res = pe.modelCheck(modelExplicit, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));
 		} catch (PrismException e) {
 			System.out.println(e);

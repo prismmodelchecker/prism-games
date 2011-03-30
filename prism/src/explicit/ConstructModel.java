@@ -289,7 +289,7 @@ public class ConstructModel
 					if (modelType == ModelType.MDP)
 						mdp.addChoice(src, distr);
 					else if (modelType == ModelType.STPG)
-						stpg.addDistribution(src, distr);
+						stpg.addChoice(src, distr);
 				}
 			}
 
@@ -357,7 +357,7 @@ public class ConstructModel
 				}
 				break;
 			case STPG:
-				model = modelSimple;
+				model = new STPGExplicit(stpg, permut);
 				((ModelSimple) model).statesList = statesList;
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;

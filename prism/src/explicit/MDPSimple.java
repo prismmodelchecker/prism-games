@@ -639,30 +639,31 @@ public class MDPSimple extends ModelSimple implements MDP
 	}
 
 	@Override
-	public void mvMultMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement)
+	public void mvMultMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
-				result[s] = mvMultMinMaxSingle(s, vect, min);
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min);
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min);
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 		}
 	}
 
 	@Override
-	public double mvMultMinMaxSingle(int s, double vect[], boolean min)
+	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
 	{
-		int k;
+		int j, k;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		j = 0;
 		minmax = 0;
 		first = true;
 		step = trans.get(s);
@@ -675,9 +676,19 @@ public class MDPSimple extends ModelSimple implements MDP
 				d += prob * vect[k];
 			}
 			// Check whether we have exceeded min/max so far
-			if (first || (min && d < minmax) || (!min && d > minmax))
+			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
+				// If adversary generation is enabled, remember optimal choice
+				if (adv != null) {
+					// Only remember strictly better choices
+					// (required if either player is doing max)
+					if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+						adv[s] = j;
+					}
+				}
+			}
 			first = false;
+			j++;
 		}
 
 		return minmax;

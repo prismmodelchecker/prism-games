@@ -196,6 +196,10 @@ public class MDPModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
+		boolean genAdv;
+
+		// Are we generating an optimal adversary?
+		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -225,7 +229,7 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
+		if (precomp && prob1 && !genAdv) {
 			yes = prob1(mdp, remain, target, min);
 		} else {
 			yes = (BitSet) target.clone();
@@ -374,7 +378,7 @@ public class MDPModelChecker extends ProbModelChecker
 		unknown.andNot(target);
 		if (remain != null)
 			unknown.and(remain);
-		
+
 		// Nested fixed point loop
 		iters = 0;
 		u_done = false;
@@ -429,8 +433,12 @@ public class MDPModelChecker extends ProbModelChecker
 		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[], initVal;
-		boolean done;
+		int adv[] = null;
+		boolean genAdv, done;
 		long timer;
+
+		// Are we generating an optimal adversary?
+		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -468,13 +476,21 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// Create/initialise adversary storage
+		if (genAdv) {
+			adv = new int[n];
+			for (i = 0; i < n; i++) {
+				adv[i] = -1;
+			}
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultMinMax(soln, min, soln2, unknown, false);
+			mdp.mvMultMinMax(soln, min, soln2, unknown, false, genAdv ? adv : null);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -487,6 +503,16 @@ public class MDPModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Value iteration (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Print adversary
+		if (genAdv) {
+			PrismLog out = new PrismFileLog(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
+			out.print("Adv:");
+			for (i = 0; i < n; i++) {
+				out.print(" " + i + ":" + adv[i]);
+			}
+			out.println();
+		}
 
 		// Return results
 		res = new ModelCheckerResult();
@@ -591,7 +617,7 @@ public class MDPModelChecker extends ProbModelChecker
 		int adv[];
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
-		
+
 		// Re-use solution to solve each new adversary?
 		boolean reUseSoln = true;
 
@@ -631,7 +657,7 @@ public class MDPModelChecker extends ProbModelChecker
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
-			mdp.mvMultMinMax(soln, min, soln2, null, false);
+			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
 			done = true;
 			diff = 0;
 			for (i = 0; i < n; i++) {
@@ -688,7 +714,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mcDTMC = new DTMCModelChecker();
 		mcDTMC.inheritSettings(this);
 		mcDTMC.setLog(new PrismDevNullLog());
-		
+
 		// Limit iters for DTMC solution - this implements "modified" policy iteration
 		mcDTMC.setMaxIters(100);
 
@@ -719,7 +745,7 @@ public class MDPModelChecker extends ProbModelChecker
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
-			mdp.mvMultMinMax(soln, min, soln2, null, false);
+			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
 			done = true;
 			diff = 0;
 			for (i = 0; i < n; i++) {
@@ -760,7 +786,7 @@ public class MDPModelChecker extends ProbModelChecker
 	 */
 	public List<Integer> probReachStrategy(MDP mdp, int state, BitSet target, boolean min, double lastSoln[]) throws PrismException
 	{
-		double val = mdp.mvMultMinMaxSingle(state, lastSoln, min);
+		double val = mdp.mvMultMinMaxSingle(state, lastSoln, min, null);
 		return mdp.mvMultMinMaxSingleChoices(state, lastSoln, min, val);
 	}
 
@@ -804,10 +830,11 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param results Optional array of size k+1 to store (init state) results for each step (null if unused)
 	 */
-	public ModelCheckerResult computeBoundedReachProbs(MDP mdp, BitSet remain, BitSet target, int k, boolean min, double init[], double results[]) throws PrismException
+	public ModelCheckerResult computeBoundedReachProbs(MDP mdp, BitSet remain, BitSet target, int k, boolean min, double init[], double results[])
+			throws PrismException
 	{
 		// TODO: implement until
-		
+
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
@@ -844,7 +871,7 @@ public class MDPModelChecker extends ProbModelChecker
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultMinMax(soln, min, soln2, target, true);
+			mdp.mvMultMinMax(soln, min, soln2, target, true, null);
 			// Store intermediate results if required
 			// (compute min/max value over initial states for this step)
 			if (results != null) {

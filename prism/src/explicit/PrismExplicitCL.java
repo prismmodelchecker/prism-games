@@ -437,7 +437,7 @@ public class PrismExplicitCL
 
 		// create prism object
 		prism = new Prism(mainLog, techLog);
-		prismExpl = new PrismExplicit(prism);
+		prismExpl = new PrismExplicit(mainLog, prism.getSettings());
 		
 		// get prism defaults
 		verbose = prism.getVerbose();

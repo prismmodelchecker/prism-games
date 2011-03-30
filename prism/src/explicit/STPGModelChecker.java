@@ -201,11 +201,15 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
+		boolean genAdv;
 
 		// Check for some unsupported combinations
 		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
 			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
 		}
+
+		// Are we generating an optimal adversary?
+		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -236,7 +240,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
+		if (precomp && prob1 && !genAdv) {
 			yes = prob1(stpg, remain, target, min1, min2);
 		} else {
 			yes = (BitSet) target.clone();
@@ -445,8 +449,12 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[], initVal;
-		boolean done;
+		int adv[] = null;
+		boolean genAdv, done;
 		long timer;
+
+		// Are we generating an optimal adversary?
+		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -485,13 +493,21 @@ public class STPGModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// Create/initialise adversary storage
+		if (genAdv) {
+			adv = new int[n];
+			for (i = 0; i < n; i++) {
+				adv[i] = -1;
+			}
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultMinMax(soln, min1, min2, soln2, unknown, false);
+			stpg.mvMultMinMax(soln, min1, min2, soln2, unknown, false, genAdv ? adv : null);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -505,6 +521,16 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		// Print adversary
+		if (genAdv) {
+			PrismLog out = new PrismFileLog(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
+			out.print("Adv:");
+			for (i = 0; i < n; i++) {
+				out.print(" " + i + ":" + adv[i]);
+			}
+			out.println();
 		}
 
 		// Return results
@@ -699,7 +725,7 @@ public class STPGModelChecker extends ProbModelChecker
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultMinMax(soln, min1, min2, soln2, target, true);
+			stpg.mvMultMinMax(soln, min1, min2, soln2, target, true, null);
 			// Store intermediate results if required
 			// (compute min/max value over initial states for this step)
 			if (results != null) {

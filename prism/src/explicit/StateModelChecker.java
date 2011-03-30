@@ -36,6 +36,7 @@ import parser.type.*;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
+import prism.PrismSettings;
 import prism.Result;
 
 /**
@@ -46,6 +47,9 @@ public class StateModelChecker
 	// Log for output (default to System.out)
 	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
 
+	// PRISM settings object
+	protected PrismSettings settings = null;
+	
 	// Properties file (for labels, constants etc)
 	protected PropertiesFile propertiesFile;
 	
@@ -107,6 +111,22 @@ public class StateModelChecker
 	public PrismLog getLog()
 	{
 		return mainLog;
+	}
+
+	/**
+	 * Set PRISM settings object.
+	 */
+	public void setSettings(PrismSettings settings)
+	{
+		this.settings = settings;
+	}
+
+	/**
+	 * Get PRISM settings object.
+	 */
+	public PrismSettings getSettings()
+	{
+		return settings;
 	}
 
 	/**

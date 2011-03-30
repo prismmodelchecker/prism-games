@@ -196,7 +196,7 @@ public class CTMDPModelChecker extends MDPModelChecker
 		iters = 1;
 		while (iters <= right) {
 			// Matrix-vector multiply and min/max ops
-			ctmdp.mvMultMinMax(soln, min, soln2, target, true);
+			ctmdp.mvMultMinMax(soln, min, soln2, target, true, null);
 			// Since is globally uniform, can do this? and more?
 			for (i = 0; i < n; i++)
 				soln2[i] /= q;
