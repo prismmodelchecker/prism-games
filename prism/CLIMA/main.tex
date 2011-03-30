@@ -44,7 +44,21 @@ We use probabilistic model checking technique to verify a team formation protoco
 
 \paragraph{Contributions.}
 
-\paragraph{Related work.} 
+We point out the advantages of verification by a probabilistic model checker:
+
+\begin{itemize}
+  \item easy to compare different organization topology;
+  
+  \item easy to compare different strategies, even can \emph{synthesize} the best strategies;
+  
+  \item fully-automated
+  
+  \item similar to previous scenario from simulation to formal verification
+  
+  \item ...
+\end{itemize}
+
+\paragraph{Related work.}
 
 Model checkers: PRISM \cite{KNP11}, MCMAS \cite{lomuscio2006mcmas}.
 
@@ -255,9 +269,16 @@ and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition r
 
 \paragraph{Stochastic Two-Player Game}
 
+\paragraph{PCTL}
+
 \section{Protocol Modeling and Verification}
 
 \subsection{Definitions}
+
+\cite{gaston2005agent}
+In dynamic team formation, agents term form spontaneously in a completely decentralized manner and the agents' decision making is based solely on local information.
+
+In the model, tasks are generated periodically and globally advertised to the organization. Agents attempt to form terms to accomplish these tasks. The agents in the organization are embedded in a social network that restricts the set of possible agent teams: specifically for an agent to be on the team, the agent must have a social connection (i.e., an edge in the social network) with at least one other agent on the team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task.
 
 \begin{definition}
 An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where
@@ -408,7 +429,7 @@ For our experiments we fix four agent organisations having different properties 
 \end{enumerate}
 
 
-Online and offline versions described in algorithm \ref{alg:main_process} are equivalent for DTMC (algorithm \ref{alg:join_team_org}) with respect to the evaluation criteria above, but for MDP and STPG (algorithm \ref{alg:join_team_nondet}) we analyse and compare performances of both online and offline algorithms. 
+Online and offline versions described in algorithm \ref{alg:main_process} are equivalent for DTMC (algorithm \ref{alg:join_team_org}) with respect to the evaluation criteria above, but for MDP and STPG (algorithm \ref{alg:join_team_nondet}) we analyse and compare performances of both online and offline algorithms.
 
 
 \subsubsection{Agent Organisations.}
@@ -438,7 +459,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 For simplicity we assign one resource to each agent. Resource allocation for each of the agent organisations has been chosen such than it is optimal with respect to algorithm \ref{alg:join_team_org} and equation \ref{eq:w2organisation}. We chose this criterion because it measures the total number of tasks performed by organisation. Allocations were computed using DTMC model checking in PRISM (see section \ref{subsection:DTMC} for discussion) assuming the task distribution described below.
 
 \subsubsection{Tasks.} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
- 
+
 
 \begin{figure}[h]
 \centering
@@ -459,7 +480,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \ \ \ 
+}\ \ \ \ \
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -472,7 +493,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 	  -- (agent1);
   \end{tikzpicture}
   \label{subfig:ring}
-} 
+}
 
 \subfloat[Star]{
   \begin{tikzpicture}
@@ -488,7 +509,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \ \ \ 
+}\ \ \ \ \
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -529,7 +550,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     3 & 10C & 21C & Rain \\ \hline
     4 & 10C & 21C & Rain \\ \hline
     5 & 10C & 21C & Rain \\ \hline
-    6 & 10C & 21C & Rain\\ \hline    
+    6 & 10C & 21C & Rain\\ \hline
 \end{tabular}
 
 \caption{DTMC model comparison for different number of agents in fully connected agent organisation. Verification times are for PCTL formula P$_{=?}$ [F ``tasks 1 and 2 completed'']}
@@ -559,6 +580,7 @@ We would like to outline several directions for future work:
  \item Another interesting question is construction of optimal agent organisations given the set of tasks and their distributions.This problem is an instance of mechanism design problem in game-theoretic settings, where the designer can have control over neighbourhood structure or agent resources or both.
 
 \end{itemize}
+
 \bibliographystyle{plain}
 \bibliography{refs}
 
