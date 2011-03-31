@@ -34,6 +34,11 @@ import java.util.*;
 public interface STPG extends Model
 {
 	/**
+	 * Get the action label (if any) for choice i of state s.
+	 */
+	public Object getAction(int s, int i);
+
+	/**
 	 * Get the transition reward (if any) for choice i of state s.
 	 */
 	public double getTransitionReward(int s, int i);

@@ -496,6 +496,13 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	// Accessors (for STPG)
 
 	@Override
+	public Object getAction(int s, int i)
+	{
+		// TODO
+		return null;
+	}
+
+	@Override
 	public double getTransitionReward(int s, int i)
 	{
 		List<Double> list;

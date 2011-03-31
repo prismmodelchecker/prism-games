@@ -612,6 +612,7 @@ public class PrismExplicitCL
 		// build model
 		ConstructModel constructModel;
 		constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+		constructModel.setSettings(prism.getSettings());
 		modelExpl = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues(), false, true);
 		statesList = constructModel.getStatesList();
 		

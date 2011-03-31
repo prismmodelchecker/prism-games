@@ -190,7 +190,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
 		return mvMultMinMaxSingleChoices(s, vect, min, val);
 	}
-	
+
 	@Override
 	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
 	{
@@ -221,7 +221,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 		}
 		return maxDiff;
 	}
-	
+
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
 	{
@@ -321,22 +321,31 @@ public class STPGExplicit extends MDPSimple implements STPG
 	{
 		return ModelType.STPG;
 	}
+
 	/**
 	 * Get transition function as string.
 	 */
 	public String toString()
 	{
-		int i;
-		boolean first;
+		int i, j, n;
+		Object o;
 		String s = "";
-		first = true;
 		s = "[ ";
 		for (i = 0; i < numStates; i++) {
-			if (first)
-				first = false;
-			else
+			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + "): " + trans.get(i) + "\n";
+			s += i + "(P-" + stateLabels.get(i) + "): ";
+			s += "[";
+			n = getNumChoices(i);
+			for (j = 0; j < n; j++) {
+				if (j > 0)
+					s += ",";
+				o = getAction(i, j);
+				if (o != null)
+					s += o + ":";
+				s += trans.get(i).get(j);
+			}
+			s += "]";
 		}
 		s += " ]\n";
 		return s;

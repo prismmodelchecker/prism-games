@@ -45,6 +45,11 @@ public interface MDP extends Model
 	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i);
 
 	/**
+	 * Get the action label (if any) for choice i of state s.
+	 */
+	public Object getAction(int s, int i);
+
+	/**
 	 * Get the transition reward (if any) for choice i of state s.
 	 */
 	public double getTransitionReward(int s, int i);

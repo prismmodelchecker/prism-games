@@ -521,6 +521,13 @@ public class MDPSparse extends ModelSparse implements MDP
 	}
 
 	@Override
+	public Object getAction(int s, int i)
+	{
+		// TODO
+		return null;
+	}
+
+	@Override
 	public double getTransitionReward(int s, int i)
 	{
 		// TODO

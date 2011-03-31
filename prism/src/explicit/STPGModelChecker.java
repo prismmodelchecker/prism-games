@@ -526,9 +526,8 @@ public class STPGModelChecker extends ProbModelChecker
 		// Print adversary
 		if (genAdv) {
 			PrismLog out = new PrismFileLog(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
-			out.print("Adv:");
 			for (i = 0; i < n; i++) {
-				out.print(" " + i + ":" + adv[i]);
+				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
 			}
 			out.println();
 		}

@@ -91,12 +91,18 @@ public class MDPSimple extends ModelSimple implements MDP
 		for (int in : mdp.getInitialStates()) {
 			addInitialState(in);
 		}
-		for (int i = 0; i < numStates; i++) {
-			for (Distribution distr : mdp.trans.get(i)) {
-				addChoice(i, new Distribution(distr));
+		for (int s = 0; s < numStates; s++) {
+			for (Distribution distr : mdp.trans.get(s)) {
+				addChoice(s, new Distribution(distr));
 			}
 		}
-		// TODO: copy actions, rewards
+		for (int s = 0; s < numStates; s++) {
+			int n = mdp.getNumChoices(s);
+			for (int i = 0; i < n; i++) {
+				setAction(s, i, mdp.getAction(s, i));
+			}
+		}
+		// TODO: copy rewards
 	}
 
 	/**
@@ -126,9 +132,15 @@ public class MDPSimple extends ModelSimple implements MDP
 		for (int in : mdp.getInitialStates()) {
 			addInitialState(permut[in]);
 		}
-		for (int i = 0; i < numStates; i++) {
-			for (Distribution distr : mdp.trans.get(i)) {
-				addChoice(permut[i], new Distribution(distr, permut));
+		for (int s = 0; s < numStates; s++) {
+			for (Distribution distr : mdp.trans.get(s)) {
+				addChoice(permut[s], new Distribution(distr, permut));
+			}
+		}
+		for (int s = 0; s < numStates; s++) {
+			int n = mdp.getNumChoices(s);
+			for (int i = 0; i < n; i++) {
+				setAction(permut[s], i, mdp.getAction(s, i));
 			}
 		}
 		// TODO: permute rewards
@@ -971,23 +983,29 @@ public class MDPSimple extends ModelSimple implements MDP
 	@Override
 	public String toString()
 	{
-		int i;
-		boolean first;
+		int i, j, n;
+		Object o;
 		String s = "";
-		first = true;
 		s = "[ ";
 		for (i = 0; i < numStates; i++) {
-			if (first)
-				first = false;
-			else
+			if (i > 0)
 				s += ", ";
-			s += i + ": " + trans.get(i);
-			if (actions != null)
-				s += actions.get(i);
+			s += i + ": ";
+			s += "[";
+			n = getNumChoices(i);
+			for (j = 0; j < n; j++) {
+				if (j > 0)
+					s += ",";
+				o = getAction(i, j);
+				if (o != null)
+					s += o + ":";
+				s += trans.get(i).get(j);
+			}
+			s += "]";
 			if (transRewards != null)
 				s += transRewards.get(i);
 		}
-		s += " ]";
+		s += " ]\n";
 		return s;
 	}
 
