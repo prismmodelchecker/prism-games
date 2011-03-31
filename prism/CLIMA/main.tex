@@ -608,6 +608,20 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \end{table}
 
 
+\begin{table}
+ \centering
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    Organisation & $T_1$ completed & $T_2$ completed & $T_1$ and $T_2$ completed \\ \hline
+    $O_{fc}$ & 0.74562 & 0.74562 & 0.49596  \\ \hline
+    $O_r$ & 0.71461 & 0.71461 & 0.47062 \\ \hline
+    $O_s$ & 0.58324 & 0.58324 & 0.23639 \\ \hline
+    $O_{ia}$ & 0.71799 & 0.71799 & 0.44839 \\ \hline   
+\end{tabular}
+
+\caption{Task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_org}. Results obtained by model checking PCTL formulae on DTMC model.}
+\end{table}
+
 \subsection{MDP}
 \subsubsection{Protocol}
 \subsubsection{Model and Specification}
@@ -622,10 +636,62 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     4 & 76865 & 96664 & 1.109s \\ \hline
     5 & 731233 & 907992 & 5.0536s \\ \hline
     6 & 8155873 & 10040112 & 29.74s \\ \hline
-
 \end{tabular}
-
 \caption{MDP model comparison for different number of agents in fully connected agent organisation. Model construction times are for 2.8GHz, 4Gb RAM PC.}
+\end{table}
+
+\begin{table}
+\centering
+\subfloat[Offline]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & Max $W_1(O)$ & Max $W_2(O)$ \\ \hline
+    $O_{fc}$ & 2.89795 & 1.67346   \\ \hline
+    $O_r$ & 2.89795 & 1.67346  \\ \hline
+    $O_s$ & 2.20816 & 1.35918  \\ \hline
+    $O_{ia}$ & 2.89795 & 1.67346  \\ \hline   
+\end{tabular}
+}
+\subfloat[Online]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & Max $W_1(O)$ & Max $W_2(O)$ \\ \hline
+    $O_{fc}$ & 3.85714 & 1.42857   \\ \hline
+    $O_r$ & 3.85714 & 1.42857  \\ \hline
+    $O_s$ & 2.71428 & 1.02857  \\ \hline
+    $O_{ia}$ & 3.85714 & 1.42857  \\ \hline   
+\end{tabular}
+}
+\caption{Maximal rewards that can be achieved by agent organisations from figure \ref{fig:network_configurations} using algorithm \ref{alg:join_team_nondet}'s offline and online versions defined in algorithm \ref{alg:main_process}.}
+\end{table}
+
+
+\begin{table}
+
+ \centering
+
+\subfloat[Offline]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
+    $O_{fc}$ & 1.0 & 1.0 & 0.67346  \\ \hline
+    $O_r$ & 1.0 & 1.0 & 0.67346  \\ \hline
+    $O_s$ & 0.82857 & 0.82857 & 0.39183 \\ \hline
+    $O_{ia}$ & 1.0 & 1.0 & 0.67346 \\ \hline   
+\end{tabular}
+}
+\subfloat[Online]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
+    $O_{fc}$ & 1.0 & 1.0 & 0.42857  \\ \hline
+    $O_r$ & 1.0 & 1.0 & 0.42857 \\ \hline
+    $O_s$ & 0.88571 & 0.88571 & 0.12653 \\ \hline
+    $O_{ia}$ & 1.0 & 1.0 & 0.42857 \\ \hline   
+\end{tabular}
+}
+
+\caption{Maximum task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_nondet}'s online and offline versions (see algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on MDP model.}
 \end{table}
 
 \subsection{STPG}
