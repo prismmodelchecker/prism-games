@@ -36,7 +36,9 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
-We use probabilistic model checking technique to verify a team formation protocol in multi-agent systems.
+
+Multi-agent systems are becoming an increasingly important paradigm in software. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of such protocols using the PRISM model checker. To start with, we take a simple team formation algorithm and analyse its properties using Discrete-Time Markov Chains, then using Markov Decision Processes we show what is the maximum performance that can be achieved by the protocol which the algorithm uses. And finally we extend the analysis to competitive coalitional setting using Stochastic Two-Player Games.
+
 
 \end{abstract}
 
@@ -463,7 +465,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \subsubsection{Tasks.} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
 
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \subfloat[Fully connected]{
   \begin{tikzpicture}
@@ -482,8 +484,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \ \ \
- 
+}\ \ \ 
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -512,8 +513,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \ \ \
- 
+}\ \ \ 
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -533,9 +533,6 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \caption{Experimental configurations of the agent organisations with optimal resource allocation (see table \ref{tab:optimal_r}).}
 \label{fig:network_configurations}
 \end{figure}
-
-
-
 
 
 
@@ -622,6 +619,8 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \caption{Task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_org}. Results obtained by model checking PCTL formulae on DTMC model.}
 \end{table}
 
+\clearpage
+
 \subsection{MDP}
 \subsubsection{Protocol}
 \subsubsection{Model and Specification}
@@ -694,10 +693,78 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \caption{Maximum task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_nondet}'s online and offline versions (see algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on MDP model.}
 \end{table}
 
+\clearpage
+
 \subsection{STPG}
 \subsubsection{Protocol}
 \subsubsection{Model and Specification}
 \subsubsection{Results}
+
+\begin{table}
+ \centering
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & $\LD r_1 \RD$ & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$ \\ \hline
+    $O_r$ & $\LD r_1 \RD$  & $\LD r_2, r_3 \RD$ & $\LD r_1, r_4, r_5 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
+    $O_s$ & $\LD r_1 \RD$  & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
+    $O_{ia}$ & $\LD r_1 \RD$  & $\LD r_1, r_4 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline   
+\end{tabular}
+\caption{Optimal coalitions of sizes 2, 3, and 4 for agent organisations from figure \ref{fig:network_configurations} for both online and offline versions.}
+\label{tab:optimal_coalitions}
+\end{table}
+
+\begin{table}
+ \centering
+\subfloat[Offline]{ 
+  \begin{tabular}{ | l | l | l | l | l | l |}
+      \hline
+      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
+      $O_r$ & 0.14285 & 0.42857 & 0.68333 &  0.92619 & 1.0 \\ \hline
+      $O_s$ & 0.14285 & 0.42857 & 0.79761 & 0.81904 & 0.82857\\ \hline
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.93452 & 1.0 & 1.0\\ \hline   
+  \end{tabular}
+}
+\subfloat[Online]{ 
+  \begin{tabular}{ | l | l | l | l | l | l |}
+      \hline
+      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
+      $O_r$ & 0.14285 & 0.33333 & 0.68571 & 0.89523 & 1.0 \\ \hline
+      $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline   
+  \end{tabular}
+}
+\caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.}
+\end{table}
+
+
+\begin{table}
+ \centering
+\subfloat[Offline]{
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & 0.0 & 0.04081 & 0.24489 &  0.42857 & 0.67346  \\ \hline
+    $O_r$ & 0.0 &  0.04081 & 0.17687 & 0.40748 & 0.67346\\ \hline
+    $O_s$ & 0.0 & 0.04081 & 0.20408 & 0.29523 & 0.39183 \\ \hline
+    $O_{ia}$ & 0.0 & 0.04081 & 0.23129 & 0.41496 & 0.67346\\ \hline   
+\end{tabular}
+}
+\subfloat[Online]{
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & 0.0 & 0.02040 & 0.06122 &  0.18367 & 0.42857  \\ \hline
+    $O_r$ & 0.0 & 0.02040 & 0.06122 & 0.18367 & 0.42857\\ \hline
+    $O_s$ & 0.0 & 0.02040 & 0.06122 & 0.12244 & 0.12653 \\ \hline
+    $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline   
+\end{tabular}
+}
+
+\caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.}
+\end{table}
 
 \section{Conclusions and Future Work}
 
