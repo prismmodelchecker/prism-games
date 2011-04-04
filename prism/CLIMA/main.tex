@@ -65,44 +65,16 @@ The majority of existing analyses of such algorithms are based on discrete-event
 
 
 
-In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of team formation protocols using the PRISM model checker \cite{KNP11}. We fix four different agent organisations and analyse them using several formal models. Firstly, we model the original version of the algorithm using Discrete Time Markov Chain (DTMC), where the behaviour or an agent is described entirely in probabilistic and deterministic way. Then we allow agents to make decisions regarding team formation nondeterministically instead of purely probabilistically, such system is naturally modeled by Markov Decision Process (MDP). By analysing MDP we can obtain best- and worst-case performances of the agent organisations. However, MDP only allows fully collaborative behaviour, whereas in many scenarios it is required for analysis to allow for hostile behaviour of some agents in the organisation. To cater for this we use Stochastic Two-Player Game as a model for the system which has two groups of agents - collaborative and byzantine, which try to respectively maximise or minimise the performance of the organisation. In all of these three models the performance of an agent organisation and individual agents is analysed by model checking PCTL formulae.
+In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of team formation protocols using the PRISM model checker \cite{KNP11}. We fix four different agent organisations and analyse them using several formal models. Firstly, we model the original version of the algorithm using Discrete Time Markov Chain (DTMC), where the behaviour or an agent is described entirely in probabilistic and deterministic way. Then we allow agents to make decisions regarding team formation nondeterministically instead of purely probabilistically, such system is naturally modeled by Markov Decision Process (MDP). By analysing MDP we can obtain best- and worst-case performances of the agent organisations. However, MDP only allows fully collaborative behaviour, whereas in many scenarios it is required for analysis to allow for hostile behaviour of some agents in the organisation. To cater for this we use Stochastic Two-Player Game (STPG) as a model for the system which has two groups of agents - collaborative and byzantine, which try to respectively maximise or minimise the performance of the organisation. In all of these three models the performance of an agent organisation and individual agents is analysed by model checking PCTL formulae.
 
-For our experiments We consider four network topologies , and for each of them we
+Our experiments illustrate several aspects of agent organisation analysis. We choose four network topologies each consisting of five agents. We  compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation in two settings, \emph{offline} and \emph{online}, depending on whether the tasks are generated repectively \emph{before} and \emph{after} teams have formed. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. 
 
-Fix topologies, fix tasks
-find optimal resource allocation for DTMCs, fix it
-analyse expected rewards for dtmc,
-max expected rewards for MDPs inv and organisation
-optimal coalitions of different sizes and theoir expected performance for STPG.
+\comment{add several advantages of our approach - base on results. } 
 
-
-
-We obtain the optimal coalitions structures of different sizes and compare their performance. 
-
-
-
-
-We point out the advantages of verification by a probabilistic model checker:
-
-\begin{itemize}
-  \item easy to compare different organization topology;
-
-  \item easy to compare different strategies, even can \emph{synthesize} the best strategies;
-
-  \item fully-automated
-
-  \item similar to previous scenario from simulation to formal verification
-
-  \item ...
-\end{itemize}
 
 \paragraph{Related work.}
 
 Cooperative behaviour being one of the biggest advantages of the agent based computing has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several several logics  including Coalitional Game Logic \cite{agotnes2009reasoning} and Strategy Logic \cite{chatterjee2007strategy}, and other formalisms one example of which is Cooperative Boolean Games \cite{dunne2008cooperative} have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse a variety of mutli-agent protocol, i.e. clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip  \cite{KNP08d} and Byzantine agreement protocols  \cite{KN02} using PRISM   \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.   
-
-
-Team formation algorithm that we use is introduced in \cite{gaston2005agent}. It has been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}.
-
 
 
 \paragraph{Structure of the paper.}
