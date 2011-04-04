@@ -35,17 +35,20 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
-
-Multi-agent systems are becoming an increasingly important paradigm in software. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of such protocols using the PRISM model checker. To start with, we take a simple team formation algorithm and analyse its properties using Discrete-Time Markov Chains, then using Markov Decision Processes we show what is the maximum performance that can be achieved by the protocol which the algorithm uses. And finally we extend the analysis to competitive coalitional setting using Stochastic Two-Player Games.
-
-
+Multi-agent systems are becoming an increasingly important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of such protocols using the PRISM model checker. To start with, we take a team formation protocol and analyse its performance by modelling based on Discrete-Time Markov Chains. Then using a model based on Markov Decision Processes we show what is the best performance that can be achieved by the algorithm which the protocol uses. Finally we extend such analysis to competitive coalitional setting using Stochastic Two-Player Games.
 \end{abstract}
 
 \section{Introduction}
 
 \comment{will need a high-level description of PMC in intro, so put this here. Add some comments about complexity}
+%
 
-\emph{Probabilistic model checking} is an automated technique for
+
+Multi-agent systems are becoming an increasingly important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we focus on a typical distributed team formation protocol which was introduced in \cite{gaston2005agent}, where authors used it to analyse the team performance in dynamic networks. The protocol has also been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the algorithm consists of a network of interconnected agents, which can form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. Agents attempt to form teams to accomplish these tasks. The network topology restricts the set of possible agent teams - for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task, we do not consider  the solution process, only the team formation.
+
+The majority of existing analyses of such algorithms are based on discrete-event simulation. In contrast, probabilistic model checking provides both an exhaustive search of all possible behaviours of the system, including best- and worst-case scenarios, and exact, rather than approximate, quantitative results. Of course, a trade-off inevitably exists. Simulation-based approaches are scalable to much larger and more complex models, at the expense of exhaustiveness and numerical accuracy. The intention of this work is not to show that model checking is ``better" than simulation-based approaches, but rather to highlight that model checking can be used in conjunction with simulation to provide additional insights into a system. As inherently behaviour of distributed algorithms is difficult to understand precisely and formally analysing the small example can help to form a better intuition into the behaviour of large system.
+
+In general, \emph{probabilistic model checking} is an automated technique for
 the formal verification of systems that exhibit stochastic behavior. It can, for example,
 calculate the likelihood of the occurrence of certain events
 during the execution of a system, and can be useful to establish performance
@@ -58,23 +61,16 @@ occur between these states, and information about when and
 with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to analyze the state space and calculate performance measures.
 
 \paragraph{Contributions.}
-
-In this paper we choose a typical distributed team formation protocol which was introduced in \cite{gaston2005agent}, where authors used it to analyse the team performance in dynamic networks. The algorithm has also been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the algorithm consists of a network of interconnected agents, which can form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. Agents attempt to form teams to accomplish these tasks. The network topology restricts the set of possible agent teams - for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task, we do not consider  the solution process, only the team formation. 
-
-The majority of existing analyses of such algorithms are based on discrete-event simulation. In contrast, probabilistic model checking provides both an exhaustive search of all possible behaviours of the system, including best- and worst-case scenarios, and exact, rather than approximate, quantitative results. Of course, a trade-off inevitably exists. Simulation-based approaches are scalable to much larger and more complex models, at the expense of exhaustiveness and numerical accuracy. The intention of this work is not to show that model checking is ‘better’ than simulation-based approaches, but rather to highlight that model checking can be used in conjunction with simulation to provide additional insights into a system. As inherently behaviour of distributed algorithms is difficult to understand precisely and formally analysing the small example can help to form a better intuition into the behaviour of large system. 
-
-
-
 In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of team formation protocols using the PRISM model checker \cite{KNP11}. We fix four different agent organisations and analyse them using several formal models. Firstly, we model the original version of the algorithm using Discrete Time Markov Chain (DTMC), where the behaviour or an agent is described entirely in probabilistic and deterministic way. Then we allow agents to make decisions regarding team formation nondeterministically instead of purely probabilistically, such system is naturally modeled by Markov Decision Process (MDP). By analysing MDP we can obtain best- and worst-case performances of the agent organisations. However, MDP only allows fully collaborative behaviour, whereas in many scenarios it is required for analysis to allow for hostile behaviour of some agents in the organisation. To cater for this we use Stochastic Two-Player Game (STPG) as a model for the system which has two groups of agents - collaborative and byzantine, which try to respectively maximise or minimise the performance of the organisation. In all of these three models the performance of an agent organisation and individual agents is analysed by model checking PCTL formulae.
 
-Our experiments illustrate several aspects of agent organisation analysis. We choose four network topologies each consisting of five agents. We  compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation in two settings, \emph{offline} and \emph{online}, depending on whether the tasks are generated repectively \emph{before} and \emph{after} teams have formed. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. 
+Our experiments illustrate several aspects of agent organisation analysis. We choose four network topologies each consisting of five agents. We  compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation in two settings, \emph{offline} and \emph{online}, depending on whether the tasks are generated repectively \emph{before} and \emph{after} teams have formed. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance.
 
-\comment{add several advantages of our approach - base on results. } 
+\comment{add several advantages of our approach - base on results. }
 
 
 \paragraph{Related work.}
 
-Cooperative behaviour being one of the biggest advantages of the agent based computing has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several several logics  including Coalitional Game Logic \cite{agotnes2009reasoning} and Strategy Logic \cite{chatterjee2007strategy}, and other formalisms one example of which is Cooperative Boolean Games \cite{dunne2008cooperative} have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse a variety of mutli-agent protocol, i.e. clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip  \cite{KNP08d} and Byzantine agreement protocols  \cite{KN02} using PRISM   \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.   
+Cooperative behaviour being one of the greatest advantages of the agent based computing has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several several logics  including Coalitional Game Logic \cite{agotnes2009reasoning} and Strategy Logic \cite{chatterjee2007strategy}, and other formalisms one example of which is Cooperative Boolean Games \cite{dunne2008cooperative} have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse a variety of mutli-agent protocol, i.e. clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip  \cite{KNP08d} and Byzantine agreement protocols  \cite{KN02} using PRISM   \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
 
 
 \paragraph{Structure of the paper.}
@@ -523,10 +519,10 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 \section{Results}
 \label{sec:results}
 
-In this section we present results obtained using three models: DTMC, MDP, and STPG. Table \ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller statespace because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. 
+In this section we present results obtained using three models: DTMC, MDP, and STPG. Table \ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller statespace because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
 
 
-\begin{table} 
+\begin{table}
 \centering
 \subfloat[DTMC]{
 \begin{tabular}{ | l | l | l | l |}
@@ -578,9 +574,9 @@ R\{\mbox{``$W_2(O)$''}\}=? [F \mbox{ finished}]
 \end{table}
 
 \subsection{DTMC}
-\label{subsection:DTMC} 
+\label{subsection:DTMC}
 
-As mentioned in section Table \ref{tab:optimal_r} 
+As mentioned in section Table \ref{tab:optimal_r}
 
 
 
