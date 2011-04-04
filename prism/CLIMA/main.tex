@@ -59,6 +59,29 @@ with what probability each transition will occur, and a probabilistic model chec
 
 \paragraph{Contributions.}
 
+In this paper we choose a typical distributed team formation protocol which was introduced in \cite{gaston2005agent}, where authors used it to analyse the team performance in dynamic networks. The algorithm has also been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the algorithm consists of a network of interconnected agents, which can form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. Agents attempt to form teams to accomplish these tasks. The network topology restricts the set of possible agent teams - for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task, we do not consider  the solution process, only the team formation. 
+
+The majority of existing analyses of such algorithms are based on discrete-event simulation. In contrast, probabilistic model checking provides both an exhaustive search of all possible behaviours of the system, including best- and worst-case scenarios, and exact, rather than approximate, quantitative results. Of course, a trade-off inevitably exists. Simulation-based approaches are scalable to much larger and more complex models, at the expense of exhaustiveness and numerical accuracy. The intention of this work is not to show that model checking is ‘better’ than simulation-based approaches, but rather to highlight that model checking can be used in conjunction with simulation to provide additional insights into a system. As inherently behaviour of distributed algorithms is difficult to understand precisely and formally analysing the small example can help to form a better intuition into the behaviour of large system. 
+
+
+
+In this paper we illustrate how probabilistic model checking techniques can be applied for analysis, design and verification of team formation protocols using the PRISM model checker \cite{KNP11}. We fix four different agent organisations and analyse them using several formal models. Firstly, we model the original version of the algorithm using Discrete Time Markov Chain (DTMC), where the behaviour or an agent is described entirely in probabilistic and deterministic way. Then we allow agents to make decisions regarding team formation nondeterministically instead of purely probabilistically, such system is naturally modeled by Markov Decision Process (MDP). By analysing MDP we can obtain best- and worst-case performances of the agent organisations. However, MDP only allows fully collaborative behaviour, whereas in many scenarios it is required for analysis to allow for hostile behaviour of some agents in the organisation. To cater for this we use Stochastic Two-Player Game as a model for the system which has two groups of agents - collaborative and byzantine, which try to respectively maximise or minimise the performance of the organisation. In all of these three models the performance of an agent organisation and individual agents is analysed by model checking PCTL formulae.
+
+For our experiments We consider four network topologies , and for each of them we
+
+Fix topologies, fix tasks
+find optimal resource allocation for DTMCs, fix it
+analyse expected rewards for dtmc,
+max expected rewards for MDPs inv and organisation
+optimal coalitions of different sizes and theoir expected performance for STPG.
+
+
+
+We obtain the optimal coalitions structures of different sizes and compare their performance. 
+
+
+
+
 We point out the advantages of verification by a probabilistic model checker:
 
 \begin{itemize}
