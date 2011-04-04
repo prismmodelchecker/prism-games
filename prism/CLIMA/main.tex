@@ -43,7 +43,7 @@ Multi-agent systems are becoming an increasingly important paradigm in software.
 
 \section{Introduction}
 
-\comment{will need a high-level description of PMC in intro, so put this here}
+\comment{will need a high-level description of PMC in intro, so put this here. Add some comments about complexity}
 
 \emph{Probabilistic model checking} is an automated technique for
 the formal verification of systems that exhibit stochastic behavior. It can, for example,
@@ -267,14 +267,11 @@ $\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rang
 
 
 
-\section{Protocol Modeling and Verification}
+\section{System Model and Experimental Setup}
 
 \subsection{Definitions}
 
-\cite{gaston2005agent}
-In dynamic team formation, agents term form spontaneously in a completely decentralized manner and the agents' decision making is based solely on local information.
-
-In the model, tasks are generated periodically and globally advertised to the organization. Agents attempt to form terms to accomplish these tasks. The agents in the organization are embedded in a social network that restricts the set of possible agent teams: specifically for an agent to be on the team, the agent must have a social connection (i.e., an edge in the social network) with at least one other agent on the team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task.
+\comment{introduce the definitions section}
 
 \begin{definition}
 An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where
@@ -339,6 +336,7 @@ The rewards of a set of agents $A$ are defined accordingly as the total reward a
 
 \subsection{Algorithms}
 
+\comment{Algorithm descriptions}
 
 \begin{algorithm}[H]
 \caption{Offline and online versions of the algorithm}
@@ -415,18 +413,13 @@ The rewards of a set of agents $A$ are defined accordingly as the total reward a
 \end{scriptsize}
 \end{algorithm}
 
+\subsection{PRISM Models}
+
+\comment{give a small example of PRISM models and explain DTMC, MDP and STPG}
+
 \subsection{Experimental Setup}
-
-For our experiments we fix four agent organisations having different properties and then explore team formation algorithms using three models: DTMC, MDP, and STPG. For algorithm \ref{alg:join_team_org} DTMC is the natural model as agents' behaviour is either deterministic or probabilistic, then we relax probabilistic constraints and introduce nondeterminism in algorithm \ref{alg:join_team_nondet}, and to analyse it we use MDP and STPG models. Performance of the algorithms for agent organisations is evaluated from three standpoints:
-\begin{enumerate}
- \item Expected overall organisation rewards using equations \ref{eq:w1organisation} and \ref{eq:w2organisation}.
- \item Expected individual agent rewards using equations \ref{eq:w1agent} and \ref{eq:w2agent}.
- \item Expected rewards of agent coalitions using equations \ref{eq:w1organisation} and \ref{eq:w2organisation}.
-\end{enumerate}
-
-
-Online and offline versions described in algorithm \ref{alg:main_process} are equivalent for DTMC (algorithm \ref{alg:join_team_org}) with respect to the evaluation criteria above, but for MDP and STPG (algorithm \ref{alg:join_team_nondet}) we analyse and compare performances of both online and offline algorithms.
-
+\label{subsec:exp_set}
+For our experiments we consider organisations consisting of five agents which are organised in four networks: fully connected, ring, start, and a network having one isolated node. Each agent is assigned one resource, and there are three different resources available. For each network we find the optimal resource allocation with respect to task generation described\footnote{We have chosen this way for allocating resources so that we could easily show how the performance can be improved by changing the strategy while keeping actions unchanged (i.e. compare DTMC and MDP models).} below using DTMC model checking (see section \ref{sec:results}). These organisations are then fixed and used in all experiments.
 
 \subsubsection{Agent Organisations.}
 We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations (see figure \ref{fig:network_configurations} for graphical representations of the organisations):
@@ -452,9 +445,9 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
     \item $R_{A_{ia}}=\{R_{a_1}, R_{a_2}, R_{a_3}, R_{a_4}, R_{a_5}\}$ where $R_{a_1}=\{r_1\}$, $R_{a_2}=\{r_2\}$, $R_{a_3}=\{r_3\}$, $R_{a_4}=\{r_3\}$, and $R_{a_5}=\{r_2\}$.
     \end{itemize}
 \end{itemize}
-For simplicity we assign one resource to each agent. Resource allocation for each of the agent organisations has been chosen such than it is optimal with respect rewards in equations \ref{eq:w1organisation} and \ref{eq:w2organisation} for algorithm \ref{alg:join_team_org}. Allocations were computed using DTMC model checking in PRISM (see section \ref{subsection:DTMC} for discussion) assuming the task distribution described below.
 
-\subsubsection{Tasks.} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
+
+\subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
 
 
 \begin{figure}[H]
@@ -527,27 +520,48 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \end{figure}
 
 
+\section{Results}
+\label{sec:results}
 
-\subsection{DTMC}
-\label{subsection:DTMC}
-\subsubsection{Protocol}
-\subsubsection{Model and Specification}
-\subsubsection{Results}
+In this section we present results obtained using three models: DTMC, MDP, and STPG. Table \ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller statespace because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. 
 
 
-\begin{table}
- \centering
- \begin{tabular}{ | l | l | l | l |}
+\begin{table} 
+\centering
+\subfloat[DTMC]{
+\begin{tabular}{ | l | l | l | l |}
     \hline
-    Agents & States & Transitions & Construction Time \\ \hline
+    Agents & States & Transitions & Const. Time \\ \hline
     2 & 1865 & 2256 & 0.112s  \\ \hline
     3 & 17041 & 20904 & 0.311s \\ \hline
     4 & 184753 & 226736 & 3.347s \\ \hline
     5 & 2366305 & 2893536 & 74.36s \\ \hline
     6 & 35058241 & 42638400 & 2916.235s \\ \hline
 \end{tabular}
-\caption{DTMC model comparison for different number of agents in fully connected agent organisation. Model construction times are for 2.8GHz, 4Gb RAM PC.}
+}
+\subfloat[MDP and STPG]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    Agents & States & Transitions & Const. Time \\ \hline
+    2 & 1405 & 1846 & 0.045s  \\ \hline
+    3 & 9721 & 12474 & 0.167s \\ \hline
+    4 & 76865 & 96664 & 1.109s \\ \hline
+    5 & 731233 & 907992 & 5.0536s \\ \hline
+    6 & 8155873 & 10040112 & 29.74s \\ \hline
+\end{tabular}
+}
+
+\caption{Model comparison for different number of agents in a fully connected agent organisation and different models.}
+\label{tab:model_sizes}
 \end{table}
+
+As mentioned in Section \ref{subsec:exp_set}, for each topology from Figure \ref{fig:network_configurations} we obtained the optimal resource allocations using PCTL model checking on DTMC model. The following PCTL formulae were used for every combination of the resource allocation, and the maximum ones
+\[
+R\{\mbox{``$W_1(O)$''}\}=? [F \mbox{ finished}]
+\]
+\[
+R\{\mbox{``$W_2(O)$''}\}=? [F \mbox{ finished}]
+\]
 
 \begin{table}
  \centering
@@ -559,9 +573,16 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_s$ & $R_{a_1}=\{r\} \wedge \forall i > 1 . r \notin R_{a_i} $  & $R_A=\LD \{r_1\}\{r_2\}\{r_2\}\{r_3\}\{r_3\}\RD$  \\ \hline
     $O_{ia}$ & $R_{a_5}=\{r\} \wedge \exists i < 4 . r \in R_{a_i} $ & $R_A=\LD \{r_1\}\{r_2\}\{r_3\}\{r_3\}\{r_2\}\RD$  \\ \hline
 \end{tabular}
-\caption{Optimal resource allocations ($R_A$) for agent organisations from figure \ref{fig:network_configurations} with respect to rewards defined in equations \ref{eq:w1organisation} and \ref{eq:w2organisation}. All allocations satisfy the following constraint $\forall i. |R_{a_i}|=1 \wedge   \forall i.1 \le|\{ R_{a_j} : r_i \in R_{a_j} (1 \le j \le 5 )\}|\le 2$. That is each agent is allocated exactly one resource, each resource is allocated to some agent, no resource is allocated to more than 2 agents}
+\caption{Optimal resource allocations ($R_A$) for agent organisations from figure \ref{fig:network_configurations} with respect to rewards defined in equations \ref{eq:w1organisation} and \ref{eq:w2organisation}. All allocations satisfy the following constraint $\forall i. |R_{a_i}|=1 \wedge   \forall i.1 \le|\{ R_{a_j} : r_i \in R_{a_j} (1 \le j \le 5 )\}|\le 2$.}
 \label{tab:optimal_r}
 \end{table}
+
+\subsection{DTMC}
+\label{subsection:DTMC} 
+
+As mentioned in section Table \ref{tab:optimal_r} 
+
+
 
 
 \begin{table}
@@ -614,22 +635,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \clearpage
 
 \subsection{MDP}
-\subsubsection{Protocol}
-\subsubsection{Model and Specification}
-\subsubsection{Results}
-\begin{table}
- \centering
- \begin{tabular}{ | l | l | l | l |}
-    \hline
-    Agents & States & Transitions & Construction Time \\ \hline
-    2 & 1405 & 1846 & 0.045s  \\ \hline
-    3 & 9721 & 12474 & 0.167s \\ \hline
-    4 & 76865 & 96664 & 1.109s \\ \hline
-    5 & 731233 & 907992 & 5.0536s \\ \hline
-    6 & 8155873 & 10040112 & 29.74s \\ \hline
-\end{tabular}
-\caption{MDP model comparison for different number of agents in fully connected agent organisation. Model construction times are for 2.8GHz, 4Gb RAM PC.}
-\end{table}
+
 
 \begin{table}
 \centering
@@ -688,9 +694,6 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 \clearpage
 
 \subsection{STPG}
-\subsubsection{Protocol}
-\subsubsection{Model and Specification}
-\subsubsection{Results}
 
 \begin{table}
  \centering
