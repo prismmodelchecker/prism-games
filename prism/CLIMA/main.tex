@@ -74,7 +74,7 @@ Team formation in uncertain information setting \cite{kraus2003coalition}.
 
 Task allocation via coalition formation \cite{shehory1998methods}.
 
-Team formation algorithm that we use is introduced in \cite{gaston2005agent}. It has been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. 
+Team formation algorithm that we use is introduced in \cite{gaston2005agent}. It has been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}.
 
 Formal analysis of coalition games: Coalitional Game Logic \cite{agotnes2009reasoning}. Other formalisms like Cooperative Boolean Games were introduced \cite{dunne2008cooperative}.
 
@@ -94,8 +94,9 @@ Analysis of clock synchronisation in wireless sensor networks \cite{heidarian200
 
 
 \subsection{Probabilistic Model Checking}
+
 \emph{Probabilistic model checking} is an automated technique for
-the formal verification of systems that exhibit stochastic behavior. It can, for example
+the formal verification of systems that exhibit stochastic behavior. It can, for example,
 calculate the likelihood of the occurrence of certain events
 during the execution of a system, and can be useful to establish performance
 measures. It is based on the construction and analysis of a
@@ -106,93 +107,11 @@ configurations of the system, the transitions that can
 occur between these states, and information about when and
 with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to analyze the state space and calculate performance measures.
 
-\subsection{PRISM model checker}
-
-We use PRISM. The current implementation of PRISM supports the analysis of finite state
-probabilistic models of the following three types: discrete-time Markov chains,
-continuous-time Markov chains and Markov decision processes. These models are
-described in a high-level language, a variant of reactive modules [2] based on guarded
-commands. The basic components of the language are modules and variables. A
-system is constructed as a number of modules which can interact with each other.
-A module contains a number of variables which express the state of the module,
-and its behavior is given by a set of guarded commands of the form:
-
-[] $\langle$guard$>$ \! $\langle$command$>$;
-
-The guard is a predicate over the variables of the system and the command describes
-a transition which the module can make if the guard is true (using primed variables
-to denote the next values of variables). If a transition is probabilistic, then the
-command is specified as:
-
-$\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
-
-PRISM accepts specifications in either PCTL, or CSL logic depending on the model
-type. The model checker then analyses the model and checks if the property holds in each
-state.
-The reader is invited to consult the PRISM
-web site \cite{} for detailed information and corresponding
-publications about all of these.
-
-%
-%
-%In this paper, the modelling formalism we use is discretetime
-%Markov chains (DTMCs), where time is modelled as
+In this paper, we shall us discrete-time
+Markov chains (DTMCs), Markov decision processes (MDPs), and Stochastic Two-Player Games (STPGs) as the modeling formalism. %where time is modelled as
 %discrete steps and the probability of making each transition
-%is given by a discrete probability distribution. Other model
-%types commonly used are continuous-time Markov chains
-%(CTMCs), Markov decision processes (MDPs), and probabilistic
-%timed automata (PTAs); see [25] for more detailed information
-%about these.We use the probabilistic model checking
-%tool PRISM [12, 23]. This allows construction of models
-%via specification in a high-level description language, based
-%on the parallel composition of several modules described in
-%a guarded command notation. We will illustrate the workings
-%of this language in more detail later in the paper.
-%Models constructed in PRISM are analysed by formally
-%specifying formulas in temporal logic. This allows a precise,
-%unambiguous description of a wide range of properties, such
-%as ¡°the probability of shutdown occurring within 24 hours¡±
-%or ¡°the long-run probability that the system is stable¡±. In
-%addition, by assigning real-valued costs (or, conversely, rewards)
-%to states and transitions of the model, we can also reason
-%about, for example, ¡°expected time¡± or ¡°expected power
-%consumption¡±.
-%PRISM automatically ascertains values for such properties
-%by performing probabilistic model checking, which includes
-%both graph-based analysis and numerical computation.
-%For the case of DTMCs, the latter usually constitutes
-%solving a linear equation system of size equal to the number
-%of states in the model. For this, PRISM uses iterative numerical
-%solution techniques such as the Gauss-Seidel method,
-%which are well suited to large problems of this type.
-%Furthermore, a significant amount of work has gone into
-%the development of efficient, symbolic implementation techniques
-%for numerical computation in PRISM. These use data
-%structures such as binary decision diagrams (BDDs) [5] and
-%their extensions, e.g. multi-terminal BDDs (MTBDDs) [6,
-%1], to allow compact storage and manipulation of extremely
-%large models. We rely heavily on this efficiency for the case
-%study presented in this paper.
-%The PRISM tool has already been successfully used to
-%perform analysis of, and identify interesting behaviour, in a
-%wide range of case studies. This includes the study of ¡°quality
-%of service¡± properties for components of real-time probabilistic
-%communication protocols, e.g. IEEE 1394 FireWire
-%[7, 16], IEEE 802.3 CSMA/CD [17, 8], Zeroconf [13] and
-%IEEE 802.11 wireless LANs [15, 24]. It has also been used to
-%verify randomised distributed algorithms for leader election,
-%consensus [14], Byzantine agreement [10], self-stabilisation
-%and mutual exclusion, and probabilistic security protocols
-%for anonymity [27], fair exchange and contract signing [20].
-%Finally, PRISM has been applied to analysing the performance
-%and reliability of many different types of applications:
-%dynamic power management schemes [19], NAND
-%multiplexing for nanotechnology [18], computer networks,
-%queueing systems, manufacturing processes and embedded
-%systems [11].
-
-Below we give a short introduction on the models we shall use in
-this paper.
+%is given by a discrete probability distribution.
+Below we give a short introduction on these models.
 
 \paragraph{Discrete-Time Markov Chain.}
 
@@ -208,32 +127,27 @@ will take place from state $s$ to state $s'$.
 %M. Duflot, L. Fribourg, T. HšŠrault, R. Lassaigne, F. Magniette, S. Messika, S. Peyronnet and C. Picaronny.
 %
 %Probabilistic model checking of the CSMA/CD protocol using PRISM and APMC.
-
-
 Markov Decision Processes (MDP) allow accurate modelling of systems which exhibit
-both probabilistic and nondeterministic behavior. Formally:
-
-A Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a finite set of states,
+both probabilistic and nondeterministic behavior. Formally, a Markov decision process (MDP) is a tuple $(S, s_0, Act, Steps)$ where $S$ is a finite set of states,
 $s_0$ is the initial state, $Act$ is a set of actions
 and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition relation.
-%An MDP transition s
-%a,ŠÌ
-%.! s0 is made from a state s 2 S first by nonde-
-%terministically selecting an action-distribution pair (a, ŠÌ) such that (s, a, ŠÌ) 2
-%7
-%steps, and second by making a probabilistic choice of the target state s0 accord-
-%ing to the distribution ŠÌ, such that ŠÌ(s0) > 0. A path represents a particular
+An MDP transition $s\stackrel{a,\mu}s'$ is made from a state $s\in S$ first by nondeterministically
+selecting an action-distribution pair $(a, \mu)$ such that $(s, a, \mu) \in
+steps$, and second by making a probabilistic choice of the target state $s'$ according to the distribution
+$\mu$, such that $\mu(s') > 0$. A path represents a particular
 %resolution of both nondeterminism and probability: it is a non-empty finite
 %or infinite sequence of probabilistic transitions  = s0
 %a0,ŠÌ0 ...! s1
 %a1,ŠÌ1 ...! ¡€ ¡€ ¡€ such
 %that s0 = s. We denote by (i) the (i + 1)-th state of  and last() the
-%last state of  if  is finite. An adversary represents a particular resolution
-%of nondeterminism only. Formally, an adversary of a MDP is a function A
-%mapping every finite path  to a pair (a, ŠÌ) such that (last(), a, ŠÌ) 2 Steps.
-%The evolution of the MDP according to a particular adversary A is a
-%measurable set of infinite paths associated with A, which can classically be
-%provided with a probability measure. Given a set F  S of target states, let:
+%last state of  if  is finite.
+
+An \emph{adversary} represents a particular resolution
+of nondeterminism only. Formally, an adversary of a MDP is a function $A$
+mapping every finite path $\pi$ to a pair $(a, \mu)$ such that $(last(\pi), a, \mu)\in Steps$.
+The evolution of the MDP according to a particular adversary $A$ is a
+measurable set of infinite paths associated with $A$, which can classically be
+provided with a probability measure. %Given a set F  S of target states, let:
 %P(s A.!
 %
 %F) denote the probability of reaching F starting from the initial state
@@ -289,6 +203,84 @@ and $Steps\subseteq S \times Act \times Dist(S)$ is a probabilistic transition r
 \paragraph{Stochastic Two-Player Game}
 
 \paragraph{PCTL}
+
+\subsection{PRISM model checker}
+
+We use PRISM. The current implementation of PRISM supports the analysis of finite state
+probabilistic models of the following three types: discrete-time Markov chains,
+continuous-time Markov chains and Markov decision processes. These models are
+described in a high-level language, a variant of reactive modules [2] based on guarded
+commands. The basic components of the language are modules and variables. A
+system is constructed as a number of modules which can interact with each other.
+A module contains a number of variables which express the state of the module,
+and its behavior is given by a set of guarded commands of the form:
+
+[] $\langle$guard$>$ \! $\langle$command$>$;
+
+The guard is a predicate over the variables of the system and the command describes
+a transition which the module can make if the guard is true (using primed variables
+to denote the next values of variables). If a transition is probabilistic, then the
+command is specified as:
+
+$\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
+
+PRISM accepts specifications in either PCTL, or CSL logic depending on the model
+type. The model checker then analyses the model and checks if the property holds in each
+state.
+The reader is invited to consult the PRISM
+web site \cite{} for detailed information and corresponding
+publications about all of these.
+
+ We use the probabilistic model checking
+tool PRISM.% [12, 23]. This allows construction of models
+%via specification in a high-level description language, based
+%on the parallel composition of several modules described in
+%a guarded command notation. We will illustrate the workings
+%of this language in more detail later in the paper.
+%Models constructed in PRISM are analysed by formally
+%specifying formulas in temporal logic. This allows a precise,
+%unambiguous description of a wide range of properties, such
+%as ¡°the probability of shutdown occurring within 24 hours¡±
+%or ¡°the long-run probability that the system is stable¡±. In
+%addition, by assigning real-valued costs (or, conversely, rewards)
+%to states and transitions of the model, we can also reason
+%about, for example, ¡°expected time¡± or ¡°expected power
+%consumption¡±.
+%PRISM automatically ascertains values for such properties
+%by performing probabilistic model checking, which includes
+%both graph-based analysis and numerical computation.
+%For the case of DTMCs, the latter usually constitutes
+%solving a linear equation system of size equal to the number
+%of states in the model. For this, PRISM uses iterative numerical
+%solution techniques such as the Gauss-Seidel method,
+%which are well suited to large problems of this type.
+%Furthermore, a significant amount of work has gone into
+%the development of efficient, symbolic implementation techniques
+%for numerical computation in PRISM. These use data
+%structures such as binary decision diagrams (BDDs) [5] and
+%their extensions, e.g. multi-terminal BDDs (MTBDDs) [6,
+%1], to allow compact storage and manipulation of extremely
+%large models. We rely heavily on this efficiency for the case
+%study presented in this paper.
+%The PRISM tool has already been successfully used to
+%perform analysis of, and identify interesting behaviour, in a
+%wide range of case studies. This includes the study of ¡°quality
+%of service¡± properties for components of real-time probabilistic
+%communication protocols, e.g. IEEE 1394 FireWire
+%[7, 16], IEEE 802.3 CSMA/CD [17, 8], Zeroconf [13] and
+%IEEE 802.11 wireless LANs [15, 24]. It has also been used to
+%verify randomised distributed algorithms for leader election,
+%consensus [14], Byzantine agreement [10], self-stabilisation
+%and mutual exclusion, and probabilistic security protocols
+%for anonymity [27], fair exchange and contract signing [20].
+%Finally, PRISM has been applied to analysing the performance
+%and reliability of many different types of applications:
+%dynamic power management schemes [19], NAND
+%multiplexing for nanotechnology [18], computer networks,
+%queueing systems, manufacturing processes and embedded
+%systems [11].
+
+
 
 \section{Protocol Modeling and Verification}
 
@@ -499,7 +491,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \ 
+}\ \ \
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -528,7 +520,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \ 
+}\ \ \
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -628,7 +620,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 0.74562 & 0.74562 & 0.49596  \\ \hline
     $O_r$ & 0.71461 & 0.71461 & 0.47062 \\ \hline
     $O_s$ & 0.58324 & 0.58324 & 0.23639 \\ \hline
-    $O_{ia}$ & 0.71799 & 0.71799 & 0.44839 \\ \hline   
+    $O_{ia}$ & 0.71799 & 0.71799 & 0.44839 \\ \hline
 \end{tabular}
 
 \caption{Task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_org}. Results obtained by model checking PCTL formulae on DTMC model.}
@@ -663,7 +655,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 2.89795 & 1.67346   \\ \hline
     $O_r$ & 2.89795 & 1.67346  \\ \hline
     $O_s$ & 2.20816 & 1.35918  \\ \hline
-    $O_{ia}$ & 2.89795 & 1.67346  \\ \hline   
+    $O_{ia}$ & 2.89795 & 1.67346  \\ \hline
 \end{tabular}
 }
 \subfloat[Online]{
@@ -673,7 +665,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 3.85714 & 1.42857   \\ \hline
     $O_r$ & 3.85714 & 1.42857  \\ \hline
     $O_s$ & 2.71428 & 1.02857  \\ \hline
-    $O_{ia}$ & 3.85714 & 1.42857  \\ \hline   
+    $O_{ia}$ & 3.85714 & 1.42857  \\ \hline
 \end{tabular}
 }
 \caption{Maximal rewards that can be achieved by agent organisations from figure \ref{fig:network_configurations} using algorithm \ref{alg:join_team_nondet}'s offline and online versions defined in algorithm \ref{alg:main_process}.}
@@ -691,7 +683,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 1.0 & 1.0 & 0.67346  \\ \hline
     $O_r$ & 1.0 & 1.0 & 0.67346  \\ \hline
     $O_s$ & 0.82857 & 0.82857 & 0.39183 \\ \hline
-    $O_{ia}$ & 1.0 & 1.0 & 0.67346 \\ \hline   
+    $O_{ia}$ & 1.0 & 1.0 & 0.67346 \\ \hline
 \end{tabular}
 }
 \subfloat[Online]{
@@ -701,7 +693,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 1.0 & 1.0 & 0.42857  \\ \hline
     $O_r$ & 1.0 & 1.0 & 0.42857 \\ \hline
     $O_s$ & 0.88571 & 0.88571 & 0.12653 \\ \hline
-    $O_{ia}$ & 1.0 & 1.0 & 0.42857 \\ \hline   
+    $O_{ia}$ & 1.0 & 1.0 & 0.42857 \\ \hline
 \end{tabular}
 }
 
@@ -723,7 +715,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & $\LD r_1 \RD$ & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$ \\ \hline
     $O_r$ & $\LD r_1 \RD$  & $\LD r_2, r_3 \RD$ & $\LD r_1, r_4, r_5 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
     $O_s$ & $\LD r_1 \RD$  & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
-    $O_{ia}$ & $\LD r_1 \RD$  & $\LD r_1, r_4 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline   
+    $O_{ia}$ & $\LD r_1 \RD$  & $\LD r_1, r_4 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
 \end{tabular}
 \caption{Optimal coalitions of sizes 2, 3, and 4 for agent organisations from figure \ref{fig:network_configurations} for both online and offline versions.}
 \label{tab:optimal_coalitions}
@@ -731,24 +723,24 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
 
 \begin{table}
  \centering
-\subfloat[Offline]{ 
+\subfloat[Offline]{
   \begin{tabular}{ | l | l | l | l | l | l |}
       \hline
       $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
       $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
       $O_r$ & 0.14285 & 0.42857 & 0.68333 &  0.92619 & 1.0 \\ \hline
       $O_s$ & 0.14285 & 0.42857 & 0.79761 & 0.81904 & 0.82857\\ \hline
-      $O_{ia}$ & 0.14285 & 0.42857 & 0.93452 & 1.0 & 1.0\\ \hline   
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.93452 & 1.0 & 1.0\\ \hline
   \end{tabular}
 }
-\subfloat[Online]{ 
+\subfloat[Online]{
   \begin{tabular}{ | l | l | l | l | l | l |}
       \hline
       $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
       $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
       $O_r$ & 0.14285 & 0.33333 & 0.68571 & 0.89523 & 1.0 \\ \hline
       $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
-      $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline   
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
   \end{tabular}
 }
 \caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.}
@@ -764,7 +756,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 0.0 & 0.04081 & 0.24489 &  0.42857 & 0.67346  \\ \hline
     $O_r$ & 0.0 &  0.04081 & 0.17687 & 0.40748 & 0.67346\\ \hline
     $O_s$ & 0.0 & 0.04081 & 0.20408 & 0.29523 & 0.39183 \\ \hline
-    $O_{ia}$ & 0.0 & 0.04081 & 0.23129 & 0.41496 & 0.67346\\ \hline   
+    $O_{ia}$ & 0.0 & 0.04081 & 0.23129 & 0.41496 & 0.67346\\ \hline
 \end{tabular}
 }
 \subfloat[Online]{
@@ -774,7 +766,7 @@ For simplicity we assign one resource to each agent. Resource allocation for eac
     $O_{fc}$ & 0.0 & 0.02040 & 0.06122 &  0.18367 & 0.42857  \\ \hline
     $O_r$ & 0.0 & 0.02040 & 0.06122 & 0.18367 & 0.42857\\ \hline
     $O_s$ & 0.0 & 0.02040 & 0.06122 & 0.12244 & 0.12653 \\ \hline
-    $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline   
+    $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
 \end{tabular}
 }
 
