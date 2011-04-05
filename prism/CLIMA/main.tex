@@ -184,53 +184,42 @@ For a DTMC, typical PCTL properties would be:
 \item ${\tt P}_{\geq 0.95}[\,\Diamond^{\leq 60}\,\mathit{end}\,]$ -
 ``the probability of the protocol completing with 60 time units is at least 0.95''.
 \end{itemize}
+In fact, in practice, we often use a \emph{quantitative} variant of the ${\tt P}$ operator,
+denoted ${\tt P}_{=?}$, which returns the actual probability of an event's occurrence, e.g.:
+\begin{itemize}
+\item ${\tt P}_{=?}[\,\Diamond\,\mathit{fail}\,]$ -
+``what is the probability of a failure occurring?''
+\end{itemize}
+Whereas in a DTMC it is relatively straightforward to define the probability of the occurrence
+of an event (such as $\Diamond\,\mathit{fail}$ or $\Diamond^{\leq 60}\,\mathit{end}$ in the examples above),
+for MDPs, we must also take account of the nondeterminism in the model.
+The standard approach is to use the notion of
+\emph{strategies} (also referred to as \emph{policies}, \emph{schedulers}, etc.).
+A strategy resolves nondeterminism in an MDP (i.e. chooses an action in a state),
+based on its execution history so far.
+For a specific strategy, we \emph{can} define the probability of an event.
+Thus probabilistic model checking focuses on a best- or worst-case analysis,
+quantifying over all possible strategies.
+We will continue to focus on quantitative properties,
+which now ask for the \emph{minimum} or \emph{maximum} probability of an event occurring, e.g.:
+\begin{itemize}
+\item ${\tt P}_{\max=?}[\,\Diamond\,\mathit{fail}\,]$ -
+``what is the maximum probability of a failure occurring?''
+\end{itemize}
+For a stochastic game, the notion of strategy generalises naturally...
 
-%Informally, Pmax(s ! F) (resp. Pmin(s ! F)) represents the probability
-%that the MDP reaches F, when all non deterministic choices are as favorable
-%(resp. unfavorable) as possible.
-%Specification of reachability properties to be checked on a MDP may be
-%expressed in PCTL, which is a probabilistic extension of the popular temporal
-%logic CTL. In [7] the authors provide an algorithm to enrich the usual algo-
-%rithm to check a CTL formula on a finite state system, with the computation
-%of maximal and minimal probabilities. This can be done in polynomial time
-%by solving linear programming systems.
+Finally, rewards...
 
+\dave{mention alg.s, complexity}
 
-%PRISM [20] is a probabilistic model checker which provides support for
-%analysis of Markov decision processes and performs verification of PCTL for-
-%mulae for MDPs, using the model checking algorithm of [7]. The most expen-
-%sive part of this is the computation of reachability probabilities. For this there
-%are two options, either solution of a linear optimization problem or iterative
-%numerical solution techniques (based on dynamic programming). PRISM uses
-%the second of these. Each iteration computes new values for the reachability
-%probabilities, tending towards the exact solution. The computation is ter-
-%minated when it has converged to within the desired precision (parameter "
-%specified by the user).
-%To analyse an MDP, PRISM has to construct the full reachable state space
-%and the transition matrix which represents it. However, the tool can often
-%handle very large models because it uses symbolic model checking techniques.
-%It uses BDD (binary decision diagram) based data structures, in particular
-%MTBDDs (multi-terminal BDDs, see e.g. [15]).
-%In this paper, we have made use of a prototype extension of PRISM which
-%8
-%provides support for analysis of properties based on costs (or conversely, re-
-%wards) [22]. Each state or transition of the model can be assigned a cost.
-%PRISM allows computation of, for example, the expected amount of cost cu-
-%mulated before a certain set of states is reached. Because we use MDPs,
-%we must compute either the minimum or maximum expected cost (over all
-%resolutions of nondeterminism). In PRISM, these properties are expressed as
-%(i) Rmin[true Ugoal ]
-%(ii) Rmax[true Ugoal ].
-%PRISM uses the algorithms of [3] to perform model checking of these for-
-%mulas.
+\emph{PRISM} \cite{KNP11} is a probabilistic model checking tool.
+It supports several different types of models, including DTMCs and MDPs
+(it also supports continuous-time Markov chains and probabilistic timed automata).
+For this work, we have built a prototype extension of PRISM that adds support for two-player stochastic games.
 
-\subsection{PRISM model checker}
+...
 
-We use the probabilistic model checking tool PRISM.
-%We use PRISM.
-The current implementation of PRISM supports the analysis of finite state
-probabilistic models of the following three types: discrete-time Markov chains,
-continuous-time Markov chains and Markov decision processes. These models are
+These models are
 described in a high-level language, a variant of reactive modules [2] based on guarded
 commands. This is described in more detail in Section....
 
@@ -240,8 +229,6 @@ state.
 The reader is invited to consult the PRISM
 web site \cite{} for detailed information and corresponding
 publications about all of these.
-
-\comment{not much to say here if modelling lang. descr. postpone; so could merge with previous section}
 
 \iffalse
 The basic components of the language are modules and variables. A
