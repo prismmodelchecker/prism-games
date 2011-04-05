@@ -278,11 +278,13 @@ $\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rang
 
 
 
-\section{System Model and Experimental Setup}
+\section{Definitions and Algorithms}
+
+The purpose of this section is to provide the definitions of key terms that will be used throughout this paper and then present the algorithms which will be analysed.
 
 \subsection{Definitions}
 
-\comment{introduce the definitions section}
+We now introduce definitions of agent organisation, task, team, and formulae for computing rewards to measure the performance of both individual agents and agent teams.
 
 \begin{definition}
 An agent \textbf{organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where
@@ -301,16 +303,6 @@ A \textbf{task} $T_i=\{r_i\ :\ $``$r_i$ is required by the task $i$''$\}$ is a s
 
 \begin{definition}
 A \textbf{team} of agents is denoted by $M_i=\{a_i\ :\ $``$a_i$ is a member of team $i$''$\}$, and the set of all teams is $M=\{M_1, M_2,\dots , M_m\}$. By $\bar{M} = \bigcup_{M_i \in M} M_i$ we denote the set of all agents that are committed to some team. $R_{M_i}=\bigcup_{a \in M_i}R_{a}$ is the set of resources that the team $M_i$ has. The team $M_i$ is said to be able to complete the task $T_j$ iff $T_j \subseteq R_{M_i}$.
-\end{definition}
-
-\begin{definition}
-Team \textbf{initiation probability} for agent $a$ is the ratio between neighbours that are not committed to any team and total number of neighbours:
-
-\begin{equation}
-IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
-\label{eq:init_prob}
-\end{equation}
-
 \end{definition}
 
 \begin{definition}
@@ -345,9 +337,79 @@ The rewards of a set of agents $A$ are defined accordingly as the total reward a
 
 \end{definition}
 
+
+\begin{definition}
+The team \textbf{initiation probability} for agent $a$ used in Algorithm \ref{alg:join_team_org} is the ratio between neighbours that are not committed to any team and total number of neighbours:
+\begin{equation}
+IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
+\label{eq:init_prob}
+\end{equation}
+\end{definition}
+
 \subsection{Algorithms}
 
-\comment{Algorithm descriptions}
+In this section we prodive pseudocode descriptions of algorithms which we later analyse. In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. \textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  In Algorithm \ref{alg:join_team_nondet} we modify the original \textsc{JoinTeam} algorithm in the following way (the changes are highlighted in the pseudocode):
+\begin{itemize}
+ \item Remove restriction of considering tasks in random order allowing agent to consider arbitrary task.
+ \item Replace probabilistic choice to initiate the team by nondeterministic one.
+ \item Allow agent not to join a team even if it has the resource and neighbour in that team.
+\end{itemize}
+
+
+
+\begin{algorithm}[H]
+\caption{Team joining algorithm (probabilistic and deterministic)}
+\label{alg:join_team_org}
+\begin{scriptsize}
+\begin{algorithmic}
+\Procedure{JoinTeam}{$a$, $T$, $M$}
+  \ForAll {$T_i \in T$ in random order}
+    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
+      \If {$|M_i|=0$} \Comment{team for task i is empty}
+	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill (is true if called from \textsc{Online})}
+	  \State with probability $IP_a$: $M_i \leftarrow M_i \cup \{a\}$ \Comment{initiate a team (see equation \ref{eq:init_prob})}
+	\EndIf
+      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
+	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
+	  \State $M_i \leftarrow M_i \cup \{a\}$ \Comment{join team}
+	\EndIf
+      \EndIf
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{scriptsize}
+\end{algorithm}
+
+
+This algorithm is interesting because the agent running this algorithm uses the same protocol (i.e. actions) as the one in \ref{alg:join_team_org}, but can make decisions about what actions to take itself. This allows for the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with hostile agents which try to reduce organisation's performance.
+
+\begin{algorithm}[H]
+\caption{Team joining algorithm (non-deterministic)}
+\label{alg:join_team_nondet}
+\begin{scriptsize}
+\begin{algorithmic}
+\Procedure{JoinTeam}{$a$, $T$, $M$}
+  \ForAll {$T_i \in T$ in \hl{arbitrary} order}
+    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
+      \If {$|M_i|=0$} \Comment{team for task i is empty}
+	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill (is true if called from \textsc{Online})}
+	    \State \hl{$M_i \leftarrow M_i \cup \{a\}$  \textbf{or} $M_i \leftarrow M_i$} \Comment{initiate a team or do nothing}
+	\EndIf
+      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
+	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
+	  \State \hl{$M_i \leftarrow M_i \cup \{a\}$ \textbf{or} $M_i \leftarrow M_i$} \Comment{join a team or do nothing}
+	\EndIf
+      \EndIf
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{scriptsize}
+\end{algorithm}
+
+Algorithm \ref{alg:main_process} contains the routines to call \textsc{JoinTeam} in two ways: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calles \textsc{JoinTeam} procedures of every agent in random order; \textsc{Online} routine on the other hand calls \textsc{JoinTeam} procedures for agents before selecting the tasks. We have chosen to investigate both offline and online versions of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see in the results section for STPGs, whether offline and online version provides better performance depends on network topology.
+
 
 \begin{algorithm}[H]
 \caption{Offline and online versions of the algorithm}
@@ -371,58 +433,11 @@ The rewards of a set of agents $A$ are defined accordingly as the total reward a
   \State $T = \{T_i\neq \emptyset\ :\ T_i \subseteq_{random} R,\ 1\leq i \leq t\}$ \Comment{initialise tasks at random}
   \State perform tasks and compute rewards
 \EndProcedure
-
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
 
-\begin{algorithm}[H]
-\caption{Team joining algorithm (probabilistic and deterministic)}
-\label{alg:join_team_org}
-\begin{scriptsize}
-\begin{algorithmic}
-\Procedure{JoinTeam}{$a$, $T$, $M$}
-  \ForAll {$T_i \in T$ in random order}
-    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
-      \If {$|M_i|=0$} \Comment{team for task i is empty}
-	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
-	  \State with probability $IP_a$: $M_i \leftarrow M_i \cup \{a\}$ \Comment{initiate a team}
-	\EndIf
-      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
-	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
-	  \State $M_i \leftarrow M_i \cup \{a\}$ \Comment{join team}
-	\EndIf
-      \EndIf
-    \EndIf
-  \EndFor
-\EndProcedure
-\end{algorithmic}
-\end{scriptsize}
-\end{algorithm}
-
-\begin{algorithm}[H]
-\caption{Team joining algorithm (non-deterministic)}
-\label{alg:join_team_nondet}
-\begin{scriptsize}
-\begin{algorithmic}
-\Procedure{JoinTeam}{$a$, $T$, $M$}
-  \ForAll {$T_i \in T$ in \hl{arbitrary} order}
-    \If {$a \notin \bar{M}$} \Comment{agent is not committed}
-      \If {$|M_i|=0$} \Comment{team for task i is empty}
-	\If {$R_a \cap T_i \neq \emptyset$} \Comment{agent has skill}
-	    \State \hl{$M_i \leftarrow M_i \cup \{a\}$  \textbf{or} $M_i \leftarrow M_i$} \Comment{initiate a team or do nothing}
-	\EndIf
-      \ElsIf {$\exists \{a,a'\} \in N . a' \in M_i$} \Comment{there is neighbour in team for task i}
-	\If {$R_a \cap T_i \setminus R_{M_i} \neq \emptyset$} \Comment{agent has a missing resource}
-	  \State \hl{$M_i \leftarrow M_i \cup \{a\}$ \textbf{or} $M_i \leftarrow M_i$} \Comment{join a team or do nothing}
-	\EndIf
-      \EndIf
-    \EndIf
-  \EndFor
-\EndProcedure
-\end{algorithmic}
-\end{scriptsize}
-\end{algorithm}
+\section{Models and Experimental Setup}
 
 \subsection{PRISM Models}
 
