@@ -21,6 +21,9 @@
 \def\Rsetge{\mathbb{R}_{> 0}}
 
 \newcommand{\comment}[1]{{\color{red}{[\sf #1]}}}
+\newcommand{\aistis}[1]{{\color{red}{[A: \sf #1]}}}
+\newcommand{\taolue}[1]{{\color{red}{[TL: \sf #1]}}}
+\newcommand{\dave}[1]{{\color{red}{[D: \sf #1]}}}
 
 \begin{document}
 
@@ -154,7 +157,7 @@ which can be used to capture a variety of additional quantitative measures
 (e.g. ...)
 For consistency, we assume a simple state-based scheme
 i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
-\comment{might move rewards to next sect}
+\dave{might move rewards to next sect}
 
 %----------------------------------------------------------------------------------------------------------------
 
@@ -162,12 +165,25 @@ i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
 
 Probabilistic model checking involves the construction and analysis of a probabilistic model.
 Typically, a high-level description language is used to model a system
-(here, we will use the PRISM modelling language).
+(here, we will use the PRISM \cite{KNP11} modelling language).
 Then, one or more quantitative properties are formally specified and analysed on the model.
 Usually, probabilistic extensions of temporal logic are used to formalise properties.
 In this paper, we use the logic PCTL \cite{HJ94},
-extended to include reward-based properties \cite{KNP07a}.
+extended to include reward-based properties \cite{KNP07a},
+which can be used to express properties of both DTMCs and MDPs.
+We will also generalise the logic to capture properties of stochastic games.
 
+PCTL extends the well known temporal logic CTL, with a probabilistic ($\tt P$) operator.
+Informally, this places bounds on the probability of the occurrence of certain events in the model.
+We will illustrate the use of PCTL using some simple examples,
+referring the reader to \cite{HJ94,KNP07a} for precise details of the syntax and semantics.
+For a DTMC, typical PCTL properties would be:
+\begin{itemize}
+\item ${\tt P}_{<0.01}[\,\Diamond\,\mathit{fail}\,]$ -
+``the probability of a failure occurring is less than 0.01''
+\item ${\tt P}_{\geq 0.95}[\,\Diamond^{\leq 60}\,\mathit{end}\,]$ -
+``the probability of the protocol completing with 60 time units is at least 0.95''.
+\end{itemize}
 
 %Informally, Pmax(s ! F) (resp. Pmin(s ! F)) represents the probability
 %that the MDP reaches F, when all non deterministic choices are as favorable
