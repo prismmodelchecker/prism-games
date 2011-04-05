@@ -326,12 +326,12 @@ IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{
 
 \comment{TL: shall we say something about the whole protocol to give the readers a general picture?}
 
-In this section we provide pseudocode descriptions of algorithms which we later analyse. In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. \textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  In Algorithm \ref{alg:join_team_nondet} we modify the original \textsc{JoinTeam} algorithm in the following way (the changes are highlighted in the pseudocode):
-\begin{itemize}
- \item Remove restriction of considering tasks in random order allowing agent to consider arbitrary task.
- \item Replace probabilistic choice to initiate the team by nondeterministic one.
- \item Allow agent not to join a team even if it has the resource and neighbour in that team.
-\end{itemize}
+In this section we provide pseudocode descriptions of algorithms which we later analyse. During the team formation process, each agent can be in one of three states: \textsc{uncommitted}, \textsc{committed}, or \textsc{active}. An agent in the \textsc{uncommitted}
+state is available and not assigned to any task. An agent in the \textsc{committed} state has selected a task, but the full team to work in the task has not yet formed. Finally an agent in the  \textsc{active} state is a member of a team that has fulfilled all of the skill requirements for a task and is actively working on that task. Only uncommitted agents can commit to a nw or partially filled task. Committed agents can not decommit from a given task. Upon task completion, agents in the active state return to the uncommitted state. 
+The core of the protocol is the \textsc{JoinTeam} algorithm, which is used for each agent in the \textsc{uncommitted}
+state to decide which teams to initiate or join. (The algorithm combines team initiation and team joining.)
+In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  
+
 
 
 
@@ -359,8 +359,16 @@ In this section we provide pseudocode descriptions of algorithms which we later 
 \end{scriptsize}
 \end{algorithm}
 
+\comment{TL: the problem of developing or learning effective team initialing and team joining policies is also important ...}
 
-This algorithm is interesting because the agent running this algorithm uses the same protocol (i.e. actions) as the one in \ref{alg:join_team_org}, but can make decisions about what actions to take itself. This allows for the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with hostile agents which try to reduce organisation's performance.
+In Algorithm \ref{alg:join_team_nondet} we modify the original \textsc{JoinTeam} algorithm in the following way (the changes are highlighted in the pseudocode):
+\begin{itemize}
+ \item Remove restriction of considering tasks in random order allowing agent to consider arbitrary task.
+ \item Replace probabilistic choice to initiate the team by nondeterministic one.
+ \item Allow agent not to join a team even if it has the resource and neighbour in that team.
+\end{itemize}
+
+This algorithm is interesting because the agent running this algorithm uses the same protocol (i.e. actions) as the one in Algorithm \ref{alg:join_team_org}, but can make decisions about what actions to take itself. This allows for the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with hostile agents which try to reduce organisation's performance.
 
 \begin{algorithm}[H]
 \caption{Team joining algorithm (non-deterministic)}
