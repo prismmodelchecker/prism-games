@@ -592,9 +592,7 @@ As mentioned in section Table \ref{tab:optimal_r}
 
 
 \begin{table}
-\subfloat[Using $W_1$ reward structure.]{
-%\begin{table}
-% \centering
+\subfloat[Offline. $W_1$ reward structure.]{
  \begin{tabular}{ | l | l | l | l | l |}
     \hline
     $O$ & $W_1(O)$ & $\min_{a \in A}W_1(a)$ & $\max_{a \in A}W_1(a)$ \\ \hline
@@ -603,12 +601,8 @@ As mentioned in section Table \ref{tab:optimal_r}
     $O_s$  & 1.87278 & 0.28677 & 0.72568  \\ \hline
     $O_{ia}$  & 2.38529 & 0.28867 & 0.68769  \\ \hline
 \end{tabular}
-%\caption{Model checking results for reward $W_1$.}
-%\end{table}
 }
-\subfloat[Using $W_2$ reward structure.]{
-%\begin{table}
-% \centering
+\subfloat[Offline. $W_2$ reward structure.]{
  \begin{tabular}{ | l | l | l | l |}
     \hline
     $O$ & $W_2(O)$ & $\min_{a \in A}W_2(a)$ & $\max_{a \in A}W_2(a)$ \\ \hline
@@ -617,17 +611,9 @@ As mentioned in section Table \ref{tab:optimal_r}
     $O_s$ & 1.16649 & 0.18582 & 0.42321  \\ \hline
     $O_{ia}$ & 1.43599 & 0.20621 & 0.39907  \\ \hline
 \end{tabular}
-%\caption{Model checking results for reward $W_2$.}
-%\end{table}
 }
-\caption{Model checking results for agent organisations from figure \ref{fig:network_configurations} with optimal resource allocations from table \ref{tab:optimal_r} for offline version of the Algorithm \ref{alg:main_process}. Tables also show largest and smallest individual agent rewards. }
-\end{table}
 
-
-\begin{table}
-\subfloat[Using $W_1$ reward structure.]{
-%\begin{table}
-% \centering
+\subfloat[Online. $W_1$ reward structure.]{
  \begin{tabular}{ | l | l | l | l | l |}
     \hline
     $O$ & $W_1(O)$ & $\min_{a \in A}W_1(a)$ & $\max_{a \in A}W_1(a)$ \\ \hline
@@ -636,12 +622,8 @@ As mentioned in section Table \ref{tab:optimal_r}
     $O_s$  & 2.52500 & 0.41934 & 0.84761  \\ \hline
     $O_{ia}$  & 3.37359 & 0.41186 & 0.93601  \\ \hline
 \end{tabular}
-%\caption{Model checking results for reward $W_1$.}
-%\end{table}
 }
-\subfloat[Using $W_2$ reward structure.]{
-%\begin{table}
-% \centering
+\subfloat[Online. $W_2$ reward structure.]{
  \begin{tabular}{ | l | l | l | l |}
     \hline
     $O$ & $W_2(O)$ & $\min_{a \in A}W_2(a)$ & $\max_{a \in A}W_2(a)$ \\ \hline
@@ -650,39 +632,40 @@ As mentioned in section Table \ref{tab:optimal_r}
     $O_s$ & 0.94404 & 0.16060 & 0.30158  \\ \hline
     $O_{ia}$ & 1.25560 & 0.17970 & 0.31990  \\ \hline
 \end{tabular}
-%\caption{Model checking results for reward $W_2$.}
-%\end{table}
 }
-\caption{Model checking results for agent organisations from figure \ref{fig:network_configurations} with optimal resource allocations from table \ref{tab:optimal_r} for online version of the Algorithm \ref{alg:main_process}. Tables also show largest and smallest individual agent rewards.  }
+
+\caption{Model checking results for agent organisations from figure \ref{fig:network_configurations} with optimal resource allocations from table \ref{tab:optimal_r} for offline and online versions of the Algorithm \ref{alg:main_process}. Tables also show largest and smallest individual agent rewards. }
 \end{table}
+
+
 
 \begin{table}
  \centering
+\subfloat[Offline]{
  \begin{tabular}{ | l | l | l | l |}
     \hline
-    Organisation & $T_1$ completed & $T_2$ completed & $T_1$ and $T_2$ completed \\ \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
     $O_{fc}$ & 0.74562 & 0.74562 & 0.49596  \\ \hline
     $O_r$ & 0.71461 & 0.71461 & 0.47062 \\ \hline
     $O_s$ & 0.58324 & 0.58324 & 0.23639 \\ \hline
     $O_{ia}$ & 0.71799 & 0.71799 & 0.44839 \\ \hline
 \end{tabular}
-
-\caption{Task completion probabilities for optimal agent organisations using Algorithm \ref{alg:join_team_org}'s offline version (see Algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on DTMC model.}
-\end{table}
-
-\begin{table}
- \centering
+}
+\subfloat[Online]{
  \begin{tabular}{ | l | l | l | l |}
     \hline
-    Organisation & $T_1$ completed & $T_2$ completed & $T_1$ and $T_2$ completed \\ \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
     $O_{fc}$ & 0.64871 & 0.64871 & 0.31320  \\ \hline
-    $O_r$ & 0.65941 & 0.0.65941 & 0.36712 \\ \hline
+    $O_r$ & 0.65941 & 0.65941 & 0.36712 \\ \hline
     $O_s$ & 0.47202 & 0.47202 & 0.07465 \\ \hline
     $O_{ia}$ & 0.62780 & 0.62780 & 0.29270 \\ \hline
 \end{tabular}
-
-\caption{Task completion probabilities for optimal agent organisations using Algorithm \ref{alg:join_team_org}'s online version (see Algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on DTMC model.}
+}
+\caption{Task completion probabilities for optimal agent organisations using Algorithm \ref{alg:join_team_org}'s offline and online versions (see Algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on DTMC model.}
 \end{table}
+
+
+
 
 \clearpage
 
