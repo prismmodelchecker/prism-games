@@ -99,6 +99,8 @@ Cooperative behaviour being one of the greatest advantages of the agent based co
 %%is given by a discrete probability distribution.
 %Below we give a short introduction on these models.
 
+%----------------------------------------------------------------------------------------------------------------
+
 \subsection{Probabilistic Models}
 
 We begin with a brief introduction to the three different types of probabilistic models
@@ -153,15 +155,17 @@ For consistency, we assume a simple state-based scheme
 i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
 \comment{might move rewards to next sect}
 
-\subsection{Probabilistic Model Checking}
+%----------------------------------------------------------------------------------------------------------------
 
-\comment{hi-level descr. already (now) in intro; focus on property spec and point to model checking algorithms here...}
+\subsection{Probabilistic Model Checking \& PRISM}
 
-Probabilistic model checking involves the construction and analysis a probabilistic model.
-Typically, a high-level description language is used to model a system;
-then one or more quantitative properties are formally specified and analysed on the model.
-
-\paragraph{PCTL}
+Probabilistic model checking involves the construction and analysis of a probabilistic model.
+Typically, a high-level description language is used to model a system
+(here, we will use the PRISM modelling language).
+Then, one or more quantitative properties are formally specified and analysed on the model.
+Usually, probabilistic extensions of temporal logic are used to formalise properties.
+In this paper, we use the logic PCTL \cite{HJ94},
+extended to include reward-based properties \cite{KNP07a}.
 
 
 %Informally, Pmax(s ! F) (resp. Pmin(s ! F)) represents the probability
