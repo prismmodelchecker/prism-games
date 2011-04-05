@@ -50,7 +50,7 @@ of running the team joining algorithm individually by each agent in the protocol
 %
 
 Multi-agent systems have become an important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which \emph{team formation} is a typical example. In this paper we focus on a typical distributed team formation protocol which was introduced in \cite{gaston2005agent}, where authors used it to analyse the team performance in dynamic networks. The protocol %was studied further in \cite{glinton2008agent}, and
-has also been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the protocol consists of an \emph{agent organization}, i.e., a network of interconnected agents which have certain skills. These agents are supposed to form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. Agents attempt to form teams to accomplish these tasks. The network topology restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require that a team of agents with the necessary skills form to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
+has also been used for analysis of coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the protocol consists of an \emph{agent organization}, i.e., a network of interconnected agents which have certain resources. These agents are supposed to form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. Agents attempt to form teams to accomplish these tasks. The network topology restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require that a team of agents with the necessary resources is formed to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
 
 %In general, \emph{probabilistic model checking} is an automated technique for
@@ -89,9 +89,9 @@ Our experiments illustrate several aspects of agent organisation analysis. As a 
 
 \paragraph{Related work.}
 
- 
+
 Cooperative behaviour being one of the greatest advantages of the agent based computing has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several several logics  including Coalitional Game Logic \cite{agotnes2009reasoning} and Strategy Logic \cite{chatterjee2007strategy}, and other formalisms one example of which is Cooperative Boolean Games \cite{dunne2008cooperative} have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse a variety of mutli-agent protocol, i.e. clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip  \cite{KNP08d} and Byzantine agreement protocols  \cite{KN02} using PRISM   \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
- 
+
 
 
 \paragraph{Structure.}
@@ -290,7 +290,7 @@ W_1(a) = \left\{
   \end{array} \right.
 \end{equation}
 
-    \item Type $W_2$, which rewards 1 point to the \emph{team} which was able to complete its task, and 0 otherwise. The reward is shared equally between team members. 
+    \item Type $W_2$, which rewards 1 point to the \emph{team} which was able to complete its task, and 0 otherwise. The reward is shared equally between team members.
 \begin{equation}
 W_2(a) = \left\{
   \begin{array}{l l}
@@ -302,7 +302,7 @@ W_2(a) = \left\{
 \end{itemize}
 
 
-For a set of agents $A$, the rewards are defined accordingly as the total reward achieved by its members, i.e., 
+For a set of agents $A$, the rewards are defined accordingly as the total reward achieved by its members, i.e.,
 \begin{equation}
  W_1(A) = \sum_{a \in A} W_1(a),
 \label{eq:w1organisation}
@@ -323,6 +323,8 @@ IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{
 \end{definition}
 
 \subsection{Algorithms}
+
+\comment{TL: shall we say something about the whole protocol to give the readers a general picture?}
 
 In this section we provide pseudocode descriptions of algorithms which we later analyse. In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. \textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  In Algorithm \ref{alg:join_team_nondet} we modify the original \textsc{JoinTeam} algorithm in the following way (the changes are highlighted in the pseudocode):
 \begin{itemize}
@@ -421,7 +423,7 @@ Algorithm \ref{alg:main_process} contains the routines to call \textsc{JoinTeam}
 
 \subsection{Experimental Setup}
 \label{subsec:exp_set}
-For our experiments we consider organisations consisting of five agents which are organised in four networks: fully connected, ring, start, and a network having one isolated node. Each agent is assigned one resource, and there are three different resources available. For each network we find the optimal resource allocation with respect to task generation described\footnote{We have chosen this way for allocating resources so that we could easily show how the performance can be improved by changing the strategy while keeping actions unchanged (i.e. compare DTMC and MDP models).} below using DTMC model checking (see section \ref{sec:results}). These organisations are then fixed and used in all experiments.
+For our experiments we mainly consider organisations consisting of five agents which are organised in four networks: fully connected, ring, start, and a network having one isolated node. Each agent is assigned one resource, and there are three different resources available. For each network we find the optimal resource allocation with respect to task generation described\footnote{We have chosen this way for allocating resources so that we could easily show how the performance can be improved by changing the strategy while keeping actions unchanged (i.e. compare DTMC and MDP models).} below using DTMC model checking (see section \ref{sec:results}). These organisations are then fixed and used in all experiments.
 
 \subsubsection{Agent Organisations.}
 We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations (see figure \ref{fig:network_configurations} for graphical representations of the organisations):
