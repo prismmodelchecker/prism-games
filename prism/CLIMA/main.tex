@@ -331,9 +331,7 @@ state is available and not assigned to any task. An agent in the \textsc{committ
 The core of the protocol is the \textsc{JoinTeam} algorithm, which is used for each agent in the \textsc{uncommitted}
 state to decide which teams to initiate or join. (The algorithm combines team initiation and team joining.)
 In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  
-
-
-
+This algorithm will be modelled and analysed as a DTMC, as we shall see in Section \ref{}.
 
 \begin{algorithm}[H]
 \caption{Team joining algorithm (probabilistic and deterministic)}
