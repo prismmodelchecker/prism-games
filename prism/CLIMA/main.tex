@@ -615,14 +615,15 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 
 \begin{figure}
  \subfloat[Reward $W_1(O)$.]{
-  \includegraphics[scale=0.65]{images/W1.png}
+%  \includegraphics[scale=0.65]{images/W1.png}
+\includegraphics[clip=true, trim=75 570 305 90, scale=0.77]{images/w1_dtmc}
 }
 \subfloat[Reward $W_2(O)$.]{
-  \includegraphics[scale=0.65]{images/W2.png}
+%  \includegraphics[scale=0.65]{images/W2.png}
+\includegraphics[clip=true, trim=70 579 300 90, scale=0.77]{images/w2_dtmc}
 }
 \caption{Expected rewards for agent organisations when using online and offline (see Algorithm \ref{alg:main_process}) versions of the Algorithm \ref{alg:join_team_org}.}
 \end{figure}
-
 
 
 \begin{table}
@@ -705,6 +706,24 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 
 \subsection{MDP}
 \label{subsec:MDP}
+
+
+\begin{figure}
+\subfloat[Offline. Reward $W_1(O)$.]{
+\includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
+}
+\subfloat[Online. Reward $W_1(O)$.]{
+\includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_online}
+}
+
+\subfloat[Offline. Reward $W_2(O)$.]{
+\includegraphics[clip=true, trim=94.5 570 280 100, scale=0.77]{images/w2_mdp_offline}
+}
+\subfloat[Online. Reward $W_2(O)$.]{
+\includegraphics[clip=true, trim=65 581.5 320 80, scale=0.77]{images/w2_mdp_online}
+}
+\caption{Bar charts compare offline and online versions of Algorithm \ref{alg:join_team_org} analysed as DTMC with the best-case performance of Algorithm \ref{alg:join_team_nondet} analysed as MDP. }
+\end{figure}
 
 \begin{table}
 \centering
