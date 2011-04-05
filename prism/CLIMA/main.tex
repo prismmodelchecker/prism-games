@@ -314,27 +314,42 @@ For a set of agents $A$, the rewards are defined accordingly as the total reward
 \end{definition}
 
 \comment{TL: move to next section?}
-\begin{definition}[Initiation probability]
-The team \emph{initiation probability} for agent $a$ used in Algorithm \ref{alg:join_team_org} is the ratio between neighbours that are not committed to any team and total number of neighbours:
-\begin{equation}
-IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
-\label{eq:init_prob}
-\end{equation}
-\end{definition}
+
 
 \subsection{Algorithms}
 
 \comment{TL: shall we say something about the whole protocol to give the readers a general picture?}
 
-In this section we provide pseudocode descriptions of algorithms which we later analyse. During the team formation process, each agent can be in one of three states: \textsc{uncommitted}, \textsc{committed}, or \textsc{active}. An agent in the \textsc{uncommitted}
-state is available and not assigned to any task. An agent in the \textsc{committed} state has selected a task, but the full team to work in the task has not yet formed. Finally an agent in the  \textsc{active} state is a member of a team that has fulfilled all of the skill requirements for a task and is actively working on that task. Only uncommitted agents can commit to a nw or partially filled task. Committed agents can not decommit from a given task. Upon task completion, agents in the active state return to the uncommitted state. 
-The core of the protocol is the \textsc{JoinTeam} algorithm, which is used for each agent in the \textsc{uncommitted}
-state to decide which teams to initiate or join. (The algorithm combines team initiation and team joining.)
-In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.  
+In this section we provide pseudocode descriptions of algorithms which we later analyse. During the team formation process, each agent performs as follows:
+when it is not committed to any team (meaning that it is available and not assigned to any task), it considers each task in a random order. If a task currently
+has no other agents committed to it, it can choose to initiate a team, and does so with a probability equal to the ratio between neighbours that are not committed to any team and total number of neighbours. Formally, the probability that an agent $a$ initiates a team is
+\[
+IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
+\label{eq:init_prob}
+\]
+For team joining, if an agent is eligible for a team, it always join the team. Note that only uncommitted agents can commit to
+a new or partially filled task, and committed agents can not
+decommit from a given task.
+%
+%can be in one of three states: \textsc{uncommitted}, \textsc{committed}, or \textsc{active}. An agent in the \textsc{uncommitted}
+%state is available and not assigned to any task. An agent in the \textsc{committed} state has selected a task, but the full team to work in the task has not yet formed. Finally an agent in the  \textsc{active} state is a member of a team that has fulfilled all of the skill requirements for a task and is actively working on that task. Upon task completion, agents in the active state return to the uncommitted state.
+%The core of the protocol is the \textsc{JoinTeam} algorithm, which is used for each agent in the \textsc{uncommitted}
+%state to decide which teams to initiate or join. (The algorithm combines team initiation and team joining.)
+
+%\begin{definition}[Initiation probability]
+%The team \emph{initiation probability} for agent $a$ used in Algorithm \ref{alg:join_team_org} is the ratio between neighbours that are not committed to any team and total number of neighbours:
+%\begin{equation}
+%IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
+%\label{eq:init_prob}
+%\end{equation}
+%\end{definition}
+
+
+In Algorithm \ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. (It combines team initiation and team joining.) %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.
 This algorithm will be modelled and analysed as a DTMC, as we shall see in Section \ref{}.
 
 \begin{algorithm}[H]
-\caption{Team joining algorithm (probabilistic and deterministic)}
+\caption{Team joining algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
 \label{alg:join_team_org}
 \begin{scriptsize}
 \begin{algorithmic}
@@ -359,14 +374,16 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Secti
 
 \comment{TL: the problem of developing or learning effective team initialing and team joining policies is also important ...}
 
-In Algorithm \ref{alg:join_team_nondet} we modify the original \textsc{JoinTeam} algorithm in the following way (the changes are highlighted in the pseudocode):
+To tackle the problem of finding the best team initialing and team joining strategy, we modify the original \textsc{JoinTeam} algorithm by
+allowing agents to make decisions regarding what actions to take, instead of picking one randomly. Technically, the changes are as follows, which
+are highlighted in Algorithm \ref{alg:join_team_nondet}.
 \begin{itemize}
  \item Remove restriction of considering tasks in random order allowing agent to consider arbitrary task.
  \item Replace probabilistic choice to initiate the team by nondeterministic one.
  \item Allow agent not to join a team even if it has the resource and neighbour in that team.
 \end{itemize}
 
-This algorithm is interesting because the agent running this algorithm uses the same protocol (i.e. actions) as the one in Algorithm \ref{alg:join_team_org}, but can make decisions about what actions to take itself. This allows for the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with hostile agents which try to reduce organisation's performance.
+This algorithm allows for the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with \emph{hostile} agents which try to reduce organisation's performance. It will be modelled and analysed as an MDP and a STPG respectively, as we shall see in Section \ref{}.
 
 \begin{algorithm}[H]
 \caption{Team joining algorithm (non-deterministic)}
@@ -392,7 +409,7 @@ This algorithm is interesting because the agent running this algorithm uses the 
 \end{scriptsize}
 \end{algorithm}
 
-Algorithm \ref{alg:main_process} contains the routines to call \textsc{JoinTeam} in two ways: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calles \textsc{JoinTeam} procedures of every agent in random order; \textsc{Online} routine on the other hand calls \textsc{JoinTeam} procedures for agents before selecting the tasks. We have chosen to investigate both offline and online versions of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see in the results section for STPGs, whether offline and online version provides better performance depends on network topology.
+We observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calls \textsc{JoinTeam} procedures of every agent in random order, which is described in Algorithm \ref{alg:join_team_org}; In contrast, \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. We investigate both the offline and the online version of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see in the results section for STPGs, whether offline and online version provides better performance depends on network topology.
 
 
 \begin{algorithm}[H]
@@ -594,7 +611,7 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 \subsection{DTMC}
 \label{subsection:DTMC}
 
-\comment{Discuss reward structures, topology differences, gap between min and max agent performance. discuss task completion probabilitites, write PCTL formulae. Reference where models can be checker online.}
+\comment{Discuss reward structures, topology differences, gap between min and max agent performance. discuss task completion probabilities, write PCTL formulae. Reference where models can be checker online.}
 
 \begin{figure}
  \subfloat[]{
