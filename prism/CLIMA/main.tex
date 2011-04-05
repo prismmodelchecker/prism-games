@@ -79,17 +79,23 @@ a given agent organization. Firstly, we model the original version of the protoc
 
 Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies each consisting of five agents, i.e., fully connected, ring, start, and a network having one isolated node. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation in two settings, \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance.
 
-\comment{resource v.s. skill?}
+%\comment{resource v.s. skill?}
+%
+%\comment{add several advantages of our approach - base on results. }
 
-\comment{add several advantages of our approach - base on results. }
-
-Comparing to traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{}, this was posed as an open problem which we quote here: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work". Our work on extensions of the textsc{TeamJoin} algorithm and analysis of the associated MDP and STPG models can be seen a partial solution to this question. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organizations very easily, which can be considered as another advantage. 
+Comparing to traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent}, this was posed as an open problem.\footnote{We quote here: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".} Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organizations very easily, which can be considered as another advantage.
 
 
 \paragraph{Related work.}
-Cooperative behaviour being one of the greatest advantages of the agent based computing has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several several logics  including Coalitional Game Logic \cite{agotnes2009reasoning} and Strategy Logic \cite{chatterjee2007strategy}, and other formalisms one example of which is Cooperative Boolean Games \cite{dunne2008cooperative} have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse a variety of mutli-agent protocol, i.e. clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip  \cite{KNP08d} and Byzantine agreement protocols  \cite{KN02} using PRISM   \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
+As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to mutli-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
 
+\comment{TL: stress on the novelty of the work...}
 
+%PRISM has also been used to model and analyse
+%a number of different wireless protocols, for example, the
+%IEEE 802.11 backoff mechanism [14] and device discovery
+%in Bluetooth [5]. See the PRISM case study repository [16]
+%for more details and further examples.
 
 \paragraph{Structure.}
 
@@ -845,10 +851,9 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 In this paper we have applied probabilistic model checking techniques to analyze a team formation protocol protocols in multi-agent system, using the PRISM model checker. We analysed the organization performance of the original protocol by modelling as a DTMC. And we extended the algorithm by allowing agents to make decisions regarding what action to take, for which we provided MDP and STPG models. In these two cases, two performance measures were considered, i.e., the agent organization one and each agent's local one. By the MDP modelling, we could obtain the best performance
 of running the team joining algorithm individually by each agent in the protocol, while by the STPG modelling, we extended such analysis to the competitive coalitional settings. In our experiments, each agent has only one resource. However, this can be easily extended to the setting that agents having multiple resources.
 
-\paragraph{Future work.} Many interesting directions remain as ongoing and future work. Here we simply outline some of them:
+\paragraph{Future work.} Although we have conducted a rather comprehensive analysis of the team formation protocol, many interesting directions remain as ongoing and future work. Here we simply outline some of them:
 
 \begin{itemize}
-
 \item Verify ``dual" properties. For instance, rather than asking ``what is the expected reward'', we would like to be able to answer questions like ``what is the probability of reaching reward value $R$?''. This also applies to the strategy synthesis setting.
 
 \item Explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution. %(i.e. interleaving steps of JoinTeam algorithm
