@@ -6,18 +6,18 @@
 \usepackage{algorithmicx}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb,stmaryrd}
 \usepackage{soul}
 \usepackage{color}
 \usepackage{tikz}
 %\usepackage{subfigure}
 \usepackage{subfig}
 
-
-
-
 \newcommand{\LD}{\langle}
 \newcommand{\RD}{\rangle}
+\def\Rset{\mathbb{R}}
+\def\Rsetgeq{\mathbb{R}_{\geq 0}}
+\def\Rsetge{\mathbb{R}_{> 0}}
 
 \newcommand{\comment}[1]{{\color{red}{[\sf #1]}}}
 
@@ -104,13 +104,13 @@ Cooperative behaviour being one of the greatest advantages of the agent based co
 We begin with a brief introduction to the three different types of probabilistic models
 that we will use in this paper.
 
-\vskip5pt
+%\vskip5pt
 \emph{Discrete-time Markov chains} (DTMCs) are the simplest of these models.
 A DTMC $(S,\mathbf{P})$ is defined by a set of states $S$ and a probability transition matrix
 $\mathbf{P} : S\times S \rightarrow [0, 1]$, where $\sum_{s'\in S} \mathbf{P}(s, s') = 1$ for all $s \in  S$.
 This gives the probability $\mathbf{P}(s, s')$ that a transition will take place from state $s$ to state $s'$.
 
-\vskip5pt
+%\vskip5pt
 \emph{Markov decision processes} (MDPs) extend DTMCs by incorporating \emph{nondeterministic choice}
 in addition to probabilistic behaviour.
 An MDP $(S,Act,Steps)$ comprises a set of actions $Act$
@@ -135,12 +135,23 @@ the distribution $Steps(s,a)$ gives the probability of making a transition to ea
 %measurable set of infinite paths associated with $A$, which can classically be
 %provided with a probability measure.
 
-\vskip5pt
+%\vskip5pt
 \emph{Stochastic two-player games} (STPGs) generalise MDPs by allowing the nondeterministic choices
 in the model to be resolved by two distinct players.
+An STPG is a tuple $(S,(S_1,S_2),Act,Steps)$
+where the set of states $S$ is partitioned into two disjoint subsets $S_1$ and $S_2$.
+As for MDPs, $Steps:S\times Act\rightarrow Dist(S)$ is a function mapping
+state-action pairs to distributions over states.
+This is a \emph{turn-based} game. In each state $s$ of the game,
+either player 1 or player 2 selects an action $a\in Act$,
+depending on whether $s$ is in set $S_1$ or $S_2$.
 
-$((S_1,S_2),(Act_1,Act_2),Steps)$
-\comment{do we partition states or actions?}
+For all three classes of models, we also consider \emph{rewards},
+which can be used to capture a variety of additional quantitative measures
+(e.g. ...)
+For consistency, we assume a simple state-based scheme
+i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
+\comment{might move rewards to next sect}
 
 \subsection{Probabilistic Model Checking}
 
