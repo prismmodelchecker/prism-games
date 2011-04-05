@@ -851,17 +851,22 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 
 \section{Conclusions and Future Work}
 
-We would like to outline several directions for future work:
+In this paper we have applied probabilistic model checking techniques to analyze a team formation protocol protocols in multi-agent system, using the PRISM model checker. We analysed the organization performance of the original protocol by modelling as a DTMC. And we extended the algorithm by allowing agents to choose ..., for which we provided MDP and STPG models. In these two cases, two performance measures were considered, i.e., the agent organization one and each agent's local one. By the MDP modelling, we could obtain the best performance 
+of running the team joining algorithm individually by each agent in the protocol, while by the STPG modelling, we extended such analysis to the competitive coalitional settings. In our experiments, each agent has only one resource. However, this can be easily extended to the setting that agents having multiple resources.
+
+\paragraph{Future work.} Many interesting directions remain as ongoing and future work. Here we simply outline some of them:
+
 \begin{itemize}
 
- \item Conducting experiments with agents having multiple resources, allowing agents to change teams until stable point is reached and check whether it can reached, what is the expected number of steps to reach the stable configuration, etc.
+\item Verify ``dual" properties. For instance, rather than asking ``what is the expected reward'', we would like to be able to answer questions like ``what is the probability of reaching reward value $R$?''. This also applies to the strategy synthesis setting. 
 
-\item Verifying dual properties, i.e. rather than asking ``what is the expected reward for a strategy'', we would like to be able to model-check the properties of the form ``whats is the probability of reaching reward value R with a strategy?''.
+\item Explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution. %(i.e. interleaving steps of JoinTeam algorithm
+    In particular, it would be interesting to investigate how this affects strategies of agents in both online and offline versions of the algorithm. %Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently.
 
- \item In this paper we only considered sequential execution of agent algorithms, in future work we would like to explore parallel execution (i.e. interleaving steps of JoinTeam algorithm for multiple agents), and see what effect this has for agent strategies in both online and offline versions of the algorithm. Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently.
+ %\item Conducting experiments with agents having multiple resources, allowing agents to change teams until stable point is reached and check whether it can reached, what is the expected number of steps to reach the stable configuration, etc.
 
- \item Another interesting question is construction of optimal agent organisations given the set of tasks and their distributions.This problem is an instance of mechanism design problem in game-theoretic settings, where the designer can have control over neighbourhood structure or agent resources or both.
-
+ \item Synthesize the optimal agent organisation given a set of tasks. % and their distributions.
+       This problem turns to be an instance of the mechanism design problem in game theory, where the designer can have control over neighbourhood structure or agent resources or both. We plan to attack this question by probabilistic model checking techniques.
 \end{itemize}
 
 \bibliographystyle{plain}
