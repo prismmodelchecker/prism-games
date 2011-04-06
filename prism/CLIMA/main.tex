@@ -868,10 +868,10 @@ In this section we focus on the analysis of Algorithm  \ref{alg:join_team_nondet
  \begin{tabular}{ | l | l | l | l | l | l |}
     \hline
     $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
-    $O_{fc}$ & $\LD r_1 \RD$ & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$ \\ \hline
-    $O_r$ & $\LD r_1 \RD$  & $\LD r_2, r_3 \RD$ & $\LD r_1, r_4, r_5 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
-    $O_s$ & $\LD r_1 \RD$  & $\LD r_1, r_2 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_3, r_4 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
-    $O_{ia}$ & $\LD r_1 \RD$  & $\LD r_1, r_4 \RD$ & $\LD r_1, r_2, r_4 \RD$ & $\LD r_1, r_2, r_4, r_5 \RD$  & $\LD r_1, r_2, r_3, r_4, r_5 \RD$\\ \hline
+    $O_{fc}$ & $\LD a_1 \RD$ & $\LD a_1, a_3 \RD$ & $\LD a_1, a_3, a_5 \RD$ & $\LD a_1, a_2, a_3, a_5 \RD$  & $\LD a_1, a_2, a_3, a_4, a_5 \RD$ \\ \hline
+    $O_r$ & $\LD a_1 \RD$  & $\LD a_2, a_3 \RD$ & $\LD a_1, a_4, a_5 \RD$ & $\LD a_1, a_2, a_4, a_5 \RD$  & $\LD a_1, a_2, a_3, a_4, a_5 \RD$ \\ \hline
+    $O_s$ & $\LD a_1 \RD$  & $\LD a_1, a_2 \RD$ & $\LD a_1, a_2, a_4 \RD$ & $\LD a_1, a_2, a_3, a_4 \RD$  & $\LD a_1, a_2, a_3, a_4, a_5 \RD$ \\ \hline
+    $O_{ia}$ & $\LD a_1 \RD$  & $\LD a_1, a_4 \RD$ & $\LD a_1, a_2, a_4 \RD$ & $\LD a_1, a_2, a_4, a_5 \RD$  & $\LD a_1, a_2, a_3, a_4, a_5 \RD$ \\ \hline
 \end{tabular}
 \caption{Optimal coalitions of sizes 2, 3, and 4 for agent organisations from figure \ref{fig:network_configurations} for both online and offline versions.}
 \label{tab:optimal_coalitions}
