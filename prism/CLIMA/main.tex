@@ -547,7 +547,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \
+}\ \ \ 
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -561,6 +561,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
   \end{tikzpicture}
   \label{subfig:ring}
 }
+
 \subfloat[Star]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -575,7 +576,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \
+}\ \ \ 
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -633,11 +634,10 @@ In this section we present results obtained using three models: DTMC, MDP, and S
 \end{table}
 
 As mentioned in Section \ref{subsec:exp_set}, for each topology from Figure \ref{fig:network_configurations} we obtained the optimal resource allocations using PCTL model checking on DTMC model of the offline version of the algorithm (see Algorithms \ref{alg:main_process} and \ref{alg:join_team_org}). The following PCTL formulae were used to compute the expected rewards of the agent organisation under a particular resource allocation:
-\[
-R_{\{\mbox{``$W_1(O)$''}\}=?} [F \mbox{ ``finished''}]
-\qquad
-R_{\{\mbox{``$W_2(O)$''}\}=?} [F \mbox{ ``finished''}]
-\]
+\begin{itemize}
+ \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the expected total reward  $W_1$/$W_2$ of an agent organisation when execution terminates?'',
+\end{itemize}
 After obtaining the expected rewards for all possible resource allocations we then selected the ones which have the highest expected reward. The results are summarised in Table \ref{tab:optimal_r}.
 
 
@@ -660,22 +660,9 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 \subsection{DTMC}
 \label{subsection:DTMC}
 
-\comment{Discuss reward structures, topology differences, gap between min and max agent performance. discuss task completion probabilities, write PCTL formulae. Reference where models can be checker online.}
+In this section we present results of model checking DTMC model of Algorithm \ref{alg:join_team_org}. We consider four experimental agent organisations from Figure \ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Figure \ref{alg:main_process} for details). To discuss the results, we compare overall performance of agent organisations and consider disparity between worst and best individually performing agents within them. Then we move on to discuss the effects of network topologies and offline vs online versions of the algorithm on the aforementioned characteristics. Finally, we discuss several interpretations of reward structures and argue why it is important to consider different ones to get better understanding of the system.
 
-\begin{figure}
- \subfloat[Reward $W_1(O)$.]{
-%  \includegraphics[scale=0.65]{images/W1.png}
-\includegraphics[clip=true, trim=75 570 305 90, scale=0.77]{images/w1_dtmc}
-}
-\subfloat[Reward $W_2(O)$.]{
-%  \includegraphics[scale=0.65]{images/W2.png}
-\includegraphics[clip=true, trim=70 579 300 90, scale=0.77]{images/w2_dtmc}
-}
-\caption{Expected rewards for agent organisations when using online and offline (see Algorithm \ref{alg:main_process}) versions of the Algorithm \ref{alg:join_team_org}.}
-\end{figure}
-
-
-\begin{table}
+\begin{table} [H]
 \subfloat[Offline. $W_1$ reward structure.]{
  \begin{tabular}{ | l | l | l | l | l |}
     \hline
@@ -717,13 +704,33 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
     $O_{ia}$ & 1.25560 & 0.17970 & 0.31990  \\ \hline
 \end{tabular}
 }
-
 \caption{Model checking results for agent organisations from figure \ref{fig:network_configurations} with optimal resource allocations from table \ref{tab:optimal_r} for offline and online versions of the Algorithm \ref{alg:main_process}. Tables also show largest and smallest individual agent rewards. }
+\label{tab:dtmc_results}
 \end{table}
 
+Table \ref{tab:dtmc_results} shows the results obtained for the expected rewards of agent organisations in different settings, namely, using $W_1$ and $W_2$ reward structures (see Equations \ref{eq:w1organisation} and \ref{eq:w2organisation} for organisations and Equations \ref{eq:w1agent} and \ref{eq:w2agent} for individual agents), and offline and online versions of the Algorithm \ref{alg:join_team_org}. The following PCTL formulae were used to obtain the results in PRISM:
+\begin{itemize}
+ \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the expected total reward $W_1$/$W_2$?'',
+ \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished} \wedge a_i \in \bar{M} \,]$ -
+``what is the expected reward $W_1$/$W_2$ for agent $a_i$?''
+\end{itemize}
 
+As can be seen in Table \ref{tab:dtmc_results} agents organised in start topology $O_s$ have the worst expectated rewards in all settings, also it has largest disparity between worst and best performing individual agents. Both of these characteristics are unsurprising because $a_1$ which is placed in the middle is most likely to be in a winning team, whereas all the others do not have any choice but to join a team with $a_1$. Organisation $O_{ia}$ which has one isolated agent showns smaller differences between worst and best performing agents, but this is only because the performance of ``best'' agents, whereas the ``worst'' agent's performance is very close to the $O_s$'s.
 
-\begin{table}
+Figure \ref{fig:bar_chart_dtmc} compares total rewards of all organisation in offline and online settings. It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
+
+\begin{figure}[H]
+\subfloat[Reward $W_1(O)$.]{
+  \includegraphics[clip=true, trim=75 570 305 90, scale=0.77]{images/w1_dtmc}
+}
+\subfloat[Reward $W_2(O)$.]{
+  \includegraphics[clip=true, trim=70 579 300 90, scale=0.77]{images/w2_dtmc}
+}
+\caption{Expected rewards for agent organisations when using online and offline (see Algorithm \ref{alg:main_process}) versions of the Algorithm \ref{alg:join_team_org}.}
+\label{fig:bar_chart_dtmc}
+\end{figure}
+\begin{table}[H]
  \centering
 \subfloat[Offline]{
  \begin{tabular}{ | l | l | l | l |}
@@ -745,10 +752,19 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
     $O_{ia}$ & 0.62780 & 0.62780 & 0.29270 \\ \hline
 \end{tabular}
 }
-\caption{Task completion probabilities for optimal agent organisations using Algorithm \ref{alg:join_team_org}'s offline and online versions (see Algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on DTMC model.}
+\caption{Task completion probabilities for optimal agent organisations using Algorithm \ref{alg:join_team_org}'s offline and online versions (see Algorithm \ref{alg:main_process}).}
+\label{tab:task_compl_dtmc}
 \end{table}
 
+Attentive reader would have noticed that the online version produces greater expected $W_1$, but smaller expected $W_2$ rewards than the offline one. This is an interesting observation because it shows that in an online version algorithm organises agents into teams which increases the expectation for more each agents to be in a successful team, but this effect decreases the expected total number of tasks completed by the organisation. This is confirmed by the probabilities of task completions of offline and online versions of Algorithm \ref{alg:join_team_org} that are summarised in Table \ref{tab:task_compl_dtmc}. The following PCTL formulae were used to find the probabilities using PRISM:
+\begin{itemize}
+ \item ${\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  task $T_1$/$T_2$?'',
+ \item ${\tt P}_{=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
+\end{itemize}
 
+Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.  
 
 
 \clearpage
@@ -762,14 +778,14 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
 \subfloat[Online. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_online}
+\includegraphics[clip=true, trim=57 580 320 90, scale=0.77]{images/w1_mdp_online}
 }
 
 \subfloat[Offline. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=94.5 570 280 100, scale=0.77]{images/w2_mdp_offline}
 }
 \subfloat[Online. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=65 581.5 320 80, scale=0.77]{images/w2_mdp_online}
+\includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
 }
 \caption{Bar charts compare offline and online versions of Algorithm \ref{alg:join_team_org} analysed as DTMC with the best-case performance of Algorithm \ref{alg:join_team_nondet} analysed as MDP. }
 \end{figure}
@@ -897,6 +913,8 @@ Please note that the resource allocations from Table \ref{tab:optimal_r}'s examp
 
 \caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.}
 \end{table}
+
+\clearpage
 
 \section{Conclusions and Future Work}
 
