@@ -25,6 +25,11 @@
 \newcommand{\dave}[1]{\marginpar{\footnotesize \color{red} {\bf D:} \textsf{#1}}}
 \newcommand{\comment}[1]{\marginpar{\footnotesize \color{red} \textsf{#1}}}
 
+\newcommand{\prismcomment}[1]{\mbox{\em #1}}
+\newcommand{\prismkeyword}[1]{\mathtt{#1}}
+\newcommand{\prismident}[1]{\mathit{#1}}
+\newcommand{\prismtab}{\hspace*{0.5cm}}
+
 \begin{document}
 
 \title{Verifying Team Formation Protocols in PRISM\thanks{This work is supported by
@@ -494,6 +499,40 @@ We observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Of
 \subsection{PRISM Models}
 
 \comment{give a small example of PRISM models and explain DTMC, MDP and STPG}
+
+\begin{figure}
+ \centering
+{\scriptsize
+\fbox{\begin{minipage}{6in}
+\begin{tabbing}
+\mbox{$\prismkeyword{mdp}$} \\
+\mbox{$$} \\
+\mbox{$\prismkeyword{module} \; \prismident{scheduler}$} \\
+\mbox{$\prismtab\prismident{turn} \; : \; [1..3] \; \prismkeyword{init} \; 1;$} \\
+\mbox{$\prismtab\prismident{n\_tasks} \; : \; [-1..2] \; \prismkeyword{init} \; -1;$} \\
+\mbox{$\prismtab[] \; \prismident{n\_tasks}{=}-1 \; \rightarrow \; 0.5 \; : \; (\prismident{n\_tasks'}{=}1) \; + \; 0.5 \; : \; (\prismident{n\_tasks'}{=}2);$} \\
+\mbox{$\prismtab[\prismident{go1}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}1 \; \rightarrow \; (\prismident{turn'}{=}2);$} \\
+\mbox{$\prismtab[\prismident{go2}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}2 \; \rightarrow \; (\prismident{turn'}{=}3);$} \\
+\mbox{$\prismtab[\prismident{do}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}3 \; \rightarrow \; (\prismident{turn'}{=}1) \; \& \; (\prismident{n\_tasks'}{=}\prismident{n\_tasks}-1);$} \\
+\mbox{$\prismkeyword{endmodule}$} \\
+\mbox{$$} \\
+\mbox{$\prismkeyword{module} \; \prismident{agent1}$} \\
+\mbox{$\prismtab\prismident{team1} \; : \; [1..2] \; \prismkeyword{init} \; 1;$} \\
+\mbox{$\prismtab[\prismident{go1}] \; \prismkeyword{true} \; \rightarrow \; (\prismident{team1'}{=}1);$} \\
+\mbox{$\prismtab[\prismident{go1}] \; \prismkeyword{true} \; \rightarrow \; (\prismident{team1'}{=}2);$} \\
+\mbox{$\prismkeyword{endmodule}$} \\
+\mbox{$$} \\
+\mbox{$\prismkeyword{module} \; \prismident{agent2} \; {=} \; \prismident{agent1} \; [\prismident{go1}{=}\prismident{go2},\prismident{team1}{=}\prismident{team2},\prismident{team2}{=}\prismident{team1}]$} \\
+\mbox{$\prismkeyword{endmodule}$} \\
+\mbox{$$} \\
+\mbox{$\prismkeyword{rewards} \; \mbox{``}\prismident{total}\mbox{''}$} \\
+\mbox{$\prismtab\prismident{turn}{=}3 \; \& \; \prismident{team1}!{=}\prismident{team2} \; : \; 0.3;\prismtab$} \\
+\mbox{$\prismtab\prismident{turn}{=}3 \; \& \; \prismident{team1}{=}\prismident{team2} \; : \; 1;$} \\
+\mbox{$\prismkeyword{endrewards}$}
+\end{tabbing}
+\end{minipage}}}
+\end{figure}
+
 
 \subsection{Experimental Setup}
 \label{subsec:exp_set}
