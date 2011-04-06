@@ -113,7 +113,7 @@ Comparing to the traditional simulation-based analysis, we think one of the grea
 
 
 \paragraph{Related work.}
-As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to mutli-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
+As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
 
 \comment{TL: stress on the novelty of the work...}
 
@@ -383,9 +383,8 @@ has no other agents committed to it, it can choose to initiate a team, and does 
 IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
 \label{eq:init_prob}
 \]
-For team joining, if an agent is eligible for a team, it always join the team. Note that only uncommitted agents can commit to
-a new or partially filled task, and committed agents can not
-decommit from a given task.
+For team joining, if an agent is eligible for a team, it always joins the team. Note that only uncommitted agents can commit to
+a new or partially filled task, and committed agents can not decommit from a given task.
 %
 %can be in one of three states: \textsc{uncommitted}, \textsc{committed}, or \textsc{active}. An agent in the \textsc{uncommitted}
 %state is available and not assigned to any task. An agent in the \textsc{committed} state has selected a task, but the full team to work in the task has not yet formed. Finally an agent in the  \textsc{active} state is a member of a team that has fulfilled all of the skill requirements for a task and is actively working on that task. Upon task completion, agents in the active state return to the uncommitted state.
@@ -498,22 +497,20 @@ We observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Of
 
 \subsection{PRISM Models}
 
-\comment{give a small example of PRISM models and explain DTMC, MDP and STPG}
+PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online\footnote{Webpage for PRISM models}. In this section we use a toy example from Figure \ref{fig:prism_example} to illustrate the design concepts.
 
 \begin{figure}
  \centering
 {\scriptsize
 \fbox{\begin{minipage}{6in}
 \begin{tabbing}
-\mbox{$\prismkeyword{mdp}$} \\
-\mbox{$$} \\
 \mbox{$\prismkeyword{module} \; \prismident{scheduler}$} \\
 \mbox{$\prismtab\prismident{turn} \; : \; [1..3] \; \prismkeyword{init} \; 1;$} \\
-\mbox{$\prismtab\prismident{n\_tasks} \; : \; [-1..2] \; \prismkeyword{init} \; -1;$} \\
-\mbox{$\prismtab[] \; \prismident{n\_tasks}{=}-1 \; \rightarrow \; 0.5 \; : \; (\prismident{n\_tasks'}{=}1) \; + \; 0.5 \; : \; (\prismident{n\_tasks'}{=}2);$} \\
-\mbox{$\prismtab[\prismident{go1}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}1 \; \rightarrow \; (\prismident{turn'}{=}2);$} \\
-\mbox{$\prismtab[\prismident{go2}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}2 \; \rightarrow \; (\prismident{turn'}{=}3);$} \\
-\mbox{$\prismtab[\prismident{do}] \; \prismident{n\_tasks}{>}0 \; \& \; \prismident{turn}{=}3 \; \rightarrow \; (\prismident{turn'}{=}1) \; \& \; (\prismident{n\_tasks'}{=}\prismident{n\_tasks}-1);$} \\
+\mbox{$\prismtab\prismident{num\_tasks} \; : \; [-1..2] \; \prismkeyword{init} \; $-1$;$} \\
+\mbox{$\prismtab[] \; \prismident{num\_tasks}{=}$-1$ \; \rightarrow \; 0.5 \; : \; (\prismident{num\_tasks'}{=}1) \; + \; 0.5 \; : \; (\prismident{num\_tasks'}{=}2);$} \\
+\mbox{$\prismtab[\prismident{go1}] \; \prismident{num\_tasks}{>}0 \; \wedge \; \prismident{turn}{=}1 \; \rightarrow \; (\prismident{turn'}{=}2);$} \\
+\mbox{$\prismtab[\prismident{go2}] \; \prismident{num\_tasks}{>}0 \; \wedge \; \prismident{turn}{=}2 \; \rightarrow \; (\prismident{turn'}{=}3);$} \\
+\mbox{$\prismtab[\prismident{do}] \; \prismident{num\_tasks}{>}0 \; \wedge \; \prismident{turn}{=}3 \; \rightarrow \; (\prismident{turn'}{=}1) \; \wedge \; (\prismident{num\_tasks'}{=}\prismident{num\_tasks}-1);$} \\
 \mbox{$\prismkeyword{endmodule}$} \\
 \mbox{$$} \\
 \mbox{$\prismkeyword{module} \; \prismident{agent1}$} \\
@@ -522,17 +519,24 @@ We observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Of
 \mbox{$\prismtab[\prismident{go1}] \; \prismkeyword{true} \; \rightarrow \; (\prismident{team1'}{=}2);$} \\
 \mbox{$\prismkeyword{endmodule}$} \\
 \mbox{$$} \\
-\mbox{$\prismkeyword{module} \; \prismident{agent2} \; {=} \; \prismident{agent1} \; [\prismident{go1}{=}\prismident{go2},\prismident{team1}{=}\prismident{team2},\prismident{team2}{=}\prismident{team1}]$} \\
+\mbox{$\prismkeyword{module} \; \prismident{agent2} \; {=} \; \prismident{agent1} \; [\prismident{go1}{=}\prismident{go2},\prismident{team1}{=}\prismident{team2}]$} \\
 \mbox{$\prismkeyword{endmodule}$} \\
 \mbox{$$} \\
 \mbox{$\prismkeyword{rewards} \; \mbox{``}\prismident{total}\mbox{''}$} \\
-\mbox{$\prismtab\prismident{turn}{=}3 \; \& \; \prismident{team1}!{=}\prismident{team2} \; : \; 0.3;\prismtab$} \\
-\mbox{$\prismtab\prismident{turn}{=}3 \; \& \; \prismident{team1}{=}\prismident{team2} \; : \; 1;$} \\
+\mbox{$\prismtab\prismident{turn}{=}3 \; \wedge \; \prismident{team1}{\neq}\prismident{team2} \; : \; 0.3;\prismtab$} \\
+\mbox{$\prismtab\prismident{turn}{=}3 \; \wedge \; \prismident{team1}{=}\prismident{team2} \; : \; 1.0;$} \\
 \mbox{$\prismkeyword{endrewards}$}
 \end{tabbing}
 \end{minipage}}}
+\caption{PRISM model of a two agent system. Explain meaning of guarded commands here.}
+\label{fig:prism_example}
 \end{figure}
 
+The system modelled in this example consists of two agents and a scheduling module which generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
+
+The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Algorithms \ref{alg:join_team_org} and \ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Algorithm \ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Equations \ref{eq:w1agent}-\ref{w2organisation}. 
+
+From this high-level description of the algorithm PRISM then constructs the corresponding model: DTMC, MDP, or STPG (for example of the model in Figure \ref{fig:prism_example} see Appendix \ref{app:transitions}). For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
 
 \subsection{Experimental Setup}
 \label{subsec:exp_set}
@@ -640,7 +644,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 \section{Results}
 \label{sec:results}
 
-In this section we present results obtained using three models: DTMC, MDP, and STPG. Table \ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller statespace because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
+In this section we present results obtained using three models: DTMC, MDP, and STPG. Table \ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller state space because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
 
 
 \begin{table}
@@ -755,9 +759,9 @@ Table \ref{tab:dtmc_results} shows the results obtained for the expected rewards
 ``what is the expected reward $W_1$/$W_2$ for agent $a_i$?''
 \end{itemize}
 
-As can be seen in Table \ref{tab:dtmc_results} agents organised in start topology $O_s$ have the worst expectated rewards in all settings, also it has largest disparity between worst and best performing individual agents. Both of these characteristics are unsurprising because $a_1$ which is placed in the middle is most likely to be in a winning team, whereas all the others do not have any choice but to join a team with $a_1$. Organisation $O_{ia}$ which has one isolated agent showns smaller differences between worst and best performing agents, but this is only because the performance of ``best'' agents, whereas the ``worst'' agent's performance is very close to the $O_s$'s.
+As can be seen in Table \ref{tab:dtmc_results} agents organised in start topology $O_s$ have the worst expected rewards in all settings, also it has largest disparity between worst and best performing individual agents. Both of these characteristics are unsurprising because $a_1$ which is placed in the middle is most likely to be in a winning team, whereas all the others do not have any choice but to join a team with $a_1$. Organisation $O_{ia}$ which has one isolated agent shows smaller differences between worst and best performing agents, but this is only because the performance of ``best'' agents, whereas the ``worst'' agent's performance is very close to the $O_s$'s.
 
-Figure \ref{fig:bar_chart_dtmc} compares total rewards of all organisation in offline and online settings. It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
+Figure \ref{fig:bar_chart_dtmc} compares total rewards of all organisation in offline and online settings. It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to efficiently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
 
 \begin{figure}[H]
 \subfloat[Reward $W_1(O)$.]{
@@ -810,6 +814,8 @@ Let us note that the strategy of an agent does not change when switching from of
 
 \subsection{MDP}
 \label{subsec:MDP}
+
+\aistis{We need to add PCTLs used for the generation of results}
 
 In this section we present the analysis of Algorithm \ref{alg:join_team_nondet} which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process. Using PRISM model checker we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with a specific strategy which was Algorithm \ref{alg:join_team_org}. Due to the size limitations we do not present the actual strategies in this paper\footnote{The instructions on how to generate optimal strategies for MDPs can be found in ...}.
 
@@ -900,6 +906,9 @@ Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific
 
 In this section we focus on the analysis of Algorithm \ref{alg:join_team_nondet}, but this time we consider a distinction of agents with cooperative and hostile ones, which is  naturally modelled as a STPG. We are mainly interested in finding the optimal coalition in the sense that it has the largest probability to accomplish tasks. A coalition is a subset of agents who cooperate against the rest of agents in the organization. To this aim, we consider a slight extension of
 PCTL formulae with agent coalitions:
+
+\aistis{PCTL notation needs to be synced with the preliminaries section.}
+
 \begin{itemize}
  \item $[A]{\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
 ``what is the expected probability to complete  task $T_1$/$T_2$?'',
@@ -1025,5 +1034,15 @@ of running the team joining algorithm individually by each agent in the protocol
     \end{itemize}
 \end{itemize}
 
+\appendix
+\label{app:transitions}
+\section{State Transition System}
+\begin{figure}
+  \centering
+  \vspace{-50pt}
+	\includegraphics[]{images/transition_system}
+	\vspace{-35pt}
+	\caption{State transition system of the model from Figure \ref{fig:prism_example} generated by PRISM.}
+\end{figure}
 
 \end{document} 
