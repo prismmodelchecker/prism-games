@@ -656,7 +656,7 @@ After obtaining the expected rewards for all possible resource allocations we th
 \end{table}
 
 Please note that the resource allocations from Table \ref{tab:optimal_r}'s example column have been chosen for all future experiments and are shown in Figure \ref{fig:network_configurations}. we have decided to fix resource allocations in this way as it allows us to show how model-checking techniques can be used to improve performance of the algorithm by synthesising strategies (see discussion of MDP results in Section \ref{subsec:MDP}).
-
+\clearpage
 \subsection{DTMC}
 \label{subsection:DTMC}
 
@@ -772,23 +772,36 @@ Let us note that the strategy of an agent does not change when switching from of
 \subsection{MDP}
 \label{subsec:MDP}
 
+In this section we present the analysis of Algorithm \ref{alg:join_team_nondet} which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process. Using PRISM model checker we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with a specific strategy which was Algorithm \ref{alg:join_team_org}. Due to the size limitations we do not present the actual strategies in this paper\footnote{The instructions on how to generate optimal strategies for MDPs can be found in ...}.
 
-\begin{figure}
-\subfloat[Offline. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
+\begin{table}
+\centering
+\subfloat[Offline]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
+    $O_{fc}$ & 1.0 & 1.0 & 0.67346  \\ \hline
+    $O_r$ & 1.0 & 1.0 & 0.67346  \\ \hline
+    $O_s$ & 0.82857 & 0.82857 & 0.39183 \\ \hline
+    $O_{ia}$ & 1.0 & 1.0 & 0.67346 \\ \hline
+\end{tabular}
 }
-\subfloat[Online. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=57 580 320 90, scale=0.77]{images/w1_mdp_online}
+\subfloat[Online]{
+ \begin{tabular}{ | l | l | l | l |}
+    \hline
+    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
+    $O_{fc}$ & 1.0 & 1.0 & 0.42857  \\ \hline
+    $O_r$ & 1.0 & 1.0 & 0.42857 \\ \hline
+    $O_s$ & 0.88571 & 0.88571 & 0.12653 \\ \hline
+    $O_{ia}$ & 1.0 & 1.0 & 0.42857 \\ \hline
+\end{tabular}
 }
+\caption{Maximum task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_nondet}'s online and offline versions (see algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on MDP model.}
+\label{tab:mdp_probs}
+\end{table}
 
-\subfloat[Offline. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=94.5 570 280 100, scale=0.77]{images/w2_mdp_offline}
-}
-\subfloat[Online. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
-}
-\caption{Bar charts compare offline and online versions of Algorithm \ref{alg:join_team_org} analysed as DTMC with the best-case performance of Algorithm \ref{alg:join_team_nondet} analysed as MDP. }
-\end{figure}
+In Table \ref{tab:mdp_probs} we can see the maximum expected organisation rewards that can achieved by all agents collaborating. All organisations except $O_s$ can make sure that at least one task is completed with probability $1.0$, no matter what the scheduling is.  
+
 
 \begin{table}
 \centering
@@ -813,36 +826,31 @@ Let us note that the strategy of an agent does not change when switching from of
 \end{tabular}
 }
 \caption{Maximal rewards that can be achieved by agent organisations from figure \ref{fig:network_configurations} using algorithm \ref{alg:join_team_nondet}'s offline and online versions defined in algorithm \ref{alg:main_process}.}
+\label{tab:mdp_rewards}
 \end{table}
 
 
-\begin{table}
 
- \centering
-
-\subfloat[Offline]{
- \begin{tabular}{ | l | l | l | l |}
-    \hline
-    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
-    $O_{fc}$ & 1.0 & 1.0 & 0.67346  \\ \hline
-    $O_r$ & 1.0 & 1.0 & 0.67346  \\ \hline
-    $O_s$ & 0.82857 & 0.82857 & 0.39183 \\ \hline
-    $O_{ia}$ & 1.0 & 1.0 & 0.67346 \\ \hline
-\end{tabular}
+\begin{figure}[H]
+\subfloat[Offline. Reward $W_1(O)$.]{
+\includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
-\subfloat[Online]{
- \begin{tabular}{ | l | l | l | l |}
-    \hline
-    $O$ & $T_1$ compl. & $T_2$ compl. & $T_1$ and $T_2$ compl. \\ \hline
-    $O_{fc}$ & 1.0 & 1.0 & 0.42857  \\ \hline
-    $O_r$ & 1.0 & 1.0 & 0.42857 \\ \hline
-    $O_s$ & 0.88571 & 0.88571 & 0.12653 \\ \hline
-    $O_{ia}$ & 1.0 & 1.0 & 0.42857 \\ \hline
-\end{tabular}
+\subfloat[Online. Reward $W_1(O)$.]{
+\includegraphics[clip=true, trim=57 580 320 90, scale=0.77]{images/w1_mdp_online}
 }
 
-\caption{Maximum task completion probabilities for optimal agent organisations using algorithm \ref{alg:join_team_nondet}'s online and offline versions (see algorithm \ref{alg:main_process}). Results obtained by model checking PCTL formulae on MDP model.}
-\end{table}
+\subfloat[Offline. Reward $W_2(O)$.]{
+\includegraphics[clip=true, trim=94.5 570 280 100, scale=0.77]{images/w2_mdp_offline}
+}
+\subfloat[Online. Reward $W_2(O)$.]{
+\includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
+}
+\caption{Bar charts compare offline and online versions of Algorithm \ref{alg:join_team_org} analysed as DTMC with the best-case performance of Algorithm \ref{alg:join_team_nondet} analysed as MDP. }
+\end{figure}
+
+
+
+
 
 \clearpage
 
