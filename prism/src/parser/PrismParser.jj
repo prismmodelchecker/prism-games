@@ -381,8 +381,12 @@ TOKEN :
 |	< I:				"I" >
 |	< INT:				"int" >
 |	< LABEL:			"label" >
+|	< MAXMAX:			"maxmax" >
+|	< MAXMIN:			"maxmin" >
 |	< MAX:				"max" >
 |	< MDP:				"mdp" >
+|	< MINMAX:			"minmax" >
+|	< MINMIN:			"minmin" >
 |	< MIN:				"min" >
 |	< MODULE:			"module" >
 |	< X:				"X" >
@@ -400,7 +404,11 @@ TOKEN :
 |	< PTA:				"pta" >
 |	< RATE:				"rate" >
 |	< REWARDS:			"rewards" >
+|	< RMAXMAX:			"Rmaxmax" >
+|	< RMAXMIN:			"Rmaxmin" >
 |	< RMAX:				"Rmax" >
+|	< RMINMAX:			"Rminmax" >
+|	< RMINMIN:			"Rminmin" >
 |	< RMIN:				"Rmin" >
 |	< R:				"R" >
 |	< S:				"S" >
@@ -1428,6 +1436,10 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	                |( <MIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
 	                |( <MAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
 	       ))
+	       |( <MINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	       |( <MINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       |( <MAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	       |( <MAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
 	))
 	// These two are dupes of above but allow space to be omitted
 	|( begin = <PMIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
@@ -1534,12 +1546,27 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// Various options for "R" keyword and attached symbols
 	(( begin = <R> (index = RewardIndex())?
 	(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
-	   |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
-	   |( <MIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	   |( <MAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )))
+	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
+	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       ))
+	       |( <MAX> (( <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	       ))
+	       |( <MINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	       |( <MINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       |( <MAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	       |( <MAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	))
 	// These two are dupes of above but allow space to be omitted
 	|( begin = <RMIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	|( begin = <RMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } ))
+	|( begin = <RMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	|( begin = <RMINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	|( begin = <RMINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	|( begin = <RMAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	|( begin = <RMAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } ))
 	// Path formula, optional filter
 	<LBRACKET> expr = ExpressionRewardContents(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
