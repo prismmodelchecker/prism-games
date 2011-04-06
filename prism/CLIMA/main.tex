@@ -203,7 +203,7 @@ The standard approach is to use the notion of
 A strategy resolves nondeterminism in an MDP (i.e. chooses an action in a state),
 based on its execution history so far.
 For a specific strategy, we \emph{can} define the probability of an event.
-Thus probabilistic model checking focuses on a best- or worst-case analysis,
+Thus, probabilistic model checking focuses on a best- or worst-case analysis,
 quantifying over all possible strategies.
 We will continue to focus on quantitative properties,
 which now ask for the \emph{minimum} or \emph{maximum} probability of an event occurring, e.g.:
@@ -211,9 +211,40 @@ which now ask for the \emph{minimum} or \emph{maximum} probability of an event o
 \item ${\tt P}_{\max=?}[\,\Diamond\,\mathit{fail}\,]$ -
 ``what is the maximum probability of a failure occurring?''
 \end{itemize}
-For a stochastic game, the notion of strategy generalises naturally...
+For a stochastic game, the same approach generalises naturally,
+but we require strategies for both players.
+Usually, we assume that the two players have opposing objectives,
+for example player 1 aims to minimise the probability of $\Diamond\,\mathit{fail}$
+and player 2 tries to maximise it.
+Extending the notation from above, we write:
+\begin{itemize}
+\item ${\tt P}_{\min,\max=?}[\,\Diamond\,\mathit{fail}\,]$ -
+``what is the minimum probability of failure that player 1 can guarantee,
+assuming that player 2 tries to maximise it?''
+\end{itemize}
+\dave{could put formal details in an appendix, if that helps}
 
-Finally, rewards...
+For this simple class of (reachability) properties,
+these values are well defined and \dave{bla bla bla}
+
+Finally, we also include reward-based properties.
+More precisely, we consider the \emph{expected total reward} accumulated until some target set of states is reached.
+Consider a DTMC and reward structure $\mathit{time}$... and label (?) $\mathit{end}$...
+
+\begin{itemize}
+\item ${\tt R}^{\mathit{time}}_{=?}[\,\Diamond\,\mathit{end}\,]$ -
+``what is the expected time for the algorithm to complete?''
+\end{itemize}
+In exactly, the same style as described above, these queries generalise to MDPs and stochastic games, e.g.:
+\begin{itemize}\addtolength{\itemsep}{2pt}
+\item ${\tt R}^{\mathit{time}}_{\max=?}[\,\Diamond\,\mathit{end}\,]$ -
+``what is the maximum expected algorithm completion time?''
+\item ${\tt R}^{\mathit{time}}_{\min,\max=?}[\,\Diamond\,\mathit{end}\,]$ -
+``what is the minimum expected time for algorithm completion
+that player 1 can guarantee, assuming player 2 tries to maximise it?''
+\end{itemize}
+
+\dave{mention infinite case, non prob 1}
 
 \dave{mention alg.s, complexity}
 
