@@ -39,8 +39,11 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
-Multi-agent systems are becoming an increasingly important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we illustrate how probabilistic model checking techniques can be applied 
-for analysis, design and verification of such protocols using the PRISM model checker. To start with, we take a team formation protocol and analyse its performance by modelling it 
+Multi-agent systems are becoming an increasingly important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which team formation is a typical example. In this paper we illustrate how probabilistic model checking,
+a technique for formal verification of probabilistic systems,
+can be applied to the analysis, design and verification of such protocols.
+\dave{re-add mention of prism}
+To start with, we take a team formation protocol and analyse its performance by modelling it 
 as a Discrete-Time Markov Chain. Then ... (mention extending the protocol) by modelling as a Markov Decision Process we show %what is
 the best performance %that can be achieved by the team joining algorithm run by each agent in the protocol.
 of running the team joining algorithm individually by each agent in the protocol. The performance includes the agent organization one and each agent's local one. Finally we extend such analysis to the competitive coalitional setting using Stochastic Two-Player Games where agents are divided into cooperative and Byzantine ones.
@@ -50,10 +53,14 @@ of running the team joining algorithm individually by each agent in the protocol
 
 \comment{Add some comments about complexity}
 %
-Multi-agent systems have become an important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which \emph{team formation} is a typical example. In this paper we focus on a typical distributed team formation protocol which was introduced in \cite{gaston2005agent}, where authors used it to analyse the team performance in dynamic networks. The protocol %was studied further in \cite{glinton2008agent}, and
-has also been used for coalition formation for data fusion in sensor networks \cite{glinton2008agent}. The basic setting for the protocol consists of an \emph{agent organization}, i.e., a network of interconnected agents which have certain resources. These agents attemp to form teams to accomplish tasks which are generated periodically and globally advertised to the agent organization. The network topology restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to form to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
+Multi-agent systems have become an important software paradigm. One of the key advantages of multi-agent systems is that agents can cooperate to achieve certain goals, that requires efficient collaboration protocols of which \emph{team formation} is a typical example. In this paper, we focus on a typical distributed team formation protocol, introduced in \cite{gaston2005agent}. There, the authors used it to analyse the team performance in dynamic networks.
+The protocol %was studied further in \cite{glinton2008agent}, and
+has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}.
 
+The basic setting for the protocol consists of an \emph{agent organization}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organization. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
+\emph{Formal verification} is an approach to...
+already applied to multi-agent...
 %In general, \emph{probabilistic model checking} is an automated technique for
 %the formal verification of systems that exhibit stochastic behavior. It can, for example,
 %calculate the likelihood of the occurrence of certain events
