@@ -868,7 +868,7 @@ In Table \ref{tab:mdp_probs} we can see the maximum expected organisation reward
 \label{tab:mdp_rewards}
 \end{table}
 
-In Table \ref{tab:mdp_rewards} we see the maximum expected organisation rewards that can achieved by all agents collaborating. It is not very difficult to see that $O_{fc}$, $O_r$ and $O_{ia}$ have the same maximum reward no matter W1/W2 reward or online/offline version is taken, which outperforms the star organization $O_s$ in all circumstances. 
+In Table \ref{tab:mdp_rewards} we see the maximum expected organisation rewards that can achieved by all agents collaborating. It is not very difficult to see that $O_{fc}$, $O_r$ and $O_{ia}$ have the same maximum reward no matter W1/W2 reward or online/offline version is taken, which outperforms the star organization $O_s$ in all circumstances.
 
 Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings.
  %
@@ -894,14 +894,22 @@ Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific
 \end{figure}
 
 
-
-
-
 %\clearpage
 
 \subsection{STPG}
 
-In this section we focus on the analysis of Algorithm  \ref{alg:join_team_nondet}, but this time, we consider a distinction of agents with cooperative and hostile ones, which is  naturally modelled as a STPG. Again using PRISM model checker we find the maximum expected rewards and task completion probabilities for all agent organisations.
+In this section we focus on the analysis of Algorithm \ref{alg:join_team_nondet}, but this time we consider a distinction of agents with cooperative and hostile ones, which is  naturally modelled as a STPG. We are mainly interested in finding the optimal coalition in the sense that it has the largest probability to accomplish tasks. A coalition is a subset of agents who cooperate against the rest of agents in the organization. To this aim, we consider a slight extension of
+PCTL formulae with agent coalitions:
+\begin{itemize}
+ \item $[A]{\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  task $T_1$/$T_2$?'',
+ \item $[A]{\tt P}_{=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
+\end{itemize}
+
+%Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
+%
+We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Table \ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Table \ref{tab:optimal_coalitions_1task} shows that value for completion of one task, whereas Table \ref{tab:optimal_coalitions_1task} shows the value for two tasks. 
 \begin{table}
  \centering
  \begin{tabular}{ | l | l | l | l | l | l |}
@@ -937,7 +945,7 @@ In this section we focus on the analysis of Algorithm  \ref{alg:join_team_nondet
       $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
       $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
   \end{tabular}
-}
+}\label{tab:optimal_coalitions_1task}
 \caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.}
 \end{table}
 
@@ -964,7 +972,7 @@ In this section we focus on the analysis of Algorithm  \ref{alg:join_team_nondet
     $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
 \end{tabular}
 }
-
+\label{tab:optimal_coalitions_2task}
 \caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.}
 \end{table}
 
