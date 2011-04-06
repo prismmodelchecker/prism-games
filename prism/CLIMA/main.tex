@@ -125,7 +125,7 @@ and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations, as well as the one of a single agent.
 MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to maximise or minimise the performance of the organisation respectively.
 %In all of these three models the performance of an agent organisation or individual agents is analysed by model checking PCTL formulae.
-\taolue{mention the online v.s. offline version?}
+\taolue{online v.s. offline dichotomy already exists for DTMC...}
 
 Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies each consisting of five agents, i.e., fully connected, ring, start, and a network having one isolated node. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation in two settings, \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance.
 
@@ -133,11 +133,11 @@ Our experiments illustrate several aspects of agent organisation analysis. As a 
 %
 %\comment{add several advantages of our approach - base on results. }
 
-Comparing to the traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent}, this was posed as an open problem.\footnote{We quote here: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".} Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organisations very easily, which can be considered as another advantage.
+Comparing to the traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent}, this was posed as an open problem.\footnote{We quote: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".} Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organisations very easily, which can be considered as another advantage.
 
 \paragraph{Contributions.}
 \dave{could itemise contributions here}
-
+\taolue{might mention game extension of PRISM}
 \paragraph{Related work.}
 As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
 
@@ -364,6 +364,8 @@ A \emph{task} $T_i=\{r_i\ :\ $``$r_i$ is required by the task $i$''$\}$ is a set
 A \emph{team} of agents is denoted by $M_i=\{a_j\ :\ $``$a_j$ is a member of team $i$''$\}$, and the set of all teams is $M=\{M_1, M_2,\dots , M_m\}$. By $\bar{M} = \bigcup_{1\leq i\leq m} M_i$, we denote the set of all agents that are committed to some team. For $1\leq i\leq m$, $R_{M_i}=\bigcup_{a \in M_i}R_{a}$ is the set of resources the team $M_i$ has. The team $M_i$ is said to be able to accomplish the task $T_j$ iff $T_j \subseteq R_{M_i}$.
 \end{definition}
 
+\comment{TL: might explain the intuition of these two rewards.}
+
 \begin{definition}[Rewards]
 For agent $a$, we define two types of \emph{reward}:
 \begin{itemize}
@@ -560,7 +562,7 @@ PRISM model checker has been briefly described in the introduction. The purpose 
 
 The system modelled in this example consists of two agents and a scheduling module which generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
 
-The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Algorithms \ref{alg:join_team_org} and \ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Algorithm \ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Equations \ref{eq:w1agent}-\ref{w2organisation}. 
+The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Algorithms \ref{alg:join_team_org} and \ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Algorithm \ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Equations \ref{eq:w1agent}-\ref{w2organisation}.
 
 From this high-level description of the algorithm PRISM then constructs the corresponding model: DTMC, MDP, or STPG (for example of the model in Figure \ref{fig:prism_example} see Appendix \ref{app:transitions}). For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
 
@@ -726,9 +728,9 @@ After obtaining the expected rewards for all possible resource allocations we th
 
 Please note that the resource allocations from Table \ref{tab:optimal_r}'s example column have been chosen for all future experiments and are shown in Figure \ref{fig:network_configurations}. we have decided to fix resource allocations in this way as it allows us to show how model-checking techniques can be used to improve performance of the algorithm by synthesising strategies (see discussion of MDP results in Section \ref{subsec:MDP}).
 %\clearpage
+
 \subsection{DTMC}
 \label{subsection:DTMC}
-
 In this section we present results of model checking DTMC model of Algorithm \ref{alg:join_team_org}. We consider four experimental agent organisations from Figure \ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Figure \ref{alg:main_process} for details). To discuss the results, we compare overall performance of agent organisations and consider disparity between worst and best individually performing agents within them. Then we move on to discuss the effects of network topologies and offline vs online versions of the algorithm on the aforementioned characteristics. Finally, we discuss several interpretations of reward structures and argue why it is important to consider different ones to get better understanding of the system.
 
 \begin{table} [H]
@@ -834,8 +836,6 @@ Attentive reader would have noticed that the online version produces greater exp
 \end{itemize}
 
 Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
-
-
 %\clearpage
 
 \subsection{MDP}
@@ -843,7 +843,8 @@ Let us note that the strategy of an agent does not change when switching from of
 
 \aistis{We need to add PCTLs used for the generation of results}
 
-In this section we present the analysis of Algorithm \ref{alg:join_team_nondet} which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process. Using PRISM model checker we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with a specific strategy which was Algorithm \ref{alg:join_team_org}. Due to the size limitations we do not present the actual strategies in this paper\footnote{The instructions on how to generate optimal strategies for MDPs can be found in ...}.
+In this section we present the analysis of Algorithm \ref{alg:join_team_nondet}, %which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process.
+which is modelled as an MDP. Using PRISM we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with a specific strategy used in Algorithm \ref{alg:join_team_org}. Due to the size limitations we do not present actual strategies here.\footnote{The instructions on how to generate optimal strategies for MDPs can be found in ...}.
 
 \begin{table}
 \centering
@@ -944,7 +945,7 @@ PCTL formulae with agent coalitions:
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Table \ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Table \ref{tab:optimal_1task} shows that value for completion of one task, whereas Table \ref{tab:optimal_2task} shows the value for completion two tasks. Note that the size being 5 means that there is no hostile agent, which degenerates to the MDP modelling. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations. 
+We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Table \ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Table \ref{tab:optimal_1task} shows that value for completion of one task, whereas Table \ref{tab:optimal_2task} shows the value for completion two tasks. Note that the size being 5 means that there is no hostile agent, which degenerates to the MDP modelling. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations.
 
 \begin{table}
  \centering
@@ -1061,9 +1062,9 @@ of running the team joining algorithm individually by each agent in the protocol
     \end{itemize}
 \end{itemize}
 \clearpage
-\appendix
-\label{app:transitions}
-\section{State Transition System}
+
+
+\section{State Transition System} \label{app:transitions}
 \begin{figure}
   \centering
   \vspace{-50pt}
