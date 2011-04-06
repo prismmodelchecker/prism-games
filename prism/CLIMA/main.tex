@@ -43,7 +43,7 @@ Multi-agent systems are becoming an increasingly important software paradigm. On
 a technique for formal verification of probabilistic systems,
 can be applied to the analysis, design and verification of such protocols.
 \dave{re-add mention of prism}
-To start with, we take a team formation protocol and analyse its performance by modelling it 
+To start with, we take a team formation protocol and analyse its performance by modelling it
 as a Discrete-Time Markov Chain. Then ... (mention extending the protocol) by modelling as a Markov Decision Process we show %what is
 the best performance %that can be achieved by the team joining algorithm run by each agent in the protocol.
 of running the team joining algorithm individually by each agent in the protocol. The performance includes the agent organization one and each agent's local one. Finally we extend such analysis to the competitive coalitional setting using Stochastic Two-Player Games where agents are divided into cooperative and Byzantine ones.
@@ -547,7 +547,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
       \draw (agent3) -- (agent5);
   \end{tikzpicture}
   \label{subfig:fully_connected}
-}\ \ \ 
+}\ \ \
 \subfloat[Ring]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -576,7 +576,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
       \draw (agent1) -- (agent4);
   \end{tikzpicture}
   \label{subfig:star}
-}\ \ \ 
+}\ \ \
 \subfloat[Isolated]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -764,7 +764,7 @@ Attentive reader would have noticed that the online version produces greater exp
 ``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
 \end{itemize}
 
-Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.  
+Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 
 
 \clearpage
@@ -800,7 +800,7 @@ In this section we present the analysis of Algorithm \ref{alg:join_team_nondet} 
 \label{tab:mdp_probs}
 \end{table}
 
-In Table \ref{tab:mdp_probs} we can see the maximum expected organisation rewards that can achieved by all agents collaborating. All organisations except $O_s$ can make sure that at least one task is completed with probability $1.0$, no matter what the scheduling is.  
+In Table \ref{tab:mdp_probs} we can see the maximum expected organisation rewards that can achieved by all agents collaborating. All organisations except $O_s$ can make sure that at least one task is completed with probability $1.0$, no matter what the scheduling is.
 
 
 \begin{table}
@@ -829,9 +829,15 @@ In Table \ref{tab:mdp_probs} we can see the maximum expected organisation reward
 \label{tab:mdp_rewards}
 \end{table}
 
+In Table \ref{tab:mdp_rewards} we see the maximum expected organisation rewards that can achieved by all agents collaborating. It is not very difficult to see that $O_{fc}$, $O_r$ and $O_{ia}$ have the same maximum reward no matter W1/W2 reward or online/offline version is taken, which outperforms the star organization $O_s$ in all circumstances. 
 
+Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings.
+ %
+%
+%
+%It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
 
-\begin{figure}[H]
+\begin{figure}[H] \label{fig:bar_chart_mdp}
 \subfloat[Offline. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
@@ -852,10 +858,11 @@ In Table \ref{tab:mdp_probs} we can see the maximum expected organisation reward
 
 
 
-\clearpage
+%\clearpage
 
 \subsection{STPG}
 
+In this section we focus on the analysis of Algorithm  \ref{alg:join_team_nondet}, but this time, we consider a distinction of agents with cooperative and hostile ones, which is  naturally modelled as a STPG. Again using PRISM model checker we find the maximum expected rewards and task completion probabilities for all agent organisations.
 \begin{table}
  \centering
  \begin{tabular}{ | l | l | l | l | l | l |}
