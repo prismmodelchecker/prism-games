@@ -725,7 +725,7 @@ After obtaining the expected rewards for all possible resource allocations we th
 \end{table}
 
 Please note that the resource allocations from Table \ref{tab:optimal_r}'s example column have been chosen for all future experiments and are shown in Figure \ref{fig:network_configurations}. we have decided to fix resource allocations in this way as it allows us to show how model-checking techniques can be used to improve performance of the algorithm by synthesising strategies (see discussion of MDP results in Section \ref{subsec:MDP}).
-\clearpage
+%\clearpage
 \subsection{DTMC}
 \label{subsection:DTMC}
 
@@ -836,7 +836,7 @@ Attentive reader would have noticed that the online version produces greater exp
 Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 
 
-\clearpage
+%\clearpage
 
 \subsection{MDP}
 \label{subsec:MDP}
@@ -944,7 +944,8 @@ PCTL formulae with agent coalitions:
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Table \ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Table \ref{tab:optimal_coalitions_1task} shows that value for completion of one task, whereas Table \ref{tab:optimal_coalitions_1task} shows the value for two tasks. 
+We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Table \ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Table \ref{tab:optimal_1task} shows that value for completion of one task, whereas Table \ref{tab:optimal_2task} shows the value for completion two tasks. Note that the size being 5 means that there is no hostile agent, which degenerates to the MDP modelling. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations. 
+
 \begin{table}
  \centering
  \begin{tabular}{ | l | l | l | l | l | l |}
@@ -980,7 +981,7 @@ We enumerate all the possible coalitions with different sizes and in each case, 
       $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
       $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
   \end{tabular}
-}\label{tab:optimal_coalitions_1task}
+}\label{tab:optimal_1task}
 \caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.}
 \end{table}
 
@@ -1007,11 +1008,11 @@ We enumerate all the possible coalitions with different sizes and in each case, 
     $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
 \end{tabular}
 }
-\label{tab:optimal_coalitions_2task}
+\label{tab:optimal_2task}
 \caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.}
 \end{table}
 
-\clearpage
+%\clearpage
 
 \section{Conclusions and Future Work}
 
