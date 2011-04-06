@@ -909,7 +909,7 @@ Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific
 %
 %It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
 
-\begin{figure}[H] \label{fig:bar_chart_mdp}
+\begin{figure}[H] 
 \subfloat[Offline. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
@@ -924,6 +924,7 @@ Figure \ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific
 \includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
 }
 \caption{Bar charts compare offline and online versions of Algorithm \ref{alg:join_team_org} analysed as DTMC with the best-case performance of Algorithm \ref{alg:join_team_nondet} analysed as MDP. }
+\label{fig:bar_chart_mdp}
 \end{figure}
 
 
@@ -982,8 +983,8 @@ We enumerate all the possible coalitions with different sizes and in each case, 
       $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
       $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
   \end{tabular}
-}\label{tab:optimal_1task}
-\caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.}
+}
+\caption{Values for maximum probabilities to complete one task for coalitions from table \ref{tab:optimal_coalitions}.} \label{tab:optimal_1task}
 \end{table}
 
 
@@ -1009,8 +1010,8 @@ We enumerate all the possible coalitions with different sizes and in each case, 
     $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
 \end{tabular}
 }
-\label{tab:optimal_2task}
-\caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.}
+
+\caption{Values for maximum probabilities to complete both tasks for coalitions from table \ref{tab:optimal_coalitions}.} \label{tab:optimal_2task}
 \end{table}
 
 %\clearpage
