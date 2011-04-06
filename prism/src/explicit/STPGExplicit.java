@@ -229,6 +229,55 @@ public class STPGExplicit extends MDPSimple implements STPG
 		return mvMultJacMinMaxSingle(s, vect, min);
 	}
 
+	@Override
+	public void mvMultRewMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	{
+		int s;
+		boolean min = false;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				if (stateLabels.get(s) == PLAYER_1)
+					min = min1;
+				else if (stateLabels.get(s) == PLAYER_2)
+					min = min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		}
+	}
+
+	@Override
+	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int adv[])
+	{
+		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		return mvMultRewMinMaxSingle(s, vect, min, null);
+	}
+
+	@Override
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], boolean min1, boolean min2, double val)
+	{
+		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		return mvMultMinMaxSingleChoices(s, vect, min, val);
+	}
+
 	/**
 	 * Adds one state, assigned to player 1
 	 */

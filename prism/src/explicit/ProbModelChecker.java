@@ -47,6 +47,10 @@ public class ProbModelChecker extends StateModelChecker
 		if (expr instanceof ExpressionProb) {
 			res = checkExpressionProb(model, (ExpressionProb) expr);
 		}
+		// R operator
+		else if (expr instanceof ExpressionReward) {
+			res = checkExpressionReward(model, (ExpressionReward) expr);
+		}
 		// Otherwise, use the superclass
 		else {
 			res = super.checkExpression(model, expr);
@@ -136,5 +140,54 @@ public class ProbModelChecker extends StateModelChecker
 
 		// For =? properties, just return values
 		return probs;
+	}
+	
+	/**
+	 * Model check an R operator expression and return the values for all states.
+	 */
+	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
+	{
+		String relOp; // Relational operator
+		boolean min = false; // For nondeterministic models, are we finding min (true) or max (false) rewards
+		ModelType modelType = model.getModelType();
+
+		StateValues rews = null;
+
+		// Get info from reward operator
+		relOp = expr.getRelOp();
+
+		// Check for unhandled cases
+		// TODO
+
+		// For nondeterministic models, determine whether min or max rewards needed
+		if (modelType.nondeterministic()) {
+			if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
+				// min
+				min = true;
+			} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
+				// max
+				min = false;
+			} else {
+				throw new PrismException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
+			}
+		}
+
+		// Compute rewards
+		switch (modelType) {
+		case MDP:
+			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min);
+			break;
+		default:
+			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
+		}
+
+		// Print out probabilities
+		if (getVerbosity() > 5) {
+			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
+			mainLog.print(rews);
+		}
+
+		// For =? properties, just return values
+		return rews;
 	}
 }

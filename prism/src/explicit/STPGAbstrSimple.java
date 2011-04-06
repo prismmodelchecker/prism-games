@@ -748,6 +748,101 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 		return minmax1;
 	}
 
+	@Override
+	public void mvMultRewMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	{
+		int s;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++)
+				result[s] = mvMultRewMinMaxSingle(s, vect, min1, min2, adv);
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
+				result[s] = mvMultRewMinMaxSingle(s, vect, min1, min2, adv);
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
+				result[s] = mvMultRewMinMaxSingle(s, vect, min1, min2, adv);
+		}
+	}
+
+	@Override
+	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int adv[])
+	{
+		int k;
+		double d, prob, minmax1, minmax2;
+		boolean first1, first2;
+		ArrayList<DistributionSet> step;
+
+		minmax1 = 0;
+		first1 = true;
+		step = trans.get(s);
+		for (DistributionSet distrs : step) {
+			minmax2 = 0;
+			first2 = true;
+			for (Distribution distr : distrs) {
+				// Compute sum for this distribution
+				d = 0.0;
+				for (Map.Entry<Integer, Double> e : distr) {
+					k = (Integer) e.getKey();
+					prob = (Double) e.getValue();
+					d += prob * vect[k];
+				}
+				// Check whether we have exceeded min/max so far
+				if (first2 || (min2 && d < minmax2) || (!min2 && d > minmax2))
+					minmax2 = d;
+				first2 = false;
+			}
+			// Check whether we have exceeded min/max so far
+			if (first1 || (min1 && minmax2 < minmax1) || (!min1 && minmax2 > minmax1))
+				minmax1 = minmax2;
+			first1 = false;
+		}
+
+		return minmax1;
+	}
+
+	@Override
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], boolean min1, boolean min2, double val)
+	{
+		int j, k;
+		double d, prob, minmax2;
+		boolean first2;
+		List<Integer> res;
+		ArrayList<DistributionSet> step;
+
+		// Create data structures to store strategy
+		res = new ArrayList<Integer>();
+		// One row of matrix-vector operation 
+		j = -1;
+		step = trans.get(s);
+		for (DistributionSet distrs : step) {
+			j++;
+			minmax2 = 0;
+			first2 = true;
+			for (Distribution distr : distrs) {
+				// Compute sum for this distribution
+				d = 0.0;
+				for (Map.Entry<Integer, Double> e : distr) {
+					k = (Integer) e.getKey();
+					prob = (Double) e.getValue();
+					d += prob * vect[k];
+				}
+				// Check whether we have exceeded min/max so far
+				if (first2 || (min2 && d < minmax2) || (!min2 && d > minmax2))
+					minmax2 = d;
+				first2 = false;
+			}
+			// Store strategy info if value matches
+			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
+			if (PrismUtils.doublesAreClose(val, minmax2, 1e-12, false)) {
+				res.add(j);
+				//res.add(distrs.getAction());
+			}
+		}
+
+		return res;
+	}
+
 	// Accessors (other)
 
 	/**

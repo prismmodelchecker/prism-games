@@ -820,29 +820,31 @@ public class MDPSparse extends ModelSparse implements MDP
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement)
+	public void mvMultRewMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
-				result[s] = mvMultRewMinMaxSingle(s, vect, min);
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, min);
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, min);
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
 		}
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min)
+	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min, int adv[])
 	{
 		int j, k, l1, h1, l2, h2;
 		double d, minmax;
 		boolean first;
-
+		
+		// TODO: implement adv. gen.
+		
 		minmax = 0;
 		first = true;
 		l1 = rowStarts[s];

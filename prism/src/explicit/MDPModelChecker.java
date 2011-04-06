@@ -28,7 +28,8 @@ package explicit;
 
 import java.util.*;
 
-import parser.ast.*;
+import parser.ast.Expression;
+import parser.ast.ExpressionTemporal;
 import prism.*;
 
 /**
@@ -82,8 +83,9 @@ public class MDPModelChecker extends ProbModelChecker
 		return probs;
 	}
 
-	// bounded until
-
+	/**
+	 * Compute probabilities for a bounded until operator.
+	 */
 	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min) throws PrismException
 	{
 		int time;
@@ -124,10 +126,9 @@ public class MDPModelChecker extends ProbModelChecker
 		return probs;
 	}
 
-	// until (unbounded)
-
-	// this method is split into two steps so that the LTL model checker can use the second part directly
-
+	/**
+	 * Compute probabilities for an (unbounded) until operator.
+	 */
 	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min) throws PrismException
 	{
 		BitSet b1, b2;
@@ -148,6 +149,22 @@ public class MDPModelChecker extends ProbModelChecker
 		probs = StateValues.createFromDoubleArray(res.soln);
 
 		return probs;
+	}
+
+	/**
+	 * Compute rewards for the contents of an R operator.
+	 */
+	protected StateValues checkRewardFormula(Model model, Expression expr, boolean min) throws PrismException
+	{
+		// Assume R [F ]...
+
+		StateValues rews = null;
+		ModelCheckerResult res = null;
+
+		res = computeFracRewardsPolIter((MDP) model, null, null, min);
+		rews = StateValues.createFromDoubleArray(res.soln);
+
+		return rews;
 	}
 
 	// Numerical computation functions
@@ -197,6 +214,11 @@ public class MDPModelChecker extends ProbModelChecker
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
 		boolean genAdv;
+
+		// Check for some unsupported combinations
+		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
+			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
+		}
 
 		// Are we generating an optimal adversary?
 		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
@@ -903,7 +925,7 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability.
+	 * Compute expected reachability rewards.
 	 * @param mdp The MDP
 	 * @param target Target states
 	 * @param min Min or max rewards (true=min, false=max)
@@ -914,7 +936,8 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability.
+	 * Compute expected reachability rewards.
+	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
 	 * @param mdp The MDP
 	 * @param target Target states
 	 * @param min Min or max rewards (true=min, false=max)
@@ -980,7 +1003,7 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability using value iteration.
+	 * Compute expected reachability rewards using value iteration.
 	 * @param mdp The MDP
 	 * @param target Target states
 	 * @param inf States for which reward is infinite
@@ -1039,7 +1062,7 @@ public class MDPModelChecker extends ProbModelChecker
 			//mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultRewMinMax(soln, min, soln2, unknown, false);
+			mdp.mvMultRewMinMax(soln, min, soln2, unknown, false, null);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -1073,8 +1096,104 @@ public class MDPModelChecker extends ProbModelChecker
 	 */
 	public List<Integer> expReachStrategy(MDP mdp, int state, BitSet target, boolean min, double lastSoln[]) throws PrismException
 	{
-		double val = mdp.mvMultRewMinMaxSingle(state, lastSoln, min);
+		double val = mdp.mvMultRewMinMaxSingle(state, lastSoln, min, null);
 		return mdp.mvMultRewMinMaxSingleChoices(state, lastSoln, min, val);
+	}
+
+	/**
+	 * Compute fractional rewards using policy iteration.
+	 * @param mdp: The MDP
+	 * @param min: Min or max probabilities (true=min, false=max)
+	 */
+	protected ModelCheckerResult computeFracRewardsPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
+	{
+		ModelCheckerResult res;
+		int i, n, iters, totalIters, diff;
+		double soln[], soln2[];
+		boolean done;
+		long timer;
+		int adv[];
+		DTMCModelChecker mcDTMC;
+		DTMC dtmc;
+
+		mainLog.println(mdp);
+
+		String acts = settings.getString(PrismSettings.PRISM_AR_OPTIONS);
+		mainLog.println("Acts: " + acts);
+
+		// Re-use solution to solve each new adversary?
+		boolean reUseSoln = true;
+
+		// Start value iteration
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting policy iteration (" + (min ? "min" : "max") + ")...");
+
+		// Create a DTMC model checker (for solving policies)
+		mcDTMC = new DTMCModelChecker();
+		mcDTMC.inheritSettings(this);
+		mcDTMC.setLog(new PrismDevNullLog());
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		// temp:
+		yes = new BitSet(n);
+		yes.set(0);
+		no = new BitSet(n);
+
+		// Create solution vectors
+		soln = new double[n];
+		soln2 = new double[n];
+
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = soln2[i] = yes.get(i) ? 1.0 : 0.0;
+
+		// Generate initial adversary
+		adv = new int[n];
+		for (i = 0; i < n; i++)
+			adv[i] = 0;
+
+		// Start iterations
+		iters = totalIters = 0;
+		done = false;
+		while (!done) {
+			iters++;
+			// Solve induced DTMC for adversary
+			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, adv);
+			res = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, yes, reUseSoln ? soln : null, null);
+			soln = res.soln;
+			totalIters += res.numIters;
+			// Check if optimal, improve non-optimal choices
+			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
+			done = true;
+			diff = 0;
+			for (i = 0; i < n; i++) {
+				// NB: We must not check 'no' states (may look non-optimal)
+				if (no.get(i) || yes.get(i))
+					continue;
+				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
+					done = false;
+					diff++;
+					List<Integer> opt = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln2[i]);
+					// If update adversary if strictly better
+					if (!opt.contains(adv[i]))
+						adv[i] = opt.get(0);
+				}
+			}
+		}
+
+		// Finished policy iteration
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Policy iteration");
+		mainLog.println(" took " + iters + " cycles (" + totalIters + " iterations in total) and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = totalIters;
+		res.timeTaken = timer / 1000.0;
+		return res;
 	}
 
 	/**

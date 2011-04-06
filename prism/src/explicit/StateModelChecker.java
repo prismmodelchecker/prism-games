@@ -48,11 +48,11 @@ public class StateModelChecker
 	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
 
 	// PRISM settings object
-	protected PrismSettings settings = null;
+	protected PrismSettings settings = new PrismSettings();
 	
 	// Properties file (for labels, constants etc)
 	protected PropertiesFile propertiesFile;
-	
+
 	// Constants
 	protected Values constantValues;
 
@@ -466,7 +466,9 @@ public class StateModelChecker
 		// Labels
 		else if (expr instanceof ExpressionLabel) {
 			res = checkExpressionLabel(model, (ExpressionLabel) expr);
-		} else if (expr.getType() instanceof TypeBool) {
+		}
+		// Anything else - just evaluate expression repeatedly
+		else if (expr.getType() instanceof TypeBool) {
 			int numStates = model.getNumStates();
 			BitSet bs = new BitSet(numStates);
 			List<State> statesList = model.getStatesList();
@@ -474,6 +476,22 @@ public class StateModelChecker
 				bs.set(i, expr.evaluateBoolean(statesList.get(i)));
 			}
 			res = bs;
+		} else if (expr.getType() instanceof TypeInt) {
+			int numStates = model.getNumStates();
+			StateValues sv = new StateValues(expr.getType(), numStates);
+			List<State> statesList = model.getStatesList();
+			for (int i = 0; i < numStates; i++) {
+				sv.setIntValue(i, expr.evaluateInt(statesList.get(i)));
+			}
+			res = sv;
+		} else if (expr.getType() instanceof TypeDouble) {
+			int numStates = model.getNumStates();
+			StateValues sv = new StateValues(expr.getType(), numStates);
+			List<State> statesList = model.getStatesList();
+			for (int i = 0; i < numStates; i++) {
+				sv.setDoubleValue(i, expr.evaluateDouble(statesList.get(i)));
+			}
+			res = sv;
 		}
 		// Anything else - error
 		else {
@@ -488,18 +506,22 @@ public class StateModelChecker
 	 */
 	protected Object checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
 	{
-		// TODO: make much more efficient
 		Type type;
-		BitSet result = null;
+		Object res = null;
 		type = expr.getType();
 		if (type instanceof TypeBool) {
-			result = new BitSet(model.getNumStates());
+			BitSet bs = new BitSet(model.getNumStates());
 			if (expr.evaluateBoolean()) {
-				result.set(0, model.getNumStates());
+				bs.set(0, model.getNumStates());
 			}
+			res = bs;
+		} else if (type instanceof TypeInt || type instanceof TypeDouble) {
+			res = new StateValues(expr.getType(), model.getNumStates(), expr.evaluate());
+		} else {
+			throw new PrismException("Couldn't check literal " + expr);
 		}
 
-		return result;
+		return res;
 	}
 
 	/**

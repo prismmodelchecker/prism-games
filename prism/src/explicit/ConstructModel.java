@@ -168,6 +168,9 @@ public class ConstructModel
 		//loadGameParams("p1m=[scheduler,task_generator,sensor1,sensor3,sensor5,sensor7] p2m=[sensor2,sensor4,sensor6] p1s=[initialise,scheduling,str1,str2,str3,str4,str5,str6,str7,fin1,fin2,fin3,fin4,fin5,fin6,fin7] p2s=[]");
 		loadGameParams(settings.getString(PrismSettings.PRISM_GAME_OPTIONS));
 		
+		// For now, don't use sparse (so can use actions) (TODO: fix)
+		buildSparse = false;
+		
 		// Don't support multiple initial states
 		if (modulesFile.getInitialStates() != null) {
 			throw new PrismException("Cannot do explicit-state reachability if there are multiple initial states");
@@ -295,9 +298,10 @@ public class ConstructModel
 					}
 				}
 				if (!justReach) {
-					if (modelType == ModelType.MDP)
-						mdp.addChoice(src, distr);
-					else if (modelType == ModelType.STPG) {
+					if (modelType == ModelType.MDP) {
+						k = mdp.addChoice(src, distr);
+						mdp.setAction(src, k, engine.getTransitionModuleOrAction(i, 0));
+					} else if (modelType == ModelType.STPG) {
 						k = stpg.addChoice(src, distr);
 						stpg.setAction(src, k, engine.getTransitionModuleOrAction(i, 0));
 					}

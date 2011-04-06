@@ -83,6 +83,9 @@ public class DTMCModelChecker extends ProbModelChecker
 		return probs;
 	}
 
+	/**
+	 * Compute probabilities for a bounded until operator.
+	 */
 	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr) throws PrismException
 	{
 		int time;
@@ -117,10 +120,9 @@ public class DTMCModelChecker extends ProbModelChecker
 		return probs;
 	}
 
-	// until (unbounded)
-
-	// this method is split into two steps so that the LTL model checker can use the second part directly
-
+	/**
+	 * Compute probabilities for an (unbounded) until operator.
+	 */
 	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr) throws PrismException
 	{
 		BitSet b1, b2;
@@ -186,6 +188,11 @@ public class DTMCModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
+
+		// Check for some unsupported combinations
+		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
+			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
+		}
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
