@@ -45,8 +45,8 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
-Multi-agent systems are an increasingly important software paradigm
-in which agents co-operate to achieve a particular goal.
+Multi-agent systems are an increasingly important software paradigm and in many of 
+its applications agents co-operate to achieve a particular goal.
 This requires the design of efficient collaboration protocols,
 a typical example of which is \emph{team formation}.
 In this paper, we illustrate how probabilistic model checking,
@@ -69,11 +69,11 @@ which we have extended with support for stochastic games.
 \comment{Add some comments about complexity}
 %\taolue{NB. I introduced the following abbreviations: Sec. for section, Alg. for Algorithm, and so on. Also, Eqn. for equation, and I use eqref
 %to refer to an equation.}%
-Multi-agent systems have become an important software paradigm.
-The key idea behind this approach is that several different agents can cooperate to achieve certain goals.
+Multi-agent systems have become an important software paradigm. One of the 
+key ideas behind this approach is that several different agents can cooperate to achieve certain goals.
 This requires the design of efficient collaboration protocols, of which \emph{team formation} is a typical example. In this paper, we focus on a distributed team formation protocol introduced in \cite{gaston2005agent}. There, the authors used it to analyse team performance in dynamic networks.
 The protocol %was studied further in \cite{glinton2008agent}, and
-has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}.
+has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it an interesting target for formal analysis.
 
 The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
@@ -390,6 +390,15 @@ For a set of agents $A$, the rewards are defined accordingly as the total reward
  W_2(A) = \sum_{a \in A} W_2(a).
 %\label{eq:w2organisation}
 \end{equation}
+
+The intuition behind choosing these two types of rewards is that $W_2$ will provide 
+incentives for agents to form smallest teams which can accomplish tasks, whereas $W_1$
+motivates agent to be in a successful team. From organisation's point of view $W_1$ reward 
+shall be used when the resources are limited, and $W_2$ will encourage agents to introduce
+resource redundancy into the teams, but this may ensure that tasks are completed with higher 
+probability.
+
+
 \end{definition}
 
 
@@ -549,7 +558,7 @@ In this section we use a toy example from Fig.~\ref{fig:prism_example} to illust
 \mbox{$\prismkeyword{endrewards}$}
 \end{tabbing}
 \end{minipage}}}
-\caption{PRISM model of a two agent system. Explain meaning of guarded commands here.}
+\caption{PRISM model of a two agent system. For a very short description of PRISM language see Appendix \ref{sec:prism_lang}}
 \label{fig:prism_example}
 \end{figure}
 
@@ -965,17 +974,17 @@ We enumerate all possible coalitions with different sizes and in each case, PRIS
 
 \begin{figure}[H]
 \subfloat[Offline. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=60 550 280 90, scale=0.77]{images/w1_stpg_offline}
+\includegraphics[clip=true, trim=61 523 320 112, scale=0.77]{images/w1_stpg_offline}
 }
 \subfloat[Online. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=57 550 280 90, scale=0.77]{images/w1_stpg_online}
+\includegraphics[clip=true, trim=70 520 280 112, scale=0.77]{images/w1_stpg_online}
 }
 
 \subfloat[Offline. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=94.5 550 260 80, scale=0.77]{images/w2_stpg_offline}
+\includegraphics[clip=true, trim=120 520.5 270 115, scale=0.77]{images/w2_stpg_offline}
 }
 \subfloat[Online. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=63 550 280 80, scale=0.77]{images/w2_stpg_online}
+\includegraphics[clip=true, trim=101 520 280 115, scale=0.77]{images/w2_stpg_online}
 }
 \caption{Graphs compare how the optimal coalition performance depends on it's size.}
 \label{fig:coalition_performance}
@@ -1039,6 +1048,21 @@ of running the team joining algorithm individually by each agent in the protocol
 \end{itemize}
 \clearpage
 
+\section{PRISM Language}
+\label{sec:prism_lang}
+The basic components of the language are modules and variables. A
+system is constructed as a number of modules which can interact with each other.
+A module contains a number of variables which express the state of the module,
+and its behaviour is given by a set of guarded commands of the form:
+
+[] $\langle$guard$>$ \! $\langle$command$>$;
+
+The guard is a predicate over the variables of the system and the command describes
+a transition which the module can make if the guard is true (using primed variables
+to denote the next values of variables). If a transition is probabilistic, then the
+command is specified as:
+
+$\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
 
 \section{State Transition System} \label{app:transitions}
 \begin{figure}
