@@ -1,0 +1,28 @@
+PRISM
+=====
+
+Version: 4.0.beta
+Date: Thu Mar 31 21:32:45 BST 2011
+Hostname: clpc493.comlab.ox.ac.uk
+Command line: prism examples/games/experiments/online/full/STPG_full_online.pm -pctl 'Pmaxmin=? [F task1_completed]' -gameoptions 'p1m=[sensor3,sensor4] p2m=[controller,sensor1,sensor2,sensor5] p1s=[str3,fin3,str4,fin4] p2s=[str1,fin1,str2,fin2,str5,fin5]'
+
+Parsing model file "examples/games/experiments/online/full/STPG_full_online.pm"...
+
+1 property:
+(1) Pmaxmin=? [ F task1_completed ]
+
+-------------------------------------------
+
+Computing reachable states...
+ 64496 125382 207126 322113 454053 536070 682353 812099 881665 1001169 1025299 1190725 1386608 1589997 1779817 1786969
+Reachable states exploration and model construction done in 52.144 secs.
+Sorting reachable states list...
+
+-------------------------------------------
+
+Model checking: Pmaxmin=? [ F task1_completed ]
+
+Time for model checking: 321.08 seconds.
+
+Result (probability): 0.42857142857142755 (value in the initial state)
+
