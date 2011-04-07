@@ -2,7 +2,7 @@ PRISM
 =====
 
 Version: 4.0.beta
-Date: Thu Apr 07 11:34:46 BST 2011
+Date: Thu Apr 07 13:27:37 BST 2011
 Hostname: qavbench.comlab
 Command line: prism STPG_full_offline.pm -pctl 'Rmaxmin=? [F status=8]' -gameoptions 'p1m=[sensor1,sensor2,sensor4,sensor5] p2m=[controller,sensor3] p1s=[str1,fin1,str2,fin2,str4,fin4,str5,fin5] p2s=[str3,fin3]'
 
@@ -14,15 +14,15 @@ Parsing model file "STPG_full_offline.pm"...
 -------------------------------------------
 
 Computing reachable states...
- 159492 367426 584211 730088 907993
-Reachable states exploration and model construction done in 14.213 secs.
+ 174858 370491 607184 749966 907993
+Reachable states exploration and model construction done in 13.914 secs.
 Sorting reachable states list...
 
 -------------------------------------------
 
 Model checking: Rmaxmin=? [ F status=8 ]
 
-Time for model checking: 5.426 seconds.
+Time for model checking: 8.125 seconds.
 
-Result (expected reward): 1.4285714285714257 (value in the initial state)
+Result (expected reward): 2.55102040816327 (value in the initial state)
 
