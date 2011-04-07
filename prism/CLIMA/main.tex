@@ -462,7 +462,7 @@ allowing agents to make decisions regarding what actions to take, instead of pic
 are highlighted in Alg.~\ref{alg:join_team_nondet}.
 \begin{itemize}
  \item Allow agents to consider task in arbitrary order instead of random one;
- \item Replace probabilistic choice to initiate the team by nondeterministic one; 
+ \item Replace probabilistic choice to initiate the team by nondeterministic one;
  \item Allow agent \emph{not} to join a team even if it has resource and neighbour in that team.
 \end{itemize}
 %
@@ -936,8 +936,10 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific s
 
 \subsection{STPG}
 \label{subsec:STPG}
-
-In this section we focus on the analysis of Alg.~\ref{alg:join_team_nondet}, but this time we consider a distinction of agents with cooperative and hostile ones, which is  naturally modelled as a STPG. We are mainly interested in finding the optimal coalition in the sense that it has the largest probability to accomplish tasks. A coalition is a subset of agents who cooperate against the rest of agents in the organization. To this aim, we consider a slight extension of
+In this section we focus on the analysis of Alg.~\ref{alg:join_team_nondet}, but in contrast to the previous section,
+we distinguish agents as cooperative and hostile ones, which is naturally modelled as a STPG. We are mainly interested in finding the optimal coalition. In general,
+a coalition is a subset of agents who cooperate to ensure certain goals irrespective of how the rest of agents behave in the organization. We consider two criteria,
+i.e., the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we consider a slight extension of
 PCTL formulae with agent coalitions:
 
 \aistis{PCTL notation needs to be synced with the preliminaries section.}
@@ -951,8 +953,7 @@ PCTL formulae with agent coalitions:
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-We enumerate all the possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks). This is done for both online and offline versions of the algorithm. Tab.~\ref{tab:optimal_coalitions} shows the optimal coalitions with different sizes. Tab.~\ref{tab:optimal_1task} shows that value for completion of one task, whereas Tab.~\ref{tab:optimal_2task} shows the value for completion two tasks. Note that the size being 5 means that there is no hostile agent, which degenerates to the MDP modelling. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations.
-
+We enumerate all possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the Algorithm. It turns out with two criteria, one actually obtains the same optimal coalition, which is shown in Tab.~\ref{tab:optimal_coalitions}. %(This is similar to the MDP case.)
 
 \begin{table}
  \centering
@@ -969,6 +970,7 @@ We enumerate all the possible coalitions with different sizes and in each case, 
 \end{table}
 
 
+ 
 
 \begin{figure}[H]
 \subfloat[Offline. Reward $W_1(O)$.]{
@@ -989,90 +991,14 @@ We enumerate all the possible coalitions with different sizes and in each case, 
 \end{figure}
 
 
-\begin{table}
- \centering
- \begin{tabular}{ | l | l | l | l | l | l |}
-    \hline
-    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
-    $O_{fc}$ & 0.26530/0.26530  & 0.97959/0.71428  &  2.32653/1.24489  &  2.55102/1.42857   &  2.89795/1.67346  \\ \hline
-    $O_r$ &  0.26530/0.26530   & 0.97959/0.71428  &  1.64897/1.07891  &  2.41972/1.40680   &  2.89795/1.67346 \\ \hline
-    $O_s$ &  0.26530/0.26530   &  0.97959/0.71428  & 1.91496/1.15986  &  2.07857/1.25884   &  2.20816/1.35918  \\ \hline
-    $O_{ia}$ & 0.26530/0.26530   &  0.97959/0.71428  &  2.22619/1.23129  &  2.52380/1.41496   &  2.89795/1.67346  \\ \hline
-\end{tabular}
-\caption{Optimal coalitions of all for agent organisations from Fig.~\ref{fig:network_configurations} for offline version using rewards $W_1$/$W_2$.}
-\label{tab:optimal_coalitions}
-\end{table}
-
-
-\begin{table}
- \centering
- \begin{tabular}{ | l | l | l | l | l | l |}
-    \hline
-    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
-    $O_{fc}$ &   0.14285/0.14285  &  0.85714/0.42857  &  2.99999/0.99999  &  3.14285/1.14285   &  3.85714/1.42857  \\ \hline
-    $O_r$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.29047/0.85238  &  3.08928/1.12738   &  3.85714/ 1.42857  \\ \hline
-    $O_s$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.33333/0.85714  &   2.60714/0.99999   &  2.71428/1.02857  \\ \hline
-    $O_{ia}$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.99999/0.99999  &  3.14285/1.14285   &  3.85714/1.42857  \\ \hline
-\end{tabular}
-\caption{Optimal coalitions of all for agent organisations from Fig.~\ref{fig:network_configurations} for online version using rewards $W_1$/$W_2$.}
-\label{tab:optimal_coalitions}
-\end{table}
 
 
 
-\begin{table}
- \centering
-\subfloat[Offline]{
-  \begin{tabular}{ | l | l | l | l | l | l |}
-      \hline
-      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
-      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
-      $O_r$ & 0.14285 & 0.42857 & 0.68333 &  0.92619 & 1.0 \\ \hline
-      $O_s$ & 0.14285 & 0.42857 & 0.79761 & 0.81904 & 0.82857\\ \hline
-      $O_{ia}$ & 0.14285 & 0.42857 & 0.93452 & 1.0 & 1.0\\ \hline
-  \end{tabular}
-}
-\subfloat[Online]{
-  \begin{tabular}{ | l | l | l | l | l | l |}
-      \hline
-      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
-      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
-      $O_r$ & 0.14285 & 0.33333 & 0.68571 & 0.89523 & 1.0 \\ \hline
-      $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
-      $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
-  \end{tabular}
-}
-\caption{Values for maximum probabilities to complete one task for coalitions from Tab.~\ref{tab:optimal_coalitions}.} \label{tab:optimal_1task}
-\end{table}
 
 
-\begin{table}
- \centering
-\subfloat[Offline]{
- \begin{tabular}{ | l | l | l | l | l | l |}
-    \hline
-    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
-    $O_{fc}$ & 0.0 & 0.04081 & 0.24489 &  0.42857 & 0.67346  \\ \hline
-    $O_r$ & 0.0 &  0.04081 & 0.17687 & 0.40748 & 0.67346\\ \hline
-    $O_s$ & 0.0 & 0.04081 & 0.20408 & 0.29523 & 0.39183 \\ \hline
-    $O_{ia}$ & 0.0 & 0.04081 & 0.23129 & 0.41496 & 0.67346\\ \hline
-\end{tabular}
-}
-\subfloat[Online]{
- \begin{tabular}{ | l | l | l | l | l | l |}
-    \hline
-    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
-    $O_{fc}$ & 0.0 & 0.02040 & 0.06122 &  0.18367 & 0.42857  \\ \hline
-    $O_r$ & 0.0 & 0.02040 & 0.06122 & 0.18367 & 0.42857\\ \hline
-    $O_s$ & 0.0 & 0.02040 & 0.06122 & 0.12244 & 0.12653 \\ \hline
-    $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
-\end{tabular}
-}
 
-\caption{Values for maximum probabilities to complete both tasks for coalitions from Tab.~\ref{tab:optimal_coalitions}.} \label{tab:optimal_2task}
-\end{table}
 
-%\clearpage
+\clearpage
 
 \section{Conclusions and Future Work}
 
@@ -1131,5 +1057,113 @@ of running the team joining algorithm individually by each agent in the protocol
 	\vspace{-35pt}
 	\caption{State transition system of the model from Figure \ref{fig:prism_example} generated by PRISM.}
 \end{figure}
+
+\section{}
+
+Tab.~\ref{tab:optimal_1task} shows the maximum probability for completion of one task, whereas Tab.~\ref{tab:optimal_2task} shows the maximum probability for completion of two tasks; both contain the online and offline versions. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations.
+
+
+
+
+\begin{table}
+ \centering
+\subfloat[Offline]{
+  \begin{tabular}{ | l | l | l | l | l | l |}
+      \hline
+      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
+      $O_r$ & 0.14285 & 0.42857 & 0.68333 &  0.92619 & 1.0 \\ \hline
+      $O_s$ & 0.14285 & 0.42857 & 0.79761 & 0.81904 & 0.82857\\ \hline
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.93452 & 1.0 & 1.0\\ \hline
+  \end{tabular}
+}
+\subfloat[Online]{
+  \begin{tabular}{ | l | l | l | l | l | l |}
+      \hline
+      $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+      $O_{fc}$ & 0.14285 & 0.42857 & 1.0 & 1.0 & 1.0  \\ \hline
+      $O_r$ & 0.14285 & 0.33333 & 0.68571 & 0.89523 & 1.0 \\ \hline
+      $O_s$ & 0.14285 & 0.42857 & 0.76190 & 0.84761 & 0.88571 \\ \hline
+      $O_{ia}$ & 0.14285 & 0.42857 & 0.92857 & 1.0 & 1.0\\ \hline
+  \end{tabular}
+}
+\caption{Values for maximum probabilities to complete one task for coalitions from Tab.~\ref{tab:optimal_coalitions}.} \label{tab:optimal_1task}
+\end{table}
+
+
+\begin{table}
+ \centering
+\subfloat[Offline]{
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & 0.0 & 0.04081 & 0.24489 &  0.42857 & 0.67346  \\ \hline
+    $O_r$ & 0.0 &  0.04081 & 0.17687 & 0.40748 & 0.67346\\ \hline
+    $O_s$ & 0.0 & 0.04081 & 0.20408 & 0.29523 & 0.39183 \\ \hline
+    $O_{ia}$ & 0.0 & 0.04081 & 0.23129 & 0.41496 & 0.67346\\ \hline
+\end{tabular}
+}
+\subfloat[Online]{
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1 & 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & 0.0 & 0.02040 & 0.06122 &  0.18367 & 0.42857  \\ \hline
+    $O_r$ & 0.0 & 0.02040 & 0.06122 & 0.18367 & 0.42857\\ \hline
+    $O_s$ & 0.0 & 0.02040 & 0.06122 & 0.12244 & 0.12653 \\ \hline
+    $O_{ia}$ & 0.0 & 0.02040 & 0.06122 & 0.18231 & 0.42857\\ \hline
+\end{tabular}
+}
+
+\caption{Values for maximum probabilities to complete both tasks for coalitions from Tab.~\ref{tab:optimal_coalitions}.} \label{tab:optimal_2task}
+\end{table}
+
+
+Tab.~\ref{tab:opt_coa_reward_offline} and Tab.~\ref{tab:opt_coa_reward_online} shows the maximum ($W_1$/$W_2$) rewards in the offline and online versions respectively.
+
+
+\begin{table}
+ \centering
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ & 0.26530/0.26530  & 0.97959/0.71428  &  2.32653/1.24489  &  2.55102/1.42857   &  2.89795/1.67346  \\ \hline
+    $O_r$ &  0.26530/0.26530   & 0.97959/0.71428  &  1.64897/1.07891  &  2.41972/1.40680   &  2.89795/1.67346 \\ \hline
+    $O_s$ &  0.26530/0.26530   &  0.97959/0.71428  & 1.91496/1.15986  &  2.07857/1.25884   &  2.20816/1.35918  \\ \hline
+    $O_{ia}$ & 0.26530/0.26530   &  0.97959/0.71428  &  2.22619/1.23129  &  2.52380/1.41496   &  2.89795/1.67346  \\ \hline
+\end{tabular}
+\caption{Optimal coalitions of all for agent organisations from Fig.~\ref{fig:network_configurations} for offline version using rewards $W_1$/$W_2$.}
+\label{tab:opt_coa_reward_offline}
+\end{table}
+
+
+\begin{table}
+ \centering
+ \begin{tabular}{ | l | l | l | l | l | l |}
+    \hline
+    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
+    $O_{fc}$ &   0.14285/0.14285  &  0.85714/0.42857  &  2.99999/0.99999  &  3.14285/1.14285   &  3.85714/1.42857  \\ \hline
+    $O_r$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.29047/0.85238  &  3.08928/1.12738   &  3.85714/1.42857  \\ \hline
+    $O_s$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.33333/0.85714  &   2.60714/0.99999   &  2.71428/1.02857  \\ \hline
+    $O_{ia}$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.99999/0.99999  &  3.14285/1.14285   &  3.85714/1.42857  \\ \hline
+\end{tabular}
+\caption{Optimal coalitions of all for agent organisations from Fig.~\ref{fig:network_configurations} for online version using rewards $W_1$/$W_2$.}
+\label{tab:opt_coa_reward_online}
+\end{table}
+
+%\begin{table}
+% \centering
+% \begin{tabular}{ | l | l | l | l | l | l |}
+%    \hline
+%    $O$ & 1& 2 & 3 & 4 & 5 \\ \hline
+%    $O_{fc}$ & 0.26530/0.26530  & 0.97959/0.71428  &  2.32653/1.24489  &  2.55102/1.42857   &  2.89795/1.67346  \\ \hline
+%    $O_r$ &  0.26530/0.26530   & 0.97959/0.71428  &  1.64897/1.07891  &  2.41972/1.40680   &  2.89795/1.67346 \\ \hline
+%    $O_s$ &  0.26530/0.26530   &  0.97959/0.71428  & 1.91496/1.15986  &  2.07857/1.25884   &  2.20816/1.35918  \\ \hline
+%    $O_{ia}$ & 0.26530/0.26530   &  0.97959/0.71428  &  2.22619/1.23129  &  2.52380/1.41496   &  2.89795/1.67346  \\ \hline
+%\end{tabular}
+%\caption{Optimal coalitions of all for agent organisations from Fig.~\ref{fig:network_configurations} for offline version using rewards $W_1$/$W_2$.}
+%\label{tab:optimal_coalitions}
+%\end{table}
+ 
+
 
 \end{document} 
