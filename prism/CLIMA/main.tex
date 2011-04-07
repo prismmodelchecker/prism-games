@@ -45,7 +45,7 @@ the ERC Advanced Grant VERIWARE.}}
 \maketitle
 
 \begin{abstract}
-Multi-agent systems are an increasingly important software paradigm and in many of 
+Multi-agent systems are an increasingly important software paradigm and in many of
 its applications agents co-operate to achieve a particular goal.
 This requires the design of efficient collaboration protocols,
 a typical example of which is \emph{team formation}.
@@ -69,7 +69,7 @@ which we have extended with support for stochastic games.
 \comment{Add some comments about complexity}
 %\taolue{NB. I introduced the following abbreviations: Sec. for section, Alg. for Algorithm, and so on. Also, Eqn. for equation, and I use eqref
 %to refer to an equation.}%
-Multi-agent systems have become an important software paradigm. One of the 
+Multi-agent systems have become an important software paradigm. One of the
 key ideas behind this approach is that several different agents can cooperate to achieve certain goals.
 This requires the design of efficient collaboration protocols, of which \emph{team formation} is a typical example. In this paper, we focus on a distributed team formation protocol introduced in \cite{gaston2005agent}. There, the authors used it to analyse team performance in dynamic networks.
 The protocol %was studied further in \cite{glinton2008agent}, and
@@ -126,9 +126,9 @@ and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations, as well as the one of a single agent.
 MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to maximise or minimise the performance of the organisation respectively. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed. (See Alg.~\ref{alg:main_process} for more details.)
 %In all of these three models the performance of an agent organisation or individual agents is analysed by model checking PCTL formulae.
- 
 
-Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies each consisting of five agents, i.e., fully connected, ring, start, and a network having one isolated node. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. For all of these analysis, we consider the offline and online dichotomy. 
+
+Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies each consisting of five agents, i.e., fully connected, ring, start, and a network having one isolated node. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation. Then we take the model to STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. For all of these analysis, we consider the offline and online dichotomy.
 
 %\comment{resource v.s. skill?}
 %
@@ -136,19 +136,19 @@ Our experiments illustrate several aspects of agent organisation analysis. As a 
 
 %Comparing to the traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent},  Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organisations very easily, which can be considered as another advantage.
 
-%\paragraph{Contributions.} 
+%\paragraph{Contributions.}
 We summarlised the main contributions as follows:
 \begin{enumerate}
   \item We perform a comprehensive formal analysis on the performance of the team formation protocol proposed in \cite{gaston2005agent}.
-      
+
   \item  We extend the original algorithm studied in (1), allowing agents to make decisions nondeterministically when forming teams; and by modelling and analysing as an MDP, we can synthesize the best strategies for agents to achieve the optimal performances. This partially solves an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".}
-      
+
   \item  We address the competitive coalitional setting, in which agents are split into cooperative and Byzantine classes. STPGs are thus introduced based on which we can synthesize the optimal agent coalitions. To the best of our knowledge, this appears to be the first work which can perform such analysis automatically.
-      
+
   \item To support the STPG based analysis in (3), we extend the PRISM model checker to accommodate STPG solving. This is of dependent interests.
 \end{enumerate}
 
-We note that it would be difficult to achieve (2) and (3) through simulation-based approach, which we think, demonstrates the strength of formal verification. 
+We note that it would be difficult to achieve (2) and (3) through simulation-based approach, which we think, demonstrates the strength of formal verification.
 
 
 \paragraph{Related work.} As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
@@ -354,9 +354,7 @@ A \emph{task} $T_i=\{r_i\ :\ $``$r_i$ is required by the task $i$''$\}$ is a set
 \begin{definition}[Team]
 A \emph{team} of agents is denoted by $M_i=\{a_j\ :\ $``$a_j$ is a member of team $i$''$\}$, and the set of all teams is $M=\{M_1, M_2,\dots , M_m\}$. By $\bar{M} = \bigcup_{1\leq i\leq m} M_i$, we denote the set of all agents that are committed to some team. For $1\leq i\leq m$, $R_{M_i}=\bigcup_{a \in M_i}R_{a}$ is the set of resources the team $M_i$ has. The team $M_i$ is said to be able to accomplish the task $T_j$ iff $T_j \subseteq R_{M_i}$.
 \end{definition}
-
-\comment{TL: might explain the intuition of these two rewards.}
-
+ 
 \begin{definition}[Rewards]
 For agent $a$, we define two types of \emph{reward}:
 \begin{itemize}
@@ -390,16 +388,15 @@ For a set of agents $A$, the rewards are defined accordingly as the total reward
  W_2(A) = \sum_{a \in A} W_2(a).
 %\label{eq:w2organisation}
 \end{equation}
-
-The intuition behind choosing these two types of rewards is that $W_2$ will provide 
-incentives for agents to form smallest teams which can accomplish tasks, whereas $W_1$
-motivates agent to be in a successful team. From organisation's point of view $W_1$ reward 
-shall be used when the resources are limited, and $W_2$ will encourage agents to introduce
-resource redundancy into the teams, but this may ensure that tasks are completed with higher 
-probability.
-
-
 \end{definition}
+
+The underlying idea of these two types of rewards is that $W_2$ provides
+incentives for agents to form smallest teams which can accomplish tasks, whereas $W_1$
+motivates agent to be in a successful team. From organisation's perspective $W_1$ reward
+shall be used when the resources are limited, whereas $W_2$ reward will encourage agents to introduce
+resource redundancy into teams, but this may ensure that tasks are completed with higher
+probabilities.
+
 
 
 \subsection{Algorithms}
