@@ -377,7 +377,7 @@ public class ConstructModel
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			}
-			mainLog.println("Model: " + model);
+//			mainLog.println("Model: " + model);
 		}
 
 		// Discard permutation
