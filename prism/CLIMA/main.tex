@@ -54,10 +54,10 @@ can be applied to the analysis, design and verification of such protocols.
 We start by analysing the performance of an existing team formation protocol
 modelled as a discrete-time Markov chain.
 Then, using a Markov decision process model,
-we construct optimal algorithm for team formation,
+we construct optimal algorithms for team formation,
 with respect to both individual agents and the combined set of all agents.
 Finally, we use stochastic two-player games to analyse the competitive coalitional setting,
-in which agents into cooperative and Byzantine classes.
+in which agents are split into cooperative and Byzantine classes.
 We present experimental results from these models
 using the probabilistic model checking tool PRISM,
 which we have extended with support for stochastic games.
@@ -525,7 +525,9 @@ We observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Of
 
 \subsection{PRISM Models}
 
-PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online\footnote{Webpage for PRISM models}. In this section we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
+PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online%
+\footnote{See \url{http://www.prismmodelchecker.org/subm/clima11/}.}.
+In this section we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
 
 \begin{figure}
  \centering
