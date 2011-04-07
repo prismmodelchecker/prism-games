@@ -209,13 +209,6 @@ This is a \emph{turn-based} game. In each state $s$ of the game,
 either player 1 or player 2 selects an action $a\in Act$,
 depending on whether $s$ is in set $S_1$ or $S_2$.
 
-For all three classes of models, we also consider \emph{rewards},
-which can be used to capture a variety of additional quantitative measures
-(e.g. ...)
-For consistency, we assume a simple state-based scheme
-i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
-\dave{might move rewards to next sect}
-
 %----------------------------------------------------------------------------------------------------------------
 
 \subsection{Probabilistic Model Checking \& PRISM}
@@ -238,17 +231,24 @@ For a DTMC, typical PCTL properties would be:
 \begin{itemize}
 \item ${\tt P}_{<0.01}[\,\Diamond\,\mathit{fail}\,]$ -
 ``the probability of a failure occurring is less than 0.01''
-\item ${\tt P}_{\geq 0.95}[\,\Diamond^{\leq 60}\,\mathit{end}\,]$ -
-``the probability of the protocol completing with 60 time units is at least 0.95''.
+\item ${\tt P}_{\geq 0.95}[\,\Diamond\,\mathit{end}\,]$ -
+``the probability of the protocol terminating is at least 0.95''.
+%\item ${\tt P}_{\geq 0.95}[\,\Diamond^{\leq 60}\,\mathit{end}\,]$ -
+%``the probability of the protocol completing with 60 time units is at least 0.95''.
 \end{itemize}
-In fact, in practice, we often use a \emph{quantitative} variant of the ${\tt P}$ operator,
+For simplicity, we restrict our attention to \emph{reachability} queries
+(in the examples above, $\mathit{fail}$ is a \emph{label}, denoting a particular subset of the DTMC's states $S$
+and $\Diamond\,\mathit{fail}$ refers to the event in which a state from this set is reached).
+%
+In practice, we often use a \emph{quantitative} variant of the ${\tt P}$ operator,
 denoted ${\tt P}_{=?}$, which returns the actual probability of an event's occurrence, e.g.:
 \begin{itemize}
 \item ${\tt P}_{=?}[\,\Diamond\,\mathit{fail}\,]$ -
 ``what is the probability of a failure occurring?''
 \end{itemize}
-Whereas in a DTMC it is relatively straightforward to define the probability of the occurrence
-of an event (such as $\Diamond\,\mathit{fail}$ or $\Diamond^{\leq 60}\,\mathit{end}$ in the examples above),
+Whereas in a DTMC it is relatively straightforward to define the probability
+of an event such as $\Diamond\,\mathit{fail}$,
+% or $\Diamond^{\leq 60}\,\mathit{end}$ in the examples above),
 for MDPs, we must also take account of the nondeterminism in the model.
 The standard approach is to use the notion of
 \emph{strategies} (also referred to as \emph{policies}, \emph{schedulers}, etc.).
@@ -257,8 +257,8 @@ based on its execution history so far.
 For a specific strategy, we \emph{can} define the probability of an event.
 Thus, probabilistic model checking focuses on a best- or worst-case analysis,
 quantifying over all possible strategies.
-We will continue to focus on quantitative properties,
-which now ask for the \emph{minimum} or \emph{maximum} probability of an event occurring, e.g.:
+We still focus on quantitative properties,
+which now ask for the \emph{minimum} or \emph{maximum} probability of an event, e.g.:
 \begin{itemize}
 \item ${\tt P}_{\max=?}[\,\Diamond\,\mathit{fail}\,]$ -
 ``what is the maximum probability of a failure occurring?''
@@ -275,19 +275,24 @@ Extending the notation from above, we write:
 assuming that player 2 tries to maximise it?''
 \end{itemize}
 \dave{could put formal details in an appendix, if that helps}
+%
+For this simple class of (zero-sum) properties,
+these values are well defined \cite{Con93}
 
-For this simple class of (reachability) properties,
-these values are well defined and \dave{bla bla bla}
-
-Finally, we also include reward-based properties.
-More precisely, we consider the \emph{expected total reward} accumulated until some target set of states is reached.
-Consider a DTMC and reward structure $\mathit{time}$... and label (?) $\mathit{end}$...
-
+Finally, we also use properties based on \emph{rewards},
+which can be used to capture a variety of additional quantitative measures.
+For consistency across all three types of model,
+we assume a simple state-based scheme
+i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
+We consider the \emph{expected total reward} accumulated until some target set of states is reached.
+Consider a DTMC with reward function $\mathit{time}$
+and a label $\mathit{end}$ denoting a set of target states.
+We write, for example:
 \begin{itemize}
 \item ${\tt R}^{\mathit{time}}_{=?}[\,\Diamond\,\mathit{end}\,]$ -
 ``what is the expected time for the algorithm to complete?''
 \end{itemize}
-In exactly, the same style as described above, these queries generalise to MDPs and stochastic games, e.g.:
+In exactly the same style as above, these queries generalise to MDPs and STPGs: %, e.g.:
 \begin{itemize}\addtolength{\itemsep}{2pt}
 \item ${\tt R}^{\mathit{time}}_{\max=?}[\,\Diamond\,\mathit{end}\,]$ -
 ``what is the maximum expected algorithm completion time?''
@@ -295,46 +300,20 @@ In exactly, the same style as described above, these queries generalise to MDPs 
 ``what is the minimum expected time for algorithm completion
 that player 1 can guarantee, assuming player 2 tries to maximise it?''
 \end{itemize}
-
+%
 \dave{mention infinite case, non prob 1}
-
 \dave{mention alg.s, complexity}
-
+%
 \emph{PRISM} \cite{KNP11} is a probabilistic model checking tool.
 It supports several different types of models, including DTMCs and MDPs
 (it also supports continuous-time Markov chains and probabilistic timed automata).
-For this work, we have built a prototype extension of PRISM that adds support for two-player stochastic games.
-
-...
-
-These models are
-described in a high-level language, a variant of reactive modules [2] based on guarded
-commands. This is described in more detail in Sec.....
-
-PRISM accepts specifications in either PCTL, or CSL logic depending on the model
-type. The model checker then analyses the model and checks if the property holds in each
-state.
-The reader is invited to consult the PRISM
-web site \cite{} for detailed information and corresponding
-publications about all of these.
-
-\iffalse
-The basic components of the language are modules and variables. A
-system is constructed as a number of modules which can interact with each other.
-A module contains a number of variables which express the state of the module,
-and its behaviour is given by a set of guarded commands of the form:
-
-[] $\langle$guard$>$ \! $\langle$command$>$;
-
-The guard is a predicate over the variables of the system and the command describes
-a transition which the module can make if the guard is true (using primed variables
-to denote the next values of variables). If a transition is probabilistic, then the
-command is specified as:
-
-$\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
-
-\fi
-
+On these models, a wide range of temporal logic-based properties can be checked,
+including all of those illustrated above.
+For this work, we have built a prototype extension of PRISM
+that adds support for two-player stochastic games.
+Models to be analysed by PRISM are described in a 
+high-level modelling language based on guarded command notation;
+we discuss this further in Section~\ref{sect:prismmodels}.
 
 \section{Definitions and Algorithms}
 
@@ -523,7 +502,7 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 
 \section{Models and Experimental Setup}
 
-\subsection{PRISM Models}
+\subsection{PRISM Models}\label{sect:prismmodels}
 
 PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online%
 \footnote{See \url{http://www.prismmodelchecker.org/subm/clima11/}.}.
