@@ -119,8 +119,7 @@ whose behaviour is notoriously difficult to understand precisely. %inherently,
 \dave{add back? "formally analysing a small system can be of great help to obtain a better understanding of large ones."}
 Furthermore, efficient techniques tools and techniques exist for this purpose.
 
-In this paper, we use the PRISM probabilistic model checking tool \cite{KNP11}
-to analyse various agent organisations for the team formation protocol of \cite{gaston2005agent}.
+In this paper, we use the PRISM probabilistic model checking tool \cite{KNP11} to analyse various agent organisations for the team formation protocol of \cite{gaston2005agent}.
 We use several different types of probabilistic models
 and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations, as well as the one of a single agent.
