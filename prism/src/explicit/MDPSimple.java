@@ -374,6 +374,48 @@ public class MDPSimple extends ModelSimple implements MDP
 		transRewards.get(s).set(i, r);
 	}
 
+	public void readTransitionRewardsFromFile(String filename) throws PrismException
+	{
+		// TODO implement this stuff properly
+		BufferedReader in;
+		String s, ss[];
+		int i, j, n, lineNum = 0;
+		double rew;
+
+		try {
+			// Open file
+			in = new BufferedReader(new FileReader(new File(filename)));
+			// Skip first line
+			s = in.readLine();
+			lineNum++;
+			// Go though lines of file
+			s = in.readLine();
+			lineNum++;
+			while (s != null) {
+				s = s.trim();
+				if (s.length() > 0) {
+					ss = s.split(" ");
+					i = Integer.parseInt(ss[0]);
+					rew = Double.parseDouble(ss[1]);
+					// Add reward to all choices of state i
+					n = getNumChoices(i);
+					for (j = 0; j < n; j++) {
+						setTransitionReward(i, j, rew);
+					}
+				}
+				s = in.readLine();
+				lineNum++;
+			}
+			// Close file
+			in.close();
+		} catch (IOException e) {
+			System.out.println(e);
+			System.exit(1);
+		} catch (NumberFormatException e) {
+			throw new PrismException("Problem in rewards file (line " + lineNum + ") for " + getModelType());
+		}
+	}
+	
 	// Accessors (for ModelSimple)
 
 	@Override

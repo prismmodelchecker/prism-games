@@ -154,16 +154,22 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
-	protected StateValues checkRewardFormula(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	protected StateValues checkRewardFormula(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
 	{
-		// Assume R [F ] for now...
-
+		ExpressionTemporal exprTemp;
 		BitSet target;
 		StateValues rews = null;
 		ModelCheckerResult res = null;
 
+		// Assume R [F ] for now...
+
+		if (!(expr instanceof ExpressionTemporal)) {
+			throw new PrismException("Can't check reward operator " + expr);
+		}
+		exprTemp = (ExpressionTemporal) expr;
+		
 		// model check operands first
-		target = (BitSet) checkExpression(model, expr.getOperand2());
+		target = (BitSet) checkExpression(model, exprTemp.getOperand2());
 
 		res = computeReachRewards((STPG) model, target, min1, min2);
 		rews = StateValues.createFromDoubleArray(res.soln);
@@ -806,6 +812,9 @@ public class STPGModelChecker extends ProbModelChecker
 		int i, n, numTarget, numInf;
 		long timer, timerProb1;
 
+		// TODO: remove this hack!
+		((STPGExplicit) stpg).readTransitionRewardsFromFile("rew.txt");
+		
 		// Start expected reachability
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)

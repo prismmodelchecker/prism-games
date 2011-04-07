@@ -148,7 +148,8 @@ public class ProbModelChecker extends StateModelChecker
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
 	{
 		String relOp; // Relational operator
-		boolean min = false; // For nondeterministic models, are we finding min (true) or max (false) rewards
+		boolean min1 = false;
+		boolean min2 = false;
 		ModelType modelType = model.getModelType();
 
 		StateValues rews = null;
@@ -159,23 +160,44 @@ public class ProbModelChecker extends StateModelChecker
 		// Check for unhandled cases
 		// TODO
 
-		// For nondeterministic models, determine whether min or max rewards needed
+		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
-			if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
-				// min
-				min = true;
-			} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
-				// max
-				min = false;
+			if (modelType != ModelType.STPG) {
+				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
+					// min
+					min1 = true;
+				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
+					// max
+					min1 = false;
+				} else {
+					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+				}
 			} else {
-				throw new PrismException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
+				if (relOp.equals("minmin=")) {
+					min1 = true;
+					min2 = true;
+				} else if (relOp.equals("minmax=")) {
+					min1 = true;
+					min2 = false;
+				} else if (relOp.equals("maxmin=")) {
+					min1 = false;
+					min2 = true;
+				} else if (relOp.equals("maxmax=")) {
+					min1 = false;
+					min2 = false;
+				} else {
+					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
+				}
 			}
 		}
 
 		// Compute rewards
 		switch (modelType) {
 		case MDP:
-			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min);
+			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1);
+			break;
+		case STPG:
+			rews = ((STPGModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1, min2);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
