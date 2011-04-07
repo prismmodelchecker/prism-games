@@ -1,0 +1,28 @@
+PRISM
+=====
+
+Version: 4.0.beta
+Date: Thu Apr 07 12:39:51 BST 2011
+Hostname: qavbench.comlab
+Command line: prism STPG_isolated_online.pm -pctl 'Rmaxmin=? [F status=8]' -gameoptions 'p1m=[sensor1,sensor4] p2m=[controller,sensor2,sensor3,sensor5] p1s=[str1,fin1,str4,fin4] p2s=[str2,fin2,str3,fin3,str5,fin5]'
+
+Parsing model file "STPG_isolated_online.pm"...
+
+1 property:
+(1) Rmaxmin=? [ F status=8 ]
+
+-------------------------------------------
+
+Computing reachable states...
+ 88678 213872 335586 384222 573716 708166 871021 918315 1136615 1319513
+Reachable states exploration and model construction done in 29.718 secs.
+Sorting reachable states list...
+
+-------------------------------------------
+
+Model checking: Rmaxmin=? [ F status=8 ]
+
+Time for model checking: 11.453 seconds.
+
+Result (expected reward): 0.42857142857142755 (value in the initial state)
+
