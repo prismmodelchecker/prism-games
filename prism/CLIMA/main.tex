@@ -159,7 +159,7 @@ To reason formally about cooperative games, several logics (e.g., Coalitional Ga
 Model checking has been used to analyse (non-probabilistic) knowledge-based properties of multi-agent systems,
 using the tool MCMAS \cite{lomuscio2006mcmas}.
 %e.g., for classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
-Probabilistic model checking has been used to 
+Probabilistic model checking has been used to
 analyse probabilistic agents in negotiation protocols \cite{BFW06b}
 (but only for fixed strategies modelled as DTMCs)
 and to Byzantine agreement protocols \cite{KN02}
@@ -359,7 +359,7 @@ A \emph{task} $T_i=\{r_i\ :\ $``$r_i$ is required by the task $i$''$\}$ is a set
 \begin{definition}[Team]
 A \emph{team} of agents is denoted by $M_i=\{a_j\ :\ $``$a_j$ is a member of team $i$''$\}$, and the set of all teams is $M=\{M_1, M_2,\dots , M_m\}$. By $\bar{M} = \bigcup_{1\leq i\leq m} M_i$, we denote the set of all agents that are committed to some team. For $1\leq i\leq m$, $R_{M_i}=\bigcup_{a \in M_i}R_{a}$ is the set of resources the team $M_i$ has. The team $M_i$ is said to be able to accomplish the task $T_j$ iff $T_j \subseteq R_{M_i}$.
 \end{definition}
- 
+
 \begin{definition}[Rewards]
 For agent $a$, we define two types of \emph{reward}:
 \begin{itemize}
@@ -409,10 +409,10 @@ probabilities.
 In this section we provide pseudocode of algorithms which we later analyse. During the team formation process, each agent performs as follows:
 when it is not committed to any team (meaning that it is available and not assigned to any task), it considers each task in a random order. If a task currently
 has no other agents committed to it, it can choose to initiate a team, and does so with a probability equal to the ratio between neighbours that are not committed to any team and total number of neighbours. Formally, the probability that an agent $a$ initiates a team is
-\[
+\begin{equation}
 IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
 \label{eq:init_prob}
-\]
+\end{equation}
 For team joining, if an agent is eligible for a team, it always joins the team. Note that only uncommitted agents can commit to
 a new or partially filled task, and committed agents can not decommit from a given task.
 %
@@ -884,7 +884,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected organisation rewards
 ``what is the maximum expected probability to complete  task $T_1$/$T_2$?'',
  \item ${\tt P}_{max=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
 ``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
-\end{itemize} 
+\end{itemize}
 
 
 \begin{table}
@@ -922,7 +922,7 @@ In Tab.~\ref{tab:mdp_rewards} we see the maximum expected organisation rewards t
 \end{itemize}
 
 
-Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings. More significant improvement can be obtained for the offline version of the algorithm for both reward types than for online version. This is result shows that there is more potential for collaboration for agents in offline version. Small performance improvement for online version suggests that original strategy of Alg. \ref{alg:join_team_org} is close to optimal when teams are formed before tasks are advertised.  
+Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings. More significant improvement can be obtained for the offline version of the algorithm for both reward types than for online version. This is result shows that there is more potential for collaboration for agents in offline version. Small performance improvement for online version suggests that original strategy of Alg. \ref{alg:join_team_org} is close to optimal when teams are formed before tasks are advertised.
 
 
 %
@@ -955,7 +955,7 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific s
 \label{subsec:STPG}
 In this section we focus on the analysis of Alg.~\ref{alg:join_team_nondet}, but in contrast to the previous section,
 we distinguish agents as cooperative and hostile ones, which is naturally modelled as a STPG
-by considering all agents in the coalitions as one player, and all the other as the second one. 
+by considering all agents in the coalitions as one player, and all the other as the second one.
 
 We are mainly interested in finding the optimal coalition. In general,
 a coalition is a subset of agents who cooperate to ensure certain goals irrespective of how the rest of agents behave in the organization. We consider two criteria,
@@ -971,7 +971,7 @@ For probabilities:
 ``what is the expected probability for coaltion C to complete both tasks $T_1$ and $T_2$ when agents $A\setminus C$ are hostile?'',
 \end{itemize}
 
-And for rewards: 
+And for rewards:
 \begin{itemize}
  \item $[C]{\tt R}_{max,min=?}^{W_{1}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
 ``what is the maximum expected total reward $W_1$ for coalition C when agents $A\setminus C$ are hostile?'',
@@ -981,7 +981,7 @@ And for rewards:
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}.  
+For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}.
 For detailed results please see Appendix \ref{app:coalitions_data}.
 
 \begin{table}
@@ -998,7 +998,7 @@ For detailed results please see Appendix \ref{app:coalitions_data}.
 \label{tab:optimal_coalitions}
 \end{table}
 
-This result stresses the importance of positions in the network and resources held by the agents. 
+This result stresses the importance of positions in the network and resources held by the agents.
 For example agent $a_4$ is in all optimal coalitions of sizes greater than 1 for $O_{ia}$ agent organisation.
 This is because it is the most connected agent, and the only one having access to agent $a_5$ which is isolated.
 For organisation $O_r$, however, which agents belong to optimal coalition varies with coalition size.
@@ -1024,7 +1024,9 @@ For organisation $O_r$, however, which agents belong to optimal coalition varies
 
 
 
+ 
 Fig. \ref{fig:coalition_performance} shows how agent organisations comprare in term of maximum performance of different size coalitions. Organisation $O_{fc}$ outperforms all the other in all examples, this is an interesting result which shows that having strong connectivity within the team is potentially more important than being connected to many hostile agents. Performance of $O_r$ is the most consistent as maximum reward increases steadily with coalition size, however graphs also show that in order to be as effective as more connected networks like $O_{fc}$, coalition has to be formed of most agent in the newtworks. Performance of $O_s$ against $O_r$ for coalition sizes up to 3 illustrates the importance of having a heavily interconnected agent for small coalitions.
+ 
 
 
 Important difference between online and offline settings can be seen for reward $W_1$ in Fig.\ref{fig:off_w1} and \ref{fig:on_w1}. The big jump in difference can be seen when going from coalition size 2 to 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, as coalitions can make sure that one task is completed almost surely (see Tab. \ref{tab:optimal_1task}0 thus asuring reward 3 for coalition.
@@ -1215,4 +1217,4 @@ Tab.~\ref{tab:opt_coa_reward_offline} and Tab.~\ref{tab:opt_coa_reward_online} s
 
 
 
-\end{document} 
+\end{document}
