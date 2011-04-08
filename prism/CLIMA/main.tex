@@ -597,7 +597,7 @@ This is done with two expressions over PRISM model variables, describing these s
 For our experiments we mainly consider organisations consisting of five agents which are organised in four networks: fully connected, ring, start, and a network having one isolated node. Each agent is assigned one resource, and there are three different resources available. For each network we find the optimal resource allocation with respect to task generation described\footnote{We have chosen this way for allocating resources so that we could easily show how the performance can be improved by changing the strategy while keeping actions unchanged (i.e. compare DTMC and MDP models).} below using DTMC model checking (see Sec.~\ref{sec:results}). These organisations are then fixed and used in all experiments.
 \vspace{-15pt}
 \subsubsection{Agent Organisations.}
-We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations $O_{fc}$, $O_{r}$, $O_{s}$, $O_{ia}$ (see Fig.~\ref{fig:network_configurations} for graphical representations of the organisations).
+We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,$ $a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations $O_{fc}$, $O_{r}$, $O_{s}$, $O_{ia}$ (see Fig.~\ref{fig:network_configurations} for graphical representations of the organisations).
 %\begin{itemize}
 % \item Fully connected (figure \ref{subfig:fully_connected}) $O_{fc}=\langle A, N_{fc}, R, R_{A_{fc}}  \rangle$ where
 %    \begin{itemize}
@@ -622,7 +622,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 %\end{itemize}
 
 \vspace{-15pt}
-\subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},$ $\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
+\subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},$ $\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
 
 \vspace{-1cm}
 \begin{figure}[H]
@@ -694,10 +694,10 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 \end{figure}
 
 
-\section{Results}
+\section{Experimental Results}
 \label{sec:results}
 \vspace{-10pt}
-In this section we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}. All experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 13 operating system. Nondeterministic models have a relatively smaller state space because agent choices do not have to be resolved at a model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. The time taken to verify PCTL formulae that we used was in the range of 5-240 seconds.
+In this section we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations\footnote{We choose fully connected agent organisation because it produces the largest models.}. All experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 13 operating system. Nondeterministic models have a relatively smaller state space because agent choices do not have to be resolved at the model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. The time needed to verify PCTL formulae that we used is in the range of 5-240 seconds.
  \vspace{-20pt}
 \begin{table}
 \centering
@@ -727,7 +727,7 @@ In this section we present results obtained using three models: DTMC, MDP, and S
 \label{tab:model_sizes}
 \end{table}
 \vspace{-20pt}
-As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtained the optimal resource allocations using PCTL model checking on DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PCTL formulae were used to compute the expected rewards of the agent organisation under a particular resource allocation:
+As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using PCTL model checking on DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PCTL formulae are used to compute the expected rewards of the agent organisation under a particular resource allocation:
 \vspace{-3pt}
 \begin{itemize}
  \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
