@@ -142,7 +142,7 @@ In summary, the main contributions of this paper are as follows:
   \renewcommand{\labelenumi}{(\arabic{enumi})}
   \item We perform a comprehensive and \emph{formal} analysis of the performance of the team formation protocol proposed in \cite{gaston2005agent}.
 
-  \item  We \emph{extend} the original algorithm of \cite{gaston2005agent}, allowing agents to make decisions nondeterministically when forming teams. Then, by modelling and analysing as an MDP, we \emph{synthesise} the best strategies for agents to achieve optimal performance, partially solving an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".}
+  \item  We \emph{extend} the original algorithm of \cite{gaston2005agent}, allowing agents to make decisions nondeterministically when forming teams. Then, by modelling and analysing as an MDP, we \emph{synthesise} the best strategies for agents to achieve optimal performance, partially solving an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialising and team joining policies is also important, and is included in our on-going and future work".}
 
   \item  We address the competitive coalitional setting, in which agents are split into cooperative and Byzantine classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} analysis of this kind.
 
@@ -475,7 +475,7 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~
 %
 %\comment{TL: the problem of developing or learning effective team initialing and team joining policies is also important ...}
 
-To tackle the problem of finding the best team initialing and team joining strategy, we modify the original \textsc{JoinTeam} algorithm by
+To tackle the problem of finding the best team initialising and team joining strategy, we modify the original \textsc{JoinTeam} algorithm by
 allowing agents to make decisions regarding what actions to take, instead of picking one randomly. Technically, the changes are as follows, which
 are highlighted in Alg.~\ref{alg:join_team_nondet}.
 \begin{itemize}
@@ -1051,7 +1051,7 @@ For detailed results please see Appendix \ref{app:coalitions_data}.
 This result highlights the importance of positions in the network and resources held by the agents.
 For example agent $a_4$ is in all optimal coalitions of sizes greater than 1 for $O_{ia}$.
 This is because it is connected to all agents including agent $a_5$ which is isolated from other agents.
-For $O_r$, however, the structure of the optimal coalition varies depending on coalition size. For example, for size 2 the optimal coaltion consists of agents $a_2$ and $a_3$, but neither of them is in the optimal coalition of size 3.
+For $O_r$, however, the structure of the optimal coalition varies depending on coalition size. For example, for size 2 the optimal coalition consists of agents $a_2$ and $a_3$, but neither of them is in the optimal coalition of size 3.
 \vspace{-18pt}
 \begin{table}
  \centering
@@ -1069,7 +1069,7 @@ For $O_r$, however, the structure of the optimal coalition varies depending on c
 \end{table}
 \vspace{-30pt}
 Fig.~\ref{fig:coalition_performance} shows comparison of agent organisations in terms of the maximum performance for different coalition sizes. $O_{fc}$ outperforms others in all examples.
-This is interesting, because it suggests that having strong connectivity within the team outweights the exposure to many hostile agents. Performance of $O_r$ is the most consistent as the maximum reward increases steadily with the coalition size.
+This is interesting, because it suggests that having strong connectivity within the team outweighs the exposure to many hostile agents. Performance of $O_r$ is the most consistent as the maximum reward increases steadily with the coalition size.
 However, to be as effective as more connected networks like $O_{fc}$, the coalition has to contain most agents in the network. Better performance of $O_s$ against $O_r$ for coalition sizes up to 3 illustrates the importance of having a highly interconnected agent for small coalitions.
 
 Important difference between online and offline settings can be seen for reward $W_1$ in Fig.~\ref{fig:off_w1} and \ref{fig:on_w1}. The big jump in difference can be seen when going from coalition size 2 to size 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, as coalitions can make sure that one task is completed almost surely (see Tab.~\ref{tab:optimal_1task} thus assuring reward of at least 3 for the coalition.
@@ -1244,7 +1244,7 @@ Tab.~\ref{tab:opt_coa_reward_offline} and Tab.~\ref{tab:opt_coa_reward_online} s
     $O_s$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.33333/0.85714  &   2.60714/0.99999   &  2.71428/1.02857  \\ \hline
     $O_{ia}$ &  0.14285/0.14285   &  0.85714/0.42857  &  2.99999/0.99999  &  3.14285/1.14285   &  3.85714/1.42857  \\ \hline
 \end{tabular}
-\caption{Performance of optimal coalitionsfrom Tab.~\ref{tab:optimal_coalitions} for online version using rewards $W_1$/$W_2$.}
+\caption{Performance of optimal coalitions from Tab.~\ref{tab:optimal_coalitions} for online version using rewards $W_1$/$W_2$.}
 \label{tab:opt_coa_reward_online}
 \end{table}
 
