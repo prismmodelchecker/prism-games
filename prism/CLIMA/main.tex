@@ -949,13 +949,16 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific s
 \subsection{STPG}
 \label{subsec:STPG}
 In this section we focus on the analysis of Alg.~\ref{alg:join_team_nondet}, but in contrast to the previous section,
-we distinguish agents as cooperative and hostile ones, which is naturally modelled as a STPG. We are mainly interested in finding the optimal coalition. In general,
+we distinguish agents as cooperative and hostile ones, which is naturally modelled as a STPG
+by considering all agents in the coalitions as one player, and all the other as the second one. 
+
+We are mainly interested in finding the optimal coalition. In general,
 a coalition is a subset of agents who cooperate to ensure certain goals irrespective of how the rest of agents behave in the organization. We consider two criteria,
 i.e., the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we consider a slight extension of
-PCTL formulae with agent coalitions:
+PCTL formulae with the agent coalitions. The following formulae were used to obtain the results
+presented in this section.
 
-\aistis{PCTL notation needs to be synced with the preliminaries section.}
-
+For probabilities:
 \begin{itemize}
  \item $[C]{\tt P}_{max,min=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
 ``what is the expected probability for coalition C to complete task $T_1$/$T_2$ when agents $A\setminus C$ are hostile?'',
@@ -963,9 +966,17 @@ PCTL formulae with agent coalitions:
 ``what is the expected probability for coaltion C to complete both tasks $T_1$ and $T_2$ when agents $A\setminus C$ are hostile?'',
 \end{itemize}
 
+And for rewards: 
+\begin{itemize}
+ \item $[C]{\tt R}_{max,min=?}^{W_{1}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the maximum expected total reward $W_1$ for coalition C when agents $A\setminus C$ are hostile?'',
+ \item $[C]{\tt R}_{max,min=?}^{W_{2}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the maximum expected total reward $W_2$ for coalition C when agents $A\setminus C$ are hostile?'',
+\end{itemize}
+
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-We enumerate all possible coalitions with different sizes and in each case, PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the Algorithm. It turns out with two criteria, one actually obtains the same optimal coalition, which is shown in Tab.~\ref{tab:optimal_coalitions}. %(This is similar to the MDP case.)
+For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}. %(This is similar to the MDP case.)
 
 \begin{table}
  \centering
@@ -981,7 +992,10 @@ We enumerate all possible coalitions with different sizes and in each case, PRIS
 \label{tab:optimal_coalitions}
 \end{table}
 
-
+This result stresses the importance of positions in the network and resources held by the agents. 
+For example agent $a_4$ is in all optimal coalitions of sizes greater than 1 for $O_{ia}$ agent organisation.
+This is because it is the most connected agent, and the only one having access to agent $a_5$ which is isolated.
+For organisation $O_r$, however, which agents belong to optimal coalition varies with coalition size.
 
 
 \begin{figure}[H]
@@ -998,13 +1012,13 @@ We enumerate all possible coalitions with different sizes and in each case, PRIS
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=101 520 280 115, scale=0.77]{images/w2_stpg_online}
 }
-\caption{Graphs compare how the optimal coalition performance depends on it's size.}
+\caption{Graphs compare how the optimal coalition performance depends on it's size. For precise data see Tab. \ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in Appendix \ref{app:coalitions_data}.}
 \label{fig:coalition_performance}
 \end{figure}
 
 
 
-
+Fig. \ref{fig:coalition_performance} shows the 
 
 
 
@@ -1083,7 +1097,8 @@ $\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rang
 	\caption{State transition system of the model from Figure \ref{fig:prism_example} generated by PRISM.}
 \end{figure}
 
-\section{}
+\section{Coalitions Data}
+\label{app:coalitions_data}
 
 Tab.~\ref{tab:optimal_1task} shows the maximum probability for completion of one task, whereas Tab.~\ref{tab:optimal_2task} shows the maximum probability for completion of two tasks; both contain the online and offline versions. It is also interesting to see that for the coalition consisting of one agent, it has a positive probability to accomplish one task, but cannot accomplish two tasks for all four organizations.
 
