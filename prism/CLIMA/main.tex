@@ -570,7 +570,7 @@ From this high-level description of the algorithm PRISM then constructs the corr
 For our experiments we mainly consider organisations consisting of five agents which are organised in four networks: fully connected, ring, start, and a network having one isolated node. Each agent is assigned one resource, and there are three different resources available. For each network we find the optimal resource allocation with respect to task generation described\footnote{We have chosen this way for allocating resources so that we could easily show how the performance can be improved by changing the strategy while keeping actions unchanged (i.e. compare DTMC and MDP models).} below using DTMC model checking (see Sec.~\ref{sec:results}). These organisations are then fixed and used in all experiments.
 
 \subsubsection{Agent Organisations.}
-We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations (see Fig.~\ref{fig:network_configurations} for graphical representations of the organisations):
+We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and a set of  three resources $R=\{r_1,r_2,r_3\}$ arranged in four different agent organisations $O_{fc}$, $O_{r}$, $O_{s}$, $O_{ia}$ (see Fig.~\ref{fig:network_configurations} for graphical representations of the organisations).
 %\begin{itemize}
 % \item Fully connected (figure \ref{subfig:fully_connected}) $O_{fc}=\langle A, N_{fc}, R, R_{A_{fc}}  \rangle$ where
 %    \begin{itemize}
@@ -600,7 +600,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 
 \begin{figure}[H]
 \centering
-\subfloat[Fully connected]{
+\subfloat[Fully connected ($O_{fc}$)]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
@@ -618,7 +618,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
   \end{tikzpicture}
   \label{subfig:fully_connected}
 }\ \ \
-\subfloat[Ring]{
+\subfloat[Ring ($O_{r}$)]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
@@ -632,7 +632,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
   \label{subfig:ring}
 }
 
-\subfloat[Star]{
+\subfloat[Star ($O_{s}$)]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
@@ -647,7 +647,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
   \end{tikzpicture}
   \label{subfig:star}
 }\ \ \
-\subfloat[Isolated]{
+\subfloat[Isolated ($O_{ia}$)]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
 			      inner sep=0pt]
@@ -663,7 +663,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
   \label{subfig:isolated}
 }
 
-\caption{Experimental configurations of the agent organisations with optimal resource allocation (see Tab.~\ref{tab:optimal_r}).}
+\caption{Experimental configurations of the agent organisations with optimal resource allocation (see Tab.~\ref{tab:optimal_r}). In parentheses is the abreviation that we will use to refer to the organisation throughout this paper.}
 \label{fig:network_configurations}
 \end{figure}
 
@@ -705,7 +705,7 @@ In this section we present results obtained using three models: DTMC, MDP, and S
 
 As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtained the optimal resource allocations using PCTL model checking on DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PCTL formulae were used to compute the expected rewards of the agent organisation under a particular resource allocation:
 \begin{itemize}
- \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished}\,]$ -
+ \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
 ``what is the expected total reward  $W_1$/$W_2$ of an agent organisation when execution terminates?'',
 \end{itemize}
 After obtaining the expected rewards for all possible resource allocations we then selected the ones which have the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
@@ -782,9 +782,9 @@ In this section we present results of model checking DTMC model of Alg.~\ref{alg
 Tab.~\ref{tab:dtmc_results} shows the results obtained for the expected rewards of agent organisations in different settings, namely, using $W_1$ and $W_2$ reward structures (see Eqn. \eqref{eq:w1organisation} %and \ref{eq:w2organisation}
 for organisations and Eqn.~\eqref{eq:w1agent} and Eqn.~\eqref{eq:w2agent} for individual agents), and offline and online versions of the Alg.~\ref{alg:join_team_org}. The following PCTL formulae were used to obtain the results in PRISM:
 \begin{itemize}
- \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished}\,]$ -
+ \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
 ``what is the expected total reward $W_1$/$W_2$?'',
- \item ${\tt R}_{\{``W_{\{1,2\}}(O)''\}=?}[\,\Diamond\,\mathit{finished} \wedge a_i \in \bar{M} \,]$ -
+ \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished} \wedge a_i \in \bar{M} \,]$ -
 ``what is the expected reward $W_1$/$W_2$ for agent $a_i$?''
 \end{itemize}
 
@@ -873,7 +873,13 @@ which is modelled as an MDP. Using PRISM we find the maximum expected rewards an
 \label{tab:mdp_probs}
 \end{table}
 
-In Tab.~\ref{tab:mdp_probs} we can see the maximum expected organisation rewards that can achieved by all agents collaborating. All organisations except $O_s$ can make sure that at least one task is completed with probability $1.0$, no matter what the scheduling is.
+In Tab.~\ref{tab:mdp_probs} we can see the maximum expected organisation rewards that can achieved by all agents collaborating. All organisations except $O_s$ can make sure that at least one task is completed with probability $1.0$, no matter what the scheduling is. The following PCTL formulae were used to get the results:
+\begin{itemize}
+ \item ${\tt P}_{max=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
+``what is the maximum expected probability to complete  task $T_1$/$T_2$?'',
+ \item ${\tt P}_{max=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
+``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
+\end{itemize} 
 
 
 \begin{table}
@@ -902,10 +908,19 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected organisation rewards
 \label{tab:mdp_rewards}
 \end{table}
 
-In Tab.~\ref{tab:mdp_rewards} we see the maximum expected organisation rewards that can achieved by all agents collaborating. It is not very difficult to see that $O_{fc}$, $O_r$ and $O_{ia}$ have the same maximum reward no matter W1/W2 reward or online/offline version is taken, which outperforms the star organization $O_s$ in all circumstances.
+In Tab.~\ref{tab:mdp_rewards} we see the maximum expected organisation rewards that can achieved by all agents collaborating. It is not very difficult to see that $O_{fc}$, $O_r$ and $O_{ia}$ have the same maximum reward no matter W1/W2 reward or online/offline version is taken, which outperforms the star organization $O_s$ in all circumstances. The PCTL formulae used to find the rewards in PRISM were the following:
+\begin{itemize}
+ \item ${\tt R}_{max=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the maximum expected total reward $W_1$/$W_2$?'',
+ \item ${\tt R}_{max=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished} \wedge a_i \in \bar{M} \,]$ -
+``what is the maximum expected reward $W_1$/$W_2$ for agent $a_i$?''
+\end{itemize}
 
-Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings.
- %
+
+Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with a specific strategy used in the original algorithm, for all agent organisations in both offline and online settings. More significant improvement can be obtained for the offline version of the algorithm for both reward types than for online version. This is result shows that there is more potential for collaboration for agents in offline version. Small performance improvement for online version suggests that original strategy of Alg. \ref{alg:join_team_org} is close to optimal when teams are formed before tasks are advertised.  
+
+
+%
 %
 %
 %It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
@@ -942,10 +957,10 @@ PCTL formulae with agent coalitions:
 \aistis{PCTL notation needs to be synced with the preliminaries section.}
 
 \begin{itemize}
- \item $[A]{\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
-``what is the expected probability to complete  task $T_1$/$T_2$?'',
- \item $[A]{\tt P}_{=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
-``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
+ \item $[C]{\tt P}_{max,min=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
+``what is the expected probability for coalition C to complete task $T_1$/$T_2$ when agents $A\setminus C$ are hostile?'',
+ \item $[C]{\tt P}_{max,min=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
+``what is the expected probability for coaltion C to complete both tasks $T_1$ and $T_2$ when agents $A\setminus C$ are hostile?'',
 \end{itemize}
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
@@ -971,14 +986,14 @@ We enumerate all possible coalitions with different sizes and in each case, PRIS
 
 \begin{figure}[H]
 \subfloat[Offline. Reward $W_1(O)$.]{
-\includegraphics[clip=true, trim=61 523 320 112, scale=0.77]{images/w1_stpg_offline}
+\includegraphics[clip=true, trim=78 523 320 112, scale=0.77]{images/w1_stpg_offline}
 }
 \subfloat[Online. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=70 520 280 112, scale=0.77]{images/w1_stpg_online}
 }
 
 \subfloat[Offline. Reward $W_2(O)$.]{
-\includegraphics[clip=true, trim=120 520.5 270 115, scale=0.77]{images/w2_stpg_offline}
+\includegraphics[clip=true, trim=137 520.5 270 115, scale=0.77]{images/w2_stpg_offline}
 }
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=101 520 280 115, scale=0.77]{images/w2_stpg_online}
@@ -986,8 +1001,6 @@ We enumerate all possible coalitions with different sizes and in each case, PRIS
 \caption{Graphs compare how the optimal coalition performance depends on it's size.}
 \label{fig:coalition_performance}
 \end{figure}
-
-
 
 
 
@@ -1128,6 +1141,7 @@ Tab.~\ref{tab:optimal_1task} shows the maximum probability for completion of one
 
 \caption{Values for maximum probabilities to complete both tasks for coalitions from Tab.~\ref{tab:optimal_coalitions}.} \label{tab:optimal_2task}
 \end{table}
+
 
 
 Tab.~\ref{tab:opt_coa_reward_offline} and Tab.~\ref{tab:opt_coa_reward_online} shows the maximum ($W_1$/$W_2$) rewards in the offline and online versions respectively.
