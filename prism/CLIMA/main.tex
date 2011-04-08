@@ -566,11 +566,14 @@ In this section we use a toy example from Fig.~\ref{fig:prism_example} to illust
 \label{fig:prism_example}
 \end{figure}
 
-The system modelled in this example consists of two agents and a scheduling module which generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
+The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
 
 The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
 
-From this high-level description of the algorithm PRISM then constructs the corresponding model: DTMC, MDP, or STPG (for example of the model in Fig.~\ref{fig:prism_example} see Appendix \ref{app:transitions}). For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
+From this high-level description of the algorithm, our extension of PRISM then constructs the corresponding model: DTMC, MDP, or STPG (for the example in Fig.~\ref{fig:prism_example}, built as an MDP, see Appendix \ref{app:transitions}).
+%For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
+For STPGs, we also need to specify the split of model states into those controlled by players 1 and 2.
+This is done with two expressions over PRISM model variables, describing these sets.
 
 \subsection{Experimental Setup}
 \label{subsec:exp_set}
