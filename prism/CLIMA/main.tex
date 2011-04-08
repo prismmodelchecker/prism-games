@@ -138,19 +138,21 @@ Our experiments illustrate several aspects of agent organisation analysis. As a 
 %Comparing to the traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent},  Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organisations very easily, which can be considered as another advantage.
 
 %\paragraph{Contributions.}
-We summarlised the main contributions as follows:
+In summary, the main contributions of this paper are as follows:
 \begin{enumerate}
-  \item We perform a comprehensive formal analysis on the performance of the team formation protocol proposed in \cite{gaston2005agent}.
+  \renewcommand{\labelenumi}{(\arabic{enumi})}
+  \item We perform a comprehensive and \emph{formal} analysis of the performance of the team formation protocol proposed in \cite{gaston2005agent}.
 
-  \item  We extend the original algorithm studied in (1), allowing agents to make decisions nondeterministically when forming teams; and by modelling and analysing as an MDP, we can synthesize the best strategies for agents to achieve the optimal performances. This partially solves an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".}
+  \item  We \emph{extend} the original algorithm of \cite{gaston2005agent}, allowing agents to make decisions nondeterministically when forming teams. Then, by modelling and analysing as an MDP, we \emph{synthesise} the best strategies for agents to achieve optimal performance, partially solving an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialing and team joining policies is also important, and is included in our on-going and future work".}
 
-  \item  We address the competitive coalitional setting, in which agents are split into cooperative and Byzantine classes. STPGs are thus introduced based on which we can synthesize the optimal agent coalitions. To the best of our knowledge, this appears to be the first work which can perform such analysis automatically.
+  \item  We address the competitive coalitional setting, in which agents are split into cooperative and Byzantine classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} analysis of this kind.
 
-  \item To support the STPG based analysis in (3), we extend the PRISM model checker to accommodate STPG solving. This is of dependent interests.
+  \item We extend the  PRISM model checker with support for modelling and automated analysis of STPGs;
+  this is of independent interest.
 \end{enumerate}
-
-We note that it would be difficult to achieve (2) and (3) through simulation-based approach, which we think, demonstrates the strength of formal verification.
-
+%
+We note that it would be difficult to achieve (2) and (3) using simulation-based approaches;
+this demonstrates the strength of formal verification.
 
 \paragraph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
 Coalitional games have traditionally been analysed from a game-theoretic perspective \cite{osborne1994course}, but in recent years have attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}.
