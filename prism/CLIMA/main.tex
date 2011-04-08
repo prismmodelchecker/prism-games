@@ -112,7 +112,7 @@ By augmenting the model with \emph{rewards}, a further range of properties can b
 In addition to offering convenient high-level formalisms for representing models and their properties,
 the strength of probabilistic model checking is that offers \emph{exact}, \emph{exhaustive} analysis techniques.
 Rather than, for example, discrete-event simulation
-(as in is done for team formation protocols in \cite{gaston2005agent}),
+(as it is done for team formation protocols in \cite{gaston2005agent}),
 probabilistic model checking is based on an exhaustive exploration and numerical solution of the model,
 allowing best- and worst-case behaviour to be identified.
 This is particularly valuable for distributed protocols (like the ones in this paper),
@@ -123,8 +123,8 @@ Furthermore, efficient techniques tools and techniques exist for this purpose.
 In this paper, we use the PRISM probabilistic model checking tool \cite{KNP11} to analyse various agent organisations for the team formation protocol of \cite{gaston2005agent}.
 We use several different types of probabilistic models
 and express quantitative performance properties of them in temporal logic.
-Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations, as well as the one of a single agent.
-MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to maximise or minimise the performance of the organisation respectively. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed. (See Alg.~\ref{alg:main_process} for more details.)
+Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations.
+MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to, respectively, maximise or minimise the performance of the organisation. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed. (See Alg.~\ref{alg:main_process} for more details.)
 %In all of these three models the performance of an agent organisation or individual agents is analysed by model checking PCTL formulae.
 
 
@@ -671,7 +671,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 \section{Results}
 \label{sec:results}
 
-In this section we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 10 operating system. It is interesting to see that nondeterministic model has a relatively smaller state space because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
+In this section we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 13 operating system. It is interesting to see that nondeterministic model has a relatively smaller state space because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
 
 
 \begin{table}
