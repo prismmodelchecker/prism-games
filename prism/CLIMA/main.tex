@@ -156,7 +156,7 @@ this demonstrates the strength of formal verification.
 \paragraph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
 Coalitional games have traditionally been analysed from a game-theoretic perspective \cite{osborne1994course}, but in recent years have attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}.
 Several approaches for team formation and collaborative task solving have been considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization} and methods using distributed graph algorithms \cite{manisterski2006forming}.
-To reason formally about cooperative games, several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}) and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviour \cite{bonzon2007efficient}.
+To reason formally about cooperative games, several logics (e.g., Alternating Time Logic \cite{AlurHK02}, Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}) and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviour \cite{bonzon2007efficient}.
 Model checking has been used to analyse (non-probabilistic) knowledge-based properties of multi-agent systems,
 using the tool MCMAS \cite{lomuscio2006mcmas}.
 %e.g., for classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
@@ -299,11 +299,11 @@ assuming that player 2 tries to maximise it?''
 \vspace{-5pt}
 %
 For this simple class of (zero-sum) properties,
-these values are well defined \cite{Con92}
+these values are well defined \cite{Con92}.
 
 Finally, we also use properties based on \emph{rewards},
 which can be used to capture a variety of additional quantitative measures.
-For consistency across all three types of model,
+For consistency across all three types of models,
 we assume a simple state-based scheme
 i.e. a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
 We consider the \emph{expected total reward} accumulated until some target set of states is reached.
@@ -409,8 +409,8 @@ For a set of agents $A$, the rewards are defined accordingly as the total reward
 
 The underlying idea of these two types of rewards is that $W_2$ provides
 incentives for agents to form smallest teams which can accomplish tasks, whereas $W_1$
-motivates agent to be in a successful team. From organisation's perspective $W_1$ reward
-shall be used when the resources are limited, whereas $W_2$ reward will encourage agents to introduce
+motivates agent to be in a successful team. From the organisation's perspective $W_1$ reward
+shall be used when resources are limited, whereas $W_2$ reward will encourage agents to introduce
 resource redundancy into teams, but this may ensure that tasks are completed with higher
 probabilities.
 \vspace{-10pt}
@@ -537,7 +537,7 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
- 
+
 \vspace{-30pt}
 \section{Models and Experimental Setup}
 \vspace{-5pt}
