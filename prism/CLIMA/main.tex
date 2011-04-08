@@ -39,6 +39,7 @@ the ERC Advanced Grant VERIWARE.}}
 \institute{
   Computing Laboratory, University of Oxford\\
   Wolfson Building, Parks Road, Oxford, OX1 3QD, UK
+  %Oxford University Computing Laboratory, Parks Road, Oxford, OX1 3QD, UK
 }
 \email{}
 
@@ -46,7 +47,7 @@ the ERC Advanced Grant VERIWARE.}}
 
 \begin{abstract}
 Multi-agent systems are an increasingly important software paradigm and in many of
-its applications agents co-operate to achieve a particular goal.
+its applications agents cooperate to achieve a particular goal.
 This requires the design of efficient collaboration protocols,
 a typical example of which is \emph{team formation}.
 In this paper, we illustrate how probabilistic model checking,
@@ -151,18 +152,22 @@ We summarlised the main contributions as follows:
 We note that it would be difficult to achieve (2) and (3) through simulation-based approach, which we think, demonstrates the strength of formal verification.
 
 
-\paragraph{Related work.} As one of the greatest advantages of the agent based computing, cooperative behaviour has been studied from many different angles over the years. Coalitional games traditionally have been analysed from game-theoretic perspective \cite{osborne1994course}, but in recent years has attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}. Several approaches for team formation and collaborative task solving are considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization}, and methods using distributed graph algorithms \cite{manisterski2006forming}. To reason formally about cooperative games several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}), and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviours \cite{bonzon2007efficient}. Model checking has been used to analyse some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM \cite{KNP11}. MCMAS model checker has been applied to verification of knowledge-based properties in multi-agent systems and classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
+\paragraph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
+Coalitional games have traditionally been analysed from a game-theoretic perspective \cite{osborne1994course}, but in recent years have attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}.
+Several approaches for team formation and collaborative task solving have been considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization} and methods using distributed graph algorithms \cite{manisterski2006forming}.
+To reason formally about cooperative games, several logics (e.g., Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}) and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviour \cite{bonzon2007efficient}.
+Model checking has been used to analyse (non-probabilistic) knowledge-based properties of multi-agent systems,
+using the tool MCMAS \cite{lomuscio2006mcmas}.
+%e.g., for classic problems like dining cryptographers \cite{lomuscio2006mcmas}.
+Probabilistic model checking has been used to 
+analyse probabilistic agents in negotiation protocols \cite{BFW06b}
+(but only for fixed strategies modelled as DTMCs)
+and to Byzantine agreement protocols \cite{KN02}
+(but not in a game- or agent-based setting).
 
-%\comment{TL: stress on the novelty of the work...}
-
-%PRISM has also been used to model and analyse
-%a number of different wireless protocols, for example, the
-%IEEE 802.11 backoff mechanism [14] and device discovery
-%in Bluetooth [5]. See the PRISM case study repository [16]
-%for more details and further examples.
+%some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using %Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM %\cite{KNP11}.
 
 %\paragraph{Structure.}
-
 
 \section{Preliminaries}
 
