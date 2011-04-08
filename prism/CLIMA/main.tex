@@ -435,6 +435,8 @@ a new or partially filled task, and committed agents can not decommit from a giv
 In Alg.~\ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. (It combines team initiation and team joining.) %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.
 This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~\ref{subsection:DTMC}.
 
+\vspace{-6mm}
+
 \begin{algorithm}[H]
 \caption{Team joining algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
 \label{alg:join_team_org}
@@ -458,6 +460,7 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
+\vspace{-6mm}
 %
 %\comment{TL: the problem of developing or learning effective team initialing and team joining policies is also important ...}
 
@@ -471,7 +474,7 @@ are highlighted in Alg.~\ref{alg:join_team_nondet}.
 \end{itemize}
 %
 This algorithm allows the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with \emph{hostile} agents which aim to reduce organisation's performance. It will be modelled and analysed as MDPs and STPGs respectively, as we shall see in Sec.~\ref{subsec:MDP} and Sec.~\ref{subsec:STPG}.
-
+\vspace{-6mm}
 \begin{algorithm}[H]
 \caption{Team joining algorithm (non-deterministic)}
 \label{alg:join_team_nondet}
@@ -495,9 +498,9 @@ This algorithm allows the analysis of best-case performance that can be achieved
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
-
+\vspace{-6mm}
 Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calls \textsc{JoinTeam} procedures of every agent in random order, which is described in Alg.~\ref{alg:join_team_org}; In contrast, \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. We investigate both the offline and the online version of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see in the results section for STPGs, whether offline and online version provides better performance depends on network topology.
-
+\vspace{-6mm}
 
 \begin{algorithm}[H]
 \caption{Offline and online versions of the algorithm}
@@ -524,6 +527,7 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 \end{algorithmic}
 \end{scriptsize}
 \end{algorithm}
+ 
 
 \section{Models and Experimental Setup}
 
@@ -566,7 +570,7 @@ In this section we use a toy example from Fig.~\ref{fig:prism_example} to illust
 \label{fig:prism_example}
 \end{figure}
 \vspace{-8mm}
-
+%
 The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
 
 The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
@@ -683,8 +687,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 \label{sec:results}
 
 In this section we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations \footnote{We chose fully connected agent organisation because it produces largest models.}: model size in terms of number of states and transitions and construction time. All of the experiments were performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running Fedora Core 13 operating system. It is interesting to see that nondeterministic model has a relatively smaller state space because agent choices do not have to be permuted at model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs.
-
-
+ 
 \begin{table}
 \centering
 \subfloat[DTMC]{
@@ -709,7 +712,6 @@ In this section we present results obtained using three models: DTMC, MDP, and S
     6 & 8155873 & 10040112 & 29.74s \\ \hline
 \end{tabular}
 }
-
 \caption{Model comparison for different number of agents in a fully connected agent organisation and different models for offline version of the Alg.~\ref{alg:main_process}.}
 \label{tab:model_sizes}
 \end{table}
@@ -808,7 +810,7 @@ Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in off
 
 \vspace{-10mm}
 \begin{figure}[H]
-\scalebox{1.0}{
+\scalebox{0.8}{
 \subfloat[Reward $W_1(O)$.]{
   \includegraphics[clip=true, trim=75 570 305 90, scale=0.77]{images/w1_dtmc}
 }
@@ -819,6 +821,15 @@ Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in off
 \label{fig:bar_chart_dtmc}
 \end{figure}
 \vspace{-6mm}
+
+
+Attentive reader would have noticed that the online version produces larger expected $W_1$, but smaller expected $W_2$ rewards. This observation shows that in an online version the algorithm organises agents into teams which increase the expectation for more agents to be in a successful team, but this decreases the expected total number of tasks completed. These are summarised in Tab.~\ref{tab:task_compl_dtmc} where the task completion probabilities are presented. The following PCTL formulae were used to find the probabilities using PRISM:
+\begin{itemize}
+ \item ${\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  task $T_1$/$T_2$?'',
+ \item ${\tt P}_{=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
+\end{itemize}
 
 \begin{table}[H]
  \centering
@@ -846,15 +857,6 @@ Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in off
 \label{tab:task_compl_dtmc}
 \end{table}
 
-Attentive reader would have noticed that the online version produces larger expected $W_1$, but smaller expected $W_2$ rewards. This observation shows that in an online version the algorithm organises agents into teams which increase the expectation for more agents to be in a successful team, but this decreases the expected total number of tasks completed. These are summarised in Tab.~\ref{tab:task_compl_dtmc} where the task completion probabilities are presented. The following PCTL formulae were used to find the probabilities using PRISM:
-\begin{itemize}
- \item ${\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
-``what is the expected probability to complete  task $T_1$/$T_2$?'',
- \item ${\tt P}_{=?}[\,\Diamond\,T_{1} \wedge T_2 \mathit{\ completed}\,]$ -
-``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
-\end{itemize}
-
-
 Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams.
 
 Using formal analysis for DTMCs we produced \emph{exact} values of expectations for properties of the system (task completion probabilities and rewards were used as examples), so that even small differences between different organisations can be captured precisely.
@@ -868,7 +870,7 @@ In the next section we will explore how the performance can be improved by chang
 In this section we present the analysis of Alg.~\ref{alg:join_team_nondet}, %which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process.
 which is modelled as an MDP. Using PRISM we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with the strategy used in Alg.~\ref{alg:join_team_org}. Due to the size limitations we do not present actual strategies here.\footnote{The instructions on how to generate optimal strategies for MDPs can be found in \url{http://www.prismmodelchecker.org/dev/manual/RunningPRISM/Adversaries.html}}.
 
- 
+
 \begin{table}
 \centering
 \subfloat[Offline]{
@@ -903,7 +905,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion prob
 ``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
 \end{itemize}
 
- 
+
 
 \begin{table}
 \centering
@@ -949,20 +951,22 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with the strategy
 %It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
 \vspace{-6mm}
 \begin{figure}[H]
- 
+\scalebox{0.8}{
 \subfloat[Offline. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
 \subfloat[Online. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=57 580 320 90, scale=0.77]{images/w1_mdp_online}
 }
+}
 
+\scalebox{0.8}{
 \subfloat[Offline. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=94.5 570 280 100, scale=0.77]{images/w2_mdp_offline}
 }
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
-} 
+}}
 \caption{Bar charts compare offline and online versions of Alg.~\ref{alg:join_team_org} analysed as DTMC with the best-case performance of Alg.~\ref{alg:join_team_nondet} analysed as MDP. }
 \label{fig:bar_chart_mdp}
 \end{figure}
@@ -1028,20 +1032,22 @@ For $O_r$, however, the structure of the optimal coalition varies depending on c
 
 \vspace{-6mm}
 
-\begin{figure}[H] 
+\begin{figure}[H]
+\scalebox{0.8}{
 \subfloat[Offline. Reward $W_1(O)$.]{\label{fig:off_w1}
 \includegraphics[clip=true, trim=78 523 320 112, scale=0.77]{images/w1_stpg_offline}
 }
 \subfloat[Online. Reward $W_1(O)$.]{\label{fig:on_w1}
 \includegraphics[clip=true, trim=70 520 280 112, scale=0.77]{images/w1_stpg_online}
-}
+}}
 
+\scalebox{0.8}{
 \subfloat[Offline. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=137 520.5 270 115, scale=0.77]{images/w2_stpg_offline}
 }
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=101 520 280 115, scale=0.77]{images/w2_stpg_online}
-} 
+}}
 \caption{Graphs compare how the optimal coalition performance depends on it's size. For precise data see Tab. \ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in Appendix \ref{app:coalitions_data}.}
 \label{fig:coalition_performance}
 \end{figure}
