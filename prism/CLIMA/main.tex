@@ -418,7 +418,8 @@ probabilities.
 \vspace{-5pt}
 In this section we provide pseudocode of algorithms which we later analyse. During the team formation process, each agent performs as follows:
 when it is not committed to any team (meaning that it is available and not assigned to any task), it considers each task in a random order. If a task currently
-has no other agents committed to it, it can choose to initiate a team, and does so with a probability equal to the ratio between neighbours that are not committed to any team and total number of neighbours. Formally, the probability that an agent $a$ initiates a team is
+has no other agents committed to it, the agent can choose to initiate a team, and does so with a probability given in Eqn.~\eqref{eq:init_prob} (i.e.,
+the ratio between neighbours that are not committed to any team and total number of neighbours).  
 \vspace{-5pt}
 \begin{equation}
 IP_a = \frac{|\{ a' \in A\ :\ \{a, a'\} \in N \wedge a' \notin \bar{M}  \}|}{|\{ a' \in A\ :\ \{a, a'\} \in N \}|}.
@@ -442,13 +443,13 @@ a new or partially filled task, and committed agents can not decommit from a giv
 %\end{definition}
 
 
-In Alg.~\ref{alg:join_team_org} we reproduce the pseudocode of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. (It combines team initiation and team joining.) %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.
+In Alg.~\ref{alg:join_team_org} we reproduce pseudocodes of the \textsc{JoinTeam} algorithm introduced in \cite{gaston2005agent}. (It combines team initiation and team joining.) %\textsc{JoinTeam} algorithm is executed separately on each agent whenever it is called.
 This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~\ref{subsection:DTMC}.
 
 \vspace{-6mm}
 
 \begin{algorithm}[H]
-\caption{Team joining algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
+\caption{\textsc{JoinTeam} algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
 \label{alg:join_team_org}
 \begin{scriptsize}
 \begin{algorithmic}
@@ -486,7 +487,7 @@ are highlighted in Alg.~\ref{alg:join_team_nondet}.
 This algorithm allows the analysis of best-case performance that can be achieved by the protocol and also to analyse the agent organisations with \emph{hostile} agents which aim to reduce organisation's performance. It will be modelled and analysed as MDPs and STPGs respectively, as we shall see in Sec.~\ref{subsec:MDP} and Sec.~\ref{subsec:STPG}.
 \vspace{-6mm}
 \begin{algorithm}[H]
-\caption{Team joining algorithm (non-deterministic)}
+\caption{\textsc{JoinTeam} algorithm (non-deterministic extension)}
 \label{alg:join_team_nondet}
 \begin{scriptsize}
 \begin{algorithmic}
@@ -509,11 +510,11 @@ This algorithm allows the analysis of best-case performance that can be achieved
 \end{scriptsize}
 \end{algorithm}
 \vspace{-6mm}
-Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calls \textsc{JoinTeam} procedures of every agent in random order, which is described in Alg.~\ref{alg:join_team_org}; In contrast, \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. We investigate both the offline and the online version of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see in the results section for STPGs, whether offline and online version provides better performance depends on network topology.
+Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam}: \textsc{Offline} procedure first initiates the set of tasks and then sequentially calls \textsc{JoinTeam} procedures of every agent in random order, which is described in Alg.~\ref{alg:join_team_org}; In contrast, \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. We investigate both the offline and the online version of the algorithms because it provides a nice comparison between optimisation against specific tasks (offline version), and distribution of tasks (online version). As we will see Sec.~\ref{subsec:STPG}, whether offline and online version provides better performance depends on network topology.
 \vspace{-6mm}
 
 \begin{algorithm}[H]
-\caption{Offline and online versions of the algorithm}
+\caption{Offline and online versions of \textsc{JoinTeam} algorithm}
 \label{alg:main_process}
 \begin{scriptsize}
 \begin{algorithmic}
@@ -543,9 +544,9 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 \vspace{-5pt}
 \subsection{PRISM Models}\label{sect:prismmodels}
 \vspace{-3pt}
-PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online%
+PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we model the algorithms from the previous section in PRISM. Due to space limitation we do not provide the source code of the models and properties used in this paper, instead, we made them all available online%
 \footnote{See \url{http://www.prismmodelchecker.org/subm/clima11/}.}.
-In this section we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
+Here we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
 \vspace{-7mm}
 \begin{figure}
  \centering
@@ -577,14 +578,14 @@ In this section we use a toy example from Fig.~\ref{fig:prism_example} to illust
 \end{tabbing}
 \end{minipage}}}
 \vspace{-5pt}
-\caption{PRISM model of a two agent system. For a very short description of PRISM language see Appendix \ref{sec:prism_lang}}
+\caption{PRISM model of a two agent system. For a short description of PRISM language see Appendix~\ref{sec:prism_lang}}
 \label{fig:prism_example}
 \end{figure}
-\vspace{-8mm}
+\vspace{-6mm}
 %
-The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
+The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure \emph{``total''} rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus becomes a DTMC).
 
-The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions provided in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
+The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described in a similar manner according to definitions given in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
 
 From this high-level description of the algorithm, our extension of PRISM then constructs the corresponding model: DTMC, MDP, or STPG (for the example in Fig.~\ref{fig:prism_example}, built as an MDP, see Appendix \ref{app:transitions}).
 %For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
