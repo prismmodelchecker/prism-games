@@ -13,7 +13,7 @@
 %\usepackage{subfigure}
 \usepackage{subfig}
 \usepackage{hyperref}
-%\usepackage{times}
+\usepackage{times}
 
 \newcommand{\LD}{\langle}
 \newcommand{\RD}{\rangle}
@@ -532,7 +532,7 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 PRISM model checker has been briefly described in the introduction. The purpose of this section is to explain how we modelled the algorithms from the previous section in PRISM. Due to size limitations we do not provide the source code of the models and properties used in this paper, instead, we made it all available online%
 \footnote{See \url{http://www.prismmodelchecker.org/subm/clima11/}.}.
 In this section we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
-
+\vspace{-8mm}
 \begin{figure}
  \centering
 {\scriptsize
@@ -565,6 +565,7 @@ In this section we use a toy example from Fig.~\ref{fig:prism_example} to illust
 \caption{PRISM model of a two agent system. For a very short description of PRISM language see Appendix \ref{sec:prism_lang}}
 \label{fig:prism_example}
 \end{figure}
+\vspace{-8mm}
 
 The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2 each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure ``total'' rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The team choice for an agent is nondeterministic (i.e. the underlying model will be either MDP or STPG), but it could be made probabilistic in a similar way the scheduler generates tasks (and thus become a DTMC).
 
@@ -605,11 +606,12 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
 %\end{itemize}
 
 
-\subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
+\subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},\{r_3\},$ $\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So there are total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
 
-
+\vspace{-1cm}
 \begin{figure}[H]
 \centering
+\scalebox{0.5}{
 \subfloat[Fully connected ($O_{fc}$)]{
   \begin{tikzpicture}
       \tikzstyle{every node}=[draw,circle,fill=white,minimum size=5pt,
@@ -671,9 +673,8 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,a_5 \} $ and
       \draw (agent2) -- (agent4);
   \end{tikzpicture}
   \label{subfig:isolated}
-}
-
-\caption{Experimental configurations of the agent organisations with optimal resource allocation (see Tab.~\ref{tab:optimal_r}). In parentheses is the abreviation that we will use to refer to the organisation throughout this paper.}
+}}
+\caption{Experimental configurations of the agent organisations with optimal resource allocation (see Tab.~\ref{tab:optimal_r}). In parentheses is the abbreviation that we will use to refer to the organisation throughout this paper.}
 \label{fig:network_configurations}
 \end{figure}
 
@@ -720,6 +721,7 @@ As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:
 \end{itemize}
 After obtaining the expected rewards for all possible resource allocations we then selected the ones which have the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
 
+\vspace{-6mm}
 
 \begin{table}[H]
  \centering
@@ -742,6 +744,8 @@ Please note that the resource allocations from Tab.~\ref{tab:optimal_r}'s exampl
 \subsection{DTMC}
 \label{subsection:DTMC}
 In this section we present results of model checking DTMC model of Alg.~\ref{alg:join_team_org}. We consider four experimental agent organisations from Fig.~\ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Alg.~\ref{alg:main_process} for details). To discuss the results, we compare overall performance of agent organisations and consider disparity between worst and best individually performing agents within them. Then we move on to discuss the effects of network topologies and offline vs online versions of the algorithm on the aforementioned characteristics. Finally, we discuss several interpretations of reward structures and argue why it is important to consider different ones to get better understanding of the system.
+
+\vspace{-6mm}
 
 \begin{table} [H]
 \subfloat[Offline. $W_1$ reward structure.]{
@@ -800,18 +804,22 @@ for organisations and Eqn.~\eqref{eq:w1agent} and Eqn.~\eqref{eq:w2agent} for in
 
 As can be seen in Tab.~\ref{tab:dtmc_results} agents organised in $O_s$ have the worst expected rewards in all settings, also it has largest disparity between worst and best performing individual agents. Both of these characteristics are not surprising because agent $a_1$ which is placed in the middle is most likely to be in a winning team, whereas others do not have any choice but to join the team with $a_1$. $O_{ia}$ which has one isolated agent shows smaller difference between the worst and the best performing agents, but this is only because the performance of ``best'' agents is lower, whereas the ``worst'' agent's performance is very close to the $O_s$'s.
 
-Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in offline and online settings. It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by $O_r$. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to efficiently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this is where the advantages of $O_r$ emerge, in online setting it not only starts outperfoming $O_{ia}$ with respect to overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping similar disparity levels.
+Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in offline and online settings. It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by $O_r$. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to efficiently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this is where the advantages of $O_r$ emerge, in online setting it not only starts outperforming $O_{ia}$ with respect to overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping similar disparity levels.
 
+\vspace{-10mm}
 \begin{figure}[H]
+\scalebox{1.0}{
 \subfloat[Reward $W_1(O)$.]{
   \includegraphics[clip=true, trim=75 570 305 90, scale=0.77]{images/w1_dtmc}
 }
 \subfloat[Reward $W_2(O)$.]{
   \includegraphics[clip=true, trim=70 579 300 90, scale=0.77]{images/w2_dtmc}
-}
+}}
 \caption{Expected rewards for agent organisations when using online and offline (see Alg.~\ref{alg:main_process}) versions of the Alg.~\ref{alg:join_team_org}.}
 \label{fig:bar_chart_dtmc}
 \end{figure}
+\vspace{-6mm}
+
 \begin{table}[H]
  \centering
 \subfloat[Offline]{
@@ -847,10 +855,10 @@ Attentive reader would have noticed that the online version produces larger expe
 \end{itemize}
 
 
-Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. 
+Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams.
 
-Using formal analysis for DTMCs we produced \emph{exact} values of expectations for properties of the system (task completion probabilities and rewards were used as examples), so that even small differences between different organisations can be captured precisely.  
-Also, we focused on one particular strategy defined in Alg. \ref{alg:join_team_org}, but the PRISM code can be adapted easily to analyse other strategies and reward structures. 
+Using formal analysis for DTMCs we produced \emph{exact} values of expectations for properties of the system (task completion probabilities and rewards were used as examples), so that even small differences between different organisations can be captured precisely.
+Also, we focused on one particular strategy defined in Alg. \ref{alg:join_team_org}, but the PRISM code can be adapted easily to analyse other strategies and reward structures.
 In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %\clearpage
 
@@ -860,6 +868,7 @@ In the next section we will explore how the performance can be improved by chang
 In this section we present the analysis of Alg.~\ref{alg:join_team_nondet}, %which is a modified version of the original Algorithm \ref{alg:join_team_org}, but changed so that actions taken by the agents remain the same but they have full control over what strategies to apply. Since this introduced nondeterminism into the algorithm, natural model for such system becomes Markov Decision Process.
 which is modelled as an MDP. Using PRISM we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with the strategy used in Alg.~\ref{alg:join_team_org}. Due to the size limitations we do not present actual strategies here.\footnote{The instructions on how to generate optimal strategies for MDPs can be found in \url{http://www.prismmodelchecker.org/dev/manual/RunningPRISM/Adversaries.html}}.
 
+ 
 \begin{table}
 \centering
 \subfloat[Offline]{
@@ -894,6 +903,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion prob
 ``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
 \end{itemize}
 
+ 
 
 \begin{table}
 \centering
@@ -937,8 +947,9 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with the strategy
 %
 %
 %It can be seen that a fully connected organisation $O_{fc}$ has the best overall performance in all but the online version using $W_2$ reward structure, where it is outperformed by organisation $O_r$ which arranged in a ring. It is interesting to see that a more significant difference between $O_{fc}$ and $O_{ia}$ only emerges when moving into algorithm's online setting, this shows that having one agent which is isolated does not affect the ability of the organisation to effciently respond to a generated tasks, but impacts its chances to organise before tasks are generated. And this where the advantages $O_r$ emerge, in online setting it not starts outperfoming $O_{ia}$ in respect with both overall performance and disparity, but gets very close to the performance of $O_{fc}$ using $W_1$ reward structure and produces a better total $W_2$ reward, while keeping disparity levels close.
-
+\vspace{-6mm}
 \begin{figure}[H]
+ 
 \subfloat[Offline. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.77]{images/w1_mdp_offline}
 }
@@ -951,7 +962,7 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with the strategy
 }
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=63 581.5 320 80, scale=0.77]{images/w2_mdp_online}
-}
+} 
 \caption{Bar charts compare offline and online versions of Alg.~\ref{alg:join_team_org} analysed as DTMC with the best-case performance of Alg.~\ref{alg:join_team_nondet} analysed as MDP. }
 \label{fig:bar_chart_mdp}
 \end{figure}
@@ -959,7 +970,7 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards with the strategy
 
 
 
-Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to the Alg.~\ref{alg:join_team_org}. It is worth noting that the optimal strategy synthesised by the MDP may be practically infeasible, but it provides a \emph{precise} target for measuring algorithms' performance. This analysis allows us to evaluate effects of a fully collaborative behaviour of agents, however often only limited collaboration can be achieved (e.g. organisation containing hostile agents). In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose. 
+Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to the Alg.~\ref{alg:join_team_org}. It is worth noting that the optimal strategy synthesised by the MDP may be practically infeasible, but it provides a \emph{precise} target for measuring algorithms' performance. This analysis allows us to evaluate effects of a fully collaborative behaviour of agents, however often only limited collaboration can be achieved (e.g. organisation containing hostile agents). In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose.
 
 %\clearpage
 
@@ -995,7 +1006,7 @@ And for rewards:
 %
 For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}.
 For detailed results please see Appendix \ref{app:coalitions_data}.
-
+\vspace{-8mm}
 \begin{table}
  \centering
  \begin{tabular}{ | l | l | l | l | l | l |}
@@ -1015,8 +1026,9 @@ For example agent $a_4$ is in all optimal coalitions of sizes greater than 1 for
 This is because it is connected to all agents including agent $a_5$ which is isolated from other agents.
 For $O_r$, however, the structure of the optimal coalition varies depending on coalition size. For example, for size 2 the optimal coaltion consists of agents $a_2$ and $a_3$, but neither of them is in the optimal coalition of size 3.
 
+\vspace{-6mm}
 
-\begin{figure}[H]
+\begin{figure}[H] 
 \subfloat[Offline. Reward $W_1(O)$.]{\label{fig:off_w1}
 \includegraphics[clip=true, trim=78 523 320 112, scale=0.77]{images/w1_stpg_offline}
 }
@@ -1029,19 +1041,19 @@ For $O_r$, however, the structure of the optimal coalition varies depending on c
 }
 \subfloat[Online. Reward $W_2(O)$.]{
 \includegraphics[clip=true, trim=101 520 280 115, scale=0.77]{images/w2_stpg_online}
-}
+} 
 \caption{Graphs compare how the optimal coalition performance depends on it's size. For precise data see Tab. \ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in Appendix \ref{app:coalitions_data}.}
 \label{fig:coalition_performance}
 \end{figure}
- 
-Fig. \ref{fig:coalition_performance} shows comparison of agent organisations in terms of the maximum performance for different coalition sizes. $O_{fc}$ outperforms others in all examples. 
-This is interesting, because it suggests that having strong connectivity within the team outweights the exposure to many hostile agents. Performance of $O_r$ is the most consistent as the maximum reward increases steadily with the coalition size. 
+
+Fig.~\ref{fig:coalition_performance} shows comparison of agent organisations in terms of the maximum performance for different coalition sizes. $O_{fc}$ outperforms others in all examples.
+This is interesting, because it suggests that having strong connectivity within the team outweights the exposure to many hostile agents. Performance of $O_r$ is the most consistent as the maximum reward increases steadily with the coalition size.
 However, to be as effective as more connected networks like $O_{fc}$, the coalition has to contain most agents in the network. Better performance of $O_s$ against $O_r$ for coalition sizes up to 3 illustrates the importance of having a highly interconnected agent for small coalitions.
- 
+
 Important difference between online and offline settings can be seen for reward $W_1$ in Fig.~\ref{fig:off_w1} and \ref{fig:on_w1}. The big jump in difference can be seen when going from coalition size 2 to size 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, as coalitions can make sure that one task is completed almost surely (see Tab.~\ref{tab:optimal_1task} thus assuring reward of at least 3 for the coalition.
 
 
-We have showed how the extension of PRISM to support STPGs can be used to verify properties of the multi-agent system that can be enforced by particular agent coalitions. This competitive  scenario allowed us to analyse the team formation algorithm from the coalitional perspective finding the optimal coalitions and comparing their performance on different network topologies. 
+We have showed how the extension of PRISM to support STPGs can be used to verify properties of the multi-agent system that can be enforced by particular agent coalitions. This competitive  scenario allowed us to analyse the team formation algorithm from the coalitional perspective finding the optimal coalitions and comparing their performance on different network topologies.
 
 
 \section{Conclusions and Future Work}
