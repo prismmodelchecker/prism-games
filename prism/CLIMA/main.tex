@@ -981,7 +981,8 @@ And for rewards:
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
-For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}. %(This is similar to the MDP case.)
+For all agent organisations from \ref{fig:network_configurations} we enumerate all possible coalitions with different sizes and PRISM model checker returns task completion probabilities (one task or both tasks) and received rewards ($W_1$ or $W_2$). These are done for both online and offline versions of the algorithm. It turns out that there exist coalitions of all sizes that are optimal with respect to all evaluated criteria, they are shown in Tab.~\ref{tab:optimal_coalitions}.  
+For detailed results please see Appendix \ref{app:coalitions_data}.
 
 \begin{table}
  \centering
@@ -1004,10 +1005,10 @@ For organisation $O_r$, however, which agents belong to optimal coalition varies
 
 
 \begin{figure}[H]
-\subfloat[Offline. Reward $W_1(O)$.]{
+\subfloat[Offline. Reward $W_1(O)$.]{\label{fig:off_w1}
 \includegraphics[clip=true, trim=78 523 320 112, scale=0.77]{images/w1_stpg_offline}
 }
-\subfloat[Online. Reward $W_1(O)$.]{
+\subfloat[Online. Reward $W_1(O)$.]{\label{fig:on_w1}
 \includegraphics[clip=true, trim=70 520 280 112, scale=0.77]{images/w1_stpg_online}
 }
 
@@ -1023,8 +1024,10 @@ For organisation $O_r$, however, which agents belong to optimal coalition varies
 
 
 
-Fig. \ref{fig:coalition_performance} shows the 
+Fig. \ref{fig:coalition_performance} shows how agent organisations comprare in term of maximum performance of different size coalitions. Organisation $O_{fc}$ outperforms all the other in all examples, this is an interesting result which shows that having strong connectivity within the team is potentially more important than being connected to many hostile agents. Performance of $O_r$ is the most consistent as maximum reward increases steadily with coalition size, however graphs also show that in order to be as effective as more connected networks like $O_{fc}$, coalition has to be formed of most agent in the newtworks. Performance of $O_s$ against $O_r$ for coalition sizes up to 3 illustrates the importance of having a heavily interconnected agent for small coalitions.
 
+
+Important difference between online and offline settings can be seen for reward $W_1$ in Fig.\ref{fig:off_w1} and \ref{fig:on_w1}. The big jump in difference can be seen when going from coalition size 2 to 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, as coalitions can make sure that one task is completed almost surely (see Tab. \ref{tab:optimal_1task}0 thus asuring reward 3 for coalition.
 
 
 \clearpage
