@@ -32,9 +32,10 @@
 \newcommand{\prismtab}{\hspace*{0.5cm}}
 
 \begin{document}
-
+\vspace{-10pt}
 \title{Verifying Team Formation Protocols in PRISM\thanks{This work is supported by
 the ERC Advanced Grant VERIWARE.}}
+\vspace{-10pt}
 \author{Taolue Chen \and Marta Kwiatkowska \and David Parker \and Aistis Simaitis}
 \institute{
   Computing Laboratory, University of Oxford\\
@@ -44,7 +45,7 @@ the ERC Advanced Grant VERIWARE.}}
 \email{}
 
 \maketitle
-\vspace{-10pt}
+\vspace{-20pt}
 \begin{abstract}
 Multi-agent systems are an increasingly important software paradigm and in many of
 its applications agents cooperate to achieve a particular goal.
@@ -64,7 +65,7 @@ We present experimental results from these models
 using the probabilistic model checking tool PRISM,
 which we have extended with support for stochastic games.
 \end{abstract}
-\vspace{-25pt}
+\vspace{-30pt}
 \section{Introduction}
 \vspace{-5pt}
 %\taolue{NB. I introduced the following abbreviations: Sec. for section, Alg. for Algorithm, and so on. Also, Eqn. for equation, and I use eqref
@@ -129,13 +130,6 @@ MDPs, however, can only model fully collaborative behaviour, whereas in many sce
 
 Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies, each consisting of five agents, i.e., fully connected, ring, star, and a network having one isolated agent. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation. Then we take the model to the STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. For all of these cases, we consider the offline and online dichotomy.
 
-%\comment{resource v.s. skill?}
-%
-%\comment{add several advantages of our approach - base on results. }
-
-%Comparing to the traditional simulation-based analysis, we think one of the greatest advantages of our work lies in that we can actually synthesize the best strategies for agents to achieve the optimal performances. Note that in \cite{gaston2005agent},  Our work on extensions of the \textsc{TeamJoin} algorithm and the analysis of the associated MDP and STPG models can be seen as a partial solution to this problem. Moreover, our experience indicates that by simply adapting the PRISM code, one could analyse the behaviour of different agent organisations very easily, which can be considered as another advantage.
-
-%\paragraph{Contributions.}
 In summary, the main contributions of this paper are as follows:
 \begin{enumerate}
   \renewcommand{\labelenumi}{(\arabic{enumi})}
@@ -148,10 +142,11 @@ In summary, the main contributions of this paper are as follows:
   \item We extend the  PRISM model checker with support for modelling and automated analysis of STPGs;
   this is of independent interest.
 \end{enumerate}
+\vspace{-8pt}
 %
 We note that it would be difficult to achieve (2) and (3) using simulation-based approaches;
 this demonstrates the strength of formal verification.
-
+\vspace{-9pt}
 \paragraph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
 Coalitional games have traditionally been analysed from a game-theoretic perspective \cite{osborne1994course}, but in recent years have attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}.
 Several approaches for team formation and collaborative task solving have been considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization} and methods using distributed graph algorithms \cite{manisterski2006forming}.
@@ -162,13 +157,13 @@ using the tool MCMAS \cite{lomuscio2006mcmas}.
 Probabilistic model checking was employed to
 analyse probabilistic agents in negotiation protocols \cite{BFW06b}
 (but only for fixed strategies modelled as DTMCs)
-and to Byzantine agreement protocols \cite{KN02}
-(but not in a game- or agent-based setting).
+and to Byzantine agreement protocols \cite{KN02}.
+%(but not in a game- or agent-based setting).
 %some protocols related to multi-agent system, for instance, clock synchronisation in wireless sensor networks using %Uppaal \cite{heidarian2009analysis}, Gossip \cite{KNP08d} and Byzantine agreement protocols \cite{KN02} using PRISM %\cite{KNP11}.
 %\paragraph{Structure.}
-\vspace{-10pt}
+\vspace{-15pt}
 \section{Preliminaries}
-\vspace{-5pt}
+\vspace{-10pt}
 %In this paper, we shall us discrete-time
 %Markov chains (DTMCs), Markov decision processes (MDPs), and Stochastic Two-Player Games (STPGs) as the modeling %formalism. %where time is modelled as
 %%discrete steps and the probability of making each transition
@@ -178,7 +173,7 @@ and to Byzantine agreement protocols \cite{KN02}
 %----------------------------------------------------------------------------------------------------------------
 
 \subsection{Probabilistic Models}
-
+\vspace{-10pt}
 We begin with a brief introduction to the three different types of probabilistic models
 that we will use in this paper.
 
@@ -336,7 +331,7 @@ that adds support for STPGs.
 Models to be analysed by PRISM are described in a
 high-level modelling language based on guarded command notation;
 we discuss this further in Section~\ref{sect:prismmodels}.
-\vspace{-10pt}
+\vspace{-12pt}
 \section{Definitions and Algorithms}
 \vspace{-10pt}
 The purpose of this section is to provide definitions of terminology
@@ -345,6 +340,7 @@ used throughout this paper and then present the algorithms which will be analyse
 \subsection{Definitions}
 \vspace{-5pt}
 We introduce definitions of \emph{agent organisations}, \emph{tasks}, \emph{teams}, and formulae for computing \emph{rewards} to measure the performance of both individual agents and agent teams.
+\vspace{-5pt}
 \begin{definition}[Agent Organisation]
 An \emph{agent organisation} is a tuple $O=\langle A, N, R, R_A  \rangle$ where:
 \vspace{-5pt}
@@ -478,12 +474,13 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~
 To tackle the problem of finding the best team initialising and team joining strategy, we modify the original \textsc{JoinTeam} algorithm by
 allowing agents to make decisions regarding what actions to take, instead of picking one randomly. Technically, the changes are as follows, which
 are highlighted in Alg.~\ref{alg:join_team_nondet}.
+\vspace{-5pt}
 \begin{itemize}
  \item Allow agents to consider tasks in arbitrary order instead of randomly;
  \item Replace probabilistic choice to initialise the team by nondeterministic choice;
  \item Allow agent \emph{not} to join a team even if it has a resource and neighbour in that team.
 \end{itemize}
-%
+\vspace{-2pt}
 This algorithm allows the analysis of best-case performance that can be achieved by the protocol, and also to analyse the agent organisations with \emph{hostile} agents which aim to reduce organisation's performance. It will be modelled and analysed as an MDP and STPG respectively, as we shall see in Sec.~\ref{subsec:MDP} and Sec.~\ref{subsec:STPG}.
 \vspace{-6mm}
 \begin{algorithm}[H]
