@@ -125,7 +125,6 @@ We use several different types of probabilistic models
 and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations.
 MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to, respectively, maximise or minimise the performance of the organisation. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed (see Alg.~\ref{alg:main_process}).
-%In all of these three models the performance of an agent organisation or individual agents is analysed by model checking PCTL formulae.
 
 
 Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies, each consisting of five agents, i.e., fully connected, ring, star, and a network having one isolated agent. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation. Then we take the model to the STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. For all of these cases, we consider the offline and online dichotomy.
@@ -230,19 +229,20 @@ depending on whether $s$ is in set $S_1$ or $S_2$.
 
 Probabilistic model checking involves the construction and analysis of a probabilistic model.
 Typically, a high-level description language is used to model a system
-(here, we will use the PRISM \cite{KNP11} modelling language).
+(here, we use the PRISM \cite{KNP11} modelling language).
 Then, one or more quantitative properties are formally specified and analysed on the model.
-Usually, probabilistic extensions of temporal logic are used to formalise properties.
-In this paper, we use the logic PCTL \cite{HJ94},
-extended to include reward-based properties \cite{KNP07a},
-which can be used to express properties of both DTMCs and MDPs.
-We will also generalise the logic to capture properties of stochastic games.
+Usually, \emph{probabilistic temporal logics} are used to formalise properties.
+In this paper, we use PRISM's temporal logic-based query language,
+which is essentially the logic PCTL \cite{HJ94},
+extended to include reward-based properties \cite{KNP07a,FKNP11}.
+This be used to express properties of both DTMCs and MDPs;
+We also generalise the logic to capture properties of stochastic games.
 
 PCTL extends the well known temporal logic CTL  with a probabilistic ($\tt P$) operator.
 Informally, this places bounds on the probability of the occurrence of certain events in the model.
-We will illustrate the use of PCTL using some simple examples,
+We will illustrate the use of PRISM temporal logic queries, using some simple examples,
 referring the reader to \cite{HJ94,KNP07a} for precise details of the syntax and semantics.
-For a DTMC, typical PCTL properties would be:
+For a DTMC, typical queries would be:
 \vspace{-5pt}
 \begin{itemize}
 \item ${\tt P}_{<0.01}[\,\Diamond\,\mathit{fail}\,]$ -
@@ -697,7 +697,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,$ $a_5 \} $ 
 \section{Experimental Results}
 \label{sec:results}
 \vspace{-10pt}
-In this section, we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations\footnote{We choose a fully connected agent organisation because it produces the largest models.}. All experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running the Fedora Core 13 operating system. Nondeterministic models (MDPs/STPGs) have a smaller state space because agent choices do not have to be resolved at the model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. The time needed to verify PCTL formulae that we used is in the range of 5-240 seconds.
+In this section, we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations\footnote{We choose a fully connected agent organisation because it produces the largest models.}. All experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running the Fedora Core 13 operating system. Nondeterministic models (MDPs/STPGs) have a smaller state space because agent choices do not have to be resolved at the model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. The time needed for model checking is in the range of 5-240 seconds.
 
 \begin{table}
 \centering
@@ -727,7 +727,7 @@ In this section, we present results obtained using three models: DTMC, MDP, and 
 \label{tab:model_sizes}
 \end{table}
 \vspace{-20pt}
-As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using PCTL model checking on the DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PCTL formulae are used to compute the expected rewards of the agent organisation under a particular resource allocation:
+As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using probabilistic model checking on the DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PRISM temporal logic queries are used to compute the expected rewards of the agent organisation under a particular resource allocation:
 \vspace{-3pt}
 \begin{itemize}
  \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
@@ -810,7 +810,7 @@ In this section, we present the results for model checking the DTMC model of Alg
 \end{table}
 \vspace{-25pt}
 Tab.~\ref{tab:dtmc_results} shows the results obtained for the expected rewards of agent organisations in different settings, namely, using $W_1$ and $W_2$ reward structures (see Eqn. \eqref{eq:w1organisation} %and \ref{eq:w2organisation}
-for organisations and Eqn.~\eqref{eq:w1agent} and Eqn.~\eqref{eq:w2agent} for individual agents), and offline and online versions of Alg.~\ref{alg:join_team_org}. The following PCTL formulae were used to obtain the results in PRISM:
+for organisations and Eqn.~\eqref{eq:w1agent} and Eqn.~\eqref{eq:w2agent} for individual agents), and offline and online versions of Alg.~\ref{alg:join_team_org}. The following PRISM temporal logic queries were used to obtain the results:
 \vspace{-5pt}
 \begin{itemize}
  \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
@@ -840,7 +840,7 @@ Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in off
 \vspace{-8mm}
 
 
-An attentive reader would have noticed that the online version produces larger expected $W_1$, but smaller expected $W_2$ rewards. This observation shows that, in an online version, the algorithm organises agents into teams which increases the expectation for more agents to be in a successful team, but that this decreases the expected total number of tasks completed. These are summarised in Tab.~\ref{tab:task_compl_dtmc} where the task completion probabilities are presented. The following PCTL formulae were used to find the probabilities using PRISM:
+An attentive reader would have noticed that the online version produces larger expected $W_1$, but smaller expected $W_2$ rewards. This observation shows that, in an online version, the algorithm organises agents into teams which increases the expectation for more agents to be in a successful team, but that this decreases the expected total number of tasks completed. These are summarised in Tab.~\ref{tab:task_compl_dtmc} where the task completion probabilities are presented. The following PRISM temporal logic queries were used to find the probabilities:
 \vspace{-5pt}
 \begin{itemize}
  \item ${\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
@@ -913,7 +913,7 @@ In this section, we present the analysis of Alg.~\ref{alg:join_team_nondet}, whi
 \label{tab:mdp_probs}
 \end{table}
 \vspace{-25pt}
-In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion probabilities that can be achieved. All organisations except $O_s$ can ensure that at least one task is completed with probability $1.0$, no matter what the scheduling is. The following PCTL formulae were used to get the results:
+In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion probabilities that can be achieved. All organisations except $O_s$ can ensure that at least one task is completed with probability $1.0$, no matter what the scheduling is. The following PRISM temporal logic queries were used to get the results:
 \begin{itemize}
  \item ${\tt P}_{max=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
 ``what is the maximum expected probability to complete  task $T_1$/$T_2$?'',
@@ -921,7 +921,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion prob
 ``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
 \end{itemize}
 
-Tab.~\ref{tab:mdp_rewards} shows the maximum expected organisation rewards that can be achieved by all agents collaborating. It is not very difficult to see that $O_{\mathit{fc}}$, $O_r$ and $O_{ia}$ have the same maximum reward, no matter whether $W_1$/$W_2$ reward or online/offline version is taken. These outperform the star organization $O_s$ in all circumstances. The PCTL formulae used to find the rewards in PRISM were the following:
+Tab.~\ref{tab:mdp_rewards} shows the maximum expected organisation rewards that can be achieved by all agents collaborating. It is not very difficult to see that $O_{\mathit{fc}}$, $O_r$ and $O_{ia}$ have the same maximum reward, no matter whether $W_1$/$W_2$ reward or online/offline version is taken. These outperform the star organization $O_s$ in all circumstances. The PRISM temporal logic queries used to find the rewards were the following:
 \begin{itemize}
  \item ${\tt R}_{max=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
 ``what is the maximum expected total reward $W_1$/$W_2$?'',
@@ -1140,6 +1140,12 @@ A. Condon.
 P.E. Dunne, W.~van~der Hoek, S.~Kraus, and M.~Wooldridge.
 \newblock {Cooperative boolean games}.
 \newblock In {\em Proc. of AAMAS'08}, pp. 1015--1022. ACM, 2008.
+
+\bibitem{FKNP11}
+V.~Forejt, M.~Kwiatkowska, G.~Norman, and D.~Parker.
+\newblock Automated Verification Techniques for Probabilistic Systems.
+\newblock In {\em Proc. SFM'11}, Springer, 2011. To appear.
+%booktitle={Formal Methods for Eternal Networked Software Systems (SFM'11)},
 
 \bibitem{gaston2005agent}
 M.E. Gaston and M.~desJardins.
