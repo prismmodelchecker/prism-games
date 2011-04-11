@@ -577,7 +577,8 @@ Here we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the de
 \end{tabbing}
 \end{minipage}}}
 \vspace{-5pt}
-\caption{PRISM model of a two agent system. For a short description of PRISM language see Appendix~\ref{sec:prism_lang}}
+\caption{Example of a two agent system, described in PRISM's guarded command modelling language;
+see \cite{KNP11} for further details and links}
 \label{fig:prism_example}
 \end{figure}
 \vspace{-6mm}
@@ -996,8 +997,9 @@ Using MDP model checking we have obtained the optimal strategy for the protocol 
 \label{subsec:STPG}
 \vspace{-5pt}
 In this section we focus on the analysis of Alg.~\ref{alg:join_team_nondet}, but, in contrast to the previous section,
-we distinguish agents as either cooperative or hostile. This is naturally modelled as a STPG
-by considering all agents in the coalition as one player, and the others as the second palyer.
+we distinguish agents as either cooperative or hostile. This is naturally modelled as an STPG,
+by considering each class of agents (cooperative or hostile) as a separate player.
+%We refer to the collective cooperative agents as a \emph{coalition}.
 
 We are mainly interested in finding the optimal coalition. In general,
 a coalition $C\subseteq A$ is a subset of agents who cooperate to ensure certain goals irrespective of how the rest of the agents behave in the organization. We consider two criteria, i.e., the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we consider a slight extension of PCTL formulae with agent coalitions. The following formulae were used to obtain the results presented in this section:
@@ -1073,7 +1075,11 @@ We have showed how an extension of PRISM to support STPGs can be used to verify 
 \vspace{-8pt}
 In this paper, we have presented a comprehensive, formal analysis of a team formation algorithm using probabilistic model checking. We believe this demonstrates the strong potential of these techniques to the formal analysis of multi-agent systems and hope that this case study will serve as a motivation for further work in this area.
 
-As an ongoing and future work we plan to equip the analysis with abstraction techniques to allow for model checking larger systems. We also plan to explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution, and consider the problem of synthesising the optimal agent organisations for a given set of tasks.
+As ongoing and future work,
+we plan to explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution, and consider the problem of synthesising optimal agent organisations for task distributions, from a mechanism design perspective.
+We also plan to develop our prototype extension of PRISM
+into a fully-fledged model checker for stochastic games
+and to equip the analysis with abstraction techniques to allow for analysis of larger systems.
 
 %\paragraph{Future work.} Although we have conducted a comprehensive analysis of the team formation protocol, many interesting directions and challenges remain as ongoing and future work. Here we simply outline some of them:
 %\vspace{-5pt}
@@ -1181,7 +1187,7 @@ M.~Kwiatkowska, G.~Norman, and D.~Parker.
 
 \bibitem{KNP11}
 M.~Kwiatkowska, G.~Norman, and D.~Parker.
-\newblock Prism 4.0: Verification of probabilistic real-time systems.
+\newblock PRISM 4.0: Verification of probabilistic real-time systems.
 \newblock In {\em Proc. of CAV'11}, LNCS. Springer, 2011.
 \newblock To appear.
 
@@ -1242,6 +1248,7 @@ O.~Shehory and S.~Kraus.
 \end{itemize}
 \clearpage
 
+\iffalse
 \section{PRISM Language}
 \label{sec:prism_lang}
 The basic components of the language are modules and variables. A
@@ -1257,6 +1264,7 @@ to denote the next values of variables). If a transition is probabilistic, then 
 command is specified as:
 
 $\langle prob \rangle$ : $\langle$ command $\rangle$ + ...+ $\langle$ prob$\rangle$ : <command>
+\fi
 
 \section{State Transition System} \label{app:transitions}
 \begin{figure}
