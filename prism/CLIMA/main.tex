@@ -73,7 +73,7 @@ Multi-agent systems have become an important software paradigm. One of the
 key ideas behind this approach is that several different agents can cooperate to achieve certain goals.
 This requires the design of efficient collaboration protocols, of which \emph{team formation} is a typical example. In this paper, we focus on a distributed team formation protocol introduced in \cite{gaston2005agent}. There, the authors used it to analyse team performance in dynamic networks.
 The protocol %was studied further in \cite{glinton2008agent}, and
-has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it an interesting target for formal analysis.
+has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it a compelling target for formal analysis.
 
 The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
@@ -760,7 +760,7 @@ Note that the resource allocations given in Tab.~\ref{tab:optimal_r}, column ``E
 \subsection{DTMC Analysis}
 \label{subsection:DTMC}
 \vspace{-10pt}
-In this section we presentresults of model checking the DTMC model of Alg.~\ref{alg:join_team_org}. We consider four experimental agent organisations from Fig.~\ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Alg.~\ref{alg:main_process} for details). To discuss the results, we compare the overall performance of agent organisations and consider the disparity between the worst and best individually performing agents within them. Then we move on to discuss the effects of network topologies and offline vs online versions of the algorithm on the aforementioned characteristics. Finally, we discuss several interpretations of reward structures and argue why it is important to consider different ones to get a better understanding of the system.
+In this section we present the results of model checking the DTMC model of Alg.~\ref{alg:join_team_org} for experimental agent organisations from Fig.~\ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Alg.~\ref{alg:main_process} for details).
 
 \vspace{-10mm}
 
@@ -877,7 +877,7 @@ An attentive reader would have noticed that the online version produces larger e
 \label{tab:task_compl_dtmc}
 \end{table}
 \vspace{-30pt}
-Let us note that the strategy of an agent does not change when switching from the offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams.
+%Let us note that the strategy of an agent does not change when switching from the offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams.
 
 Using formal analysis for DTMCs we produced \emph{exact} values of expectations for properties of the system (task completion probabilities and rewards were used as examples), so that even small differences between different organisations can be captured precisely. Also, we focused on one particular strategy defined in Alg. \ref{alg:join_team_org}, but the PRISM code can be adapted easily to analyse other strategies and reward structures. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise the performance of the organisation.
 %\clearpage
@@ -930,9 +930,8 @@ Tab.~\ref{tab:mdp_rewards} shows the maximum expected organisation rewards that 
 ``what is the maximum expected reward $W_1$/$W_2$ for agent $a_i$?''
 \end{itemize}
 
-\clearpage
-\vspace{-20pt}
-\begin{table}
+\vspace{-30pt}
+\begin{table}[H]
 \centering
 \subfloat[Offline]{
  \begin{tabular}{ | l | l | l | l |}
@@ -993,7 +992,6 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards for Alg.~\ref{alg
 
 Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to the Alg.~\ref{alg:join_team_org}. It is worth noting that the optimal strategy synthesised by the MDP may be practically infeasible, but it provides a \emph{precise} target for measuring algorithms' performance. This analysis allows us to evaluate the effects of a fully collaborative behaviour of agents. However often only limited collaboration can be achieved (e.g. organisation containing hostile agents). In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose.
 
-\clearpage
 \vspace{-10pt}
 \subsection{STPG Analysis}
 \label{subsec:STPG}
@@ -1034,7 +1032,7 @@ a coalition $C\subseteq A$ is a subset of agents who cooperate to ensure certain
 \caption{Graphs compare how the optimal coalition performance depends on its size. For precise data see Tab. \ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in Appendix \ref{app:coalitions_data}.}
 \label{fig:coalition_performance}
 \end{figure}
-\vspace{-22pt}
+
 
 %Let us note that the strategy of an agent does not change when switching from offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise performance of the organisation.
 %
@@ -1047,7 +1045,7 @@ This result highlights the importance of positions in the network and resources 
 For example, agent $a_4$ is in all optimal coalitions of sizes greater than 1 for $O_{ia}$.
 This is because it is connected to all agents, including agent $a_5$ which is isolated from other agents.
 For $O_r$, however, the structure of the optimal coalition varies depending on coalition size. For example, for size 2 the optimal coalition consists of agents $a_2$ and $a_3$, but neither of them is in the optimal coalition of size 3.
-\vspace{-18pt}
+
 \begin{table}
  \centering
  \begin{tabular}{ | l | l | l | l | l | l |}
@@ -1062,38 +1060,40 @@ For $O_r$, however, the structure of the optimal coalition varies depending on c
 \caption{Optimal coalitions of all sizes for agent organisations from Fig.~\ref{fig:network_configurations}.}
 \label{tab:optimal_coalitions}
 \end{table}
-\vspace{-30pt}
+
 Fig.~\ref{fig:coalition_performance} shows a comparison of agent organisations in terms of the maximum performance for different coalition sizes. $O_{fc}$ outperforms others in all examples. This is interesting, because it suggests that having strong connectivity within the team outweighs the exposure to many hostile agents. Performance of $O_r$ is the most consistent, as the maximum reward increases steadily with the coalition size.
 However, to be as effective as more connected networks like $O_{fc}$, the coalition has to contain most agents in the network. Better performance of $O_s$ against $O_r$ for coalition sizes up to 3 illustrates the importance of having a highly interconnected agent for small coalitions.
 
-Important differences between the online and offline settings can be seen for reward $W_1$ in Fig.~\ref{fig:off_w1} and \ref{fig:on_w1}. The big jump in difference can be seen when going from coalition size 2 to size 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, as coalitions can make sure that one task is completed almost surely (see Tab.~\ref{tab:optimal_1task}) thus assuring reward of at least 3 for the coalition.
+Important differences between the online and offline settings can be seen for reward $W_1$ in Fig.~\ref{fig:off_w1} and \ref{fig:on_w1}. When going from coalition size 2 to 3, especially, for strongly connected $O_{fc}$ and $O_{ia}$, coalitions can make sure that one task is completed almost surely (see Tab.~\ref{tab:optimal_1task}), and thus guaranteeing reward of at least 3 for the coalition, which results in a jump of performance.
 
 
 We have showed how an extension of PRISM to support STPGs can be used to verify properties of the multi-agent system that can be enforced by particular agent coalitions. This competitive  scenario allowed us to analyse the team formation algorithm from the coalitional perspective, finding the optimal coalitions and comparing their performance on different network topologies.
 
 \vspace{-11pt}
-\section{Conclusions and Future Work}
+\section{Conclusion and Future Work}
 \vspace{-8pt}
-In this paper, using a team formation algorithm as a case study, we illustrated the usage of formal analysis techniques, namely, probabilistic model-checking for understanding and evaluating the performance of algorithms for multi-agent systems. We used three models, DTMC, MDP and STPG for the analysis and compared their capabilities for exploring different scenarios. Using a DTMC we analysed the performance of the original protocol. Then we extended the algorithm by allowing agents to make decisions nondeterministically, and using MDP model checking we obtained the best-case performance of the protocol, which allowed us to see how the original algorithm compares with the optimal one. To be able to perform further analysis of the coalitional setting we extended PRISM to support PCTL model checking of STPGs, and then discussed the results of the algorithm's performance in the competitive setting with hostile agents. We believe that there is a lot of potential in applying formal analysis to multi-agent systems, and this case study will serve as a motivating starting point for further work in this area.
+In this paper, using a team formation algorithm as a case study, we illustrated the usage of formal analysis techniques, namely, probabilistic model-checking for understanding and evaluating the performance of algorithms for multi-agent systems. We believe that there is a lot of potential in applying formal analysis to multi-agent systems, and this case study will serve as a motivating starting point for further work in this area.
 
-\paragraph{Future work.} Although we have conducted a comprehensive analysis of the team formation protocol, many interesting directions and challenges remain as ongoing and future work. Here we simply outline some of them:
-\vspace{-5pt}
-\begin{itemize}
+As an ongoing and future work we plan to equip the analysis with abstraction techniques to allow for model checking larger systems. We also plan to explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution, and consider the problem of synthesising the optimal agent organisations for a given set of tasks.
 
-\item Take advantage of abstraction techniques to extend the analysis to larger systems of agents.
+%\paragraph{Future work.} Although we have conducted a comprehensive analysis of the team formation protocol, many interesting directions and challenges remain as ongoing and future work. Here we simply outline some of them:
+%\vspace{-5pt}
+%\begin{itemize}
 
-\item Verify ``dual" properties. For instance, rather than asking ``what is the expected reward'', we would like to be able to answer questions like ``what is the probability of reaching reward value $R$?''. This also applies to the strategy synthesis setting.
+%\item Take advantage of abstraction techniques to extend the analysis to larger systems of agents.
 
-\item Explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution. %(i.e. interleaving steps of JoinTeam algorithm
-    In particular, it would be interesting to investigate how this affects strategies of agents in both online and offline versions of the algorithm. %Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently.
+%\item Verify ``dual" properties. For instance, rather than asking ``what is the expected reward'', we would like to be able to answer questions like ``what is the probability of reaching reward value $R$?''. This also applies to the strategy synthesis setting.
+
+%\item Explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution. %(i.e. interleaving steps of JoinTeam algorithm
+%    In particular, it would be interesting to investigate how this affects strategies of agents in both online and offline versions of the algorithm. %Also this raises many interesting scheduling problems, as worst and best case scheduling (of action interleaving) scenarios are unrealistic, the challenging question is to both develop realistic schedulers and perform model-checking efficiently.
 
  %\item Conducting experiments with agents having multiple resources, allowing agents to change teams until stable point is reached and check whether it can reached, what is the expected number of steps to reach the stable configuration, etc.
 
- \item Synthesise the optimal agent organisation given a set of tasks. % and their distributions.
-       This problem turns out to be an instance of the mechanism design problem in game theory, where the designer can have control over neighbourhood structure or agent resources or both. We plan to attack this question by probabilistic model checking techniques.
+% \item Synthesise the optimal agent organisation given a set of tasks. % and their distributions.
+ %      This problem turns out to be an instance of the mechanism design problem in game theory, where the designer can have control over neighbourhood structure or agent resources or both. We plan to attack this question by probabilistic model checking techniques.
 
-\end{itemize}
-\vspace{-20pt}
+%\end{itemize}
+%\vspace{-20pt}
 
 
 \small{
@@ -1121,10 +1121,10 @@ P.~Ballarini, M.~Fisher, and M.~Wooldridge.
 \newblock In {\em Proc. of SASEMAS'06}, 2006.
 
 \bibitem{bonzon2007efficient}
-E. Bonzon, M.-C. Lagasquie-Schiex, and J\'er\^ome Lang.
+E. Bonzon, M.-C. Lagasquie-Schiex, and J. Lang.
 \newblock Efficient coalitions in {B}oolean games.
 \newblock In {\em Texts in Logic
-  and Games}, vol.5, chapter New Perspectives on Games and Interaction,
+  and Games}, vol.5,
   pp. 293--297. 2008.
 
 \bibitem{chatterjee2007strategy}
