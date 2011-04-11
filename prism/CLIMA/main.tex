@@ -482,7 +482,7 @@ are highlighted in Alg.~\ref{alg:join_team_nondet}.
 \end{itemize}
 \vspace{-2pt}
 This algorithm allows the analysis of best-case performance that can be achieved by the protocol, and also to analyse the agent organisations with \emph{hostile} agents which aim to reduce organisation's performance. It will be modelled and analysed as an MDP and STPG respectively, as we shall see in Sec.~\ref{subsec:MDP} and Sec.~\ref{subsec:STPG}.
-\vspace{-10mm}
+\vspace{-6mm}
 \begin{algorithm}[H]
 \caption{\textsc{JoinTeam} algorithm (non-deterministic extension)}
 \label{alg:join_team_nondet}
@@ -692,13 +692,21 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,$ $a_5 \} $ 
 \label{fig:network_configurations}
 \end{figure}
 
-
+\vspace{-33pt}
 \section{Experimental Results}
 \label{sec:results}
-\vspace{-10pt}
+\vspace{-5pt}
 In this section, we present results obtained using three models: DTMC, MDP, and STPG. Tab.~\ref{tab:model_sizes} compares model construction information for different sizes of fully connected agent organisations\footnote{We choose a fully connected agent organisation because it produces the largest models.}. All experiments are performed on a 2.8GHz Intel Core 2 PC, 4Gb of RAM running the Fedora Core 13 operating system. Nondeterministic models (MDPs/STPGs) have a smaller state space because agent choices do not have to be resolved at the model construction stage. However, the model checking is generally more time consuming for MDPs and STPGs than for DTMCs. The time needed for model checking is in the range of 5-240 seconds.
-\vspace{-25pt}
 
+As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using probabilistic model checking on the DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PRISM temporal logic queries are used to compute the expected rewards of the agent organisation under a particular resource allocation:
+\vspace{-5pt}
+\begin{itemize}
+ \item ${\tt R}_{=?}^{W_{j}}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the expected total reward  $W_j$ of an agent organisation when execution terminates?'' ($j\in\{1,2\}$).
+\end{itemize}
+\vspace{-5pt}
+After obtaining the expected rewards for all possible resource allocations, we selected the with the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
+\clearpage
 \begin{table}
 \centering
 \subfloat[DTMC]{
@@ -726,20 +734,7 @@ In this section, we present results obtained using three models: DTMC, MDP, and 
 \caption{Model comparison for different numbers of agents in a fully connected agent organisation for the offline version of Alg.~\ref{alg:join_team_org}.}
 \label{tab:model_sizes}
 \end{table}
-
-\vspace{-33pt}
-
-As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using probabilistic model checking on the DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PRISM temporal logic queries are used to compute the expected rewards of the agent organisation under a particular resource allocation:
-\vspace{-5pt}
-\begin{itemize}
- \item ${\tt R}_{=?}^{W_{j}}[\,\Diamond\,\mathit{finished}\,]$ -
-``what is the expected total reward  $W_j$ of an agent organisation when execution terminates?'' ($j\in\{1,2\}$).
-\end{itemize}
-\vspace{-5pt}
-After obtaining the expected rewards for all possible resource allocations, we selected the with the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
-
-\vspace{-7mm}
-
+\vspace{-18mm}
 \begin{table}[H]
  \centering
  \begin{tabular}{ | l | l | l | l |}
@@ -877,12 +872,12 @@ An attentive reader would have noticed that the online version produces larger e
 \caption{Task completion probabilities for optimal agent organisations using Alg.~\ref{alg:join_team_org}'s offline and online versions (see Alg.~\ref{alg:main_process}).}
 \label{tab:task_compl_dtmc}
 \end{table}
-\vspace{-25pt}
+\vspace{-35pt}
 %Let us note that the strategy of an agent does not change when switching from the offline to online setting, but it is the same strategy and the removal of constraint that the agent can only join a team for a task that it has the required skill for (which is obviously not known before the task is advertised) that results more agents joining teams.
 
 Using formal analysis for DTMCs, we produced \emph{exact} values of expectations for properties of the system (task completion probabilities and rewards were used as examples), so that even small differences between different organisations can be captured precisely. Also, we focused on one particular strategy defined in Alg. \ref{alg:join_team_org}, but the PRISM code can be adapted easily to analyse other strategies and reward structures. In the next section we will explore how the performance can be improved by changing the strategy of the agents so that they collaborate to optimise the performance of the organisation.
 %\clearpage
-\vspace{-15pt}
+\vspace{-10pt}
 \subsection{MDP Analysis}
 \label{subsec:MDP}
 \vspace{-2pt}
@@ -914,7 +909,7 @@ In this section, we present the analysis of Alg.~\ref{alg:join_team_nondet}, whi
 \caption{Maximum task completion probabilities for optimal agent organisations using Alg.~\ref{alg:join_team_nondet}'s online and offline versions (see Alg.~\ref{alg:main_process}).}
 \label{tab:mdp_probs}
 \end{table}
-\vspace{-3pt}
+\vspace{-30pt}
 In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion probabilities that can be achieved. All organisations except $O_s$ can ensure that at least one task is completed with probability $1.0$, no matter what the scheduling is. The following PRISM temporal logic queries were used to get the results:
 \begin{itemize}
  \item ${\tt P}_{\max=?}[\,\Diamond\,T_{j} \mathit{\_done}\,]$ -
