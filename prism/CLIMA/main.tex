@@ -448,11 +448,11 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~
 
 \vspace{-6mm}
 
-\begin{algorithm}[H] 
+\begin{algorithm}[H]
 \caption{\textsc{JoinTeam} algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
 \label{alg:join_team_org}
 \begin{scriptsize}
-\begin{algorithmic}[1]
+\begin{algorithmic} 
 \Procedure{JoinTeam}{$a$, $T$, $M$}
   \ForAll {$T_i \in T$ in random order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
@@ -490,7 +490,7 @@ This algorithm allows the analysis of best-case performance that can be achieved
 \caption{\textsc{JoinTeam} algorithm (non-deterministic extension)}
 \label{alg:join_team_nondet}
 \begin{scriptsize}
-\begin{algorithmic}[1]
+\begin{algorithmic} 
 \Procedure{JoinTeam}{$a$, $T$, $M$}
   \ForAll {$T_i \in T$ in \hl{arbitrary} order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
@@ -510,14 +510,14 @@ This algorithm allows the analysis of best-case performance that can be achieved
 \end{scriptsize}
 \end{algorithm}
 \vspace{-6mm}
-Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam}: the \textsc{Offline} procedure first initialises the set of tasks and then sequentially calls the \textsc{JoinTeam} procedures of every agent in random order, as described in Alg.~\ref{alg:join_team_org}. In contrast, the \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. (The \textsc{JoinTeam} algorithm needs to be adapted slightly, see Alg.~\ref{alg:join_team_org}, Line 5.)  We investigate both the offline and online versions of the algorithms because they provide a nice comparison between optimisation against specific tasks (offline), and distribution of tasks (online). As we will see Sec.~\ref{subsec:STPG}, whether the offline or online version results in better performance depends on network topology.
+Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam}: the \textsc{Offline} procedure first initialises the set of tasks and then sequentially calls the \textsc{JoinTeam} procedures of every agent in random order, as described in Alg.~\ref{alg:join_team_org}. In contrast, the \textsc{Online} routine calls \textsc{JoinTeam} procedures for agents \emph{before} selecting the tasks. (The \textsc{JoinTeam} algorithm needs to be adapted slightly, see Alg.~\ref{alg:join_team_org}, the 5th line.)  We investigate both the offline and online versions of the algorithms because they provide a nice comparison between optimisation against specific tasks (offline), and distribution of tasks (online). As we will see Sec.~\ref{subsec:STPG}, whether the offline or online version results in better performance depends on network topology.
 \vspace{-6mm}
 
 \begin{algorithm}[H]
 \caption{Offline and online versions of \textsc{JoinTeam} algorithm}
 \label{alg:main_process}
 \begin{scriptsize}
-\begin{algorithmic}[1]
+\begin{algorithmic} 
 \Procedure{Offline}{$t$} \Comment{$t$ - number of tasks}
   \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams}
   \State $T = \{T_i\neq \emptyset\ :\ T_i \subseteq_{random} R,\ 1\leq i \leq t\}$ \Comment{initialise tasks at random}
