@@ -59,7 +59,7 @@ Then, using a Markov decision process model,
 we construct optimal algorithms for team formation,
 with respect to both individual agents and the combined set of all agents.
 Finally, we use stochastic two-player games to analyse the competitive coalitional setting,
-in which agents are split into cooperative and Byzantine classes.
+in which agents are split into cooperative and hostile classes.
 We present experimental results from these models
 using the probabilistic model checking tool PRISM,
 which we have extended with support for stochastic games.
@@ -124,7 +124,7 @@ In this paper, we use the PRISM probabilistic model checker \cite{KNP11} to anal
 We use several different types of probabilistic models
 and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations.
-MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and Byzantine -- which try to, respectively, maximise or minimise the performance of the organisation. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed (see Alg.~\ref{alg:main_process}).
+MDPs, however, can only model fully collaborative behaviour, whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and hostile -- which try to, respectively, maximise or minimise the performance of the organisation. Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed (see Alg.~\ref{alg:main_process}).
 
 
 Our experiments illustrate several aspects of agent organisation analysis. As a typical case, we choose four network topologies, each consisting of five agents, i.e., fully connected, ring, star, and a network having one isolated agent. For each one, we compute the expected performance of the organisation and find organisation-optimal resource allocation among agents. Then we show using MDP model checking what is the best performance that can be achieved by this organisation. Then we take the model to the STPG setting to obtain the optimal coalitions of different sizes and evaluate their performance. For all of these cases, we consider the offline and online dichotomy.
@@ -143,7 +143,7 @@ In summary, the main contributions of this paper are as follows:
 
   \item  We \emph{extend} the original algorithm of \cite{gaston2005agent}, allowing agents to make decisions nondeterministically when forming teams. Then, by modelling and analysing as an MDP, we \emph{synthesise} the best strategies for agents to achieve optimal performance, partially solving an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialising and team joining policies is also important, and is included in our on-going and future work".}
 
-  \item  We address the competitive coalitional setting, in which agents are split into cooperative and Byzantine classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} analysis of this kind.
+  \item  We address the competitive coalitional setting, in which agents are split into cooperative and hostile classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} analysis of this kind.
 
   \item We extend the  PRISM model checker with support for modelling and automated analysis of STPGs;
   this is of independent interest.
@@ -730,8 +730,8 @@ In this section, we present results obtained using three models: DTMC, MDP, and 
 As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:network_configurations} we obtain optimal resource allocations using probabilistic model checking on the DTMC model of the offline version of the algorithm (see Alg.~\ref{alg:main_process} and Alg.~\ref{alg:join_team_org}). The following PRISM temporal logic queries are used to compute the expected rewards of the agent organisation under a particular resource allocation:
 \vspace{-3pt}
 \begin{itemize}
- \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
-``what is the expected total reward  $W_1$/$W_2$ of an agent organisation when execution terminates?'',
+ \item ${\tt R}_{=?}^{W_{j}}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the expected total reward  $W_j$ ($j\in\{1,2\}$) of an agent organisation when execution terminates?'',
 \end{itemize}
 \vspace{-5pt}
 After obtaining the expected rewards for all possible resource allocations, we selected the with the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
@@ -813,10 +813,10 @@ Tab.~\ref{tab:dtmc_results} shows the results obtained for the expected rewards 
 for organisations and Eqn.~\eqref{eq:w1agent} and Eqn.~\eqref{eq:w2agent} for individual agents), and offline and online versions of Alg.~\ref{alg:join_team_org}. The following PRISM temporal logic queries were used to obtain the results:
 \vspace{-5pt}
 \begin{itemize}
- \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
-``what is the expected total reward $W_1$/$W_2$?'',
- \item ${\tt R}_{=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,(\mathit{finished} \wedge a_i {\in} \bar{M}) \,]$ -
-``what is the expected reward $W_1$/$W_2$ for agent $a_i$?''
+ \item ${\tt R}_{=?}^{W_{j}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the expected total reward $W_j$ ($j\in\{1,2\}$)?'',
+ \item ${\tt R}_{=?}^{W_{j}(O)}[\,\Diamond\,(\mathit{finished} \wedge a_i {\in} \bar{M}) \,]$ -
+``what is the expected reward $W_j$ ($j\in\{1,2\}$) for agent $a_i$ ($i\in\{1,2,3,4,5\}$)?''
 \end{itemize}
 \vspace{-5pt}
 As can be seen in Tab.~\ref{tab:dtmc_results}, agents organised in $O_s$ have the worst expected rewards in all settings, and also the largest disparity between the worst and best performing individual agents. Both of these characteristics are not surprising because agent $a_1$, which is placed in the middle, is most likely to be in a winning team, whereas the others do not have any choice but to join the team with $a_1$. Organisation $O_{ia}$, which has one isolated agent, shows a smaller differences between the worst and the best performing agents, but this is only because the performance of the ``best'' agents is lower, whereas the ``worst'' agent's performance is very close to that of $O_s$.
@@ -843,8 +843,8 @@ Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in off
 An attentive reader would have noticed that the online version produces larger expected $W_1$, but smaller expected $W_2$ rewards. This observation shows that, in an online version, the algorithm organises agents into teams which increases the expectation for more agents to be in a successful team, but that this decreases the expected total number of tasks completed. These are summarised in Tab.~\ref{tab:task_compl_dtmc} where the task completion probabilities are presented. The following PRISM temporal logic queries were used to find the probabilities:
 \vspace{-5pt}
 \begin{itemize}
- \item ${\tt P}_{=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
-``what is the expected probability to complete  task $T_1$/$T_2$?'',
+ \item ${\tt P}_{=?}[\,\Diamond\,T_{j} \mathit{\ completed}\,]$ -
+``what is the expected probability to complete  task $T_j$ ($j\in\{1,2\}$)?'',
  \item ${\tt P}_{=?}[\,\Diamond\,(T_{1} \wedge T_2 \mathit{\ completed})\,]$ -
 ``what is the expected probability to complete  both tasks $T_1$ and $T_2$?'',
 \end{itemize}
@@ -915,18 +915,18 @@ In this section, we present the analysis of Alg.~\ref{alg:join_team_nondet}, whi
 \vspace{-25pt}
 In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion probabilities that can be achieved. All organisations except $O_s$ can ensure that at least one task is completed with probability $1.0$, no matter what the scheduling is. The following PRISM temporal logic queries were used to get the results:
 \begin{itemize}
- \item ${\tt P}_{max=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
-``what is the maximum expected probability to complete  task $T_1$/$T_2$?'',
+ \item ${\tt P}_{max=?}[\,\Diamond\,T_{j} \mathit{\ completed}\,]$ -
+``what is the maximum expected probability to complete  task $T_j$ ($j\in\{1,2\}$)?'',
  \item ${\tt P}_{max=?}[\,\Diamond\,(T_{1} \wedge T_2 \mathit{\ completed})\,]$ -
 ``what is the maximum expected probability to complete  both tasks $T_1$ and $T_2$?''.
 \end{itemize}
 
 Tab.~\ref{tab:mdp_rewards} shows the maximum expected organisation rewards that can be achieved by all agents collaborating. It is not very difficult to see that $O_{\mathit{fc}}$, $O_r$ and $O_{ia}$ have the same maximum reward, no matter whether $W_1$/$W_2$ reward or online/offline version is taken. These outperform the star organization $O_s$ in all circumstances. The PRISM temporal logic queries used to find the rewards were the following:
 \begin{itemize}
- \item ${\tt R}_{max=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
-``what is the maximum expected total reward $W_1$/$W_2$?'',
- \item ${\tt R}_{max=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,(\mathit{finished} \,\wedge\, a_i {\in} \bar{M}) \,]$ -
-``what is the maximum expected reward $W_1$/$W_2$ for agent $a_i$?''
+ \item ${\tt R}_{max=?}^{W_{j}}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the maximum expected total reward $W_j$ ($j\in\{1,2\}$)?'',
+ \item ${\tt R}_{max=?}^{W_{j}}[\,\Diamond\,(\mathit{finished} \,\wedge\, a_i {\in} \bar{M}) \,]$ -
+``what is the maximum expected reward $W_j$ ($j\in\{1,2\}$) for agent $a_i$ ($i\in\{1,2,3,4,5\}$)?''
 \end{itemize}
 
 \vspace{-30pt}
@@ -1003,12 +1003,12 @@ We are mainly interested in finding the optimal coalition. In general,
 a coalition $C\subseteq A$ is a subset of agents who cooperate to ensure certain goals irrespective of how the rest of the agents behave in the organization. We consider two criteria, i.e., the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we consider a slight extension of PCTL formulae with agent coalitions. The following formulae were used to obtain the results presented in this section:
 \vspace{-5pt}
 \begin{itemize}
- \item $[C]{\tt P}_{max,min=?}[\,\Diamond\,T_{\{1,2\}} \mathit{\ completed}\,]$ -
-``what is the expected probability for coalition C to complete task $T_1$/$T_2$ when agents in $A\setminus C$ are hostile?'',
- \item $[C]{\tt P}_{max,min=?}[\,\Diamond\,(T_{1} \wedge T_2 \mathit{\ completed})\,]$ -
-``what is the expected probability for coalition C to complete both tasks $T_1$ and $T_2$ when agents in $A\setminus C$ are hostile?'',
- \item $[C]{\tt R}_{max,min=?}^{W_{\{1,2\}}(O)}[\,\Diamond\,\mathit{finished}\,]$ -
-``what is the maximum expected total reward $W_1$/$W_2$ for coalition C when agents in $A\setminus C$ are hostile?'',
+ \item ${\tt P}_{max,min=?}[\,\Diamond\,T_{j} \mathit{\ completed}\,]$ -
+``what is the maximum probability for coalition C to complete task $T_j$ ($j\in\{1,2\}$) when agents in $A\setminus C$ are hostile?'',
+ \item ${\tt P}_{max,min=?}[\,\Diamond\,(T_{1} \wedge T_2 \mathit{\ completed})\,]$ -
+``what is the maximum probability for coalition C to complete both tasks $T_1$ and $T_2$ when agents in $A\setminus C$ are hostile?'',
+ \item ${\tt R}_{max,min=?}^{W_{j}}[\,\Diamond\,\mathit{finished}\,]$ -
+``what is the maximum expected reward $W_j$ ($j\in\{1,2\}$) for coalition C when agents in $A\setminus C$ are hostile?'',
 \end{itemize}
 \vspace{-35pt}
 
@@ -1071,7 +1071,7 @@ We have showed how an extension of PRISM to support STPGs can be used to verify 
 \vspace{-11pt}
 \section{Conclusion and Future Work}
 \vspace{-8pt}
-In this paper, using a team formation algorithm as a case study, we illustrated the usage of formal analysis techniques, namely, probabilistic model-checking for understanding and evaluating the performance of algorithms for multi-agent systems. We believe that there is a lot of potential in applying formal analysis to multi-agent systems, and this case study will serve as a motivating starting point for further work in this area.
+In this paper, we have presented a comprehensive, formal analysis of a team formation algorithm using probabilistic model checking. We believe this demonstrates the strong potential of these techniques to the formal analysis of multi-agent systems and hope that this case study will serve as a motivation for further work in this area.
 
 As an ongoing and future work we plan to equip the analysis with abstraction techniques to allow for model checking larger systems. We also plan to explore parallel execution of the \textsc{JoinTeam} algorithm for multiple agents, as here we only considered sequential execution, and consider the problem of synthesising the optimal agent organisations for a given set of tasks.
 
