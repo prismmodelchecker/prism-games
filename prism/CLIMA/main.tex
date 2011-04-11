@@ -304,7 +304,7 @@ these values are well defined \cite{Con92}.
 Finally, we also use properties based on \emph{rewards},
 which capture a variety of additional quantitative measures.
 For consistency across all three types of models,
-we assume a simple state-based scheme, 
+we assume a simple state-based scheme,
 i.e., a \emph{reward function} $\rho:S\rightarrow\Rsetgeq$.
 We consider the \emph{expected total reward} accumulated until some target set of states is reached.
 Consider a DTMC with reward function $\mathit{time}$
@@ -584,7 +584,7 @@ Here we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the de
 %
 The system modelled in this example consists of two agents and a scheduling module which randomly generates the number of tasks to be performed (1 or 2, each with probability 0.5), then agents act in turn by choosing which team to join for each task. The reward structure \emph{``total''} rewards 0.3 points for each task for which agents joined different teams and 1.0 points when agents cooperate. The  choice of teams for an agent is nondeterministic (i.e. the underlying model will be either an MDP or STPG), but it could be made probabilistic in a way similar to the scheduler's generation of tasks (and thus become a DTMC).
 
-The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described %in a similar manner 
+The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described %in a similar manner
 according to definitions in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
 
 From this high-level description of the algorithm, our extension of PRISM then constructs the corresponding models: DTMC, MDP, or STPG (for the example in Fig.~\ref{fig:prism_example}, built as an MDP, see Appendix \ref{app:transitions}).
@@ -1129,7 +1129,7 @@ E. Bonzon, M.-C. Lagasquie-Schiex, and J. Lang.
 \bibitem{chatterjee2007strategy}
 K.~Chatterjee, T.~Henzinger, and N.~Piterman.
 \newblock {Strategy logic}.
-\newblock {\em CONCUR 2007--Concurrency Theory}, pp. 59--73, 2007.
+\newblock In {\em Proc. CONCUR 2007}, LNCS 4703, pp. 59--73, Springer, 2007.
 
 \bibitem{Con92}
 A. Condon.
@@ -1139,7 +1139,7 @@ A. Condon.
 \bibitem{dunne2008cooperative}
 P.E. Dunne, W.~van~der Hoek, S.~Kraus, and M.~Wooldridge.
 \newblock {Cooperative boolean games}.
-\newblock In {\em Proc. of AAMAS'08}, pp. 1015--1022. 2008.
+\newblock In {\em Proc. of AAMAS'08}, pp. 1015--1022. ACM, 2008.
 
 \bibitem{gaston2005agent}
 M.E. Gaston and M.~desJardins.
@@ -1150,7 +1150,7 @@ M.E. Gaston and M.~desJardins.
 R.~Glinton, P.~Scerri, and K.~Sycara.
 \newblock {Agent-based sensor coalition formation}.
 \newblock In {\em Information Fusion, 2008 11th International Conference on},
-  pages 1--7. IEEE, 2008.
+  pp. 1--7. IEEE, 2008.
 
 \bibitem{HJ94}
 H.~Hansson and B.~Jonsson.
@@ -1171,10 +1171,7 @@ M.~Kwiatkowska and G.~Norman.
 \bibitem{KNP07a}
 M.~Kwiatkowska, G.~Norman, and D.~Parker.
 \newblock Stochastic model checking.
-\newblock In M.~Bernardo and J.~Hillston, editors, {\em Formal Methods for the
-  Design of Computer, Communication and Software Systems: Performance
-  Evaluation (SFM'07)}, volume 4486 of {\em LNCS (Tutorial Volume)}, pages
-  220--270. Springer, 2007.
+\newblock In {\em Proc. SFM'07}, LNCS 4486, pp. 220--270. Springer, 2007.
 
 \bibitem{KNP11}
 M.~Kwiatkowska, G.~Norman, and D.~Parker.
@@ -1185,7 +1182,7 @@ M.~Kwiatkowska, G.~Norman, and D.~Parker.
 \bibitem{lomuscio2006mcmas}
 A.~Lomuscio and F.~Raimondi.
 \newblock {MCMAS: A model checker for multi-agent systems}.
-\newblock In {\em Proc. of TACAS'06}, pp. 450--454, 2006.
+\newblock In {\em Proc. of TACAS'06}, LNCS 3920, pp. 450--454. Springer, 2006.
 
 \bibitem{manisterski2006forming}
 E.~Manisterski, E.~David, S.~Kraus, and N.R. Jennings.
