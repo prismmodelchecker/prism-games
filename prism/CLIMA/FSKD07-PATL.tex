@@ -1,0 +1,2204 @@
+\documentclass[times, 10 pt,twocolumn]{article}
+\usepackage{time}
+\usepackage{latex8}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{graphicx}
+\usepackage{dsfont}
+%\usepackage{fontenc}
+%\usepackage{txfonts}
+
+\addtolength{\textheight}{0.65in} \addtolength{\textwidth}{0.15in}
+
+%===========================================environment definition==========================================
+
+\newenvironment{proof}[1][Proof]{\noindent\rm\textit{#1: }}{{\hspace*{\fill}$\square$}\ \newline}
+\newtheorem{theorem}{Theorem}{\bfseries}{\rm}
+\newtheorem{notation}{Notation}{\bfseries}{\rm}
+\newtheorem{definition}[theorem]{Definition}{\bfseries}{\rm}
+\newtheorem{corollary}[theorem]{Corollary}{\bfseries}{\itshape}
+\newtheorem{lemma}[theorem]{Lemma}{\bfseries}{\itshape}
+\newtheorem{example}{Example}{\itshape}{\rm}
+\newtheorem{exercise}{Exercise}{\itshape}{\rm}
+\newtheorem{note}{Note}{\itshape}{\rm}
+\newtheorem{problem}{Problem}{\itshape}{\rm}
+\newtheorem{proposition}{Proposition}{\bfseries}{\itshape}
+\newtheorem{question}{Question}{\itshape}{\rm}
+\newtheorem{remark}{Remark}{\itshape}{\rm}
+\newtheorem{solution}{Solution}{\itshape}{\rm}
+
+\newcommand{\bis}{\mathrel{\underline{\leftrightarrow}}}
+\newcommand{\mv}[1]{\mathrel{\stackrel{#1}{\rightarrow}}}
+\newcommand{\nv}[1]{\mathrel{\stackrel{#1}{\nrightarrow}}}
+\newcommand{\nil}{\mathbf{0}}
+\newcommand{\nbis}{~{\underline{\leftrightarrow}}\!\!\!\!/~~}
+
+\newcommand{\mb}[1]{\mathbb{#1}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+
+\newcommand{\la}{\langle}
+\newcommand{\ra}{\rangle}
+
+\newcommand{\lla}{\langle\langle}
+\newcommand{\rra}{\rangle\rangle}
+
+\newcommand{\lb}{\llbracket}
+\newcommand{\rb}{\rrbracket}
+
+\newcommand{\st}[1]{\stackrel{#1}{\longrightarrow}}
+\newcommand{\wt}[1]{\stackrel{#1}{\Longrightarrow}}
+
+\newcommand{\Ppre}{\textsf{Ppre}}
+
+\newcommand{\mydef}{\stackrel{\mathrm{def}}{=}}
+
+%============================================end of header=========================================
+
+%\pagestyle{empty}
+\pagestyle{plain}
+
+%-------------------------------------------------------------------------
+\begin{document}
+
+\title{Probabilistic Alternating-Time Temporal Logic \\
+and Model Checking Algorithm}
+
+\author{Taolue Chen \thanks{The author is partially
+supported by Dutch Bsik project BRICKS (Basic Research in
+Informatics for Creating the Knowledge Society), 973 Program of
+China (2002CB312002), NSF of China (60233010, 60273034, 60403014),
+863 Program of China (2005AA113160, 2004AA112090).} \thanks{%Corresponding author.
+Email address: chen@cwi.nl.} \\
+CWI, Department of Software Engineering, \\ P.O. Box 94079, 1090GB
+Amsterdam, The Netherlands %\\
+%\and Jian Lu \thanks{The author is partially supported by
+%Supported by 973 Program of China (2002CB312002),
+%NSF of China (60233010, 60273034, 60403014), 863 Program of China (2005AA113160, 2004AA112090).}  \\
+%State Key Laboratory of Novel Software Technology, \\
+%Nanjing University, Nanjing, Jiangsu, P.R.China 210093
+}
+
+%\author{
+%\begin{tabular}{cc}
+%Taolue Chen\thanks{The author is partially supported by Project
+%BRICKS (Basic Research in Informatics for Creating the Knowledge
+%Society).} \thanks{Corresponding author. Email: chen@cwi.nl.} &
+%Jian Lu \thanks{The author is partially supported by Supported by
+%973 Program of China (2002CB312002), NSF of China (60233010,
+%60273034, 60403014), 863 Program of China (2005AA113160,
+%2004AA112090).}\\
+%CWI, Department of Software Engineering, & State Key Laboratory of
+%Novel
+%Software Technology, \\
+%PO Box 94079, 1090GB Amsterdam, The Netherlands & Nanjing
+%University, Nanjing,  China 210093\\
+%\end{tabular}
+%}
+
+\maketitle \thispagestyle{empty}
+
+% complexity of *
+% future work
+% restrict hte precision of the timing constraint or the granularity of the semantics
+% are concerned with
+
+\begin{abstract}
+
+%\rotatebox[origin=c]{180}{$\varmathbb{E}$}$A$ and remember to
+
+
+ Last decade witnesses an impressive
+development of embedded reactive systems, which motivates the
+research of \emph{open} systems, where multiple components
+interact with each other and their environment and these
+interactions decide the behavior of the system. A natural
+``common-denominator" model for open systems is the
+\emph{concurrent game structure}, in which several players can
+concurrently decide on the behavior of the
+system. \emph{Alternating-time temporal logic} (ATL), %due to Alur, Henzinger and Kupferman,
+is a temporal logic geared towards the specification and
+verification of properties in open systems, which allows to reason
+on the existence of strategies for coalitions of players in order
+to enforce a given property. \emph{Probabilistic systems}, i.e.
+system models in which transitions are equipped with random
+information, receive increasingly attention in recent years. In
+this paper, we propose to study the \emph{open probabilistic
+system}. We extend the framework of ATL in the probabilistic
+setting, following the style of \emph{probabilistic computation
+tree logic} (PCTL), %due to Hansson and Jonsson,
+and obtain two \emph{probabilistic alternating-time temporal
+logics}, i.e. PATL and PATL$^*$. They are interpreted over
+\emph{probabilistic concurrent game structures}, which is a
+probabilistic extension of multi-player concurrent game structure.
+We develop model checking algorithms for both PATL and PATL$^*$. A
+more expressive logic, \emph{probabilistic game logic}, is also
+addressed.
+%
+%
+%It is well recognized that the control problem is closely related
+%to (multi-player) games:
+%
+%Last decade witnesses an impressive development of embedded
+%reactive systems, %which often involve multiple concurrent
+%components that can interact with each other.
+%In the context of
+%system verification and control, they are often modelled as
+%potential collaborators or adversaries in a multi-player game with
+%temporal objectives (e.g. safety).
+%which are often modelled as potential collaborators or adversaries
+%in a multi-player game with temporal objectives. %Uncertainty, as one of the
+%major sources of system complexity,  which %inspires
+%involves the research of
+%
+% is often %naturally
+%modelled as probabilistic state changes.
+%
+ %which require solving a
+%two-player concurrent stochastic game.
+\end{abstract}
+%
+%Probabilistic model checking is a technique to verify system
+%models in which transitions are equipped with random information.
+%Popular models are discrete- and continuous-time Markov chains
+%(DTMCs and CTMCs, respectively), and variants thereof which
+%exhibit nondeterminism. Efficient model-checking algorithms for
+%these models have been developed, have been implemented in a
+%variety of software tools, and have been applied to case studies
+%from various application areas ranging from randomized distributed
+%algorithms, computer systems and security protocols to biological
+%systems and quantum computing. The crux of probabilistic model
+%checking is to appropriately combine techniques from numerical
+%mathematics and operations research with standard reachability
+%analysis. In this way, properties such as ``the (maximal)
+%probability to reach a set of goal states by avoiding certain
+%states is at most 0.6'' can be automatically checked up to a
+%user-defined precision. Markovian models comprising millions of
+%states can be checked rather fast.
+%
+\section{Introduction} \label{sec1}
+
+Last decade witnesses an impressive development of embedded
+reactive systems, which calls for systematic design and
+verification methodologies that can cope with the complexity in
+the system design, analysis and implementation. Model checking
+\cite{CGP00} is a well-established technique for verifying whether
+a system (typically represented by some formal models, say
+automata) satisfies a given property. Usually, temporal logics
+have been used to specify these properties: \emph{linear time}
+temporal logics (typically LTL, \cite{Pnu77}) expresses properties
+on each single execution of the model, while \emph{branching time}
+temporal logics (typically CTL, \cite{CE81, QS82}) handle the
+computation tree of the model. While the computer science
+community has concentrated on verification of systems, the control
+theory community has always had \emph{synthesis} as their main
+objective, as opposed to analysis. This results in a new framework
+in the field of verification: control (and controller synthesis
+\cite{RW89}), which was developed in the late 80's. Its goal is to
+build a controller that should prevent the (model of the) system
+from having unwanted behaviors.
+
+In system verification, especially in the area of control, it
+turns out to be essential to distinguish between \emph{open} and
+\emph{closed} systems \cite{HP85}. For a \emph{closed} system, the
+behavior is completely determined by the state of the system while
+for an \emph{open} system, the behavior is affected both by its
+internal state and by the ongoing interaction with its
+environment. Thus, while in a closed system all the
+nondeterministic choices are internal, and resolved by the system,
+in an open system there are also external nondeterministic
+choices, which are resolved by the environment \cite{Hoa85}. In
+the literatures, while closed systems are naturally modelled as
+Kripke structures (or labelled transition systems), %a general model for open systems,
+%which can accommodate a wide variety of notions of composition, is
+%the \emph{concurrent game structure}.
+a natural ``common-denominator" model for compositions of open
+systems is the \emph{concurrent game structure} \cite{AHK02}, in
+which several
+players concurrently decide on the behavior of the system. %In particular,
+%closed systems correspond to the special case of a single player.
+In particular, Kripke structures can be viewed as game structures
+with a single player which represents the player \emph{system}. In
+this case, game structures degenerate to Kriple structures.
+
+
+%The Kripke structure is a natural ``common-denominator" model for
+%closed systems, %independent of whether the high-level description
+%%of a system is given, say, as a product of state machines or as a
+%%set of guarded commands on variables.
+%In analogy, the natural ``common-denominator" model for
+%compositions of open systems is the \emph{concurrent game
+%structure}. In particular, Kripke structures can be viewed as game
+%structures with a single player $sys$, which represents the
+%system.
+
+
+It is well recognized that the control problem is closely related
+to (multi-player) games: solving such a game amounts to computing
+a strategy (if it does exist) for a player so that she surely
+reaches a state where she is declared to be the winner. %In that
+%case, the underlying model is \emph{not} only a simple automaton
+%(LTS or Kripke structure), but rather a ``concurrent game
+%structure" (CSGs) \cite{AHK02}, in which several agents
+%concurrently decide on the behavior of the system.
+In this case, one often feels convenient to reason with
+strategies, for which a new flavor of temporal logics has been
+defined: \emph{alternating-time} temporal logic \cite{AHK02}. This
+logic distinguishes itself in the sense that it allows to express,
+for instance, that a coalition of players has a strategy in order
+to always reach a winning location, or to always avoid reaching a
+bad location. In \cite{AHK02}, several alternating-time temporal
+logics are introduced to specify properties of game structures,
+including  the  CTL-like logic ATL, and the CTL$^*$-like logic
+ATL$^*$.
+%For example, the ATL formula $\lla i\rra\diamondsuit p$ is true at
+%state $s$ iff player $i$ can force the game from $s$ into a state
+%that satisfies the proposition $p$.
+
+%\paragraph{Probability}
+Most of the researchers agree that \emph{uncertainty} is one of
+the major sources
+of system complexity. %The probabilities can be exploited to model
+%a certain probability of error or other stochastic behavior both
+%occurring in various real world applications, e.g. certain
+%randomized algorithms or communication protocols over faulty
+%media.
+This motivates the investigation of \emph{probabilistic systems},
+where state transition encodes the probability of making a
+transition between states rather than just the existence of such
+transition. Recently, the specification and verification of the
+systems in
+this flavor %such kind of systems
+have received a lot of attention and are subject of study of a
+rapidly growing research community, for which we invite the
+readers to \cite{BHHKS04} for a comprehensive exposition. In
+particular, from the modelling perspective, besides the basic
+stochastic models such as DTMC and CTMC, taking probabilities into
+account in addition to nondeterministic behavior also expands the
+possibilities of modelling certain aspects of the system under
+consideration; From the specification perspective,
+\emph{probabilistic computation tree logic} (PCTL) was introduced
+by Hansson and Jonsson \cite{HJ94} and concentrates on
+probabilistic model checking w.r.t. probabilistic deterministic
+systems \cite{HJ94} or nondeterministic systems \cite{BdeA95}.
+%
+%
+%
+%
+% In
+%the literatures, uncertainty in the environment is naturally
+%modelled by probabilistic state changes and thus constitutes so
+%called \emph{probabilistic systems}.
+% the efforts to
+%cover the behavior of probabilistic systems have received a lot of
+%attentions.
+
+
+
+%Performance and dependability evaluation aim at forecasting system
+%behavior in a quantitative way by trying to answer questions
+%related to the performance and dependability of systems. Typical
+%problems that are addressed are: how many clients can this le
+%server adequately support, how large should the buffers in a
+%router be to guarantee a packet loss of at most 10..6, or how long
+%does it take before 2 failures have occurred?
+
+% \paragraph{Our contributions}
+In this paper, we devote ourselves to coping with \emph{open
+probabilistic system}. In a nutshell, we extend the framework of
+ATL to a probabilistic setting, following the style of PCTL, and
+obtain two \emph{probabilistic alternating-time temporal logics},
+i.e. PATL and PATL$^*$. We propose the semantics over
+\emph{probabilistic concurrent game structures}, which is a
+probabilistic extension of multi-player concurrent game structure
+\cite{AHK02}. Besides these contributions, the main focus of this
+paper is the model checking algorithms for both PATL and PATL$^*$,
+where the basic idea is to reduce the model checking problem to
+the decidability of the theory of \emph{real closed fields}. %It turns out
+%that solving a two-player concurrent stochastic game plays a
+%central role.
+Under condition that \emph{equality constraints} are not admitted
+(see below for explanation), we develop two model checking
+procedures for both PATL and PATL$^*$. If we do not restrict the
+precision of the constraint, %do allow equality constraints,
+as for PATL, we still can handle it by some sophistic encodings
+while for PATL$^*$, we conjecture it is undecidable. We also
+address a even more expressive logic, called \emph{probabilistic
+game logic}, trading the lack of decidability of model checking.
+Some illuminating discussions are provided regarding these three
+logics. We assume %that the readers are
+familiarity of basic knowledge on temporal logic, including linear
+time and branching time temporal logic, $\omega$-regular languages
+and their connections. For the former, the readers are referred to
+\cite{CGP00} whilst for the latter, one can consult to, say,
+\cite{Tho97}. We also assume that the readers have some basic
+notions on complexity theory and game theory, for which we refer
+the readers to \cite{Pap94} and \cite{Owe95} respectively.
+
+
+%\paragraph{Structure of the paper}
+This paper is set up as follows: In section \ref{sec2}, we first
+present the probabilistic concurrent game structure, %which extends
+%the concurrent game
+%structure in \cite{AHK02} into probabilistic setting.
+then we introduce the probabilistic alternating-time temporal
+logic, including its syntax and semantics. In section \ref{sec3},
+we present the model checking algorithms for PATL. In section
+\ref{sec4}, we propose PATL$^*$ and address its model checking
+algorithm, then we sketch a more expressive extension, i.e. the
+probabilistic game logic. %how to
+%extend the PATL studied in the previous sections to PATL$^*$%,
+%which is more expressive, yet remains the decidability. We also
+%discussion a even more expressive logic, called probabilistic game
+%logic, which loses the decidability of model checking.
+We conclude our work in section \ref{sec5} where some related
+works are also discussed in brief.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Preliminaries}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Probabilistic Alternating-time Temporal Logic}
+\label{sec2}
+
+In this section, we shall introduce the \emph{probabilistic
+alternating-time temporal logic} (PATL) and its semantics model,
+namely, \emph{probabilistic concurrent game structure} (pCGS).
+Before starting our exposition, let us first fix some general
+notations. For a countable set $X$, a \emph{probability
+distribution} on $X$ is a function $\delta: X\mapsto [0,1]$ such
+that $\sum_{x\in X}\delta(x)=1$. We denote the set of probability
+distributions on $X$ by $\mc{D}(X)$. For a probability
+distribution $\delta\in \mc{D}(X)$ we define $||\delta||$, the
+\emph{support} of $\delta$, as $||\delta||=\{x\in X\mid \delta(x)>
+0\}$. For all $k\in \mb{N}$, by $[k]$ we denote the set
+$\{1,\cdots, k\}$. For a finite set $X$, we denote the set of
+\emph{finite words} over $X$ by $X^*$, the set of \emph{infinite
+words} ($\omega$-words) over $X$ by $X^{\omega}$, and the set of
+nonempty finite words over $X$ by $X^+$. %$\varepsilon$.
+We define $X^{\infty}$ as $X^*\cup X^{\omega}$. For $\lambda\in
+X^{\infty}$ and $n\in \mb{N}$, we write $\lambda(n)$ for the
+$n$-th letter in $\lambda$, $\lambda[n]$ for the \emph{suffix}
+starting at $\lambda(n)$, i.e. $\lambda[n]=
+\lambda(n),\lambda(n+1), \cdots$. In addition, we write
+$|\lambda|$ for the length of $\lambda$ in case $\lambda\in X^*$
+and $\lambda(\uparrow)$ for
+$\lambda(|\lambda|-1)$, namely, the last element of $\lambda$. %It is well-known that
+%a LTL formula can denote a set of infinite words. % and
+%$\alpha$$\upharpoonleft_n$ for the prefix of length $n$ of
+%$\alpha$. For $\alpha=a_0a_1\cdots$, we denote
+%$\alpha(r)\alpha(r+1)\cdots \alpha(s)=a_r\cdots a_s$ by
+%$\alpha[r,s]$.
+
+\subsection{Probabilistic Concurrent Game Structure}
+
+\begin{definition}\label{pcgs}[Probabilistic Concurrent Game Structure] A
+\emph{probabilistic concurrent game structure} (pCGS) is a tuple
+$\mc{G}=\langle k, Q, \Pi, \pi, d, \delta\rangle$ with the
+following components:
+\begin{itemize}
+  \item $k\in \mb{N}$ is the number of \emph{players} (a.k.a. \emph{agents}).
+  We identify the players with the numbers in $[k]$;
+
+  \item $Q$ is a finite set of \emph{states};
+
+  \item $\Pi$ is a finite set of \emph{atomic propositions}
+  (a.k.a. \emph{observations});
+
+  \item $\pi: Q\mapsto \wp(\Pi)$ is the \emph{labelling function} (a.k.a. \emph{observation mapping}).
+  Namely, for each state $q\in Q$, $\pi$ assigns to $q$ a set $\pi(q)\subseteq \Pi$ of
+  propositions that hold true at $q$.
+
+  \item For each player $a\in [k]$ and each state $q\in
+  Q$, a natural number $d_a(q)\geq 1$ of \emph{moves} available at state
+  to $a$. We identify the moves of player $a$ at state $q$
+  with the number $1,\cdots, d_a(q)$. For each state $q\in Q$, a
+  \emph{move vector} at $q$ is a tuple $\la j_1, \cdots, j_k\ra $ such that
+  $1\leq j_a\leq d_a(q)$ for each player $a$. Given a state $q\in
+  Q$, we write $D(q)$ for the set $\{1,\cdots, d_1(q)\} \times
+  \cdots\times \{1,\cdots, d_k(q)\}$ of move vectors. The function
+  $D$ is called \emph{move function}. For each player $a\in [k]$,
+  we write $C(a)$ for the set $\bigcup_{q\in Q}[d_a(q)]$ of all of the
+  possible moves available for $a$. The function $C$ is called \emph{choice function}.
+
+  \item For each state $p\in Q$ and each move vector $\la j_1, \cdots
+  j_k\ra\in D(p)$, a \emph{probabilistic transition function} $\delta$, which gives
+  the (conditional) probability $\delta(q \mid p, \la j_1, \cdots, j_k\ra)$ of a transition from
+  state $p$ to state $q$ for all $q\in Q$ if each player $a\in [k]$ chooses
+  move $j_a$. Note that %for simplicity, sometimes
+  we also write this probability as $\delta(p, \la j_1, \cdots, j_k\ra)(q)$, to emphasize that
+  $\delta(p, \la j_1, \cdots, j_k\ra)$ is a probability distribution on $Q$.
+\end{itemize}
+\end{definition}
+
+The number of states of the structure $\mc{G}$ is $n=|Q|$. The
+number of transitions of $\mc{G}$ is $m=\sum_{q\in
+Q}d_1(q)\times\cdots\times d_k(q)\times n$, namely, $m=|D|\cdot
+n$. Note that unlike in Kripke structure, the number of
+transitions is not bounded by $n^2$. For a fixed alphabet $\Pi$ of
+propositions, the \emph{size} of $\mc{G}$ is $\mc{O}(m)$.
+
+For two states $p$ and $q$, we say that $q$ is a \emph{successor}
+of $p$ if there is a move vector $\la j_1, \cdots j_k\ra\in D(p)$
+such that $q\in ||\delta(p, \la j_1, \cdots j_k\ra)||$. We write
+$p\rightarrow q$ if $q$ is a successor of $p$.
+
+%\vspace{2mm}
+
+The semantics of pCGS, intuitively, is as follows: At each state
+$q\in Q$, each player $a\in[k]$ chooses a move $1\leq j_a\leq
+d_a(q)$ \emph{simultaneously} and \emph{independently}. The game
+then proceeds to the successor state $q'$ with probability
+$\delta(q'\mid q, \la j_1, \cdots, j_k\ra)$, for every state
+$q'\in Q$. A \emph{path} of $\mc{G}$ from a state $q_0$ is an
+infinite sequence $\lambda= q_0, q_1, \cdots$ of states such that
+for all positions $i\geq 0$, the state $q_{i+1}$ is a successor of
+state $q_i$. We denote by $\Omega$ the set of all paths. Moreover,
+we associate the set
+\[\Omega_q = \{\lambda= q_0, q_1, \cdots \mid q_0=q \mbox{ and }q_i\rightarrow q_{i+1}\mbox{ for any }i\in \mb{N}\}\]
+the paths starting at state $q$. %For a path $\lambda$ and a
+%position $i\geq 0$, we use $\lambda(i)$ to denote the $i$-th state
+%of $\lambda$.
+Given a path $\lambda=q_0,q_1, \cdots$, we associate
+$\pi(\lambda)$ with $\lambda$ as $\pi(q_0),\pi(q_1),\cdots$. By
+this way, we can use an LTL (linear time temporal logic) formula
+$\Psi$ over $\Pi$ to denote a set of paths $\Xi\subseteq \Omega$
+by defining $\Xi=\{\lambda\mid \pi(\lambda)\models \Psi\}$.% Since
+%this is rather standard in the literatures, we omit further
+%detailed expositions.
+
+\vspace{2mm} Some natural model can be recovered from the general
+definition of pCGS. In particular, we distinguish the following
+special classes.
+%of probabilistic concurrent game structures.
+
+\begin{itemize}
+  \item  A Markov Decision Process (MDP, \cite{Put94}) is a
+  probabilistic concurrent game structure with $k=1$, namely, only
+  one player.
+
+  \item A concurrent game structure $\mc{G}$ is \emph{deterministic},
+  if for all $q\in Q$ and all move vector $\la j_1, \cdots
+  j_k\ra\in D(q)$, there is a $p\in Q$ such that
+  $\delta(p \mid q, \la j_1, \cdots, j_k\ra)=1$. %Note that
+  In this case,
+  a pCGS is %probabilistic concurrent game structure is
+  simply %exactly
+  the ``concurrent game structure" in \cite{AHK02}.
+\end{itemize}
+
+The interesting point with the framework of ATL, compared with
+standard temporal logics, is that it allows quantifications on
+\emph{strategies} of (coalitions of) players. A \emph{coalition}
+$A$ is a subset of the set of players, namely, $A\subseteq [k]$.
+We write $\bar{A}$ for $[k]\setminus A$. In the sequel we
+introduce the notions of \emph{strategy} and \emph{outcome}, in
+order to define the semantics of PATL.
+
+\begin{definition} Assume a probabilistic concurrent game
+structure $\mc{G}=\langle k, Q, \Pi, \pi, d, \delta \rangle$.
+\begin{itemize}
+  \item A \emph{strategy} for player $a\in [k]$ is a mapping
+  $\sigma_a: Q^+\mapsto \mc{D}(C(a))$ that associates with every
+  nonempty finite sequence $\lambda\in Q^+$ of states,
+  representing the past history of the game, a \emph{probability
+  distribution} $\sigma_a(\lambda)$ used to select the next move.
+  Thus, the choice of the next move can be \emph{history-dependent} and
+  \emph{randomized}. The strategy $\sigma_a$ can prescribe only moves that
+  are available to player $a$, i.e. for all sequences $\lambda\in
+  Q^+$ and $q\in Q$, it is required that $||\sigma_a(\lambda(\uparrow))||\subseteq [d_a(\lambda(\uparrow))]$. %$\sigma_a(\lambda q)(j)>0$
+%  iff $1\leq j\leq d_a(q)$.
+  We denote by $\Upsilon_a$ the set of all
+  strategies for player $a\in [k]$.
+
+  \item Let $A\subseteq [k]$ be a coalition. A \emph{move} for
+  $A$ from a state $q$ is a family $(j_a)_{a\in A}$: one move
+  for each player in $A$. We write ${\rm \sf Mv}(q, A)$ to represent the set
+  of all possible moves for $A$ from $q$. Moreover, a \emph{coalition
+  strategy} $\sigma_A$ for $A$ is a family $(\sigma_a)_{a\in A}$, where $\sigma_a\in \Upsilon_a$.
+  Given a move $c\in
+  {\rm \sf Mv}(q, A)$ and $\bar{c}\in {\rm \sf Mv}(q, \bar{A})$,
+  by abuse of notations, we write $\delta(q, c\cdot \bar{c})$ for the probabilistic
+  transition function corresponding to these choices. Note that here $c\cdot \bar{c}$ is the
+  \emph{move vector} defined in Definition \ref{pcgs}, namely, $c\cdot \bar{c}\in D(q)$.
+
+  \item Let $A\subseteq [k]$ be a coalition and $\sigma_A$ and $\sigma_{\bar{A}}$ be the coalition
+  strategies for $A$ and $\bar{A}$ respectively. Once the starting state $q$ and the coalition
+  strategies $\sigma_A$ and $\sigma_{\bar{A}}$ for the two coalitions have been chosen,
+  the game is reduced to an ordinary \emph{stochastic process} (typically,
+  a discrete time Markov chain). Hence, the probabilities of \emph{events} are
+  uniquely defined in a standard way, where an event $\mc{E}\subseteq \Omega$ is measurable set of
+  paths. For an event $\mc{E}\subseteq \Omega$, we denote the probability that a
+  path belongs to $\mc{E}$ when the game starts form $q$ and the
+  players follow the strategies $\sigma_A$ and $\sigma_{\bar{A}}$ by
+  $\mb{P}_q^{\sigma_A, \sigma_{\bar{A}}}(\mc{E})$. Similarly, for
+  a measurable function $f$ that associates a number in $\mb{R}\cup\{\infty\}$
+  with each path, we denote by $E_q^{\sigma_A, \sigma_{\bar{A}}}\{f\}$ the expected
+  value of $f$ when the game starts from $q$ and the strategies $\sigma_A$ and
+  $\sigma_{\bar{A}}$ are followed. As usual, we denote by $\Theta_i$ the \emph{random
+  variable} over sample space $\Omega$ representing the $i$-th state of a path; formally,
+  $\Theta_i$ is a variable that assumes value $q_i$ on the path
+  $q_0, q_1,\cdots$.
+
+  Given a coalition strategy $\sigma_{A}=(\sigma_a)_{a\in A}$, we define the
+  set of possible \emph{outcomes} of $\sigma_{A}$ from a
+  state $q\in Q$ to be the set ${\rm \sf Outcomes}(q, \sigma_A)$ of \emph{probabilistic measure} %stochastic processes
+  that the players in $A$ enforce when they follow the strategy $\sigma_{A}$, namely, for each $a\in A$, player $a$ follows
+  strategy $\sigma_a$. We use $\mb{O}_q^{\sigma_A}$ to range
+  over ${\rm \sf Outcomes}(q, \sigma_A)$.
+\end{itemize}
+\end{definition}
+
+% some routine definitions
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%First, let us fix some general notations. For a finite set $X$ we
+%denote the set of finite words over $X$ by $X^*$, the set of
+%infinite words ($\omega$-words) over $X$ by $X^{\omega}$, and the
+%empty word by $\varepsilon$. We define $X^{\infty}=X^*\cup
+%X^{\omega}$. For $\alpha\in X^{\infty}$ and $n\in \mb{N}$, we
+%write $\alpha(n)$ for the $n$-th letter in $\alpha$ and
+%$\alpha$$\upharpoonleft_n$ for the prefix of length $n$ of
+%$\alpha$. For $\alpha=a_0a_1\cdots$, we denote
+%$\alpha(r)\alpha(r+1)\cdots \alpha(s)=a_r\cdots a_s$ by
+%$\alpha[r,s]$.
+
+%\begin{definition}
+%A path of $\mc{G}$ is an infinite sequence $\pi=s_0s_1\cdots$ of
+%states of states in $Q$, such that $(s_i, s_{i+1})\in T$ for all
+%$i\geq 0$. We denote the set of all paths by $\Omega$.
+%\end{definition}
+
+%\begin{definition}[Path]
+%A path of $\mc{T}$ is a finite or infinite sequence
+%$\pi=s_0s_1\cdots$ of states, such that $(s_i, s_{i+1})\in T$ for
+%all $i$.
+%
+%Given a finite path $\rho=s_0,s_1,\cdots s_n$, the length $|\rho|$
+%of $\rho$ is equal to $n$. For finite path $\pi$, the length is
+%equal to $\infty$. Given a (finite or infinite) path
+%$\pi=s_0,s_1,\cdots$ and $i<|\pi|$, we denote the $i$th state of
+%$\pi$ by $\pi[i]$ (i.e. $\pi[i]=s_i$).
+%
+%Furthermore, we denote by $Path^*$ (resp. $Path^{\omega}$) the set
+%of finite (resp. infinite) pathes of a given Markov chain and by
+%$Path^*(s)$ (resp. $Path^{\omega}(s)$) the set of finite (resp.
+%infinite) pathes of a given Markov chain starting at the state
+%$s$.
+%
+%For any $s\in S$, we associate the set
+%\[\Omega_s = \{s_0s_1\cdots\mid s=s_0\mbox{ and }(s_i, s_{i+1}\in T\mbox{ for any }i\in \mb{N}\}\]
+%\end{definition}
+
+%\begin{definition}[Basic Cylinder] For $\rho\in Path^*$ the basic
+%cylinder of $\rho$ is defined as
+%\[\Delta(\rho)=\{\pi\in Path^{\omega}\mid \pi[1..|\rho|]=\rho \}\]
+%\end{definition}
+%
+%\begin{definition}[Probability Space of a Markov Chain] Given a
+%Markov chain $M=(S, T, p)$ and $s\in S$, we define a probability
+%space
+%\[\Psi^s=(\Delta(s), \Delta^s, \mathbb{P}_s)\]
+%such that
+%\begin{itemize}
+%\item $\Delta^s$ is the $\sigma$-algebra generated by the empty
+%set and the basic cylinders over $S$ that are contained in
+%$\Delta(s)$;
+%
+%\item $\mathbb{P}_s$ is the uniquely induced probability measure
+%which satisfies the following: $\mathbb{P}_s(\Delta(s)=1$ and for
+%all basic cylinders $\Delta(s,s_1,\cdots s_n)$ over $S$,
+%\[\mathbb{P}_s(\Delta(s,s_1,\cdots s_n))=p_{ss_1}\cdots
+%p_{s_{n-1}s_n}\]
+%\end{itemize}
+%\end{definition}
+
+\subsection{Probabilistic Alternating-time Temporal Logic}
+%In this section, we shall introduce \emph{probabilistic
+%alternating time temporal logic} (PATL), including its syntax and
+%semantics.
+The temporal logic PATL is defined w.r.t. a finite set $\Pi$ of
+\emph{atomic propositions} and a finite set $[k]$ of
+\emph{players}.
+
+\begin{definition} The syntax of \emph{PATL} is defined by the
+following grammar:
+\begin{eqnarray*}
+  \phi_s, \psi_s & ::= & \top \mid P\mid \neg \phi_s\mid
+  \phi_s \wedge \psi_s \mid \lla A\rra [\psi_p]_{\bowtie r}\\
+  \psi_p & ::= & \mc{X}\phi_s\mid \phi_s\mc{U}\psi_s \mid  \phi_s\mc{R}\psi_s
+\end{eqnarray*}
+where $P\in \Pi$, $A\subseteq [k]$, $\bowtie \in\{<, \leq, =,
+\geq, >\}$ and $r\in [0,1]$.
+
+In addition we also can define some standard abbreviations. %shorthands.
+For instance, $\bot$ for $\neg \top$, $\lla A\rra
+[\mc{F}\psi_s]_{\bowtie r}$ for $\lla A\rra
+[\top\mc{U}\psi_s]_{\bowtie r}$, $\lla A\rra
+[\mc{G}\psi_s]_{\bowtie r}$ for $\lla A\rra
+[\bot\mc{R}\psi_s]_{\bowtie r}$, etc.
+\end{definition}
+
+%As in ATL, the operator $\lla \cdot \rra$ is a \emph{probabilistic
+%quantifier}, and
+The logic PATL is similar to the probabilistic branching-time
+temporal logic PCTL, only that $[\cdot]_{\bowtie r}$ quantifier is
+parameterized by sets of players. $\mc{X}$, $\mc{U}$, $\mc{R}$ are
+standard \emph{temporal operators}. As usual, the formulae with a
+subscript $s$ are \emph{state} formulae while the ones with
+subscript $p$ are \emph{path} formulae. We will stick to these
+conventions throughout the rest of the paper.
+
+%Note that $\lla \emptyset\rra[\psi_p]_{\bowtie r}$ corresponds to
+%the PCTL formula $[\psi_p]_{\bowtie r}$.
+
+%Why we introduce weak until?
+
+Note that contrary to usual definitions of ATL, we include the
+``release" modality $\mc{R}$. The reason lies in that in
+\cite{LMO07}, it is proved that modality $\lla A\rra\mc{R}$ can
+\emph{not} be expressed using only $\lla A\rra\mc{U}$ and $\lla
+A\rra\mc{G}$ in ATL \cite{AHK02}. It is not difficult to see that
+their arguments hold true in the probabilistic setting. Moreover,
+due to the same reason, we include $=$ in the constraint
+$[\cdot]_{\bowtie r}$, in contrast to the case in PCTL.
+%
+\paragraph{Semantics.} PATL formulae are interpreted over states of
+pCGS which has the same propositions and players. The labelling of
+the states of $Q$ with propositions is used to evaluate the atomic
+formulae of PATL. The logical connectives $\neg$ and $\wedge$ have
+the standard interpretations. The most interesting case is the
+state-formula $\lla A\rra [\psi_p]_{\bowtie r}$. Intuitively, it
+holds in a state $q$ of $\mc{G}$ iff there exists a
+\emph{coalition strategy} for coalition $A$ in order to enforce
+the probability of paths which satisfy the subformula $\psi_p$
+along all the outcomes to meat the constraint specified by
+$[\cdot]_{\bowtie r}$. To put it concretely, we can consider a
+game between a protagonist and an antagonist. The former
+represents coalition $A$ and accordingly, the latter represents
+coalition $\bar{A}$ and they both follow their own coalition
+strategies. The protagonist wins the game if in the resulting
+stochastic process, the probability measure of pathes which
+satisfy the subformula $\psi_p$, read as a linear temporal formula
+whose outermost operator is $\mc{X}$, $\mc{U}$ or $\mc{R}$,
+fulfills the constraint $[\cdot]_{\bowtie r}$; otherwise, the
+antagonist wins. The PATL formula $[\psi_p]_{\bowtie r}$ is
+satisfied at the state $q$ iff the protagonist has a winning
+strategy in this game.
+
+\vspace{2mm}  We are now in a position to define the semantics
+formally. We write $\mc{G}, q\models \varphi$ to indicate that the
+state $q$ satisfies the formula $\varphi$ in the structure
+$\mc{G}$. When $\mc{G}$ is clear from the context, we omit it and
+write $q\models \varphi$. The \emph{satisfaction relation}
+$\models$ is defined for all states $q$ and paths $\lambda$ of
+$\mc{G}$, inductively as follows.
+%
+%In order the heal this, we provide two sorts of semantics, namely,
+%the \emph{precise} semantics and \emph{approximate} semantics,
+%between which the main difference lies in that in the approximate
+%semantics, we take the \emph{value}, which can not be achieved by
+%any strategy (since there does not exist any optimal strategies
+%generally) while in the precise, we take the real strategies
+%(namely, $\epsilon$-optimal strategies) into account. We will
+%discuss later under which conditions the two semantics coincide.
+%
+%Given a state $q\in Q$, a set $A\subseteq [k]$ of players, and a
+%coalition strategy $\sigma_A=(\sigma_a)_{a\in A}$, we define the
+%outcomes of $F_A$ from $q$ to be the set ${\rm \sf Ourcomes}(q,
+%F_A)$ of \emph{stochastic processes} that the players in $A$
+%enforce when they follow the strategies in $F_A$.
+%
+%We can now turn to the formal definition of the semantics of PATL.
+%
+%\begin{definition}[Semantics]
+%
+%\begin{eqnarray*}
+% q\models true \\
+% q\models a  & \Leftrightarrow & a\in L(s)\\
+% \lambda \models [\phi]_{\bowtie r} & \Leftrightarrow & \mathbb{P}(\pi\in
+%Path^{\omega}(s)\mid \pi\models \phi)\bowtie p
+%\end{eqnarray*}
+%
+%For path formula, the two interpretations are the same.
+\[
+\begin{tabular}{lll}
+ $q\models$    $true$ \\
+
+ $q \models P$  & $\Leftrightarrow$   & $P\in \pi(q)$\\
+ $q \models \neg \phi_s$ & $\Leftrightarrow$   & $q\not\models \phi_s$\\
+ $q \models \phi_s \wedge \psi_s$  & $\Leftrightarrow$   & $q \models \phi_s$ and $q \models \psi_s$\\
+
+ $q \models \lla A\rra [\psi_p]_{\bowtie r}$ & $\Leftrightarrow$   & there
+is a coalition strategy\\
+& & $\sigma_A$ such that for any \\
+& & $\mathbb{O}_q^{\sigma_A}\in {\rm\sf Outcomes}(q, \sigma_A)$,
+\\
+& & $\mathbb{O}_q^{\sigma_A}(\{\lambda\in \Omega_q \mid
+\lambda\models \psi_p\})\bowtie r$\\
+
+ $\lambda \models \mc{X}\phi_s$ & $\Leftrightarrow$   &
+ $\lambda(1)\models \phi_s$\\
+
+ $\lambda \models \phi_s\mc{U}\psi_s$ & $\Leftrightarrow$   &
+ $\exists i\in \mb{N}$. $\lambda(i)\models \psi_s$ and for \\
+ & & any $0\leq j<i$, $\lambda(j)\models
+ \phi_s$\\
+
+ $\lambda \models \phi_s\mc{R}\psi_s$ & $\Leftrightarrow$   &
+ %$\exists i\in \mb{N}$. $\lambda_i\models \psi_s$ and for any $0\leq j<i$, $\lambda(j)\models
+% \phi_s$\\
+ $\lambda \not\models \neg \phi_s\mc{U} \neg \psi_s$\\
+\end{tabular}
+\]
+%\end{definition}
+
+%When a system behaves according to a strategy $\eta$ in the
+%evolution from $q_0\in \textsf{Loc}$, and has reached $q_n$
+%following the sequence $q_0, \cdots, q_n$, it will choose the
+%next-state distribution with probability $Q_{\eta}(i\mid q_0\cdots
+%q_n)$.
+%
+%Therefore, we can associate with each finite sequence $q_0,
+%\cdots, q_n$ starting at the root $q=q_0$ of
+%
+%\[\mu_s^-(\Delta)=\inf_{\sigma} \sup_{\pi}\mu_{\sigma,
+%\pi}(\Delta) \quad\quad  \mu_s^+(\Delta)=\sup_{\sigma}
+%\inf_{\pi}\mu_{\sigma, \pi}(\Delta) \]
+
+
+\section{Model Checking PATL} \label{sec3}
+
+In this section, we aim at presenting algorithms for model
+checking PATL. As we have seen in the previous section, the
+semantics of PATL has a close relationship with two-player
+concurrent game, which is %also naturally
+in turn the case for our model checking algorithm. To this end,
+first we introduce some notions and properties regarding the
+two-player concurrent game. Most of materials for this are taken
+from \cite{deAM04}.
+
+\subsection{Two-player concurrent game}
+
+A two-player concurrent game structure is a special case of
+probabilistic concurrent game structure when $k=2$ (recall that in
+this case, the two players are named after 1 and 2). In game
+theory, the notion of \emph{winning condition} plays an important
+role. Here, let us consider the cast that it is expressed by LTL
+formulae. Namely, given an LTL winning condition $\Psi$, by abuse
+of notation we denote equally by $\Psi$ the set of paths
+($\omega$-regular set) $\lambda\in \Omega$ that satisfy $\Psi$. It
+is well known that this set is \emph{measurable} for any choice of
+strategies for the two players. Hence, the probability that a path
+satisfies $\Psi$ starting from state $q\in Q$ under strategies
+$\sigma_1$, $\sigma_2$ of the two players can be denoted by
+$\mb{P}_q^{\sigma_1,\sigma_2}(\Psi)$. Given a state $q\in Q$ and a
+winning condition $\Psi$, one is often interested in finding the
+maximal probability with which player $a\in \{1,2\}$ can ensure
+that $\Psi$ holds from $q$. This probability is called the
+\emph{value of the game} $\Psi$ at $q$ for player $a\in \{1,2\}$.
+This value for player 1 is given by the function $\lla
+1\rra\Psi:Q\mapsto [0,1]$, defined as
+%
+%\[ \lla 1\rra\Psi(q) = \sup_{\sigma_1 \in \Upsilon_1} \inf_{\sigma_{2} \in
+%\Upsilon_{2}} \mathbb{P}_q^{\sigma_1, \sigma_{2}}(\{\lambda\in
+%\Omega_q \mid \lambda\models \psi\})$ and
+%
+%min=$\inf_{\sigma_A \in \Upsilon_A} \sup_{\sigma_{\bar{A}} \in
+%\Upsilon_{\bar{A}}} \mathbb{P}_q^{\sigma_A,
+%\sigma_{\bar{A}}}(\{\lambda\in
+% \Omega_q \mid \lambda\models \psi\})$
+%
+\[ \lla 1\rra\Psi(q) = \sup_{\sigma_1 \in \Upsilon_1} \inf_{\sigma_{2} \in
+\Upsilon_{2}} \mathbb{P}_q^{\sigma_1, \sigma_{2}}(\Psi)\] and the
+value for player 2 is given by the function $\lla 2\rra\Psi$,
+defined symmetrically.
+
+%min=$\inf_{\sigma_A \in \Upsilon_A} \sup_{\sigma_{\bar{A}} \in
+%\Upsilon_{\bar{A}}} \mathbb{P}_q^{\sigma_A,
+%\sigma_{\bar{A}}}(\{\lambda\in
+% \Omega_q \mid \lambda\models \psi\})$
+
+It is also well known that concurrent games enjoy a
+\emph{quantitative} version of determinacy \cite{Mar98}, which
+implies that for all LTL conditions $\Psi$ and all $q\in Q$, the
+following equation holds:
+\[\lla 1\rra\Psi(q) + \lla 2\rra\neg \Psi(q) =1 \]
+%
+A strategy $\sigma_1$ is \emph{optimal} if for all $q\in Q$,
+\[\inf_{\sigma_2\in \Upsilon_2}\mathbb{P}_q^{\sigma_1, \sigma_{2}}(\Psi)= \lla 1\rra\Psi(q) \]
+A strategy $\sigma_1$ is $\epsilon$-\emph{optimal} if for all
+$q\in Q$,
+\[\inf_{\sigma_2\in \Upsilon_2}\mathbb{P}_q^{\sigma_1, \sigma_{2}}(\Psi)\geq \lla 1\rra\Psi(q)-\epsilon \]
+The same notions for player 2 can be defined symmetrically. We
+note that the quantitative determinacy of concurrent games is
+equivalent to the existence of $\epsilon$-optimal strategies for
+both players for all $\epsilon>0$ at all states $q\in Q$.
+
+\vspace{2mm}
+
+In order to compute the value of the game, the following notion,
+namely, \emph{predecessor operator} is essential. Let $\mc{F}$ be
+the space of all functions $Q\mapsto [0,1]$ that map states into
+the interval $[0,1]$. Given two functions $f,g\in \mc{F}$, we
+write $f>g$ (resp. $f\geq g$) if $f(q)>g(q)$ (resp. $f(q)\geq
+g(q)$) at all $q\in Q$, and we define $f\wedge g$ and $f\vee g$ by
+\begin{eqnarray*}
+  (f\wedge g)(q) &=& \min \{f(q), g(q)\}\\
+  (f\vee g)(q)   &=& \max \{f(q), g(q)\}
+\end{eqnarray*}
+for all $q\in Q$. We denote by $\textbf{0}$ and $\textbf{1}$ the
+constant functions that map all states into 0 and 1. For all $f\in
+\mc{F}$, we denote by $\textbf{1}-f$ the function defined by
+$(\textbf{1}-f)(q)=1-f(q)$ for all $q\in Q$. Given a subset
+$S\subseteq Q$ of states, we denote by $[S]$ the \emph{indication
+function} of $S$, defined by $[S](q)=1$ if $q\in S$ and $[S](q)=0$
+o.w.
+
+\vspace{2mm}
+
+The \emph{quantitative predecessor operators} $\Ppre_1$, $\Ppre_2:
+\mc{F}\mapsto \mc{F}$ are defined for every $f\in \mc{F}$ by
+\[
+\Ppre_1(f)=\sup_{\sigma_1\in \Upsilon_1}\inf_{\sigma_2\in
+\Upsilon_2}E_s^{\sigma_1, \sigma_2}\{f(\Theta_1)\}
+\]
+and symmetrically for $\Ppre_2$. Recall that %$\Theta_1$ is the
+%random variable representing the $1$-th state of a path; formally,
+$\Theta_1$ is a random variable that assumes value $q_1$ on the
+path $q_0, q_1,\cdots$. Intuitively, the value $\Ppre_i(f)$ is the
+maximum expectation for the next value of $f$ that player $a\in
+\{1,2\}$ can achieve. Given $f\in \mc{F}$ and $a\in \{1,2\}$, the
+function $\Ppre_a(f)$ can be computed by solving the following
+\emph{matrix game} at each state $q\in Q$:
+\[
+\Ppre_1(f)=val_1[\sum_{p\in Q}f(p)\cdot \delta(p\mid q, j_1,
+j_2)]_{1\leq j_1\leq d_1(q), 1\leq j_2\leq d_2(q) }
+\]
+where $val_1(A)$ denotes the value obtained by player 1 in the
+\emph{matrix game} $A$. The existence of solutions to the above
+matrix games, and the existence of \emph{optimal randomized
+strategies} for players 1 and 2, are guaranteed by the celebrated
+minmax theorem \cite{vNM47}. The matrix games may be solved using
+traditional linear programming algorithms.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Quantitative $\mu$-calculus over game structure}
+In order to write the solution of games w.r.t. $\omega$-regular
+winning conditions, we introduce the \emph{quantitative game
+$\mu$-calculus}. The formulae of the \emph{quantitative game
+$\mu$-calculus} are generated by the grammar
+\[
+\phi::= [S] \mid x \mid \phi\vee\phi \mid \phi\wedge\phi \mid
+\Ppre_1(\phi)\mid \Ppre_2(\phi) \mid \mu x.\phi\mid \nu x.\phi
+\]
+for atomic propositions $[S]$ where $S\subseteq Q$ and variables
+$x$ from some fixed set $X$.
+
+The atomic propositions of quantitative $\mu$-calculus formulae
+correspond to subsets of states of the probabilistic concurrent
+game structure. As usual, a formula $\phi$ is \emph{closed} if
+every variable $x$ in $\phi$ occurs in the scope of a fixpoint
+quantifier $\mu x$ or $\nu x$.
+
+Let $\mc{E}: X\rightarrow \mc{F}$ be a \emph{variable valuation}
+that associates a function $\mc{E}(x)\in \mc{F}$ with each
+variable $x\in X$. We write $\mc{E}[x\mapsto f]$ for the valuation
+that agrees with $\mc{E}$ on all variables, except that $x\in X$
+is mapped to $f\in \mc{F}$. Given a valuation $\mc{E}$, every
+formula $\phi$ of quantitative game $\mu$-calculus defines a
+function $\lb \phi\rb_{\mc{E}}\in \mc{F}$:
+\[
+\begin{tabular}{lll}
+  $\lb f\rb_{\mc{E}} $ & =  & $f$\\
+  $\lb x\rb_{\mc{E}} $ & =  & $\mc{E}(x)$\\
+  $\lb \Ppre_1(\phi)\rb_{\mc{E}} $ & =  & $\Ppre_1(\lb\phi\rb_{\mc{E}})$\\
+  $\lb \Ppre_2(\phi)\rb_{\mc{E}} $ & =  & $\Ppre_2(\lb\phi\rb_{\mc{E}})$\\
+  $\lb \phi_1\{\genfrac{}{}{0pt}{}{\wedge}{\vee}\}\phi_2\rb_{\mc{E}} $ & =  & $\lb \phi_1\rb \{\genfrac{}{}{0pt}{}{\wedge}{\vee}\} \lb \phi_2\rb $\\
+  $\lb \{\genfrac{}{}{0pt}{}{\mu}{\nu}\}x.\phi\rb_{\mc{E}} $ & = & $\{\genfrac{}{}{0pt}{}{\sup}{\inf}\}\{f\mid f=\lb\phi\rb_{\mc{E}[x\mapsto f]}\}$
+\end{tabular}
+\]
+%
+% semantics
+%
+The quantitative game $\mu$-calculus defined above suffices for
+writing the solution formulae of games with $\omega$-regular
+winning conditions, which are, in our case, expressed by LTL
+formulae. To put it more concretely, given a concurrent game with
+LTL winning condition $\Psi$, one can solve it by providing a
+quantitative game $\mu$-calculus formula $\phi$ such that $\lla
+1\rra \Psi =
+\lb\phi\rb$. We stress that this fact essentially boils down to % entails % gives rise to %entails, The
+an algorithm, which is based on the observation that the value of
+%a concurrent game Rabin-Chain winning conditions
+a quantitative $\mu$-calculus formula can be expressed as an
+elementary formula in the theory of \emph{real closed fields}, and
+uses a decision procedure for the theory of reals with addition
+and multiplication \cite{Tar51}. In order to understand the
+algorithm in the sequel, here we include a simple introduction
+on this aspect. %only present a
+%simple introduction. (include a simple introduction)
+%
+%\vspace{2mm}
+
+An ordered field $H$ is real-closed if no proper algebraic
+extension of $H$ is ordered. We denote by $\mathbf{R}$ the
+real-closed field $(\mb{R}, +, \cdot, 0,1, \leq)$ of the reals
+with addition and multiplication. An \emph{atomic formula} $a$ is
+an expression of the form $p>0$ or $p=0$ where $p$ is a (possibly)
+multi-variate polynomial with integer coefficients. An
+\emph{elementary formula} is constructed from atomic formulae by
+the grammar
+\[\phi::= a \mid \neg \phi \mid \phi\wedge \phi\mid \phi\vee \phi \mid \exists x.\phi\mid \forall x.\phi\]
+where $a$ is an atomic formula. The semantics of elementary
+formula are given in a standard way. It is well-known that the
+theory of real-closed fields in the language of ordered fields is
+decidable \cite{Tar51}.
+
+A classical observation is that the minmax value can be written as
+an elementary formula in the theory of ordered fields. Namely, let
+$A=(a_{ij})$ be a matrix with entries in the ordered field $H$.
+Then the statement $y=val_1(A)$ can be written as an elementary
+formula over $H$. Following from this, we have:
+%
+%
+%%We start with the following classical observation that the minmax
+%value can be written as an elementary formula in the theory of
+%ordered fields.
+%
+%\begin{lemma} \label{matrix}
+%  Let $A=(a_{ij})$ ba a matrix with entries in the ordered field
+%  $H$. Then the statement $y=val_1(A)$ can be written as an
+%  elementary formula over $H$.
+%\end{lemma}
+%
+\begin{lemma}[\cite{deAM04}] \label{express}
+  Let $\mc{G}$ be a two-player game and $q$ a state in $\mc{G}$.
+  Let $\Psi$ be a Rabin chain condition and let $\lla 1\rra \Psi =
+  \lb\phi\rb$. Then statement $\vec{y}=\lb\phi\rb$ can be written
+  as an elementary formula in the theory of real closed fields.
+\end{lemma}
+We note that in the lemma above, the vector $\vec{y}$ is indexed
+by the states of $\mc{G}$. Thus for each state $q\in Q$, we denote
+the $q$-indexed coordinate of $\vec{y}$ as $(\vec{y})_q$.
+
+\subsection{Algorithm}
+%
+%The complexity of model checking an ATL formula over a CGS has
+%been shown to be linear in both the size of the structure and the
+%size of the formula \cite{AHK02}.
+%
+In this section, we present our model-checking algorithms for PATL
+over pCGSs. The algorithms share the same basic structure of those
+proposed in \cite{CES86} for CTL (see \cite{CGP00} for a leisure
+demonstration). In a nutshell, given a \emph{state} formula
+$\phi_s$, the algorithm recursively evaluates the truth-values of
+the state subformulae $\psi_s$ of $\phi_s$ at all states, starting
+from the propositional formulae of $\phi_s$ and following the
+recursive definitions of each modality. The whole process will be
+gathered up in a global labelling algorithm. Indeed, since PATL
+differs from CTL only in the presence of the $\left\langle
+{\left\langle A \right\rangle } \right\rangle[\psi_p]_{\bowtie
+r}$, we can exploit the same techniques proposed for CTL to deal
+with the operators $\wedge, \vee$, etc. In the algorithms below ,
+we only need to examine the case corresponding to $\left\langle
+{\left\langle A \right\rangle } \right\rangle[\psi_p]_{\bowtie
+r}$.
+
+\vspace{2mm}
+
+As expected, the problem of model checking a \emph{multi-player}
+concurrent game structure w.r.t. $\left\langle {\left\langle A
+\right\rangle } \right\rangle[\psi_p]_{\bowtie r}$ boils down to
+the problem of solving a \emph{two-player} concurrent game. To see
+this, it suffices to note that any \emph{coalition strategy} can
+be decomposed into single strategy of each player in this
+coalition. Assume a probabilistic concurrent game structure
+$\mc{G}=\langle k, Q, \Pi, \pi, d, \delta\rangle$. The first step
+is to define a two-player concurrent game $\mc{H}$ which is played
+by $A$ and $\bar{A}$ where $A\subseteq [k]$ and
+$\bar{A}=[k]\setminus A$, as
+follows. For simplicity, we denote the player $A$ by 1 %use 1 to denote the player $A$
+and accordingly, 2 for $\bar{A}$.
+%
+%\vspace{2mm}
+%
+%\noindent
+\[\mc{H}=\la Q, \Pi, \pi, \Gamma_1, \Gamma_2, \gamma\ra\]
+where
+\begin{itemize}
+  %\item $S$=$Q$;
+
+  \item For each $q\in Q$, $\Gamma_1(q)=\{(j_a)_{a\in A}\mid 1\leq j_a\leq d_a(q)\}$;
+
+  \item For each $q\in Q$, $\Gamma_2(q)=\{(j_a)_{a\in \bar{A}}\mid 1\leq j_a\leq
+  d_a(q)\}$; and
+
+  \item For each $q\in Q$, any $c_1\in \Gamma_1(q)$ and $c_2\in
+  \Gamma_2(q)$, $\gamma(p\mid q, c_1, c_2)=\delta(q,
+  c_1\cdot  c_2)(p)$ for any $p\in Q$.
+\end{itemize}
+
+As stated before, the rest of this subsection will be devoted to
+demonstrating how to model check $\lla A \rra[\psi_p]_{\bowtie
+r}$. We distinguish two cases, depending on $\bowtie$ (recall that
+$\bowtie \in \{<,\leq, =, \geq, >\}$), which are presented in the
+following two subsections respectively.
+
+\subsubsection{Case $\bowtie \in \{<,\leq,
+\geq, >\}$} \label{nonequal}
+
+It turns out that in this case, we can exploit the results of
+two-player game for our model checking algorithm in a somehow
+direct way. However, due to the intricacy of the concurrent game
+structure, we have to cope with the optimal strategies and
+$\epsilon$-optimal strategies more carefully. %it is a bit confusing to give the semantics of PATL.
+The following facts are well-known: concurrent games with
+reachability winning condition have \emph{memoryless
+$\epsilon$-optimal} strategies. However, there are deterministic
+concurrent games without \emph{optimal} strategies. This means in
+such a game, player 1 can obtain the value \emph{arbitrarily
+close} to the \emph{optimal value}, but can \emph{not} achieve the
+optimal one, which leads to the following Lemma \ref{cru}.
+
+Given a \emph{path} formula $\psi_p$, we assume that we have
+already computed (recursively) the satisfaction sets of all
+maximal \emph{state} PATL-subformulae $\gamma_1, \cdots, \gamma_n$
+of $\psi_p$, so we can view them as atomic propositions. In
+addition we have labelled the states of $\mc{G}$ appropriately
+with new atomic propositions $r_1, \cdots, r_n$ (to save
+notations, we still denote it by $\mc{G}$).
+%Let $\phi_s'$ be the formula we obtain from $\phi_s$ by rewriting
+%all subformulae involving
+%
+Let
+\[ \widehat{\psi_p} = \psi_p\{ \gamma_1 \leftarrow r_1, \cdots,  \gamma_n \leftarrow r_n \}\]
+be the formula we obtain from $\psi_p$ by replacing each
+occurrence of $\gamma_i$ by $r_i$ for $1\leq i\leq n$. %Then
+%$\phi_s'$ is a LTL formula over the atomic propositions $r_1,
+%\cdots, r_n$ and for all infinite paths $\lambda$ of given system,
+%it holds that $\lambda\models \psi_p$ iff $\lambda\models
+%\psi'_p$.
+
+\begin{lemma} \label{cru} Given probabilistic concurrent
+game structure $\mc{G}=\langle k, Q, \Pi, \pi, d, \delta\rangle$
+and PATL formula $\phi_s=\lla A\rra[\psi_p]_{\bowtie r}$, where
+$A\subseteq [k]$. The following properties hold:
+\begin{itemize}
+  \item[(i)] Assume $\bowtie\in \{\geq, > \}$. Then $\mc{G}\models
+  \phi_s$ if and only if $\lla 1\rra \widehat{\psi_p} > r$.
+
+  \item[(ii)] Assume $\bowtie\in \{\leq, < \}$. Then $\mc{G}\models
+  \phi_s$ if and only if $\lla 2\rra \neg\widehat{\psi_p} < r$.
+\end{itemize}
+\end{lemma}
+
+Here, we note that  $\neg\widehat{\psi_p}$ can be rewritten as a
+path formula, by pushing the negation inwards jumping $\mc{X}$ and
+interchanging $\mc{U}$ and $\mc{R}$. The intuition underlying this
+lemma lies in that for model checking, we only need to consider
+\emph{strict inequality}, since generally, we can only achieve
+$\epsilon$-optimal strategies. The correctness of this lemma
+follows from the semantics of PATL, the definitions of the optimal
+values and $\epsilon$-optimal values and the determinacy theorem
+mentioned before. We omit the details because of the space
+restriction.
+%
+%\begin{proof}
+%  By definition.
+%\end{proof}
+%
+In addition, due to the duality of $\leq, <$ and $\geq, >$, from
+now on we only consider the case for $\geq, >$ (i.e. case (i) in
+Lemma \ref{cru}), and another case can be obtained by switching
+the roles of two players 1 and 2.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%We reduce the model checking
+%
+%\begin{theorem} The following properties hold:
+%
+%\begin{itemize}
+%  \item Assume $\bowtie \in \{\geq, >\}$, then $q \models \lla A\rra ([\psi]_{\bowtie r})$
+%  iff $\sup_{\sigma_A \in \Upsilon_A} \inf_{\sigma_{\bar{A}} \in \Upsilon_{\bar{A}}} \mathbb{P}_q^{\sigma_A, \sigma_{\bar{A}}}(\{\lambda\in
+%  \Omega_q \mid \lambda\models \psi\})\bowtie r$.
+%
+%  \item Assume $\bowtie \in \{\leq, <\}$, then  $q \models \lla A\rra ([\psi]_{\bowtie r})$
+%  iff $\inf_{\sigma_A \in \Upsilon_A} \sup_{\sigma_{\bar{A}} \in \Upsilon_{\bar{A}}}  \mathbb{P}_q^{\sigma_A, \sigma_{\bar{A}}}(\{\lambda\in
+%  \Omega_q \mid \lambda\models \psi\})\bowtie r$.
+%\end{itemize}
+%\end{theorem}
+%\vspace{2mm}
+
+In the sequel, we demonstrate how to deal with three temporal
+modalities, namely $\mc{X}$, $\mc{U}$ and $\mc{R}$, separately.
+
+\paragraph{Modality $\mc{X}$} First we consider the case
+of formula $\lla A\rra [\mc{X}\phi_s]_{\bowtie r}$. Let
+$T\subseteq Q$ be defined as $T= \{q\in Q\mid q\models \phi_s \}$.
+Clearly,
+\begin{equation}  \label{eqn11}
+\lla A\rra[\mc{X}\phi_s]_{\bowtie r}= \lb \Ppre_A([T])\rb
+\end{equation}
+Note that since $\Ppre_A([T])$ is a quantitative $\mu$-calculus
+formula, by Lemma \ref{express} the statement $\vec{y}=\lb
+\Ppre_A([T]) \rb$ can be written as an elementary formula in the
+theory of real closed fields. It follows from Lemma \ref{cru} that
+$q\models \lla A\rra[\mc{X}\phi_s]_{\bowtie r}$ (where $\bowtie
+\in\{\geq, >\}$) can be encoded as the formula in $(\mb{R}, +,
+\cdot, \leq)$, as follows
+\[\exists \vec{y}. (\vec{y}=\lb\Ppre_A([T])\rb \wedge (\vec{y})_q \bowtie
+r)\]
+
+\paragraph{Modality $\mc{U}$} In this case we consider the case
+of formula $\lla A\rra [\phi_s\mc{U}\psi_s]_{\bowtie r}$. As in
+the previous case, all the same %we have For simplicity, we denote the value
+%$\sup_{\sigma_A \in \Upsilon_A} \inf_{\sigma_{\bar{A}} \in
+%\Upsilon_{\bar{A}}} \mathbb{P}_q^{\sigma_A,
+%\sigma_{\bar{A}}}(\{\lambda\in
+%  \Omega_q \mid \lambda\models \phi_s\mc{U}\psi_s\})$ by $\lla A\rra
+%  (\phi_s\mc{U}\psi_s)$.
+let $S, T\subseteq Q$ be defined as $S= \{q\in Q\mid q\models
+\phi_s\}$ and $T= \{q\in Q\mid q\models \psi_s\}$. Then it is not
+difficult to show that
+  \[
+  \lla A\rra [\phi_s\mc{U}\psi_s]_{\bowtie r}=\lb \mu x. [T]\vee ([S]\wedge \Ppre_A(x) ) \rb
+  \]
+Note that since $\mu x. [T]\vee ([S]\wedge \Ppre_A(x) ) $ is a
+quantitative $\mu$-calculus formula, by Lemma \ref{express} the
+statement $\vec{y}=\lb \mu x. [T]\vee ([S]\wedge \Ppre_A(x) ) \rb$
+can be written as an elementary formula in the theory of real
+closed fields. It follows from Lemma \ref{cru} that $q\models \lla
+A\rra[\phi_s\mc{U}\psi_s]_{\bowtie r}$ (where $\bowtie \{\geq,
+>\}$) can be encoded as the formula in $(\mb{R}, +, \cdot, \leq)$,
+as follows
+\begin{equation} \label{eqn2}
+\exists \vec{y} (\vec{y}=\lb\mu x. [T]\vee ([S]\wedge \Ppre_A(x) )
+\rb \wedge (\vec{y})_q \bowtie r)\end{equation}
+
+\paragraph{Modality $\mc{R}$} In this case we consider the case
+of formula $\lla A\rra [\phi_s\mc{R}\psi_s]_{\bowtie r}$. As in
+the previous case, all the same let $S, T\subseteq Q$ be defined
+as $S= \{q\in Q\mid q\models \phi_s\}$ and $T= \{q\in Q\mid
+q\models \psi_s\}$. Then it is not difficult to show that
+%\begin{eqnarray*}
+% &  &\lla A\rra ([\phi_s\mc{R}\psi_s]_{\bowtie r})\\
+% &  &\  =\lb (\nu x. [T]\wedge \Ppre_A(x)) \vee (\mu x. [S]\vee ([T]\wedge \Ppre_A(x)
+%  ))\rb
+%\end{eqnarray*}
+\[
+\begin{array}{l}
+  \lla A\rra [\phi_s\mc{R}\psi_s]_{\bowtie r} \\
+  \quad =\lb (\nu x. [T]\wedge \Ppre_A(x)) \vee (\mu x. [S]\vee ([T]\wedge \Ppre_A(x)
+  ))\rb \\
+\end{array}
+\]
+For brevity, let $\chi=(\nu x. [T]\wedge \Ppre_A(x)) \vee (\mu x.
+[S]\vee ([T]\wedge \Ppre_A(x) )) $.  Note that since $\chi$ is a
+quantitative $\mu$-calculus formula, by Lemma \ref{express} the
+statement $\vec{y}=\lb \chi\rb$ can be written as an elementary
+formula in the theory of real closed fields. It follows from Lemma
+\ref{cru} that $q\models \lla A\rra[\phi_s\mc{U}\psi_s]_{\bowtie
+r}$ can be encoded as the formula in $(\mb{R}, +, \cdot, \leq)$ as
+\begin{equation}
+\label{eqn3} \exists \vec{y} (\vec{y}=\lb\chi\rb \wedge
+(\vec{y})_q \bowtie r)
+\end{equation}
+
+To conclude, we note (\ref{eqn11})(\ref{eqn2}) and (\ref{eqn3})
+are all formulae in the theory of real closed fields and thus they
+are \emph{decidable}, which constitute the model checking
+algorithm.
+
+\subsubsection{Case $\bowtie\in \{=\}$} \label{equalsection}
+
+The general idea of the algorithm for this case is the same as in
+the previous subsection, namely, to reduce the model checking
+problem to the decision problem of theory of \emph{real closed
+fields}. However, here we follow a rather different reduction,
+since we have to cope with equality rather than inequality and
+thus only finding the value of two-player concurrent game is not
+sufficient for our purpose.
+
+Assume we are checking formula $\lla A\rra [\psi_p]_{= r}$ w.r.t.
+a state $q_0\in Q$. What we intent to encode is, intuitively,
+\begin{equation} \label{eqn1}
+\exists \sigma_A. \forall \sigma_{\bar{A}}.
+\mb{P}^{\sigma_A,\sigma_{\bar{A}}}_q (\{\lambda\in
+\Omega_q\mid\lambda \models \psi_p\}) = r
+\end{equation}
+%
+Generally, it is not possible to do this. However, thanks to the
+simplicity of the \emph{path} formula $\psi_p$ in our setting,
+which only involves the modalities $\mc{X}$, $\mc{U}$ and $\mc{R}$
+and thus denotes the $\omega$-regular set in $\Sigma_1^0 \cup
+\Pi_1^0$ (safety and reachability, which lie in the lowest level
+of Borel hierarchy), it is not difficult to see that
+\emph{memoryless} strategies suffice for coalition $A$ to win the
+game. This is stated in the following lemma, for which the proof
+is omitted due to space restriction.
+\begin{lemma}\label{memory}
+  Memoryless (randomized) strategies are sufficient to win the
+  concurrent game with winning conditions expressed by $\omega$-regular set
+  which is in $\Sigma_1^0 \cup \Pi_1^0$ with exact probability.
+  %safety or reachability
+\end{lemma}
+%
+%\begin{proof}
+%  Omitted.
+%\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\vspace{2mm} \noindent{\bf \emph{Step} 1}:
+\noindent In order to instantiate (\ref{eqn1}), for each state
+$q\in Q$ and action $c\in \Gamma_1(q)$, we introduce a first-order
+variable $X_{q,c}$. Intuitively, $X_{q,c}$ denotes the
+\emph{probability} of choosing the action $c$ in the state $q\in
+Q$, thus it represents the strategy of player 1 (i.e., $A$).
+Correspondingly, for each state $q\in Q$ and action $d\in
+\Gamma_2(q)$, we also introduce a first-order variable $Y_{q,d}$
+for player 2. %For brevity, we $\Delta(X)$ to denote
+%\[
+%\bigwedge_{X_{q,c}}(0\leq X_{q,c}\leq 1)\wedge
+%    \bigwedge_{q\in Q}(\sum_{c\in \Gamma_1(q)} X_{q,c}= 1)
+%\]
+Then (\ref{eqn1}) turns out to be
+%
+\[%\left.
+\begin{array}{l}
+  \exists \{X_{q,c}\mid q\in Q, c\in \Gamma_1(q)\}\\
+  \quad \bigwedge_{X_{q,c}}(0\leq X_{q,c}\leq 1)\wedge
+    \bigwedge_{q\in Q}(\sum_{c\in \Gamma_1(q)} X_{q,c}= 1)\\
+  \forall \{Y_{q,d}\mid q\in Q, d\in \Gamma_2(q)\} \\
+  \quad \bigwedge_{Y_{q,d}}(0\leq Y_{q,d}\leq 1)\wedge
+    \bigwedge_{q\in Q}(\sum_{d\in \Gamma_2(q)} Y_{q,d}= 1)\\
+ \vspace{2mm}
+  \qquad \wedge\ \mb{P}^{\sigma_A,\sigma_{\bar{A}}}_q (\{\lambda\in
+\Omega_{q_0}\mid\lambda \models \psi_p\}) = r
+\end{array}
+\]
+It remains to encode $\mb{P}^{\sigma_1,\sigma_2}_q (\{\lambda\in
+\Omega_{q_0}\mid\lambda \models \psi_p\}) = r$. To this end, we
+proceed by a case analysis on the form of $\psi_p$.
+%
+%\item
+%\vspace{2mm} \noindent {\bf \emph{Step} 2}:
+%We then encode the maximal and minimal probability w.r.t. player
+%2.
+%%Clearly, the remaining thing is to construct the formula
+%$W_{s,\psi}$, which is the most difficult task. %As we mentioned
+%before, this will be done in an inductive way according to the
+%structure of $\psi$.
+\begin{enumerate}
+\item $\psi_p=\bigcirc \phi_s$. First note that here
+$\phi_s$ is a state formula. %%Then by Theorem \ref{md}(1), $W_{s,\psi} \mydef
+%%      \mb{P}^+_{s}(\bigcirc\psi_1) \bowtie r$.
+%According to Definition \ref{maxmin},
+It is easy to see that the probability equals
+\[ \sum_{c\in \Gamma_1(q)}\sum_{d\in \Gamma_2(q)}
+      \sum_{q'\in Q, q' \models \psi_s} X_{q,c} \cdot Y_{q,d} \cdot \gamma(q,c,d)(q')\]
+It follows that (\ref{eqn1}) can be instantiated further as
+\begin{equation}\label{eqn4}
+\begin{array}{l}
+  \exists \{X_{q,c}\mid q\in Q, c\in \Gamma_1(q)\}\\
+  \quad \bigwedge_{X_{q,c}}(0\leq X_{q,c}\leq 1)\wedge
+    \bigwedge_{q\in Q}(\sum_{c\in \Gamma_1(q)} X_{q,c}= 1)\\
+  \forall \{Y_{q,d}\mid q\in Q, d\in \Gamma_2(q)\} \\
+  \quad \bigwedge_{Y_{q,d}}(0\leq Y_{q,d}\leq 1)\wedge
+    \bigwedge_{q\in Q}(\sum_{d\in \Gamma_2(q)} Y_{q,d}= 1)\\
+ \vspace{2mm}
+  \qquad \wedge\ \sum_{c\in \Gamma_1(q_0)}\sum_{d\in \Gamma_2(q_0)}\\
+  \qquad\qquad \sum_{q'\in Q, q' \models \psi_s} X_{q,c} \cdot Y_{q,d} \cdot \gamma(q,c,d)(q') = r
+\end{array}
+\end{equation}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\vspace{2mm}
+%
+\item $\psi_p=\psi_1\mc{U}\psi_2$. As in the previous case, here
+both $\psi_1$ and $\psi_2$ are {\em state} formulae. This case is
+much more involved than the previous one. However, the basic idea
+remains the same. Recall that the main task is to compute the
+probability $ \mb{P}^{\sigma_1,\sigma_2}_{q_0} (\{\lambda\in
+\Omega_{q_0} \mid\lambda \models \psi_1\mc{U}\psi_2 \})$ for which
+we have to consult to the well known Chapman-Kolmogorov equation, as follows. %According
+%to Definition \ref{maxmin}, it is easy to see that
+\[
+\begin{array}{l}
+\mb{P}_s(\psi_p)= \\
+\quad  \left\{\begin{tabular}{ll}
+                                    $1$&if $s\models \psi_2$\\
+                                    $0$&if $s\not\models \psi_1$\\
+                                    $\sum_{c\in \Gamma_1(q)}\sum_{d\in \Gamma_2(q)}
+                                    \sum_{q'\in Q}$\\
+                                    \quad $X_{q,c} \cdot Y_{q,d} \cdot
+                                    \gamma(q,c,d)(q') \cdot \mb{P}_{q'}(\psi_p)$&o.w.\\
+                                 \end{tabular}
+                          \right.
+\end{array}
+\]
+%However, different from the previous case, now it is difficult to
+%reduce this problem to solving
+%      a pure linear programming, since in the definition, the case distinctions have to be involved. Fortunately,
+%      we can still borrow the same idea, because actually what we need  is to express the linear inequation
+%      in $(\mb{R},+,\cdot,\leq)$ rather than to find the
+%      solution concretely. By this observation, we set
+%      \[\begin{tabular}{ll}
+%        min & $z_s$\\
+%        s.t. & for any $a\in \mc{I}(s)$,\\
+%             &  $\left\{\begin{tabular}{ll}
+%                    $z_s = 1$ & if $s\models \psi_2$\\
+%                    $z_s = 0$ & if $s\not\models\psi_1$\\
+%                    $z_s = \sum_{c\in \Gamma_1(q)}\sum_{d\in \Gamma_2(q)}
+%                    \sum_{t\in S}$ & \\
+%                    \quad $X_{q,c} \cdot Y_{q,d} \cdot
+%                    \gamma(s,c,d)(t)\cdot z_t$ & o.w.\\
+%
+%
+%
+%                    \sum_{t\in S\setminus S_0}\mb{P}(s,a,t) z_t$ & \\
+%                    $+\sum_{t\in S_0}\mb{P}(s,a,t)Y_{t,\psi}$
+%                 \end{tabular}
+%           \right.$  \\
+%        \end{tabular}
+%      \]
+\noindent For each $s\in Q$, we introduce a variable $Z_s$. And
+for simplicity, we define $\Im(Z_s, Z_t)$ as
+\[
+\begin{array}{l}
+  \Im(Z_s, Z_t) \mydef \\
+  \quad (s\models \psi_2 \Rightarrow Z_s=1) \wedge (s\not\models \psi_1 \Rightarrow Z_s=0) \wedge\\
+  \quad (s\not\models\psi_2 \wedge s\models\psi_1\\
+  \qquad \Rightarrow Z_s= \sum_{c\in \Gamma_1(q)}\sum_{d\in \Gamma_2(q)} \sum_{t\in Q} \\
+  \qquad \qquad\qquad\qquad  X_{q,c} \cdot Y_{q,d} \cdot \gamma(s,c,d)(t)\cdot Z_t )%$ & o.w.\\
+\end{array}
+\]
+
+It follows that that (\ref{eqn1}) can be instantiated as %$W_{s,\psi}$ is defined as
+%\begin{eqnarray*}
+%      &&\exists \{Z_s\mid s\in Q\}. (0\leq Z_s\leq 1)\wedge \Im(Z_s, Z_t) \wedge (Z_s = r) \\
+%      %&&\quad \wedge (\forall \{Z'_s\mid S\setminus S_0\}. (0\leq Z'_s\leq 1)\wedge \Im(Z_s, Z_t) \Rightarrow (Z'_s\geq
+%Z_s))
+%    \end{eqnarray*}
+%
+\begin{equation}\label{eqn5}
+\exists \{Z_q\mid q\in Q\}. (0\leq Z_q\leq 1)\wedge
+\bigwedge_{p,q\in Q} \Im(Z_p, Z_q) \wedge (Z_{q_0} = r)
+\end{equation}
+%
+\item $\psi_p=\psi_1\mc{R}\psi_2$. This case is almost the same as
+the previous one and is left to the readers to work out the
+details.
+\end{enumerate}
+To conclude, since (\ref{eqn4}) and (\ref{eqn5}) are formulae in
+the theory of real closed fields and thus they are
+\emph{decidable}, we are done.
+
+%
+
+\paragraph{Complexity} It is easy to see that for the
+algorithm of each modality, the resulting formula in order field
+language is \emph{polynomial} in the size of a given pCGS and PATL
+formula (we take the standard measure on the size of the formula).
+In addition, the number of quantifier alternations is
+\emph{fixed}. Thus we obtain the E{\small XPTIME} upper complexity
+bound for each oracle query following \cite{Tar51}\cite{Bas99}. So
+the overall complexity of our algorithm is in ${\rm P}^{\rm
+EXPTIME}$, which is in turn in E{\small XPTIME}.
+%\begin{remark}
+%  \begin{itemize}
+%    \item we have to use randomized strategy while not only
+%    deterministic strategy for ATL. However, the memory is not
+%    needed;
+%
+%    \item the complexity of our algorithm is EXPTIME.
+%  \end{itemize}
+%\end{remark}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Alternative Decision Procedure} \label{approach2}
+In the last subsection, we consider both the cases that
+$\bowtie\in \{<, \leq, =, \geq, >\}$. In this subsection, we
+present yet another algorithm, inspired by a recent result on
+solving two-player concurrent game. However, this only applies to
+the case that strict equality $=$ is \emph{not} allowed in the
+constraint.
+
+Recall that following the constructions in Section \ref{nonequal},
+we can reduce the problem of model checking PATL formula
+$\phi_s=\lla A\rra[\psi_p]_{\bowtie r}$ to the problem of deciding
+$\lla 1\rra \widehat{\psi_p} > r$ in a two-player game, in the
+case of $\bowtie\in \{\geq, >\}$ (for $\bowtie\in \{<, \leq\}$,
+this can be done in a symmetric way). Thus, to seek an efficient
+way to solve two-player game is essential. Fortunately, the
+following result actually provides an \emph{oracle} for solving
+two-player concurrent game, which is more efficient, compared with
+the oracle in the previous subsections.
+
+\begin{theorem}[\cite{CdeAH06}] \label{oracle}
+  For all concurrent game structure $\mc{G}$, for all parity objective
+  $\Omega_e$ and $\Omega_o$, and for all rationals
+  $\varepsilon>0$, for all rationals $r$, whether $\lla 1\rra(\Omega_e)(s)\in
+  [r-\varepsilon, r+\varepsilon]$ can be decided in ${\rm NP}\cap \mbox{\rm
+  coNP}$.
+\end{theorem}
+We note that obviously, here $\widehat{\psi_p}$ denotes an
+$\omega$-regular property in $\Sigma^0_1\cup \Pi^0_1$ and thus is
+a parity objective. Let $\Omega_o$ be the $\omega$-regular set
+corresponding to $\psi_p$. By this theorem, our algorithm is
+sketched as follows:
+
+\begin{itemize}
+  \item[(i)] Query the oracle whether $\lla 1\rra(\Omega_e)(s)\in
+             [r-2\varepsilon, r]$? If the answer is ``yes", then the
+             algorithm returns ``no";
+
+  \item[(ii)] Otherwise, query the oracle whether $\lla
+1\rra(\Omega_e)(s)\in [r, r+2\varepsilon]$? If the answer is
+``yes", then algorithm returns ``yes", otherwise, it returns
+``no".
+\end{itemize}
+
+\paragraph{Complexity} By Theorem \label{oracle},
+for each query, the complexity is in ${\rm NP}\cap \mbox{\rm
+coNP}$, it follows that the overall complexity of the this
+algorithm is in ${\rm P}^{{\rm NP}\cap {\rm coNP}}$, which is a
+lower complexity bound than E{\small XPTIME} \footnote{Of course,
+we adopt the widely-accepted hypothesis that P$\neq$ NP and the
+polynomial hierarchy does not collapse.}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Beyond PATL} \label{sec4}
+
+In this section, we suggest two more formalisms for the
+specification of open probabilistic systems. One is PATL$^*$,
+which is very natural in the sense that it is akin to PCTL$^*$,
+and thus the extension is in analogy with CTL$^*$ w.r.t. CTL. The
+other is called \emph{probabilistic game logic} (PGL), which
+introduces the \emph{strategy} quantifier. Both of these two
+extensions are more expressive than PATL by definition. However,
+as we shall demonstrate, the model checking problem for PATL$^*$
+(excluding $=$ in the constraint) is still decidable, although in
+a higher complexity while the PGL is even more intractable in the
+sense that the model checking becomes undecidable. Consequently,
+from the perspective of formal verification, PGL is not a good
+candidate.
+
+\subsection{PATL$^*$ and Model Checking Algorithm}
+
+The logic PATL is a fragment of a more expressive logic called
+PATL$^*$, where the \emph{state} formulae are kept unchanged while
+the \emph{path} formulae turn to
+\begin{eqnarray*}
+  \phi_p, \psi_p & ::= & \phi_s\mid \neg \phi_p\mid
+  \phi_p \wedge \psi_p \mid \mc{X}\phi_p\mid \phi_p\mc{U}\psi_p \mid
+  \phi_p\mc{R}\psi_p
+\end{eqnarray*}
+where $P\in \Pi$, $A\subseteq [k]$, $\bowtie \in\{<, \leq, =,
+\geq, >\}$ and $r\in [0,1]$.
+
+As for the semantics, in the case of state formulae, the
+definition is unchanged w.r.t. PATL, while the path formulae are
+interpreted as follows:
+\[
+\begin{tabular}{lll}
+ $\lambda \models \phi_s$ & $\Leftrightarrow$   &
+ $\lambda(0) \models \phi_s$\\
+
+ $\lambda \models \neg\phi_p$ & $\Leftrightarrow$   &
+ $\lambda \not\models \phi_p$\\
+
+ $\lambda \models \phi_p \wedge \psi_p$ & $\Leftrightarrow$   &
+ $\lambda \models \phi_p \wedge \lambda \models \psi_p$\\
+
+ $\lambda \models \mc{X}\phi_p$ & $\Leftrightarrow$   &
+ $\lambda[1]\models \phi_p$\\
+
+ $\lambda \models \phi_p\mc{U}\psi_p$ & $\Leftrightarrow$   &
+ $\exists i\in \mb{N}$. $\lambda[i]\models \psi_p$ and for \\ & & any $0\leq j<i$, $\lambda[j]\models
+ \phi_p$\\
+
+ $\lambda \models \phi_p\mc{R}\psi_p$ & $\Leftrightarrow$   &
+ %$\exists i\in \mb{N}$. $\lambda_i\models \psi_s$ and for any $0\leq j<i$, $\lambda(j)\models
+% \phi_s$\\
+ $\lambda \models \neg (\neg \phi_p\mc{U} \neg \psi_p)$\\
+\end{tabular}
+\]
+%
+\paragraph{Model Checking Algorithm} %The model checking algorithm is
+%extended to PATL$^*$.
+In this section, we explain how to model check a pCGS %against
+w.r.t. a PATL$^*$ formula. We emphasize that here, we exclude the
+strict equality $=$ in the PATL$^*$ formulae, namely, the results
+here can be read as the counterparts of the ones in Section
+\ref{nonequal}. We leave the more general case as an open problem.
+
+As before, let $\phi_s$ be a PATL$^*$ state formula. We only need
+to consider $\phi_s$ to be of the form $\phi_s=\lla A\rra
+[\psi_p]_{\bowtie r}$ since the other cases are either trivial or
+can be reduced to this one.
+%
+%%%%%%%%%%%%% chapter, pp 165 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Again, we assume that we have already computed (recursively) the
+satisfaction sets of all maximal state PATL$^*$-subformulae
+$\gamma_1, \cdots, \gamma_n$ of $\psi_p$, so we can view them as
+atomic propositions. And we have labelled the states of $\mc{G}$
+appropriately with new atomic propositions $r_1, \cdots, r_n$.
+%Let $\phi_s'$ be the formula we obtain from $\phi_s$ by rewriting
+%all subformulae involving
+%
+%Let
+%\[\psi_p'=\psi_p\{r_1:=\gamma_1, \cdots, r_n:=\gamma_n\}\]
+%be the formula we obtain from $\phi_s$ by replacing each
+%occurrence of $\gamma_i$ by $r_i$ for $1\leq i\leq n$.
+Define $\widehat{\psi_p}$ as before. However, note that in this
+case $\widehat{\psi_p}$ is a general LTL formula over the atomic
+propositions $r_1, \cdots, r_n$ and for all infinite paths
+$\lambda$ of given system, it holds that $\lambda\models \psi_p$
+iff $\lambda\models \widehat{\psi_p}$.
+
+Following the construction of Section \ref{nonequal}, we shall
+compute $\lla 1\rra \widehat{\psi_p}$. This can be done by the
+standard $\omega$-automaton approach: It suffices to encode the
+LTL as a Rabin-chain automaton, coping with then the game
+structure consisting of the synchronous product of the original
+game structure with the Rabin-chain automaton. An
+$\omega$-automaton accepts infinite words over a give alphabet. In
+the probabilistic setting, a kind of \emph{determinism} is
+necessary. %Here we use deterministic parity automata.
+
+\begin{definition} \label{rbc} [Deterministic Rabin chain automata]
+A deterministic Rabin chain automaton is a tuple
+\[\mc{A}=(\Sigma, S, s_0, \rho, \alpha)\]
+where
+\begin{itemize}
+  \item $\Sigma$ is a finite alphabet;
+
+  \item $S$ is a finite set of states;
+
+  \item $s_0$ is an initial state;
+
+  \item $\rho:S\times\Sigma\rightarrow S$ is a transition
+  function; and
+
+  \item $\alpha=\bigvee_{i=0}^{l-1}(\square\diamondsuit U_{2i}\wedge \neg\square\diamondsuit U_{2i+1})$ %$\alpha: S\rightarrow \{0,\cdots, l\}$ is coloring
+%  function.
+\end{itemize}
+where $l>0$ and $\emptyset=U_{2l}\subseteq U_{2l-1}\subseteq
+U_{2l-2}\subseteq\cdots\subseteq U_0=S$.
+\end{definition}
+
+Given a deterministic Rabin chain automaton $\mc{A}$ and an
+infinite word $w\in \Sigma^{\omega}$ over $\Sigma$, we call the
+unique sequence $r=q_0,q_1, \cdots$ with $q_{i+1}=\rho(q_i,
+w_{i+1})$ for $i\geq 0$ the run of $\mc{A}$ over $w$. For a run
+$r=s_0s_1\cdots$, let
+\[\lim(r)=\{s\in S\mid s=s_i\mbox{ for infinitely many }i\mbox{'s}\}\]
+A run $r$ is \emph{accepting} according to the Rabin chain
+condition if there exists some $0\leq i\leq l-1$ such that
+$\lim(r)\cap U_{2i}=\emptyset$ and $\lim(r)\cap
+U_{2i+1}\neq\emptyset$. We say $\mc{A}$ accepts $w$ if and only if
+$r$ is accepting.
+
+The language of a deterministic Rabin chain automaton $\mc{A}$ is
+the set
+\[\mc{L}_{\omega}(\mc{A})=\{w\in \Sigma^{\omega}\mid \mc{A}\mbox{ accepts }w\}\]
+
+%\end{definition}
+The following result is standard. We note that \cite{Pit06}
+provides the most efficient construction, to the best of our
+knowledge.
+\begin{lemma}
+  Given an LTL formula $\varphi$ over $\Pi$, a deterministic Rabin
+  chain automaton $\mc{A}$ with the alphabet $\Sigma=\wp(\Pi)$ can be
+  constructed such that
+  \[\mc{L}_{\omega}(\varphi)=\mc{L}_{\omega}(\mc{A})\]
+\end{lemma}
+
+Now we are in a position to present the model checking algorithm.
+As the first step, we construct a deterministic Rabin chain
+automata $\mc{A}=(\wp(\Pi), S, s_0, \rho, \alpha)$ with
+$\mc{L}_{\omega}(\widehat{\psi_p})=\mc{L}_{\omega}(\mc{A})$. Then
+given $\mc{G}=(k, Q\times S, \Pi, \pi, d, \delta)$, we build a
+product pCGS $\mc{G}'=\mc{G}\times \mc{A}$ for $\mc{G}$ and
+$\mc{A}$ as follows:
+\begin{definition}
+$\mc{G}' = (k, Q\times S, \Pi, \pi', d', \delta')$, where
+\begin{itemize}
+\item $\pi'((q,s))=\pi(q)$;
+
+\item for any $a\in [k]$, $d'_a((q, s))=d_a(q)$;
+
+\item let $\vec{c}= (c_a)_{a\in [k]}$ such that $1\leq c_a\leq
+d'_a((q, s))$ for each $a$,
+\[\delta'((q,s), \vec{c})((q', t)) = \left\{
+\begin{tabular}{ll}
+$\delta(q, \vec{c})(q')$ & if $t=\rho(s,\pi(q))$ \\
+$0$                      & o.w.;
+\end{tabular}
+\right.\]
+\end{itemize}
+\end{definition}
+
+\begin{remark}
+  Here, the condition of ``deterministic" is essential to ensure
+  the soundness of the construction.
+\end{remark}
+
+It is easy to see that there is a one-to-one correspondence
+between the pathes of $\mc{G}$ and those of $\mc{G}\times \mc{A}$
+by path-lifting. In addition, taking a path $\lambda$ of $\mc{G}$,
+lifting it to a path $\lambda'$ of $\mc{G}\times\mc{A}$ and then
+reducing it to its second component, gives then run of $\mc{A}$
+over $\pi(\lambda)$. Therefore $\mc{G}\times \mc{A}$ also keeps
+track whether $\pi(\lambda)$ will be accepted by $\mc{A}$ or not,
+namely, whether $\lambda$ satisfies $\psi_p'$ or not.
+
+Define
+\[\alpha'=\bigvee_{i=0}^{l-1}(\square\diamondsuit U'_{2i}\wedge \neg\square\diamondsuit
+U'_{2i+1})\] where $U'_i=U_i\times S$.
+
+Taking this into account it is easy to show that %for any two
+\[
+\sup_{\sigma_A \in \Upsilon_A} \inf_{\sigma_{\bar{A}} \in
+\Upsilon_{\bar{A}}} \mathbb{P}_q^{\sigma_A,
+\sigma_{\bar{A}}}(\{\lambda\in \Omega_q \mid \lambda\models
+\psi_p'\})=\]
+\[
+\sup_{\sigma'_A \in \Upsilon'_A} \inf_{\sigma'_{\bar{A}} \in
+\Upsilon'_{\bar{A}}} \mathbb{P}_q^{\sigma'_A,
+\sigma'_{\bar{A}}}(\{\lambda'\in \Omega_{q\times s_0} \mid
+\lambda\models \alpha'\})\]
+
+%\vspace{2mm}
+
+By this construction, we can turn the \emph{external} winning
+condition which is specified by an LTL formula
+($\widehat{\psi_p}$) to \emph{internal} winning condition on the
+concurrent game structure.  Then we can apply the same techniques
+exploited in previous section for PATL. The main difference lies
+in that here we have to deal with more involved winning condition.
+The following theorem is taken from \cite{deAM04}
+\[
+\lla 1\rra \alpha' = \lb \eta_{2l-1}x_{2l-1}\cdots \mu x_1\nu
+x_0(\bigvee_{i=0}^{2l-1}([C_i]\wedge \Ppre_1(x_i)))\rb
+\]
+where $\eta_n=\nu$ if $n$ is even and $\eta_n=\mu$ if $n$ is odd;
+and $C_i=U_i\setminus U_{i+1}$ for $0\leq i\leq 2l-1$.
+
+By Lemma \ref{express}, clearly, this can be encoded in the theory
+of real closed fields. We have done.
+\begin{remark}
+  We discuss the difficulty of adopting $=$ in the specification briefly. In the case
+  of PATL, the formula $\widehat{\psi_p}$ is only a strict subset of LTL,
+  for which the memoryless strategies suffice to win the game, as
+  we state in Lemma \ref{memory}; However, in the case of
+  PATL$^*$, $\widehat{\psi_p}$ is considerably more involved, and
+  thus we have to use Rabin chain (parity) condition to encode it.
+  The consequence is that generally winning strategies need infinite
+  memory, namely, Lemma \ref{memory} fails, which, in turn invalidates the approach
+  in Section \ref{equalsection}. We conjecture that in this case, the model checking
+  is undecidable. For more discussions we refer the readers to Remark
+  \ref{mark3}.
+\end{remark}
+
+\paragraph{Complexity of the algorithm} As the case in PATL, we first analyze
+the complexity of algorithm of each modality. Since from LTL to
+Rabin chain automata, there is a 2E{\small XPTIME} blow up. It
+follows that the resulting formula is 2E{\small XPTIME} in the
+size of a given probabilistic concurrent game structure and
+PATL$^*$ formula with fixed number of quantifier alternations.
+Thus we obtain the 3E{\small XPTIME} upper complexity bound
+following \cite{Tar51}\cite{Bas99}. So the overall complexity of
+our algorithm is in ${\rm P}^{\rm 3EXPTIME}$, which is in turn in
+3E{\small XPTIME}.
+
+\subsection{Probabilistic Game Logic}
+In this section, we %offer
+propose yet another extension, namely \emph{probabilistic game
+logic} (PGL), of which even PATL$^*$ is a fragment. To understand
+this, let us note that in PATL, the parameterized quantifier $\lla
+A\rra$ first stipulates the \emph{existence} of strategies for the
+players in $A$, and then \emph{universally} quantifies over the
+outcomes of the stipulated strategies. One may generalize it by
+separating the two concerns into \emph{strategy} quantifiers and
+\emph{path} quantifiers, which leads to the following definition:
+
+\begin{definition} The syntax of \emph{PGL} is defined by the
+following grammar:
+\begin{eqnarray*}
+  \phi_s    & ::= & \top\mid P \mid \neg \phi_s \mid  \phi_s \wedge \phi_s \mid \boxplus A. \theta_t\\
+  \theta_t  & ::= & \phi_s \mid \neg\theta_t \mid \theta_t \wedge \theta_t \mid [\psi_p]_{\bowtie r}\\
+  \psi_p    & ::= & \theta_t\mid \neg\psi_p \mid \psi_p\wedge \psi_p \mid \mc{X}\phi_p\mid \phi_p\mc{U}\psi_p \mid
+  \phi_p\mc{R}\psi_p
+\end{eqnarray*}
+where $P\in \Pi$, $A\subseteq [k]$, $\bowtie \in\{<, \leq, \geq,
+>\}$ and $r\in [0,1]$.
+%
+%We also define the usual short hands, such as $\bot \stackrel{\rm
+%def}{=} \neg \top$,
+\end{definition}
+
+We note that in PGL, the constraint $=$ is redundant, since
+$\boxplus A. [\psi_p]_{= r}$ can be written as $\boxplus A.
+([\psi_p]_{\geq r}\wedge [\psi_p]_{\leq r})$, which is allowed in
+PGL, but not in PATL or PATL$^*$.
+
+We now define the semantics of PGL w.r.t. pCGS $\mc{G}$. Recall
+that $A\subseteq [k]$ is a coalition and $\sigma_A$ and
+$\sigma_{\bar{A}}$ be the coalition strategies for $A$ and
+$\bar{A}$ respectively. Once the starting state $q$ and the
+coalition strategies $\sigma_A$ and $\sigma_{\bar{A}}$ for the two
+coalitions have been chosen, we can obtain a \emph{probabilistic
+execution tree}, which is, an unwinding of a (possibly infinite
+state) \emph{Discrete Time Markov Chain} (DTMC). We interpret the
+\emph{tree formulae} on DTMC (or equivalently, on probabilistic
+execution tree), which follows similar way as in PCTL. Formally,
+given a coalition strategy $\sigma_{A}=(\sigma_a)_{a\in A}$, we
+define the set of possible \emph{probabilistic execution trees} of
+$\sigma_{A}$ from a state $q\in Q$ to be the set ${\rm \sf PET}(q,
+\sigma_A)$ of unwinding DTMCs that the players in $A$ enforce when
+they follow the strategy $\sigma_{A}$. We use
+$\mb{T}_q^{\sigma_A}$ to range  over ${\rm \sf PET}(q, \sigma_A)$.
+%
+%
+%
+%
+%Hence, the probabilities of \emph{events} are
+%  uniquely defined in a standard way, where an event $\mc{E}\subseteq \Omega$ is measurable set of
+%  paths. For an event $\mc{E}\subseteq \Omega$, we denote the probability that a
+%  path belongs to $\mc{E}$ when the game starts form $q$ and the
+%  players follow the strategies $\sigma_A$ and $\sigma_{\bar{A}}$ by
+%  $\mb{P}_q^{\sigma_A, \sigma_{\bar{A}}}(\mc{E})$. Similarly, for
+%  a measurable function $f$ that associates a number in $\mb{R}\cup\{\infty\}$
+%  with each path, we denote by $E_q^{\sigma_A, \sigma_{\bar{A}}}\{f\}$ the expected
+%  value of $f$ when the game starts from $q$ and the strategies $\sigma_A$ and
+%  $\sigma_{\bar{A}}$ are followed. As usual, we denote by $\Theta_i$ the random
+%  variable representing the $i$-th state of a path; formally,
+%  $\Theta_i$ is a variable that assumes value $q_i$ on the path
+%  $q_0, q_1,\cdots$.
+Except for $\boxplus A. \theta_t$, the interpretation of
+\emph{state} formulae, \emph{tree} formulae and \emph{path}
+formulae is defined in the same way as in PATL and PATL$^*$. The
+only interesting case is
+\begin{eqnarray*}
+q \models \boxplus A. \theta_t & \Leftrightarrow \mbox{there is a
+coalition strategy }\sigma_A\mbox{ such} \\
+& \mbox{that for any } \mathbb{T}_q^{\sigma_A}\in {\rm\sf PET}(q,
+\sigma_A), \mathbb{T}_q^{\sigma_A} \models \theta_t
+\end{eqnarray*}
+We note in the definition above, $\mathbb{T}_q^{\sigma_A}$ is
+essentially a DTMC.
+%\[
+%\begin{tabular}{lll}
+% $q\models$    $true$ \\
+%
+% $q \models P $  & $\Leftrightarrow$   & $P\in \pi(q)$\\
+% $q \models \neg \phi_s$ & $\Leftrightarrow$   & $q\not\models \phi_s$\\
+% $q \models \phi_s \wedge \psi_s$  & $\Leftrightarrow$   & $q \models \phi_s$ and $q \models \psi_s$\\
+%
+% $ \lla A\rra ([\psi_p]_{\bowtie r})$ &
+%\\
+%& &
+%\\
+% $\lambda \models \mc{X}\phi_s$ & $\Leftrightarrow$   &
+% $\lambda(1)\models \phi_s$\\
+%
+% $\lambda \models \phi_s\mc{U}\psi_s$ & $\Leftrightarrow$   &
+% $\exists i\in \mb{N}$. $\lambda_i\models \psi_s$ and for \\ & & any $0\leq j<i$, $\lambda(j)\models
+% \phi_s$\\
+%
+% $\lambda \models \phi_s\mc{R}\psi_s$ & $\Leftrightarrow$   &
+% %$\exists i\in \mb{N}$. $\lambda_i\models \psi_s$ and for any $0\leq j<i$, $\lambda(j)\models
+%% \phi_s$\\
+% $\lambda \models \neg (\neg \phi_s\mc{U} \neg \psi_s)$\\
+%\end{tabular}
+%\]
+
+%\begin{remark}
+%  = is .
+%\end{remark}
+
+In \cite{BBFK06}, the authors show, among others, that the
+existence of winning strategies in MDPs (a.k.a $1\frac{1}{2}$
+games) with \emph{PCTL objectives} is highly undecidable
+($\Sigma_1^1$ hard). Since as we state before, MDP is only a
+special case of pCGS, by a straightforward reduction, we show this
+negative result implies that:
+
+\begin{theorem} \label{un}
+  Model checking PGL is undecidable.
+\end{theorem}
+
+\begin{remark} \label{mark3}
+
+%\paragraph{Warring}
+%To prevent possible misunderstanding, we note the in a recent LICS
+%paper by ..., the authors show that ... However, the result
+%presented in that paper does not apply directly to our setting.
+
+We note that for PATL, \emph{memoryless} (but randomized)
+strategies suffice for coalition of players to achieve the desired
+value of the game, thus force the game to favor them; While for
+PATL$^*$, both the \emph{memory} and the \emph{randomness} are
+required, although in a \emph{finite} fashion. The difference lies
+in the \emph{path} formulae admitted in the two logics. From the
+$\omega$-regular property perspective, in PATL, the
+$\omega$-regular sets specified by path formulae are in
+$\Sigma_1^0 \cup\Pi_1^0$ while in PATL$^*$, they need to be
+specified by parity condition, and thus beyond this low Borel
+hierarchy (although still in $\Sigma_3^0 \cap\Pi_3^0$).
+Furthermore, in probabilistic game logic, the winning conditions
+are interpreted on \emph{trees} rather than \emph{paths}, which
+lifts the \emph{linear} time notion to \emph{branching} time one.
+We emphasize that this is precisely the source of the
+undecidability, as Theorem \ref{un} indicates. In
+this sense, the logic PATL %isolates a subset of properties that ..., Indeed,
+identifies a class of properties for open probabilistic systems
+for which it suffices to solve iterated finite game in a rather
+efficient way, which might be a strong support for it to be a good
+candidate
+of specification. %, which can be done in linear time.
+\end{remark}
+
+%see Kuperfman's remak. (concur'99, robust satisfaction).
+
+%While the outcome of the games that correspond to alternating
+%temporal logic are computations, in
+
+\section{Conclusion and Related Works} \label{sec5}
+
+%State transition encode the probability of making a transition
+%between states rather than just the existence of such transition.
+
+In our points of view, there are (at least) two main trends in the
+research of system verification: (1) from closed systems to open
+systems and (2) from the qualitative analysis to quantitative
+analysis, which are motivated by the state-of-art of current
+embedded reactive systems. To meet these challenges, %progresses,
+in this paper, we aim at investigating \emph{open probabilistic
+system}: By analyzing the \emph{open} system, one can cope with
+not only traditional verification but also control and synthesis
+challenges; By introducing probabilistic extension, one can deal
+with systems that are subject to various phenomena of stochastic
+nature, which is, in our point of view, more akin to the reality
+and covers one of the most significant aspects of quantitative
+analysis. To instantiate our goal, we extend the framework of
+alternating-time temporal logic to a probabilistic setting,
+following the style of classical probabilistic computation tree
+logic, and thus obtain two \emph{probabilistic alternating-time
+temporal logics}, i.e. PATL and PATL$^*$. They can be used to
+specify the desire properties of open probabilistic systems. We
+also propose probabilistic concurrent game structures as the
+general model for such systems, which, are also natural semantics
+models for the proposed logics. Based on them, we develop model
+checking algorithms for PATL and PATL$^*$. Moreover, some more
+expressive logic, which, unfortunately lacks the decidability of
+model checking, is also discussed. We believe the works presented
+here establish the first (albeit preliminary) step of a general
+formal framework to model, specify, analyze, design and even
+program open probabilistic systems, in particular, embedded
+reactive systems.
+%Instead, systems are subject to various phenomena of stochastic
+%nature, correctness thus is of a less absolute nature.
+%accordingly, instead of checking whether systems failures are
+%impossible a more realistic aim is to establish, for instance,
+%whether the chance of shutdown occurring is at most 1.10%.
+%\begin{itemize}
+%  \item alternating-time temporal logic
+%
+%  \item timed extension
+%
+%  \item MDP model checking
+%\end{itemize}
+%In computer system design, we distinguish between \emph{closed}
+%and \emph{open} system. A \emph{closed system} is a system whose
+%behavior is completely determined by the state of the system. An
+%\emph{open system} is a system that interacts with its environment
+%and whose behavior depends on this interaction.
+\paragraph{Related Works}
+There have been extensive works on ATL and its extensions. In
+\cite{AHK02}, ATL has been proposed and defined over CGS. In
+\cite{HRS02, LMO07}, expressiveness issues are considered for ATL
+and ATL$^*$. Complexity results about model checking (for ATL,
+ATL$^+$, ATL$^*$) can be found in, among others, \cite{AHK02,
+Sch04, LMO07}. % and complexity of satisfiability is addressed in \cite{GD06}.
+In \cite{SF06}, the decidability of satisfiability for
+alternating-time $\mu$-calculus is shown. In \cite{SSM06}, the
+authors present a sound and complete proof system for proving
+ATL$^*$ properties over infinite-state systems. The
+abstraction-refinement technique is also considered in, among
+others, \cite{BK06}. There are also some extensions of the
+framework of ATL to quantitative models, in particular, concerning
+on real-time aspect, we are aware of two recent works: \cite{HP06}
+and \cite{LMO06}, where the former address TATL, which adds freeze
+quantifiers to ATL while the latter considers the durational
+concurrent game structure and extends ATL following the TCTL
+style. Model checking algorithms are given in their own framework
+respectively. However, for the probabilistic extension of ATL, to
+the best of our knowledge, we are not aware of any other works.
+
+On the other hand, there is a sea of works addressing the formal
+verification and control of probabilistic systems. Here, we only
+mention the tip of the iceberg and we restrict ourselves to the
+%pick up a tiny part of them, namely,
+discrete time setting. The probabilistic computation tree logic is
+introduced in \cite{HJ94}, where model checking algorithm coping
+with DTMC is also provided. \cite{BdeA95} extends this work to
+MDP, where the algorithms for MDP w.r.t. PCTL and PCTL$^*$ are
+proposed. These algorithm can be seen as the special cases of our
+algorithms, sice both the MDP and PCTL are (very) special cases of
+pCGS and PATL respectively. As for the control problem, as far as
+we know, \cite{BGLBC04} first discusses the controller synthesis
+for PCTL, and \cite{BBFK06} further shows that the problem is,
+generally undecidable. Our works on probabilistic model checking
+might include \cite{CY95}. Research on (stochastic) game is
+another line of related works, for which, we only refer to
+\cite{Wal04} for a survey and
+to its numerous references there. %two
+%representative papers which are most related on our work, namely,
+%\cite{CdeAH06, deAM04} and numerous references there.
+
+\vspace{2mm}
+
+%\paragraph{Acknowledgement}
+\noindent{\bf Acknowledgement} We are grateful to Wan Fokkink and
+Tingting Han for their careful reading of a draft of this paper
+and valuable comments. We also thank Orna Kupferman for
+stimulating discussions at CONCUR'06.
+
+%\begin{itemize}
+%
+%
+%  \item expressive power: LSV paper, \cite{HRS02}.
+%
+%  %\item satisfiability and axiomatization: CSL'06, \cite{GD06}
+%
+%  %\item ICTAC'06: Proving ATL* Properties of Infinite-State Systems
+%
+%  \item traditional model: complexity, see LSV paper ...
+%\end{itemize}
+%
+%\paragraph{Future Works}
+%
+%The are a lot of works needed to be done. probabilistic game
+%logic.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{00}
+
+\bibitem{AHK02} R. Alur, T. A. Henzinger and O. Kupferman. Alternating-time temporal logic.
+{\em Journal of ACM} 49(5): 672-713, 2002.
+
+\bibitem{Bas99} S. Basu. New results on quantifier elimination over real closed fields and
+applications to constraint databases. {\em Journal of ACM} 46(4):
+537-555, 1999.
+
+\bibitem{BBFK06} T. Brazdil, V. Brozek, V. Forejt, and A. Kucera. Stochastic
+games with branching-time winning objectives. In Proc. LICS 2006,
+pp. 349-358, IEEE Computer Society, 2006.
+
+\bibitem{BdeA95} A. Bianco and L. de Alfaro. Model checking of probabilistic and
+nondeterministic systems.  In Proc. FSTTCS 1995. LNCS 1026, pp.
+499-513, Springer, 1995.
+
+\bibitem{BGLBC04} C. Baier, M. Gr\"{o}\ss er, M. Leucker, B. Bollig,
+and F. Ciesinski. Controller synthesis for probabilistic systems.
+In Proc. IFIP TCS 2004. Kluwer, 2004.
+
+\bibitem{BHHKS04} %Christel Baier, Boudewijn R. Haverkort, Holger Hermanns,
+%Joost-Pieter Katoen, Markus Siegle:
+C. Baier, B. R. Haverkort, H. Hermanns, J. -P. Katoen and M.
+Siegle. Validation of Stochastic Systems - A Guide to Current
+Research. LNCS 2925, Springer, 2004.
+
+%\bibitem{BK98}C. Baier and M. Kwiatkowska. Model checking for a probabilistic branching time logic with fairness.
+%\emph{Distributed Computing}, 11(3):125-155, 1998.
+
+\bibitem{BK06} %Thomas Ball, Orna Kupferman:
+T. Ball, and O. Kupferman. An abstraction-refinement framework for
+multi-agent systems. In Proc. LICS 2006, pp. 379-388, IEEE
+Computer Society, 2006.
+
+\bibitem{CE81} E. Clarke, and E. Emerson. Design and synthesis of synchronization skeletons
+using branching-time temporal logic. In {\em Proceeding Logic of
+Programs 1981}, LNCS 131, pp.\ 52-71, Springer, 1981.
+
+\bibitem{CGP00} E. Clarke, O. grumberg, and D. Peled. {\rm Model
+Checking}. MIT Press, 1999.
+
+\bibitem{CY95} C. Courcoubetis and M. Yannakakis. The compleixity
+of probabilistic verification. \emph{Journal of ACM},
+42(4):857-907, 1995.
+
+\bibitem{deAM04} L. de Alfaro, and R. Majumdar. Quantitative solution of omega-regular games.
+{\em Journal of  Computer and System Science}. 68(2): 374-397,
+(2004).
+
+\bibitem{CdeAH06} K. Chatterjee, L. de Alfaro, and T. Henzinger.
+The complexity of quantitative concurrent parity games. In Proc.
+SODA 2006, pp. 678-687, 2006.
+
+%\bibitem{GD06} V. Goranko, and G. van Drimmelen. Complete axiomatization and decidability of
+%Alternating-time temporal logic. {\em Theoretical Computer
+%Science}. 353(1-3): 93-117, 2006.
+
+\bibitem{Hoa85} C. Hoare. \emph{Communicating Sequential
+Processes}. Prentics-Hall, 1985.
+
+\bibitem{HP85} D. Harel and A. Pnueli. On the development of
+reactive systems. In \emph{Logics and Models of Concurrent
+Systems}, volume F-13 of \emph{NATO Advanced Summer Institutes},
+477-498. Springer, 1985.
+
+\bibitem{HP06} T. A. Henzinger and V. S. Prabhu. Timed Alternating-Time
+Temporal Logic. In Proc. FORMATS 2006, LNCS 4202, pp. 1-17, 2006
+
+
+\bibitem{HRS02} % Aidan Harding, Mark Ryan, Pierre-Yves Schobbens.
+A. Harding, M. Ryan, and P. -Y. Schobbens. Approximating ATL$^*$
+in ATL. In Proc. VMCAI 2002, LNCS 2294, pp. 289-301, 2002.
+
+\bibitem{LMO06} F. Laroussinie, N. Markey, and G. Oreiby.
+Model checking timed ATL for durational concurrent game
+strucutures. In Proc. FORMATS 2006, LNCS 4202, pp. 245-259, 2006.
+
+\bibitem{LMO07} %Markey, Nicolas; Oreiby, Ghassan; Laroussinie, Francois:
+F. Laroussinie, N. Markey, and G. Oreiby. On the Expressiveness
+and Complexity of ATL. In Proc. FoSSaCS 2007, to appear.
+
+
+
+
+%
+%\bibitem{BPR96} S. Basu, R. Pollack and M. Roy. On the
+%combinatorial and algebraic complexity of quantifier elimination.
+%\emph{Journal of ACM}, 43(6):1002-1045, 1996.
+
+
+%
+\bibitem{CES86} E. M. Clarke, E. A. Emerson and A. P. Sistla. Automatic
+verification of finite-State concurrent systems using temporal
+logic specifications. \emph{ACM Transaction of  Program Language
+and System}, 8(2): 244-263, 1986.
+%
+%%\bibitem{CHL06} T. Chen, T. Han and J. Lu. On the Markovian
+%%randomized strategy of controller for Markov decision processes.
+%%Technical report, CWI, Amsterdam, The Netherlands, 2006.
+%
+%\bibitem{CJH03} K. Chatterjee, M. Jurdzinski and T. Henzinger.
+%Simple stochastic parity games. In \emph{Proceeding of CSL'03}.
+%LNCS 2803, 100-113, Springer, 2003.
+%
+%\bibitem{CJH04} K. Chatterjee, M. Jurdzinski and T.
+%Henzinger. Quantitative simple stochastic partity games. In
+%\emph{Proceeding of SODA'04}. SIAM.
+%
+
+%
+%\bibitem{FV97} J. Filar and K. Vrieze. \emph{Competitive Markov
+%Decision Processes}. Springer, 1997.
+%
+%\bibitem{Gri88} D. Grigoriev. Complexity of deciding Tarski
+%algebra. \emph{Journal of Symbolic Computation}, 5(1-2):65-108,
+%1988.
+%
+\bibitem{HJ94} H. Hansson and B. Jonsson. A Logic for reasoning
+about time and reliability. \emph{Formal Aspects of Computing},
+6(5): 512-535, 1994.
+%
+%%\bibitem{KS05} A. Kucera, O. Strazovsky. On the Controller Synthesis for
+%%Finite-State Markov Decision Processes. In \emph{Proceeding of
+%%FSTTCS'05}. LNCS 3821, 541-552, Springer, 2005.
+%
+
+%
+%\bibitem{KVW01} O. Kupferman, M. Vardi and P. Wolper. Module checking. \emph{Information and
+%Computation}. 164(2): 322-344, 2001.
+
+\bibitem{Mar98} D. Martin. Then determinacy of blackwell games.
+{\em Jouranl of  Symbolic Logic}, 63(4):1565-1581, 1998.
+
+
+
+%
+%%\bibitem{Lam80} L. Lamport. Sometimes is sometimes ``not never" -
+%%on the temporal logic of program. In \emph{Proc. 7th ACM POPL},
+%%174-185, 1980.
+%
+
+\bibitem{vNM47} J. van Neumann and O. Morgenstern. {\em Theory of
+Games and Economic Behavior}. Princeton University Press,
+Princeton, 1947.
+
+
+\bibitem{Owe95} G. Owen. \emph{Game Theory}. Academic Press, 1995.
+%
+\bibitem{Put94} M. Puterman. \emph{Markov Decision Processes}.
+Wiley, 1994.
+%
+%
+
+\bibitem{Pit06} %Nir Piterman:
+
+N. Piterman. From nondeterministic buchi and streett automata to
+deterministic parity automata. In Proc. LICS 2006, pp. 255-264,
+IEEE Computer Society, 2006.
+
+\bibitem{Pnu77} A. Pnueli. The temporal logic of pragrams. In
+Proc. FOCS 1977, pp. 46-57. IEEE Computer Society, 1977.
+
+%\bibitem{Pnu85} A. Pnueli. Linear and branching structures in
+%the semantics and logics of reactive systems. In \emph{Proc.
+%ICALP'85}. LNCS 194, 15-32, Springer, 1985.
+
+\bibitem{Pap94} C. Papadimitriou. \emph{Computational Complexity}.
+Addison-Wesley, 1994.
+
+\bibitem{QS82} J. Queille and J. Sifakis. Specification and
+verification of concurrent systems in CESAR. In Proc. 5th {\em
+International Symposium on Programming}, LNCS 137, pp. 337-351,
+Springer, 1982.
+
+\bibitem{RW89} P. Ramadge and W. Wonham. The control of discrete
+event systems. {\em Proceedings of the IEEE}, 77(1): 81-89, 1989.
+
+\bibitem{Sch04} P. -Y. Schobbens. Alternating-time logic with
+imperfect recall. In Proc. LCMAS 2003, ENTCS 85, Elsevier, 2004.
+
+\bibitem{SF06} S. Schewe and B. Finkbeiner. Satisfiability and Finite Model
+Property for the Alternating-Time mu-Calculus. In Proc. CSL 2006,
+LNCS 4207, pp. 591-605, Springer, 2006.
+
+\bibitem{SSM06} M. Slanina, H. Sipma, and Z. Manna. Proving
+ATL$^*$ Properties of Infinite-State Systems. In Proc. ICTAC 2006,
+LNCS 4281, pp. 242-256, 2006.
+
+\bibitem{Tar51} A. Traski. \emph{A Decision Method for Elementary
+Algebra and Geometry}. Univ. of California Press, Berkeley, 1951.
+%
+%\bibitem{Tho03} W. Thomas. Infinite games and verification.
+%In \emph{Proceeding of CAV'03}, LNCS 2725, 58-64, Springer, 2003.
+\bibitem{Tho97} W. Thomas. Languages, automata, and logic. In G. Rozenberg and A.
+Salomaa, editors, {\em Handbook of Formal Languages}, volume III,
+pp. 389-455. Springer, 1997.
+
+\bibitem{Wal04} I. Walukiewics. A landscape with games in the
+background. In Proc. LICS 2004, pp. 356-366. IEEE Computer
+Society, 2004.
+
+
+\end{thebibliography}
+
+
+
+
+
+
+
+\end{document}
