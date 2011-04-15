@@ -1,10 +1,8 @@
 stpg
 
 // parameters
-const int n_resources = 3;
-const int n_tasks = 2;
 const int n_sensors = 5;
-
+const int n_tasks = 2;
 
 // sensor resources
 const int resource1=1;
@@ -246,7 +244,7 @@ module controller // schedules the algorithm
 	[str5] status=5 & turn5=5 -> (status'=5);
 	[fin5] status=5 & turn5=5 -> (status'=6);
 
-// initialising non-empty tasks uniformly at random
+	// initialising non-empty tasks uniformly at random
 	[] status=6 -> 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
 		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
 		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)

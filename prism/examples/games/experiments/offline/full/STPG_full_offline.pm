@@ -1,12 +1,17 @@
+// STPG version of the team formation protocol (offline version)
+// 5 agents
+// 2 tasks
+// 3 resources
+
 stpg
 
 // parameters
-const int n_resources = 3;
+const int n_agents = 5;
 const int n_tasks = 2;
-const int n_sensors = 5;
 
 
-// sensor resources
+
+// agent resources
 const int resource1=1;
 const int resource2=2;
 const int resource3=2;
@@ -54,11 +59,11 @@ module controller // schedules the algorithm
 	t2_r3 : [0..1];
 
 	// schedule placeholders
-	turn1 : [0..n_sensors];
-	turn2 : [0..n_sensors];
-	turn3 : [0..n_sensors];
-	turn4 : [0..n_sensors];
-	turn5 : [0..n_sensors];
+	turn1 : [0..n_agents];
+	turn2 : [0..n_agents];
+	turn3 : [0..n_agents];
+	turn4 : [0..n_agents];
+	turn5 : [0..n_agents];
 
 	// selecting schedule uniformly at random
 	[] status=0 -> 1/120 : (turn1'=1) & (turn2'=2) & (turn3'=3) & (turn4'=4) & (turn5'=5) & (status'=1)
@@ -302,7 +307,7 @@ module controller // schedules the algorithm
 
 endmodule
 
-module sensor1
+module agent1
 
 	state1 : [0..1];
 
@@ -325,7 +330,7 @@ module sensor1
 
 endmodule
 
-module sensor2 = sensor1 
+module agent2 = agent1 
 [ 
 	state1=state2, 
 
@@ -353,7 +358,7 @@ module sensor2 = sensor1
 ] 
 endmodule
 
-module sensor3 = sensor1 
+module agent3 = agent1 
 [ 
 	state1=state3, 
 
@@ -380,7 +385,7 @@ module sensor3 = sensor1
 ] 
 endmodule
 
-module sensor4 = sensor1 
+module agent4 = agent1 
 [ 
 	state1=state4, 
 
@@ -408,7 +413,7 @@ module sensor4 = sensor1
 ] 
 endmodule
 
-module sensor5 = sensor1 
+module agent5 = agent1 
 [ 
 	state1=state5, 
 
@@ -461,30 +466,30 @@ formula resource_filled_t2 = (m2_t2=1 & resource1=resource2) | (m3_t2=1 & resour
 // labels and formulae for property specification 
 formula finished = (status=7);
 
-formula sensor1_joins_successful_team = (task1_completed & m1_t1=1) | (task2_completed & m1_t2=1);
-formula sensor1_joins_successful_team_of_1 = (task1_completed & m1_t1=1 & team_size_t1=1) | (task2_completed & m1_t2=1 & team_size_t2=1);
-formula sensor1_joins_successful_team_of_2 = (task1_completed & m1_t1=1 & team_size_t1=2) | (task2_completed & m1_t2=1 & team_size_t2=2);
-formula sensor1_joins_successful_team_of_3 = (task1_completed & m1_t1=1 & team_size_t1=3) | (task2_completed & m1_t2=1 & team_size_t2=3);
+formula agent1_joins_successful_team = (task1_completed & m1_t1=1) | (task2_completed & m1_t2=1);
+formula agent1_joins_successful_team_of_1 = (task1_completed & m1_t1=1 & team_size_t1=1) | (task2_completed & m1_t2=1 & team_size_t2=1);
+formula agent1_joins_successful_team_of_2 = (task1_completed & m1_t1=1 & team_size_t1=2) | (task2_completed & m1_t2=1 & team_size_t2=2);
+formula agent1_joins_successful_team_of_3 = (task1_completed & m1_t1=1 & team_size_t1=3) | (task2_completed & m1_t2=1 & team_size_t2=3);
 
-formula sensor2_joins_successful_team = (task1_completed & m2_t1=1) | (task2_completed & m2_t2=1);
-formula sensor2_joins_successful_team_of_1 = (task1_completed & m2_t1=1 & team_size_t1=1) | (task2_completed & m2_t2=1 & team_size_t2=1);
-formula sensor2_joins_successful_team_of_2 = (task1_completed & m2_t1=1 & team_size_t1=2) | (task2_completed & m2_t2=1 & team_size_t2=2);
-formula sensor2_joins_successful_team_of_3 = (task1_completed & m2_t1=1 & team_size_t1=3) | (task2_completed & m2_t2=1 & team_size_t2=3);
+formula agent2_joins_successful_team = (task1_completed & m2_t1=1) | (task2_completed & m2_t2=1);
+formula agent2_joins_successful_team_of_1 = (task1_completed & m2_t1=1 & team_size_t1=1) | (task2_completed & m2_t2=1 & team_size_t2=1);
+formula agent2_joins_successful_team_of_2 = (task1_completed & m2_t1=1 & team_size_t1=2) | (task2_completed & m2_t2=1 & team_size_t2=2);
+formula agent2_joins_successful_team_of_3 = (task1_completed & m2_t1=1 & team_size_t1=3) | (task2_completed & m2_t2=1 & team_size_t2=3);
 
-formula sensor3_joins_successful_team = (task1_completed & m3_t1=1) | (task2_completed & m3_t2=1);
-formula sensor3_joins_successful_team_of_1 = (task1_completed & m3_t1=1 & team_size_t1=1) | (task2_completed & m3_t2=1 & team_size_t2=1);
-formula sensor3_joins_successful_team_of_2 = (task1_completed & m3_t1=1 & team_size_t1=2) | (task2_completed & m3_t2=1 & team_size_t2=2);
-formula sensor3_joins_successful_team_of_3 = (task1_completed & m3_t1=1 & team_size_t1=3) | (task2_completed & m3_t2=1 & team_size_t2=3);
+formula agent3_joins_successful_team = (task1_completed & m3_t1=1) | (task2_completed & m3_t2=1);
+formula agent3_joins_successful_team_of_1 = (task1_completed & m3_t1=1 & team_size_t1=1) | (task2_completed & m3_t2=1 & team_size_t2=1);
+formula agent3_joins_successful_team_of_2 = (task1_completed & m3_t1=1 & team_size_t1=2) | (task2_completed & m3_t2=1 & team_size_t2=2);
+formula agent3_joins_successful_team_of_3 = (task1_completed & m3_t1=1 & team_size_t1=3) | (task2_completed & m3_t2=1 & team_size_t2=3);
 
-formula sensor4_joins_successful_team = (task1_completed & m4_t1=1) | (task2_completed & m4_t2=1);
-formula sensor4_joins_successful_team_of_1 = (task1_completed & m4_t1=1 & team_size_t1=1) | (task2_completed & m4_t2=1 & team_size_t2=1);
-formula sensor4_joins_successful_team_of_2 = (task1_completed & m4_t1=1 & team_size_t1=2) | (task2_completed & m4_t2=1 & team_size_t2=2);
-formula sensor4_joins_successful_team_of_3 = (task1_completed & m4_t1=1 & team_size_t1=3) | (task2_completed & m4_t2=1 & team_size_t2=3);
+formula agent4_joins_successful_team = (task1_completed & m4_t1=1) | (task2_completed & m4_t2=1);
+formula agent4_joins_successful_team_of_1 = (task1_completed & m4_t1=1 & team_size_t1=1) | (task2_completed & m4_t2=1 & team_size_t2=1);
+formula agent4_joins_successful_team_of_2 = (task1_completed & m4_t1=1 & team_size_t1=2) | (task2_completed & m4_t2=1 & team_size_t2=2);
+formula agent4_joins_successful_team_of_3 = (task1_completed & m4_t1=1 & team_size_t1=3) | (task2_completed & m4_t2=1 & team_size_t2=3);
 
-formula sensor5_joins_successful_team = (task1_completed & m5_t1=1) | (task2_completed & m5_t2=1);
-formula sensor5_joins_successful_team_of_1 = (task1_completed & m5_t1=1 & team_size_t1=1) | (task2_completed & m5_t2=1 & team_size_t2=1);
-formula sensor5_joins_successful_team_of_2 = (task1_completed & m5_t1=1 & team_size_t1=2) | (task2_completed & m5_t2=1 & team_size_t2=2);
-formula sensor5_joins_successful_team_of_3 = (task1_completed & m5_t1=1 & team_size_t1=3) | (task2_completed & m5_t2=1 & team_size_t2=3);
+formula agent5_joins_successful_team = (task1_completed & m5_t1=1) | (task2_completed & m5_t2=1);
+formula agent5_joins_successful_team_of_1 = (task1_completed & m5_t1=1 & team_size_t1=1) | (task2_completed & m5_t2=1 & team_size_t2=1);
+formula agent5_joins_successful_team_of_2 = (task1_completed & m5_t1=1 & team_size_t1=2) | (task2_completed & m5_t2=1 & team_size_t2=2);
+formula agent5_joins_successful_team_of_3 = (task1_completed & m5_t1=1 & team_size_t1=3) | (task2_completed & m5_t2=1 & team_size_t2=3);
 
 formula task1_completed = finished 
 		 	 & ((t1_r1=1)=>((m1_t1=1&resource1=1)|(m2_t1=1&resource2=1)|(m3_t1=1&resource3=1)|(m4_t1=1&resource4=1)|(m5_t1=1&resource5=1)))
@@ -497,14 +502,12 @@ formula task2_completed = finished
 			 & ((t2_r3=1)=>((m1_t2=1&resource1=3)|(m2_t2=1&resource2=3)|(m3_t2=1&resource3=3)|(m4_t2=1&resource4=3)|(m5_t2=1&resource5=3)));
 
 // rewards
-
-
 rewards "w_1_total"
-    sensor1_joins_successful_team : 1;
-    sensor2_joins_successful_team : 1;
-    sensor3_joins_successful_team : 1;
-    sensor4_joins_successful_team : 1;
-    sensor5_joins_successful_team : 1;
+    agent1_joins_successful_team : 1;
+    agent2_joins_successful_team : 1;
+    agent3_joins_successful_team : 1;
+    agent4_joins_successful_team : 1;
+    agent5_joins_successful_team : 1;
 endrewards
 
 rewards "w_2_total"
