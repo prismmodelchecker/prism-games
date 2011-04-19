@@ -68,6 +68,29 @@ the ERC Advanced Grant VERIWARE.}}
 
 \section{Other Extension (context...)}
 
+Extend the logic to the non-cooperative setting - for each PATL formula partition agents into three groups $[A_1]$ $\langle A_2 \rangle$, $\lceil A_3\rceil$, and $\lfloor A_4\rfloor$, such that $A = A_1 \cup A_2 \cup A_3 \cup A_4$, and $A_i \cap A_j = \emptyset$ for all $i\neq j$. Given formula $[A_1] \langle A_2 \rangle \lceil A_3\rceil \lfloor A_4 \rfloor \phi$, agents in $A_1$ cooperative in order to maximise $\phi$, agents in $A_2$ cooperate to minimise $\phi$, agents in $A_3$ try to maximise $\phi$ without cooperation, and agents in $A_4$ try to minimise $\phi$ without cooperation. The meaning of maximisation/minimisation \emhp{without cooperation} is that agents make decisions in their states without knowledge of actions by other players, and therefore assume hostile behaviour of all other agents. 
+
+So far we have assumed that agent groups have opposite objectives, i.e. of maximising of minimising the formula $\phi$. This scenario although very useful may not be sufficient to many real world problems. We would like to extend the logic to be able to deal with multi-objective case where agents are minimising different formulae. This case would be especially useful when dealing with reward structures in games, as different agent groups may have different reward specifications. Given a formula 
+
+
+$[A_{1_1}..A_{1_i}] \langle A_{2_1}.. A_{2_j} \rangle \lceil A_{3_1} ..,A_{3_k}\rceil \lfloor A_{4_1} .. A_{4_l} \rfloor \phi_{1_1} .. \phi_{1_i}, \phi_{2_1} .. \phi_{2_j}, \phi_{3_1} ..\phi_{3_k},  \phi_{4_1} .. \phi_{4_l}$
+
+\noindent
+Agents in $A_{m_n}$ try to maximise/minimise formula $\phi_{m_n}$ by collaborating/individually depending on the quantifier type.
+
+\begin{remark}
+Quantifiers $[], \lceil\rceil$ and $\langle\rangle, \lfloor \rfloor$ provide tools to separate information availability within the coalition. Consider, for example, coalition $A$, and formulae $[A]\phi$ or $\lceil A\rceil\phi$. In both cases agent in $A$ try to maximise $\phi$, but in the former case agents have full access to the information about actions of other agents in the coalition whereas in the latter they do not. Similarly for minimising agents.
+
+We also need to distinguish the information available to the agents regarding the action of  agents which are not within the coalition. Possible settings may be:
+\begin{itemize}
+ \item All agents are aware of each others goals (and therefore can predict actions of others).
+ \item Agents are only aware of the goals of their own coalition (and therefore have no information what other agents will do).
+\end{itemize}
+
+These information setting provide an interesting subject of study. One way to look at the problem to assume hostility of all agents that are not within the coalition, but is this a realistic assumption? One concept that may be interesting to explore in such a setting is a \emhp{probabilistic ranking}, so rather than having memoryless deterministic strategy, agents could be allowed to rank all their choices and pick a move at random. Move probabilities would be weighted according to the ranking criteria. Looking from a purely theoretical perspective this can only worsen expected worst case performance, however in practical setting this may improve expected average case performance while still keeping agent's level of resilience to hostile behaviour.
+
+\end{remark}
+
 \section{Conclusion}
 
 \end{document}
