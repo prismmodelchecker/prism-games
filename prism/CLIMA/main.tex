@@ -13,7 +13,7 @@
 %\usepackage{subfigure}
 \usepackage{subfig}
 \usepackage{hyperref}
-\usepackage{times}
+%\usepackage{times}
 
 \newcommand{\LD}{\langle}
 \newcommand{\RD}{\rangle}
@@ -79,7 +79,7 @@ This requires the design of efficient collaboration protocols, of which \emph{te
 The protocol %was studied further in \cite{glinton2008agent}, and
 has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it a compelling target for formal analysis. 
 
-\aistis{Here we should explain where the probabilties appear in the algorithm as well to motivate use of PMC.}
+\aistis{Here we should explain where the probabilties appear in the algorithm as well to motivate use of PMC (online vs offline).}
 
 The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
@@ -1004,7 +1004,7 @@ Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards for Alg.~\ref{alg
 
 %\vspace{-22pt}
 
-
+\aistis{Add positive description - "the designer could choose to implement this strategy``}
 Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to Alg.~\ref{alg:join_team_org}. It is worth noting that, even if the designer chooses not to implement this particular strategy, it still serves as a ``best-case'' benchmark for measuring other algorithms' performance. This analysis allows us to evaluate the effects of a fully collaborative behaviour of agents. However often only limited collaboration can be achieved (e.g. organisation containing hostile agents). In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose.
 
 %\vspace{-10pt}
@@ -1238,6 +1238,7 @@ O.~Shehory and S.~Kraus.
 \appendix
 \section{Formal Definitions of Agent Organizations}
 \vspace{-8pt}
+\aistis{Remove appendices altogether.}
 \begin{itemize}
  \item Fully connected (Fig.~\ref{subfig:fully_connected}) $O_{\mathit{fc}}=\langle A, N_{fc}, R, R_{A_{fc}}  \rangle$ where
     \begin{itemize}
