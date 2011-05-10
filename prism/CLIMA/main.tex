@@ -22,7 +22,7 @@
 \def\Rsetge{\mathbb{R}_{> 0}}
 
 \newcommand{\aistis}[1]{\marginpar{\footnotesize \color{red} {\bf A:} \textsf{#1}}}
-\newcommand{\taolue}[1]{\marginpar{\footnotesize \color{red} {\bf TL:} \textsf{#1}}}
+\newcommand{\taolue}[1]{\marginpar{\footnotesize \color{blue} {\bf TL:} \textsf{#1}}}
 \newcommand{\dave}[1]{\marginpar{\footnotesize \color{red} {\bf D:} \textsf{#1}}}
 \newcommand{\comment}[1]{\marginpar{\footnotesize \color{red} \textsf{#1}}}
 
@@ -81,9 +81,9 @@ has also been applied to coalition formation for data fusion in sensor networks 
 The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
 \aistis{Added a paragraph motivating probabilistic model-checking}
-As is typical for multi-agent algorithms several aspects of the algorithm are modelled using probabilities. Following approach of
-\cite{gaston2005agent} we schedule agents to act in a uniformly random order, second probabilistic aspect of the system is that tasks are drawn from a task pool using a probability distribution. This aspect is particularly interesting in the case of \textsc{Online} version of the
- algorithm where agents have to choose strategies to optimise against the probability distribution rather than a particular task. Finally, probabilities are used to implement strategies of agents themselves. This motivates the use of \emph{probabilistic verification} techniques.
+As is typical for multi-agent algorithms, probabilities play a crucial role in team formation protocols. % several aspects of the algorithm are modelled using probabilities. 
+Firstly, agents are scheduled to act in a random order, following approach of
+\cite{gaston2005agent}; secondly, in our setting, tasks are drawn from a task pool, following some probability distribution. This is particularly interesting in the case of \textsc{Online} version of the algorithm (see Alg.~\ref{alg:main_process}) where agents have to choose strategies to optimise against a set of tasks governed by certain probability distribution rather than a particular task. Finally, probabilities are used to implement strategies of agents themselves. These compel the use of \emph{probabilistic verification} techniques.
 
 
 \emph{Formal verification} is an approach to check the correctness of a system
