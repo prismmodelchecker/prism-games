@@ -39,11 +39,11 @@ the ERC Advanced Grant VERIWARE.}}
 %\vspace{-10pt}
 \author{Taolue Chen \and Marta Kwiatkowska \and David Parker \and Aistis Simaitis}
 \institute{
-  Computing Laboratory, University of Oxford\\
+  Computing Laboratory, University of Oxford, \\%Oxford, United Kingdom%\\
   Wolfson Building, Parks Road, Oxford, OX1 3QD, UK
   %Oxford University Computing Laboratory, Parks Road, Oxford, OX1 3QD, UK
 }
-\email{}
+%\email{}
 
 \maketitle
 \aistis{Changed the title.}
@@ -76,9 +76,9 @@ Multi-agent systems have become an important software paradigm. One of the
 key ideas behind this approach is that several different agents can cooperate to achieve certain goals.
 This requires the design of efficient collaboration protocols, of which \emph{team formation} is a typical example. In this paper, we focus on a distributed team formation protocol introduced in \cite{gaston2005agent}. There, the authors used it to analyse team performance in dynamic networks.
 The protocol %was studied further in \cite{glinton2008agent}, and
-has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it a compelling target for formal analysis. 
+has also been applied to coalition formation for data fusion in sensor networks \cite{glinton2008agent}. In both cases it has been used as a basis for designing other algorithms, which makes it a compelling target for formal analysis.
 
-The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation. 
+The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
 \aistis{Added a paragraph motivating probabilistic model-checking}
 As is typical for multi-agent algorithms several aspects of the algorithm are modelled using probabilities. Following approach of
@@ -96,7 +96,7 @@ for example because the likelihood of certain tasks being generated follows a kn
 or because the algorithms employed by individual agents are randomised.
 Thus, we use \emph{probabilistic model checking}, an automated technique for
 the formal verification of \emph{stochastic} systems.
-
+%
 %It can, for example,
 %calculate the likelihood of the occurrence of certain events
 %during the execution of a system, and can be useful to establish performance
@@ -107,7 +107,7 @@ the formal verification of \emph{stochastic} systems.
 %configurations of the system, the transitions that can
 %occur between these states, and information about when and
 %with what probability each transition will occur, and a probabilistic model checker applies algorithmic techniques to analyze the state space and calculate performance measures.
-
+%
 Probabilistic model checking is based
 on the construction of a probabilistic model from a precise,
 high-level description of a system's behaviour.
@@ -133,7 +133,7 @@ In this paper, we use the PRISM probabilistic model checker \cite{KNP11} to anal
 We use several different types of probabilistic models
 and express quantitative performance properties of them in temporal logic.
 Firstly, we model the original version of the protocol using discrete-time Markov chains (DTMCs), where the behaviour of each agent is described entirely in a probabilistic (deterministic) way. Then, we extend the original algorithm  by allowing agents to make decisions nondeterministically, instead of randomly, when forming teams; such systems are naturally modelled by Markov decision processes (MDPs). By analysing the MDP, we obtain the best- and worst-case performance of agent organisations.
-MDPs, however, can only model fully collaborative behaviour, 
+MDPs, however, can only model fully collaborative behaviour,
 whereas in many scenarios it is crucial to address hostile behaviour of some agents in the organisation. To cater for this we use stochastic two-player games (STPGs) as a model for the system containing two groups of agents -- collaborative and hostile -- which try to, respectively, maximise
 \aistis{Added a comment on zero-sum nature of the game.}
  or minimise the performance of the organisation (i.e. this effectively becomes a zero-sum stochastic two player game). Orthogonal to these, we consider two different settings, namely \emph{offline} and \emph{online}, depending on whether the tasks are generated respectively \emph{before} and \emph{after} teams have formed (see Alg.~\ref{alg:main_process}).
@@ -143,7 +143,7 @@ Our experiments illustrate several aspects of agent organisation analysis. As a 
 
 
 In summary, the main contributions of this paper are as follows:
-
+%\vspace{-4pt}
 \begin{enumerate}
   \renewcommand{\labelenumi}{(\arabic{enumi})}
   \item We perform a comprehensive and \emph{formal} analysis of the performance of the team formation protocol proposed in \cite{gaston2005agent}.
@@ -160,7 +160,7 @@ In summary, the main contributions of this paper are as follows:
 We note that it would be difficult to achieve (2) and (3) using simulation-based approaches;
 this demonstrates the strength of formal verification.
 %%\vspace{-9pt}
-\paragraph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
+\noindent\emph{Related work.} Cooperative behaviour, which is one of the greatest advantages of agent-based computing, has been studied from many different angles over the years.
 Coalitional games have traditionally been analysed from a game-theoretic perspective \cite{osborne1994course}, but in recent years have attracted a lot of attention from researchers in artificial intelligence, especially in cooperative task completion \cite{shehory1998methods}.
 Several approaches for team formation and collaborative task solving have been considered including team formation under uncertainty using simple heuristic rules \cite{kraus2003coalition}, reinforcement learning techniques \cite{abdallah2004organization} and methods using distributed graph algorithms \cite{manisterski2006forming}.
 To reason formally about cooperative games, several logics (e.g., Alternating Time Logic \cite{AlurHK02}, Coalitional Game Logic \cite{agotnes2009reasoning}, Strategy Logic \cite{chatterjee2007strategy}) and other formalisms (e.g., Cooperative Boolean Games \cite{dunne2008cooperative}) have been introduced and used to analyse coalitional behaviour \cite{bonzon2007efficient}.
@@ -462,7 +462,7 @@ This algorithm will be modelled and analysed as a DTMC, as we shall see in Sec.~
 \caption{\textsc{JoinTeam} algorithm \cite{gaston2005agent} (probabilistic and deterministic)}
 \label{alg:join_team_org}
 \begin{scriptsize}
-\begin{algorithmic} 
+\begin{algorithmic}
 \Procedure{JoinTeam}{$a$, $T$, $M$}
   \ForAll {$T_i \in T$ in random order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
@@ -501,7 +501,7 @@ This algorithm allows the analysis of best-case performance that can be achieved
 \caption{\textsc{JoinTeam} algorithm (non-deterministic extension)}
 \label{alg:join_team_nondet}
 \begin{scriptsize}
-\begin{algorithmic} 
+\begin{algorithmic}
 \Procedure{JoinTeam}{$a$, $T$, $M$}
   \ForAll {$T_i \in T$ in \hl{arbitrary} order}
     \If {$a \notin \bar{M}$} \Comment{agent is not committed}
@@ -528,7 +528,7 @@ Furthermore, we observe that there are two natural ways to call \textsc{JoinTeam
 \caption{Offline and online versions of \textsc{JoinTeam} algorithm}
 \label{alg:main_process}
 \begin{scriptsize}
-\begin{algorithmic} 
+\begin{algorithmic}
 \Procedure{Offline}{$t$} \Comment{$t$ - number of tasks}
   \State $M = \{M_i = \emptyset\ :\ 1\leq i \leq t\}$ \Comment{initialise empty teams}
   \State $T = \{T_i\neq \emptyset\ :\ T_i \subseteq_{random} R,\ 1\leq i \leq t\}$ \Comment{initialise tasks at random}
@@ -599,8 +599,8 @@ The system modelled in this example consists of two agents and a scheduling modu
 The same principle has been applied to the models that we used for experiments. Each agent is modelled as a module with Alg.~\ref{alg:join_team_org} and Alg.~\ref{alg:join_team_nondet} encoded as guarded commands. There is a scheduler module which has Alg.~\ref{alg:main_process} implemented as guarded commands. The reward structures are also described %in a similar manner
 according to definitions in Eqn.~\eqref{eq:w1agent}-\eqref{eq:w1organisation}.
 
-From this high-level description of the algorithm, our extension of PRISM then constructs the corresponding models: DTMC, MDP, or STPG. 
-%(for the example in Fig.~\ref{fig:prism_example}, built as an MDP, see 
+From this high-level description of the algorithm, our extension of PRISM then constructs the corresponding models: DTMC, MDP, or STPG.
+%(for the example in Fig.~\ref{fig:prism_example}, built as an MDP, see
 %Appendix \ref{app:transitions}).
 %For DTMCs and MDPs each state is encoded by values of the variables, there are additional states for synchronised actions. For STPGs in addition states are labelled with Player 1 and Player 2. For this to be done module names and synchronised actions have to be accordingly partitioned into two disjoint sets.
 For STPGs, we also need to specify the split of model states into those controlled by players 1 and 2.
@@ -979,7 +979,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion prob
 \caption{Bar charts comparing offline and online versions of Alg.~\ref{alg:join_team_org} analysed as a DTMC with the best-case performance of Alg.~\ref{alg:join_team_nondet} analysed as an MDP. }
 \label{fig:bar_chart_mdp}
 \end{figure}
-Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards for Alg.~\ref{alg:join_team_org} that can be achieved by all agents collaborating. 
+Fig.~\ref{fig:bar_chart_mdp} compares maximum expected rewards for Alg.~\ref{alg:join_team_org} that can be achieved by all agents collaborating.
 It is not very difficult to see that $O_{\mathit{fc}}$, $O_r$ and $O_{ia}$ have the same maximum reward, no matter whether $W_1$/$W_2$ reward or online/offline version is taken. These outperform the star organization $O_s$ in all circumstances.
 More significant improvement can be obtained for the offline version for both rewards than for the online version. This result shows that there is more potential for collaboration for agents in the offline version. The small performance improvement for the online version suggests that the original strategy of Alg. \ref{alg:join_team_org} is close to optimal when teams are formed before tasks are advertised.
 
@@ -1038,9 +1038,9 @@ a coalition $C{\subseteq}A$ is a subset of agents who cooperate to ensure certai
 \includegraphics[clip=true, trim=101 520 280 115, scale=0.65]{images/w2_stpg_online}
 }
 %\vspace{-8pt}
-\caption{Graphs comparing how the optimal coalition's performance depends on its size. 
-%For precise data, see Tab. 
-%\ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in 
+\caption{Graphs comparing how the optimal coalition's performance depends on its size.
+%For precise data, see Tab.
+%\ref{tab:opt_coa_reward_offline}-\ref{tab:opt_coa_reward_online} in
 %Appendix \ref{app:coalitions_data}.
 }
 \label{fig:coalition_performance}
