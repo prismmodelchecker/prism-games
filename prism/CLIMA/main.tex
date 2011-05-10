@@ -81,7 +81,7 @@ has also been applied to coalition formation for data fusion in sensor networks 
 The basic setting for the protocol of \cite{gaston2005agent} consists of an \emph{agent organisation}, i.e., a network of interconnected agents which have certain resources. These agents attempt to form teams in order to accomplish tasks which are generated periodically and globally advertised to the agent organisation. The topology of the network restricts the set of possible agent teams -- for an agent to be on a team, the agent must have a connection with at least one other agent in that team. Tasks are generic in that they only require a team of agents with the necessary resources to accomplish the specific task. As in \cite{gaston2005agent}, we do not consider the solution process, but only the team formation.
 
 \aistis{Added a paragraph motivating probabilistic model-checking}
-As is typical for multi-agent algorithms, probabilities play a crucial role in team formation protocols. % several aspects of the algorithm are modelled using probabilities. 
+As is typical for multi-agent algorithms, probabilities play a crucial role in team formation protocols. % several aspects of the algorithm are modelled using probabilities.
 Firstly, agents are scheduled to act in a random order, following approach of
 \cite{gaston2005agent}; secondly, in our setting, tasks are drawn from a task pool, following some probability distribution. This is particularly interesting in the case of \textsc{Online} version of the algorithm (see Alg.~\ref{alg:main_process}) where agents have to choose strategies to optimise against a set of tasks governed by certain probability distribution rather than a particular task. Finally, probabilities are used to implement strategies of agents themselves. These compel the use of \emph{probabilistic verification} techniques.
 
@@ -559,7 +559,7 @@ The PRISM model checker has been briefly described in the introduction. The purp
 \footnote{See {\scriptsize\url{http://www.prismmodelchecker.org/files/clima11/}}.}.
 Here we use a toy example from Fig.~\ref{fig:prism_example} to illustrate the design concepts.
 %\vspace{-7mm}
-\begin{figure}[h]
+\begin{figure}[t]
  \centering
 {\scriptsize
 \fbox{\begin{minipage}{6in}
@@ -640,7 +640,7 @@ We run experiments with a set of five agents $A= \{ a_1,a_2,a_3,a_4,$ $a_5 \} $ 
 \subsubsection{Tasks.} \label{subsec:tasks} We fix seven different tasks that will be used in experiments $T=\{\{r_1\},\{r_2\},$ $\{r_3\},\{r_1,r_2\},\{r_1,r_3\},\{r_2,r_3\},\{r_1,r_2,r_3\}\}$. When running the algorithm two tasks $T_1$ and $T_2$ are picked uniformly and independently at random (with replacement) and are advertised to the agent organisation. So, there are a total of 49 different combinations of $T_1$ and $T_2$ that can be generated.
 
 %\vspace{-1cm}
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
 \scalebox{0.54}{
 \subfloat[Fully connected ($\mathbf{O_{\mathit{fc}}}$)]{
@@ -723,7 +723,7 @@ As mentioned in Sec.~\ref{subsec:exp_set}, for each topology from Fig.~\ref{fig:
 \end{itemize}
 %\vspace{-5pt}
 After obtaining the expected rewards for all possible resource allocations, we selected the with the highest expected reward. The results are summarised in Tab.~\ref{tab:optimal_r}.
-\begin{table}[h]
+\begin{table}[t]
 \centering
 \subfloat[DTMC]{
 \begin{tabular}{ | l | l | l | l |}
@@ -751,7 +751,7 @@ After obtaining the expected rewards for all possible resource allocations, we s
 \label{tab:model_sizes}
 \end{table}
 %\vspace{-18mm}
-\begin{table}[h]
+\begin{table}[t]
  \centering
  \begin{tabular}{ | l | l | l | l |}
     \hline
@@ -776,7 +776,7 @@ The resource allocations given in column ``Example" of Tab.~\ref{tab:optimal_r} 
 In this section, we present the results for model checking the DTMC model of Alg.~\ref{alg:join_team_org} for experimental agent organisations from Fig.~\ref{fig:network_configurations}, as well as offline and online versions of the algorithm (see Alg.~\ref{alg:main_process} for details).
 %\vspace{-10mm}
 \aistis{Cross referenced table with bar-chart. }
-\begin{table} [h]
+\begin{table}[t]
 \subfloat[Offline. $W_1$ reward structure.]{
  \begin{tabular}{ | l | l | l | l | l |}
     \hline
@@ -837,7 +837,7 @@ As can be seen in Tab.~\ref{tab:dtmc_results}, agents organised in $O_s$ have th
 
 Fig.~\ref{fig:bar_chart_dtmc} compares total rewards of all organisations in offline and online settings. It can be seen that a fully connected organisation $O_{\mathit{fc}}$ has the best overall performance in all but the online version using the $W_2$ reward structure, where it is outperformed by $O_r$. It is interesting to note that a more significant difference between $O_{\mathit{fc}}$ and $O_{ia}$ only emerges when moving to the online setting. This shows that having one agent which is isolated does not affect the ability of the organisation to efficiently respond to the generated tasks, but impacts its chances to organise before the tasks are generated. This is where the advantages of $O_r$ emerge: in the online setting, it not only starts outperforming $O_{ia}$ with respect to overall performance and disparity, but gets very close to the performance of $O_{\mathit{fc}}$ using the $W_1$ reward structure, and produces a better total $W_2$ reward while keeping similar disparity levels.
 %\vspace{-35pt}
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
 \scalebox{0.8}{
 \subfloat[Reward $W_1(O)$.]{
@@ -860,7 +860,7 @@ An attentive reader would have noticed that the online version produces larger e
 ``what is the probability to complete  both tasks?''. % $T_1$ and $T_2$?''.
 \end{itemize}
 %\vspace{-35pt}
-\begin{table}[h]
+\begin{table}[t]
  \centering
 \subfloat[Offline]{
  \begin{tabular}{ | l | l | l | l |}
@@ -896,7 +896,7 @@ Using formal analysis for DTMCs, we produced \emph{exact} values of expectations
 %\vspace{-2pt}
 In this section, we present the analysis of Alg.~\ref{alg:join_team_nondet}, which is modelled as an MDP. Using PRISM we find the maximum expected rewards and task completion probabilities for all agent organisations and compare the results with the strategy used in Alg.~\ref{alg:join_team_org}. This is achieved by synthesizing the optimal strategy for MDP using PRISM and then model-checking the formulae on the resulting DTMC. Due to space limitations we do not present the actual strategies here.\footnote{The instructions on how to generate optimal strategies for MDPs can be found at:\\ {\scriptsize\url{http://www.prismmodelchecker.org/dev/manual/RunningPRISM/Adversaries.html}}}.
 %\vspace{-28pt}
-\begin{table}[h]
+\begin{table}[t]
 \centering
 \subfloat[Offline]{
  \begin{tabular}{ | l | l | l | l |}
@@ -960,7 +960,7 @@ In Tab.~\ref{tab:mdp_probs} we can see the maximum expected task completion prob
 %\label{tab:mdp_rewards}
 %\end{table}
 %\vspace{-32pt}
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
 \subfloat[Offline. Reward $W_1(O)$.]{
 \includegraphics[clip=true, trim=60 580 320 90, scale=0.63]{images/w1_mdp_offline}
@@ -1022,7 +1022,7 @@ a coalition $C{\subseteq}A$ is a subset of agents who cooperate to ensure certai
 ``what is the maximum expected reward $W_j$ for coalition C when agents in $A\setminus C$ are hostile?'' ($j\in\{1,2\}$).
 \end{itemize}
 %\vspace{-35pt}
-\begin{figure}[h]
+\begin{figure}[t]
 \ \ \ \ \ \ \ \ \ \ \ \subfloat[Offline. Reward $W_1(O)$.]{\label{fig:off_w1}
 \includegraphics[clip=true, trim=78 523 320 112, scale=0.65]{images/w1_stpg_offline}
 }
