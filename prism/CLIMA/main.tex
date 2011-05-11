@@ -83,7 +83,8 @@ As is typical for multi-agent algorithms, probabilities play a crucial role in t
 Firstly, agents are scheduled to act in a random order, following the approach of
 \cite{gaston2005agent}; secondly, in our setting, tasks are drawn from a task pool, following some known probability distribution. This is particularly interesting for the \emph{online} version of the algorithm (see Alg.~\ref{alg:main_process}), where tasks are generated after teams have formed.
 In this case, agents have to choose strategies to optimise against a set of tasks governed by a certain probability distribution rather than a particular task.
-Finally, probabilities are used to implement strategies of agents themselves.
+Finally, probabilities are used to implement strategies of agents themselves,
+for example random selection of a team to join.
 %These compel the use of \emph{probabilistic verification} techniques.
 These issues motivate the use of analysis techniques that take
 can take probabilistic behaviour into account.
@@ -149,9 +150,9 @@ In summary, the main contributions of this paper are as follows:
   \renewcommand{\labelenumi}{(\arabic{enumi})}
   \item We perform a comprehensive and \emph{formal} analysis of the performance of the team formation protocol proposed in \cite{gaston2005agent}.
 
-  \item  We \emph{extend} the  PRISM model checker with support for modelling and automated analysis of STPGs and \emph{address the competitive coalitional setting}, in which agents are split into cooperative and hostile classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} probabilistic analysis of this kind.
-
   \item  We \emph{extend} the original algorithm of \cite{gaston2005agent}, allowing agents to make decisions nondeterministically when forming teams. Then, by modelling and analysing as an MDP, we \emph{synthesise} the best strategies for agents to achieve optimal performance, partially solving an open problem posed in \cite{gaston2005agent}.\footnote{We quote: ``the problem of developing or learning effective team initialising and team joining policies is also important, and is included in our on-going and future work".}
+
+  \item  We \emph{extend} the  PRISM model checker with support for modelling and automated analysis of STPGs and \emph{address the competitive coalitional setting}, in which agents are split into cooperative and hostile classes, using \emph{stochastic games} to synthesise optimal agent coalitions. To the best of our knowledge, this is the first work to perform a \emph{fully-automated} probabilistic analysis of this kind.
 
 \end{enumerate}
 %%\vspace{-8pt}
@@ -993,7 +994,7 @@ The PRISM temporal logic queries used to find the rewards were the following:
 %\vspace{-10mm}
 %\vspace{-22pt}
 
-Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to Alg.~\ref{alg:join_team_org}. The designer could choose to synthesize and use this strategy but it is worth noting that, even if the designer chooses not to implement this particular strategy, it still serves as a ``best-case'' benchmark for measuring other algorithms' performance. This analysis allows us to evaluate the effects of a fully collaborative behaviour of agents. However often only limited collaboration can be achieved (e.g. organisation containing hostile agents). In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose.
+Using MDP model checking we have obtained the optimal strategy for the protocol and compared its performance to Alg.~\ref{alg:join_team_org}. The designer could choose to synthesize and use this strategy but it is worth noting that, even if the designer chooses not to implement this particular strategy, it still serves as a ``best-case'' benchmark for measuring other algorithms' performance. This analysis allows us to evaluate the effects of a fully collaborative behaviour of agents. However often only limited collaboration can be achieved. In order to facilitate analysis of such systems, one has to go beyond MDPs. In the next section we show how STPGs can be used for this purpose.
 
 %\vspace{-10pt}
 \subsection{STPG Analysis}
@@ -1005,7 +1006,7 @@ by considering each class of agents (cooperative or hostile) as a separate playe
 %We refer to the collective cooperative agents as a \emph{coalition}.
 
 We are mainly interested in finding the optimal coalition. In general,
-a coalition $C{\subseteq}A$ is a subset of agents who cooperate to ensure certain goals, irrespective of how the other agents behave in the organization. We consider two criteria: the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we consider a slight extension of PCTL formulae with agent coalitions. The following formulae were used to obtain the results presented in this section:
+a coalition $C{\subseteq}A$ is a subset of agents who cooperate to ensure certain goals, irrespective of how the other agents behave in the organization. We consider two criteria: the largest probability to accomplish tasks, and the largest reward ($W_1$ or $W_2$) achieved by the coalition. To this aim, we use the following PRISM temporal logic queries which, as mentioned earlier, have been extended for STPGs.
 %\vspace{-5pt}
 \begin{itemize}
  \item ${\tt P}_{\max,\min=?}[\,\Diamond\,T_{j} \mathit{\_done}\,]$ -
