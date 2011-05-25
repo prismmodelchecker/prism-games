@@ -33,6 +33,7 @@ import parser.*;
 import parser.ast.*;
 import pta.*;
 import simulator.method.*;
+import explicit.PrismExplicit;
 
 // prism - command line version
 
@@ -67,6 +68,7 @@ public class PrismCL
 	private boolean simulate = false;
 	private boolean simpath = false;
 	private ModelType typeOverride = null;
+	private boolean explicit = false;
 	private boolean explicitbuild = false;
 	private boolean explicitbuildtest = false;
 	private boolean nobuild = false;
@@ -126,9 +128,13 @@ public class PrismCL
 	private Values definedMFConstants;
 	private Values definedPFConstants;
 
-	// built model storage
+	// built (symbolic) model storage
 	private Model model = null;
 
+	// built (explicit) model storage
+	private PrismExplicit prismExpl = null;
+	private explicit.Model modelExpl; 
+	
 	// results
 	private ResultsCollection results[] = null;
 
@@ -222,6 +228,8 @@ public class PrismCL
 			// if requested, generate a random path with simulator (and then skip anything else)
 			if (simpath) {
 				try {
+					if (!simMaxPathGiven)
+						simMaxPath = prism.getSettings().getInteger(PrismSettings.SIMULATOR_DEFAULT_MAX_PATH);
 					File f = (simpathFilename.equals("stdout")) ? null : new File(simpathFilename);
 					prism.generateSimulationPath(modulesFile, simpathDetails, simMaxPath, f);
 				} catch (PrismException e) {
@@ -325,8 +333,8 @@ public class PrismCL
 								mainLog.println("Model constants: " + definedMFConstants);
 						mainLog.println("Property constants: " + undefinedConstants.getPFDefinedConstantsString());
 						simMethod = processSimulationOptions(propertiesToCheck[j]);
-						prism.modelCheckSimulatorExperiment(modulesFile, propertiesFile, undefinedConstants, results[j], propertiesToCheck[j], modulesFile
-								.getInitialValues(), simMaxPath, simMethod);
+						prism.modelCheckSimulatorExperiment(modulesFile, propertiesFile, undefinedConstants, results[j], propertiesToCheck[j], null,
+								simMaxPath, simMethod);
 					} catch (PrismException e) {
 						// in case of (overall) error, report it, store as result for property, and proceed
 						error(e.getMessage());
@@ -383,14 +391,17 @@ public class PrismCL
 								}
 								// Non-PTA model checking
 								else {
-									res = prism.modelCheck(model, propertiesFile, propertiesToCheck[j]);
+									if (!explicit) {
+										res = prism.modelCheck(model, propertiesFile, propertiesToCheck[j]);
+									} else {
+										res = prismExpl.modelCheck(modelExpl, "REMOVEME", propertiesFile, propertiesToCheck[j]);
+									}
 								}
 							}
 							// approximate (simulation-based) model checking
 							else {
 								simMethod = processSimulationOptions(propertiesToCheck[j]);
-								res = prism.modelCheckSimulator(modulesFileToCheck, propertiesFile, propertiesToCheck[j],
-										modulesFileToCheck.getInitialValues(), simMaxPath, simMethod);
+								res = prism.modelCheckSimulator(modulesFileToCheck, propertiesFile, propertiesToCheck[j], null, simMaxPath, simMethod);
 								simMethod.reset();
 							}
 						} catch (PrismException e) {
@@ -461,6 +472,7 @@ public class PrismCL
 
 		// create prism object
 		prism = new Prism(mainLog, techLog);
+		prismExpl = new PrismExplicit(mainLog, prism.getSettings());
 
 		// get prism defaults
 		verbose = prism.getVerbose();
@@ -633,69 +645,90 @@ public class PrismCL
 		mainLog.println("\n-------------------------------------------");
 
 		// build model
-		if (importtrans) {
-			model = prism.buildModelFromExplicitFiles();
-		} else if (explicitbuild) {
-			model = prism.buildModelExplicit(modulesFileToBuild);
+		if (!explicit) {
+			if (importtrans) {
+				model = prism.buildModelFromExplicitFiles();
+			} else if (explicitbuild) {
+				model = prism.buildModelExplicit(modulesFileToBuild);
+			} else {
+				model = prism.buildModel(modulesFileToBuild);
+			}
+			modelExpl = null;
 		} else {
-			model = prism.buildModel(modulesFileToBuild);
+			if (importtrans) {
+				// TODO: add -importtrans case using model.buildFromPrismExplicit(...);
+				throw new PrismException("Explicit import not yet supported for explicit engine");
+			} else {
+				modelExpl = prismExpl.buildModel(modulesFileToBuild, prism.getSimulator());
+			}
+			model = null;
 		}
 
 		// print model info
-		mainLog.println("\nType:        " + model.getModelType());
-		mainLog.print("Modules:     ");
-		for (i = 0; i < model.getNumModules(); i++) {
-			mainLog.print(model.getModuleName(i) + " ");
+		if (!explicit) {
+			mainLog.println("\nType:        " + model.getModelType());
+			mainLog.print("Modules:     ");
+			for (i = 0; i < model.getNumModules(); i++) {
+				mainLog.print(model.getModuleName(i) + " ");
+			}
+			mainLog.println();
+			mainLog.print("Variables:   ");
+			for (i = 0; i < model.getNumVars(); i++) {
+				mainLog.print(model.getVarName(i) + " ");
+			}
+			mainLog.println();
+		} else {
+			mainLog.println("\nType:        " + modelExpl.getModelType());
 		}
-		mainLog.println();
-		mainLog.print("Variables:   ");
-		for (i = 0; i < model.getNumVars(); i++) {
-			mainLog.print(model.getVarName(i) + " ");
-		}
-		mainLog.println();
 
 		// check for deadlocks
-		states = model.getDeadlockStates();
-		if (states != null && states.size() > 0) {
-			// for pta models (via digital clocks)
-			if (digital) {
-				// by construction, these can only occur from timelocks
-				throw new PrismException("Timelock in PTA, e.g. in state (" + states.getFirstAsValues() + ")");
-			}
-			// if requested, remove them
-			else if (fixdl) {
-				mainLog.print("\nWarning: " + states.size() + " deadlock states detected; adding self-loops in these states...\n");
-				model.fixDeadlocks();
-			}
-			// otherwise print error and bail out
-			else {
-				mainLog.println();
-				model.printTransInfo(mainLog, prism.getExtraDDInfo());
-				mainLog.print("\nError: Model contains " + states.size() + " deadlock states");
-				if (!verbose && states.size() > 10) {
-					mainLog.print(".\nThe first 10 deadlock states are displayed below. To view them all use the -v switch.\n");
-					states.print(mainLog, 10);
-				} else {
-					mainLog.print(":\n");
-					states.print(mainLog);
+		if (!explicit) {
+			states = model.getDeadlockStates();
+			if (states != null && states.size() > 0) {
+				// for pta models (via digital clocks)
+				if (digital) {
+					// by construction, these can only occur from timelocks
+					throw new PrismException("Timelock in PTA, e.g. in state (" + states.getFirstAsValues() + ")");
 				}
-				mainLog.print("\nTip: Use the -fixdl switch to automatically add self-loops in deadlock states.\n");
-				model.clear();
-				exit();
+				// if requested, remove them
+				else if (fixdl) {
+					mainLog.print("\nWarning: " + states.size() + " deadlock states detected; adding self-loops in these states...\n");
+					model.fixDeadlocks();
+				}
+				// otherwise print error and bail out
+				else {
+					mainLog.println();
+					model.printTransInfo(mainLog, prism.getExtraDDInfo());
+					mainLog.print("\nError: Model contains " + states.size() + " deadlock states");
+					if (!verbose && states.size() > 10) {
+						mainLog.print(".\nThe first 10 deadlock states are displayed below. To view them all use the -v switch.\n");
+						states.print(mainLog, 10);
+					} else {
+						mainLog.print(":\n");
+						states.print(mainLog);
+					}
+					mainLog.print("\nTip: Use the -fixdl switch to automatically add self-loops in deadlock states.\n");
+					model.clear();
+					exit();
+				}
 			}
 		}
-
+		
 		// print more model info
 		mainLog.println();
-		model.printTransInfo(mainLog, prism.getExtraDDInfo());
-
+		if (!explicit) {
+			model.printTransInfo(mainLog, prism.getExtraDDInfo());
+		} else {
+			mainLog.print(modelExpl.infoStringTable());
+		}
+		
 		// If enabled, also construct model explicitly and compare (for testing purposes)
 		if (explicitbuildtest) {
 			String tmpFile = "'";
 			try {
 				explicit.ConstructModel constructModel = new explicit.ConstructModel(prism.getSimulator(), mainLog);
 				mainLog.println("\nConstructing model explicitly...");
-				explicit.Model modelExplicit = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues());
+				explicit.Model modelExplicit = constructModel.constructModel(modulesFileToBuild);
 				tmpFile = File.createTempFile("explicitbuildtest", ".tra").getAbsolutePath();
 				tmpFile = "explicitbuildtest.tra";
 				mainLog.println("\nExporting (explicit) model to \"" + tmpFile + "1\"...");
@@ -944,7 +977,6 @@ public class PrismCL
 					printListOfKeywords();
 					exit();
 				}
-
 
 				// property/properties given in command line
 				else if (sw.equals("pctl") || sw.equals("csl")) {
@@ -1377,6 +1409,7 @@ public class PrismCL
 					prism.setLinEqMethod(Prism.JACOBI);
 				} else if (sw.equals("gaussseidel") || sw.equals("gs")) {
 					prism.setLinEqMethod(Prism.GAUSSSEIDEL);
+					prism.setMDPSolnMethod(Prism.MDP_GAUSSSEIDEL);
 				} else if (sw.equals("bgaussseidel") || sw.equals("bgs")) {
 					prism.setLinEqMethod(Prism.BGAUSSSEIDEL);
 				} else if (sw.equals("pgaussseidel") || sw.equals("pgs")) {
@@ -1411,6 +1444,16 @@ public class PrismCL
 					} else {
 						errorAndExit("No value specified for -" + sw + " switch");
 					}
+				}
+				// MDP solution method
+				else if (sw.equals("valiter")) {
+					prism.setMDPSolnMethod(Prism.MDP_VALITER);
+				}
+				else if (sw.equals("politer")) {
+					prism.setMDPSolnMethod(Prism.MDP_POLITER);
+				}
+				else if (sw.equals("modpoliter")) {
+					prism.setMDPSolnMethod(Prism.MDP_MODPOLITER);
 				}
 				// termination criterion (iterative methods)
 				else if (sw.equals("absolute") || sw.equals("abs")) {
@@ -1732,6 +1775,11 @@ public class PrismCL
 					}
 				}
 
+				// enable explicit-state engine
+				else if (sw.equals("explicit")) {
+					explicit = true;
+				}
+				
 				// explicit-state model construction
 				else if (sw.equals("explicitbuild")) {
 					explicitbuild = true;
@@ -1741,7 +1789,7 @@ public class PrismCL
 				else if (sw.equals("explicitbuildtest")) {
 					explicitbuildtest = true;
 				}
-				
+
 				// unknown switch - error
 				else {
 					errorAndExit("Invalid switch -" + sw + " (type \"prism -help\" for full list)");
@@ -1793,6 +1841,11 @@ public class PrismCL
 			exit();
 		}
 
+		// explicit overrides explicit build
+		if (explicit) {
+			explicitbuild = false;
+		}
+		
 		// check not trying to do gauss-seidel with mtbdd engine
 		if (prism.getEngine() == Prism.MTBDD) {
 			j = prism.getLinEqMethod();
@@ -1825,10 +1878,10 @@ public class PrismCL
 
 		// See if property to be checked is a reward (R) operator
 		boolean isReward = (expr instanceof ExpressionReward);
-		
+
 		// See if property to be checked is quantitative (=?)
 		boolean isQuant = Expression.isQuantitative(expr);
-		
+
 		// Pick defaults for simulation settings not set from command-line
 		if (!simApproxGiven)
 			simApprox = prism.getSettings().getDouble(PrismSettings.SIMULATOR_DEFAULT_APPROX);
@@ -1838,7 +1891,7 @@ public class PrismCL
 			simNumSamples = prism.getSettings().getInteger(PrismSettings.SIMULATOR_DEFAULT_NUM_SAMPLES);
 		if (!simWidthGiven)
 			simWidth = prism.getSettings().getDouble(PrismSettings.SIMULATOR_DEFAULT_WIDTH);
-		
+
 		if (!reqIterToConcludeGiven)
 			reqIterToConclude = prism.getSettings().getInteger(PrismSettings.SIMULATOR_DECIDE);
 		if (!simMaxRewardGiven)
@@ -1851,7 +1904,7 @@ public class PrismCL
 		if (simMethodName == null) {
 			simMethodName = isQuant ? "ci" : "sprt";
 		}
-		
+
 		// CI
 		if (simMethodName.equals("ci")) {
 			if (simWidthGiven && simConfidenceGiven && simNumSamplesGiven) {
@@ -1930,10 +1983,9 @@ public class PrismCL
 			if (simNumSamplesGiven) {
 				mainLog.println("\nWarning: Option -simsamples is not used for the SPRT method and is being ignored");
 			}
-		}
-		else
+		} else
 			throw new PrismException("Unknown simulation method \"" + simMethodName + "\"");
-			
+
 		return aSimMethod;
 	}
 
@@ -2021,7 +2073,7 @@ public class PrismCL
 		mainLog.println("-nofair ........................ Don't use fairness (for probabilistic reachability in MDPs) [default]");
 		mainLog.println("-fixdl ......................... Automatically put self-loops in deadlock states");
 		mainLog.println("-noprobchecks .................. Disable checks on model probabilities/rates");
-		mainLog.println("-zerorewardchecks .............. Check for absence of zero-reward loops");
+		mainLog.println("-zerorewardcheck ............... Check for absence of zero-reward loops");
 		mainLog.println("-nossdetect .................... Disable steady-state detection for CTMC transient computations");
 		mainLog.println("-sccmethod <name> .............. Specify SCC computation method (xiebeerel, lockstep, sccfind)");
 		mainLog.println();
@@ -2071,7 +2123,7 @@ public class PrismCL
 		}
 		mainLog.println();
 	}
-	
+
 	// report (non-fatal) error
 
 	private void error(String s)

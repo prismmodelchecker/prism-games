@@ -171,9 +171,22 @@ public class DTMCEmbeddedSimple implements DTMC
 		throw new PrismException("Export not yet supported");
 	}
 
+	@Override
 	public String infoString()
 	{
-		return ctmc.infoString() + " + " + numExtraTransitions + " self-loops";
+		String s = "";
+		s += numStates + " states (" + getNumInitialStates() + " initial)";
+		s += ", " + getNumTransitions() + " transitions (incl. " + numExtraTransitions + " self-loops)";
+		return s;
+	}
+
+	@Override
+	public String infoStringTable()
+	{
+		String s = "";
+		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
+		s += "Transitions: " + getNumTransitions() + "\n";
+		return s;
 	}
 
 	// Accessors (for DTMC)

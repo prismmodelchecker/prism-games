@@ -34,7 +34,9 @@ import prism.*;
 public class TransitionList
 {
 	private ArrayList<Choice> choices = new ArrayList<Choice>();
+	/** The index of the choice containing each transition. */
 	private ArrayList<Integer> transitionIndices = new ArrayList<Integer>();
+	/** The offset with the choice containing each transition. */
 	private ArrayList<Integer> transitionOffsets = new ArrayList<Integer>();
 	private int numChoices = 0;
 	private int numTransitions = 0;
@@ -140,7 +142,9 @@ public class TransitionList
 	 */
 	public int getTotalIndexOfTransition(int i, int offset)
 	{
-		return transitionOffsets.get(i);
+		return transitionIndices.indexOf(i) + offset;
+		// return transitionOffsets.get(i);
+		// return transitionOffsets.get(i) + transitionIndices.get(i);
 	}
 
 	// Random selection of a choice 

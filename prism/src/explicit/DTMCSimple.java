@@ -75,9 +75,7 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	public DTMCSimple(DTMCSimple dtmc)
 	{
 		this(dtmc.numStates);
-		for (int in : dtmc.getInitialStates()) {
-			addInitialState(in);
-		}
+		copyFrom(dtmc);
 		for (int i = 0; i < numStates; i++) {
 			trans.set(i, new Distribution(dtmc.trans.get(i)));
 		}
@@ -94,9 +92,7 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	public DTMCSimple(DTMCSimple dtmc, int permut[])
 	{
 		this(dtmc.numStates);
-		for (int in : dtmc.getInitialStates()) {
-			addInitialState(permut[in]);
-		}
+		copyFrom(dtmc);
 		for (int i = 0; i < numStates; i++) {
 			trans.set(permut[i], new Distribution(dtmc.trans.get(i), permut));
 		}
@@ -420,9 +416,17 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	public String infoString()
 	{
 		String s = "";
-		s += numStates + " states";
-		s += " (" + getNumInitialStates() + " initial)";
+		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		s += ", " + numTransitions + " transitions";
+		return s;
+	}
+
+	@Override
+	public String infoStringTable()
+	{
+		String s = "";
+		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
+		s += "Transitions: " + numTransitions + "\n";
 		return s;
 	}
 

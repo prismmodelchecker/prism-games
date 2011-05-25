@@ -32,6 +32,7 @@ import java.io.*;
 import parser.ast.*;
 import prism.*;
 import parser.*; // Override some imports for which there are name clashes
+import simulator.SimulatorEngine;
 import explicit.Model;
 import explicit.StateModelChecker;
 
@@ -52,6 +53,37 @@ public class PrismExplicit
 	{
 		this.mainLog = mainLog;
 		this.settings = settings;
+	}
+
+	/**
+	 * Build a model from a PRISM modelling language description, storing it explicitly.,
+	 * It is assumed that all constants in the model file have been defined by now.  
+	 * @param modulesFile Model to build
+	 * @param simEngine PRISM simulator engine (for model exploration)
+	 */
+	public Model buildModel(ModulesFile modulesFile, SimulatorEngine simEngine) throws PrismException
+	{
+		long l; // timer
+		Model modelExpl;
+		ConstructModel constructModel;
+
+		if (modulesFile.getModelType() == ModelType.PTA) {
+			throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
+		}
+
+		mainLog.print("\nBuilding model...\n");
+
+		// create translator
+		constructModel = new ConstructModel(simEngine, mainLog);
+
+		// build model
+		l = System.currentTimeMillis();
+		modelExpl = constructModel.constructModel(modulesFile, false, true);
+		l = System.currentTimeMillis() - l;
+
+		mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
+
+		return modelExpl;
 	}
 
 	// model checking
@@ -159,7 +191,7 @@ public class PrismExplicit
 			propertiesFile.setUndefinedConstants(null);
 			ConstructModel constructModel;
 			constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-			Model modelExpl = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+			Model modelExpl = constructModel.constructModel(modulesFile);
 			List<State> statesList = constructModel.getStatesList();
 			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
 			Object res = pe.modelCheck(modelExpl, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));

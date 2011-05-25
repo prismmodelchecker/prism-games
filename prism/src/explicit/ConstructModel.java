@@ -106,22 +106,20 @@ public class ConstructModel
 	/**
 	 * Build the set of reachable states for a PRISM model language description and return.
 	 * @param modulesFile The PRISM model
-	 * @param initialState The initial state (for reachability)
 	 */
-	public List<State> computeReachableStates(ModulesFile modulesFile, Values initialState) throws PrismException
+	public List<State> computeReachableStates(ModulesFile modulesFile) throws PrismException
 	{
-		constructModel(modulesFile, initialState, true, false);
+		constructModel(modulesFile, true, false);
 		return statesList;
 	}
 
 	/**
 	 * Construct an explicit-state model from a PRISM model language description and return.
 	 * @param modulesFile The PRISM model
-	 * @param initialState The initial state (for reachability)
 	 */
-	public Model constructModel(ModulesFile modulesFile, Values initialState) throws PrismException
+	public Model constructModel(ModulesFile modulesFile) throws PrismException
 	{
-		return constructModel(modulesFile, initialState, false, false);
+		return constructModel(modulesFile, false, false);
 	}
 
 	/**
@@ -129,12 +127,10 @@ public class ConstructModel
 	 * If {@code justReach} is true, no model is built and null is returned;
 	 * the set of reachable states can be obtained with {@link #getStatesList()}.
 	 * @param modulesFile The PRISM model
-	 * @param initialState The initial state (for reachability)
 	 * @param justReach If true, just build the reachable state set, not the model
 	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 */
-	public Model constructModel(ModulesFile modulesFile, Values initialState, boolean justReach, boolean buildSparse)
-			throws PrismException
+	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -214,7 +210,10 @@ public class ConstructModel
 		explore = new LinkedList<State>();
 		stateLabels = new ArrayList<Integer>();
 		// Add initial state to lists/model
-		state = new State(modulesFile.getInitialValues());
+		if (modulesFile.getInitialStates() != null) {
+			throw new PrismException("Explicit model construction does not support multiple initial states");
+		}
+		state = modulesFile.getDefaultInitialState();
 		states.add(state);
 		explore.add(state);
 		if (!justReach) {
@@ -438,7 +437,7 @@ public class ConstructModel
 				undefinedConstants.defineUsingConstSwitch(args[1]);
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-			Model model = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+			Model model = constructModel.constructModel(modulesFile);
 			MDP mdp = (MDP) model;
 			mainLog.println(mdp);
 			mainLog.println(constructModel.getStatesList());
@@ -473,7 +472,7 @@ public class ConstructModel
 
 			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
 
-			Model model = constructModel.constructModel(modulesFile, modulesFile.getInitialValues());
+			Model model = constructModel.constructModel(modulesFile);
 
 			STPGExplicit stpg = (STPGExplicit) model;
 			mainLog.println(stpg);

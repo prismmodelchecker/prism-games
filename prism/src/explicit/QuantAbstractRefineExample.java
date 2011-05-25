@@ -318,7 +318,7 @@ public class QuantAbstractRefineExample extends QuantAbstractRefine
 			
 			// Build the model (explicit-state reachability) 
 			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-			ModelSimple model = (ModelSimple) constructModel.constructModel(modulesFile, modulesFile.getInitialValues(), false, false);
+			ModelSimple model = (ModelSimple) constructModel.constructModel(modulesFile, false, false);
 			model.exportToPrismExplicitTra(args[1]);
 			
 			// Create/initialise abstraction-refinement engine

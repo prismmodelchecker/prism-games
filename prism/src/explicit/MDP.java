@@ -183,4 +183,21 @@ public interface MDP extends Model
 	 * @param val Min or max value to match
 	 */
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], boolean min, double val);
+
+	/**
+	 * Multiply the probability matrix induced by the mdp and {@code adv}
+	 * to the right of {@code source}. Only those entries in {@code source}
+	 * and only those columns in the probability matrix are considered, that
+	 * are elements of {@code states}.
+	 * 
+	 * The result of this multiplication is added to the contents
+	 * of {@code dest}.
+	 *   
+	 * @param states States for which to multiply
+	 * @param adv Strategy to use
+	 * @param source Vector to multiply matrix with
+	 * @param dest Vector to write result to.
+	 */
+	public void mvMultRight(int[] states, int[] adv, double[] source,
+			double[] dest);
 }

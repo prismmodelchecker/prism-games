@@ -42,12 +42,27 @@ public abstract class ModelSimple implements Model
 	protected int numStates;
 	// Initial states
 	protected List<Integer> initialStates; // TODO: should be a (linkedhash?) set really
-	// State info
+	// State info (read only, just a pointer)
 	protected List<State> statesList;
-	// Constant info
+	// Constant info (read only, just a pointer)
 	protected Values constantValues;
 	
 	// Mutators
+
+	/**
+	 * Copy data from another ModelSimple (used by superclass copy constructors).
+	 * Assumed that this has already been initialise()ed.
+	 */
+	public void copyFrom(ModelSimple model)
+	{
+		numStates = model.numStates;
+		for (int in : model.initialStates) {
+			addInitialState(in);
+		}
+		// Shallow copy of read-only stuff
+		statesList = model.statesList;
+		constantValues = model.constantValues;
+	}
 	
 	/**
 	 * Initialise: create new model with fixed number of states.

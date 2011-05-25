@@ -1,3 +1,19 @@
+minor stuff:
+- remove comments from 
+   src/simulator/TransitionList.java
+   public int getTotalIndexOfTransition(int i, int offset)
+- add christian copyright
+M       src/simulator/TransitionList.java
+M       src/explicit/MDP.java
+M       src/explicit/MDPModelChecker.java
+M       src/explicit/MDPSparse.java
+M       src/explicit/MDPSimple.java
+
+-explicit switch
+
+- need to fix deadlock handling
+- need to disable more stuff that is currently n/a
+
 stack:
 
 - can we speed up stpg val iter with gs?

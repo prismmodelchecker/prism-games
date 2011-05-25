@@ -46,7 +46,7 @@ public class GenerateSimulationPath
 
 	// Basic info needed for path
 	private ModulesFile modulesFile;
-	private Values initialState;
+	private State initialState;
 	private int maxPathLength;
 	private File file;
 	
@@ -72,14 +72,14 @@ public class GenerateSimulationPath
 	 * @param details Information about the path to be generated
 	 * @param file File to output the path to (stdout if null)
 	 */
-	public void generateSimulationPath(ModulesFile modulesFile, Values initialState, String details, int maxPathLength,
+	public void generateSimulationPath(ModulesFile modulesFile, State initialState, String details, int maxPathLength,
 			File file) throws PrismException
 	{
-		parseDetails(details);
 		this.modulesFile = modulesFile;
 		this.initialState = initialState;
 		this.maxPathLength = maxPathLength;
 		this.file = file;
+		parseDetails(details);
 		generatePath();
 	}
 
@@ -126,6 +126,7 @@ public class GenerateSimulationPath
 				throw new PrismException("Separator must be one of: \"space\", \"tab\", \"comma\"");
 			} else if (ss[i].indexOf("vars=") == 0) {
 				// Build list of indices of variables to display
+				VarList varList = modulesFile.createVarList();
 				simVars = new ArrayList<Integer>();
 				done = false;
 				s = ss[i].substring(5);
@@ -136,7 +137,7 @@ public class GenerateSimulationPath
 					s = s.substring(0, s.length() - 1);
 					done = true;
 				}
-				j = engine.getIndexOfVar(s);
+				j = varList.getIndex(s);
 				if (j == -1)
 					throw new PrismException("Unknown variable \"" + s + "\" in \"vars=(...)\" list");
 				simVars.add(j);
@@ -146,7 +147,7 @@ public class GenerateSimulationPath
 						s = s.substring(0, s.length() - 1);
 						done = true;
 					}
-					j = engine.getIndexOfVar(s);
+					j = varList.getIndex(s);
 					if (j == -1)
 						throw new PrismException("Unknown variable \"" + s + "\" in \"vars=(...)\" list");
 					simVars.add(j);
@@ -220,7 +221,7 @@ public class GenerateSimulationPath
 		// generate path
 		engine.createNewPath(modulesFile);
 		for (j = 0; j < simPathRepeat; j++) {
-			engine.initialisePath(new State(initialState));
+			engine.initialisePath(initialState);
 			i = 0;
 			t = 0.0;
 			done = false;

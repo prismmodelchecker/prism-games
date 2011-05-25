@@ -613,7 +613,7 @@ public class PrismExplicitCL
 		ConstructModel constructModel;
 		constructModel = new ConstructModel(prism.getSimulator(), mainLog);
 		constructModel.setSettings(prism.getSettings());
-		modelExpl = constructModel.constructModel(modulesFileToBuild, modulesFileToBuild.getInitialValues(), false, true);
+		modelExpl = constructModel.constructModel(modulesFileToBuild, false, true);
 		statesList = constructModel.getStatesList();
 		
 		// TODO: add -importtrans case using model.buildFromPrismExplicit(...);

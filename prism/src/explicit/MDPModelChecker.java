@@ -30,6 +30,8 @@ import java.util.*;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
+import java.util.Map.Entry;
+
 import prism.*;
 
 /**
@@ -156,15 +158,46 @@ public class MDPModelChecker extends ProbModelChecker
 	 */
 	protected StateValues checkRewardFormula(Model model, Expression expr, boolean min) throws PrismException
 	{
-		// Assume R [F ]...
+		StateValues rewards = null;
+		
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_F:
+				rewards = checkRewardReach(model, exprTemp, min);
+				break;
+			default:
+				throw new PrismException("Cannot model check " + exprTemp.getOperatorSymbol() + " operator in R operator");
+			}
+		}
+		
+		if (rewards == null)
+			throw new PrismException("Unrecognised operator in R operator");
 
-		StateValues rews = null;
+		return rewards;
+	}
+
+	/**
+	 * Compute rewards for a reachability reward operator.
+	 */
+	protected StateValues checkRewardReach(Model model, ExpressionTemporal expr, boolean min) throws PrismException
+	{
+		BitSet b;
+		StateValues rewards = null;
 		ModelCheckerResult res = null;
 
-		res = computeFracRewardsPolIter((MDP) model, null, null, min);
-		rews = StateValues.createFromDoubleArray(res.soln);
+		// model check operand first
+		b = (BitSet) checkExpression(model, expr.getOperand2());
 
-		return rews;
+		// print out some info about num states
+		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+
+		//res = computeFracRewardsPolIter((MDP) model, null, null, min);
+		res = computeReachRewards((MDP) model, b, min);
+		rewards = StateValues.createFromDoubleArray(res.soln);
+
+		return rewards;
 	}
 
 	// Numerical computation functions
@@ -1105,96 +1138,107 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param mdp: The MDP
 	 * @param min: Min or max probabilities (true=min, false=max)
 	 */
-	protected ModelCheckerResult computeFracRewardsPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
+	/*protected ModelCheckerResult computeFracRewardsPolIter(MDP mdp, BitSet no, BitSet yes, boolean min) throws PrismException
 	{
-		ModelCheckerResult res;
-		int i, n, iters, totalIters, diff;
-		double soln[], soln2[];
-		boolean done;
+		int n;
 		long timer;
 		int adv[];
-		DTMCModelChecker mcDTMC;
-		DTMC dtmc;
-
-		mainLog.println(mdp);
-
-		String acts = settings.getString(PrismSettings.PRISM_AR_OPTIONS);
-		mainLog.println("Acts: " + acts);
-
-		// Re-use solution to solve each new adversary?
-		boolean reUseSoln = true;
-
-		// Start value iteration
-		timer = System.currentTimeMillis();
-		mainLog.println("Starting policy iteration (" + (min ? "min" : "max") + ")...");
-
-		// Create a DTMC model checker (for solving policies)
-		mcDTMC = new DTMCModelChecker();
-		mcDTMC.inheritSettings(this);
-		mcDTMC.setLog(new PrismDevNullLog());
-
-		// Store num states
-		n = mdp.getNumStates();
-
-		// temp:
-		yes = new BitSet(n);
-		yes.set(0);
-		no = new BitSet(n);
-
-		// Create solution vectors
-		soln = new double[n];
-		soln2 = new double[n];
-
-		// Initialise solution vectors.
-		for (i = 0; i < n; i++)
-			soln[i] = soln2[i] = yes.get(i) ? 1.0 : 0.0;
-
-		// Generate initial adversary
-		adv = new int[n];
-		for (i = 0; i < n; i++)
-			adv[i] = 0;
-
-		// Start iterations
-		iters = totalIters = 0;
-		done = false;
-		while (!done) {
-			iters++;
-			// Solve induced DTMC for adversary
-			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, adv);
-			res = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, yes, reUseSoln ? soln : null, null);
-			soln = res.soln;
-			totalIters += res.numIters;
-			// Check if optimal, improve non-optimal choices
-			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
-			done = true;
-			diff = 0;
-			for (i = 0; i < n; i++) {
-				// NB: We must not check 'no' states (may look non-optimal)
-				if (no.get(i) || yes.get(i))
-					continue;
-				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
-					done = false;
-					diff++;
-					List<Integer> opt = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln2[i]);
-					// If update adversary if strictly better
-					if (!opt.contains(adv[i]))
-						adv[i] = opt.get(0);
+		final String acts = settings.getString(PrismSettings.PRISM_AR_OPTIONS);
+		
+		final Map<String, Double> costMap = new HashMap<String, Double>();
+		final Map<String, Double> rewardMap = new HashMap<String, Double>();
+		for (String tuple : acts.split("\\s*,\\s*")) {
+			String[] nameAndValues = tuple.split("\\s*=\\s*");
+			assert(nameAndValues.length == 2);
+			String[] values = nameAndValues[1].split("/");
+			assert (values.length == 2);
+			final String name = "[" + nameAndValues[0] + "]";
+			costMap.put(name, Double.parseDouble(values[0]));
+			rewardMap.put(name, Double.parseDouble(values[1]));
+		}
+		
+		final double costMatrix[][] = new double[mdp.getNumStates()][];
+		final double rewardMatrix[][] = new double[mdp.getNumStates()][];
+		for (int s = 0; s < mdp.getNumStates(); s++) {
+			costMatrix[s] = new double[mdp.getNumChoices(s)];
+			rewardMatrix[s] = new double[mdp.getNumChoices(s)];
+			
+			for (int a = 0; a < mdp.getNumChoices(s); a++) {
+				String action = (String) mdp.getAction(s, a);
+				if (action != null && costMap.containsKey(action)) {
+				    costMatrix[s][a] = costMap.get(action);
+				    rewardMatrix[s][a] = rewardMap.get(action);
 				}
 			}
 		}
+		
+		mainLog.println("Started end-component calculation");
+		timer = System.currentTimeMillis();
+		EndcomponentsOf eco = new EndcomponentsOf(mdp);
+		List<List<Integer>> ecs = eco.getEndComponents();
+		mainLog.println("Done with end-component calculation: " + (System.currentTimeMillis() - timer) / 1000.0);
+		mainLog.println(ecs.size() + " end-components.");
+		
+		// Store num states
+		n = mdp.getNumStates();
+		
+		// Generate initial adversary
+		adv = new int[n];
+		
+		// Start policy iteration
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting policy iteration (" + (min ? "min" : "max") + ")...");
+		
+		// Optimize every end-component separately
+		for (List<Integer> ec : ecs) {
+			// Build the subMDP induced by the end-component
+			MDP subMDP = new MDPSparse(mdp, ec, eco.getAvailableActions());
+			
+			// Build the cost- and reward matrices induced by the end-components
+			double[][] subCostMatrix = new double[ec.size()][];
+			double[][] subRewardMatrix = new double[ec.size()][];
+			for (int i = 0; i < ec.size(); i++) {
+				List<Integer> actions = eco.getAvailableActions().get(ec.get(i));
+				subCostMatrix[i] = new double[actions.size()];
+				subRewardMatrix[i] = new double[actions.size()];
+				for (int a = 0; a < actions.size(); a++) {
+					subCostMatrix[i][a] = costMatrix[ec.get(i)][actions.get(a)];
+					subRewardMatrix[i][a] = rewardMatrix[ec.get(i)][actions.get(a)];
+				}
+			}
+			
+			// Actually optimize the components
+			RatioECOptimizer c = new RatioECOptimizer(subMDP, subCostMatrix, subRewardMatrix);
+			if (! c.isZero()) {
+				c.computeOptimalStrategy();
+			} else {
+				// We don't need to do anything because isZero already calculated
+				// a strategy for us
+			}
+			// reverse translate the strategy
+			int[] subAdv = c.getAdv();
+			for (int i = 0; i < ec.size(); i++) {
+				adv[ec.get(i)] = eco.getAvailableActions().get(ec.get(i)).get(subAdv[i]);
+			}
+		}
+		
+		for (int s = 0; s < mdp.getNumStates(); s++) {
+			mainLog.println(mdp.getStatesList().get(s) + ": " + mdp.getAction(s, adv[s]));
+			mainLog.println(" (" + costMatrix[s][adv[s]] + ", " + rewardMatrix[s][adv[s]] + ")");
+			Iterator<Entry<Integer, Double>> it = mdp.getTransitionsIterator(s, adv[s]);
+			while (it.hasNext()) {
+				Entry<Integer, Double> next = it.next();
+				mainLog.println("\t -> " + next.getKey() + " (" + next.getValue() + ")");
+			}
+		}
+		
+		// TODO: Compose strategy
 
-		// Finished policy iteration
-		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Policy iteration");
-		mainLog.println(" took " + iters + " cycles (" + totalIters + " iterations in total) and " + timer / 1000.0 + " seconds.");
-
-		// Return results
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		res.numIters = totalIters;
-		res.timeTaken = timer / 1000.0;
-		return res;
-	}
+		System.out.println("DONE!!!");
+		System.exit(0);
+		
+		return null;
+	}*/
 
 	/**
 	 * Simple test program.

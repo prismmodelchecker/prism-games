@@ -88,9 +88,7 @@ public class MDPSimple extends ModelSimple implements MDP
 	public MDPSimple(MDPSimple mdp)
 	{
 		this(mdp.numStates);
-		for (int in : mdp.getInitialStates()) {
-			addInitialState(in);
-		}
+		copyFrom(mdp);
 		for (int s = 0; s < numStates; s++) {
 			for (Distribution distr : mdp.trans.get(s)) {
 				addChoice(s, new Distribution(distr));
@@ -111,9 +109,7 @@ public class MDPSimple extends ModelSimple implements MDP
 	public MDPSimple(DTMCSimple dtmc)
 	{
 		this(dtmc.getNumStates());
-		for (int s : dtmc.getInitialStates()) {
-			addInitialState(s);
-		}
+		copyFrom(dtmc);
 		for (int s = 0; s < numStates; s++) {
 			addChoice(s, new Distribution(dtmc.getTransitions(s)));
 		}
@@ -605,11 +601,21 @@ public class MDPSimple extends ModelSimple implements MDP
 	public String infoString()
 	{
 		String s = "";
-		s += numStates + " states";
-		s += " (" + getNumInitialStates() + " initial)";
-		s += ", " + numDistrs + " distributions";
+		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		s += ", " + numTransitions + " transitions";
+		s += ", " + numDistrs + " choices";
 		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numStates);
+		return s;
+	}
+
+	@Override
+	public String infoStringTable()
+	{
+		String s = "";
+		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
+		s += "Transitions: " + numTransitions + "\n";
+		s += "Choices:     " + numDistrs + "\n";
+		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numStates) + "\n";
 		return s;
 	}
 
@@ -915,7 +921,7 @@ public class MDPSimple extends ModelSimple implements MDP
 		List<Distribution> step;
 
 		// TODO: implement adv. gen.
-		
+
 		minmax = 0;
 		first = true;
 		j = -1;
@@ -1068,5 +1074,19 @@ public class MDPSimple extends ModelSimple implements MDP
 		// TODO: compare actions (complicated: null = null,null,null,...)
 		// TODO: compare rewards (complicated: null = 0,0,0,0)
 		return true;
+	}
+
+	@Override
+	public void mvMultRight(int[] states, int[] adv, double[] source,
+			double[] dest) {
+		for (int s : states) {
+			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(s, adv[s]);
+			while (it.hasNext()) {
+				Entry<Integer, Double> next = it.next();
+				int col = next.getKey();
+				double prob = next.getValue();
+				dest[col] += prob * source[s];
+			}
+		}
 	}
 }

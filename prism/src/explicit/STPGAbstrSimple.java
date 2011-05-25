@@ -84,6 +84,7 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 		int i;
 		// TODO: actions? rewards?
 		initialise(m.getNumStates());
+		copyFrom(m);
 		for (i = 0; i < numStates; i++) {
 			set = newDistributionSet(null);
 			set.addAll(m.getChoices(i));
@@ -483,13 +484,24 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	public String infoString()
 	{
 		String s = "";
-		s += numStates + " states";
-		s += " (" + getNumInitialStates() + " initial)";
-		s += ", " + numDistrSets + " distribution sets";
-		s += ", " + numDistrs + " distributions";
+		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		s += ", " + numTransitions + " transitions";
+		s += ", " + numDistrs + " choices";
+		s += ", " + numDistrSets + " choice sets";
 		s += ", p1max/avg = " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates);
 		s += ", p2max/avg = " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets);
+		return s;
+	}
+
+	@Override
+	public String infoStringTable()
+	{
+		String s = "";
+		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
+		s += "Transitions: " + numTransitions + "\n";
+		s += "Choices:     " + numDistrs + "\n";
+		s += "P1 max/avg:  " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates) + "\n";
+		s += "P2 max/avg:  " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets) + "\n";
 		return s;
 	}
 
