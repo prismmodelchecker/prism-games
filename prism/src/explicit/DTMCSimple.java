@@ -30,6 +30,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.io.*;
 
+import explicit.rewards.MCRewards;
+
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismUtils;
@@ -86,13 +88,14 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	/**
 	 * Construct a DTMC from an existing one and a state index permutation,
 	 * i.e. in which state index i becomes index permut[i].
+	 * Pointer to states list is NOT copied (since now wrong).
 	 * Note: have to build new Distributions from scratch anyway to do this,
 	 * so may as well provide this functionality as a constructor.
 	 */
 	public DTMCSimple(DTMCSimple dtmc, int permut[])
 	{
 		this(dtmc.numStates);
-		copyFrom(dtmc);
+		copyFrom(dtmc, permut);
 		for (int i = 0; i < numStates; i++) {
 			trans.set(permut[i], new Distribution(dtmc.trans.get(i), permut));
 		}
@@ -572,31 +575,31 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	}
 
 	@Override
-	public void mvMultRew(double vect[], double result[], BitSet subset, boolean complement)
+	public void mvMultRew(double vect[], MCRewards mcRewards, double result[], BitSet subset, boolean complement)
 	{
 		int s;
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		}
 	}
 
 	@Override
-	public double mvMultRewSingle(int s, double vect[])
+	public double mvMultRewSingle(int s, double vect[], MCRewards mcRewards)
 	{
 		int k;
 		double d, prob;
 		Distribution distr;
 
 		distr = trans.get(s);
-		d = getTransitionReward(s);
+		d = mcRewards.getStateReward(s);
 		for (Map.Entry<Integer, Double> e : distr) {
 			k = (Integer) e.getKey();
 			prob = (Double) e.getValue();

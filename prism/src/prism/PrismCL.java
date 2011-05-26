@@ -712,6 +712,18 @@ public class PrismCL
 					exit();
 				}
 			}
+		} else {
+			BitSet deadlocks = modelExpl.findDeadlocks(fixdl);
+			if (deadlocks.cardinality() > 0) {
+				if (fixdl) {
+					mainLog.println("Added self-loops in " + deadlocks.cardinality() + " states...");
+				} else {
+					mainLog.println();
+					mainLog.print("\nError: Model contains " + deadlocks.size() + " deadlock states");
+					mainLog.print("\nTip: Use the -fixdl switch to automatically add self-loops in deadlock states.\n");
+					exit();
+				}
+			}
 		}
 		
 		// print more model info

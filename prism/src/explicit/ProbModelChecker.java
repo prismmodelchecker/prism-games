@@ -193,6 +193,12 @@ public class ProbModelChecker extends StateModelChecker
 
 		// Compute rewards
 		switch (modelType) {
+		case CTMC:
+			rews = ((CTMCModelChecker) this).checkRewardFormula(model, expr.getExpression());
+			break;
+		case DTMC:
+			rews = ((DTMCModelChecker) this).checkRewardFormula(model, expr.getExpression());
+			break;
 		case MDP:
 			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1);
 			break;

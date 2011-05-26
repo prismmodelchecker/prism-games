@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * Interface for classes that provide (read-only) access to an explicit-state MDP.
+ * Interface for classes that provide (read) access to an explicit-state MDP.
  */
 public interface MDP extends Model
 {

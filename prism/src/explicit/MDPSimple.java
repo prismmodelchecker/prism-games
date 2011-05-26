@@ -125,9 +125,7 @@ public class MDPSimple extends ModelSimple implements MDP
 	public MDPSimple(MDPSimple mdp, int permut[])
 	{
 		this(mdp.numStates);
-		for (int in : mdp.getInitialStates()) {
-			addInitialState(permut[in]);
-		}
+		copyFrom(mdp, permut);
 		for (int s = 0; s < numStates; s++) {
 			for (Distribution distr : mdp.trans.get(s)) {
 				addChoice(permut[s], new Distribution(distr, permut));

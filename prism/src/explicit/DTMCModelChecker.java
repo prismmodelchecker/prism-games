@@ -30,6 +30,7 @@ import java.util.*;
 
 import prism.*;
 import explicit.StateValues;
+import explicit.rewards.*;
 import parser.ast.*;
 
 /**
@@ -143,6 +144,56 @@ public class DTMCModelChecker extends ProbModelChecker
 		probs = StateValues.createFromDoubleArray(res.soln);
 
 		return probs;
+	}
+
+	/**
+	 * Compute rewards for the contents of an R operator.
+	 */
+	protected StateValues checkRewardFormula(Model model, Expression expr) throws PrismException
+	{
+		StateValues rewards = null;
+		MCRewards modelRewards = null;
+		
+		//modelRewards = new MCRewardsStateArray(model.getNumStates());
+		modelRewards = new MCRewardsStateConstant(1);
+		
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_F:
+				rewards = checkRewardReach(model, modelRewards, exprTemp);
+				break;
+			default:
+				throw new PrismException("Cannot model check " + exprTemp.getOperatorSymbol() + " operator in R operator");
+			}
+		}
+		
+		if (rewards == null)
+			throw new PrismException("Unrecognised operator in R operator");
+
+		return rewards;
+	}
+
+	/**
+	 * Compute rewards for a reachability reward operator.
+	 */
+	protected StateValues checkRewardReach(Model model, MCRewards modelRewards, ExpressionTemporal expr) throws PrismException
+	{
+		BitSet b;
+		StateValues rewards = null;
+		ModelCheckerResult res = null;
+
+		// model check operand first
+		b = (BitSet) checkExpression(model, expr.getOperand2());
+
+		// print out some info about num states
+		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+
+		res = computeReachRewards((DTMC) model, modelRewards, b);
+		rewards = StateValues.createFromDoubleArray(res.soln);
+
+		return rewards;
 	}
 
 	// Numerical computation functions
@@ -666,24 +717,26 @@ public class DTMCModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability.
+	 * Compute expected reachability rewards.
 	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
 	 * @param target Target states
 	 */
-	public ModelCheckerResult expReach(DTMC dtmc, BitSet target) throws PrismException
+	public ModelCheckerResult computeReachRewards(DTMC dtmc, MCRewards mcRewards, BitSet target) throws PrismException
 	{
-		return expReach(dtmc, target, null, null);
+		return computeReachRewards(dtmc, mcRewards, target, null, null);
 	}
 
 	/**
-	 * Compute expected reachability.
+	 * Compute expected reachability rewards.
 	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
 	 * @param target Target states
 	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult expReach(DTMC dtmc, BitSet target, double init[], BitSet known) throws PrismException
+	public ModelCheckerResult computeReachRewards(DTMC dtmc, MCRewards mcRewards, BitSet target, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		BitSet inf;
@@ -723,7 +776,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		// Compute rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = expReachValIter(dtmc, target, inf, init, known);
+			res = computeReachRewardsValIter(dtmc, mcRewards, target, inf, init, known);
 			break;
 		default:
 			throw new PrismException("Unknown DTMC solution method " + solnMethod);
@@ -741,15 +794,16 @@ public class DTMCModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability using value iteration.
+	 * Compute expected reachability rewards using value iteration.
 	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
 	 * @param target Target states
 	 * @param inf States for which reward is infinite
 	 * @param init Optionally, an initial solution vector (will be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult expReachValIter(DTMC dtmc, BitSet target, BitSet inf, double init[], BitSet known) throws PrismException
+	protected ModelCheckerResult computeReachRewardsValIter(DTMC dtmc, MCRewards mcRewards, BitSet target, BitSet inf, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
 		BitSet unknown;
@@ -799,7 +853,7 @@ public class DTMCModelChecker extends ProbModelChecker
 			//mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply
-			dtmc.mvMultRew(soln, soln2, unknown, false);
+			dtmc.mvMultRew(soln, mcRewards, soln2, unknown, false);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter

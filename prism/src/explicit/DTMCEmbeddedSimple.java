@@ -29,6 +29,8 @@ package explicit;
 import java.util.*;
 import java.util.Map.Entry;
 
+import explicit.rewards.MCRewards;
+
 import parser.State;
 import parser.Values;
 import prism.ModelType;
@@ -126,7 +128,7 @@ public class DTMCEmbeddedSimple implements DTMC
 
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
-		return exitRates[s] == 0 ? set.get(s) : ctmc.allSuccessorsInSet(s, set); 
+		return exitRates[s] == 0 ? set.get(s) : ctmc.someSuccessorsInSet(s, set); 
 	}
 
 	public int getNumChoices(int s)
@@ -337,31 +339,31 @@ public class DTMCEmbeddedSimple implements DTMC
 		return d;
 	}
 
-	public void mvMultRew(double vect[], double result[], BitSet subset, boolean complement)
+	public void mvMultRew(double vect[], MCRewards mcRewards, double result[], BitSet subset, boolean complement)
 	{
 		int s, numStates;
 		numStates = ctmc.getNumStates();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++)
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultRewSingle(s, vect);
+				result[s] = mvMultRewSingle(s, vect, mcRewards);
 		}
 	}
 
-	public double mvMultRewSingle(int s, double vect[])
+	public double mvMultRewSingle(int s, double vect[], MCRewards mcRewards)
 	{
 		int k;
 		double d, er, prob;
 		Distribution distr;
 
 		distr = ctmc.getTransitions(s);
-		d = 0.0;
+		d = mcRewards.getStateReward(s);
 		er = exitRates[s];
 		// Exit rate 0: prob 1 self-loop
 		if (er == 0) {
@@ -377,8 +379,7 @@ public class DTMCEmbeddedSimple implements DTMC
 			d /= er;
 		}
 
-		// TODO: modify reward?
-		return d + ctmc.getTransitionReward(s);
+		return d;
 	}
 
 	@Override

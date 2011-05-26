@@ -51,7 +51,7 @@ public abstract class ModelSimple implements Model
 
 	/**
 	 * Copy data from another ModelSimple (used by superclass copy constructors).
-	 * Assumed that this has already been initialise()ed.
+	 * Assumes that this has already been initialise()ed.
 	 */
 	public void copyFrom(ModelSimple model)
 	{
@@ -61,6 +61,25 @@ public abstract class ModelSimple implements Model
 		}
 		// Shallow copy of read-only stuff
 		statesList = model.statesList;
+		constantValues = model.constantValues;
+	}
+	
+	/**
+	 * Copy data from another ModelSimple and a state index permutation,
+	 * i.e. state index i becomes index permut[i]
+	 * (used by superclass copy constructors).
+	 * Assumes that this has already been initialise()ed.
+	 * Pointer to states list is NOT copied (since now wrong).
+	 */
+	public void copyFrom(ModelSimple model, int permut[])
+	{
+		numStates = model.numStates;
+		for (int in : model.initialStates) {
+			addInitialState(permut[in]);
+		}
+		// Shallow copy of (some) read-only stuff
+		// (i.e. info that is not broken by permute)
+		statesList = null;
 		constantValues = model.constantValues;
 	}
 	

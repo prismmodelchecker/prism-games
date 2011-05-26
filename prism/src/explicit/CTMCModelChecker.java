@@ -28,6 +28,10 @@ package explicit;
 
 import java.util.*;
 
+import explicit.StateModelChecker.SolnMethod;
+import explicit.StateModelChecker.ValIterDir;
+import explicit.rewards.MCRewards;
+
 import parser.ast.ExpressionTemporal;
 import prism.*;
 
@@ -43,6 +47,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 
 	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr) throws PrismException
 	{
+		// TODO: handle until case
 		double time;
 		BitSet b1, b2;
 		StateValues probs = null;
@@ -66,59 +71,56 @@ public class CTMCModelChecker extends DTMCModelChecker
 			// prob is 1 in b2 states, 0 otherwise
 			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
 		} else {
-			res = probReachTimeBounded((CTMC) model, b2, time);
+			res = computeTimeBoundedUntilProbs((CTMC) model, b2, time);
 			probs = StateValues.createFromDoubleArray(res.soln);
 		}
 
 		return probs;
 	}
 
-	/**
-	 * Compute probabilistic reachability.
-	 * @param ctmc The CTMC
-	 * @param target Target states
-	 */
-	public ModelCheckerResult probReach(CTMC ctmc, BitSet target) throws PrismException
-	{
-		mainLog.println("Building embedded DTMC...");
-		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return computeReachProbs(dtmc, target);
-	}
+	// Numerical computation functions
 
 	/**
-	 * Compute probabilistic reachability.
-	 * @param ctmc The CTMC
+	 * Compute reachability/until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param dtmc The CTMC
+	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
-	 * @param init Optionally, an initial solution vector for value iteration 
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult probReach(CTMC ctmc, BitSet target, double init[], BitSet known) throws PrismException
+	public ModelCheckerResult computeReachProbs(DTMC dtmc, BitSet remain, BitSet target, double init[], BitSet known) throws PrismException
 	{
 		mainLog.println("Building embedded DTMC...");
-		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return computeReachProbs(dtmc, null, target, init, known);
+		DTMC dtmcEmb = ((CTMC) dtmc).buildImplicitEmbeddedDTMC();
+		return super.computeReachProbs(dtmcEmb, null, target, init, known);
 	}
 
 	/**
-	 * Compute time-bounded probabilistic reachability.
+	 * Compute time-bounded until probabilities.
+	 * i.e. compute the probability of reaching a state in {@code target},
+	 * within time t, and while remaining in states in @{code remain}.
 	 * @param ctmc The CTMC
 	 * @param target Target states
 	 * @param t Time bound
 	 */
-	public ModelCheckerResult probReachTimeBounded(CTMC ctmc, BitSet target, double t) throws PrismException
+	public ModelCheckerResult computeTimeBoundedUntilProbs(CTMC ctmc, BitSet target, double t) throws PrismException
 	{
-		return probReachTimeBounded(ctmc, target, t, null);
+		return computeTimeBoundedUntilProbs(ctmc, target, t, null);
 	}
 
 	/**
-	 * Compute time-bounded probabilistic reachability.
+	 * Compute time-bounded until probabilities.
+	 * i.e. compute the probability of reaching a state in {@code target},
+	 * within time t, and while remaining in states in @{code remain}.
 	 * @param ctmc The CTMC
 	 * @param target Target states
 	 * @param t Time bound
 	 * @param init Initial solution vector - pass null for default
 	 */
-	public ModelCheckerResult probReachTimeBounded(CTMC ctmc, BitSet target, double t, double init[])
+	public ModelCheckerResult computeTimeBoundedUntilProbs(CTMC ctmc, BitSet target, double t, double init[])
 			throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -213,30 +215,17 @@ public class CTMCModelChecker extends DTMCModelChecker
 	}
 
 	/**
-	 * Compute expected reachability.
-	 * @param ctmc The CTMC
+	 * Compute expected reachability rewards.
+	 * @param dtmc The CTMC
+	 * @param mcRewards The rewards
 	 * @param target Target states
 	 */
-	public ModelCheckerResult expReach(CTMC ctmc, BitSet target) throws PrismException
+	public ModelCheckerResult computeReachRewards(DTMC dtmc, MCRewards mcRewards, BitSet target) throws PrismException
 	{
 		mainLog.println("Building embedded DTMC...");
-		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return expReach(dtmc, target);
-	}
-
-	/**
-	 * Compute expected reachability.
-	 * @param ctmc The CTMC
-	 * @param target Target states
-	 * @param init Optionally, an initial solution vector for value iteration 
-	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
-	 */
-	public ModelCheckerResult expReach(CTMC ctmc, BitSet target, double init[], BitSet known) throws PrismException
-	{
-		mainLog.println("Building embedded DTMC...");
-		DTMC dtmc = ctmc.buildImplicitEmbeddedDTMC();
-		return expReach(dtmc, target, init, known);
+		DTMC dtmcEmb = ((CTMC) dtmc).buildImplicitEmbeddedDTMC();
+		// TODO: mult rewards
+		return super.computeReachRewards(dtmcEmb, mcRewards, target);
 	}
 
 	/**
@@ -263,7 +252,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 				if (args[i].equals("-nopre"))
 					mc.setPrecomp(false);
 			}
-			res = mc.probReachTimeBounded(ctmc, target, Double.parseDouble(args[3]));
+			res = mc.computeTimeBoundedUntilProbs(ctmc, target, Double.parseDouble(args[3]));
 			System.out.println(res.soln[0]);
 		} catch (PrismException e) {
 			System.out.println(e);

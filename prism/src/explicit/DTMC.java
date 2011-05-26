@@ -29,8 +29,10 @@ package explicit;
 import java.util.*;
 import java.util.Map.Entry;
 
+import explicit.rewards.MCRewards;
+
 /**
- * Interface for classes that provide (read-only) access to an explicit-state DTMC.
+ * Interface for classes that provide (read) access to an explicit-state DTMC.
  */
 public interface DTMC extends Model
 {
@@ -115,17 +117,19 @@ public interface DTMC extends Model
 	/**
 	 * Do a matrix-vector multiplication and sum of action reward.
 	 * @param vect Vector to multiply by
+	 * @param mcRewards The rewards
 	 * @param result Vector to store result in
 	 * @param subset Only do multiplication for these rows (ignored if null)
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 */
-	public void mvMultRew(double vect[], double result[], BitSet subset, boolean complement);
+	public void mvMultRew(double vect[], MCRewards mcRewards, double result[], BitSet subset, boolean complement);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward.
 	 * @param s Row index
 	 * @param vect Vector to multiply by
+	 * @param mcRewards The rewards
 	 */
-	public double mvMultRewSingle(int s, double vect[]);
+	public double mvMultRewSingle(int s, double vect[], MCRewards mcRewards);
 
 }

@@ -24,52 +24,42 @@
 //	
 //==============================================================================
 
-package explicit;
+package explicit.rewards;
 
 /**
- * Interface for classes that provide (read) access to an explicit-state CTMC.
+ * Explicit-state storage of just state rewards for a DTMC/CTMC (as an array).
  */
-public interface CTMC extends DTMC
+public class MCRewardsStateArray extends MCRewards
 {
-	/**
-	 * Compute the maximum exit rate.
-	 * i.e. max_i { sum_j R(i,j) }
-	 */
-	public double getMaxExitRate();
+	/** Array of state rewards **/
+	protected double stateRewards[] = null;
 	
 	/**
-	 * Compute the default rate used to uniformise this CTMC. 
+	 * Constructor: all zero rewards.
+	 * @param numStates Number of states
 	 */
-	public double getDefaultUniformisationRate();
+	public MCRewardsStateArray(int numStates)
+	{
+		stateRewards = new double[numStates];
+		for (int i = 0; i < numStates; i++)
+			stateRewards[i] = 0.0;
+	}
+	
+	// Mutators
 	
 	/**
-	 * Build the embedded DTMC for this CTMC, in implicit form
-	 * (i.e. where the details are computed on the fly from this one).
+	 * Set the reward for state {@code s} to {@code r}.
 	 */
-	public DTMC buildImplicitEmbeddedDTMC();
-
-	/**
-	 * Build (a new) embedded DTMC for this CTMC.
-	 */
-	public DTMCSimple buildEmbeddedDTMC();
-
-	/**
-	 * Convert this CTMC into a uniformised CTMC.
-	 * @param q Uniformisation rate
-	 */
-	public void uniformise(double q);
-
-	/**
-	 * Build the uniformised DTMC for this CTMC, in implicit form
-	 * (i.e. where the details are computed on the fly from this one).
-	 * @param q Uniformisation rate
-	 */
-	public DTMC buildImplicitUniformisedDTMC(double q);
-
-	/**
-	 * Build (a new) uniformised DTMC for this CTMC.
-	 * @param q Uniformisation rate
-	 */
-	public DTMCSimple buildUniformisedDTMC(double q);
-
+	public void setStateReward(int s, double r)
+	{
+		stateRewards[s] = r;
+	}
+	
+	// Accessors (for MCRewards)
+	
+	@Override
+	public double getStateReward(int s)
+	{
+		return stateRewards[s];
+	}
 }

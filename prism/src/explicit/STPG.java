@@ -29,7 +29,7 @@ package explicit;
 import java.util.*;
 
 /**
- * Interface for classes that provide (read-only) access to an explicit-state stochastic two-player game (STPG),
+ * Interface for classes that provide (read) access to an explicit-state stochastic two-player game (STPG),
  */
 public interface STPG extends Model
 {
