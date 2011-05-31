@@ -29,7 +29,7 @@ package prism;
 public enum ModelType {
 
 	// List of model types (ordered alphabetically)
-	CTMC, CTMDP, DTMC, MDP, PTA, STPG;
+	CTMC, CTMDP, DTMC, MDP, PTA, STPG, SMG;
 
 	/**
 	 * Get the full name, in words, of the this model type.
@@ -49,6 +49,8 @@ public enum ModelType {
 			return "probabilistic timed automaton";
 		case STPG:
 			return "stochastic two-player game";
+		case SMG:
+			return "stochastic multiplayer game";
 		}
 		// Should never happen
 		return "";
@@ -72,6 +74,8 @@ public enum ModelType {
 			return "pta";
 		case STPG:
 			return "stpg";
+		case SMG:
+			return "smg";
 		}
 		// Should never happen
 		return "";
@@ -88,6 +92,7 @@ public enum ModelType {
 		case MDP:
 		case PTA:
 		case STPG:
+		case SMG:
 			return true;
 		case CTMC:
 		case CTMDP:
@@ -106,6 +111,7 @@ public enum ModelType {
 		case DTMC:
 		case MDP:
 		case STPG:
+		case SMG:
 			return false;
 		case PTA:
 		case CTMC:
@@ -127,6 +133,7 @@ public enum ModelType {
 			return false;
 		case MDP:
 		case STPG:
+		case SMG:
 		case PTA:
 		case CTMDP:
 			return true;
@@ -149,6 +156,8 @@ public enum ModelType {
 			return PTA;
 		else if ("stpg".equals(name))
 			return STPG;
+		else if ("smg".equals(name))
+			return SMG;
 		else
 			return null;
 	}
