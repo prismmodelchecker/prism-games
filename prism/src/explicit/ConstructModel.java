@@ -193,7 +193,7 @@ public class ConstructModel
 
 		if (modelType == ModelType.SMG) {
 			// adding a scheduler variable to the model
-			lazy = true;
+			lazy = false;
 			nPlayers = 2;
 			schedIndx = 0;
 			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
@@ -680,12 +680,35 @@ public class ConstructModel
 
 			Model model = constructModel.constructModel(modulesFile);
 
-			SMG smg = (SMG) model;
-			mainLog.println(smg.clone());
+
+			System.out.println("\nStates list: ");
 			mainLog.println(constructModel.getStatesList());
 
-			smg.clone().exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
+			SMG smg = (SMG) model;
 
+			Set<Integer> player1 = new HashSet<Integer>();
+			player1.add(1);
+			SMG stpg_nondet = smg.clone().reduceToSTPG(player1, SMG.SCHED_NONDET);
+			
+			player1 = new HashSet<Integer>();
+			player1.add(1);
+			SMG stpg_rand = smg.clone().reduceToSTPG(player1, SMG.SCHED_RANDOM);
+			
+			
+			System.out.println("\nSMG: ");
+			mainLog.println(smg);
+			System.out.println("\nSTPG-NONDET: ");
+			mainLog.println(stpg_nondet);
+			System.out.println("\nSTPG-RAND: ");
+			mainLog.println(stpg_rand);
+			
+			
+			
+			smg.exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
+			stpg_nondet.exportToDotFile("/auto/users/aissim/Desktop/stpg_nondet.dot");
+			stpg_rand.exportToDotFile("/auto/users/aissim/Desktop/stpg_rand.dot");
+
+			
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);

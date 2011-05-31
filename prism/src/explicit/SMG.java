@@ -27,8 +27,10 @@
 package explicit;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prism.ModelType;
 
@@ -75,21 +77,62 @@ public class SMG extends MDPSimple
 
 	/**
 	 * Method transforms SMG to STPG using the specified parameters. 
-	 * Scheduler (player 0) has to be included  in player1 or player2
+	 * User needs to provide the labels for player 1, player 2 states
+	 * are all the remaining ones
 	 *
 	 * @param player1 list of players to represent player 1
-	 * @param player2 list of players to represent player 2
 	 * @param schedType type of scheduler
-	 * @return the new SMG which has only two players - indexed 1 and 2
+	 * @return the new SMG which has only two players - indexed 1 and 2 respectively
 	 */
-	public SMG constructSTPG(List<Integer> player1, List<Integer> player2, int schedType)
+	public SMG reduceToSTPG(Set<Integer> player1, int schedType)
 	{
 		// resolving scheduling
-		SMG stpg = this.clone();
+		switch (schedType) {
+
+		case SCHED_NONDET:
+			// leave it as it is
+			break;
+
+		case SCHED_RANDOM:
+			// replaces distributions from player 0 states
+			// with uniform random choice
+			List<Distribution> distributions;
+			Distribution distr;
+			int n;
+			for (int i = 0; i < stateLabels.size(); i++) {
+
+				if (stateLabels.get(i) != 0)
+					continue;
+
+				distributions = super.trans.get(i);
+				n = distributions.size();
+
+				if (n == 0)
+					continue;
+
+				distr = new Distribution();
+				for (int j = 0; j < n; j++)
+					distr.add(distributions.get(j).iterator().next().getKey(), 1.0 / n);
+
+				// update distributions and actions
+				super.actions.set(i, Arrays.asList(new Object[] { "rand" }));
+				super.numDistrs -= n - 1;
+				super.trans.set(i, Arrays.asList(new Distribution[] { distr }));
+			}
+
+			break;
+
+		case SCHED_ALTERNATING:
+
+			// not implemented yet
+			break;
+		}
 
 		// relabeling players
-		
-		return null;
+		for (int i = 0; i < stateLabels.size(); i++)
+			stateLabels.set(i, player1.contains(stateLabels.get(i)) ? 1 : 2);
+
+		return this;
 	}
 
 	/**
@@ -156,26 +199,26 @@ public class SMG extends MDPSimple
 	}
 
 	/**
-	 * Makes a deep copy of itself
+	 * Makes a half-deep (up to one reference level) copy of itself
 	 */
 	public SMG clone()
 	{
 		SMG smg = new SMG();
 		smg.copyFrom(this);
-		smg.actions = this.actions;
+		smg.actions = new ArrayList<List<Object>>(this.actions);
 		smg.allowDupes = this.allowDupes;
 		smg.maxNumDistrs = this.maxNumDistrs;
 		smg.maxNumDistrsOk = this.maxNumDistrsOk;
 		smg.numDistrs = this.numDistrs;
 		smg.numTransitions = this.numTransitions;
-		smg.stateLabels = this.stateLabels;
-		smg.trans = this.trans;
-		smg.transRewards = this.transRewards;
+		smg.stateLabels = new ArrayList<Integer>(this.stateLabels);
+		smg.trans = new ArrayList<List<Distribution>>(this.trans);
+		smg.transRewards = this.transRewards == null ? null : new ArrayList<List<Double>>(this.transRewards);
 		smg.transRewardsConstant = this.transRewardsConstant;
-		
+
 		return smg;
 	}
-	
+
 	/**
 	 * Get transition function as string.
 	 */
