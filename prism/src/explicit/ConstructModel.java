@@ -681,10 +681,10 @@ public class ConstructModel
 			Model model = constructModel.constructModel(modulesFile);
 
 			SMG smg = (SMG) model;
-			mainLog.println(smg);
+			mainLog.println(smg.clone());
 			mainLog.println(constructModel.getStatesList());
 
-			smg.exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
+			smg.clone().exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
