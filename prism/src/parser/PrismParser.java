@@ -2716,7 +2716,7 @@ public class PrismParser implements PrismParserConstants {
                                                                                       ret.setCoalition(coalition);
     jj_consume_token(PATLR);
     expr = ExpressionProb(prop, pathprop);
-                                                                       ret.setExpression(expr);
+                                                                       ret.setExpressionProb((ExpressionProb)expr);
                 {if (true) return ret;}
     throw new Error("Missing return statement in function");
   }

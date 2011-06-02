@@ -33,25 +33,21 @@ import parser.*;
 import parser.visitor.*;
 import prism.PrismLangException;
 
-public class ExpressionCoalition extends Expression
+public class ExpressionCoalition extends ExpressionProb
 {
 	Set coalition = null;
-	Expression expression = null;
-	// Note: this "old-style" filter is just for display purposes
-	// The parser creates an (invisible) new-style filter around this expression
-	Filter filter = null;
 
 	// Constructors
 
 	public ExpressionCoalition()
 	{
+		super();
 	}
 
 	public ExpressionCoalition(Set c, Expression e)
 	{
-
+		super(((ExpressionProb)e).getExpression(), ((ExpressionProb)e).getRelOp(), ((ExpressionProb)e).getProb());
 		coalition = c;
-		expression = e;
 	}
 
 	// Set methods
@@ -61,64 +57,29 @@ public class ExpressionCoalition extends Expression
 		this.coalition = c;
 	}
 	
-	public void setExpression(Expression e)
+	public void setExpressionProb(ExpressionProb expr)
 	{
-		expression = e;
+		setRelOp(expr.relOp);
+		setExpression(expr.expression);
+		setProb(expr.getProb());
 	}
 
-	public void setFilter(Filter f)
-	{
-		filter = f;
-	}
 
 	// Get methods
-
-	public Expression getExpression()
-	{
-		return expression;
-	}
 	
 	public Set getCoalition()
 	{
 		return coalition;
 	}
 
-	public Filter getFilter()
-	{
-		return filter;
-	}
-
 	// Methods required for Expression:
-
-	/**
-	 * Is this expression constant?
-	 */
-	public boolean isConstant()
-	{
-		return false;
-	}
-
-	/**
-	 * Evaluate this expression, return result.
-	 * Note: assumes that type checking has been done already.
-	 */
-	public Object evaluate(EvaluateContext ec) throws PrismLangException
-	{
-		throw new PrismLangException("Cannot evaluate a P operator without a model");
-	}
 
 	/**
 	  * Get "name" of the result of this expression (used for y-axis of any graphs plotted)
 	  */
 	public String getResultName()
 	{
-		return "Result for coalition " + coalition.toString();
-	}
-
-	@Override
-	public boolean returnsSingleValue()
-	{
-		return false;
+		return "Result for coalition " + coalition.toString() + " " + super.toString();
 	}
 
 	// Methods required for ASTElement:
@@ -136,7 +97,7 @@ public class ExpressionCoalition extends Expression
 	 */
 	public String toString()
 	{
-		return "<<" + coalition + ">> " + expression.toString();
+		return "<<" + coalition + ">> " + super.toString();
 	}
 
 	/**
@@ -146,6 +107,8 @@ public class ExpressionCoalition extends Expression
 	{
 		ExpressionCoalition expr = new ExpressionCoalition();
 		expr.setCoalition(new HashSet(coalition));
+		expr.setProb(super.getProb().deepCopy());
+		expr.setRelOp(super.relOp);
 		expr.setExpression(expression == null ? null : expression.deepCopy());
 		expr.setFilter(filter == null ? null : (Filter) filter.deepCopy());
 		expr.setType(type);

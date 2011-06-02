@@ -1527,7 +1527,7 @@ Expression ExpressionCoalition(boolean prop, boolean pathprop) :
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "P" keyword and attached symbols
 	(( begin = 	<PATLL>  ExpressionCoalitionArgs(prop, pathprop, coalition)  {ret.setCoalition(coalition);}
-			<PATLR> expr = ExpressionProb(prop, pathprop) {ret.setExpression(expr);}
+			<PATLR> expr = ExpressionProb(prop, pathprop) {ret.setExpressionProb((ExpressionProb)expr);}
 	))
 	{
 		return ret;
