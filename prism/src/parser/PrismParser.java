@@ -2705,7 +2705,7 @@ public class PrismParser implements PrismParserConstants {
   static final public Expression ExpressionCoalition(boolean prop, boolean pathprop) throws ParseException {
         Expression expr;
         Filter filter = null;
-        ExpressionCoalnOp ret = new ExpressionCoalnOp();
+        ExpressionCoalition ret = new ExpressionCoalition();
         ExpressionProb prob = new ExpressionProb();
         Set coalition = new HashSet();
         Token begin = null;

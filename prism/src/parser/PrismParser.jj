@@ -1514,7 +1514,7 @@ Expression ExpressionCoalition(boolean prop, boolean pathprop) :
 {
 	Expression expr;
 	Filter filter = null;
-	ExpressionCoalnOp ret = new ExpressionCoalnOp();
+	ExpressionCoalition ret = new ExpressionCoalition();
 	ExpressionProb prob = new ExpressionProb();
 	Set coalition = new HashSet();
 	Token begin = null;

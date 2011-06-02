@@ -33,7 +33,7 @@ import parser.*;
 import parser.visitor.*;
 import prism.PrismLangException;
 
-public class ExpressionCoalnOp extends Expression
+public class ExpressionCoalition extends Expression
 {
 	Set coalition = null;
 	Expression expression = null;
@@ -43,11 +43,11 @@ public class ExpressionCoalnOp extends Expression
 
 	// Constructors
 
-	public ExpressionCoalnOp()
+	public ExpressionCoalition()
 	{
 	}
 
-	public ExpressionCoalnOp(Set c, Expression e)
+	public ExpressionCoalition(Set c, Expression e)
 	{
 
 		coalition = c;
@@ -144,7 +144,7 @@ public class ExpressionCoalnOp extends Expression
 	 */
 	public Expression deepCopy()
 	{
-		ExpressionCoalnOp expr = new ExpressionCoalnOp();
+		ExpressionCoalition expr = new ExpressionCoalition();
 		expr.setCoalition(new HashSet(coalition));
 		expr.setExpression(expression == null ? null : expression.deepCopy());
 		expr.setFilter(filter == null ? null : (Filter) filter.deepCopy());
