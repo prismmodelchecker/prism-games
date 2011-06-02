@@ -415,6 +415,7 @@ TOKEN :
 |	< S:				"S" >
 |	< STOCHASTIC:		"stochastic" >
 |	< STPG:				"stpg" >
+|	< SMG:				"smg" >
 |	< SYSTEM:			"system" >
 |	< TRUE:				"true" >
 |	< U:				"U" >
@@ -441,6 +442,8 @@ TOKEN :
 |	< NE:			"!=" >
 |	< LT:			"<" >
 |	< GT:			">" >
+|	< PATLL:		"<<" >
+|	< PATLR:		">>" >
 |	< LE:			"<=" >
 |	< GE:			">=" >
 |	< PLUS:			"+" >
@@ -608,6 +611,7 @@ ModelType ModulesFileType() :
 	| <CTMDP> { modelType=ModelType.CTMDP; }
 	| <PTA> { modelType=ModelType.PTA; }
 	| <STPG> { modelType=ModelType.STPG; }
+	| <SMG> { modelType=ModelType.SMG; }
 	)
 	{ return modelType; }
 }
@@ -1281,6 +1285,8 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 		ret = ExpressionParenth(prop, pathprop)
 	|
 		// Remaining options are only applicable for properties
+		ret = ExpressionCoaln(prop, pathprop)		
+	|
 		ret = ExpressionProb(prop, pathprop)
 	|
 		ret = ExpressionSS(prop, pathprop)
@@ -1357,6 +1363,37 @@ void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) :
 }
 {
 	expr = Expression(prop, pathprop) { func.addOperand(expr); } ( <COMMA> expr = Expression(prop, pathprop) { func.addOperand(expr); })*
+}
+
+// Arguments for a coalition operator
+
+void ExpressionCoalnArgs(boolean prop, boolean pathprop, ExpressionCoaln coaln) :
+{
+	Expression expr;
+}
+{
+	// parsing a list of integers
+	<REG_INT> {
+		try {
+			
+			int i = Integer.parseInt(getToken(0).image);
+			coaln.addMember(i);	
+		} catch (NumberFormatException e) {
+			// Need to catch this because some matches for regexp REG_INT
+			// are not valid integers (e.g. too big).
+			throw generateParseException();
+		}}
+	(<COMMA> <REG_INT> {
+		try {
+			
+			int i = Integer.parseInt(getToken(0).image);
+			coaln.addMember(i);		
+		} catch (NumberFormatException e) {
+			// Need to catch this because some matches for regexp REG_INT
+			// are not valid integers (e.g. too big).
+			throw generateParseException();
+		}}
+	)*
 }
 
 // Expression: literal
@@ -1468,6 +1505,32 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 		else return ret;
 	}
 }
+
+// (Property) expression: coalition operator <<C>>
+
+Expression ExpressionCoaln(boolean prop, boolean pathprop) :
+{
+	Expression expr;
+	Filter filter = null;
+	ExpressionCoalnOp ret = new ExpressionCoalnOp();
+	ExpressionCoaln coaln = new ExpressionCoaln();
+	ExpressionProb prob = new ExpressionProb();
+	Token begin = null;
+	boolean isBool;
+	
+}
+{
+
+	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	// Various options for "P" keyword and attached symbols
+	(( begin = 	<PATLL>  ExpressionCoalnArgs(prop, pathprop, coaln)  {ret.setCoalition(coaln);}
+			<PATLR> expr = ExpressionProb(prop, pathprop) {ret.setExpression(expr);}
+	))
+	{
+		return ret;
+	}
+	}
 
 // Filter for a P/S/R operator
 

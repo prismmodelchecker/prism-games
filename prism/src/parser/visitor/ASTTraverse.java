@@ -468,6 +468,29 @@ public class ASTTraverse implements ASTVisitor
 	}
 	public void visitPost(ExpressionProb e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionCoalnOp e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionCoalnOp e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getExpression() != null) e.getExpression().accept(this);
+		if (e.getFilter() != null) e.getFilter().accept(this);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(ExpressionCoalnOp e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionCoaln e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionCoaln e) throws PrismLangException
+	{
+		visitPre(e);
+		
+		//TODO
+		
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(ExpressionCoaln e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionReward e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionReward e) throws PrismLangException
 	{
@@ -555,4 +578,5 @@ public class ASTTraverse implements ASTVisitor
 	}
 	public void visitPost(ForLoop e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+
 }
