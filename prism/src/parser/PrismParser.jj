@@ -36,6 +36,8 @@ package parser;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 import parser.ast.*;
 import parser.type.*;
@@ -1285,7 +1287,7 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 		ret = ExpressionParenth(prop, pathprop)
 	|
 		// Remaining options are only applicable for properties
-		ret = ExpressionCoaln(prop, pathprop)		
+		ret = ExpressionCoalition(prop, pathprop)		
 	|
 		ret = ExpressionProb(prop, pathprop)
 	|
@@ -1367,7 +1369,7 @@ void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) :
 
 // Arguments for a coalition operator
 
-void ExpressionCoalnArgs(boolean prop, boolean pathprop, ExpressionCoaln coaln) :
+void ExpressionCoalitionArgs(boolean prop, boolean pathprop, Set coalition) :
 {
 	Expression expr;
 }
@@ -1377,7 +1379,7 @@ void ExpressionCoalnArgs(boolean prop, boolean pathprop, ExpressionCoaln coaln) 
 		try {
 			
 			int i = Integer.parseInt(getToken(0).image);
-			coaln.addMember(i);	
+			coalition.add(i);	
 		} catch (NumberFormatException e) {
 			// Need to catch this because some matches for regexp REG_INT
 			// are not valid integers (e.g. too big).
@@ -1387,7 +1389,7 @@ void ExpressionCoalnArgs(boolean prop, boolean pathprop, ExpressionCoaln coaln) 
 		try {
 			
 			int i = Integer.parseInt(getToken(0).image);
-			coaln.addMember(i);		
+			coalition.add(i);		
 		} catch (NumberFormatException e) {
 			// Need to catch this because some matches for regexp REG_INT
 			// are not valid integers (e.g. too big).
@@ -1508,13 +1510,13 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 
 // (Property) expression: coalition operator <<C>>
 
-Expression ExpressionCoaln(boolean prop, boolean pathprop) :
+Expression ExpressionCoalition(boolean prop, boolean pathprop) :
 {
 	Expression expr;
 	Filter filter = null;
 	ExpressionCoalnOp ret = new ExpressionCoalnOp();
-	ExpressionCoaln coaln = new ExpressionCoaln();
 	ExpressionProb prob = new ExpressionProb();
+	Set coalition = new HashSet();
 	Token begin = null;
 	boolean isBool;
 	
@@ -1524,7 +1526,7 @@ Expression ExpressionCoaln(boolean prop, boolean pathprop) :
 	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "P" keyword and attached symbols
-	(( begin = 	<PATLL>  ExpressionCoalnArgs(prop, pathprop, coaln)  {ret.setCoalition(coaln);}
+	(( begin = 	<PATLL>  ExpressionCoalitionArgs(prop, pathprop, coalition)  {ret.setCoalition(coalition);}
 			<PATLR> expr = ExpressionProb(prop, pathprop) {ret.setExpression(expr);}
 	))
 	{

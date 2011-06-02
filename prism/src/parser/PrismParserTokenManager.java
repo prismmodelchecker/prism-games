@@ -3,6 +3,8 @@ package parser;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import parser.ast.*;
 import parser.type.*;
 import prism.ModelType;

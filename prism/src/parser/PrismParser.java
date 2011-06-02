@@ -4,6 +4,8 @@ package parser;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 import parser.ast.*;
 import parser.type.*;
@@ -2271,7 +2273,7 @@ public class PrismParser implements PrismParserConstants {
       break;
     case PATLL:
       // Remaining options are only applicable for properties
-                      ret = ExpressionCoaln(prop, pathprop);
+                      ret = ExpressionCoalition(prop, pathprop);
       break;
     case PMAXMAX:
     case PMAXMIN:
@@ -2426,13 +2428,13 @@ public class PrismParser implements PrismParserConstants {
   }
 
 // Arguments for a coalition operator
-  static final public void ExpressionCoalnArgs(boolean prop, boolean pathprop, ExpressionCoaln coaln) throws ParseException {
+  static final public void ExpressionCoalitionArgs(boolean prop, boolean pathprop, Set coalition) throws ParseException {
         Expression expr;
     jj_consume_token(REG_INT);
                 try {
 
                         int i = Integer.parseInt(getToken(0).image);
-                        coaln.addMember(i);
+                        coalition.add(i);
                 } catch (NumberFormatException e) {
                         // Need to catch this because some matches for regexp REG_INT
                         // are not valid integers (e.g. too big).
@@ -2453,7 +2455,7 @@ public class PrismParser implements PrismParserConstants {
                 try {
 
                         int i = Integer.parseInt(getToken(0).image);
-                        coaln.addMember(i);
+                        coalition.add(i);
                 } catch (NumberFormatException e) {
                         // Need to catch this because some matches for regexp REG_INT
                         // are not valid integers (e.g. too big).
@@ -2700,18 +2702,18 @@ public class PrismParser implements PrismParserConstants {
   }
 
 // (Property) expression: coalition operator <<C>>
-  static final public Expression ExpressionCoaln(boolean prop, boolean pathprop) throws ParseException {
+  static final public Expression ExpressionCoalition(boolean prop, boolean pathprop) throws ParseException {
         Expression expr;
         Filter filter = null;
         ExpressionCoalnOp ret = new ExpressionCoalnOp();
-        ExpressionCoaln coaln = new ExpressionCoaln();
         ExpressionProb prob = new ExpressionProb();
+        Set coalition = new HashSet();
         Token begin = null;
         boolean isBool;
           if (!prop) {if (true) throw generateParseException();}
     begin = jj_consume_token(PATLL);
-    ExpressionCoalnArgs(prop, pathprop, coaln);
-                                                                              ret.setCoalition(coaln);
+    ExpressionCoalitionArgs(prop, pathprop, coalition);
+                                                                                      ret.setCoalition(coalition);
     jj_consume_token(PATLR);
     expr = ExpressionProb(prop, pathprop);
                                                                        ret.setExpression(expr);
@@ -3438,17 +3440,6 @@ public class PrismParser implements PrismParserConstants {
     try { return !jj_3_13(); }
     catch(LookaheadSuccess ls) { return true; }
     finally { jj_save(12, xla); }
-  }
-
-  static private boolean jj_3R_59() {
-    if (jj_scan_token(IMPLIES)) return true;
-    if (jj_3R_58()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_62() {
-    if (jj_3R_30()) return true;
-    return false;
   }
 
   static private boolean jj_3R_51() {
@@ -4962,6 +4953,17 @@ public class PrismParser implements PrismParserConstants {
   }
 
   static private boolean jj_3R_66() {
+    if (jj_3R_30()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_59() {
+    if (jj_scan_token(IMPLIES)) return true;
+    if (jj_3R_58()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_62() {
     if (jj_3R_30()) return true;
     return false;
   }

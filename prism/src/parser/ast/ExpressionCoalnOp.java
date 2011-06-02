@@ -26,13 +26,16 @@
 
 package parser.ast;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import parser.*;
 import parser.visitor.*;
 import prism.PrismLangException;
 
 public class ExpressionCoalnOp extends Expression
 {
-	ExpressionCoaln coalition = null;
+	Set coalition = null;
 	Expression expression = null;
 	// Note: this "old-style" filter is just for display purposes
 	// The parser creates an (invisible) new-style filter around this expression
@@ -44,7 +47,7 @@ public class ExpressionCoalnOp extends Expression
 	{
 	}
 
-	public ExpressionCoalnOp(ExpressionCoaln c, Expression e)
+	public ExpressionCoalnOp(Set c, Expression e)
 	{
 
 		coalition = c;
@@ -53,7 +56,7 @@ public class ExpressionCoalnOp extends Expression
 
 	// Set methods
 
-	public void setCoalition(ExpressionCoaln c)
+	public void setCoalition(Set c)
 	{
 		this.coalition = c;
 	}
@@ -73,6 +76,11 @@ public class ExpressionCoalnOp extends Expression
 	public Expression getExpression()
 	{
 		return expression;
+	}
+	
+	public Set getCoalition()
+	{
+		return coalition;
 	}
 
 	public Filter getFilter()
@@ -137,6 +145,7 @@ public class ExpressionCoalnOp extends Expression
 	public Expression deepCopy()
 	{
 		ExpressionCoalnOp expr = new ExpressionCoalnOp();
+		expr.setCoalition(new HashSet(coalition));
 		expr.setExpression(expression == null ? null : expression.deepCopy());
 		expr.setFilter(filter == null ? null : (Filter) filter.deepCopy());
 		expr.setType(type);
