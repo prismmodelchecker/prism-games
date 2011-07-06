@@ -242,7 +242,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
 
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
@@ -251,7 +251,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
 
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
@@ -259,7 +259,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		}
 	}
@@ -268,7 +268,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int adv[])
 	{
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
-		return mvMultRewMinMaxSingle(s, vect, min, null);
+		return mvMultRewMinMaxSingle(s, vect, null, min, null);
 	}
 
 	@Override

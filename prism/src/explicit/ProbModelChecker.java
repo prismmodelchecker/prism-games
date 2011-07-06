@@ -27,10 +27,12 @@
 package explicit;
 
 import java.util.Set;
+import java.util.BitSet;
+import java.util.List;
 
-import explicit.rewards.MCRewards;
-import explicit.rewards.MCRewardsStateConstant;
+import explicit.rewards.*;
 import jdd.JDDNode;
+import parser.State;
 import parser.ast.*;
 import prism.*;
 
@@ -53,6 +55,10 @@ public class ProbModelChecker extends StateModelChecker
 		// R operator
 		else if (expr instanceof ExpressionReward) {
 			res = checkExpressionReward(model, (ExpressionReward) expr);
+		}
+		// S operator
+		else if (expr instanceof ExpressionSS) {
+			throw new PrismException("Explicit engine does not yet handle the S operator");
 		}
 		// Otherwise, use the superclass
 		else {
@@ -82,7 +88,7 @@ public class ProbModelChecker extends StateModelChecker
 
 		// Check for unhandled cases
 		if (expr.getProb() != null)
-			throw new PrismException("Bounded P operators not yet supported");
+			throw new PrismException("Explicit engine does not yet handle bounded P operators");
 
 		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
@@ -161,7 +167,8 @@ public class ProbModelChecker extends StateModelChecker
 		boolean min2 = false;
 		ModelType modelType = model.getModelType();
 		StateValues rews = null;
-		MCRewards modelRewards = null;
+		MCRewards mcRewards = null;
+		MDPRewards mdpRewards = null;
 		int i;
 
 		// Get info from reward operator
@@ -175,7 +182,9 @@ public class ProbModelChecker extends StateModelChecker
 		}
 
 		// Check for unhandled cases
-		// TODO
+		if (expr.getReward() != null)
+			throw new PrismException("Explicit engine does not yet handle bounded R operators");
+		// More? TODO
 
 		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
@@ -229,23 +238,26 @@ public class ProbModelChecker extends StateModelChecker
 		switch (modelType) {
 		case CTMC:
 		case DTMC:
-			//modelRewards = new MCRewardsStateArray(model.getNumStates());
-			modelRewards = new MCRewardsStateConstant(1);
+			mcRewards = buildMCRewardStructure(model, rewStruct);
+			break;
+		case MDP:
+			mdpRewards = buildMDPRewardStructure((MDP) model, rewStruct);
 			break;
 		default:
-			throw new PrismException("Cannot build rewards " + expr + " for " + modelType + "s");
+			throw new PrismException("Cannot build rewards for " + modelType + "s");
 		}
 		
 		// Compute rewards
+		mainLog.println("Building reward structure...");
 		switch (modelType) {
 		case CTMC:
-			rews = ((CTMCModelChecker) this).checkRewardFormula(model, modelRewards, expr.getExpression());
+			rews = ((CTMCModelChecker) this).checkRewardFormula(model, mcRewards, expr.getExpression());
 			break;
 		case DTMC:
-			rews = ((DTMCModelChecker) this).checkRewardFormula(model, modelRewards, expr.getExpression());
+			rews = ((DTMCModelChecker) this).checkRewardFormula(model, mcRewards, expr.getExpression());
 			break;
 		case MDP:
-			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1);
+			rews = ((MDPModelChecker) this).checkRewardFormula(model, mdpRewards, expr.getExpression(), min1);
 			break;
 		case STPG:
 			rews = ((STPGModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1, min2);
@@ -262,5 +274,86 @@ public class ProbModelChecker extends StateModelChecker
 
 		// For =? properties, just return values
 		return rews;
+	}
+	
+	private MCRewards buildMCRewardStructure(Model model, RewardStruct rewStr) throws PrismException
+	{
+		//MCRewards modelRewards = null;
+		List<State> statesList;
+		Expression guard;
+		int i, j, n, numStates;
+		
+		switch (model.getModelType()) {
+		case CTMC:
+		case DTMC:
+			if (rewStr.getNumTransItems() > 0) {
+				throw new PrismException("Explicit engine does not yet handle transition rewards for D/CTMCs");
+			}
+			// Special case: constant rewards
+			if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+				return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble());
+			}
+			// Normal: state rewards
+			else {
+				numStates = model.getNumStates();
+				statesList = model.getStatesList();
+				MCRewardsStateArray rewSA = new MCRewardsStateArray(numStates);
+				n = rewStr.getNumItems();
+				for (i = 0; i < n; i++) {
+					guard = rewStr.getStates(i);
+					for (j = 0; j < numStates; j++) {
+						if (guard.evaluateBoolean(statesList.get(j))) {
+							rewSA.setStateReward(j, rewStr.getReward(i).evaluateDouble(statesList.get(j)));
+						}
+					}
+				}
+				return rewSA;
+			}
+			//break;
+		default:
+			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
+		}
+	}
+	
+	private MDPRewards buildMDPRewardStructure(MDP mdp, RewardStruct rewStr) throws PrismException
+	{
+		//MCRewards modelRewards = null;
+		List<State> statesList;
+		Expression guard;
+		String action;
+		Object mdpAction;
+		int i, j, k, n, numStates, numChoices;
+
+		if (rewStr.getNumStateItems() > 0) {
+			throw new PrismException("Explicit engine does not yet handle state rewards for MDPs");
+		}
+		// Special case: constant rewards
+		// TODO
+		/*if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+			return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble());
+		}*/
+		// Normal: transition rewards
+		else {
+			numStates = mdp.getNumStates();
+			statesList = mdp.getStatesList();
+			MDPRewardsSimple rewSimple = new MDPRewardsSimple(numStates);
+			n = rewStr.getNumItems();
+			for (i = 0; i < n; i++) {
+				guard = rewStr.getStates(i);
+				action = rewStr.getSynch(i);
+				for (j = 0; j < numStates; j++) {
+					if (guard.evaluateBoolean(statesList.get(j))) {
+						numChoices = mdp.getNumChoices(j);
+						for (k = 0; k < numChoices; k++) {
+							mdpAction = mdp.getAction(j, k); 
+							if (mdpAction == null ? (action == null) : mdpAction.equals(action)) {
+								rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(statesList.get(j)));
+							}
+						}
+					}
+				}
+			}
+			return rewSimple;
+		}
 	}
 }

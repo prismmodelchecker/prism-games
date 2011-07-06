@@ -322,6 +322,16 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+	 * Look up a property by name.
+	 * Returns null if not found.
+	 * Currently only exists for forwards compatibility.
+	 */
+	public Property getPropertyByName(String name)
+	{
+		return null;
+	}
+	
+	/**
 	 * Check if an identifier is used by this model
 	 * (as a formula, constant, or variable)
 	 */
@@ -342,9 +352,20 @@ public class ModulesFile extends ASTElement
 		return moduleNames;
 	}
 
+	/**
+	 * Get the list of action names.
+	 */
 	public Vector<String> getSynchs()
 	{
 		return synchs;
+	}
+
+	/**
+	 * Get the {@code i}th action name (0-indexed).
+	 */
+	public String getSynch(int i)
+	{
+		return synchs.get(i);
 	}
 
 	public boolean isSynch(String s)
@@ -475,6 +496,9 @@ public class ModulesFile extends ASTElement
 		// Also check variables valid, store indices, etc.
 		findAllVars(varNames, varTypes);
 
+		// Find all instances of property refs
+		findAllProps(this, null);
+		
 		// Check reward structure names
 		checkRewardStructNames();
 

@@ -105,31 +105,83 @@ public class NonProbModelChecker extends StateModelChecker
 			}
 			// Negation
 			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
-				// Compute, then subtract from 1 
-				res = checkExpressionExists(exprUnary.getOperand()); //TODO: forall
-				res.subtractFromOne(); //TODO
+				// Compute, then negate 
+				res = checkExpressionForAll(exprUnary.getOperand());
+				res.subtractFromOne();
 			}
 		}
 		// Temporal operators
 		else if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			// Next
+			if (exprTemp.hasBounds()) {
+				throw new PrismException("Model checking of bounded CTL operators is not supported");
+			}
+			// Next (EX)
 			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
 				// TODO
-				throw new PrismException("CTL model checking of this operator is not yet supported");
+				throw new PrismException("CTL model checking of the E X operator is not yet supported");
 			}
-			// Until
+			// Until (EU)
 			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
-				if (exprTemp.hasBounds()) {
-					// TODO
-					throw new PrismException("CTL model checking of this operator is not yet supported");
-				} else {
-					res = checkExistsUntil(exprTemp);
-				}
+				res = checkExistsUntil(exprTemp);
 			}
 			// Anything else - convert to until and recurse
 			else {
 				res = checkExpressionExists(exprTemp.convertToUntilForm());
+			}
+		}
+
+		if (res == null)
+			throw new PrismException("Unrecognised path operator in E operator");
+
+		return res;
+	}
+
+	/**
+	 * Model check a CTL forall (A) operator.
+	 */
+	protected StateValues checkExpressionForAll(Expression expr) throws PrismException
+	{
+		StateValues res = null;
+
+		// Check whether this is a simple path formula (i.e. CTL, not LTL)
+		if (!expr.isSimplePathFormula()) {
+			throw new PrismException("(Non-probabilistic) LTL model checking is not supported");
+		}
+
+		// Negation/parentheses
+		if (expr instanceof ExpressionUnaryOp) {
+			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
+			// Parentheses
+			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
+				// Recurse
+				res = checkExpressionForAll(exprUnary.getOperand());
+			}
+			// Negation
+			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
+				// Compute, then negate 
+				res = checkExpressionExists(exprUnary.getOperand());
+				res.subtractFromOne();
+			}
+		}
+		// Temporal operators
+		else if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			if (exprTemp.hasBounds()) {
+				throw new PrismException("Model checking of bounded CTL operators is not supported");
+			}
+			// Next (AX)
+			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+				// TODO
+				throw new PrismException("CTL model checking of the A X operator is not yet supported");
+			}
+			// Until (AU)
+			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+				throw new PrismException("CTL model checking of the A U operator is not yet supported");
+			}
+			// Anything else - convert to until and recurse
+			else {
+				res = checkExpressionForAll(exprTemp.convertToUntilForm());
 			}
 		}
 
@@ -147,7 +199,6 @@ public class NonProbModelChecker extends StateModelChecker
 		JDDNode b1, b2, transRel, tmp, tmp2, tmp3, tmp4, init = null;
 		ArrayList<JDDNode> cexDDs = null;
 		boolean done, cexDone = false;
-		List<State> cexStates;
 		Vector<String> cexActions;
 		int iters, i;
 		long l;
@@ -169,16 +220,16 @@ public class NonProbModelChecker extends StateModelChecker
 			cexDone = false;
 			init = model.getStart();
 		}
-		
+
 		// Get transition relation
 		if (model.getModelType() == ModelType.MDP) {
 			JDD.Ref(trans01);
-			transRel = JDD.ThereExists(trans01, ((NondetModel)model).getAllDDNondetVars());
+			transRel = JDD.ThereExists(trans01, ((NondetModel) model).getAllDDNondetVars());
 		} else {
 			JDD.Ref(trans01);
 			transRel = trans01;
 		}
-		
+
 		// Fixpoint loop
 		done = false;
 		iters = 0;
@@ -213,57 +264,63 @@ public class NonProbModelChecker extends StateModelChecker
 
 		// Process the counterexample info to produce a trace 
 		if (doGenCex) {
-			mainLog.println("\nProcessing counterexample trace (length " + (cexDDs.size() - 1) + ")...");
-			// First state of counterexample (at end of array) is initial state
-			JDD.Deref(cexDDs.get(cexDDs.size() - 1));
-			JDD.Ref(init);
-			cexDDs.set(cexDDs.size() - 1, init);
-			// Go through remaining steps of counterexample
-			for (i = cexDDs.size() - 2; i >= 0; i--) {
-				// Get states that are a successor of the previous state of the counterexample
-				JDD.Ref(cexDDs.get(i + 1));
-				JDD.Ref(transRel);
-				tmp3 = JDD.And(cexDDs.get(i + 1), transRel);
-				tmp3 = JDD.ThereExists(tmp3, allDDRowVars);
-				tmp3 = JDD.PermuteVariables(tmp3, allDDColVars, allDDRowVars);
-				// Intersect with possible states for this step of the counterexample
-				JDD.Ref(cexDDs.get(i));
-				tmp3 = JDD.And(tmp3, cexDDs.get(i));
-				// Pick one of these state (the first)
-				tmp3 = JDD.PermuteVariables(JDD.RestrictToFirst(tmp3, allDDColVars), allDDColVars, allDDRowVars);
-				// Replace this state in the counterexample
-				JDD.Deref(cexDDs.get(i));
-				cexDDs.set(i, tmp3);
-			}
-			// For an MDP model, build a list of actions from counterexample
-			if (model.getModelType() == ModelType.MDP) {
-				cexActions = new Vector<String>();
-				for (i = cexDDs.size() - 1; i >= 1; i--) {
-					JDD.Ref(trans01);
+			if (!cexDone) {
+				for (i = 0; i < cexDDs.size(); i++) {
+					JDD.Deref(cexDDs.get(i));
+				}
+			} else {
+				mainLog.println("\nProcessing counterexample trace (length " + (cexDDs.size() - 1) + ")...");
+				// First state of counterexample (at end of array) is initial state
+				JDD.Deref(cexDDs.get(cexDDs.size() - 1));
+				JDD.Ref(init);
+				cexDDs.set(cexDDs.size() - 1, init);
+				// Go through remaining steps of counterexample
+				for (i = cexDDs.size() - 2; i >= 0; i--) {
+					// Get states that are a successor of the previous state of the counterexample
+					JDD.Ref(cexDDs.get(i + 1));
+					JDD.Ref(transRel);
+					tmp3 = JDD.And(cexDDs.get(i + 1), transRel);
+					tmp3 = JDD.ThereExists(tmp3, allDDRowVars);
+					tmp3 = JDD.PermuteVariables(tmp3, allDDColVars, allDDRowVars);
+					// Intersect with possible states for this step of the counterexample
 					JDD.Ref(cexDDs.get(i));
-					tmp3 = JDD.And(trans01, cexDDs.get(i));
-					JDD.Ref(cexDDs.get(i - 1));
-					tmp3 = JDD.And(tmp3, JDD.PermuteVariables(cexDDs.get(i - 1), allDDRowVars, allDDColVars));
-					tmp3 = JDD.ThereExists(tmp3, allDDColVars);
-					JDD.Ref(transActions);
-					tmp3 = JDD.Apply(JDD.TIMES, tmp3, transActions);
-					int action = (int)JDD.FindMax(tmp3);
-					cexActions.add(action > 0 ? model.getSynchs().get(action - 1) : "");
-					JDD.Deref(tmp3);
+					tmp3 = JDD.And(tmp3, cexDDs.get(i));
+					// Pick one of these state (the first)
+					tmp3 = JDD.PermuteVariables(JDD.RestrictToFirst(tmp3, allDDColVars), allDDColVars, allDDRowVars);
+					// Replace this state in the counterexample
 					JDD.Deref(cexDDs.get(i));
+					cexDDs.set(i, tmp3);
 				}
-				JDD.Deref(cexDDs.get(0));
-				mainLog.println("Counterexample (action sequence): " + cexActions);
-				result.setCounterexample(cexActions);
-			}
-			// Otherwise, convert list of BDDs to list of states
-			else {
-				cexStates = new ArrayList<State>(cexDDs.size());
-				for (i = cexDDs.size() - 1; i >= 0; i--) {
-					cexStates.add(model.convertBddToState(cexDDs.get(i)));
-					JDD.Deref(cexDDs.get(i));
+				// For an MDP model, build a list of actions from counterexample
+				if (model.getModelType() == ModelType.MDP) {
+					cexActions = new Vector<String>();
+					for (i = cexDDs.size() - 1; i >= 1; i--) {
+						JDD.Ref(trans01);
+						JDD.Ref(cexDDs.get(i));
+						tmp3 = JDD.And(trans01, cexDDs.get(i));
+						JDD.Ref(cexDDs.get(i - 1));
+						tmp3 = JDD.And(tmp3, JDD.PermuteVariables(cexDDs.get(i - 1), allDDRowVars, allDDColVars));
+						tmp3 = JDD.ThereExists(tmp3, allDDColVars);
+						JDD.Ref(transActions);
+						tmp3 = JDD.Apply(JDD.TIMES, tmp3, transActions);
+						int action = (int) JDD.FindMax(tmp3);
+						cexActions.add(action > 0 ? model.getSynchs().get(action - 1) : "");
+						JDD.Deref(tmp3);
+						JDD.Deref(cexDDs.get(i));
+					}
+					JDD.Deref(cexDDs.get(0));
+					mainLog.println("Counterexample (action sequence): " + cexActions);
+					result.setCounterexample(cexActions);
 				}
-				result.setCounterexample(cexStates);
+				// Otherwise, convert list of BDDs to list of states
+				else {
+					CexPathAsBDDs cex = new CexPathAsBDDs(model);
+					for (i = cexDDs.size() - 1; i >= 0; i--) {
+						cex.addState(cexDDs.get(i));
+						JDD.Deref(cexDDs.get(i));
+					}
+					result.setCounterexample(cex);
+				}
 			}
 		}
 
@@ -280,12 +337,47 @@ public class NonProbModelChecker extends StateModelChecker
 		return new StateValuesMTBDD(tmp, model);
 	}
 
-	/**
-	 * Model check a CTL forall (A) operator.
-	 */
-	protected StateValues checkExpressionForAll(Expression expr) throws PrismException
+	class CexPathAsBDDs
 	{
-		throw new PrismException("CTL model checking of this operator is not yet supported");
+		protected prism.Model model;
+		protected ArrayList<JDDNode> states;
+
+		public CexPathAsBDDs(prism.Model model)
+		{
+			this.model = model;
+			states = new ArrayList<JDDNode>();
+		}
+
+		/**
+		 * Add a state to the path (as a BDD, which will be stored and Ref'ed.
+		 */
+		public void addState(JDDNode state)
+		{
+			JDD.Ref(state);
+			states.add(state);
+		}
+
+		public void clear()
+		{
+			for (JDDNode dd : states) {
+				JDD.Deref(dd);
+			}
+		}
+
+		public String toString()
+		{
+			State state;
+			int i, n;
+			String s = "";
+			n = states.size();
+			for (i = 0; i < n; i++) { 
+				state = model.convertBddToState(states.get(i));
+				s += state.toString();
+				if (i < n - 1)
+					s += "\n";
+			}
+			return s;
+		}
 	}
 }
 

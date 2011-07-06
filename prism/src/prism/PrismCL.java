@@ -74,6 +74,7 @@ public class PrismCL
 	private boolean explicitbuildtest = false;
 	private boolean nobuild = false;
 	private boolean test = false;
+	private boolean testExitsOnFail = true;
 
 	// property info
 	private int propertyToCheck = -1;
@@ -415,9 +416,13 @@ public class PrismCL
 						// store result of model checking
 						try {
 							results[j].setResult(definedMFConstants, definedPFConstants, res.getResult());
-							if (res.getCounterexample() != null) {
+							Object cex = res.getCounterexample(); 
+							if (cex != null) {
 								mainLog.println("\nCounterexample/witness:");
-								mainLog.println(res.getCounterexample());
+								mainLog.println(cex);
+								if (cex instanceof NonProbModelChecker.CexPathAsBDDs){
+									((NonProbModelChecker.CexPathAsBDDs) cex).clear();
+								}
 							}
 						} catch (PrismException e) {
 							error("Problem storing results");
@@ -433,7 +438,8 @@ public class PrismCL
 								}
 							} catch (PrismException e) {
 								mainLog.println("Testing result: FAIL: " + e.getMessage());
-								errorAndExit("Testing failed");
+								if (testExitsOnFail)
+									errorAndExit("Testing failed");
 							}
 						}
 
@@ -1106,6 +1112,12 @@ public class PrismCL
 				// enable "testing" mode
 				else if (sw.equals("test")) {
 					test = true;
+				}
+				// enable "test all" mode (don't stop on errors)
+				// (overrides -test switch)
+				else if (sw.equals("testall")) {
+					test = true;
+					testExitsOnFail = false;
 				}
 				
 				// IMPORT OPTIONS:
@@ -1870,8 +1882,8 @@ public class PrismCL
 
 	private void error(String s)
 	{
-		// If (and only if) we are in "test" mode, treat any error as fatal
-		if (test) {
+		// If (and only if) we are in "test" (and not "testall") mode, treat any error as fatal
+		if (test && testExitsOnFail) {
 			errorAndExit(s);
 		}
 		// Normal case: just display error message, but don't exit

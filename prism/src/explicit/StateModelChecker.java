@@ -478,14 +478,28 @@ public class StateModelChecker
 	{
 		Object res;
 
+		// Binary ops
+		// (just "and" for now - more to come later)
+		if (expr instanceof ExpressionBinaryOp && Expression.isAnd(expr)) {
+			res = checkExpressionBinaryOp(model, (ExpressionBinaryOp) expr);
+		}
 		// Literals
-		if (expr instanceof ExpressionLiteral) {
+		else if (expr instanceof ExpressionLiteral) {
 			res = checkExpressionLiteral(model, (ExpressionLiteral) expr);
 		}
 		// Labels
 		else if (expr instanceof ExpressionLabel) {
 			res = checkExpressionLabel(model, (ExpressionLabel) expr);
 		}
+		// Property refs
+		else if (expr instanceof ExpressionProp) {
+			res = checkExpressionProp(model, (ExpressionProp) expr);
+		}
+		// Filter
+		else if (expr instanceof ExpressionFilter) {
+			throw new PrismException("Explicit engine does not yet handle filters");
+		}
+		
 		// Anything else - just evaluate expression repeatedly
 		else if (expr.getType() instanceof TypeBool) {
 			int numStates = model.getNumStates();
@@ -518,6 +532,18 @@ public class StateModelChecker
 		}
 
 		return res;
+	}
+
+	/**
+	 * Model check a binary operator.
+	 */
+	protected Object checkExpressionBinaryOp(Model model, ExpressionBinaryOp expr) throws PrismException
+	{
+		// (just "and" for now - more to come later)
+		BitSet res1bs = (BitSet) checkExpression(model, expr.getOperand1()); 
+		BitSet res2bs = (BitSet) checkExpression(model, expr.getOperand2());
+		res1bs.and(res2bs);
+		return res1bs;
 	}
 
 	/**
@@ -554,15 +580,19 @@ public class StateModelChecker
 
 		// treat special cases
 		if (expr.getName().equals("deadlock")) {
-			throw new PrismException("Not supported"); // TODO
-			//dd = model.getFixedDeadlocks();
-			//JDD.Ref(dd);
-			//return new StateValuesMTBDD(dd, model);
+			int numStates = model.getNumStates();
+			BitSet bs = new BitSet(numStates);
+			for (i = 0; i < numStates; i++) {
+				bs.set(i, model.isFixedDeadlockState(i));
+			}
+			return bs;
 		} else if (expr.getName().equals("init")) {
-			throw new PrismException("Not supported"); // TODO
-			//dd = start;
-			//JDD.Ref(dd);
-			//return new StateValuesMTBDD(dd, model);
+			int numStates = model.getNumStates();
+			BitSet bs = new BitSet(numStates);
+			for (i = 0; i < numStates; i++) {
+				bs.set(i, model.isInitialState(i));
+			}
+			return bs;
 		} else {
 			ll = propertiesFile.getCombinedLabelList();
 			i = ll.getLabelIndex(expr.getName());
@@ -575,6 +605,20 @@ public class StateModelChecker
 			//labels = loadLabelsFile(getLabelsFilename());
 			// get expression associated with label
 			//return labels.get(expr.getName());
+		}
+	}
+
+	// Check property ref
+
+	protected Object checkExpressionProp(Model model, ExpressionProp expr) throws PrismException
+	{
+		// Look up property and check recursively
+		Property prop = propertiesFile.lookUpPropertyObjectByName(expr.getName());
+		if (prop != null) {
+			mainLog.println("\nModel checking : " + prop);
+			return checkExpression(model, prop.getExpression());
+		} else {
+			throw new PrismException("Unknown property reference " + expr);
 		}
 	}
 

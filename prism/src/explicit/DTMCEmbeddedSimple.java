@@ -101,6 +101,11 @@ public class DTMCEmbeddedSimple implements DTMC
 		return ctmc.isInitialState(i);
 	}
 
+	public boolean isFixedDeadlockState(int i)
+	{
+		return ctmc.isFixedDeadlockState(i);
+	}
+
 	public List<State> getStatesList()
 	{
 		return ctmc.getStatesList();
@@ -363,8 +368,8 @@ public class DTMCEmbeddedSimple implements DTMC
 		Distribution distr;
 
 		distr = ctmc.getTransitions(s);
-		d = mcRewards.getStateReward(s);
 		er = exitRates[s];
+		d = 0;
 		// Exit rate 0: prob 1 self-loop
 		if (er == 0) {
 			d += vect[s];
@@ -378,6 +383,7 @@ public class DTMCEmbeddedSimple implements DTMC
 			}
 			d /= er;
 		}
+		d += mcRewards.getStateReward(s);
 
 		return d;
 	}

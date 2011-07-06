@@ -30,8 +30,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.io.*;
 
-import explicit.rewards.MCRewards;
-
+import explicit.rewards.*;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismUtils;
@@ -313,6 +312,7 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		if (fix) {
 			for (i = deadlocks.nextSetBit(0); i >= 0; i = deadlocks.nextSetBit(i + 1)) {
 				setProbability(i, i, 1.0);
+				addFixedDeadlockState(i);
 			}
 		}
 		return deadlocks;
