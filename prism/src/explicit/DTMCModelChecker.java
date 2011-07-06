@@ -149,13 +149,9 @@ public class DTMCModelChecker extends ProbModelChecker
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
-	protected StateValues checkRewardFormula(Model model, Expression expr) throws PrismException
+	protected StateValues checkRewardFormula(Model model, MCRewards modelRewards, Expression expr) throws PrismException
 	{
 		StateValues rewards = null;
-		MCRewards modelRewards = null;
-		
-		//modelRewards = new MCRewardsStateArray(model.getNumStates());
-		modelRewards = new MCRewardsStateConstant(1);
 		
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;

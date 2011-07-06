@@ -143,8 +143,6 @@ public class TransitionList
 	public int getTotalIndexOfTransition(int i, int offset)
 	{
 		return transitionIndices.indexOf(i) + offset;
-		// return transitionOffsets.get(i);
-		// return transitionOffsets.get(i) + transitionIndices.get(i);
 	}
 
 	// Random selection of a choice 

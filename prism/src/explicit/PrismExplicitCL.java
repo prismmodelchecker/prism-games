@@ -362,7 +362,7 @@ public class PrismExplicitCL
 								}
 								// Non-PTA model checking
 								else {
-									res = prismExpl.modelCheck(modelExpl, "REMOVEME", propertiesFile, propertiesToCheck[j]);
+									res = prismExpl.modelCheck(modelExpl, modulesFileToCheck, propertiesFile, propertiesToCheck[j]);
 								}
 							}
 							// approximate (simulation-based) model checking

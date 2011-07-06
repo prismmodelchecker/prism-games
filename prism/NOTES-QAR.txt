@@ -14,6 +14,9 @@ M       src/explicit/MDPSimple.java
 - need to fix deadlock handling
 - need to disable more stuff that is currently n/a
 
+actions in MDPSparse
+- not complete, doesn't do non-storage (null) by default?
+
 stack:
 
 - can we speed up stpg val iter with gs?

@@ -28,6 +28,9 @@ package explicit;
 
 import java.util.Set;
 
+import explicit.rewards.MCRewards;
+import explicit.rewards.MCRewardsStateConstant;
+import jdd.JDDNode;
 import parser.ast.*;
 import prism.*;
 
@@ -38,9 +41,7 @@ public class ProbModelChecker extends StateModelChecker
 {
 	// Model checking functions
 
-	/**
-	 * Model check an expression and return the values for all states.
-	 */
+	@Override
 	public Object checkExpression(Model model, Expression expr) throws PrismException
 	{
 		Object res;
@@ -150,15 +151,28 @@ public class ProbModelChecker extends StateModelChecker
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
 	{
+		Object rs; // Reward struct index
+		RewardStruct rewStruct = null; // Reward struct object
+		Expression rb; // Reward bound (expression)
+		double r = 0; // Reward bound (actual value)
 		String relOp; // Relational operator
+		Expression expr2; // expression
 		boolean min1 = false;
 		boolean min2 = false;
 		ModelType modelType = model.getModelType();
-
 		StateValues rews = null;
+		MCRewards modelRewards = null;
+		int i;
 
 		// Get info from reward operator
+		rs = expr.getRewardStructIndex();
 		relOp = expr.getRelOp();
+		rb = expr.getReward();
+		if (rb != null) {
+			r = rb.evaluateDouble(constantValues, null);
+			if (r < 0)
+				throw new PrismException("Invalid reward bound " + r + " in R[] formula");
+		}
 
 		// Check for unhandled cases
 		// TODO
@@ -194,13 +208,41 @@ public class ProbModelChecker extends StateModelChecker
 			}
 		}
 
+		// Get reward info
+		if (modulesFile == null)
+			throw new PrismException("No model file to obtain reward structures");
+		if (modulesFile.getNumRewardStructs() == 0)
+			throw new PrismException("Model has no rewards specified");
+		if (rs == null) {
+			rewStruct = modulesFile.getRewardStruct(0);
+		} else if (rs instanceof Expression) {
+			i = ((Expression) rs).evaluateInt(constantValues, null);
+			rs = new Integer(i); // for better error reporting below
+			rewStruct = modulesFile.getRewardStruct(i - 1);
+		} else if (rs instanceof String) {
+			rewStruct = modulesFile.getRewardStructByName((String) rs);
+		}
+		if (rewStruct == null)
+			throw new PrismException("Invalid reward structure index \"" + rs + "\"");
+
+		// Build rewards (just MCs for now)
+		switch (modelType) {
+		case CTMC:
+		case DTMC:
+			//modelRewards = new MCRewardsStateArray(model.getNumStates());
+			modelRewards = new MCRewardsStateConstant(1);
+			break;
+		default:
+			throw new PrismException("Cannot build rewards " + expr + " for " + modelType + "s");
+		}
+		
 		// Compute rewards
 		switch (modelType) {
 		case CTMC:
-			rews = ((CTMCModelChecker) this).checkRewardFormula(model, expr.getExpression());
+			rews = ((CTMCModelChecker) this).checkRewardFormula(model, modelRewards, expr.getExpression());
 			break;
 		case DTMC:
-			rews = ((DTMCModelChecker) this).checkRewardFormula(model, expr.getExpression());
+			rews = ((DTMCModelChecker) this).checkRewardFormula(model, modelRewards, expr.getExpression());
 			break;
 		case MDP:
 			rews = ((MDPModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1);
@@ -209,7 +251,7 @@ public class ProbModelChecker extends StateModelChecker
 			rews = ((STPGModelChecker) this).checkRewardFormula(model, expr.getExpression(), min1, min2);
 			break;
 		default:
-			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
+			throw new PrismException("Cannot model check " + expr + " for " + modelType + "s");
 		}
 
 		// Print out probabilities

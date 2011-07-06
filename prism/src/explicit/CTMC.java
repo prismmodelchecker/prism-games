@@ -32,6 +32,12 @@ package explicit;
 public interface CTMC extends DTMC
 {
 	/**
+	 * Get the exit rate for state {@code i}.
+	 * i.e. sum_j R(i,j)
+	 */
+	public double getExitRate(int i);
+	
+	/**
 	 * Compute the maximum exit rate.
 	 * i.e. max_i { sum_j R(i,j) }
 	 */

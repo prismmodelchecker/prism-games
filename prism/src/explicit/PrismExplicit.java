@@ -86,10 +86,14 @@ public class PrismExplicit
 		return modelExpl;
 	}
 
-	// model checking
-	// returns result or throws an exception in case of error
-
-	public Result modelCheck(Model model, String labelsFilename, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
+	/**
+	 * Perform model checking of a property on a model and return result.
+	 * @param model The model
+	 * @param modulesFile Original model file (for rewards/...) (optional; null if not needed)
+	 * @param propertiesFile Parent property file of property (for labels/constants/...) (optional; null if not needed)
+	 * @param expr The property
+	 */
+	public Result modelCheck(Model model, ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
 		Result result = null;
 		String s;
@@ -119,7 +123,8 @@ public class PrismExplicit
 
 		mc.setLog(mainLog);
 		mc.setSettings(settings);
-		
+
+		mc.setModulesFile(modulesFile);
 		mc.setPropertiesFile(propertiesFile);
 
 		mc.setPrecomp(settings.getBoolean(PrismSettings.PRISM_PRECOMPUTATION));
@@ -130,6 +135,7 @@ public class PrismExplicit
 			mc.setTermCrit(StateModelChecker.TermCrit.RELATIVE);
 		}
 		mc.setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
+		mc.setMaxIters(settings.getInteger(PrismSettings.PRISM_MAX_ITERS));
 		switch (model.getModelType()) {
 		case DTMC:
 			s = settings.getString(PrismSettings.PRISM_LIN_EQ_METHOD);
@@ -155,17 +161,87 @@ public class PrismExplicit
 
 		// TODO: pass PRISM settings to mc
 
-		// pass labels info
-		mc.setLabelsFilename(labelsFilename);
-
 		// Do model checking
-		//		res = mc.check(expr);
 		result = mc.check(model, expr);
 
 		// Return result
 		return result;
 	}
 
+	/**
+	 * Compute transient probabilities (for a DTMC or CTMC).
+	 * Output probability distribution to log. 
+	 */
+	public void doTransient(Model model, double time) throws PrismException
+	{
+		doTransient(model, time, Prism.EXPORT_PLAIN, null, null);
+	}
+	
+	/**
+	 * Compute transient probabilities (for a DTMC or CTMC).
+	 * Output probability distribution to a file (or, if file is null, to log). 
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 */
+	public void doTransient(Model model, double time, int exportType, File fileOut, File fileIn) throws PrismException
+	{
+		long l = 0; // timer
+		StateValues probs = null;
+		PrismLog tmpLog;
+		
+		if (time < 0) throw new PrismException("Cannot compute transient probabilities for negative time value");
+		
+		// no specific states format for MRMC
+		if (exportType == Prism.EXPORT_MRMC) exportType = Prism.EXPORT_PLAIN;
+		// rows format does not apply to states output
+		if (exportType == Prism.EXPORT_ROWS) exportType = Prism.EXPORT_PLAIN;
+		
+		l = System.currentTimeMillis();
+
+		if (model.getModelType() == ModelType.DTMC) {
+			throw new PrismException("Not implemented yet"); // TODO
+		}
+		else if (model.getModelType() == ModelType.CTMC) {
+			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
+			CTMCModelChecker mcCTMC = new CTMCModelChecker();
+			// TODO: pass settings
+			probs = mcCTMC.doTransient((CTMC) model, time, null);
+		}
+		else {
+			throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
+		}
+		
+		l = System.currentTimeMillis() - l;
+		
+		// print message
+		mainLog.print("\nPrinting transient probabilities ");
+		switch (exportType) {
+		case Prism.EXPORT_PLAIN: mainLog.print("in plain text format "); break;
+		case Prism.EXPORT_MATLAB: mainLog.print("in Matlab format "); break;
+		}
+		if (fileOut != null) mainLog.println("to file \"" + fileOut + "\"..."); else mainLog.println("below:");
+		
+		// create new file log or use main log
+		if (fileOut != null) {
+			tmpLog = new PrismFileLog(fileOut.getPath());
+			if (!tmpLog.ready()) {
+				throw new PrismException("Could not open file \"" + fileOut + "\" for output");
+			}
+		} else {
+			tmpLog = mainLog;
+		}
+		
+		// print out or export probabilities
+		probs.print(tmpLog, fileOut == null, exportType == Prism.EXPORT_MATLAB, fileOut == null);
+		
+		// print out computation time
+		mainLog.println("\nTime for transient probability computation: " + l/1000.0 + " seconds.");
+
+		// tidy up
+		probs.clear();
+		if (fileOut != null) tmpLog.close();
+	}
+	
 	/**
 	 * Simple test program.
 	 */
@@ -189,12 +265,9 @@ public class PrismExplicit
 			modulesFile.setUndefinedConstants(null);
 			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(args[1]));
 			propertiesFile.setUndefinedConstants(null);
-			ConstructModel constructModel;
-			constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-			Model modelExpl = constructModel.constructModel(modulesFile);
-			List<State> statesList = constructModel.getStatesList();
 			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
-			Object res = pe.modelCheck(modelExpl, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));
+			Model modelExpl = pe.buildModel(modulesFile, prism.getSimulator());
+			pe.modelCheck(modelExpl, modulesFile, propertiesFile, propertiesFile.getProperty(0));
 		} catch (PrismException e) {
 			System.out.println(e);
 		} catch (FileNotFoundException e) {
@@ -223,7 +296,7 @@ public class PrismExplicit
 			DTMCSimple modelExplicit = new DTMCSimple();
 			modelExplicit.buildFromPrismExplicit("tmp.tra");
 			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
-			Object res = pe.modelCheck(modelExplicit, "tmp.lab", propertiesFile, propertiesFile.getProperty(0));
+			pe.modelCheck(modelExplicit, null, propertiesFile, propertiesFile.getProperty(0));
 		} catch (PrismException e) {
 			System.out.println(e);
 		} catch (FileNotFoundException e) {

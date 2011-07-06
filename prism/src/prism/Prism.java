@@ -1648,7 +1648,7 @@ public class Prism implements PrismSettingsListener
 		PrismLog tmpLog;
 		
 		if (fileOut != null && getEngine() == MTBDD)
-			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
+			throw new PrismException("Steady-state probability export only supported for sparse/hybrid engines");
 		
 		// no specific states format for MRMC
 		if (exportType == EXPORT_MRMC) exportType = EXPORT_PLAIN;
@@ -1731,9 +1731,6 @@ public class Prism implements PrismSettingsListener
 		if (exportType == EXPORT_MRMC) exportType = EXPORT_PLAIN;
 		// rows format does not apply to states output
 		if (exportType == EXPORT_ROWS) exportType = EXPORT_PLAIN;
-		
-		// create new model checker object
-		mc = new StochModelChecker(this, model, null);
 		
 		l = System.currentTimeMillis();
 

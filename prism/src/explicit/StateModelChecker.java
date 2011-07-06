@@ -50,10 +50,13 @@ public class StateModelChecker
 	// PRISM settings object
 	protected PrismSettings settings = new PrismSettings();
 	
-	// Properties file (for labels, constants etc)
-	protected PropertiesFile propertiesFile;
+	// Model file (for reward structures, etc.)
+	protected ModulesFile modulesFile = null;
 
-	// Constants
+	// Properties file (for labels, constants, etc.)
+	protected PropertiesFile propertiesFile = null;
+
+	// Constants (extracted from model/properties)
 	protected Values constantValues;
 
 	// The result of model checking will be stored here
@@ -130,7 +133,15 @@ public class StateModelChecker
 	}
 
 	/**
-	 * Set PropertiesFile (for e.g. constants/labels when model checking)
+	 * Set the attached model file (for e.g. reward structures when model checking)
+	 */
+	public void setModulesFile(ModulesFile modulesFile)
+	{
+		this.modulesFile = modulesFile;
+	}
+
+	/**
+	 * Set the attached properties file (for e.g. constants/labels when model checking)
 	 */
 	public void setPropertiesFile(PropertiesFile propertiesFile)
 	{
@@ -297,6 +308,10 @@ public class StateModelChecker
 
 	/**
 	 * Model check an expression, process and return the result.
+	 * Information about states and model constants should be attached to the model.
+	 * For other required info (labels, reward structures, etc.), use the methods
+	 * {@link #setModulesFile} and {@link #setPropertiesFile}
+	 * to attach the original model/properties files.
 	 */
 	public Result check(Model model, Expression expr) throws PrismException
 	{
@@ -454,6 +469,10 @@ public class StateModelChecker
 
 	/**
 	 * Model check an expression and return a vector result values over all states.
+	 * Information about states and model constants should be attached to the model.
+	 * For other required info (labels, reward structures, etc.), use the methods
+	 * {@link #setModulesFile} and {@link #setPropertiesFile}
+	 * to attach the original model/properties files.
 	 */
 	public Object checkExpression(Model model, Expression expr) throws PrismException
 	{
@@ -632,26 +651,5 @@ public class StateModelChecker
 		} catch (NumberFormatException e) {
 			throw new PrismException("Error in labels file");
 		}
-	}
-
-	// (TEMPORARY)
-	protected String labelsFilename = null;
-
-	/**
-	 * (TEMPORARY)
-	 * Set the labels file associated with this model.
-	 */
-	public void setLabelsFilename(String filename)
-	{
-		labelsFilename = filename;
-	}
-
-	/**
-	 * (TEMPORARY)
-	 * Get the labels file associated with this model.
-	 */
-	public String getLabelsFilename()
-	{
-		return labelsFilename;
 	}
 }

@@ -68,10 +68,12 @@ public class PrismCL
 	private boolean simulate = false;
 	private boolean simpath = false;
 	private ModelType typeOverride = null;
+	private boolean orderingOverride = false;
 	private boolean explicit = false;
 	private boolean explicitbuild = false;
 	private boolean explicitbuildtest = false;
 	private boolean nobuild = false;
+	private boolean test = false;
 
 	// property info
 	private int propertyToCheck = -1;
@@ -121,7 +123,7 @@ public class PrismCL
 
 	// info about which properties to model check
 	private int numPropertiesToCheck = 0;
-	private Expression propertiesToCheck[] = null;
+	private List<Property> propertiesToCheck = null;
 
 	// info about undefined constants
 	private UndefinedConstants undefinedConstants;
@@ -196,7 +198,7 @@ public class PrismCL
 		// initialise storage for results
 		results = new ResultsCollection[numPropertiesToCheck];
 		for (i = 0; i < numPropertiesToCheck; i++) {
-			results[i] = new ResultsCollection(undefinedConstants, propertiesToCheck[i].getResultName());
+			results[i] = new ResultsCollection(undefinedConstants, propertiesToCheck.get(i).getExpression().getResultName());
 		}
 
 		// iterate through as many models as necessary
@@ -327,13 +329,13 @@ public class PrismCL
 				if (simulate && undefinedConstants.getNumPropertyIterations() > 1) {
 					try {
 						mainLog.println("\n-------------------------------------------");
-						mainLog.println("\nSimulating: " + propertiesToCheck[j]);
+						mainLog.println("\nSimulating: " + propertiesToCheck.get(j));
 						if (definedMFConstants != null)
 							if (definedMFConstants.getNumValues() > 0)
 								mainLog.println("Model constants: " + definedMFConstants);
 						mainLog.println("Property constants: " + undefinedConstants.getPFDefinedConstantsString());
-						simMethod = processSimulationOptions(propertiesToCheck[j]);
-						prism.modelCheckSimulatorExperiment(modulesFile, propertiesFile, undefinedConstants, results[j], propertiesToCheck[j], null,
+						simMethod = processSimulationOptions(propertiesToCheck.get(j).getExpression());
+						prism.modelCheckSimulatorExperiment(modulesFile, propertiesFile, undefinedConstants, results[j], propertiesToCheck.get(j).getExpression(), null,
 								simMaxPath, simMethod);
 					} catch (PrismException e) {
 						// in case of (overall) error, report it, store as result for property, and proceed
@@ -362,7 +364,7 @@ public class PrismCL
 
 							// log output
 							mainLog.println("\n-------------------------------------------");
-							mainLog.println("\n" + (simulate ? "Simulating" : "Model checking") + ": " + propertiesToCheck[j]);
+							mainLog.println("\n" + (simulate ? "Simulating" : "Model checking") + ": " + propertiesToCheck.get(j));
 							if (definedMFConstants != null)
 								if (definedMFConstants.getNumValues() > 0)
 									mainLog.println("Model constants: " + definedMFConstants);
@@ -374,7 +376,7 @@ public class PrismCL
 							if (modulesFile.getModelType() == ModelType.PTA
 									&& prism.getSettings().getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks")) {
 								DigitalClocks dc = new DigitalClocks(prism);
-								dc.translate(modulesFile, propertiesFile, propertiesToCheck[j]);
+								dc.translate(modulesFile, propertiesFile, propertiesToCheck.get(j).getExpression());
 								modulesFileToCheck = dc.getNewModulesFile();
 								modulesFileToCheck.setUndefinedConstants(modulesFile.getConstantValues());
 								doPrismLangExports(modulesFileToCheck);
@@ -387,21 +389,21 @@ public class PrismCL
 							if (!simulate) {
 								// PTA model checking
 								if (modulesFileToCheck.getModelType() == ModelType.PTA) {
-									res = prism.modelCheckPTA(modulesFileToCheck, propertiesFile, propertiesToCheck[j]);
+									res = prism.modelCheckPTA(modulesFileToCheck, propertiesFile, propertiesToCheck.get(j).getExpression());
 								}
 								// Non-PTA model checking
 								else {
 									if (!explicit) {
-										res = prism.modelCheck(model, propertiesFile, propertiesToCheck[j]);
+										res = prism.modelCheck(model, propertiesFile, propertiesToCheck.get(j).getExpression());
 									} else {
-										res = prismExpl.modelCheck(modelExpl, "REMOVEME", propertiesFile, propertiesToCheck[j]);
+										res = prismExpl.modelCheck(modelExpl, modulesFileToCheck, propertiesFile, propertiesToCheck.get(j).getExpression());
 									}
 								}
 							}
 							// approximate (simulation-based) model checking
 							else {
-								simMethod = processSimulationOptions(propertiesToCheck[j]);
-								res = prism.modelCheckSimulator(modulesFileToCheck, propertiesFile, propertiesToCheck[j], null, simMaxPath, simMethod);
+								simMethod = processSimulationOptions(propertiesToCheck.get(j).getExpression());
+								res = prism.modelCheckSimulator(modulesFileToCheck, propertiesFile, propertiesToCheck.get(j).getExpression(), null, simMaxPath, simMethod);
 								simMethod.reset();
 							}
 						} catch (PrismException e) {
@@ -419,6 +421,20 @@ public class PrismCL
 							}
 						} catch (PrismException e) {
 							error("Problem storing results");
+						}
+
+						// if required, check result against expected value
+						if (test) {
+							try {
+								if (propertiesToCheck.get(j).checkAgainstExpectedResult(res.getResult())) {
+									mainLog.println("Testing result: PASS");
+								} else {
+									mainLog.println("Testing result: NOT TESTED");
+								}
+							} catch (PrismException e) {
+								mainLog.println("Testing result: FAIL: " + e.getMessage());
+								errorAndExit("Testing failed");
+							}
 						}
 
 						// iterate to next property
@@ -451,7 +467,7 @@ public class PrismCL
 			for (i = 0; i < numPropertiesToCheck; i++) {
 				if (i > 0)
 					tmpLog.println();
-				tmpLog.print(propertiesToCheck[i] + ":\n" + results[i].toString(false, " ", " "));
+				tmpLog.print(propertiesToCheck.get(i) + ":\n" + results[i].toString(false, " ", " "));
 			}
 			tmpLog.close();
 		}
@@ -470,12 +486,9 @@ public class PrismCL
 		mainLog = new PrismFileLog("stdout");
 		techLog = new PrismFileLog("stdout");
 
-		// create prism object
+		// create prism object(s)
 		prism = new Prism(mainLog, techLog);
 		prismExpl = new PrismExplicit(mainLog, prism.getSettings());
-
-		// get prism defaults
-		verbose = prism.getVerbose();
 
 		// parse command line arguments
 		parseArguments(args);
@@ -488,6 +501,9 @@ public class PrismCL
 
 		// do some processing of the options
 		processOptions();
+
+		// store verbosity option locally
+		verbose = prism.getVerbose();
 	}
 
 	// parse model and properties
@@ -564,25 +580,24 @@ public class PrismCL
 	{
 		int i;
 
+		propertiesToCheck = new ArrayList<Property>();
+		
 		// no properties to check
 		if (propertiesFile == null) {
 			numPropertiesToCheck = 0;
-			propertiesToCheck = null;
 		}
 		// unless specified, verify all properties
 		else if (propertyToCheck == -1) {
 			numPropertiesToCheck = propertiesFile.getNumProperties();
-			propertiesToCheck = new Expression[numPropertiesToCheck];
 			for (i = 0; i < numPropertiesToCheck; i++) {
-				propertiesToCheck[i] = propertiesFile.getProperty(i);
+				propertiesToCheck.add(propertiesFile.getPropertyObject(i));
 			}
 		}
 		// otherwise just verify the relevant property
 		else {
 			if (propertyToCheck > 0 && propertyToCheck <= propertiesFile.getNumProperties()) {
 				numPropertiesToCheck = 1;
-				propertiesToCheck = new Expression[1];
-				propertiesToCheck[0] = propertiesFile.getProperty(propertyToCheck - 1);
+				propertiesToCheck.add(propertiesFile.getPropertyObject(propertyToCheck - 1));
 			} else {
 				errorAndExit("There is not a property " + propertyToCheck + " to verify");
 			}
@@ -897,6 +912,7 @@ public class PrismCL
 
 	private void doSteadyState() throws PrismException
 	{
+		ModelType modelType;
 		File exportSteadyStateFile = null;
 
 		// choose destination for output (file or log)
@@ -905,8 +921,15 @@ public class PrismCL
 		else
 			exportSteadyStateFile = new File(exportSteadyStateFilename);
 
+		// Determine model type
+		if (explicit) {
+			modelType = modelExpl.getModelType();
+		} else {
+			modelType = model.getModelType();
+		}
+		
 		// compute steady-state probabilities
-		if (model.getModelType() == ModelType.CTMC || model.getModelType() == ModelType.DTMC) {
+		if (modelType == ModelType.CTMC || modelType == ModelType.DTMC) {
 			prism.doSteadyState(model, exportType, exportSteadyStateFile);
 		} else {
 			mainLog.println("\nWarning: Steady-state probabilities only computed for DTMCs/CTMCs.");
@@ -917,6 +940,7 @@ public class PrismCL
 
 	private void doTransient() throws PrismException
 	{
+		ModelType modelType;
 		double d;
 		int i;
 		File exportTransientFile = null;
@@ -927,21 +951,36 @@ public class PrismCL
 		else
 			exportTransientFile = new File(exportTransientFilename);
 
+		// Determine model type
+		if (explicit) {
+			modelType = modelExpl.getModelType();
+		} else {
+			modelType = model.getModelType();
+		}
+		
 		// compute transient probabilities
-		if (model.getModelType() == ModelType.CTMC) {
+		if (modelType == ModelType.CTMC) {
 			try {
 				d = Double.parseDouble(transientTime);
 			} catch (NumberFormatException e) {
 				throw new PrismException("Invalid value \"" + transientTime + "\" for transient probability computation");
 			}
-			prism.doTransient(model, d, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
-		} else if (model.getModelType() == ModelType.DTMC) {
+			if (explicit) {
+				prismExpl.doTransient(modelExpl, d, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
+			} else {
+				prism.doTransient(model, d, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
+			}
+		} else if (modelType == ModelType.DTMC) {
 			try {
 				i = Integer.parseInt(transientTime);
 			} catch (NumberFormatException e) {
 				throw new PrismException("Invalid value \"" + transientTime + "\" for transient probability computation");
 			}
-			prism.doTransient(model, i, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
+			if (explicit) {
+				prismExpl.doTransient(modelExpl, i, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
+			} else {
+				prism.doTransient(model, i, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
+			}
 		} else {
 			mainLog.println("\nWarning: Transient probabilities only computed for DTMCs/CTMCs.");
 		}
@@ -956,11 +995,12 @@ public class PrismCL
 		mainLog.println();
 	}
 
-	// parse command line arguments
-
-	public void parseArguments(String[] args) throws PrismException
+	/**
+	 * Process command-line arguments/switches.
+	 */
+	private void parseArguments(String[] args) throws PrismException
 	{
-		int i, j;
+		int i,  j;
 		double d;
 		String sw, s;
 		PrismLog log;
@@ -974,6 +1014,10 @@ public class PrismCL
 
 				sw = args[i].substring(1);
 
+				// Note: the order of these switches should match the -help output (just to help keep track of things).
+				// But: processing of "PRISM" options is done elsewhere in PrismSettings
+				// Any "hidden" options, i.e. not in -help text/manual, are indicated as such.
+				
 				// print help
 				if (sw.equals("help") || sw.equals("-help") || sw.equals("?")) {
 					printHelp();
@@ -998,11 +1042,37 @@ public class PrismCL
 						errorAndExit("No property specified for -" + sw + " switch");
 					}
 				}
-				// do steady state
+				// which property to check
+				else if (sw.equals("prop") || sw.equals("property")) {
+					if (i < args.length - 1) {
+						try {
+							propertyToCheck = Integer.parseInt(args[++i]);
+							if (propertyToCheck < 1)
+								throw new NumberFormatException();
+						} catch (NumberFormatException e) {
+							errorAndExit("Invalid value for -" + sw + " switch");
+						}
+					} else {
+						errorAndExit("No value specified for -" + sw + " switch");
+					}
+				}
+				// definition of undefined constants
+				else if (sw.equals("const")) {
+					if (i < args.length - 1) {
+						// store argument for later use (append if already partially specified)
+						if ("".equals(constSwitch))
+							constSwitch = args[++i].trim();
+						else
+							constSwitch += "," + args[++i].trim();
+					} else {
+						errorAndExit("Incomplete -" + sw + " switch");
+					}
+				}
+				// do steady-state probability computation
 				else if (sw.equals("steadystate") || sw.equals("ss")) {
 					steadystate = true;
 				}
-				// do steady state
+				// do transient probability computation
 				else if (sw.equals("transient") || sw.equals("tr")) {
 					if (i < args.length - 1) {
 						try {
@@ -1017,6 +1087,86 @@ public class PrismCL
 						}
 					} else {
 						errorAndExit("No value specified for -" + sw + " switch");
+					}
+				}
+				// generate random path with simulator
+				else if (sw.equals("simpath")) {
+					if (i < args.length - 2) {
+						simpath = true;
+						simpathDetails = args[++i];
+						simpathFilename = args[++i];
+					} else {
+						errorAndExit("The -" + sw + " switch requires two arguments (path details, filename)");
+					}
+				}
+				// disable model construction
+				else if (sw.equals("nobuild")) {
+					nobuild = true;
+				}
+				// enable "testing" mode
+				else if (sw.equals("test")) {
+					test = true;
+				}
+				
+				// IMPORT OPTIONS:
+					
+				// change model type to pepa
+				else if (sw.equals("importpepa")) {
+					importpepa = true;
+				}
+				// import model from explicit format
+				else if (sw.equals("importtrans")) {
+					importtrans = true;
+				}
+				// import states for explicit model import
+				else if (sw.equals("importstates")) {
+					if (i < args.length - 1) {
+						importstates = true;
+						importStatesFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// import labels for explicit model import
+				else if (sw.equals("importlabels")) {
+					if (i < args.length - 1) {
+						importlabels = true;
+						importLabelsFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// import initial distribution e.g. for transient probability distribution
+				else if (sw.equals("importinitdist")) {
+					if (i < args.length - 1) {
+						importinitdist = true;
+						importInitDistFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// override model type to dtmc
+				else if (sw.equals("dtmc")) {
+					typeOverride = ModelType.DTMC;
+				}
+				// override model type to mdp
+				else if (sw.equals("mdp")) {
+					typeOverride = ModelType.MDP;
+				}
+				// override model type to ctmc
+				else if (sw.equals("ctmc")) {
+					typeOverride = ModelType.CTMC;
+				}
+						
+				// EXPORT OPTIONS:
+					
+				// export results
+				else if (sw.equals("exportresults")) {
+					if (i < args.length - 1) {
+						exportresults = true;
+						exportResultsFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
 				// export transition matrix to file
@@ -1075,23 +1225,25 @@ public class PrismCL
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
-				// export to spy file
-				else if (sw.equals("exportspy")) {
-					if (i < args.length - 1) {
-						exportspy = true;
-						exportSpyFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
+				// switch export mode to "matlab"
+				else if (sw.equals("exportmatlab")) {
+					exportType = Prism.EXPORT_MATLAB;
 				}
-				// export to dot file
-				else if (sw.equals("exportdot")) {
-					if (i < args.length - 1) {
-						exportdot = true;
-						exportDotFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
+				// switch export mode to "mrmc"
+				else if (sw.equals("exportmrmc")) {
+					exportType = Prism.EXPORT_MRMC;
+				}
+				// switch export mode to "rows"
+				else if (sw.equals("exportrows")) {
+					exportType = Prism.EXPORT_ROWS;
+				}
+				// exported matrix entries are ordered
+				else if (sw.equals("exportordered") || sw.equals("ordered")) {
+					exportordered = true;
+				}
+				// exported matrix entries are unordered
+				else if (sw.equals("exportunordered") || sw.equals("unordered")) {
+					exportordered = false;
 				}
 				// export transition matrix graph to dot file
 				else if (sw.equals("exporttransdot")) {
@@ -1111,11 +1263,36 @@ public class PrismCL
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
+				// export transition matrix MTBDD to dot file
+				else if (sw.equals("exportdot")) {
+					if (i < args.length - 1) {
+						exportdot = true;
+						exportDotFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
 				// export bsccs to file
 				else if (sw.equals("exportbsccs")) {
 					if (i < args.length - 1) {
 						exportbsccs = true;
 						exportBSCCsFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// export steady-state probs (as opposed to displaying on screen) 
+				else if (sw.equals("exportsteadystate") || sw.equals("exportss")) {
+					if (i < args.length - 1) {
+						exportSteadyStateFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// export transient probs (as opposed to displaying on screen) 
+				else if (sw.equals("exporttransient") || sw.equals("exporttr")) {
+					if (i < args.length - 1) {
+						exportTransientFilename = args[++i];
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
@@ -1138,25 +1315,7 @@ public class PrismCL
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
-				// export adversary to file
-				else if (sw.equals("exportadv")) {
-					if (i < args.length - 1) {
-						prism.setExportAdv(Prism.EXPORT_ADV_DTMC);
-						prism.setExportAdvFilename(args[++i]);
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export adversary to file, as an mdp
-				else if (sw.equals("exportadvmdp")) {
-					if (i < args.length - 1) {
-						prism.setExportAdv(Prism.EXPORT_ADV_MDP);
-						prism.setExportAdvFilename(args[++i]);
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export reachability target info to file
+				// export reachability target info to file (hidden option)
 				else if (sw.equals("exporttarget")) {
 					if (i < args.length - 1) {
 						prism.setExportTarget(true);
@@ -1165,64 +1324,7 @@ public class PrismCL
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
-				// disable model construction
-				else if (sw.equals("nobuild")) {
-					nobuild = true;
-				}
-				// set scc computation algorithm
-				else if (sw.equals("sccmethod") || sw.equals("bsccmethod")) {
-					if (i < args.length - 1) {
-						s = args[++i];
-						if (s.equals("xiebeerel"))
-							prism.getSettings().set(PrismSettings.PRISM_SCC_METHOD, "Xie-Beerel");
-						else if (s.equals("lockstep"))
-							prism.getSettings().set(PrismSettings.PRISM_SCC_METHOD, "Lockstep");
-						else if (s.equals("sccfind"))
-							prism.getSettings().set(PrismSettings.PRISM_SCC_METHOD, "SCC-Find");
-						else
-							errorAndExit("Unrecognised option for -" + sw + " switch (options are: xiebeerel, lockstep, sccfind)");
-					} else {
-						errorAndExit("No parameter specified for -" + sw + " switch");
-					}
-				}
-				// export results
-				else if (sw.equals("exportresults")) {
-					if (i < args.length - 1) {
-						exportresults = true;
-						exportResultsFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export steady-state probs (as opposed to displaying on screen) 
-				else if (sw.equals("exportsteadystate") || sw.equals("exportss")) {
-					if (i < args.length - 1) {
-						exportSteadyStateFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export transient probs (as opposed to displaying on screen) 
-				else if (sw.equals("exporttransient") || sw.equals("exporttr")) {
-					if (i < args.length - 1) {
-						exportTransientFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// switch export mode to "matlab"
-				else if (sw.equals("exportmatlab")) {
-					exportType = Prism.EXPORT_MATLAB;
-				}
-				// switch export mode to "mrmc"
-				else if (sw.equals("exportmrmc")) {
-					exportType = Prism.EXPORT_MRMC;
-				}
-				// switch export mode to "rows"
-				else if (sw.equals("exportrows")) {
-					exportType = Prism.EXPORT_ROWS;
-				}
-				// export model to plain text file (deprecated)
+				// export model to plain text file (deprecated option so hidden)
 				else if (sw.equals("exportplain")) {
 					if (i < args.length - 1) {
 						exporttrans = true;
@@ -1233,402 +1335,25 @@ public class PrismCL
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
-				// exported matrix entries are ordered
-				else if (sw.equals("exportordered") || sw.equals("ordered")) {
-					exportordered = true;
-				}
-				// exported matrix entries are unordered
-				else if (sw.equals("exportunordered") || sw.equals("unordered")) {
-					exportordered = false;
-				}
-				// change model type to pepa
-				else if (sw.equals("importpepa")) {
-					importpepa = true;
-				}
-				// import model from explicit format
-				else if (sw.equals("importtrans")) {
-					importtrans = true;
-				}
-				// import states for explicit model import
-				else if (sw.equals("importstates")) {
+				// export to spy file (hidden option)
+				else if (sw.equals("exportspy")) {
 					if (i < args.length - 1) {
-						importstates = true;
-						importStatesFilename = args[++i];
+						exportspy = true;
+						exportSpyFilename = args[++i];
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
-				// import labels for explicit model import
-				else if (sw.equals("importlabels")) {
-					if (i < args.length - 1) {
-						importlabels = true;
-						importLabelsFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// import initial distribution e.g. for transient probability distribution
-				else if (sw.equals("importinitdist")) {
-					if (i < args.length - 1) {
-						importinitdist = true;
-						importInitDistFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// override model type to dtmc
-				else if (sw.equals("dtmc")) {
-					typeOverride = ModelType.DTMC;
-				}
-				// override model type to mdp
-				else if (sw.equals("mdp")) {
-					typeOverride = ModelType.MDP;
-				}
-				// override model type to ctmc
-				else if (sw.equals("ctmc")) {
-					typeOverride = ModelType.CTMC;
-				}
-				// use simulator
+				
+				// NB: Following the ordering of the -help text, more options go here,
+				// but these are processed in the PrismSettings class; see below 
+				
+				// SIMULATION OPTIONS:
+				
+				// use simulator for approximate/statistical model checking
 				else if (sw.equals("sim")) {
 					simulate = true;
 				}
-				// use the number of iterations given instead of automatically deciding whether the variance is null ot not
-				else if (sw.equals("simmanual")) {
-					simManual = true;
-				}
-				// generate path with simulator
-				else if (sw.equals("simpath")) {
-					if (i < args.length - 2) {
-						simpath = true;
-						simpathDetails = args[++i];
-						simpathFilename = args[++i];
-					} else {
-						errorAndExit("The -" + sw + " switch requires two arguments (path details, filename)");
-					}
-				}
-				// which property to check
-				else if (sw.equals("prop") || sw.equals("property")) {
-					if (i < args.length - 1) {
-						try {
-							propertyToCheck = Integer.parseInt(args[++i]);
-							if (propertyToCheck < 1)
-								throw new NumberFormatException();
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-
-				// definition of undefined constants
-				else if (sw.equals("const")) {
-					if (i < args.length - 1) {
-						// store argument for later use (append if already partially specified)
-						if ("".equals(constSwitch))
-							constSwitch = args[++i].trim();
-						else
-							constSwitch += "," + args[++i].trim();
-					} else {
-						errorAndExit("Incomplete -" + sw + " switch");
-					}
-				}
-
-				// logs
-
-				// specify main log
-				else if (sw.equals("mainlog")) {
-					if (i < args.length - 1) {
-						mainLogFilename = args[++i];
-						// use temporary storage because an error would go to the old log
-						log = new PrismFileLog(mainLogFilename);
-						if (!log.ready()) {
-							errorAndExit("Couldn't open log file \"" + mainLogFilename + "\"");
-						}
-						mainLog = log;
-						prism.setMainLog(mainLog);
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// specify mtbdd log
-				else if (sw.equals("techlog")) {
-					if (i < args.length - 1) {
-						techLogFilename = args[++i];
-						log = new PrismFileLog(techLogFilename);
-						if (!log.ready()) {
-							errorAndExit("Couldn't open log file \"" + techLogFilename + "\"");
-						}
-						techLog = log;
-						prism.setTechLog(techLog);
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-
-				// engine
-
-				// set engine to 'mtbdd'
-				else if (sw.equals("mtbdd") || sw.equals("m")) {
-					prism.setEngine(Prism.MTBDD);
-					// and change default ordering
-					prism.setOrdering(2);
-				}
-				// set engine to 'sparse'
-				else if (sw.equals("sparse") || sw.equals("s")) {
-					prism.setEngine(Prism.SPARSE);
-				}
-				// set engine to 'hybrid'
-				else if (sw.equals("hybrid") || sw.equals("h")) {
-					prism.setEngine(Prism.HYBRID);
-				}
-
-				// model construction options
-
-				// mtbdd construction method
-				else if (sw.equals("c1")) {
-					prism.setConstruction(1);
-				} else if (sw.equals("c2")) {
-					prism.setConstruction(2);
-				} else if (sw.equals("c3")) {
-					prism.setConstruction(3);
-				}
-				// mtbdd variable ordering
-				else if (sw.equals("o1")) {
-					prism.setOrdering(1);
-				} else if (sw.equals("o2")) {
-					prism.setOrdering(2);
-				}
-				// zero-reward loops check on
-				else if (sw.equals("zerorewardcheck")) {
-					prism.setCheckZeroLoops(true);
-				}
-				// reachability off
-				else if (sw.equals("noreach")) {
-					prism.setDoReach(false);
-				}
-				// prob/rate checks off
-				else if (sw.equals("noprobchecks")) {
-					prism.setDoProbChecks(false);
-				}
-
-				// model checking options
-
-				// linear equation solver method
-				else if (sw.equals("power") || sw.equals("pow") || sw.equals("pwr")) {
-					prism.setLinEqMethod(Prism.POWER);
-				} else if (sw.equals("jacobi") || sw.equals("jac")) {
-					prism.setLinEqMethod(Prism.JACOBI);
-				} else if (sw.equals("gaussseidel") || sw.equals("gs")) {
-					prism.setLinEqMethod(Prism.GAUSSSEIDEL);
-					prism.setMDPSolnMethod(Prism.MDP_GAUSSSEIDEL);
-				} else if (sw.equals("bgaussseidel") || sw.equals("bgs")) {
-					prism.setLinEqMethod(Prism.BGAUSSSEIDEL);
-				} else if (sw.equals("pgaussseidel") || sw.equals("pgs")) {
-					prism.setLinEqMethod(Prism.PGAUSSSEIDEL);
-				} else if (sw.equals("bpgaussseidel") || sw.equals("bpgs")) {
-					prism.setLinEqMethod(Prism.BPGAUSSSEIDEL);
-				} else if (sw.equals("jor")) {
-					prism.setLinEqMethod(Prism.JOR);
-					prism.setLinEqMethodParam(0.9);
-				} else if (sw.equals("sor")) {
-					prism.setLinEqMethod(Prism.SOR);
-					prism.setLinEqMethodParam(0.9);
-				} else if (sw.equals("bsor")) {
-					prism.setLinEqMethod(Prism.BSOR);
-					prism.setLinEqMethodParam(0.9);
-				} else if (sw.equals("psor")) {
-					prism.setLinEqMethod(Prism.PSOR);
-					prism.setLinEqMethodParam(0.9);
-				} else if (sw.equals("bpsor")) {
-					prism.setLinEqMethod(Prism.BPSOR);
-					prism.setLinEqMethodParam(0.9);
-				}
-				// linear equation solver parameter
-				else if (sw.equals("omega")) {
-					if (i < args.length - 1) {
-						try {
-							d = Double.parseDouble(args[++i]);
-							prism.setLinEqMethodParam(d);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// MDP solution method
-				else if (sw.equals("valiter")) {
-					prism.setMDPSolnMethod(Prism.MDP_VALITER);
-				}
-				else if (sw.equals("politer")) {
-					prism.setMDPSolnMethod(Prism.MDP_POLITER);
-				}
-				else if (sw.equals("modpoliter")) {
-					prism.setMDPSolnMethod(Prism.MDP_MODPOLITER);
-				}
-				// termination criterion (iterative methods)
-				else if (sw.equals("absolute") || sw.equals("abs")) {
-					prism.setTermCrit(Prism.ABSOLUTE);
-				} else if (sw.equals("relative") || sw.equals("rel")) {
-					prism.setTermCrit(Prism.RELATIVE);
-				}
-				// termination criterion parameter
-				else if (sw.equals("epsilon") || sw.equals("e")) {
-					if (i < args.length - 1) {
-						try {
-							d = Double.parseDouble(args[++i]);
-							if (d < 0)
-								throw new NumberFormatException("");
-							prism.setTermCritParam(d);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// max iters
-				else if (sw.equals("maxiters")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < 0)
-								throw new NumberFormatException("");
-							prism.setMaxIters(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// verbose on
-				else if (sw.equals("verbose") || sw.equals("v")) {
-					prism.setVerbose(true);
-					verbose = true;
-				}
-				// extra dd info on
-				else if (sw.equals("extraddinfo")) {
-					prism.setExtraDDInfo(true);
-				}
-				// extra reach info on
-				else if (sw.equals("extrareachinfo")) {
-					prism.setExtraReachInfo(true);
-				}
-				// precomputation algs off
-				else if (sw.equals("nopre")) {
-					prism.setPrecomp(false);
-				}
-				// fairness on
-				else if (sw.equals("fair")) {
-					prism.setFairness(true);
-				}
-				// fairness off
-				else if (sw.equals("nofair")) {
-					prism.setFairness(false);
-				}
-				// fix deadlocks
-				else if (sw.equals("fixdl")) {
-					fixdl = true;
-				}
-				// no bscc computation
-				else if (sw.equals("nobscc")) {
-					prism.setBSCCComp(false);
-				}
-				// no steady-state detection
-				else if (sw.equals("nossdetect")) {
-					prism.setDoSSDetect(false);
-				}
-				// sparse bits info
-				else if (sw.equals("sbmax")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < 0)
-								throw new NumberFormatException();
-							prism.setSBMaxMem(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				} else if (sw.equals("sbl")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < -1)
-								throw new NumberFormatException();
-							prism.setNumSBLevels(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// hybrid sor info
-				else if (sw.equals("sormax") || sw.equals("gsmax")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < 0)
-								throw new NumberFormatException();
-							prism.setSORMaxMem(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				} else if (sw.equals("sorl") || sw.equals("gsl")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < -1)
-								throw new NumberFormatException();
-							prism.setNumSORLevels(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// turn off compact option for sparse matrix storage
-				else if (sw.equals("nocompact")) {
-					prism.setCompact(false);
-				}
-				// cudd settings
-				else if (sw.equals("cuddmaxmem")) {
-					if (i < args.length - 1) {
-						try {
-							j = Integer.parseInt(args[++i]);
-							if (j < 0)
-								throw new NumberFormatException();
-							prism.setCUDDMaxMem(j);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				} else if (sw.equals("cuddepsilon")) {
-					if (i < args.length - 1) {
-						try {
-							d = Double.parseDouble(args[++i]);
-							if (d < 0)
-								throw new NumberFormatException("");
-							prism.setCUDDEpsilon(d);
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-
 				// simulation-based model checking methods
 				else if (sw.equals("simmethod")) {
 					if (i < args.length - 1) {
@@ -1639,6 +1364,36 @@ public class PrismCL
 							errorAndExit("Unrecognised option for -" + sw + " switch (options are: ci, aci, apmc, sprt)");
 					} else {
 						errorAndExit("No parameter specified for -" + sw + " switch");
+					}
+				}
+				// simulation number of samples
+				else if (sw.equals("simsamples")) {
+					if (i < args.length - 1) {
+						try {
+							simNumSamples = Integer.parseInt(args[++i]);
+							if (simNumSamples <= 0)
+								throw new NumberFormatException("");
+							simNumSamplesGiven = true;
+						} catch (NumberFormatException e) {
+							errorAndExit("Invalid value for -" + sw + " switch");
+						}
+					} else {
+						errorAndExit("No value specified for -" + sw + " switch");
+					}
+				}
+				// simulation confidence parameter
+				else if (sw.equals("simconf")) {
+					if (i < args.length - 1) {
+						try {
+							simConfidence = Double.parseDouble(args[++i]);
+							if (simConfidence <= 0 || simConfidence >= 1)
+								throw new NumberFormatException("");
+							simConfidenceGiven = true;
+						} catch (NumberFormatException e) {
+							errorAndExit("Invalid value for -" + sw + " switch");
+						}
+					} else {
+						errorAndExit("No value specified for -" + sw + " switch");
 					}
 				}
 				// simulation confidence interval width
@@ -1671,35 +1426,9 @@ public class PrismCL
 						errorAndExit("No value specified for -" + sw + " switch");
 					}
 				}
-				// simulation confidence parameter
-				else if (sw.equals("simconf")) {
-					if (i < args.length - 1) {
-						try {
-							simConfidence = Double.parseDouble(args[++i]);
-							if (simConfidence <= 0 || simConfidence >= 1)
-								throw new NumberFormatException("");
-							simConfidenceGiven = true;
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
-				}
-				// simulation number of samples
-				else if (sw.equals("simsamples")) {
-					if (i < args.length - 1) {
-						try {
-							simNumSamples = Integer.parseInt(args[++i]);
-							if (simNumSamples <= 0)
-								throw new NumberFormatException("");
-							simNumSamplesGiven = true;
-						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
-						}
-					} else {
-						errorAndExit("No value specified for -" + sw + " switch");
-					}
+				// use the number of iterations given instead of automatically deciding whether the variance is null ot not
+				else if (sw.equals("simmanual")) {
+					simManual = true;
 				}
 				// simulation number of samples to conclude S^2=0 or not
 				else if (sw.equals("simvar")) {
@@ -1747,64 +1476,101 @@ public class PrismCL
 					}
 				}
 
-				// enable symmetry reduction
-				else if (sw.equals("symm")) {
-					if (i < args.length - 2) {
-						prism.getSettings().set(PrismSettings.PRISM_SYMM_RED_PARAMS, args[++i] + " " + args[++i]);
-					} else {
-						errorAndExit("-symm switch requires two parameters (num. modules before/after symmetric ones)");
-					}
+				// FURTHER OPTIONS - NEED TIDYING/FIXING
+				
+				// zero-reward loops check on
+				else if (sw.equals("zerorewardcheck")) {
+					prism.setCheckZeroLoops(true);
 				}
-
-				// pta model checking methods
-				else if (sw.equals("ptamethod")) {
-					if (i < args.length - 1) {
-						s = args[++i];
-						if (s.equals("digital"))
-							prism.getSettings().set(PrismSettings.PRISM_PTA_METHOD, "Digital clocks");
-						else if (s.equals("games"))
-							prism.getSettings().set(PrismSettings.PRISM_PTA_METHOD, "Stochastic games");
-						else if (s.equals("bisim"))
-							prism.getSettings().set(PrismSettings.PRISM_PTA_METHOD, "Bisimulation minimisation");
-						else
-							errorAndExit("Unrecognised option for -" + sw + " switch (options are: digital, games)");
-					} else {
-						errorAndExit("No parameter specified for -" + sw + " switch");
-					}
+				// MDP solution method
+				else if (sw.equals("valiter")) {
+					prism.setMDPSolnMethod(Prism.MDP_VALITER);
 				}
-
-				// abstraction-refinement engine options string (append if already partially specified)
-				else if (sw.equals("aroptions")) {
-					if (i < args.length - 1) {
-						String arOptions = prism.getSettings().getString(PrismSettings.PRISM_AR_OPTIONS);
-						if ("".equals(arOptions))
-							arOptions = args[++i].trim();
-						else
-							arOptions += "," + args[++i].trim();
-						prism.getSettings().set(PrismSettings.PRISM_AR_OPTIONS, arOptions);
-					} else {
-						errorAndExit("No parameter specified for -" + sw + " switch");
-					}
+				else if (sw.equals("politer")) {
+					prism.setMDPSolnMethod(Prism.MDP_POLITER);
 				}
-
+				else if (sw.equals("modpoliter")) {
+					prism.setMDPSolnMethod(Prism.MDP_MODPOLITER);
+				}
+				// fix deadlocks
+				else if (sw.equals("fixdl")) {
+					fixdl = true;
+				}
 				// enable explicit-state engine
-				else if (sw.equals("explicit")) {
+				else if (sw.equals("explicit") || sw.equals("ex")) {
 					explicit = true;
 				}
-				
 				// explicit-state model construction
 				else if (sw.equals("explicitbuild")) {
 					explicitbuild = true;
 				}
-				
 				// (hidden) option for testing of prototypical explicit-state model construction
 				else if (sw.equals("explicitbuildtest")) {
 					explicitbuildtest = true;
 				}
+				
+				// MISCELLANEOUS UNDOCUMENTED/UNUSED OPTIONS:
 
-				// unknown switch - error
+				// specify main log (hidden option)
+				else if (sw.equals("mainlog")) {
+					if (i < args.length - 1) {
+						mainLogFilename = args[++i];
+						// use temporary storage because an error would go to the old log
+						log = new PrismFileLog(mainLogFilename);
+						if (!log.ready()) {
+							errorAndExit("Couldn't open log file \"" + mainLogFilename + "\"");
+						}
+						mainLog = log;
+						prism.setMainLog(mainLog);
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// specify mtbdd log (hidden option)
+				else if (sw.equals("techlog")) {
+					if (i < args.length - 1) {
+						techLogFilename = args[++i];
+						log = new PrismFileLog(techLogFilename);
+						if (!log.ready()) {
+							errorAndExit("Couldn't open log file \"" + techLogFilename + "\"");
+						}
+						techLog = log;
+						prism.setTechLog(techLog);
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// mtbdd construction method (hidden option)
+				else if (sw.equals("c1")) {
+					prism.setConstruction(1);
+				} else if (sw.equals("c2")) {
+					prism.setConstruction(2);
+				} else if (sw.equals("c3")) {
+					prism.setConstruction(3);
+				}
+				// mtbdd variable ordering (hidden option)
+				else if (sw.equals("o1")) {
+					prism.setOrdering(1);
+					orderingOverride = true;
+				} else if (sw.equals("o2")) {
+				} else if (sw.equals("o2")) {
+					prism.setOrdering(2);
+					orderingOverride = true;
+				} else if (sw.equals("o2")) {
+				}
+				// reachability off (hidden option)
+				else if (sw.equals("noreach")) {
+					prism.setDoReach(false);
+				}
+				// no bscc computation (hidden option)
+				else if (sw.equals("nobscc")) {
+					prism.setBSCCComp(false);
+				}
+
+				// Other switches - pass to PrismSettings
+				
 				else {
-					errorAndExit("Invalid switch -" + sw + " (type \"prism -help\" for full list)");
+					i = prism.getSettings().setFromCommandLineSwitch(args, i) - 1;
 				}
 			}
 			// otherwise argument must be a filename
@@ -1851,6 +1617,15 @@ public class PrismCL
 			mainLog.println("Usage: prism [options] <model-file> [<properties-file>] [more-options]");
 			mainLog.println("\nFor more information, type: prism -help");
 			exit();
+		}
+
+		// default to alternative ordering for MTBDD engine
+		if (prism.getEngine() == Prism.MTBDD && !orderingOverride) {
+			try {
+				prism.setOrdering(2);
+			} catch (PrismException e) {
+				// Can't go wrong
+			}
 		}
 
 		// explicit overrides explicit build
@@ -2001,8 +1776,9 @@ public class PrismCL
 		return aSimMethod;
 	}
 
-	// print help message
-
+	/**
+	 * Print a -help message, i.e. a list of the command-line switches.
+	 */
 	private void printHelp()
 	{
 		mainLog.println("Usage: prism <model-file> [<properties-file>] [options]");
@@ -2014,20 +1790,20 @@ public class PrismCL
 		mainLog.println("-version ....................... Display tool version");
 		mainLog.println();
 		mainLog.println("-pctl <prop> (or -csl <prop>) .. Model check the PCTL/CSL property <prop>");
-		mainLog.println("-property <n> (or -prop <n>) ... Only model check property <n> from the properties file");
+		mainLog.println("-property <n> (or -prop <n>) ... Only model check property <n>");
 		mainLog.println("-const <vals> .................. Define constant values as <vals> (e.g. for experiments)");
 		mainLog.println("-steadystate (or -ss) .......... Compute steady-state probabilities (D/CTMCs only)");
 		mainLog.println("-transient <x> (or -tr <x>) .... Compute transient probabilities for time <x> (D/CTMCs only)");
 		mainLog.println("-simpath <options> <file>....... Generate a random path with the simulator");
 		mainLog.println("-nobuild ....................... Skip model construction (just do parse/export)");
+		mainLog.println("-test .......................... Enable \"test\" mode");
 		mainLog.println();
 		mainLog.println("IMPORT OPTIONS:");
 		mainLog.println("-importpepa .................... Model description is in PEPA, not the PRISM language");
 		mainLog.println("-importtrans <file> ............ Import the transition matrix directly from a text file");
 		mainLog.println("-importstates <file>............ Import the list of states directly from a text file");
 		mainLog.println("-importlabels <file>............ Import the list of labels directly from a text file");
-		mainLog.println("-importinit <expr>.............. Specify the initial state for explicitly imported models");
-		mainLog.println("-importinitdist <expr>.......... Specify the initial probability distribution for transient analysis");
+		mainLog.println("-importinitdist <file>.......... Specify the initial probability distribution for transient analysis");
 		mainLog.println("-dtmc .......................... Force imported/built model to be a DTMC");
 		mainLog.println("-ctmc .......................... Force imported/built model to be a CTMC");
 		mainLog.println("-mdp ........................... Force imported/built model to be an MDP");
@@ -2037,6 +1813,7 @@ public class PrismCL
 		mainLog.println("-exporttrans <file> ............ Export the transition matrix to a file");
 		mainLog.println("-exportstaterewards <file> ..... Export the state rewards vector to a file");
 		mainLog.println("-exporttransrewards <file> ..... Export the transition rewards matrix to a file");
+		mainLog.println("-exportrewards <file1> <file2>.. Export state/transition rewards to files 1/2");
 		mainLog.println("-exportstates <file> ........... Export the list of reachable states to a file");
 		mainLog.println("-exportlabels <file> ........... Export the list of labels and satisfying states to a file");
 		mainLog.println("-exportmatlab .................. When exporting matrices/vectors/labels/etc., use Matlab format");
@@ -2052,56 +1829,9 @@ public class PrismCL
 		mainLog.println("-exporttransient <file> ........ Export transient probabilities to a file");
 		mainLog.println("-exportprism <file> ............ Export final PRISM model to a file");
 		mainLog.println("-exportprismconst <file> ....... Export final PRISM model with expanded constants to a file");
-		mainLog.println("-exportadv <file> .............. Export an adversary from MDP model checking (as a DTMC)");
-		mainLog.println("-exportadvmdp <file> ........... Export an adversary from MDP model checking (as an MDP)");
-		mainLog.println();
-		mainLog.println("ENGINES/METHODS:");
-		mainLog.println("-mtbdd (or -m) ................. Use the MTBDD engine");
-		mainLog.println("-sparse (or -s) ................ Use the Sparse engine");
-		mainLog.println("-hybrid (or -h) ................ Use the Hybrid engine [default]");
-		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital) [default: games]");
-		mainLog.println();
-		mainLog.println("NUMERICAL SOLUTION OPTIONS:");
-		mainLog.println("-power (or -pow, -pwr) ......... Use the Power method for numerical computation");
-		mainLog.println("-jacobi (or -jac) .............. Use Jacobi for numerical computation [default]");
-		mainLog.println("-gaussseidel (or -gs) .......... Use Gauss-Seidel for numerical computation");
-		mainLog.println("-bgaussseidel (or -bgs) ........ Use Backwards Gauss-Seidel for numerical computation");
-		mainLog.println("-pgaussseidel (or -pgs) ........ Use Pseudo Gauss-Seidel for numerical computation");
-		mainLog.println("-bpgaussseidel (or -bpgs) ...... Use Backwards Pseudo Gauss-Seidel for numerical computation");
-		mainLog.println("-jor ........................... Use JOR for numerical computation");
-		mainLog.println("-sor ........................... Use SOR for numerical computation");
-		mainLog.println("-bsor .......................... Use Backwards SOR for numerical computation");
-		mainLog.println("-psor .......................... Use Pseudo SOR for numerical computation");
-		mainLog.println("-bpsor ......................... Use Backwards Pseudo SOR for numerical computation");
-		mainLog.println("-omega <x> ..................... Set over-relaxation parameter (for JOR/SOR/...) [default: 0.9]");
-		mainLog.println("-relative (or -rel) ............ Use relative error for detecting convergence [default]");
-		mainLog.println("-absolute (or -abs) ............ Use absolute error for detecting convergence");
-		mainLog.println("-epsilon <x> (or -e <x>) ....... Set value of epsilon (for convergence check) [default: 1e-6]");
-		mainLog.println("-maxiters <n> .................. Set max number of iterations [default: 10000]");
-		mainLog.println();
-		mainLog.println("MODEL CHECKING OPTIONS:");
-		mainLog.println("-nopre ......................... Skip (optional) precomputation algorithms");
-		mainLog.println("-fair .......................... Use fairness (for probabilistic reachability in MDPs)");
-		mainLog.println("-nofair ........................ Don't use fairness (for probabilistic reachability in MDPs) [default]");
-		mainLog.println("-fixdl ......................... Automatically put self-loops in deadlock states");
-		mainLog.println("-noprobchecks .................. Disable checks on model probabilities/rates");
-		mainLog.println("-zerorewardcheck ............... Check for absence of zero-reward loops");
-		mainLog.println("-nossdetect .................... Disable steady-state detection for CTMC transient computations");
-		mainLog.println("-sccmethod <name> .............. Specify SCC computation method (xiebeerel, lockstep, sccfind)");
-		mainLog.println();
-		mainLog.println("OUTPUT OPTIONS:");
-		mainLog.println("-verbose (or -v) ............... Verbose mode: print out state lists and probability vectors");
-		mainLog.println("-extraddinfo ................... Display extra info about some (MT)BDDs");
-		mainLog.println("-extrareachinfo ................ Display extra info about progress of reachability");
-		mainLog.println();
-		mainLog.println("SPARSE/HYBRID/MTBDD OPTIONS:");
-		mainLog.println("-nocompact ..................... Switch off \"compact\" sparse storage schemes");
-		mainLog.println("-sbmax <n> ..................... Set memory limit (KB) (for hybrid engine) [default: 1024]");
-		mainLog.println("-sbl <n> ....................... Set number of levels (for hybrid engine) [default: -1]");
-		mainLog.println("-gsmax <n> (or sormax <n>) ..... Set memory limit (KB) for hybrid GS/SOR [default: 1024]");
-		mainLog.println("-gsl <n> (or sorl <n>) ......... Set number of levels for hybrid GS/SOR [default: -1]");
-		mainLog.println("-cuddmaxmem <n> ................ Set max memory for CUDD package (KB) [default: 200x1024]");
-		mainLog.println("-cuddepsilon <x> ............... Set epsilon value for CUDD package [default: 1e-15]");
+		
+		prism.getSettings().printHelp(mainLog);
+		
 		mainLog.println();
 		mainLog.println("SIMULATION OPTIONS:");
 		mainLog.println("-sim ........................... Use the PRISM simulator to approximate results of model checking");
@@ -2140,6 +1870,11 @@ public class PrismCL
 
 	private void error(String s)
 	{
+		// If (and only if) we are in "test" mode, treat any error as fatal
+		if (test) {
+			errorAndExit(s);
+		}
+		// Normal case: just display error message, but don't exit
 		mainLog.println("\nError: " + s + ".");
 	}
 
@@ -2148,7 +1883,7 @@ public class PrismCL
 	private void errorAndExit(String s)
 	{
 		prism.closeDown(false);
-		error(s);
+		mainLog.println("\nError: " + s + ".");
 		System.exit(1);
 	}
 
