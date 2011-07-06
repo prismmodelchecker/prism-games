@@ -355,7 +355,7 @@ public class ConstructModel
 
 						if (!justReach) {
 							// adding a choice to the state
-							smg.setAction(k, smg.addChoice(k, distr), engine.getTransitionModuleOrAction(ch, 0));
+							smg.setAction(k, smg.addChoice(k, distr), engine.getTransitionAction(ch, 0));
 						}
 					}
 				}
@@ -430,13 +430,13 @@ public class ConstructModel
 					if (!justReach) {
 						if (modelType == ModelType.MDP) {
 							k = mdp.addChoice(src, distr);
-							mdp.setAction(src, k, engine.getTransitionModuleOrAction(i, 0));
+							mdp.setAction(src, k, engine.getTransitionAction(i, 0));
 						} else if (modelType == ModelType.STPG) {
 							k = stpg.addChoice(src, distr);
-							stpg.setAction(src, k, engine.getTransitionModuleOrAction(i, 0));
+							stpg.setAction(src, k, engine.getTransitionAction(i, 0));
 						} else if (modelType == ModelType.SMG) {
 							k = smg.addChoice(src, distr);
-							smg.setAction(src, k, engine.getTransitionModuleOrAction(i, 0));
+							smg.setAction(src, k, engine.getTransitionAction(i, 0));
 						}
 					}
 				}
