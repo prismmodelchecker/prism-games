@@ -176,7 +176,7 @@ public class ProbModelChecker extends StateModelChecker
 		relOp = expr.getRelOp();
 		rb = expr.getReward();
 		if (rb != null) {
-			r = rb.evaluateDouble(constantValues, null);
+			r = rb.evaluateDouble(constantValues);
 			if (r < 0)
 				throw new PrismException("Invalid reward bound " + r + " in R[] formula");
 		}
@@ -225,7 +225,7 @@ public class ProbModelChecker extends StateModelChecker
 		if (rs == null) {
 			rewStruct = modulesFile.getRewardStruct(0);
 		} else if (rs instanceof Expression) {
-			i = ((Expression) rs).evaluateInt(constantValues, null);
+			i = ((Expression) rs).evaluateInt(constantValues);
 			rs = new Integer(i); // for better error reporting below
 			rewStruct = modulesFile.getRewardStruct(i - 1);
 		} else if (rs instanceof String) {
@@ -291,7 +291,7 @@ public class ProbModelChecker extends StateModelChecker
 			}
 			// Special case: constant rewards
 			if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-				return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble());
+				return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 			}
 			// Normal: state rewards
 			else {
@@ -302,8 +302,8 @@ public class ProbModelChecker extends StateModelChecker
 				for (i = 0; i < n; i++) {
 					guard = rewStr.getStates(i);
 					for (j = 0; j < numStates; j++) {
-						if (guard.evaluateBoolean(statesList.get(j))) {
-							rewSA.setStateReward(j, rewStr.getReward(i).evaluateDouble(statesList.get(j)));
+						if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
+							rewSA.setStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 						}
 					}
 				}
@@ -330,7 +330,7 @@ public class ProbModelChecker extends StateModelChecker
 		// Special case: constant rewards
 		// TODO
 		/*if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble());
+			return new MCRewardsStateConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 		}*/
 		// Normal: transition rewards
 		else {
@@ -342,12 +342,12 @@ public class ProbModelChecker extends StateModelChecker
 				guard = rewStr.getStates(i);
 				action = rewStr.getSynch(i);
 				for (j = 0; j < numStates; j++) {
-					if (guard.evaluateBoolean(statesList.get(j))) {
+					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
 						numChoices = mdp.getNumChoices(j);
 						for (k = 0; k < numChoices; k++) {
 							mdpAction = mdp.getAction(j, k); 
 							if (mdpAction == null ? (action == null) : mdpAction.equals(action)) {
-								rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(statesList.get(j)));
+								rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 							}
 						}
 					}

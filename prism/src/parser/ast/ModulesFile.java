@@ -740,24 +740,37 @@ public class ModulesFile extends ASTElement
 		}
 	}
 
-	// get undefined constants
-
+	/**
+	 * Get  a list of constants in the model that are undefined
+	 * ("const int x;" rather than "const int x = 1;") 
+	 */
 	public Vector<String> getUndefinedConstants()
 	{
 		return constantList.getUndefinedConstants();
 	}
 
-	// set values for undefined constants and evaluate all constants
-	// always need to call this, even when there are no undefined constants
-	// (if this is the case, someValues can be null)
-
+	/**
+	 * Set values for all undefined constants and then evaluate all constants.
+	 * Always need to call this before any model building/checking/simulation/etc.,
+	 * even when there are no undefined constants
+	 * (if this is the case, {@code someValues} can be null).
+	 * Calling this method also triggers some additional semantic checks
+	 * that can only be done once constant values have been specified.
+	 * <br><br>
+	 * Undefined constants can be subsequently redefined to different values with the same method.
+	 * The current constant values (if set) are available via {@link #setUndefinedConstants(Values)}. 
+	 */
 	public void setUndefinedConstants(Values someValues) throws PrismLangException
 	{
 		constantValues = constantList.evaluateConstants(someValues, null);
+		semanticCheckAfterConstants(this, null);
 	}
 
-	// get all constant values
-
+	/**
+	 * Get access to the values assigned to undefined constants in the model,
+	 * as set previously via the method {@link #setUndefinedConstants(Values)}.
+	 * Until they are set for the first time, this method returns null.  
+	 */
 	public Values getConstantValues()
 	{
 		return constantValues;
@@ -789,7 +802,7 @@ public class ModulesFile extends ASTElement
 		n = getNumGlobals();
 		for (i = 0; i < n; i++) {
 			decl = getGlobal(i);
-			initialState.setValue(count++, decl.getStartOrDefault().evaluate(constantValues, null));
+			initialState.setValue(count++, decl.getStartOrDefault().evaluate(constantValues));
 		}
 		n = getNumModules();
 		for (i = 0; i < n; i++) {
@@ -797,7 +810,7 @@ public class ModulesFile extends ASTElement
 			n2 = module.getNumDeclarations();
 			for (j = 0; j < n2; j++) {
 				decl = module.getDeclaration(j);
-				initialState.setValue(count++, decl.getStartOrDefault().evaluate(constantValues, null));
+				initialState.setValue(count++, decl.getStartOrDefault().evaluate(constantValues));
 			}
 		}
 
@@ -827,7 +840,7 @@ public class ModulesFile extends ASTElement
 		n = getNumGlobals();
 		for (i = 0; i < n; i++) {
 			decl = getGlobal(i);
-			values.addValue(decl.getName(), decl.getStartOrDefault().evaluate(constantValues, null));
+			values.addValue(decl.getName(), decl.getStartOrDefault().evaluate(constantValues));
 		}
 		// then add all module variables
 		n = getNumModules();
@@ -836,7 +849,7 @@ public class ModulesFile extends ASTElement
 			n2 = module.getNumDeclarations();
 			for (j = 0; j < n2; j++) {
 				decl = module.getDeclaration(j);
-				values.addValue(decl.getName(), decl.getStartOrDefault().evaluate(constantValues, null));
+				values.addValue(decl.getName(), decl.getStartOrDefault().evaluate(constantValues));
 			}
 		}
 
