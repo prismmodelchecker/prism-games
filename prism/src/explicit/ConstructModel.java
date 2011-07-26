@@ -186,16 +186,16 @@ public class ConstructModel
 		modelType = modulesFile.getModelType();
 
 		// TODO HACK!
-		modelType = ModelType.SMG;
+		//modelType = ModelType.SMG;
 
 		if (modelType == ModelType.SMG) {
 			// adding a scheduler variable to the model
-			lazy = false;
+			lazy = true;
 			nPlayers = 2;
 			schedIndx = 0;
-			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
-					.Int(nPlayers))));
-			modulesFile.tidyUp();
+//			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
+//					.Int(nPlayers))));
+//			modulesFile.tidyUp();
 		}
 		if (modelType == ModelType.STPG) {
 			loadGameParams(settings.getString(PrismSettings.PRISM_GAME_OPTIONS));
@@ -315,7 +315,7 @@ public class ConstructModel
 
 					// creating a new state
 					tempState = new State(state);
-					tempState.setValue(schedIndx, pl); // last variable is _sched
+					tempState.setValue(schedIndx, pl); // _sched value
 					states.add(tempState);
 
 					if (!justReach) {
@@ -471,7 +471,7 @@ public class ConstructModel
 				mainLog.println("Added self-loops in " + deadlocks.cardinality() + " states...");
 			}
 		}
-
+		
 		// Sort states and convert set to list
 		mainLog.println("Sorting reachable states list...");
 		int permut[] = states.buildSortingPermutation();
@@ -516,6 +516,7 @@ public class ConstructModel
 				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			}
+			System.out.println(model);
 			//			mainLog.println("Model: " + model);
 		}
 

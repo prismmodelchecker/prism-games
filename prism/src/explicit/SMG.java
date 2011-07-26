@@ -28,6 +28,7 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ import prism.ModelType;
  * (SMG). States can be labelled arbitrarily with player 1..n, player 0
  * has a special purpose of scheduling the moves of other players
  */
-public class SMG extends MDPSimple
+public class SMG extends MDPSimple implements STPG
 {
 	public static final int SCHED_RANDOM = 0;
 	public static final int SCHED_NONDET = 1;
@@ -230,7 +231,7 @@ public class SMG extends MDPSimple
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + "): ";
+			s += i + "(P-" + stateLabels.get(i) + " "+statesList.get(i)+"): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {
@@ -246,5 +247,240 @@ public class SMG extends MDPSimple
 		s += " ]\n";
 		return s;
 	}
+
+	@Override
+	public double mvMultGSMinMax(double[] vect, boolean min1, boolean min2, BitSet subset, boolean complement,
+			boolean absolute)
+	{
+		//System.out.println("SMG: mvMultGSMinMax");
+		
+		int s;
+		double d, diff, maxDiff = 0.0;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+				maxDiff = diff > maxDiff ? diff : maxDiff;
+				vect[s] = d;
+			}
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public double mvMultJacMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
+	{
+		//System.out.println("SMG: mvMultJacMinMaxSingle");
+		
+		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		return mvMultJacMinMaxSingle(s, vect, min);
+	}
+
+	@Override
+	public void mvMultMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset,
+			boolean complement, int[] adv)
+	{
+		//System.out.println("SMG: mvMultMinMax");
+		
+		int s;
+		boolean min = false;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+			}
+		}
+	}
+
+	@Override
+	public double mvMultMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
+	{
+		//System.out.println("SMG: mvMultMinMaxSingle");
+		
+		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		return mvMultMinMaxSingle(s, vect, min, null);
+		
+	}
+
+	@Override
+	public List<Integer> mvMultMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
+	{
+		//System.out.println("SMG: mvMultMinMaxSingleChoices");
+		
+		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		return mvMultMinMaxSingleChoices(s, vect, min, val);
+	}
+
+	@Override
+	public void mvMultRewMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset,
+			boolean complement, int[] adv)
+	{
+		//System.out.println("SMG: mvMultRewMinMax");
+		
+		int s;
+		boolean min = false;
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				if (stateLabels.get(s).equals(1))
+					min = min1;
+				else if (stateLabels.get(s).equals(2))
+					min = min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+			}
+		}
+		
+	}
+
+	@Override
+	public double mvMultRewMinMaxSingle(int s, double[] vect, boolean min1, boolean min2, int[] adv)
+	{
+		//System.out.println("SMG: mvMultRewMinMaxSingle");
+		
+		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		return mvMultRewMinMaxSingle(s, vect, min, null);
+	}
+
+	@Override
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
+	{
+		//System.out.println("SMG: mvMultRewMinMaxSingleChoices");
+		
+		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		return mvMultMinMaxSingleChoices(s, vect, min, val);
+	}
+
+	@Override
+	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
+	{
+		//System.out.println("SMG: prob0step");
+		
+		int i;
+		boolean b1, b2;
+		boolean forall = false;
+
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+
+				if (stateLabels.get(i).equals(1))
+					forall = forall1;
+				else if (stateLabels.get(i).equals(2))
+					forall = forall2;
+
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
+		
+		
+	}
+
+	@Override
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
+	{
+		//System.out.println("SMG: prob1step");
+		
+		int i;
+		boolean b1, b2;
+		boolean forall = false;
+
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+
+				if (stateLabels.get(i).equals(1))
+					forall = forall1;
+				else if (stateLabels.get(i).equals(2))
+					forall = forall2;
+
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
+		
+	}
+
 
 }

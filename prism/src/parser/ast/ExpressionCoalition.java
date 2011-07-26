@@ -107,7 +107,7 @@ public class ExpressionCoalition extends ExpressionProb
 	{
 		ExpressionCoalition expr = new ExpressionCoalition();
 		expr.setCoalition(new HashSet(coalition));
-		expr.setProb(super.getProb().deepCopy());
+		expr.setProb(super.getProb()==null? null: super.getProb().deepCopy());
 		expr.setRelOp(super.relOp);
 		expr.setExpression(expression == null ? null : expression.deepCopy());
 		expr.setFilter(filter == null ? null : (Filter) filter.deepCopy());
