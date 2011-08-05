@@ -35,11 +35,11 @@ import java.util.List;
  */
 public class MDPRewardsSimple implements MDPRewards
 {
-	/** Number of state */
+	/** Number of states */
 	protected int numStates;
-	/** State rewards **/
+	/** State rewards */
 	protected List<Double> stateRewards;
-	/** Transition rewards **/
+	/** Transition rewards */
 	protected List<List<Double>> transRewards;
 	
 	/**
@@ -57,7 +57,22 @@ public class MDPRewardsSimple implements MDPRewards
 	// Mutators
 	
 	/**
-	 * Set the reward for choice {@code i} of state {@code s} to {@code r}.
+	 * Set the state reward for state {@code s} to {@code r}.
+	 */
+	public void setStateReward(int s, double r)
+	{
+		// If no rewards array created yet, create it
+		if (stateRewards == null) {
+			stateRewards = new ArrayList<Double>(numStates);
+			for (int j = 0; j < numStates; j++)
+				stateRewards.add(0.0);
+		}
+		// Set reward
+		stateRewards.set(s, r);
+	}
+
+	/**
+	 * Set the transition reward for choice {@code i} of state {@code s} to {@code r}.
 	 */
 	public void setTransitionReward(int s, int i, double r)
 	{
@@ -91,6 +106,8 @@ public class MDPRewardsSimple implements MDPRewards
 	@Override
 	public double getStateReward(int s)
 	{
+		if (stateRewards == null)
+			return 0.0;
 		return stateRewards.get(s);
 	}
 	
@@ -103,5 +120,11 @@ public class MDPRewardsSimple implements MDPRewards
 		if (list.size() <= i)
 			return 0.0;
 		return list.get(i);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "st: " + this.stateRewards + "; tr:" + this.transRewards;
 	}
 }

@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -27,31 +28,9 @@
 package explicit.rewards;
 
 /**
- * Explicit-state storage of constant state rewards for a DTMC/CTMC.
+ * A dummy interface implemented by all reward classes.
  */
-public class MCRewardsStateConstant implements MCRewards, MDPRewards
+public interface Rewards
 {
-	protected double stateReward = 0.0;
-	
-	/**
-	 * Constructor: all rewards equal to {@code r}
-	 */
-	public MCRewardsStateConstant(double r)
-	{
-		stateReward = r;
-	}
-	
-	// Accessors
-	
-	@Override
-	public double getStateReward(int s)
-	{
-		return stateReward;
-	}
-	
-	@Override
-	public double getTransitionReward(int s, int i)
-	{
-		return 0.0;
-	}
+
 }

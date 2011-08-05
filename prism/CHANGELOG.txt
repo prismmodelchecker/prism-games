@@ -3,30 +3,28 @@ including development and beta versions. For a less detailed overview
 of the main changes in each public release, see the file VERSIONS.txt.
 
 Latest changes (mostly reverse chronological):
-[correct wrt svn rev 3047]
+[correct wrt svn rev 3263]
 
-* Various bug fixes
+* Fixed anti-aliasing in GUI model editor
+* Better handling of undefined constants in properties
 
 Ongoing changes:
 
-* New version of explicit engine (including extra methods e.g. for MDPs)
-* Property names allowed, but mostly not used
-* Testing mode
+* Properties can be named, by prefixing with "name":, and reference each other
+* More improvements to explicit engine
+* CTL AG/EF
+
+-----------------------------------------------------------------------------
+Version 4.0.1 (released ...)
+-----------------------------------------------------------------------------
+
+* Added if-and-only-if operator (<=>) for use in models/properties
+* Updated version of explicit model checking library
+* Testing mode (-test and -testall switches)
+* Various bug fixes
 
 -----------------------------------------------------------------------------
 Version 4.0 (released 28/6/2011)
------------------------------------------------------------------------------
-
-* No changes
-
------------------------------------------------------------------------------
-Version 4.0.beta2 (released 10/6/2011)
------------------------------------------------------------------------------
-
-* Bug fixes: simulator, error messages, typos and examples
-
------------------------------------------------------------------------------
-Version 4.0.beta (released 16/12/2010)
 -----------------------------------------------------------------------------
 
 * Support for probabilistic timed automata (PTAs)
@@ -68,6 +66,12 @@ Version 4.0.beta (released 16/12/2010)
   - New -exporttarget switch
   - New versions of jcommon (1.0.16) and jfreechart (1.0.13)
 
+* Changes since 4.0.beta2 (released 10/6/2011)
+  - None
+
+* Changes since 4.0.beta (released 16/12/2010)
+  - Bug fixes: simulator, error messages, typos and examples)
+  
 -----------------------------------------------------------------------------
 Version 3.3.1 (released 22/11/2009)
 -----------------------------------------------------------------------------

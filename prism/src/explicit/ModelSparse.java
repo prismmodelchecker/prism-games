@@ -26,12 +26,15 @@
 
 package explicit;
 
+import java.io.File;
 import java.util.*;
 
 import parser.State;
 import parser.Values;
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 
 /**
  * Base class sparse matrix-based (non-mutable) explicit-state model representations
@@ -151,10 +154,22 @@ public abstract class ModelSparse implements Model
 		// Default implementation - just output .tra file
 		// (some models might override this)
 		exportToPrismExplicitTra(baseFilename + ".tra");
-		// TODO: Also output transition rewards to .trew file, etc.
 	}
 
-	public abstract void exportToPrismExplicitTra(String filename) throws PrismException;
+	@Override
+	public void exportToPrismExplicitTra(String filename) throws PrismException
+	{
+		exportToPrismExplicitTra(new PrismFileLog(filename));
+	}
+
+	@Override
+	public void exportToPrismExplicitTra(File file) throws PrismException
+	{
+		exportToPrismExplicitTra(new PrismFileLog(file.getPath()));
+	}
+
+	@Override
+	public abstract void exportToPrismExplicitTra(PrismLog log) throws PrismException;
 
 	public void exportToDotFile(String filename) throws PrismException
 	{

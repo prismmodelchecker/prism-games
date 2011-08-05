@@ -32,6 +32,8 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
+import explicit.rewards.STPGRewards;
+
 import prism.ModelType;
 
 /**
@@ -213,9 +215,6 @@ public class SMG extends MDPSimple implements STPG
 		smg.numTransitions = this.numTransitions;
 		smg.stateLabels = new ArrayList<Integer>(this.stateLabels);
 		smg.trans = new ArrayList<List<Distribution>>(this.trans);
-		smg.transRewards = this.transRewards == null ? null : new ArrayList<List<Double>>(this.transRewards);
-		smg.transRewardsConstant = this.transRewardsConstant;
-
 		return smg;
 	}
 
@@ -349,7 +348,7 @@ public class SMG extends MDPSimple implements STPG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset,
+	public void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset,
 			boolean complement, int[] adv)
 	{
 		//System.out.println("SMG: mvMultRewMinMax");
@@ -363,8 +362,8 @@ public class SMG extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s).equals(2))
 					min = min2;
-
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				// TODO: convert/pass rewards
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
@@ -373,7 +372,8 @@ public class SMG extends MDPSimple implements STPG
 				else if (stateLabels.get(s).equals(2))
 					min = min2;
 
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				// TODO: convert/pass rewards
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
@@ -381,28 +381,31 @@ public class SMG extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s).equals(2))
 					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, min, adv);
+				// TODO: convert/pass rewards
+				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		}
 		
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double[] vect, boolean min1, boolean min2, int[] adv)
+	public double mvMultRewMinMaxSingle(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, int[] adv)
 	{
 		//System.out.println("SMG: mvMultRewMinMaxSingle");
 		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
-		return mvMultRewMinMaxSingle(s, vect, min, null);
+		// TODO: convert/pass rewards
+		return mvMultRewMinMaxSingle(s, vect, null, min, null);
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
 		//System.out.println("SMG: mvMultRewMinMaxSingleChoices");
 		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
-		return mvMultMinMaxSingleChoices(s, vect, min, val);
+		// TODO: convert/pass rewards
+		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
 	}
 
 	@Override

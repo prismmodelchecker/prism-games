@@ -51,7 +51,7 @@ import prism.Model;
 public class Prism implements PrismSettingsListener
 {
 	// prism version
-	private static String version = "4.0";
+	private static String version = "4.0.1";
 	// prism version suffix
 	private static String versionSuffix = ".games"; //".rXXXX";;
 	
@@ -1170,8 +1170,9 @@ public class Prism implements PrismSettingsListener
 		JDD.Deref(tmp);
 	}
 	
-	// export trans to a dot file
-	
+	/**
+	 * Export the MTBDD for a model's transition matrix to a Dot file.
+	 */
 	public void exportToDotFile(Model model, File file) throws FileNotFoundException
 	{
 		mainLog.println("\nExporting to dot file \"" + file + "\"...");
@@ -1180,13 +1181,37 @@ public class Prism implements PrismSettingsListener
 		JDD.ExportDDToDotFileLabelled(model.getTrans(), file.getPath(), model.getDDVarNames());
 	}
 	
-	// alias for export transition matrix to a file (plain, matlab, ...)
-	
+	/**
+	 * Export a model's transition matrix to a file
+	 * @param model The model
+	 * @param ordered Ensure that (source) states are in ascending order?
+	 * @param exportType Type of export; one of: <ul>
+	 * <li> {@link #EXPORT_PLAIN} 
+	 * <li> {@link #EXPORT_MATLAB}
+	 * <li> {@link #EXPORT_DOT}
+	 * <li> {@link #EXPORT_MRMC}
+	 * <li> {@link #EXPORT_MRMC}
+	 * <li> {@link #EXPORT_DOT_STATES}
+	 * </ul>
+	 * @param file File to export to 
+	 */
 	public void exportToFile(Model model, boolean ordered, int exportType, File file) throws FileNotFoundException, PrismException
 	{ exportTransToFile(model, ordered, exportType, file); }
 	
-	// export transition matrix to a file (plain, matlab, ...)
-	
+	/**
+	 * Export a model's transition matrix to a file (or to the log)
+	 * @param model The model
+	 * @param ordered Ensure that (source) states are in ascending order?
+	 * @param exportType Type of export; one of: <ul>
+	 * <li> {@link #EXPORT_PLAIN} 
+	 * <li> {@link #EXPORT_MATLAB}
+	 * <li> {@link #EXPORT_DOT}
+	 * <li> {@link #EXPORT_MRMC}
+	 * <li> {@link #EXPORT_MRMC}
+	 * <li> {@link #EXPORT_DOT_STATES}
+	 * </ul>
+	 * @param file File to export to (if null, print to the log instead)
+	 */
 	public void exportTransToFile(Model model, boolean ordered, int exportType, File file) throws FileNotFoundException, PrismException
 	{
 		// can only do ordered version of export for MDPs
@@ -1385,7 +1410,6 @@ public class Prism implements PrismSettingsListener
 		int i, n;
 		LabelList ll;
 		Expression expr;
-		Values constantValues;
 		StateModelChecker mc = null;
 		JDDNode dd, labels[];
 		String labelNames[];
@@ -1405,10 +1429,7 @@ public class Prism implements PrismSettingsListener
 		
 		// convert labels to bdds
 		if (n > 0) {
-			constantValues = new Values();
-			constantValues.addValues(model.getConstantValues());
-			if (propertiesFile != null) constantValues.addValues(propertiesFile.getConstantValues());
-			mc = new StateModelChecker(this, model, null);
+			mc = new StateModelChecker(this, model, propertiesFile);
 		}
 		labels = new JDDNode[n+2];
 		labels[0] = model.getStart();

@@ -33,6 +33,7 @@ import java.io.*;
 import explicit.rewards.*;
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismLog;
 import prism.PrismUtils;
 
 /**
@@ -42,12 +43,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 {
 	// Transition matrix (distribution list) 
 	protected List<Distribution> trans;
-
-	// Rewards
-	// (if transRewardsConstant non-null, use this for all transitions; otherwise, use transRewards list)
-	// (for transRewards, null in element s means no rewards for that state)
-	protected Double transRewardsConstant;
-	protected List<Double> transRewards;
 
 	// Other statistics
 	protected int numTransitions;
@@ -80,7 +75,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		for (int i = 0; i < numStates; i++) {
 			trans.set(i, new Distribution(dtmc.trans.get(i)));
 		}
-		// TODO: copy rewards
 		numTransitions = dtmc.numTransitions;
 	}
 
@@ -98,7 +92,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		for (int i = 0; i < numStates; i++) {
 			trans.set(permut[i], new Distribution(dtmc.trans.get(i), permut));
 		}
-		// TODO: permute rewards
 		numTransitions = dtmc.numTransitions;
 	}
 
@@ -112,7 +105,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		for (int i = 0; i < numStates; i++) {
 			trans.add(new Distribution());
 		}
-		clearAllRewards();
 	}
 
 	@Override
@@ -215,43 +207,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		}
 	}
 
-	/**
-	 * Remove all rewards from the model
-	 */
-	public void clearAllRewards()
-	{
-		transRewards = null;
-		transRewardsConstant = null;
-	}
-
-	/**
-	 * Set a constant reward for all transitions
-	 */
-	public void setConstantTransitionReward(double r)
-	{
-		// This replaces any other reward definitions
-		transRewards = null;
-		// Store as a Double (because we use null to check for its existence)
-		transRewardsConstant = new Double(r);
-	}
-
-	/**
-	 * Set the reward for (all) transitions in state s to r.
-	 */
-	public void setTransitionReward(int s, double r)
-	{
-		// This would replace any constant reward definition, if it existed
-		transRewardsConstant = null;
-		// If no rewards array created yet, create it
-		if (transRewards == null) {
-			transRewards = new ArrayList<Double>(numStates);
-			for (int j = 0; j < numStates; j++)
-				transRewards.add(0.0);
-		}
-		// Set reward
-		transRewards.set(s, r);
-	}
-
 	// Accessors (for ModelSimple)
 
 	@Override
@@ -319,38 +274,24 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	}
 
 	@Override
-	public void exportToPrismExplicit(String baseFilename) throws PrismException
-	{
-		exportToPrismExplicitTra(baseFilename + ".tra");
-		// TODO: Output transition rewards to .trew file, etc.
-	}
-
-	@Override
-	public void exportToPrismExplicitTra(String filename) throws PrismException
+	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
 	{
 		int i;
-		FileWriter out;
 		TreeMap<Integer, Double> sorted;
-		try {
-			// Output transitions to .tra file
-			out = new FileWriter(filename);
-			out.write(numStates + " " + numTransitions + "\n");
-			sorted = new TreeMap<Integer, Double>();
-			for (i = 0; i < numStates; i++) {
-				// Extract transitions and sort by destination state index (to match PRISM-exported files)
-				for (Map.Entry<Integer, Double> e : trans.get(i)) {
-					sorted.put(e.getKey(), e.getValue());
-				}
-				// Print out (sorted) transitions
-				for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
-					// Note use of PrismUtils.formatDouble to match PRISM-exported files
-					out.write(i + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()) + "\n");
-				}
-				sorted.clear();
+		// Output transitions to .tra file
+		out.print(numStates + " " + numTransitions + "\n");
+		sorted = new TreeMap<Integer, Double>();
+		for (i = 0; i < numStates; i++) {
+			// Extract transitions and sort by destination state index (to match PRISM-exported files)
+			for (Map.Entry<Integer, Double> e : trans.get(i)) {
+				sorted.put(e.getKey(), e.getValue());
 			}
-			out.close();
-		} catch (IOException e) {
-			throw new PrismException("Could not export " + getModelType() + " to file \"" + filename + "\"" + e);
+			// Print out (sorted) transitions
+			for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
+				// Note use of PrismUtils.formatDouble to match PRISM-exported files
+				out.print(i + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()) + "\n");
+			}
+			sorted.clear();
 		}
 	}
 
@@ -445,16 +386,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s)
 	{
 		return trans.get(s).iterator();
-	}
-
-	@Override
-	public double getTransitionReward(int s)
-	{
-		if (transRewardsConstant != null)
-			return transRewardsConstant;
-		if (transRewards == null)
-			return 0.0;
-		return transRewards.get(s);
 	}
 
 	@Override
@@ -673,7 +604,6 @@ public class DTMCSimple extends ModelSimple implements DTMC
 		DTMCSimple dtmc = (DTMCSimple) o;
 		if (!trans.equals(dtmc.trans))
 			return false;
-		// TODO: rewards
 		if (numTransitions != dtmc.numTransitions)
 			return false;
 		return true;

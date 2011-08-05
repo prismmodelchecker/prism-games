@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -63,5 +64,24 @@ public class DistributionSet extends LinkedHashSet<Distribution>
 	public boolean equals(Object o)
 	{
 		return super.equals(o) && action == ((DistributionSet) o).action;
+	}
+	
+	/**
+	 * Returns the index of the distribution {@code d}, i.e. the position in the order given by the iterator of this set
+	 * @param d the distribution to look up
+	 * @return the index of {@code d} or -1 if not found
+	 */
+	public int indexOf(Distribution d)
+	{
+		int i = -1;
+		for(Distribution itDist : this)
+		{
+			i++;
+			if (itDist.equals(d))
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 }

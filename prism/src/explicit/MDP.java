@@ -52,11 +52,6 @@ public interface MDP extends Model
 	public Object getAction(int s, int i);
 
 	/**
-	 * Get the transition reward (if any) for choice i of state s.
-	 */
-	public double getTransitionReward(int s, int i);
-
-	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some choices,
 	 * there is a transition to a state in {@code u}.
@@ -195,14 +190,12 @@ public interface MDP extends Model
 	 * and only those columns in the probability matrix are considered, that
 	 * are elements of {@code states}.
 	 * 
-	 * The result of this multiplication is added to the contents
-	 * of {@code dest}.
+	 * The result of this multiplication is added to the contents of {@code dest}.
 	 *   
 	 * @param states States for which to multiply
 	 * @param adv Strategy to use
 	 * @param source Vector to multiply matrix with
 	 * @param dest Vector to write result to.
 	 */
-	public void mvMultRight(int[] states, int[] adv, double[] source,
-			double[] dest);
+	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest);
 }

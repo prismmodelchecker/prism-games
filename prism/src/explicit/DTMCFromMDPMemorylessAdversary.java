@@ -26,15 +26,16 @@
 
 package explicit;
 
+import java.io.File;
 import java.util.*;
 import java.util.Map.Entry;
 
 import explicit.rewards.MCRewards;
-
 import parser.State;
 import parser.Values;
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Explicit-state representation of a DTMC, constructed (implicitly)
@@ -159,6 +160,16 @@ public class DTMCFromMDPMemorylessAdversary implements DTMC
 		throw new PrismException("Export not yet supported");
 	}
 
+	public void exportToPrismExplicitTra(File file) throws PrismException
+	{
+		throw new PrismException("Export not yet supported");
+	}
+
+	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
+	{
+		throw new PrismException("Export not yet supported");
+	}
+
 	public void exportToDotFile(String filename) throws PrismException
 	{
 		throw new PrismException("Export not yet supported");
@@ -194,12 +205,6 @@ public class DTMCFromMDPMemorylessAdversary implements DTMC
 	{
 		// TODO
 		throw new RuntimeException("Not implemented yet");
-	}
-
-	public double getTransitionReward(int s)
-	{
-		// TODO
-		return 0;
 	}
 
 	public void prob0step(BitSet subset, BitSet u, BitSet result)

@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -119,7 +120,7 @@ public class ConstructModel
 	 */
 	public Model constructModel(ModulesFile modulesFile) throws PrismException
 	{
-		return constructModel(modulesFile, false, false);
+		return constructModel(modulesFile, false, false, true);
 	}
 
 	/**
@@ -131,6 +132,20 @@ public class ConstructModel
 	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 */
 	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse) throws PrismException
+	{
+		return constructModel(modulesFile, justReach, buildSparse, true);
+	}
+
+	/**
+	 * Construct an explicit-state model from a PRISM model language description and return.
+	 * If {@code justReach} is true, no model is built and null is returned;
+	 * the set of reachable states can be obtained with {@link #getStatesList()}.
+	 * @param modulesFile The PRISM model
+	 * @param justReach If true, just build the reachable state set, not the model
+	 * @param buildSparse Build a sparse version of the model (if possible)?
+	 * @param distinguishActions True if actions should be attached to distributions (and used to distinguish them)
+	 */
+	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -150,7 +165,7 @@ public class ConstructModel
 		Model model = null;
 		Distribution distr = null;
 		// Misc
-		int i, j, k, nc, nt, src, dest, prev, tmp;
+		int i, j, nc, nt, src, dest, prev, tmp;
 		long timer, timerProgress;
 		boolean fixdl = false;
 		String actionLabel = null;
@@ -254,6 +269,7 @@ public class ConstructModel
 
 		// constructing stochastic multiplayer game model
 		if (modelType == ModelType.SMG) {
+			int k;
 			src = -1;
 			originalStates.add(0);
 			while (!explore.isEmpty()) {
@@ -379,6 +395,7 @@ public class ConstructModel
 				// Look at each outgoing choice in turn
 				nc = engine.getNumChoices();
 				for (i = 0; i < nc; i++) {
+
 					if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG)) {
 						distr = new Distribution();
 					}
@@ -429,13 +446,16 @@ public class ConstructModel
 					}
 					if (!justReach) {
 						if (modelType == ModelType.MDP) {
-							k = mdp.addChoice(src, distr);
-							mdp.setAction(src, k, engine.getTransitionAction(i, 0));
+							if (distinguishActions) {
+								mdp.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
+							} else {
+								mdp.addChoice(src, distr);
+							}
 						} else if (modelType == ModelType.STPG) {
-							k = stpg.addChoice(src, distr);
+							int k = stpg.addChoice(src, distr);
 							stpg.setAction(src, k, engine.getTransitionAction(i, 0));
 						} else if (modelType == ModelType.SMG) {
-							k = smg.addChoice(src, distr);
+							int k = smg.addChoice(src, distr);
 							smg.setAction(src, k, engine.getTransitionAction(i, 0));
 						}
 					}
@@ -472,10 +492,18 @@ public class ConstructModel
 			}
 		}
 		
-		// Sort states and convert set to list
-		mainLog.println("Sorting reachable states list...");
-		int permut[] = states.buildSortingPermutation();
-		statesList = states.toPermutedArrayList(permut);
+		boolean sort = true;
+		int permut[] = null;
+
+		if (sort) {
+			// Sort states and convert set to list
+			mainLog.println("Sorting reachable states list...");
+			permut = states.buildSortingPermutation();
+			statesList = states.toPermutedArrayList(permut);
+			//mainLog.println(permut);
+		} else {
+			statesList = states.toArrayList();
+		}
 		states.clear();
 		states = null;
 		// mainLog.println(permut);

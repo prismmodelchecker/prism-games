@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -24,52 +25,45 @@
 //	
 //==============================================================================
 
-package parser.type;
+package explicit.rewards;
 
-import prism.PrismLangException;
-
-public class TypeDouble extends Type 
+/**
+ * Explicit storage of constant game rewards.
+ */
+public class STPGRewardsConstant implements STPGRewards
 {
-	private static TypeDouble singleton;
+	private double dsReward;
+	private double transReward;
 	
-	static
+	public STPGRewardsConstant(double dsReward, double transReward)
 	{
-		singleton = new TypeDouble();
+		this.dsReward = dsReward;
+		this.transReward = transReward;
 	}
-	
-	private TypeDouble()
-	{		
-	}	
-	
-	public boolean equals(Object o)
+
+	@Override
+	public double getDistributionSetReward(int s, int d)
 	{
-		return (o instanceof TypeDouble);
+		return this.dsReward;
 	}
-	
-	public String getTypeString()
+
+	@Override
+	public int getTransitionRewardCount(int s, int ds, int d)
 	{
-		return "double";
+		return 1;
 	}
-	
-	public static TypeDouble getInstance()
+
+	@Override
+	public double getTransitionReward(int s, int d, int t, int i)
 	{
-		return singleton;
+		return this.transReward;
 	}
 	
 	@Override
-	public boolean canAssign(Type type)
+	public void clearRewards(int s)
 	{
-		return (type instanceof TypeDouble || type instanceof TypeInt);
+		//do nothing
+		return;
 	}
-	
-	@Override
-	public Object castValueTo(Object value) throws PrismLangException
-	{
-		if (value instanceof Double)
-			return value;
-		if (value instanceof Integer)
-			return new Double(((Double) value).doubleValue());
-		else
-			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
-	}
+
 }

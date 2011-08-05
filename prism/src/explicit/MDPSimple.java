@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Christian von Essen <christian.vonessen@imag.fr> (Verimag, Grenoble)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -31,9 +32,10 @@ import java.util.Map.Entry;
 import java.io.*;
 
 import explicit.rewards.MDPRewards;
-
+import explicit.rewards.MDPRewardsSimple;
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismLog;
 import prism.PrismUtils;
 
 /**
@@ -48,14 +50,8 @@ public class MDPSimple extends ModelSimple implements MDP
 	protected List<List<Distribution>> trans;
 
 	// Action labels
-	// (null in element s means no actions for that state)
+	// (null list means no actions; null in element s means no actions for state s)
 	protected List<List<Object>> actions;
-
-	// Rewards
-	// (if transRewardsConstant non-null, use this for all transitions; otherwise, use transRewards list)
-	// (for transRewards, null in element s means no rewards for that state)
-	protected Double transRewardsConstant;
-	protected List<List<Double>> transRewards;
 
 	// Flag: allow duplicates in distribution sets?
 	protected boolean allowDupes = false;
@@ -91,18 +87,34 @@ public class MDPSimple extends ModelSimple implements MDP
 	{
 		this(mdp.numStates);
 		copyFrom(mdp);
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency) 
 		for (int s = 0; s < numStates; s++) {
+			List<Distribution> distrs = trans.get(s); 
 			for (Distribution distr : mdp.trans.get(s)) {
-				addChoice(s, new Distribution(distr));
+				distrs.add(new Distribution(distr));
 			}
 		}
-		for (int s = 0; s < numStates; s++) {
-			int n = mdp.getNumChoices(s);
-			for (int i = 0; i < n; i++) {
-				setAction(s, i, mdp.getAction(s, i));
+		if (mdp.actions != null) {
+			actions = new ArrayList<List<Object>>(numStates);
+			for (int s = 0; s < numStates; s++)
+				actions.add(null);
+			for (int s = 0; s < numStates; s++) {
+				if (mdp.actions.get(s) != null) {
+					int n = mdp.trans.get(s).size();
+					List<Object> list = new ArrayList<Object>(n);
+					for (int i = 0; i < n; i++) {
+						list.add(mdp.actions.get(s).get(i));
+					}
+					actions.set(s, list);
+				}
 			}
 		}
-		// TODO: copy rewards
+		// Copy flags/stats too
+		allowDupes = mdp.allowDupes;
+		numDistrs = mdp.numDistrs;
+		numTransitions = mdp.numTransitions;
+		maxNumDistrs = mdp.maxNumDistrs;
+		maxNumDistrsOk = mdp.maxNumDistrsOk;
 	}
 
 	/**
@@ -113,9 +125,9 @@ public class MDPSimple extends ModelSimple implements MDP
 		this(dtmc.getNumStates());
 		copyFrom(dtmc);
 		for (int s = 0; s < numStates; s++) {
+			// Note: DTMCSimple has no actions so can ignore these
 			addChoice(s, new Distribution(dtmc.getTransitions(s)));
 		}
-		// TODO: copy rewards, etc.
 	}
 
 	/**
@@ -128,18 +140,35 @@ public class MDPSimple extends ModelSimple implements MDP
 	{
 		this(mdp.numStates);
 		copyFrom(mdp, permut);
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency)
+		// (Since permut is a bijection, all structures and statistics are identical)
 		for (int s = 0; s < numStates; s++) {
+			List<Distribution> distrs = trans.get(permut[s]); 
 			for (Distribution distr : mdp.trans.get(s)) {
-				addChoice(permut[s], new Distribution(distr, permut));
+				distrs.add(new Distribution(distr, permut));
 			}
 		}
-		for (int s = 0; s < numStates; s++) {
-			int n = mdp.getNumChoices(s);
-			for (int i = 0; i < n; i++) {
-				setAction(permut[s], i, mdp.getAction(s, i));
+		if (mdp.actions != null) {
+			actions = new ArrayList<List<Object>>(numStates);
+			for (int s = 0; s < numStates; s++)
+				actions.add(null);
+			for (int s = 0; s < numStates; s++) {
+				if (mdp.actions.get(s) != null) {
+					int n = mdp.trans.get(s).size();
+					List<Object> list = new ArrayList<Object>(n);
+					for (int i = 0; i < n; i++) {
+						list.add(mdp.actions.get(s).get(i));
+					}
+					actions.set(permut[s], list);
+				}
 			}
 		}
-		// TODO: permute rewards
+		// Copy flags/stats too
+		allowDupes = mdp.allowDupes;
+		numDistrs = mdp.numDistrs;
+		numTransitions = mdp.numTransitions;
+		maxNumDistrs = mdp.maxNumDistrs;
+		maxNumDistrsOk = mdp.maxNumDistrsOk;
 	}
 
 	// Mutators (for ModelSimple)
@@ -155,7 +184,6 @@ public class MDPSimple extends ModelSimple implements MDP
 			trans.add(new ArrayList<Distribution>());
 		}
 		actions = null;
-		clearAllRewards();
 	}
 
 	@Override
@@ -174,8 +202,6 @@ public class MDPSimple extends ModelSimple implements MDP
 		trans.get(s).clear();
 		if (actions != null && actions.get(s) != null)
 			actions.get(s).clear();
-		if (transRewards != null && transRewards.get(s) != null)
-			transRewards.get(s).clear();
 	}
 
 	@Override
@@ -192,8 +218,6 @@ public class MDPSimple extends ModelSimple implements MDP
 			trans.add(new ArrayList<Distribution>());
 			if (actions != null)
 				actions.add(null);
-			if (transRewards != null)
-				transRewards.add(null);
 			numStates++;
 		}
 	}
@@ -264,12 +288,92 @@ public class MDPSimple extends ModelSimple implements MDP
 		initialStates.add(0);
 	}
 
+	public MDPRewardsSimple buildRewardsFromPrismExplicit(String rews, String rewt) throws PrismException
+	{
+		BufferedReader in;
+		Distribution distr;
+		String s, ss[];
+		int i, j, iLast, kLast, n, lineNum = 0;
+		double reward;
+		MDPRewardsSimple rs = new MDPRewardsSimple(this.getNumStates());
+		
+		try {
+			/* WE DO NOT SUPPORT STATE REWARDS YET
+			// Open rews file
+			in = new BufferedReader(new FileReader(new File(rews)));
+			// Parse first line to get num states
+			s = in.readLine();
+			lineNum = 1;
+			if (s == null)
+				throw new PrismException("Missing first line of .rews file");
+			ss = s.split(" ");
+			n = Integer.parseInt(ss[0]);
+			// Go though list of transitions in file
+			iLast = -1;
+			kLast = -1;
+			distr = null;
+			s = in.readLine();
+			lineNum++;
+			while (s != null) {
+				s = s.trim();
+				if (s.length() > 0) {
+					ss = s.split(" ");
+					i = Integer.parseInt(ss[0]);
+					reward = Double.parseDouble(ss[1]);
+					this.setStateReward(i,reward);
+				}
+				s = in.readLine();
+				lineNum++;
+			}
+			// Close file
+			in.close();
+			*/
+		
+			//Open rewt file
+			in = new BufferedReader(new FileReader(new File(rewt)));
+			// Parse first line to get num states
+			s = in.readLine();
+			lineNum = 1;
+			if (s == null)
+				throw new PrismException("Missing first line of .rewt file");
+			ss = s.split(" ");
+			n = Integer.parseInt(ss[0]);
+			// Go though list of transitions in file
+			iLast = -1;
+			kLast = -1;
+			distr = null;
+			s = in.readLine();
+			lineNum++;
+			while (s != null) {
+				s = s.trim();
+				if (s.length() > 0) {
+					ss = s.split(" ");
+					i = Integer.parseInt(ss[0]);
+					j = Integer.parseInt(ss[1]);
+					reward = Double.parseDouble(ss[2]);
+					rs.setTransitionReward(i, j, reward);
+				}
+				s = in.readLine();
+				lineNum++;
+			}
+			// Close file
+			in.close();
+			return rs;
+		} catch (IOException e) {
+			System.out.println(e);
+			System.exit(1);
+			return null; //will never happen, it's here just to make the compiler happy
+		} catch (NumberFormatException e) {
+			throw new PrismException("Problem in .rewt file (line " + lineNum + ") for MDP");
+		}
+	}
+	
 	// Mutators (other)
 
 	/**
-	 * Add a choice (distribution 'distr') to state s (which must exist).
-	 * Distribution is only actually added if it does not already exists for state s.
-	 * (Assuming 'allowDupes' flag is not enabled.)
+	 * Add a choice (distribution {@code distr}) to state {@code s} (which must exist).
+	 * Distribution is only actually added if it does not already exists for state {@code s}.
+	 * (Assuming {@code allowDupes} flag is not enabled.)
 	 * Returns the index of the (existing or newly added) distribution.
 	 * Returns -1 in case of error.
 	 */
@@ -280,19 +384,16 @@ public class MDPSimple extends ModelSimple implements MDP
 		if (s >= numStates || s < 0)
 			return -1;
 		// Add distribution (if new)
-		set = trans.get(s);
 		if (!allowDupes) {
-			int i = set.indexOf(distr);
+			int i = indexOfChoice(s, distr);
 			if (i != -1)
 				return i;
 		}
+		set = trans.get(s);
 		set.add(distr);
 		// Add null action if necessary
 		if (actions != null && actions.get(s) != null)
 			actions.get(s).add(null);
-		// Add zero reward if necessary
-		if (transRewards != null && transRewards.get(s) != null)
-			transRewards.get(s).add(0.0);
 		// Update stats
 		numDistrs++;
 		maxNumDistrs = Math.max(maxNumDistrs, set.size());
@@ -301,19 +402,49 @@ public class MDPSimple extends ModelSimple implements MDP
 	}
 
 	/**
-	 * Remove all rewards from the model
+	 * Add a choice (distribution {@code distr}) labelled with {@code action} to state {@code s} (which must exist).
+	 * Action/distribution is only actually added if it does not already exists for state {@code s}.
+	 * (Assuming {@code allowDupes} flag is not enabled.)
+	 * Returns the index of the (existing or newly added) distribution.
+	 * Returns -1 in case of error.
 	 */
-	public void clearAllRewards()
+	public int addActionLabelledChoice(int s, Distribution distr, Object action)
 	{
-		transRewards = null;
-		transRewardsConstant = null;
+		List<Distribution> set;
+		// Check state exists
+		if (s >= numStates || s < 0)
+			return -1;
+		// Add distribution/action (if new)
+		if (!allowDupes) {
+			int i = indexOfActionLabelledChoice(s, distr, action);
+			if (i != -1)
+				return i;
+		}
+		set = trans.get(s);
+		set.add(distr);
+		// Add null action if necessary
+		if (actions != null && actions.get(s) != null)
+			actions.get(s).add(null);
+		// Set action
+		setAction(s, set.size() - 1, action);
+		// Update stats
+		numDistrs++;
+		maxNumDistrs = Math.max(maxNumDistrs, set.size());
+		numTransitions += distr.size();
+		return set.size() - 1;
 	}
 
 	/**
 	 * Set the action label for choice i in some state s.
+	 * This method does not know about duplicates (i.e. if setting an action causes
+	 * two choices to be identical, one will not be removed).
+	 * Use {@link #addActionLabelledChoice(int, Distribution, Object)} which is more reliable.
 	 */
 	public void setAction(int s, int i, Object o)
 	{
+		// If action to be set is null, nothing to do
+		if (o == null)
+			return;
 		// If no actions array created yet, create it
 		if (actions == null) {
 			actions = new ArrayList<List<Object>>(numStates);
@@ -333,85 +464,6 @@ public class MDPSimple extends ModelSimple implements MDP
 		actions.get(s).set(i, o);
 	}
 
-	/**
-	 * Set a constant reward for all transitions
-	 */
-	public void setConstantTransitionReward(double r)
-	{
-		// This replaces any other reward definitions
-		transRewards = null;
-		// Store as a Double (because we use null to check for its existence)
-		transRewardsConstant = new Double(r);
-	}
-
-	/**
-	 * Set the reward for choice i in some state s to r.
-	 */
-	public void setTransitionReward(int s, int i, double r)
-	{
-		// This would replace any constant reward definition, if it existed
-		transRewardsConstant = null;
-		// If no rewards array created yet, create it
-		if (transRewards == null) {
-			transRewards = new ArrayList<List<Double>>(numStates);
-			for (int j = 0; j < numStates; j++)
-				transRewards.add(null);
-		}
-		// If no rewards for state i yet, create list
-		if (transRewards.get(s) == null) {
-			int n = trans.get(s).size();
-			List<Double> list = new ArrayList<Double>(n);
-			for (int j = 0; j < n; j++) {
-				list.add(0.0);
-			}
-			transRewards.set(s, list);
-		}
-		// Set reward
-		transRewards.get(s).set(i, r);
-	}
-
-	public void readTransitionRewardsFromFile(String filename) throws PrismException
-	{
-		// TODO implement this stuff properly
-		BufferedReader in;
-		String s, ss[];
-		int i, j, n, lineNum = 0;
-		double rew;
-
-		try {
-			// Open file
-			in = new BufferedReader(new FileReader(new File(filename)));
-			// Skip first line
-			s = in.readLine();
-			lineNum++;
-			// Go though lines of file
-			s = in.readLine();
-			lineNum++;
-			while (s != null) {
-				s = s.trim();
-				if (s.length() > 0) {
-					ss = s.split(" ");
-					i = Integer.parseInt(ss[0]);
-					rew = Double.parseDouble(ss[1]);
-					// Add reward to all choices of state i
-					n = getNumChoices(i);
-					for (j = 0; j < n; j++) {
-						setTransitionReward(i, j, rew);
-					}
-				}
-				s = in.readLine();
-				lineNum++;
-			}
-			// Close file
-			in.close();
-		} catch (IOException e) {
-			System.out.println(e);
-			System.exit(1);
-		} catch (NumberFormatException e) {
-			throw new PrismException("Problem in rewards file (line " + lineNum + ") for " + getModelType());
-		}
-	}
-	
 	// Accessors (for ModelSimple)
 
 	@Override
@@ -469,7 +521,6 @@ public class MDPSimple extends ModelSimple implements MDP
 			if (trans.get(i).isEmpty() && (except == null || !except.get(i)))
 				throw new PrismException("MDP has a deadlock in state " + i);
 		}
-		// TODO: Check for empty distributions too?
 	}
 
 	@Override
@@ -494,35 +545,31 @@ public class MDPSimple extends ModelSimple implements MDP
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(String filename) throws PrismException
+	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
 	{
 		int i, j;
-		FileWriter out;
+		Object action;
 		TreeMap<Integer, Double> sorted;
-		try {
-			// Output transitions to .tra file
-			out = new FileWriter(filename);
-			out.write(numStates + " " + numDistrs + " " + numTransitions + "\n");
-			sorted = new TreeMap<Integer, Double>();
-			for (i = 0; i < numStates; i++) {
-				j = -1;
-				for (Distribution distr : trans.get(i)) {
-					j++;
-					// Extract transitions and sort by destination state index (to match PRISM-exported files)
-					for (Map.Entry<Integer, Double> e : distr) {
-						sorted.put(e.getKey(), e.getValue());
-					}
-					// Print out (sorted) transitions
-					for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
-						// Note use of PrismUtils.formatDouble to match PRISM-exported files
-						out.write(i + " " + j + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()) + "\n");
-					}
-					sorted.clear();
+		// Output transitions to .tra file
+		out.print(numStates + " " + numDistrs + " " + numTransitions + "\n");
+		sorted = new TreeMap<Integer, Double>();
+		for (i = 0; i < numStates; i++) {
+			j = -1;
+			for (Distribution distr : trans.get(i)) {
+				j++;
+				// Extract transitions and sort by destination state index (to match PRISM-exported files)
+				for (Map.Entry<Integer, Double> e : distr) {
+					sorted.put(e.getKey(), e.getValue());
 				}
+				// Print out (sorted) transitions
+				for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
+					// Note use of PrismUtils.formatDouble to match PRISM-exported files
+					out.print(i + " " + j + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()));
+					action = getAction(i, j);
+					out.print(action == null ? "\n" : (" " + action + "\n"));
+				}
+				sorted.clear();
 			}
-			out.close();
-		} catch (IOException e) {
-			throw new PrismException("Could not export " + getModelType() + " to file \"" + filename + "\"" + e);
 		}
 	}
 
@@ -531,6 +578,7 @@ public class MDPSimple extends ModelSimple implements MDP
 	{
 		int i, j;
 		String nij;
+		Object action;
 		try {
 			FileWriter out = new FileWriter(filename);
 			out.write("digraph " + getModelType() + " {\nsize=\"8,5\"\nnode [shape=box];\n");
@@ -540,8 +588,12 @@ public class MDPSimple extends ModelSimple implements MDP
 				j = -1;
 				for (Distribution distr : trans.get(i)) {
 					j++;
+					action = getAction(i, j);
 					nij = "n" + i + "_" + j;
-					out.write(i + " -> " + nij + " [ arrowhead=none,label=\"" + j + "\" ];\n");
+					out.write(i + " -> " + nij + " [ arrowhead=none,label=\"" + j);
+					if (action != null)
+						out.write(":" + action);
+					out.write("\" ];\n");
 					out.write(nij + " [ shape=point,width=0.1,height=0.1,label=\"\" ];\n");
 					for (Map.Entry<Integer, Double> e : distr) {
 						out.write(nij + " -> " + e.getKey() + " [ label=\"" + e.getValue() + "\" ];\n");
@@ -562,6 +614,7 @@ public class MDPSimple extends ModelSimple implements MDP
 		boolean first;
 		FileWriter out;
 		TreeMap<Integer, Double> sorted;
+		Object action;
 		try {
 			// Output transitions to PRISM language file
 			out = new FileWriter(filename);
@@ -577,7 +630,9 @@ public class MDPSimple extends ModelSimple implements MDP
 						sorted.put(e.getKey(), e.getValue());
 					}
 					// Print out (sorted) transitions
-					out.write("[]x=" + i + "->");
+					action = getAction(i, j);
+					out.write(action != null ? ("[" + action + "]") : "[]");
+					out.write("x=" + i + "->");
 					first = true;
 					for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
 						if (first)
@@ -632,17 +687,6 @@ public class MDPSimple extends ModelSimple implements MDP
 	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
 	{
 		return trans.get(s).get(i).iterator();
-	}
-
-	@Override
-	public double getTransitionReward(int s, int i)
-	{
-		List<Double> list;
-		if (transRewardsConstant != null)
-			return transRewardsConstant;
-		if (transRewards == null || (list = transRewards.get(s)) == null)
-			return 0.0;
-		return list.get(i);
 	}
 
 	@Override
@@ -930,7 +974,7 @@ public class MDPSimple extends ModelSimple implements MDP
 		for (Distribution distr : step) {
 			j++;
 			// Compute sum for this distribution
-			d = mdpRewards != null ? mdpRewards.getTransitionReward(s, j) : getTransitionReward(s, j);
+			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {
 				k = (Integer) e.getKey();
 				prob = (Double) e.getValue();
@@ -941,6 +985,7 @@ public class MDPSimple extends ModelSimple implements MDP
 				minmax = d;
 			first = false;
 		}
+		minmax += mdpRewards.getStateReward(s);
 
 		return minmax;
 	}
@@ -961,7 +1006,7 @@ public class MDPSimple extends ModelSimple implements MDP
 		for (Distribution distr : step) {
 			j++;
 			// Compute sum for this distribution
-			d = mdpRewards != null ? mdpRewards.getTransitionReward(s, j) : getTransitionReward(s, j);
+			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {
 				k = (Integer) e.getKey();
 				prob = (Double) e.getValue();
@@ -978,6 +1023,20 @@ public class MDPSimple extends ModelSimple implements MDP
 		return res;
 	}
 
+	@Override
+	public void mvMultRight(int[] states, int[] adv, double[] source,
+			double[] dest) {
+		for (int s : states) {
+			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(s, adv[s]);
+			while (it.hasNext()) {
+				Entry<Integer, Double> next = it.next();
+				int col = next.getKey();
+				double prob = next.getValue();
+				dest[col] += prob * source[s];
+			}
+		}
+	}
+	
 	// Accessors (other)
 
 	/**
@@ -1029,6 +1088,49 @@ public class MDPSimple extends ModelSimple implements MDP
 		return maxNumDistrs;
 	}
 
+	/**
+	 * Returns the index of the choice {@code distr} for state {@code s}, if it exists.
+	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
+	 */
+	public int indexOfChoice(int s, Distribution distr)
+	{
+		return trans.get(s).indexOf(distr);
+	}
+	
+	/**
+	 * Returns the index of the {@code action}-labelled choice {@code distr} for state {@code s}, if it exists.
+	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
+	 */
+	public int indexOfActionLabelledChoice(int s, Distribution distr, Object action)
+	{
+		List<Distribution> set = trans.get(s);
+		int i, n = set.size();
+		if (distr == null) {
+		    for (i = 0; i < n; i++) {
+		    	if (set.get(i) == null) {
+		    		Object a = getAction(s, i);
+		    		if (action == null) {
+		    			if (a == null) return i;
+		    		} else {
+		    			if (action.equals(a)) return i;
+		    		}
+		    	}
+		    }
+		} else {
+		    for (i = 0; i < n; i++) {
+		    	if (distr.equals(set.get(i))) {
+		    		Object a = getAction(s, i);
+		    		if (action == null) {
+		    			if (a == null) return i;
+		    		} else {
+		    			if (action.equals(a)) return i;
+		    		}
+		    	}
+		    }
+		}
+		return -1;
+	}
+	
 	// Standard methods
 
 	@Override
@@ -1053,8 +1155,6 @@ public class MDPSimple extends ModelSimple implements MDP
 				s += trans.get(i).get(j);
 			}
 			s += "]";
-			if (transRewards != null)
-				s += transRewards.get(i);
 		}
 		s += " ]\n";
 		return s;
@@ -1073,21 +1173,6 @@ public class MDPSimple extends ModelSimple implements MDP
 		if (!trans.equals(mdp.trans))
 			return false;
 		// TODO: compare actions (complicated: null = null,null,null,...)
-		// TODO: compare rewards (complicated: null = 0,0,0,0)
 		return true;
-	}
-
-	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source,
-			double[] dest) {
-		for (int s : states) {
-			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(s, adv[s]);
-			while (it.hasNext()) {
-				Entry<Integer, Double> next = it.next();
-				int col = next.getKey();
-				double prob = next.getValue();
-				dest[col] += prob * source[s];
-			}
-		}
 	}
 }

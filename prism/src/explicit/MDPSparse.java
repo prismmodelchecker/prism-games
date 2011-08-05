@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Christian von Essen <christian.vonessen@imag.fr> (Verimag, Grenoble)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -31,9 +32,10 @@ import java.util.Map.Entry;
 import java.io.*;
 
 import explicit.rewards.MDPRewards;
-
+import parser.State;
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismLog;
 import prism.PrismUtils;
 
 /**
@@ -56,14 +58,9 @@ public class MDPSparse extends ModelSparse implements MDP
 	protected int rowStarts[];
 
 	// Action labels
-	/** Array of action labels for choices (is of size numDistrs) */
+	/** Array of action labels for choices;
+	 * if null, there are no actions; otherwise, is an array of size numDistrs */
 	protected Object actions[];
-
-	// Rewards
-	// (if transRewardsConstant non-null, use this for all transitions; otherwise, use transRewards list)
-	// (for transRewards, null in element s means no rewards for that state)
-	protected Double transRewardsConstant;
-	protected List<List<Double>> transRewards;
 
 	// Other statistics
 	protected int numDistrs;
@@ -78,81 +75,6 @@ public class MDPSparse extends ModelSparse implements MDP
 	public MDPSparse(MDPSimple mdp)
 	{
 		this(mdp, false);
-	}
-
-	/**
-	 * Copy constructor for a (sub-)MDP from a given MDP.
-	 * The states and actions will be indexed as given by the order
-	 * of the lists {@code states} and {@code actions}.
-	 * 
-	 * @param mdp MDP to copy from
-	 * @param states States to copy
-	 * @param actions Actions to copy
-	 */
-	public MDPSparse(MDP mdp, List<Integer> states, List<List<Integer>> actions)
-	{
-		initialise(states.size());
-		for (int in : mdp.getInitialStates()) {
-			addInitialState(in);
-		}
-
-		// statesList = new ArrayList<State>(states.size());
-		statesList = new ArrayList<parser.State>();
-		for (int s : states) {
-			statesList.add(mdp.getStatesList().get(s));
-		}
-
-		numDistrs = 0;
-		numTransitions = 0;
-		maxNumDistrs = 0;
-
-		for (int i = 0; i < states.size(); i++) {
-			int s = states.get(i);
-
-			final int numChoices = actions.get(s).size();
-			numDistrs += numChoices;
-			if (numChoices > maxNumDistrs) {
-				maxNumDistrs = numChoices;
-			}
-			for (int a : actions.get(s)) {
-				numTransitions += mdp.getNumTransitions(s, a);
-			}
-		}
-
-		nonZeros = new double[numTransitions];
-		cols = new int[numTransitions];
-		choiceStarts = new int[numDistrs + 1];
-		rowStarts = new int[numStates + 1];
-		this.actions = new Object[numDistrs];
-		int choiceIndex = 0;
-		int colIndex = 0;
-
-		int[] reverseStates = new int[mdp.getNumStates()];
-		for (int i = 0; i < states.size(); i++) {
-			reverseStates[states.get(i)] = i;
-		}
-
-		for (int i = 0; i < states.size(); i++) {
-			int s = states.get(i);
-			rowStarts[i] = choiceIndex;
-			for (int a : actions.get(s)) {
-				choiceStarts[choiceIndex] = colIndex;
-				this.actions[choiceIndex] = mdp.getAction(s, a);
-				choiceIndex++;
-				Iterator<Entry<Integer, Double>> it = mdp.getTransitionsIterator(s, a);
-				while (it.hasNext()) {
-					Entry<Integer, Double> next = it.next();
-					cols[colIndex] = reverseStates[next.getKey()];
-					nonZeros[colIndex] = next.getValue();
-					colIndex++;
-				}
-			}
-		}
-
-		choiceStarts[numDistrs] = numTransitions;
-		rowStarts[numStates] = numDistrs;
-
-		// TODO copy rewards
 	}
 
 	/**
@@ -213,8 +135,6 @@ public class MDPSparse extends ModelSparse implements MDP
 		}
 		choiceStarts[numDistrs] = numTransitions;
 		rowStarts[numStates] = numDistrs;
-
-		// TODO: copy rewards
 	}
 
 	/**
@@ -286,8 +206,69 @@ public class MDPSparse extends ModelSparse implements MDP
 		}
 		choiceStarts[numDistrs] = numTransitions;
 		rowStarts[numStates] = numDistrs;
+	}
 
-		// TODO: copy rewards
+	/**
+	 * Copy constructor for a (sub-)MDP from a given MDP.
+	 * The states and actions will be indexed as given by the order
+	 * of the lists {@code states} and {@code actions}.
+	 * @param mdp MDP to copy from
+	 * @param states States to copy
+	 * @param actions Actions to copy
+	 */
+	public MDPSparse(MDP mdp, List<Integer> states, List<List<Integer>> actions)
+	{
+		initialise(states.size());
+		for (int in : mdp.getInitialStates()) {
+			addInitialState(in);
+		}
+		statesList = new ArrayList<State>();
+		for (int s : states) {
+			statesList.add(mdp.getStatesList().get(s));
+		}
+		numDistrs = 0;
+		numTransitions = 0;
+		maxNumDistrs = 0;
+		for (int i = 0; i < states.size(); i++) {
+			int s = states.get(i);
+			final int numChoices = actions.get(s).size();
+			numDistrs += numChoices;
+			if (numChoices > maxNumDistrs) {
+				maxNumDistrs = numChoices;
+			}
+			for (int a : actions.get(s)) {
+				numTransitions += mdp.getNumTransitions(s, a);
+			}
+		}
+		nonZeros = new double[numTransitions];
+		cols = new int[numTransitions];
+		choiceStarts = new int[numDistrs + 1];
+		rowStarts = new int[numStates + 1];
+		this.actions = new Object[numDistrs];
+		int choiceIndex = 0;
+		int colIndex = 0;
+		int[] reverseStates = new int[mdp.getNumStates()];
+		for (int i = 0; i < states.size(); i++) {
+			reverseStates[states.get(i)] = i;
+		}
+		for (int i = 0; i < states.size(); i++) {
+			int s = states.get(i);
+			rowStarts[i] = choiceIndex;
+			for (int a : actions.get(s)) {
+				choiceStarts[choiceIndex] = colIndex;
+				this.actions[choiceIndex] = mdp.getAction(s, a);
+				choiceIndex++;
+				Iterator<Entry<Integer, Double>> it = mdp.getTransitionsIterator(s, a);
+				while (it.hasNext()) {
+					Entry<Integer, Double> next = it.next();
+					cols[colIndex] = reverseStates[next.getKey()];
+					nonZeros[colIndex] = next.getValue();
+					colIndex++;
+				}
+			}
+		}
+		choiceStarts[numDistrs] = numTransitions;
+		rowStarts[numStates] = numDistrs;
 	}
 
 	// Mutators (for ModelSparse)
@@ -298,7 +279,6 @@ public class MDPSparse extends ModelSparse implements MDP
 		super.initialise(numStates);
 		numDistrs = numTransitions = maxNumDistrs = 0;
 		actions = null;
-		//clearAllRewards();
 	}
 
 	@Override
@@ -467,7 +447,6 @@ public class MDPSparse extends ModelSparse implements MDP
 			if (getNumChoices(i) == 0 && (except == null || !except.get(i)))
 				throw new PrismException("MDP has a deadlock in state " + i);
 		}
-		// TODO: Check for empty distributions too?
 	}
 
 	@Override
@@ -488,30 +467,26 @@ public class MDPSparse extends ModelSparse implements MDP
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(String filename) throws PrismException
+	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
 	{
 		// Note: In PRISM .tra files, transitions are usually sorted by column index within choices
 		// (to ensure this is the case, you may need to sort the model when constructing)
 		int i, j, k, l1, h1, l2, h2;
-		FileWriter out;
-		try {
-			// Output transitions to .tra file
-			out = new FileWriter(filename);
-			out.write(numStates + " " + numDistrs + " " + numTransitions + "\n");
-			for (i = 0; i < numStates; i++) {
-				l1 = rowStarts[i];
-				h1 = rowStarts[i + 1];
-				for (j = l1; j < h1; j++) {
-					l2 = choiceStarts[j];
-					h2 = choiceStarts[j + 1];
-					for (k = l2; k < h2; k++) {
-						out.write(i + " " + (j - l1) + " " + cols[k] + " " + PrismUtils.formatDouble(nonZeros[k]) + "\n");
-					}
+		Object action;
+		// Output transitions to .tra file
+		out.print(numStates + " " + numDistrs + " " + numTransitions + "\n");
+		for (i = 0; i < numStates; i++) {
+			l1 = rowStarts[i];
+			h1 = rowStarts[i + 1];
+			for (j = l1; j < h1; j++) {
+				l2 = choiceStarts[j];
+				h2 = choiceStarts[j + 1];
+				for (k = l2; k < h2; k++) {
+					out.print(i + " " + (j - l1) + " " + cols[k] + " " + PrismUtils.formatDouble(nonZeros[k]));
+					action = getAction(i, j - l1);
+					out.print(action == null ? "\n" : (" " + action + "\n"));
 				}
 			}
-			out.close();
-		} catch (IOException e) {
-			throw new PrismException("Could not export " + getModelType() + " to file \"" + filename + "\"" + e);
 		}
 	}
 
@@ -520,6 +495,7 @@ public class MDPSparse extends ModelSparse implements MDP
 	{
 		int i, j, k, l1, h1, l2, h2;
 		String nij;
+		Object action;
 		try {
 			FileWriter out = new FileWriter(filename);
 			out.write("digraph " + getModelType() + " {\nsize=\"8,5\"\nnode [shape=box];\n");
@@ -529,8 +505,12 @@ public class MDPSparse extends ModelSparse implements MDP
 				l1 = rowStarts[i];
 				h1 = rowStarts[i + 1];
 				for (j = l1; j < h1; j++) {
+					action = getAction(i, j - l1);
 					nij = "n" + i + "_" + (j - l1);
-					out.write(i + " -> " + nij + " [ arrowhead=none,label=\"" + (j - l1) + "\" ];\n");
+					out.write(i + " -> " + nij + " [ arrowhead=none,label=\"" + j);
+					if (action != null)
+						out.write(":" + action);
+					out.write("\" ];\n");
 					out.write(nij + " [ shape=point,width=0.1,height=0.1,label=\"\" ];\n");
 					l2 = choiceStarts[j];
 					h2 = choiceStarts[j + 1];
@@ -551,6 +531,7 @@ public class MDPSparse extends ModelSparse implements MDP
 	{
 		int i, j, k, l1, h1, l2, h2;
 		FileWriter out;
+		Object action;
 		try {
 			// Output transitions to PRISM language file
 			out = new FileWriter(filename);
@@ -561,7 +542,9 @@ public class MDPSparse extends ModelSparse implements MDP
 				h1 = rowStarts[i + 1];
 				for (j = l1; j < h1; j++) {
 					// Print out transitions
-					out.write("[]x=" + i + "->");
+					action = getAction(i, j - l1);
+					out.write(action != null ? ("[" + action + "]") : "[]");
+					out.write("x=" + i + "->");
 					l2 = choiceStarts[j];
 					h2 = choiceStarts[j + 1];
 					for (k = l2; k < h2; k++) {
@@ -667,19 +650,7 @@ public class MDPSparse extends ModelSparse implements MDP
 	@Override
 	public Object getAction(int s, int i)
 	{
-		return actions[rowStarts[s] + i];
-	}
-
-	@Override
-	public double getTransitionReward(int s, int i)
-	{
-		// TODO
-		return 0;/*List<Double> list;
-					if (transRewardsConstant != null)
-					return transRewardsConstant;
-					if (transRewards == null || (list = transRewards.get(s)) == null)
-					return 0.0;
-					return list.get(i);*/
+		return actions == null ? null : actions[rowStarts[s] + i];
 	}
 
 	@Override
@@ -994,7 +965,7 @@ public class MDPSparse extends ModelSparse implements MDP
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			// Compute sum for this distribution
-			d = mdpRewards != null ? mdpRewards.getTransitionReward(s, j - l1) : getTransitionReward(s, j - l1);
+			d = mdpRewards.getTransitionReward(s, j - l1);
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
 			for (k = l2; k < h2; k++) {
@@ -1005,6 +976,7 @@ public class MDPSparse extends ModelSparse implements MDP
 				minmax = d;
 			first = false;
 		}
+		minmax += mdpRewards.getStateReward(s);
 
 		return minmax;
 	}
@@ -1023,7 +995,7 @@ public class MDPSparse extends ModelSparse implements MDP
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			// Compute sum for this distribution
-			d = mdpRewards != null ? mdpRewards.getTransitionReward(s, j) : getTransitionReward(s, j);
+			d = mdpRewards.getTransitionReward(s, j);
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
 			for (k = l2; k < h2; k++) {
@@ -1038,6 +1010,20 @@ public class MDPSparse extends ModelSparse implements MDP
 		return res;
 	}
 
+	@Override
+	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
+	{
+		for (int s : states) {
+			int j, l2, h2;
+			int k = adv[s];
+			j = rowStarts[s] + k;
+			l2 = choiceStarts[j];
+			h2 = choiceStarts[j + 1];
+			for (k = l2; k < h2; k++) {
+				dest[cols[k]] += nonZeros[k] * source[s];
+			}
+		}
+	}
 	// Standard methods
 
 	@Override
@@ -1056,7 +1042,7 @@ public class MDPSparse extends ModelSparse implements MDP
 			for (j = l1; j < h1; j++) {
 				if (j > l1)
 					s += ",";
-				o = actions[j];
+				o = getAction(i, j - l1);
 				if (o != null)
 					s += o + ":";
 				s += "{";
@@ -1095,22 +1081,6 @@ public class MDPSparse extends ModelSparse implements MDP
 		if (!Utils.intArraysAreEqual(rowStarts, mdp.rowStarts))
 			return false;
 		// TODO: compare actions (complicated: null = null,null,null,...)
-		// TODO: compare rewards (complicated: null = 0,0,0,0)*/
 		return true;
-	}
-
-	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
-	{
-		for (int s : states) {
-			int j, l2, h2;
-			int k = adv[s];
-			j = rowStarts[s] + k;
-			l2 = choiceStarts[j];
-			h2 = choiceStarts[j + 1];
-			for (k = l2; k < h2; k++) {
-				dest[cols[k]] += nonZeros[k] * source[s];
-			}
-		}
 	}
 }

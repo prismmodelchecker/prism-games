@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import explicit.rewards.STPGRewards;
+
 import prism.ModelType;
 import prism.PrismException;
 
@@ -230,7 +232,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
@@ -241,7 +243,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-
+				// TODO: convert/pass rewards
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else if (complement) {
@@ -250,7 +252,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-
+				// TODO: convert/pass rewards
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else {
@@ -259,23 +261,26 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
+				// TODO: convert/pass rewards
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		}
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		// TODO: convert/pass rewards
 		return mvMultRewMinMaxSingle(s, vect, null, min, null);
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
-		return mvMultMinMaxSingleChoices(s, vect, min, val);
+		// TODO: convert/pass rewards
+		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
 	}
 
 	/**
