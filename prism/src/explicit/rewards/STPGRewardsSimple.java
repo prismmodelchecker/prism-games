@@ -30,130 +30,102 @@ package explicit.rewards;
 import java.util.ArrayList;
 import java.util.List;
 
-public class STPGRewardsSimple implements STPGRewards
+public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 {
-	/** Number of states */
-	protected int numStates;
+	/** Nested transition rewards */
+	protected List<List<List<Double>>> nestedTransRewards;
 
-	protected List<List<Double>> distributionSetRewards;
-
-	protected List<List<List<List<Double>>>> transRewards;
-
+	/**
+	 * Constructor: all zero rewards.
+	 * @param numStates Number of states
+	 */
 	public STPGRewardsSimple(int numStates)
 	{
-		this.numStates = numStates;
-		// Initially lists are just null (denoting all 0)
-		distributionSetRewards = new ArrayList<List<Double>>();
-		
-		transRewards = new ArrayList<List<List<List<Double>>>>(numStates);
-		for (int j = 0; j < numStates; j++)
-		{
-			transRewards.add(null);
-			distributionSetRewards.add(null);
-		}
-	}
-
-	/**
-	 * NOT IMPLEMENTED
-	 */
-	@Override
-	public double getDistributionSetReward(int s, int ds)
-	{
-		return 0;
-	}
-
-	@Override
-	public int getTransitionRewardCount(int s, int ds, int d)
-	{
-		if (transRewards.get(s) == null || transRewards.get(s).get(ds) == null || transRewards.get(s).get(ds).get(d) == null)
-			return 0;
-		else
-			return transRewards.get(s).get(ds).get(d).size();
+		super(numStates);
+		// Initially list is just null (denoting all 0)
+		nestedTransRewards = null;
 	}
 	
+	// Mutators
+
 	/**
-	 * Adds rewards specified by {@code newRewards} to the rewards associated
-	 * with {@code ds}th distribution of state {@code s}. 
-	 * 
-	 * The rewards are given as a list of lists of doubles, where the
-	 * i-th element of {@code newRewards} specifies the rewards to be added
-	 * to the (possibly empty) list of rewards associated with
-	 * i-th distribution associated with {@code s} and {@code ds}.
-	 *  
-	 * @param s
-	 * @param ds
-	 * @param newRewards
+	 * Set the reward for the {@code i},{@code j}th nested transition of state {@code s} to {@code r}.
 	 */
-	public void addTransitionRewards(int s, int ds, List<List<Double>> newRewards)
-	{	
-		if (transRewards.get(s) == null) {	
-			List<List<List<Double>>> distTransRewards = new ArrayList<List<List<Double>>>();			
-			transRewards.set(s, distTransRewards);
+	public void setNestedTransitionReward(int s, int i, int j, double r)
+	{
+		List<List<Double>> list1;
+		List<Double> list2;
+		// Nothing to do for zero reward
+		if (r == 0.0)
+			return;
+		// If no rewards array created yet, create it
+		if (nestedTransRewards == null) {
+			nestedTransRewards = new ArrayList<List<List<Double>>>(numStates);
+			for (int k = 0; k < numStates; k++)
+				nestedTransRewards.add(null);
 		}
-		
-		if (transRewards.get(s).size() <= ds) {
-			List<List<Double>> lTransRewards = new ArrayList<List<Double>>();			
-			transRewards.get(s).add(lTransRewards);
+		// If no rewards for state s yet, create list1
+		if (nestedTransRewards.get(s) == null) {
+			list1 = new ArrayList<List<Double>>();
+			nestedTransRewards.set(s, list1);
+		} else {
+			list1 = nestedTransRewards.get(s);
 		}
-		
-		List<List<Double>> dsRewards = transRewards.get(s).get(ds);
-		if (dsRewards.size() < newRewards.size())
-		{
-			for (int i = dsRewards.size(); i < newRewards.size(); i++)
-			{
-				dsRewards.add(new ArrayList<Double>());
+		// If list1 not big enough, extend
+		int n1 = i - list1.size() + 1;
+		if (n1 > 0) {
+			for (int k = 0; k < n1; k++) {
+				list1.add(null);
 			}
 		}
-		
-		
-		for (int i = 0; i < dsRewards.size(); i++)
-		{
-			dsRewards.get(i).addAll(newRewards.get(i));
+		// If no rewards for state s, choice i, create list2
+		if (list1.get(i) == null) {
+			list2 = new ArrayList<Double>();
+			list1.set(i, list2);
+		} else {
+			list2 = list1.get(i);
 		}
-	}
-	
-	
-	@Override
-	public double getTransitionReward(int s, int ds, int d, int i)
-	{
-		return this.transRewards.get(s).get(ds).get(d).get(i);
-	}
-	
-	@Override
-	public void clearRewards(int s)
-	{
-		if(this.distributionSetRewards.get(s) != null)
-			this.distributionSetRewards.get(s).clear();
-		if(this.transRewards.get(s) != null)
-			this.transRewards.get(s).clear();
-	}
-	
-	public void addStates(int n)
-	{
-		this.numStates += n;
-		for (int i=0; i<n; i++)
-		{
-			this.distributionSetRewards.add(null);
-			this.transRewards.add(null);
+		// If list2 not big enough, extend
+		int n2 = j - list2.size() + 1;
+		if (n2 > 0) {
+			for (int k = 0; k < n2; k++) {
+				list2.add(null);
+			}
 		}
+		// Set reward
+		list2.set(j, r);
 	}
 
+	/**
+	 * Clear all rewards for state s.
+	 */
+	public void clearRewards(int s)
+	{
+		super.clearRewards(s);
+		if (nestedTransRewards != null && nestedTransRewards.size() > s) {
+			nestedTransRewards.set(s, null);
+		}
+	}
+	
+	// Accessors
+	
+	@Override
+	public double getNestedTransitionReward(int s, int i, int j)
+	{
+		List<List<Double>> list1;
+		List<Double> list2;
+		if (nestedTransRewards == null || (list1 = nestedTransRewards.get(s)) == null)
+			return 0.0;
+		if (list1.size() <= i || (list2 = list1.get(i)) == null)
+			return 0.0;
+		if (list2.size() <= j)
+			return 0.0;
+		return list2.get(j);
+	}
+	
 	@Override
 	public String toString()
 	{
-		int i;
-		boolean first;
-		String s = "";
-		first = true;
-		s = "[ ";
-		for (i = 0; i < numStates; i++) {
-			if (first)
-				first = false;
-			else
-				s += ", ";
-			s += i + ": " + transRewards.get(i);
-		}
-		s += " ]";
-		return s;
+		return super.toString() + "; ntr:" + nestedTransRewards;
 	}
 }

@@ -61,6 +61,9 @@ public class MDPRewardsSimple implements MDPRewards
 	 */
 	public void setStateReward(int s, double r)
 	{
+		// Nothing to do for zero reward
+		if (r == 0.0)
+			return;
 		// If no rewards array created yet, create it
 		if (stateRewards == null) {
 			stateRewards = new ArrayList<Double>(numStates);
@@ -77,13 +80,16 @@ public class MDPRewardsSimple implements MDPRewards
 	public void setTransitionReward(int s, int i, double r)
 	{
 		List<Double> list;
+		// Nothing to do for zero reward
+		if (r == 0.0)
+			return;
 		// If no rewards array created yet, create it
 		if (transRewards == null) {
 			transRewards = new ArrayList<List<Double>>(numStates);
 			for (int j = 0; j < numStates; j++)
 				transRewards.add(null);
 		}
-		// If no rewards for state i yet, create list
+		// If no rewards for state s yet, create list
 		if (transRewards.get(s) == null) {
 			list = new ArrayList<Double>();
 			transRewards.set(s, list);
@@ -101,6 +107,17 @@ public class MDPRewardsSimple implements MDPRewards
 		list.set(i, r);
 	}
 
+	/**
+	 * Clear all rewards for state s.
+	 */
+	public void clearRewards(int s)
+	{
+		setStateReward(s, 0.0);
+		if (transRewards != null && transRewards.size() > s) {
+			transRewards.set(s, null);
+		}
+	}
+	
 	// Accessors
 	
 	@Override

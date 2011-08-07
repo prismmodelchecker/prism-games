@@ -28,6 +28,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 
 import explicit.rewards.STPGRewards;
@@ -454,10 +455,84 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	// Accessors (for STPG)
 
 	@Override
+	public int getPlayer(int s)
+	{
+		// All states are player 1
+		return 1;
+	}
+	
+	@Override
 	public Object getAction(int s, int i)
 	{
-		// TODO
+		// No actions stored currently
 		return null;
+	}
+
+	@Override
+	public int getNumTransitions(int s, int i)
+	{
+		// All choices are nested
+		return 0;
+	}
+
+	@Override
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	{
+		// All choices are nested
+		return null;
+	}
+
+	@Override
+	public boolean isChoiceNested(int s, int i)
+	{
+		// All choices are nested
+		return true;
+	}
+
+	@Override
+	public int getNumNestedChoices(int s, int i)
+	{
+		return trans.get(s).get(i).size();
+	}
+
+	@Override
+	public Object getNestedAction(int s, int i, int j)
+	{
+		return trans.get(s).get(i).getAction();
+	}
+
+	@Override
+	public int getNumNestedTransitions(int s, int i, int j)
+	{
+		DistributionSet ds = trans.get(s).get(i);
+		Iterator<Distribution> iter = ds.iterator();
+		Distribution distr = null;
+		int k = 0;
+		while (iter.hasNext() && k <= j) {
+			distr = iter.next();
+			k++;
+		}
+		if (k <= j)
+			return 0;
+		else
+			return distr.size();
+	}
+
+	@Override
+	public Iterator<Entry<Integer, Double>> getNestedTransitionsIterator(int s, int i, int j)
+	{
+		DistributionSet ds = trans.get(s).get(i);
+		Iterator<Distribution> iter = ds.iterator();
+		Distribution distr = null;
+		int k = 0;
+		while (iter.hasNext() && k <= j) {
+			distr = iter.next();
+			k++;
+		}
+		if (k <= j)
+			return null;
+		else
+			return distr.iterator();
 	}
 
 	@Override
@@ -715,53 +790,48 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
-		int dsIter, rewIter, dIter, rewCount, k;
+		int dsIter, dIter, k;
 		double d, prob, minmax1, minmax2;
 		boolean first1, first2;
 		ArrayList<DistributionSet> step;
 
 		minmax1 = 0;
 		first1 = true;
-	    dsIter=-1;
+		dsIter = -1;
 		step = trans.get(s);
 		for (DistributionSet distrs : step) {
 			dsIter++;
 			minmax2 = 0;
 			first2 = true;
-	
-			dIter=-1;
+			dIter = -1;
 			for (Distribution distr : distrs) {
 				dIter++;
-				rewCount = rewards.getTransitionRewardCount(s, dsIter, dIter);
-				for(rewIter = 0; rewIter<rewCount; rewIter++)
-				{
-					// Compute sum for this distribution
-					d = rewards.getTransitionReward(s, dsIter, dIter, rewIter);
-					
-					for (Map.Entry<Integer, Double> e : distr) {
-						k = (Integer) e.getKey();
-						prob = (Double) e.getValue();
-						d += prob * vect[k];
-					}
-					// Check whether we have exceeded min/max so far
-					if (first2 || (min2 && d < minmax2) || (!min2 && d > minmax2))
-						minmax2 = d;
-					first2 = false;
+				// Compute sum for this distribution
+				d = rewards.getNestedTransitionReward(s, dsIter, dIter);
+				for (Map.Entry<Integer, Double> e : distr) {
+					k = (Integer) e.getKey();
+					prob = (Double) e.getValue();
+					d += prob * vect[k];
 				}
+				// Check whether we have exceeded min/max so far
+				if (first2 || (min2 && d < minmax2) || (!min2 && d > minmax2))
+					minmax2 = d;
+				first2 = false;
 			}
+			minmax2 += rewards.getTransitionReward(s, dsIter);
 			// Check whether we have exceeded min/max so far
 			if (first1 || (min1 && minmax2 < minmax1) || (!min1 && minmax2 > minmax1))
 				minmax1 = minmax2;
-			first1 = false;	
+			first1 = false;
 		}
 
-		return minmax1;		
+		return minmax1;
 	}
 
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
-		int dsIter, rewIter, dIter, rewCount, k;
+		int dsIter, dIter, k;
 		double d, prob, minmax2;
 		boolean first2;
 		List<Integer> res;
@@ -776,16 +846,11 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 			dsIter++;
 			minmax2 = 0;
 			first2 = true;
-
 			dIter = -1;
 			for (Distribution distr : distrs) {
 				dIter++;
-				
-				rewCount = rewards.getTransitionRewardCount(s, dsIter, dIter);
-				for(rewIter = 0; rewIter<rewCount; rewIter++)
-				{
 				// Compute sum for this distribution
-				d = rewards.getTransitionReward(s,dsIter,dIter, rewIter);
+				d = rewards.getNestedTransitionReward(s, dsIter, dIter);
 				for (Map.Entry<Integer, Double> e : distr) {
 					k = (Integer) e.getKey();
 					prob = (Double) e.getValue();
@@ -795,15 +860,14 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 				if (first2 || (min2 && d < minmax2) || (!min2 && d > minmax2))
 					minmax2 = d;
 				first2 = false;
-				}
 			}
+			minmax2 += rewards.getTransitionReward(s, dsIter);
 			// Store strategy info if value matches
 			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 			if (PrismUtils.doublesAreClose(val, minmax2, 1e-12, false)) {
 				res.add(dsIter);
 				//res.add(distrs.getAction());
 			}
-			
 		}
 
 		return res;
@@ -863,11 +927,84 @@ public class STPGAbstrSimple extends ModelSimple implements STPG
 
 	// Standard methods
 
-	/**
-	 * Get transition function as string.
-	 */
+	// @Override // Move to superclass later
+	public String toStringGeneric()
+	{
+		// General purpose toString(), based on STPG access methods
+		int s, i, j, ni, nj;
+		boolean first, firsti, firstTr;
+		Iterator<Entry<Integer, Double>> it;
+		String str = "";
+		first = true;
+		str = "[ ";
+		for (s = 0; s < numStates; s++) {
+			if (first)
+				first = false;
+			else
+				str += ", ";
+			str += s + ": ";
+			ni = getNumChoices(s);
+			str += "[";
+			firsti = true;
+			for (i = 0; i < ni; i++) {
+				// Do non-nested choices
+				it = getTransitionsIterator(s, i);
+				if (it == null)
+					continue;
+				if (firsti)
+					firsti = false;
+				else
+					str += ", ";
+				str += "{";
+				firstTr = true;
+				while (it.hasNext()) {
+					Entry<Integer, Double> next = it.next();
+					if (firstTr)
+						firstTr = false;
+					else
+						str += ", ";
+					str += next.getKey() + "=" + next.getValue();
+				}
+				str += "}";
+				// Do nested choices
+				nj = getNumNestedChoices(s, i);
+				if (nj == 0)
+					continue;
+				if (firsti)
+					firsti = false;
+				else
+					str += ", ";
+				str += "[";
+				for (j = 0; j < nj; j++) {
+					it = getNestedTransitionsIterator(s, i, j);
+					if (it == null)
+						continue;
+					if (j > 0)
+						str += ", ";
+					str += "{";
+					firstTr = true;
+					while (it.hasNext()) {
+						Entry<Integer, Double> next = it.next();
+						if (firstTr)
+							firstTr = false;
+						else
+							str += ", ";
+						str += next.getKey() + "=" + next.getValue();
+					}
+					str += "}";
+				}
+				str += "]";
+			}
+			str += "]";
+		}
+		str += " ]";
+		return str;
+	}
+
+	@Override
 	public String toString()
 	{
+		// Custom toString()
 		int i;
 		boolean first;
 		String s = "";

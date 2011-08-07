@@ -588,7 +588,13 @@ public class MDPSparse extends ModelSparse implements MDP
 	// Accessors (for MDP)
 
 	@Override
-	public double getNumTransitions(int s, int i)
+	public Object getAction(int s, int i)
+	{
+		return actions == null ? null : actions[rowStarts[s] + i];
+	}
+
+	@Override
+	public int getNumTransitions(int s, int i)
 	{
 		return choiceStarts[rowStarts[s] + i + 1] - choiceStarts[rowStarts[s] + i];
 	}
@@ -645,12 +651,6 @@ public class MDPSparse extends ModelSparse implements MDP
 				throw new UnsupportedOperationException();
 			}
 		};
-	}
-
-	@Override
-	public Object getAction(int s, int i)
-	{
-		return actions == null ? null : actions[rowStarts[s] + i];
 	}
 
 	@Override
