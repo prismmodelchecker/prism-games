@@ -29,15 +29,17 @@ package explicit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import explicit.rewards.STPGRewards;
 
 import prism.ModelType;
 
 /**
- * Simple explicit-state representation of a stochastic multiplayer game
+ * Simple explicit-state representation of a stochastic multi-player game
  * (SMG). States can be labelled arbitrarily with player 1..n, player 0
  * has a special purpose of scheduling the moves of other players
  */
@@ -47,14 +49,12 @@ public class SMG extends MDPSimple implements STPG
 	public static final int SCHED_NONDET = 1;
 	public static final int SCHED_ALTERNATING = 2;
 
-	// state labels: state labelled with label i
-	// is controlled by player i
+	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
 
 	public SMG()
 	{
 		super();
-
 		stateLabels = new ArrayList<Integer>(numStates);
 	}
 
@@ -130,7 +130,7 @@ public class SMG extends MDPSimple implements STPG
 			break;
 		}
 
-		// relabeling players
+		// relabelling players
 		for (int i = 0; i < stateLabels.size(); i++)
 			stateLabels.set(i, player1.contains(stateLabels.get(i)) ? 1 : 2);
 
@@ -194,12 +194,6 @@ public class SMG extends MDPSimple implements STPG
 			stateLabels.set(s, player);
 	}
 
-	@Override
-	public ModelType getModelType()
-	{
-		return ModelType.SMG;
-	}
-
 	/**
 	 * Makes a half-deep (up to one reference level) copy of itself
 	 */
@@ -218,41 +212,148 @@ public class SMG extends MDPSimple implements STPG
 		return smg;
 	}
 
-	/**
-	 * Get transition function as string.
-	 */
-	public String toString()
+	// Accessors (for Model)
+
+	@Override
+	public ModelType getModelType()
 	{
-		int i, j, n;
-		Object o;
-		String s = "";
-		s = "[ ";
-		for (i = 0; i < numStates; i++) {
-			if (i > 0)
-				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + " "+statesList.get(i)+"): ";
-			s += "[";
-			n = getNumChoices(i);
-			for (j = 0; j < n; j++) {
-				if (j > 0)
-					s += ",";
-				o = getAction(i, j);
-				if (o != null)
-					s += o + ":";
-				s += trans.get(i).get(j);
-			}
-			s += "]";
-		}
-		s += " ]\n";
-		return s;
+		return ModelType.SMG;
+	}
+
+	// Accessors (for STPG)
+
+	@Override
+	public int getPlayer(int s)
+	{
+		return stateLabels.get(s);
+	}
+	
+	@Override
+	public Object getAction(int s, int i)
+	{
+		return super.getAction(s, i);
 	}
 
 	@Override
-	public double mvMultGSMinMax(double[] vect, boolean min1, boolean min2, BitSet subset, boolean complement,
-			boolean absolute)
+	public int getNumTransitions(int s, int i)
 	{
-		//System.out.println("SMG: mvMultGSMinMax");
-		
+		return super.getNumTransitions(s, i);
+	}
+
+	@Override
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	{
+		return super.getTransitionsIterator(s, i);
+	}
+
+	@Override
+	public boolean isChoiceNested(int s, int i)
+	{
+		// No nested choices
+		return false;
+	}
+
+	@Override
+	public int getNumNestedChoices(int s, int i)
+	{
+		// No nested choices
+		return 0;
+	}
+
+	@Override
+	public Object getNestedAction(int s, int i, int j)
+	{
+		// No nested choices
+		return null;
+	}
+
+	@Override
+	public int getNumNestedTransitions(int s, int i, int j)
+	{
+		// No nested choices
+		return 0;
+	}
+
+	@Override
+	public Iterator<Entry<Integer, Double>> getNestedTransitionsIterator(int s, int i, int j)
+	{
+		// No nested choices
+		return null;
+	}
+
+	@Override
+	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
+	{
+		int i;
+		boolean b1, b2;
+		boolean forall = false;
+
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+
+				if (stateLabels.get(i).equals(1))
+					forall = forall1;
+				else if (stateLabels.get(i).equals(2))
+					forall = forall2;
+
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
+	}
+
+	@Override
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
+	{
+		int i;
+		boolean b1, b2;
+		boolean forall = false;
+
+		for (i = 0; i < numStates; i++) {
+			if (subset.get(i)) {
+
+				if (stateLabels.get(i).equals(1))
+					forall = forall1;
+				else if (stateLabels.get(i).equals(2))
+					forall = forall2;
+
+				b1 = forall; // there exists or for all
+				for (Distribution distr : trans.get(i)) {
+					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
+					if (forall) {
+						if (!b2) {
+							b1 = false;
+							continue;
+						}
+					} else {
+						if (b2) {
+							b1 = true;
+							continue;
+						}
+					}
+				}
+				result.set(i, b1);
+			}
+		}
+	}
+
+	@Override
+	public double mvMultGSMinMax(double[] vect, boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
+	{
 		int s;
 		double d, diff, maxDiff = 0.0;
 		// Loop depends on subset/complement arguments
@@ -284,18 +385,13 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
 	{
-		//System.out.println("SMG: mvMultJacMinMaxSingle");
-		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
 		return mvMultJacMinMaxSingle(s, vect, min);
 	}
 
 	@Override
-	public void mvMultMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset,
-			boolean complement, int[] adv)
+	public void mvMultMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv)
 	{
-		//System.out.println("SMG: mvMultMinMax");
-		
 		int s;
 		boolean min = false;
 		// Loop depends on subset/complement arguments
@@ -331,28 +427,21 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public double mvMultMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
 	{
-		//System.out.println("SMG: mvMultMinMaxSingle");
-		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
 		return mvMultMinMaxSingle(s, vect, min, null);
-		
+
 	}
 
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
 	{
-		//System.out.println("SMG: mvMultMinMaxSingleChoices");
-		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
 		return mvMultMinMaxSingleChoices(s, vect, min, val);
 	}
 
 	@Override
-	public void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset,
-			boolean complement, int[] adv)
+	public void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv)
 	{
-		//System.out.println("SMG: mvMultRewMinMax");
-		
 		int s;
 		boolean min = false;
 		// Loop depends on subset/complement arguments
@@ -385,14 +474,12 @@ public class SMG extends MDPSimple implements STPG
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		}
-		
+
 	}
 
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, int[] adv)
 	{
-		//System.out.println("SMG: mvMultRewMinMaxSingle");
-		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
 		// TODO: convert/pass rewards
 		return mvMultRewMinMaxSingle(s, vect, null, min, null);
@@ -401,89 +488,37 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
-		//System.out.println("SMG: mvMultRewMinMaxSingleChoices");
-		
 		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
 		// TODO: convert/pass rewards
 		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
 	}
 
-	@Override
-	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
-	{
-		//System.out.println("SMG: prob0step");
-		
-		int i;
-		boolean b1, b2;
-		boolean forall = false;
-
-		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-
-				if (stateLabels.get(i).equals(1))
-					forall = forall1;
-				else if (stateLabels.get(i).equals(2))
-					forall = forall2;
-
-				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
-					b2 = distr.containsOneOf(u);
-					if (forall) {
-						if (!b2) {
-							b1 = false;
-							continue;
-						}
-					} else {
-						if (b2) {
-							b1 = true;
-							continue;
-						}
-					}
-				}
-				result.set(i, b1);
-			}
-		}
-		
-		
-	}
+	// Standard methods
 
 	@Override
-	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
+	public String toString()
 	{
-		//System.out.println("SMG: prob1step");
-		
-		int i;
-		boolean b1, b2;
-		boolean forall = false;
-
+		int i, j, n;
+		Object o;
+		String s = "";
+		s = "[ ";
 		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-
-				if (stateLabels.get(i).equals(1))
-					forall = forall1;
-				else if (stateLabels.get(i).equals(2))
-					forall = forall2;
-
-				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
-					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
-					if (forall) {
-						if (!b2) {
-							b1 = false;
-							continue;
-						}
-					} else {
-						if (b2) {
-							b1 = true;
-							continue;
-						}
-					}
-				}
-				result.set(i, b1);
+			if (i > 0)
+				s += ", ";
+			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i) + "): ";
+			s += "[";
+			n = getNumChoices(i);
+			for (j = 0; j < n; j++) {
+				if (j > 0)
+					s += ",";
+				o = getAction(i, j);
+				if (o != null)
+					s += o + ":";
+				s += trans.get(i).get(j);
 			}
+			s += "]";
 		}
-		
+		s += " ]\n";
+		return s;
 	}
-
-
 }

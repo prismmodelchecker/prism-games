@@ -28,7 +28,9 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import explicit.rewards.STPGRewards;
 
@@ -71,6 +73,140 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (int i = 0; i < numStates; i++) {
 			stateLabels.set(permut[i], stpg.stateLabels.get(i));
 		}
+	}
+
+	/**
+	 * Adds one state, assigned to player 1
+	 */
+	@Override
+	public int addState()
+	{
+		return addState(PLAYER_1);
+	}
+
+	/**
+	 * Adds specified number of states all assigned to player 1
+	 */
+	@Override
+	public void addStates(int numToAdd)
+	{
+		super.addStates(numToAdd);
+		for (int i = 0; i < numToAdd; i++)
+			stateLabels.add(PLAYER_1);
+	}
+
+	/**
+	 * Adds state assigned to the specified player
+	 * 
+	 * @param player state owner
+	 * @return state id
+	 */
+	public int addState(int player)
+	{
+		checkPlayer(player);
+
+		super.addStates(1);
+		stateLabels.add(player);
+
+		//System.out.println("State " + (numStates - 1) + " player " + player);
+
+		return numStates - 1;
+	}
+
+	/**
+	 * Adds the number of states the same as number of Integer in the list, each
+	 * assigned to the corresponding player
+	 * 
+	 * @param players list of players (to which corresponding state belongs)
+	 */
+	public void addStates(List<Integer> players)
+	{
+		checkPlayers(players);
+
+		super.addStates(players.size());
+		stateLabels.addAll(players);
+	}
+
+	/**
+	 * labels the given state with the given player
+	 * 
+	 * @param s state
+	 * @param player player
+	 */
+	public void setPlayer(int s, int player)
+	{
+		checkPlayer(player);
+		if (s < stateLabels.size())
+			stateLabels.set(s, player);
+	}
+
+	// Accessors (for Model)
+
+	@Override
+	public ModelType getModelType()
+	{
+		return ModelType.STPG;
+	}
+
+	// Accessors (for STPG)
+
+	@Override
+	public int getPlayer(int s)
+	{
+		return stateLabels.get(s);
+	}
+	
+	@Override
+	public Object getAction(int s, int i)
+	{
+		return super.getAction(s, i);
+	}
+
+	@Override
+	public int getNumTransitions(int s, int i)
+	{
+		return super.getNumTransitions(s, i);
+	}
+
+	@Override
+	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	{
+		return super.getTransitionsIterator(s, i);
+	}
+
+	@Override
+	public boolean isChoiceNested(int s, int i)
+	{
+		// No nested choices
+		return false;
+	}
+
+	@Override
+	public int getNumNestedChoices(int s, int i)
+	{
+		// No nested choices
+		return 0;
+	}
+
+	@Override
+	public Object getNestedAction(int s, int i, int j)
+	{
+		// No nested choices
+		return null;
+	}
+
+	@Override
+	public int getNumNestedTransitions(int s, int i, int j)
+	{
+		// No nested choices
+		return 0;
+	}
+
+	@Override
+	public Iterator<Entry<Integer, Double>> getNestedTransitionsIterator(int s, int i, int j)
+	{
+		// No nested choices
+		return null;
 	}
 
 	@Override
@@ -283,71 +419,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
 	}
 
-	/**
-	 * Adds one state, assigned to player 1
-	 */
-	@Override
-	public int addState()
-	{
-		return addState(PLAYER_1);
-	}
-
-	/**
-	 * Adds specified number of states all assigned to player 1
-	 */
-	@Override
-	public void addStates(int numToAdd)
-	{
-		super.addStates(numToAdd);
-		for (int i = 0; i < numToAdd; i++)
-			stateLabels.add(PLAYER_1);
-	}
-
-	/**
-	 * Adds state assigned to the specified player
-	 * 
-	 * @param player state owner
-	 * @return state id
-	 */
-	public int addState(int player)
-	{
-		checkPlayer(player);
-
-		super.addStates(1);
-		stateLabels.add(player);
-
-		//System.out.println("State " + (numStates - 1) + " player " + player);
-
-		return numStates - 1;
-	}
-
-	/**
-	 * Adds the number of states the same as number of Integer in the list, each
-	 * assigned to the corresponding player
-	 * 
-	 * @param players list of players (to which corresponding state belongs)
-	 */
-	public void addStates(List<Integer> players)
-	{
-		checkPlayers(players);
-
-		super.addStates(players.size());
-		stateLabels.addAll(players);
-	}
-
-	/**
-	 * labels the given state with the given player
-	 * 
-	 * @param s state
-	 * @param player player
-	 */
-	public void setPlayer(int s, int player)
-	{
-		checkPlayer(player);
-		if (s < stateLabels.size())
-			stateLabels.set(s, player);
-	}
-
+	// Accessors (other)
+	
 	/** Checks whether the given player is valid and throws exception otherwise **/
 	private void checkPlayer(int player)
 	{
@@ -370,15 +443,9 @@ public class STPGExplicit extends MDPSimple implements STPG
 			checkPlayer(p);
 	}
 
+	// Standard methods
+	
 	@Override
-	public ModelType getModelType()
-	{
-		return ModelType.STPG;
-	}
-
-	/**
-	 * Get transition function as string.
-	 */
 	public String toString()
 	{
 		int i, j, n;
@@ -525,5 +592,4 @@ public class STPGExplicit extends MDPSimple implements STPG
 			System.out.println(e);
 		}
 	}
-
 }
