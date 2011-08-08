@@ -114,7 +114,7 @@ public class ConstructRewards
 
 	/**
 	 * Construct the rewards for an MDP from a model and reward structure. 
-	 * @param model The MDP
+	 * @param mdp The MDP
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
@@ -155,6 +155,64 @@ public class ConstructRewards
 						// State reward
 						else {
 							rewSimple.setStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+						}
+					}
+				}
+			}
+			return rewSimple;
+		}
+	}
+
+	/**
+	 * Construct the rewards for an STPG from a model and reward structure. 
+	 * @param stpg The STPG
+	 * @param rewStr The reward structure
+	 * @param constantValues Values for any undefined constants needed
+	 */
+	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardStruct rewStr, Values constantValues) throws PrismException
+	{
+		List<State> statesList;
+		Expression guard;
+		String action;
+		Object stpgAction;
+		int i, s, j, k, numItems, numStates, numChoices, numChoices2;
+
+		// Special case: constant state rewards
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+		}
+		// Normal: state and transition rewards
+		else {
+			numStates = stpg.getNumStates();
+			statesList = stpg.getStatesList();
+			STPGRewardsSimple rewSimple = new STPGRewardsSimple(numStates);
+			numItems = rewStr.getNumItems();
+			for (i = 0; i < numItems; i++) {
+				guard = rewStr.getStates(i);
+				action = rewStr.getSynch(i);
+				for (s = 0; s < numStates; s++) {
+					// Is guard satisfied?
+					if (guard.evaluateBoolean(constantValues, statesList.get(s))) {
+						// Transition reward
+						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+							numChoices = stpg.getNumChoices(s);
+							for (j = 0; j < numChoices; j++) {
+								stpgAction = stpg.getAction(s, j);
+								if (stpgAction == null ? (action == null) : stpgAction.equals(action)) {
+									rewSimple.setTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+								}
+								numChoices2 = stpg.getNumNestedChoices(s, j);
+								for (k = 0; k < numChoices2; k++) {
+									stpgAction = stpg.getNestedAction(s, j, k);
+									if (stpgAction == null ? (action == null) : stpgAction.equals(action)) {
+										rewSimple.setNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+									}
+								}
+							}
+						}
+						// State reward
+						else {
+							rewSimple.setStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 						}
 					}
 				}

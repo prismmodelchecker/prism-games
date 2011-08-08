@@ -48,4 +48,10 @@ public class StateRewardsConstant extends StateRewards
 	{
 		return stateReward;
 	}
+	
+	@Override
+	public StateRewardsConstant deepCopy()
+	{
+		return new StateRewardsConstant(stateReward);
+	}
 }

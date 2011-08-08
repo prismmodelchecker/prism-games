@@ -54,6 +54,41 @@ public class MDPRewardsSimple implements MDPRewards
 		transRewards = null;
 	}
 	
+	/**
+	 * Copy constructor
+	 * @param rews Rewards to copy
+	 */
+	public MDPRewardsSimple(MDPRewardsSimple rews)
+	{
+		numStates = rews.numStates;
+		if (rews.stateRewards == null) {
+			stateRewards = null;
+		} else {
+			stateRewards = new ArrayList<Double>(numStates);
+			for (int i = 0; i < numStates; i++) {
+				stateRewards.add(rews.stateRewards.get(i));
+			}
+		}
+		if (rews.transRewards == null) {
+			transRewards = null;
+		} else {
+			transRewards = new ArrayList<List<Double>>(numStates);
+			for (int i = 0; i < numStates; i++) {
+				List<Double> list = rews.transRewards.get(i);
+				if (list == null) {
+					transRewards.add(null);
+				} else {
+					int n = list.size();
+					List<Double> list2 = new ArrayList<Double>(n);
+					transRewards.add(list2);
+					for (int j = 0; j < n; j++) {
+						list2.add(list.get(j));
+					}
+				}
+			}
+		}
+	}
+	
 	// Mutators
 	
 	/**

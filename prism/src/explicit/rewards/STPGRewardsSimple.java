@@ -124,6 +124,12 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 	}
 	
 	@Override
+	public MDPRewards buildMDPRewards()
+	{
+		return new MDPRewardsSimple(this);
+	}
+	
+	@Override
 	public String toString()
 	{
 		return super.toString() + "; ntr:" + nestedTransRewards;

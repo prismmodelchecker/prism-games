@@ -33,6 +33,8 @@ import java.util.ArrayList;
  */
 public class StateRewardsSimple extends StateRewards
 {
+	/** Number of states */
+	protected int numStates;
 	/** Arraylist of state rewards **/
 	protected ArrayList<Double> stateRewards;
 	
@@ -42,9 +44,27 @@ public class StateRewardsSimple extends StateRewards
 	 */
 	public StateRewardsSimple(int numStates)
 	{
+		this.numStates = numStates;
 		stateRewards = new ArrayList<Double>(numStates);
 		for (int i = 0; i < numStates; i++)
 			stateRewards.add(0.0);
+	}
+	
+	/**
+	 * Copy constructor
+	 * @param rews Rewards to copy
+	 */
+	public StateRewardsSimple(StateRewardsSimple rews)
+	{
+		int numStates = rews.numStates;
+		if (rews.stateRewards == null) {
+			stateRewards = null;
+		} else {
+			stateRewards = new ArrayList<Double>(numStates);
+			for (int i = 0; i < numStates; i++) {
+				stateRewards.add(rews.stateRewards.get(i));
+			}
+		}
 	}
 	
 	// Mutators
@@ -79,5 +99,11 @@ public class StateRewardsSimple extends StateRewards
 		catch (ArrayIndexOutOfBoundsException e) {
 			return 0.0;
 		}
+	}
+	
+	@Override
+	public StateRewardsSimple deepCopy()
+	{
+		return new StateRewardsSimple(this);
 	}
 }

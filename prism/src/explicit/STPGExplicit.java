@@ -32,6 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
+import explicit.rewards.MDPRewards;
+import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
 
 import prism.ModelType;
@@ -372,6 +374,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	{
 		int s;
 		boolean min = false;
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
@@ -379,8 +382,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
@@ -388,8 +390,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
@@ -397,8 +398,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (stateLabels.get(s) == PLAYER_2)
 					min = min2;
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		}
 	}
@@ -406,17 +406,17 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
-		// TODO: convert/pass rewards
-		return mvMultRewMinMaxSingle(s, vect, null, min, null);
+		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, null);
 	}
 
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
-		// TODO: convert/pass rewards
-		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
+		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
 	}
 
 	// Accessors (other)
