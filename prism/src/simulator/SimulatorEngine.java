@@ -174,7 +174,7 @@ public class SimulatorEngine
 		// Store model
 		loadModulesFile(modulesFile);
 		// Create empty (full) path object associated with this model
-		path = new PathFull(this, modulesFile);
+		path = new PathFull(modulesFile);
 		onTheFly = false;
 	}
 
@@ -188,7 +188,7 @@ public class SimulatorEngine
 		// Store model
 		loadModulesFile(modulesFile);
 		// Create empty (on-the-fly_ path object associated with this model
-		path = new PathOnTheFly(this, modulesFile);
+		path = new PathOnTheFly(modulesFile);
 		onTheFly = true;
 	}
 
@@ -435,6 +435,43 @@ public class SimulatorEngine
 		transitionListState = null;
 	}
 
+	/**
+	 * Construct a path through a model to match a supplied path,
+	 * specified as a PathFullInfo object.
+	 * Note: All constants in the model must have already been defined.
+	 * @param modulesFile Model for simulation
+	 * @param newPath Path to match
+	 */
+	public void loadPath(ModulesFile modulesFile, PathFullInfo newPath) throws PrismException
+	{
+		int i, j, numSteps, numTrans;
+		boolean found;
+		State state, nextState;
+		createNewPath(modulesFile);
+		numSteps = newPath.size();
+		if (numSteps == 0)
+			return;
+		state = newPath.getState(0);
+		initialisePath(state);
+		for (i = 0; i < numSteps; i++) {
+			nextState = newPath.getState(i + 1);
+			// Find matching transition
+			// (just look at states for now)
+			numTrans = transitionList.getNumTransitions();
+			found = false;
+			for (j = 0; j < numTrans; j++) {
+				if (transitionList.computeTransitionTarget(j, state).equals(nextState)) {
+					found = true;
+					manualTransition(j);
+					break;
+				}
+			}
+			if (!found)
+				throw new PrismException("Path loading failed at step " + (i + 1));
+			state = nextState;
+		}
+	}
+	
 	// ------------------------------------------------------------------------------
 	// Methods for adding/querying labels and properties
 	// ------------------------------------------------------------------------------
@@ -957,6 +994,7 @@ public class SimulatorEngine
 	/**
 	 * For paths with continuous-time info, get the total time elapsed so far
 	 * (where zero time has been spent in the current (final) state).
+	 * For discrete-time models, just returns 0.0.
 	 */
 	public double getTotalTimeForPath()
 	{
@@ -977,6 +1015,16 @@ public class SimulatorEngine
 	// Querying of current path (full paths only)
 	// ------------------------------------------------------------------------------
 
+	/**
+	 * Get access to the {@code PathFull} object storing the current path.
+	 * (Not applicable for on-the-fly paths)
+	 * This object is only valid until the next time {@link #createNewPath} is called. 
+	 */
+	public PathFull getPathFull()
+	{
+		return (PathFull) path;
+	}
+	
 	/**
 	 * Get the value of a variable at a given step of the path.
 	 * (Not applicable for on-the-fly paths)
@@ -1352,12 +1400,11 @@ public class SimulatorEngine
 		for (int i = 0; i < n; i++) {
 			definedPFConstants = undefinedConstants.getPFConstantValues();
 			pfcs[i] = definedPFConstants;
-			propertiesFile.setUndefinedConstants(definedPFConstants);
+			propertiesFile.setSomeUndefinedConstants(definedPFConstants);
 			try {
 				checkPropertyForSimulation(expr);
 				indices[i] = addProperty(expr, propertiesFile);
 				validPropsCount++;
-				undefinedConstants.iterateProperty();
 				// Attach a SimulationMethod object to each property's sampler
 				SimulationMethod simMethodNew = simMethod.clone();
 				propertySamplers.get(indices[i]).setSimulationMethod(simMethodNew);
@@ -1367,6 +1414,7 @@ public class SimulatorEngine
 					simMethodNew.setExpression(properties.get(indices[i]));
 				} catch (PrismException e) {
 					// In case of error, also need to remove property/sampler from list
+					// (NB: this will be at the end of the list so no re-indexing issues)
 					properties.remove(indices[i]);
 					propertySamplers.remove(indices[i]);
 					throw e;
@@ -1375,6 +1423,7 @@ public class SimulatorEngine
 				results[i] = e;
 				indices[i] = -1;
 			}
+			undefinedConstants.iterateProperty();
 		}
 
 		// As long as there are at least some valid props, do sampling
