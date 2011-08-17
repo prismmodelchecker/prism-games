@@ -166,7 +166,7 @@ public class PrismExplicit
 			mc = new STPGModelChecker();
 			break;
 		case SMG:
-			//mc = new SMGModelChecker();
+			mc = new SMGModelChecker();
 			break;
 		default:
 			throw new PrismException("Unknown model type " + model.getModelType());

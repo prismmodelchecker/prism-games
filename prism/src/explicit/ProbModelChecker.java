@@ -143,7 +143,7 @@ public class ProbModelChecker extends StateModelChecker
 			model = ((SMG)model).reduceToSTPG(((ExpressionCoalition)expr).getCoalition(), SMG.SCHED_RANDOM);
 			 ((SMG)model).exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
 			System.out.println(model);
-			//probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, !min1);
+			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, !min1);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
