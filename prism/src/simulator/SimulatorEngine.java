@@ -812,6 +812,15 @@ public class SimulatorEngine
 	// ------------------------------------------------------------------------------
 
 	/**
+	 * Get access to the {@code TransitionList} object storing the transitions from the current state.
+	 * This object is only valid until the next time {@link #createNewPath} or {@link #createNewOnTheFlyPath} is called. 
+	 */
+	public TransitionList getTransitionList()
+	{
+		return transitionList;
+	}
+	
+	/**
 	 * Returns the current number of available choices.
 	 */
 	public int getNumChoices()

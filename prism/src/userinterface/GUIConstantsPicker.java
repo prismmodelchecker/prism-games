@@ -27,16 +27,22 @@
 
 package userinterface;
 
-import javax.swing.*;
-import java.awt.*;
-import javax.swing.border.*;
-import javax.swing.table.*;
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.util.ArrayList;
 
-import parser.*;
-import parser.ast.*;
-import parser.type.*;
-import prism.*;
+import javax.swing.Action;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListSelectionModel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.AbstractTableModel;
+
+import parser.Values;
+import prism.PrismException;
+import prism.UndefinedConstants;
 
 public class GUIConstantsPicker extends javax.swing.JDialog
 {
@@ -443,10 +449,10 @@ public class GUIConstantsPicker extends javax.swing.JDialog
 	class Constant
 	{
 	String name;
-	Type type;
+	parser.type.Type type;
 	Object value;
 	
-	public Constant(String name, Type type, Object value)
+	public Constant(String name, parser.type.Type type, Object value)
 	{
 		this.name = name;
 		this.type = type;

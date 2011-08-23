@@ -162,7 +162,7 @@ public class ConstructModel
 		MDPSimple mdp = null;
 		STPGExplicit stpg = null;
 		SMG smg = null;
-		Model model = null;
+		ModelExplicit model = null;
 		Distribution distr = null;
 		// Misc
 		int i, j, nc, nt, src, dest, prev, tmp;
@@ -514,36 +514,26 @@ public class ConstructModel
 			switch (modelType) {
 			case DTMC:
 				model = new DTMCSimple(dtmc, permut);
-				((ModelSimple) model).statesList = statesList;
-				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case CTMC:
 				model = new CTMCSimple(ctmc, permut);
-				((ModelSimple) model).statesList = statesList;
-				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case MDP:
 				if (buildSparse) {
 					model = new MDPSparse(mdp, true, permut);
-					((ModelSparse) model).statesList = statesList;
-					((ModelSparse) model).constantValues = new Values(modulesFile.getConstantValues());
 				} else {
 					model = new MDPSimple(mdp, permut);
-					((ModelSimple) model).statesList = statesList;
-					((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				}
 				break;
 			case STPG:
 				model = new STPGExplicit(stpg, permut);
-				((ModelSimple) model).statesList = statesList;
-				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			case SMG:
 				model = new SMG(smg, permut);
-				((ModelSimple) model).statesList = statesList;
-				((ModelSimple) model).constantValues = new Values(modulesFile.getConstantValues());
 				break;
 			}
+			model.setStatesList(statesList);
+			model.setConstantValues(new Values(modulesFile.getConstantValues()));
 			System.out.println(model);
 			//			mainLog.println("Model: " + model);
 		}
