@@ -107,6 +107,17 @@ public class ExpressionReward extends Expression
 		return filter;
 	}
 
+	/**
+	 * Get a string describing the type of R operator, e.g. "R=?" or "R<r".
+	 */
+	public String getTypeOfROperator()
+	{
+		String s = "";
+		s += "R" + relOp;
+		s += (reward == null) ? "?" : "r";
+		return s;
+	}
+
 	// Methods required for Expression:
 	
 	/**
