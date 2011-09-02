@@ -1,0 +1,17 @@
+smg
+
+module player1
+
+	coin : [0..2];
+	[] coin=0 -> 1/2 : (coin'=1) + 1/2 : (coin'=2);
+
+endmodule
+
+module player2
+
+	guess : [0..2];
+	[] guess=0 -> (guess'=1);
+	[] guess=0 -> (guess'=2);
+	[] guess!=0 -> true;
+	
+endmodule
