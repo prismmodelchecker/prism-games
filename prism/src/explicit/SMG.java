@@ -51,6 +51,9 @@ public class SMG extends MDPSimple implements STPG
 
 	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
+	
+	// Set of players which form a coalition
+	protected Set<Integer> coalition;
 
 	public SMG()
 	{
@@ -77,16 +80,7 @@ public class SMG extends MDPSimple implements STPG
 
 	}
 
-	/**
-	 * Method transforms SMG to STPG using the specified parameters. 
-	 * User needs to provide the labels for player 1, player 2 states
-	 * are all the remaining ones
-	 *
-	 * @param player1 list of players to represent player 1
-	 * @param schedType type of scheduler
-	 * @return the new SMG which has only two players - indexed 1 and 2 respectively
-	 */
-	public SMG reduceToSTPG(Set<Integer> player1, int schedType)
+	public SMG initialiseScheduler(int schedType)
 	{
 		// resolving scheduling
 		switch (schedType) {
@@ -129,13 +123,10 @@ public class SMG extends MDPSimple implements STPG
 			// not implemented yet
 			break;
 		}
-
-		// relabelling players
-		for (int i = 0; i < stateLabels.size(); i++)
-			stateLabels.set(i, player1.contains(stateLabels.get(i)) ? 1 : 2);
-
+		
 		return this;
 	}
+	
 
 	/**
 	 * Adds one state, assigned to player 0
@@ -192,6 +183,11 @@ public class SMG extends MDPSimple implements STPG
 	{
 		if (s < stateLabels.size())
 			stateLabels.set(s, player);
+	}
+	
+	public void setCoalition(Set<Integer> coalition)
+	{
+		this.coalition = coalition;
 	}
 
 	/**
@@ -291,9 +287,9 @@ public class SMG extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
-				if (stateLabels.get(i).equals(1))
+				if (coalition.contains(stateLabels.get(i)))
 					forall = forall1;
-				else if (stateLabels.get(i).equals(2))
+				else //if (stateLabels.get(i).equals(2))
 					forall = forall2;
 
 				b1 = forall; // there exists or for all
@@ -326,9 +322,9 @@ public class SMG extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
-				if (stateLabels.get(i).equals(1))
+				if (coalition.contains(stateLabels.get(i)))
 					forall = forall1;
-				else if (stateLabels.get(i).equals(2))
+				else //if (stateLabels.get(i).equals(2))
 					forall = forall2;
 
 				b1 = forall; // there exists or for all
@@ -385,7 +381,7 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
 	{
-		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
 		return mvMultJacMinMaxSingle(s, vect, min);
 	}
 
@@ -397,27 +393,27 @@ public class SMG extends MDPSimple implements STPG
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
@@ -427,7 +423,7 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public double mvMultMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
 	{
-		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
 		return mvMultMinMaxSingle(s, vect, min, null);
 
 	}
@@ -435,7 +431,7 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
 	{
-		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
 		return mvMultMinMaxSingleChoices(s, vect, min, val);
 	}
 
@@ -447,18 +443,18 @@ public class SMG extends MDPSimple implements STPG
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 				// TODO: convert/pass rewards
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 
 				// TODO: convert/pass rewards
@@ -466,9 +462,9 @@ public class SMG extends MDPSimple implements STPG
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (stateLabels.get(s).equals(1))
+				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else if (stateLabels.get(s).equals(2))
+				else //if (stateLabels.get(s).equals(2))
 					min = min2;
 				// TODO: convert/pass rewards
 				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
@@ -480,7 +476,7 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, int[] adv)
 	{
-		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
 		// TODO: convert/pass rewards
 		return mvMultRewMinMaxSingle(s, vect, null, min, null);
 	}
@@ -488,7 +484,7 @@ public class SMG extends MDPSimple implements STPG
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
-		boolean min = stateLabels.get(s).equals(1) ? min1 : stateLabels.get(s).equals(2) ? min2 : false;
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
 		// TODO: convert/pass rewards
 		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
 	}

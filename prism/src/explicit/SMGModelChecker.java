@@ -26,9 +26,34 @@
 
 package explicit;
 
+import java.util.Set;
+
+import parser.ast.Expression;
+import parser.ast.ExpressionCoalition;
+import parser.ast.ExpressionProb;
+import prism.PrismException;
+
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
  */
 public class SMGModelChecker extends STPGModelChecker
 {
+	/**
+	 * Compute probabilities for the contents of a P operator.
+	 */
+	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
+		// setting coalition parameter
+		((SMG) model).setCoalition(((ExpressionCoalition) expr).getCoalition());
+		
+		expr = ((ExpressionProb)expr).getExpression();
+		
+		// Test whether this is a simple path formula (i.e. PCTL)
+		// and then pass control to appropriate method. 
+		if (expr.isSimplePathFormula()) {
+			return super.checkProbPathFormulaSimple(model, expr, min1, min2);
+		} else {
+			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
+		}
+	}
 }

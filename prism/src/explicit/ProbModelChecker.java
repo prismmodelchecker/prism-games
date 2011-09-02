@@ -91,7 +91,7 @@ public class ProbModelChecker extends StateModelChecker
 
 		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
-			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
+			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
 				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
 					// min
 					min1 = true;
@@ -117,7 +117,8 @@ public class ProbModelChecker extends StateModelChecker
 				} else {
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
-			} else {
+			} 
+			else {
 				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator() + " properties for " + modelType +"s");
 			}
 		}
@@ -140,9 +141,7 @@ public class ProbModelChecker extends StateModelChecker
 			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2);
 			break;
 		case SMG:
-			System.out.println("Reducing SMG to STPG..." + expr);
-			model = ((SMG) model).reduceToSTPG(((ExpressionCoalition) expr).getCoalition(), SMG.SCHED_RANDOM);
-			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, !min1);
+			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min1, !min1);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);

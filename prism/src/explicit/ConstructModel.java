@@ -389,6 +389,7 @@ public class ConstructModel
 
 				playerChoices.clear();
 			}
+			smg.initialiseScheduler(SMG.SCHED_RANDOM);
 
 		} else {
 			// constructing all other models
@@ -712,11 +713,11 @@ public class ConstructModel
 
 			Set<Integer> player1 = new HashSet<Integer>();
 			player1.add(1);
-			SMG stpg_nondet = smg.clone().reduceToSTPG(player1, SMG.SCHED_NONDET);
+			SMG stpg_nondet = smg.clone().initialiseScheduler(SMG.SCHED_NONDET);
 
 			player1 = new HashSet<Integer>();
 			player1.add(1);
-			SMG stpg_rand = smg.clone().reduceToSTPG(player1, SMG.SCHED_RANDOM);
+			SMG stpg_rand = smg.clone().initialiseScheduler(SMG.SCHED_RANDOM);
 
 			System.out.println("\nSMG: ");
 			mainLog.println(smg);
