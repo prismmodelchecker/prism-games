@@ -50,13 +50,6 @@ public class ConstructModel
 	// Details of built model
 	private List<State> statesList;
 
-	// Partition of modules into players
-	private Set<String> player1mods;
-	private Set<String> player2mods;
-	// Partition of synchronised actions
-	private Set<String> player1syncs;
-	private Set<String> player2syncs;
-
 	public ConstructModel(SimulatorEngine engine, PrismLog mainLog)
 	{
 		this.engine = engine;
@@ -67,36 +60,6 @@ public class ConstructModel
 	public void setSettings(PrismSettings settings)
 	{
 		this.settings = settings;
-	}
-
-	/** 
-	 *	Methods extracts game parameters: division of modules and synchronised actions from a given string.
-	 *
-	 *	@param params string containing partitions of synchronised actions and 
-	 *	module names for two players. Format for player 1: p1s=[action1,action2,...,actionN]
-	 *	p1m=[module1,module2,...,moduleN]. For player 2 it is the same but names are p2s p2m. 
-	 */
-	private void loadGameParams(String params)
-	{
-		try {
-			Properties props = new Properties();
-
-			for (String p : params.split(" "))
-				props.load(new StringReader(p));
-
-			if (props.containsKey("p1m"))
-				player1mods.addAll(Arrays.asList(((String) props.get("p1m")).substring(1).split("\\]|,| ")));
-			if (props.containsKey("p2m"))
-				player2mods.addAll(Arrays.asList(((String) props.get("p2m")).substring(1).split("\\]|,| ")));
-			if (props.containsKey("p1s"))
-				player1syncs.addAll(Arrays.asList(((String) props.get("p1s")).substring(1).split("\\]|,| ")));
-			if (props.containsKey("p2s"))
-				player2syncs.addAll(Arrays.asList(((String) props.get("p2s")).substring(1).split("\\]|,| ")));
-
-		} catch (Exception e) {
-			// Loading of parameters failed.
-			e.printStackTrace();
-		}
 	}
 
 	public List<State> getStatesList()
@@ -153,8 +116,6 @@ public class ConstructModel
 		IndexedSet<State> states;
 		LinkedList<State> explore;
 		State state, stateNew;
-		List<Integer> stateLabels;
-		List<State> statesref = null;
 		// Explicit model storage
 		ModelSimple modelSimple = null;
 		DTMCSimple dtmc = null;
@@ -165,12 +126,10 @@ public class ConstructModel
 		ModelExplicit model = null;
 		Distribution distr = null;
 		// Misc
-		int i, j, nc, nt, src, dest, prev, tmp;
+		int i, j, nc, nt, src, dest, player;
 		long timer, timerProgress;
 		boolean fixdl = false;
-		String actionLabel = null;
-		int player;
-		int id;
+		//int id;
 		int nPlayers = 0;
 		State tempState;
 
@@ -180,13 +139,6 @@ public class ConstructModel
 		List<Integer> choices;
 		boolean lazy = false;
 		int schedIndx = 0;
-		;
-
-		// Process game info
-		this.player1mods = new HashSet<String>();
-		this.player2mods = new HashSet<String>();
-		this.player1syncs = new HashSet<String>();
-		this.player2syncs = new HashSet<String>();
 
 		// Don't support multiple initial states
 		if (modulesFile.getInitialStates() != null) {
@@ -201,9 +153,6 @@ public class ConstructModel
 		// Initialise simulator for this model
 		modelType = modulesFile.getModelType();
 
-		// TODO HACK!
-		//modelType = ModelType.SMG;
-
 		if (modelType == ModelType.SMG) {
 			// adding a scheduler variable to the model
 			lazy = true;
@@ -212,9 +161,6 @@ public class ConstructModel
 			//			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
 			//					.Int(nPlayers))));
 			//			modulesFile.tidyUp();
-		}
-		if (modelType == ModelType.STPG) {
-			loadGameParams(settings.getString(PrismSettings.PRISM_GAME_OPTIONS));
 		}
 
 		engine.createNewOnTheFlyPath(modulesFile);
@@ -244,7 +190,6 @@ public class ConstructModel
 		// Initialise states storage
 		states = new IndexedSet<State>(true);
 		explore = new LinkedList<State>();
-		stateLabels = new ArrayList<Integer>();
 		// Add initial state to lists/model
 		if (modulesFile.getInitialStates() != null) {
 			throw new PrismException("Explicit model construction does not support multiple initial states");
@@ -253,17 +198,7 @@ public class ConstructModel
 		states.add(state);
 		explore.add(state);
 		if (!justReach) {
-			if (modelType == ModelType.STPG) {
-				engine.initialisePath(state);
-				actionLabel = engine.getTransitionModuleOrAction(0, 0);
-				if (actionLabel != null) {
-					id = stpg.addState(getPlayer(actionLabel));
-					stateLabels.add(1);
-				} else
-					throw new PrismException("Every state must have an action. Cannot determine the player which owns the state.");
-			} else
-				modelSimple.addState();
-
+			modelSimple.addState();
 			modelSimple.addInitialState(0);
 		}
 
@@ -404,8 +339,20 @@ public class ConstructModel
 
 				// Use simulator to explore all choices/transitions from this state
 				engine.initialisePath(state);
-				// Look at each outgoing choice in turn
 				nc = engine.getNumChoices();
+				// For an STPG, first determine which player owns the state
+				if (modelType == ModelType.STPG) {
+					player = -1;
+					for (i = 0; i < nc; i++) {
+						int iPlayer = determinePlayerForChoice(modulesFile, modelType, i);
+						if (player != -1 && iPlayer != player) {
+							throw new PrismException("Choices for both player " + player + " and  " + iPlayer + " in state " + state);
+						}
+						player = iPlayer;
+					}
+					stpg.setPlayer(src, player);
+				}
+				// Look at each outgoing choice in turn
 				for (i = 0; i < nc; i++) {
 
 					if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG)) {
@@ -416,25 +363,13 @@ public class ConstructModel
 					for (j = 0; j < nt; j++) {
 						stateNew = engine.computeTransitionTarget(i, j);
 
-						// labeling the source state with player
-						if (modelType == ModelType.STPG && j == 0) {
-							actionLabel = engine.getTransitionModuleOrAction(i, j);
-							if (actionLabel != null)
-								stateLabels.set(src, getPlayer(actionLabel));
-							else
-								throw new PrismException("Every state must have an action. Cannot determine the player which owns the state.");
-						}
-
 						// Is this a new state?
 						if (states.add(stateNew)) {
 							// If so, add to the explore list
 							explore.add(stateNew);
 							// And to model
 							if (!justReach) {
-								if (modelType == ModelType.STPG)
-									stateLabels.add(stpg.addState());
-								else
-									modelSimple.addState();
+								modelSimple.addState();
 							}
 						}
 						// Get index of state in state set
@@ -463,6 +398,7 @@ public class ConstructModel
 								mdp.addChoice(src, distr);
 							}
 						} else if (modelType == ModelType.STPG) {
+							// TODO: need addActionLabelledChoice
 							int k = stpg.addChoice(src, distr);
 							stpg.setAction(src, k, engine.getTransitionAction(i, 0));
 						} else if (modelType == ModelType.SMG) {
@@ -481,12 +417,6 @@ public class ConstructModel
 			}
 		}
 
-		// labeling states
-		if (modelType == ModelType.STPG)
-			for (int st = 0; st < stateLabels.size(); st++) {
-
-				stpg.setPlayer(st, stateLabels.get(st));
-			}
 		// Finish progress display
 		mainLog.println(" " + (src + 1));
 
@@ -556,6 +486,33 @@ public class ConstructModel
 	}
 
 	/**
+	 * For game models, determine the player who owns the {@code i}th choice
+	 * in the state currently being explored by the simulator.
+	 * Returns the index (starting from 1) of the player. 
+	 */
+	private int determinePlayerForChoice(ModulesFile modulesFile, ModelType modelType, int i) throws PrismException
+	{
+		int modAct, player;
+		
+		modAct = engine.getTransitionModuleOrActionIndex(i, 0);
+		// Synchronous action
+		if (modAct > 0) {
+			player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
+			if (player == -1) {
+				throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
+			}
+			// 0-indexed to 1-indexed
+			player++;
+		}
+		// Asynchronous action
+		else {
+			player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
+		}
+		
+		return player;
+	}
+	
+	/**
 	 * State placeholder
 	 * @author aissim
 	 *
@@ -574,37 +531,7 @@ public class ConstructModel
 		}
 
 	}
-
-	/**
-	 * Extracts player information from the action label
-	 * 
-	 * @param actionLabel action label
-	 * @return STPGExplicit.{PLAYER_1,PLAYER_2}
-	 * @throws PrismException when the action label is not assigned to any
-	 *           player
-	 */
-	private int getPlayer(String actionLabel) throws PrismException
-	{
-		int player;
-		if (actionLabel.startsWith("[")) {
-			actionLabel = actionLabel.substring(1, actionLabel.length() - 1);
-			if (player1syncs.contains(actionLabel))
-				player = STPGExplicit.PLAYER_1;
-			else if (player2syncs.contains(actionLabel))
-				player = STPGExplicit.PLAYER_2;
-			else
-				throw new PrismException("Synchronised action label '" + actionLabel + "' is not assigned to any player.");
-		} else {
-			if (player1mods.contains(actionLabel))
-				player = STPGExplicit.PLAYER_1;
-			else if (player2mods.contains(actionLabel))
-				player = STPGExplicit.PLAYER_2;
-			else
-				throw new PrismException("Module '" + actionLabel + "' is not assigned to any player.");
-		}
-		return player;
-	}
-
+	
 	/**
 	 * Test method.
 	 */

@@ -174,6 +174,7 @@ public class ProbModelChecker extends StateModelChecker
 		StateValues rews = null;
 		MCRewards mcRewards = null;
 		MDPRewards mdpRewards = null;
+		STPGRewards stpgRewards = null;
 		int i;
 
 		// Get info from reward operator
@@ -251,6 +252,9 @@ public class ProbModelChecker extends StateModelChecker
 		case MDP:
 			mdpRewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
 			break;
+		case STPG:
+			stpgRewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
+			break;
 		default:
 			throw new PrismException("Cannot build rewards for " + modelType + "s");
 		}
@@ -268,8 +272,7 @@ public class ProbModelChecker extends StateModelChecker
 			rews = ((MDPModelChecker) this).checkRewardFormula(model, mdpRewards, expr.getExpression(), min1);
 			break;
 		case STPG:
-			// TODO: add rewards
-			rews = ((STPGModelChecker) this).checkRewardFormula(model, null, expr.getExpression(), min1, min2);
+			rews = ((STPGModelChecker) this).checkRewardFormula(model, stpgRewards, expr.getExpression(), min1, min2);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for " + modelType + "s");
