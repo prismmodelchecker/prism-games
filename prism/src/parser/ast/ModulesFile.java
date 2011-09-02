@@ -30,6 +30,7 @@ import java.util.*;
 
 import parser.*;
 import parser.visitor.*;
+import prism.PrismException;
 import prism.PrismLangException;
 import prism.ModelType;
 import parser.type.*;
@@ -50,6 +51,7 @@ public class ModulesFile extends ASTElement
 	private SystemDefn systemDefn; // System definition (system...endsystem construct)
 	private ArrayList<RewardStruct> rewardStructs; // Rewards structures
 	private Expression initStates; // Initial states specification
+	private List<Player> players; // Player definitions
 
 	// Lists of all identifiers used
 	private Vector<String> formulaIdents;
@@ -80,6 +82,7 @@ public class ModulesFile extends ASTElement
 		systemDefn = null;
 		rewardStructs = new ArrayList<RewardStruct>();
 		initStates = null;
+		players = new ArrayList<Player>();
 		formulaIdents = new Vector<String>();
 		constantIdents = new Vector<String>();
 		varIdents = new Vector<String>();
@@ -168,6 +171,22 @@ public class ModulesFile extends ASTElement
 	public void setInitialStates(Expression e)
 	{
 		initStates = e;
+	}
+
+	/**
+	 * Add a "player" definition.
+	 */
+	public void addPlayer(Player p)
+	{
+		players.add(p);
+	}
+
+	/**
+	 * (Re)set the {@code i}th "player" definition.
+	 */
+	public void setPlayer(int i, Player p)
+	{
+		players.set(i, p);
 	}
 
 	// Get methods
@@ -322,6 +341,40 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+	 * Get the number of "player" defintions in the model.
+	 */
+	public int getNumPlayers()
+	{
+		return players.size();
+	}
+
+	/**
+	 * Get the {@code i}th "player" definition.
+	 */
+	public Player getPlayer(int i)
+	{
+		return players.get(i);
+	}
+
+	/**
+	 * Get the (index of the) player that owns action {@code a}.
+	 * Players are 0-indexed; returns -1 if no owener found.
+	 */
+	public int getPlayerForAction(String a)
+	{
+		int i = 0;
+		for (Player player : players) {
+			for (String s : player.getActions()) {
+				if (s.equals(a)) {
+					return i; 
+				}
+			}
+			i++;
+		}
+		return -1;
+	}
+
+	/**
 	 * Look up a property by name.
 	 * Returns null if not found.
 	 * Currently only exists for forwards compatibility.
@@ -330,7 +383,7 @@ public class ModulesFile extends ASTElement
 	{
 		return null;
 	}
-	
+
 	/**
 	 * Check if an identifier is used by this model
 	 * (as a formula, constant, or variable)
@@ -455,7 +508,7 @@ public class ModulesFile extends ASTElement
 		varDecls.clear();
 		varNames.clear();
 		varTypes.clear();
-		
+
 		// Expansion of formulas and renaming
 
 		// Check formula identifiers
@@ -497,7 +550,7 @@ public class ModulesFile extends ASTElement
 		if (getUndefinedConstants().isEmpty()) {
 			setUndefinedConstants(null);
 		}
-		
+
 		// Check variable names, etc.
 		checkVarNames();
 		// Find all instances of variables, replace identifiers with variables.
@@ -506,9 +559,12 @@ public class ModulesFile extends ASTElement
 
 		// Find all instances of property refs
 		findAllProps(this, null);
-		
+
 		// Check reward structure names
 		checkRewardStructNames();
+
+		// Check player info
+		checkPlayerDefns();
 
 		// Various semantic checks 
 		semanticCheck(this);
@@ -565,13 +621,12 @@ public class ModulesFile extends ASTElement
 			for (i2 = 0; i2 < n2; i2++) {
 				s = module.getOldName(i2);
 				if (!renamedSoFar.add(s)) {
-					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \""
-							+ module.getName() + "\"", module.getOldNameASTElement(i2));
+					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \"" + module.getName() + "\"",
+							module.getOldNameASTElement(i2));
 				}
 				if (formulaList.getFormulaIndex(s) != -1) {
-					throw new PrismLangException("Formula \"" + s
-							+ "\" cannot be renamed since formulas are expanded before module renaming", module
-							.getOldNameASTElement(i2));
+					throw new PrismLangException("Formula \"" + s + "\" cannot be renamed since formulas are expanded before module renaming",
+							module.getOldNameASTElement(i2));
 				}
 			}
 			// Then rename (a copy of) base module and replace
@@ -625,8 +680,7 @@ public class ModulesFile extends ASTElement
 			s = getModule(i).getName();
 			for (j = 0; j < i; j++) {
 				if (s.equals(moduleNames[j])) {
-					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i)
-							.getNameASTElement());
+					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i).getNameASTElement());
 				}
 			}
 			moduleNames[i] = s;
@@ -675,8 +729,7 @@ public class ModulesFile extends ASTElement
 		for (i = 0; i < n; i++) {
 			s = constantList.getConstantName(i);
 			if (isIdentUsed(s)) {
-				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList
-						.getConstantNameIdent(i));
+				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList.getConstantNameIdent(i));
 			} else {
 				constantIdents.add(s);
 			}
@@ -694,9 +747,8 @@ public class ModulesFile extends ASTElement
 		// compile list of all var names
 		// and check as we go through
 
-		globals.add(0, new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
-					.Int(getNumModules()))));
-		
+		globals.add(0, new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression.Int(getNumModules()))));
+
 		// globals
 		n = getNumGlobals();
 		for (i = 0; i < n; i++) {
@@ -752,6 +804,35 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+	 * Check that player definitions are valid.
+	 */
+	private void checkPlayerDefns() throws PrismLangException
+	{
+		List<String> modulesUsed = new ArrayList<String>();
+		List<String> actionsUsed = new ArrayList<String>();
+		for (Player player : players) {
+			for (String m : player.getModules()) {
+				// Check existing
+				if (getModuleIndex(m) == -1)
+					throw new PrismLangException("Module name \"" + m + "\" in player defintion \"" + player.getName() + "\" does not exist", player);
+				// Check for dupes
+				if (modulesUsed.contains(m))
+					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player defintions", player);
+				modulesUsed.add(m);
+			}
+			for (String a : player.getActions()) {
+				// Check existing
+				if (!isSynch(a))
+					throw new PrismLangException("Action name \"" + a + "\" in player defintion \"" + player.getName() + "\" does not exist", player);
+				// Check for dupes
+				if (actionsUsed.contains(a))
+					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player defintions", player);
+				actionsUsed.add(a);
+			}
+		}
+	}
+
+	/**
 	 * Get  a list of constants in the model that are undefined
 	 * ("const int x;" rather than "const int x = 1;") 
 	 */
@@ -782,7 +863,7 @@ public class ModulesFile extends ASTElement
 	{
 		return constantList.isDefinedConstant(name);
 	}
-	
+
 	/**
 	 * Get access to the values for all constants in the model, including the 
 	 * undefined constants set previously via the method {@link #setUndefinedConstants(Values)}.
@@ -978,6 +1059,10 @@ public class ModulesFile extends ASTElement
 			s += "\nsystem " + systemDefn + " endsystem\n";
 		}
 
+		for (Player player : players) {
+			s += "\n" + player + "\n";
+		}
+
 		n = getNumRewardStructs();
 		for (i = 0; i < n; i++) {
 			s += "\n" + getRewardStruct(i);
@@ -998,7 +1083,7 @@ public class ModulesFile extends ASTElement
 	{
 		int i, n;
 		ModulesFile ret = new ModulesFile();
-		
+
 		// Copy ASTElement stuff
 		ret.setPosition(this);
 		// Copy type
@@ -1023,21 +1108,23 @@ public class ModulesFile extends ASTElement
 		}
 		if (initStates != null)
 			ret.setInitialStates(initStates.deepCopy());
+		for (Player player : players)
+			ret.addPlayer(player.deepCopy());
 		// Copy other (generated) info
-		ret.formulaIdents = (formulaIdents == null) ? null : (Vector<String>)formulaIdents.clone();
-		ret.constantIdents = (constantIdents == null) ? null : (Vector<String>)constantIdents.clone();
-		ret.varIdents = (varIdents == null) ? null : (Vector<String>)varIdents.clone();
+		ret.formulaIdents = (formulaIdents == null) ? null : (Vector<String>) formulaIdents.clone();
+		ret.constantIdents = (constantIdents == null) ? null : (Vector<String>) constantIdents.clone();
+		ret.varIdents = (varIdents == null) ? null : (Vector<String>) varIdents.clone();
 		ret.moduleNames = (moduleNames == null) ? null : moduleNames.clone();
-		ret.synchs = (synchs == null) ? null : (Vector<String>)synchs.clone();
+		ret.synchs = (synchs == null) ? null : (Vector<String>) synchs.clone();
 		if (varDecls != null) {
 			ret.varDecls = new Vector<Declaration>();
 			for (Declaration d : varDecls)
 				ret.varDecls.add((Declaration) d.deepCopy());
 		}
-		ret.varNames = (varNames == null) ? null : (Vector<String>)varNames.clone();
-		ret.varTypes = (varTypes == null) ? null : (Vector<Type>)varTypes.clone();
+		ret.varNames = (varNames == null) ? null : (Vector<String>) varNames.clone();
+		ret.varTypes = (varTypes == null) ? null : (Vector<Type>) varTypes.clone();
 		ret.constantValues = (constantValues == null) ? null : new Values(constantValues);
-		
+
 		return ret;
 	}
 }

@@ -369,6 +369,7 @@ TOKEN :
 |	< ENDINIT:			"endinit" >
 |	< ENDINVARIANT:		"endinvariant" >
 |	< ENDMODULE:		"endmodule" >
+|	< ENDPLAYER:		"endplayer" >
 |	< ENDREWARDS:		"endrewards" >
 |	< ENDSYSTEM:		"endsystem" >
 |	< FALSE:			"false" >
@@ -401,6 +402,7 @@ TOKEN :
 |	< PMINMIN:			"Pminmin" >
 |	< PMIN:				"Pmin" >
 |	< P:				"P" >
+|	< PLAYER:			"player" >
 |	< PROBABILISTIC:	"probabilistic" >
 |	< PROB:				"prob" >
 |	< PTA:				"pta" >
@@ -488,6 +490,7 @@ ModulesFile ModulesFile() throws PrismLangException :
 	SystemDefn sys = null;
 	int sysCount = 0;
 	SystemDefn sysDupe = null;
+	Player player = null;
 	ModulesFile mf = new ModulesFile();
 	Token begin = null;
 }
@@ -508,7 +511,9 @@ ModulesFile ModulesFile() throws PrismLangException :
 	// Initial states ("init...endinit" construct)
 	init = Init() { mf.setInitialStates(init); initCount++; if (initCount == 2) initDupe = init; } |
 	// System definition ("system...endsystem" construct)
-	sys = SystemEndsystem() { mf.setSystemDefn(sys); sysCount++; if (sysCount == 2) sysDupe = sys; }
+	sys = SystemEndsystem() { mf.setSystemDefn(sys); sysCount++; if (sysCount == 2) sysDupe = sys; } |
+	// Player definition
+	player = Player() { mf.addPlayer(player); }
 	)* <EOF>
 	{
 		// Check for multiple instances of some items
@@ -1018,6 +1023,34 @@ SystemDefn SystemAtomic() :
 	|( <LPARENTH> sys = SystemDefn() <RPARENTH> { sys = new SystemBrackets(sys); } ))
 	{ sys.setPosition(begin, getToken(0)); return sys; }
 }
+
+// Player definition
+
+Player Player() :
+{
+	String name = null;
+	Player player = null;
+	Token begin;
+}
+{
+	{ begin = getToken(1); }
+	<PLAYER> name = Identifier() { player = new Player(name); }
+	( PlayerItem(player) ( <COMMA> PlayerItem(player) )* )?
+	<ENDPLAYER>
+	{ player.setPosition(begin, getToken(0)); return player; }
+}
+
+// Player definition item (module or [action])
+
+void PlayerItem(Player player) :
+{
+	String name = null;
+}
+{
+	( <LBRACKET> name = Identifier() <RBRACKET> { player.addAction(name); } )
+	| ( name = Identifier() { player.addModule(name); } )
+}
+
 
 //-----------------------------------------------------------------------------------
 // Expressions.

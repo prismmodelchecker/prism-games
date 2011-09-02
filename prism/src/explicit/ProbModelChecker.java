@@ -68,7 +68,6 @@ public class ProbModelChecker extends StateModelChecker
 		return res;
 	}
 
-	
 	/**
 	 * Model check a P operator expression and return the values for all states.
 	 */
@@ -120,7 +119,7 @@ public class ProbModelChecker extends StateModelChecker
 				}
 			}
 		}
-		
+
 		// Compute probabilities
 		switch (modelType) {
 		case CTMC:
@@ -140,8 +139,8 @@ public class ProbModelChecker extends StateModelChecker
 			break;
 		case SMG:
 			System.out.println("Reducing SMG to STPG..." + expr);
-			model = ((SMG)model).reduceToSTPG(((ExpressionCoalition)expr).getCoalition(), SMG.SCHED_RANDOM);
-			 ((SMG)model).exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
+			model = ((SMG) model).reduceToSTPG(((ExpressionCoalition) expr).getCoalition(), SMG.SCHED_RANDOM);
+			//((SMG)model).exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
 			System.out.println(model);
 			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, !min1);
 			break;
@@ -158,7 +157,7 @@ public class ProbModelChecker extends StateModelChecker
 		// For =? properties, just return values
 		return probs;
 	}
-	
+
 	/**
 	 * Model check an R operator expression and return the values for all states.
 	 */
@@ -195,7 +194,7 @@ public class ProbModelChecker extends StateModelChecker
 
 		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
-			if (modelType != ModelType.STPG) {
+			if (!(model instanceof STPG)) {
 				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
 					// min
 					min1 = true;
@@ -254,7 +253,7 @@ public class ProbModelChecker extends StateModelChecker
 		default:
 			throw new PrismException("Cannot build rewards for " + modelType + "s");
 		}
-		
+
 		// Compute rewards
 		mainLog.println("Building reward structure...");
 		switch (modelType) {

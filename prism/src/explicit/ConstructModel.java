@@ -286,7 +286,20 @@ public class ConstructModel
 
 				// Group choices by player
 				for (i = 0; i < nc; i++) {
-					player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
+					int modAct = engine.getTransitionModuleOrActionIndex(i, 0);
+					// Synchronous action
+					if (modAct > 0) {
+						player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
+						if (player == -1) {
+							throw new PrismException("No player owns action \"" + modulesFile.getSynch(modAct - 1) + "\"");
+						}
+						// 0-indexed to 1-indexed
+						player++;
+					}
+					// Asynchronous action
+					else {
+						player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
+					}
 					if (!playerChoices.containsKey(player))
 						playerChoices.put(player, new ArrayList<Integer>());
 					playerChoices.get(player).add(i);
@@ -534,7 +547,7 @@ public class ConstructModel
 			}
 			model.setStatesList(statesList);
 			model.setConstantValues(new Values(modulesFile.getConstantValues()));
-			System.out.println(model);
+			//System.out.println(model);
 			//			mainLog.println("Model: " + model);
 		}
 

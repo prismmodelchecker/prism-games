@@ -62,6 +62,10 @@ public class ASTTraverse implements ASTVisitor
 			if (e.getRewardStruct(i) != null) e.getRewardStruct(i).accept(this);
 		}
 		if (e.getInitialStates() != null) e.getInitialStates().accept(this);
+		n = e.getNumPlayers();
+		for (i = 0; i < n; i++) {
+			if (e.getPlayer(i) != null) e.getPlayer(i).accept(this);
+		}
 		visitPost(e);
 		return null;
 	}
@@ -284,6 +288,15 @@ public class ASTTraverse implements ASTVisitor
 		return null;
 	}
 	public void visitPost(RewardStructItem e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(Player e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(Player e) throws PrismLangException
+	{
+		visitPre(e);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(Player e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(SystemInterleaved e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(SystemInterleaved e) throws PrismLangException
