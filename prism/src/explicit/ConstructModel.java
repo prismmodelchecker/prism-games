@@ -179,7 +179,8 @@ public class ConstructModel
 		List<Integer> originalStates = new ArrayList<Integer>();
 		List<Integer> choices;
 		boolean lazy = false;
-		int schedIndx = 0;;
+		int schedIndx = 0;
+		;
 
 		// Process game info
 		this.player1mods = new HashSet<String>();
@@ -208,9 +209,9 @@ public class ConstructModel
 			lazy = true;
 			nPlayers = 2;
 			schedIndx = 0;
-//			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
-//					.Int(nPlayers))));
-//			modulesFile.tidyUp();
+			//			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
+			//					.Int(nPlayers))));
+			//			modulesFile.tidyUp();
 		}
 		if (modelType == ModelType.STPG) {
 			loadGameParams(settings.getString(PrismSettings.PRISM_GAME_OPTIONS));
@@ -259,8 +260,7 @@ public class ConstructModel
 					id = stpg.addState(getPlayer(actionLabel));
 					stateLabels.add(1);
 				} else
-					throw new PrismException(
-							"Every state must have an action. Cannot determine the player which owns the state.");
+					throw new PrismException("Every state must have an action. Cannot determine the player which owns the state.");
 			} else
 				modelSimple.addState();
 
@@ -322,8 +322,7 @@ public class ConstructModel
 								// add transition to new state
 								distr = new Distribution();
 								distr.add(k, 1.0);
-								smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr),
-										"player" + (i + 1));
+								smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr), "player" + (i + 1));
 
 								// add transition back
 								distr = new Distribution();
@@ -350,8 +349,7 @@ public class ConstructModel
 					if (!justReach) {
 						distr = new Distribution();
 						distr.add(k, 1.0);
-						smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr), "player"
-								+ pl);
+						smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr), "player" + pl);
 					}
 
 					// copy the choices by player pl from the original state to the new one
@@ -423,8 +421,7 @@ public class ConstructModel
 							if (actionLabel != null)
 								stateLabels.set(src, getPlayer(actionLabel));
 							else
-								throw new PrismException(
-										"Every state must have an action. Cannot determine the player which owns the state.");
+								throw new PrismException("Every state must have an action. Cannot determine the player which owns the state.");
 						}
 
 						// Is this a new state?
@@ -504,7 +501,7 @@ public class ConstructModel
 				mainLog.println("Added self-loops in " + deadlocks.cardinality() + " states...");
 			}
 		}
-		
+
 		boolean sort = true;
 		int permut[] = null;
 
@@ -595,8 +592,7 @@ public class ConstructModel
 			else if (player2syncs.contains(actionLabel))
 				player = STPGExplicit.PLAYER_2;
 			else
-				throw new PrismException("Synchronised action label '" + actionLabel
-						+ "' is not assigned to any player.");
+				throw new PrismException("Synchronised action label '" + actionLabel + "' is not assigned to any player.");
 		} else {
 			if (player1mods.contains(actionLabel))
 				player = STPGExplicit.PLAYER_1;
@@ -709,7 +705,6 @@ public class ConstructModel
 
 			Model model = constructModel.constructModel(modulesFile);
 
-
 			System.out.println("\nStates list: ");
 			mainLog.println(constructModel.getStatesList());
 
@@ -718,26 +713,22 @@ public class ConstructModel
 			Set<Integer> player1 = new HashSet<Integer>();
 			player1.add(1);
 			SMG stpg_nondet = smg.clone().reduceToSTPG(player1, SMG.SCHED_NONDET);
-			
+
 			player1 = new HashSet<Integer>();
 			player1.add(1);
 			SMG stpg_rand = smg.clone().reduceToSTPG(player1, SMG.SCHED_RANDOM);
-			
-			
+
 			System.out.println("\nSMG: ");
 			mainLog.println(smg);
 			System.out.println("\nSTPG-NONDET: ");
 			mainLog.println(stpg_nondet);
 			System.out.println("\nSTPG-RAND: ");
 			mainLog.println(stpg_rand);
-			
-			
-			
-			smg.exportToDotFile("/auto/users/aissim/Desktop/smg.dot");
-			stpg_nondet.exportToDotFile("/auto/users/aissim/Desktop/stpg_nondet.dot");
-			stpg_rand.exportToDotFile("/auto/users/aissim/Desktop/stpg_rand.dot");
 
-			
+			//smg.exportToDotFile("smg.dot");
+			//stpg_nondet.exportToDotFile("stpg_nondet.dot");
+			//stpg_rand.exportToDotFile("stpg_rand.dot");
+
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
