@@ -323,6 +323,14 @@ public class ConstructModel
 				}
 
 				playerChoices.clear();
+
+				// Print some progress info occasionally
+				if (System.currentTimeMillis() - timerProgress > 3000) {
+					mainLog.print(" " + (src + 1));
+					mainLog.flush();
+					timerProgress = System.currentTimeMillis();
+				}
+			
 			}
 			smg.initialiseScheduler(SMG.SCHED_RANDOM);
 
