@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Aistis Simaitis <aistis.simaitis@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -27,32 +28,19 @@
 package explicit.rewards;
 
 /**
- * Explicit-state storage of just state rewards.
+ * Classes that provide (read) access to explicit-state rewards for an SMG.
+ * See the {@link explicit.SMG} interface for details of the accompanying model.
  */
-public abstract class StateRewards implements MCRewards, MDPRewards, STPGRewards, SMGRewards
+public interface SMGRewards extends STPGRewards
 {
 	/**
 	 * Get the state reward for state {@code s}.
 	 */
 	public abstract double getStateReward(int s);
 	
-	@Override
-	public double getTransitionReward(int s, int i)
-	{
-		return 0.0;
-	}
+	/**
+	 * Get the transition reward for the {@code i}th choice from state {@code s}.
+	 */
+	public abstract double getTransitionReward(int s, int i); 
 	
-	@Override
-	public double getNestedTransitionReward(int s, int i, int j)
-	{
-		return 0.0;
-	}
-	
-	@Override
-	public MDPRewards buildMDPRewards()
-	{
-		return deepCopy();
-	}
-	
-	public abstract StateRewards deepCopy();
 }

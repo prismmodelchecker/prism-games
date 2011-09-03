@@ -29,11 +29,13 @@ package explicit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import explicit.rewards.MDPRewards;
 import explicit.rewards.STPGRewards;
 
 import prism.ModelType;
@@ -127,7 +129,21 @@ public class SMG extends MDPSimple implements STPG
 		return this;
 	}
 	
-
+	/**
+	 * Returns the list of states that belong to the scheduler
+	 * 
+	 * @return the list of states that belong to the scheduler
+	 */
+	public Set<Integer> getSchedulerStates()
+	{
+		Set<Integer> ret = new HashSet<Integer>();
+		for (int i = 0; i < stateLabels.size(); i++)
+			if (stateLabels.get(i) == 0)
+				ret.add(i);
+		return ret;
+	}
+	
+	
 	/**
 	 * Adds one state, assigned to player 0
 	 */
@@ -436,57 +452,53 @@ public class SMG extends MDPSimple implements STPG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv)
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
 				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else //if (stateLabels.get(s).equals(2))
+				else
 					min = min2;
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
 				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else //if (stateLabels.get(s).equals(2))
+				else
 					min = min2;
-
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
 				if (coalition.contains(stateLabels.get(s)))
 					min = min1;
-				else //if (stateLabels.get(s).equals(2))
+				else
 					min = min2;
-				// TODO: convert/pass rewards
-				result[s] = mvMultRewMinMaxSingle(s, vect, null, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		}
-
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, int[] adv)
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		// TODO: convert/pass rewards
-		return mvMultRewMinMaxSingle(s, vect, null, min, null);
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;		
+		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, null);
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double[] vect, STPGRewards rewards, boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		// TODO: convert/pass rewards
-		return mvMultRewMinMaxSingleChoices(s, vect, null, min, val);
+		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
 	}
 
 	// Standard methods

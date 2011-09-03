@@ -28,9 +28,13 @@ package explicit;
 
 import java.util.Set;
 
+import explicit.rewards.SMGRewards;
+import explicit.rewards.STPGRewards;
+
 import parser.ast.Expression;
-import parser.ast.ExpressionCoalition;
+import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
+import parser.ast.ExpressionTemporal;
 import prism.PrismException;
 
 /**
@@ -41,19 +45,47 @@ public class SMGModelChecker extends STPGModelChecker
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
-	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
 	{
 		// setting coalition parameter
-		((SMG) model).setCoalition(((ExpressionCoalition) expr).getCoalition());
+		((SMG) model).setCoalition(exprPATL.getCoalition());
 		
-		expr = ((ExpressionProb)expr).getExpression();
+		Expression expr = exprPATL.getExpressionProb().getExpression();
 		
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method. 
 		if (expr.isSimplePathFormula()) {
-			return super.checkProbPathFormulaSimple(model, expr, min1, min2);
+			return super.checkProbPathFormulaSimple(model, expr, min, !min);
 		} else {
 			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
 		}
+	}
+	
+	/**
+	 * Compute rewards for the contents of an R operator.
+	 */
+	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min) throws PrismException
+	{
+		// setting coalition parameter
+		((SMG) model).setCoalition(exprPATL.getCoalition());
+		
+		StateValues rewards = null;
+		Expression expr = exprPATL.getExpressionRew().getExpression();
+		
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_F:
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min);
+				break;
+			default:
+				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " operator in the R operator");
+			}
+		}
+		
+		if (rewards == null)
+			throw new PrismException("Unrecognised operator in R operator");
+
+		return rewards;
 	}
 }

@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -69,6 +70,8 @@ public class ConstructRewards
 			return buildMCRewardStructure((DTMC) model, rewStr, constantValues);
 		case MDP:
 			return buildMDPRewardStructure((MDP) model, rewStr, constantValues);
+		case SMG:
+			return buildSMGRewardStructure((SMG) model, rewStr, constantValues);
 		default:
 			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
 		}
@@ -213,6 +216,63 @@ public class ConstructRewards
 						// State reward
 						else {
 							rewSimple.setStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+						}
+					}
+				}
+			}
+			return rewSimple;
+		}
+	}
+	
+	/**
+	 * Construct the rewards for an MDP from a model and reward structure. 
+	 * @param mdp The MDP
+	 * @param rewStr The reward structure
+	 * @param constantValues Values for any undefined constants needed
+	 */
+	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues) throws PrismException
+	{
+		List<State> statesList;
+		Set<Integer> schedStates;
+		SMGRewardsSimple rewSimple;
+		Expression guard;
+		String action;
+		Object smgAction;
+		int i, j, k, n, numStates, numChoices;
+
+		// Special case: constant state rewards
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+		}
+		// Normal: state and transition rewards
+		else {
+			numStates = smg.getNumStates();
+			statesList = smg.getStatesList();
+			schedStates = smg.getSchedulerStates();
+			rewSimple = new SMGRewardsSimple(numStates);
+			n = rewStr.getNumItems();
+			for (i = 0; i < n; i++) {
+				guard = rewStr.getStates(i);
+				action = rewStr.getSynch(i);
+				for (j = 0; j < numStates; j++) {
+					// ignoring states that belong to the scheduler
+					if(schedStates.contains(j)) 
+						continue;
+					// Is guard satisfied?
+					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
+						// Transition reward
+						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+							numChoices = smg.getNumChoices(j);
+							for (k = 0; k < numChoices; k++) {
+								smgAction = smg.getAction(j, k);
+								if (smgAction == null ? (action == null) : smgAction.equals(action)) {
+									rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+								}
+							}
+						}
+						// State reward
+						else {
+							rewSimple.setStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 						}
 					}
 				}

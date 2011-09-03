@@ -1342,7 +1342,7 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 		ret = ExpressionParenth(prop, pathprop)
 	|
 		// Remaining options are only applicable for properties
-		ret = ExpressionCoalition(prop, pathprop)		
+		ret = ExpressionPATL(prop, pathprop)		
 	|
 		ret = ExpressionProb(prop, pathprop)
 	|
@@ -1424,7 +1424,7 @@ void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) :
 
 // Arguments for a coalition operator
 
-void ExpressionCoalitionArgs(boolean prop, boolean pathprop, Set coalition) :
+void ExpressionPATLArgs(boolean prop, boolean pathprop, Set coalition) :
 {
 	Expression expr;
 }
@@ -1563,15 +1563,15 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	}
 }
 
-// (Property) expression: coalition operator <<C>>
+// (Property) expression: PATL formula <<C>> P/R []
 
-Expression ExpressionCoalition(boolean prop, boolean pathprop) :
+Expression ExpressionPATL(boolean prop, boolean pathprop) :
 {
 	Expression expr;
-	Filter filter = null;
-	ExpressionCoalition ret = new ExpressionCoalition();
+	ExpressionPATL ret = new ExpressionPATL();
 	ExpressionProb prob = new ExpressionProb();
-	Set coalition = new HashSet();
+	ExpressionReward rew = new ExpressionReward();
+	Set<Integer> coalition = new HashSet<Integer>();
 	Token begin = null;
 	boolean isBool;
 	
@@ -1581,13 +1581,16 @@ Expression ExpressionCoalition(boolean prop, boolean pathprop) :
 	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "P" keyword and attached symbols
-	(( begin = 	<PATLL>  ExpressionCoalitionArgs(prop, pathprop, coalition)  {ret.setCoalition(coalition);}
-			<PATLR> expr = ExpressionProb(prop, pathprop) {ret.setExpressionProb((ExpressionProb)expr);}
-	))
+	
+	( begin = 	<PATLL>  ExpressionPATLArgs(prop, pathprop, coalition)  {ret.setCoalition(coalition);} <PATLR> 
+		((expr = ExpressionProb(prop, pathprop) {ret.setExpressionProb((ExpressionProb)expr); ret.setExpressionType(ExpressionPATL.PRB);})
+		|(expr = ExpressionReward(prop, pathprop) {ret.setExpressionRew((ExpressionReward)expr); ret.setExpressionType(ExpressionPATL.REW);}))
+	)
 	{
 		return ret;
 	}
 	}
+	
 
 // Filter for a P/S/R operator
 

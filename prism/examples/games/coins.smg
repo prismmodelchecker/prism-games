@@ -1,17 +1,34 @@
 smg
 
+global fin : [0..2] init 0;
+
 module player1
 
 	coin : [0..2];
-	[] coin=0 -> 1/2 : (coin'=1) + 1/2 : (coin'=2);
+	[] coin=0 & guess=0 -> 1/2 : (coin'=1) + 1/2 : (coin'=2);
+	[] coin=0 & guess!=0 -> 1/2 : (coin'=1) & (fin'=1) + 1/2 : (coin'=2) & (fin'=1);
 
 endmodule
 
 module player2
 
 	guess : [0..2];
-	[] guess=0 -> (guess'=1);
-	[] guess=0 -> (guess'=2);
-	[] guess!=0 -> true;
-	
+	[] guess=0 & coin=0 -> (guess'=1);
+	[] guess=0 & coin=0 -> (guess'=2);
+
+	[] guess=0 & coin!=0 -> (guess'=1) & (fin'=1);
+	[] guess=0 & coin!=0 -> (guess'=2) & (fin'=1);
+
+	[] fin=1 -> (fin'=2);
+
+	[] fin=2 -> true;
 endmodule
+
+rewards "test1"
+	guess=1&coin=1: 5;
+endrewards
+
+
+rewards "test2"
+	guess=1 : 5;
+endrewards

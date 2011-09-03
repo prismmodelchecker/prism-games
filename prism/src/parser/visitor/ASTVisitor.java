@@ -71,7 +71,7 @@ public interface ASTVisitor
 	public Object visit(ExpressionFormula e) throws PrismLangException;
 	public Object visit(ExpressionVar e) throws PrismLangException;
 	public Object visit(ExpressionProb e) throws PrismLangException;
-	//public Object visit(ExpressionCoalition e) throws PrismLangException;
+	public Object visit(ExpressionPATL e) throws PrismLangException;
 	public Object visit(ExpressionReward e) throws PrismLangException;
 	public Object visit(ExpressionSS e) throws PrismLangException;
 	public Object visit(ExpressionExists e) throws PrismLangException;
@@ -82,5 +82,6 @@ public interface ASTVisitor
 	// ASTElement classes (misc.)
 	public Object visit(Filter e) throws PrismLangException;
 	public Object visit(ForLoop e) throws PrismLangException;
+
 }
 

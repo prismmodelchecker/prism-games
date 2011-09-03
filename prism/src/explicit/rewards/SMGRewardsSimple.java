@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Aistis Simaitis <aistis.simaitis@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -24,35 +25,43 @@
 //	
 //==============================================================================
 
+
 package explicit.rewards;
 
+
 /**
- * Explicit-state storage of just state rewards.
+ * Simple explicit-state storage of rewards for an SMG.
  */
-public abstract class StateRewards implements MCRewards, MDPRewards, STPGRewards, SMGRewards
-{
+public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards {
+
+
 	/**
-	 * Get the state reward for state {@code s}.
+	 * Constructor: all zero rewards.
+	 * @param numStates Number of states
 	 */
-	public abstract double getStateReward(int s);
-	
-	@Override
-	public double getTransitionReward(int s, int i)
+	public SMGRewardsSimple(int numStates)
 	{
-		return 0.0;
+		super(numStates);
 	}
 	
-	@Override
-	public double getNestedTransitionReward(int s, int i, int j)
+	/**
+	 * Copy constructor
+	 * @param rews Rewards to copy
+	 */
+	public SMGRewardsSimple(SMGRewardsSimple rews)
 	{
-		return 0.0;
+		super(rews);
+	}
+
+	@Override
+	public MDPRewards buildMDPRewards() {
+		return this;
+	}
+
+	@Override
+	public double getNestedTransitionReward(int s, int i, int j) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 	
-	@Override
-	public MDPRewards buildMDPRewards()
-	{
-		return deepCopy();
-	}
-	
-	public abstract StateRewards deepCopy();
 }
