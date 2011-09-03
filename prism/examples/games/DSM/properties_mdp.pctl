@@ -1,0 +1,8 @@
+R{"cost"}max=? [F time=max_time]
+
+R{"cost"}min=? [F time=max_time]
+
+R{"value1"}min=? [F time=max_time]
+
+R{"value1"}max=? [F time=max_time]
+

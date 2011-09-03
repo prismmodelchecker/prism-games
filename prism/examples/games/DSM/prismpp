@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Startup script for PRISM preprocessor (beta)
+
+# Launch using main PRISM script
+PRISM_MAINCLASS="prism.Preprocessor"
+export PRISM_MAINCLASS
+~/Oxford/prism/prism-games/prism/bin/prism "$@"
