@@ -408,7 +408,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
-		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, null);
+		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 	}
 
 	@Override

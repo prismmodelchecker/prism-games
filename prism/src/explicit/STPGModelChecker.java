@@ -28,6 +28,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
@@ -946,8 +947,12 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
-		boolean done;
+		int adv[] = null;
+		boolean genAdv, done;
 		long timer;
+
+		// Are we generating an optimal adversary?
+		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -984,6 +989,14 @@ public class STPGModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// Create/initialise adversary storage
+		if (genAdv) {
+			adv = new int[n];
+			for (i = 0; i < n; i++) {
+				adv[i] = -1;
+			}
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -991,7 +1004,7 @@ public class STPGModelChecker extends ProbModelChecker
 			//mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, null);
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -1005,6 +1018,30 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		// Print adversary
+		if (genAdv) {
+			/*Iterator<Entry<Integer, Double>> it;
+			PrismLog out = new PrismFileLog(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
+			//out.print("Adv:");
+			out.println(n + " ?");
+			for (i = 0; i < n; i++) {
+				if (adv[i] == -1)
+					continue;
+				//out.print(" " + i + ":" + stpg.getStatesList().get(i) + ":");
+				//out.println(adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-");
+				
+				it = stpg.getTransitionsIterator(i, adv[i]);
+				if (it == null)
+					continue;
+				while (it.hasNext()) {
+					Entry<Integer, Double> next = it.next();
+					out.print(i + " 0 " + next.getKey() + " " + next.getValue() + " ");
+					out.println(adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-");
+				}
+			}
+			out.println();*/
 		}
 
 		// Return results

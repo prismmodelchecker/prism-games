@@ -910,8 +910,17 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 				d += prob * vect[k];
 			}
 			// Check whether we have exceeded min/max so far
-			if (first || (min && d < minmax) || (!min && d > minmax))
+			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
+				// If adversary generation is enabled, remember optimal choice
+				if (adv != null) {
+					// Only remember strictly better choices
+					// (required if either player is doing max)
+					if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+						adv[s] = j;
+					}
+				}
+			}
 			first = false;
 		}
 		minmax += mdpRewards.getStateReward(s);

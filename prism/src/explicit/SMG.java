@@ -440,7 +440,7 @@ public class SMG extends MDPSimple implements STPG
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;		
-		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, null);
+		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 	}
 
 	@Override
