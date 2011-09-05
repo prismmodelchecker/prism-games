@@ -555,11 +555,11 @@ public class StateModelChecker
 	/**
 	 * Model check a unary operator.
 	 */
-	protected Object checkExpressionUnaryOp(Model model, ExpressionBinaryOp expr) throws PrismException
+	protected Object checkExpressionUnaryOp(Model model, ExpressionUnaryOp expr) throws PrismException
 	{
 		// (just parentheses for now - more to come later)
 		// Parentheses are easy - nothing to do:
-		BitSet res1bs = (BitSet) checkExpression(model, expr.getOperand1());
+		BitSet res1bs = (BitSet) checkExpression(model, expr.getOperand());
 		return res1bs;
 	}
 
