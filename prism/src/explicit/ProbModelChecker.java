@@ -66,9 +66,7 @@ public class ProbModelChecker extends StateModelChecker
 		// S operator
 		else if (expr instanceof ExpressionSS) {
 			throw new PrismException("Explicit engine does not yet handle the S operator");
-		}
-		else if (expr instanceof ExpressionPATL)
-		{
+		} else if (expr instanceof ExpressionPATL) {
 			res = checkExpressionPATL(model, (ExpressionPATL) expr);
 		}
 		// Otherwise, use the superclass
@@ -81,19 +79,20 @@ public class ProbModelChecker extends StateModelChecker
 
 	private Object checkExpressionPATL(Model model, ExpressionPATL expr) throws PrismException
 	{
-		
+
 		int type = expr.getExpressionType();
 		ExpressionProb exprProb = expr.getExpressionProb();
 		ExpressionReward exprRew = expr.getExpressionRew();
 		Set<Integer> coalition = expr.getCoalition();
-		
+
+		Expression pb; // Probability bound (expression)
+		double p = 0; // Probability bound (actual value)
 		String relOp;
 		boolean min;
 		StateValues probs = null;
-		
+
 		// get info about operator
-		switch(type)
-		{
+		switch (type) {
 		case ExpressionPATL.PRB:
 			relOp = exprProb.getRelOp();
 			break;
@@ -103,7 +102,7 @@ public class ProbModelChecker extends StateModelChecker
 		default:
 			throw new PrismException("Relational operator type unknown.");
 		}
-		
+
 		// determine whether the problem is minimisation or maximisation
 		if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
 			// min
@@ -115,10 +114,18 @@ public class ProbModelChecker extends StateModelChecker
 			throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 		}
 
-		if(type == ExpressionPATL.PRB)
-		{
+		if (type == ExpressionPATL.PRB) {
+			// Get info from prob operator
+			relOp = expr.getExpressionProb().getRelOp();
+			pb = expr.getExpressionProb().getProb();
+			if (pb != null) {
+				p = pb.evaluateDouble(constantValues);
+				if (p < 0 || p > 1)
+					throw new PrismException("Invalid probability bound " + p + " in P operator");
+			}
+
 			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min);
-			
+
 			// Print out probabilities
 			if (getVerbosity() > 5) {
 				mainLog.print("\nProbabilities (non-zero only) for all states:\n");
@@ -126,21 +133,26 @@ public class ProbModelChecker extends StateModelChecker
 			}
 
 			// For =? properties, just return values
-			return probs;
-			
-		}
-		else if (type == ExpressionPATL.REW)
-		{
+			if (pb == null) {
+				return probs;
+			}
+			// Otherwise, compare against bound to get set of satisfying states
+			else {
+				BitSet sol = probs.getBitSetFromInterval(relOp, p);
+				probs.clear();
+				return sol;
+			}
+		} else if (type == ExpressionPATL.REW) {
 			Object rs; // Reward struct index
 			RewardStruct rewStruct = null; // Reward struct object
 			Expression rb; // Reward bound (expression)
 			double r = 0; // Reward bound (actual value)
-			
+
 			StateValues rews = null;
 			SMGRewards smgRewards = null;
-			
+
 			int i;
-			
+
 			// Get info from reward operator
 			rs = expr.getExpressionRew().getRewardStructIndex();
 			rb = expr.getExpressionRew().getReward();
@@ -150,11 +162,6 @@ public class ProbModelChecker extends StateModelChecker
 					throw new PrismException("Invalid reward bound " + r + " in R[] formula");
 			}
 
-			// Check for unhandled cases
-			if (expr.getExpressionRew().getReward() != null)
-				throw new PrismException("Explicit engine does not yet handle bounded R operators");
-			// More? TODO
-			
 			// Get reward info
 			if (modulesFile == null)
 				throw new PrismException("No model file to obtain reward structures");
@@ -171,14 +178,14 @@ public class ProbModelChecker extends StateModelChecker
 			}
 			if (rewStruct == null)
 				throw new PrismException("Invalid reward structure index \"" + rs + "\"");
-			
+
 			// Build rewards
 			ConstructRewards constructRewards = new ConstructRewards(mainLog);
-			smgRewards = constructRewards.buildSMGRewardStructure((SMG)model, rewStruct, constantValues);
+			smgRewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
 			// Compute rewards
 			mainLog.println("Building reward structure...");
 			rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, expr, min);
-			
+
 			// Print out probabilities
 			if (getVerbosity() > 5) {
 				mainLog.print("\nProbabilities (non-zero only) for all states:\n");
@@ -186,11 +193,16 @@ public class ProbModelChecker extends StateModelChecker
 			}
 
 			// For =? properties, just return values
-			return rews;
-			
-		}
-		else
-		{
+			if (rb == null) {
+				return rews;
+			}
+			// Otherwise, compare against bound to get set of satisfying states
+			else {
+				BitSet sol = rews.getBitSetFromInterval(relOp, r);
+				rews.clear();
+				return sol;
+			}
+		} else {
 			throw new PrismException("Expression type unknown.");
 		}
 	}
@@ -249,9 +261,8 @@ public class ProbModelChecker extends StateModelChecker
 				} else {
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
-			} 
-			else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator() + " properties for " + modelType +"s");
+			} else {
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator() + " properties for " + modelType + "s");
 			}
 		}
 
@@ -355,7 +366,7 @@ public class ProbModelChecker extends StateModelChecker
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator() + " properties for " + modelType +"s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator() + " properties for " + modelType + "s");
 			}
 		}
 
