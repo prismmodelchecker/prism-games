@@ -28,6 +28,7 @@ package parser.visitor;
 
 import parser.ast.*;
 import parser.type.*;
+import prism.PrismException;
 import prism.PrismLangException;
 
 /**
@@ -468,6 +469,17 @@ public class TypeCheck extends ASTTraverse
 	public void visitPost(ExpressionVar e) throws PrismLangException
 	{
 		// Type already known
+	}
+
+	public void visitPost(ExpressionPATL e) throws PrismLangException
+	{
+		// Set type (just copy enclosed P/R operand)
+		if (e.getExpressionProb() != null)
+			e.setType(e.getExpressionProb().getType());
+		else if (e.getExpressionRew() != null)
+			e.setType(e.getExpressionRew().getType());
+		else
+			throw new PrismLangException("Cannot type check PATL coalition operator", e);
 	}
 
 	public void visitPost(ExpressionProb e) throws PrismLangException

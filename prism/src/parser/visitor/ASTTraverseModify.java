@@ -487,6 +487,17 @@ public class ASTTraverseModify implements ASTVisitor
 	}
 	public void visitPost(ExpressionVar e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionPATL e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionPATL e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getExpressionProb() != null) e.setExpressionProb((ExpressionProb)e.getExpressionProb().accept(this));
+		if (e.getExpressionRew() != null) e.setExpressionRew((ExpressionReward)e.getExpressionRew().accept(this));
+		visitPost(e);
+		return e;
+	}
+	public void visitPost(ExpressionPATL e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionProb e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionProb e) throws PrismLangException
 	{
@@ -498,17 +509,6 @@ public class ASTTraverseModify implements ASTVisitor
 		return e;
 	}
 	public void visitPost(ExpressionProb e) throws PrismLangException { defaultVisitPost(e); }
-	// -----------------------------------------------------------------------------------
-	public void visitPre(ExpressionPATL e) throws PrismLangException { defaultVisitPre(e); }
-	public Object visit(ExpressionPATL e) throws PrismLangException
-	{
-		visitPre(e);
-		if (e.getExpressionProb() != null) e.setExpressionProb((ExpressionProb)e.getExpressionProb().accept(this));
-		if (e.getExpressionRew() != null) e.setExpressionRew((ExpressionReward)e.getExpressionRew().accept(this));
-		visitPost(e);
-		return e;
-	}
-	public void visitPost(ExpressionPATL e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionReward e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionReward e) throws PrismLangException
