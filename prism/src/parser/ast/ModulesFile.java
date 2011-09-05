@@ -747,8 +747,6 @@ public class ModulesFile extends ASTElement
 		// compile list of all var names
 		// and check as we go through
 
-		globals.add(0, new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression.Int(getNumModules()))));
-
 		// globals
 		n = getNumGlobals();
 		for (i = 0; i < n; i++) {

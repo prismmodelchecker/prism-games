@@ -35,8 +35,7 @@ import parser.ast.*;
 import prism.*;
 import simulator.*;
 
-public class ConstructModel
-{
+public class ConstructModel {
 	// The simulator engine and a log for output
 	private SimulatorEngine engine;
 	private PrismLog mainLog;
@@ -45,71 +44,86 @@ public class ConstructModel
 	private PrismSettings settings;
 
 	// Basic info needed about model
-	//	private ModelType modelType;
+	// private ModelType modelType;
 
 	// Details of built model
 	private List<State> statesList;
 
-	public ConstructModel(SimulatorEngine engine, PrismLog mainLog)
-	{
+	public ConstructModel(SimulatorEngine engine, PrismLog mainLog) {
 		this.engine = engine;
 		this.mainLog = mainLog;
 		settings = null;
 	}
 
-	public void setSettings(PrismSettings settings)
-	{
+	public void setSettings(PrismSettings settings) {
 		this.settings = settings;
 	}
 
-	public List<State> getStatesList()
-	{
+	public List<State> getStatesList() {
 		return statesList;
 	}
 
 	/**
-	 * Build the set of reachable states for a PRISM model language description and return.
-	 * @param modulesFile The PRISM model
+	 * Build the set of reachable states for a PRISM model language description
+	 * and return.
+	 * 
+	 * @param modulesFile
+	 *            The PRISM model
 	 */
-	public List<State> computeReachableStates(ModulesFile modulesFile) throws PrismException
-	{
+	public List<State> computeReachableStates(ModulesFile modulesFile)
+			throws PrismException {
 		constructModel(modulesFile, true, false);
 		return statesList;
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description and return.
-	 * @param modulesFile The PRISM model
+	 * Construct an explicit-state model from a PRISM model language description
+	 * and return.
+	 * 
+	 * @param modulesFile
+	 *            The PRISM model
 	 */
-	public Model constructModel(ModulesFile modulesFile) throws PrismException
-	{
+	public Model constructModel(ModulesFile modulesFile) throws PrismException {
 		return constructModel(modulesFile, false, false, true);
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description and return.
-	 * If {@code justReach} is true, no model is built and null is returned;
-	 * the set of reachable states can be obtained with {@link #getStatesList()}.
-	 * @param modulesFile The PRISM model
-	 * @param justReach If true, just build the reachable state set, not the model
-	 * @param buildSparse Build a sparse version of the model (if possible)?
+	 * Construct an explicit-state model from a PRISM model language description
+	 * and return. If {@code justReach} is true, no model is built and null is
+	 * returned; the set of reachable states can be obtained with
+	 * {@link #getStatesList()}.
+	 * 
+	 * @param modulesFile
+	 *            The PRISM model
+	 * @param justReach
+	 *            If true, just build the reachable state set, not the model
+	 * @param buildSparse
+	 *            Build a sparse version of the model (if possible)?
 	 */
-	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse) throws PrismException
-	{
+	public Model constructModel(ModulesFile modulesFile, boolean justReach,
+			boolean buildSparse) throws PrismException {
 		return constructModel(modulesFile, justReach, buildSparse, true);
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description and return.
-	 * If {@code justReach} is true, no model is built and null is returned;
-	 * the set of reachable states can be obtained with {@link #getStatesList()}.
-	 * @param modulesFile The PRISM model
-	 * @param justReach If true, just build the reachable state set, not the model
-	 * @param buildSparse Build a sparse version of the model (if possible)?
-	 * @param distinguishActions True if actions should be attached to distributions (and used to distinguish them)
+	 * Construct an explicit-state model from a PRISM model language description
+	 * and return. If {@code justReach} is true, no model is built and null is
+	 * returned; the set of reachable states can be obtained with
+	 * {@link #getStatesList()}.
+	 * 
+	 * @param modulesFile
+	 *            The PRISM model
+	 * @param justReach
+	 *            If true, just build the reachable state set, not the model
+	 * @param buildSparse
+	 *            Build a sparse version of the model (if possible)?
+	 * @param distinguishActions
+	 *            True if actions should be attached to distributions (and used
+	 *            to distinguish them)
 	 */
-	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions) throws PrismException
-	{
+	public Model constructModel(ModulesFile modulesFile, boolean justReach,
+			boolean buildSparse, boolean distinguishActions)
+			throws PrismException {
 		// Model info
 		ModelType modelType;
 		// State storage
@@ -129,7 +143,7 @@ public class ConstructModel
 		int i, j, nc, nt, src, dest, player;
 		long timer, timerProgress;
 		boolean fixdl = false;
-		//int id;
+		// int id;
 		int nPlayers = 0;
 		State tempState;
 
@@ -142,7 +156,8 @@ public class ConstructModel
 
 		// Don't support multiple initial states
 		if (modulesFile.getInitialStates() != null) {
-			throw new PrismException("Cannot do explicit-state reachability if there are multiple initial states");
+			throw new PrismException(
+					"Cannot do explicit-state reachability if there are multiple initial states");
 		}
 
 		// Starting reachability...
@@ -152,16 +167,6 @@ public class ConstructModel
 
 		// Initialise simulator for this model
 		modelType = modulesFile.getModelType();
-
-		if (modelType == ModelType.SMG) {
-			// adding a scheduler variable to the model
-			lazy = true;
-			nPlayers = 2;
-			schedIndx = 0;
-			//			modulesFile.addGlobal(new Declaration("_sched", new DeclarationInt(Expression.Int(0), Expression
-			//					.Int(nPlayers))));
-			//			modulesFile.tidyUp();
-		}
 
 		engine.createNewOnTheFlyPath(modulesFile);
 
@@ -192,7 +197,8 @@ public class ConstructModel
 		explore = new LinkedList<State>();
 		// Add initial state to lists/model
 		if (modulesFile.getInitialStates() != null) {
-			throw new PrismException("Explicit model construction does not support multiple initial states");
+			throw new PrismException(
+					"Explicit model construction does not support multiple initial states");
 		}
 		state = modulesFile.getDefaultInitialState();
 		states.add(state);
@@ -202,226 +208,105 @@ public class ConstructModel
 			modelSimple.addInitialState(0);
 		}
 
-		// constructing stochastic multiplayer game model
-		if (modelType == ModelType.SMG) {
-			int k;
-			src = -1;
-			originalStates.add(0);
-			while (!explore.isEmpty()) {
+		// Explore...
+		src = -1;
+		while (!explore.isEmpty()) {
+			// Pick next state to explore
+			// (they are stored in order found so know index is src+1)
+			state = explore.removeFirst();
+			src++;
 
-				// Pick next state to explore
-				state = explore.removeFirst();
-				src++;
-
-				// Use simulator to explore all choices/transitions from this state
-				engine.initialisePath(state);
-
-				// get number of choices
-				nc = engine.getNumChoices();
-
-				// Group choices by player
+			// Use simulator to explore all choices/transitions from this state
+			engine.initialisePath(state);
+			nc = engine.getNumChoices();
+			// For an STPG, first determine which player owns the state
+			if (modelType == ModelType.STPG || modelType == ModelType.SMG) {
+				player = -1;
 				for (i = 0; i < nc; i++) {
-					int modAct = engine.getTransitionModuleOrActionIndex(i, 0);
-					// Synchronous action
-					if (modAct > 0) {
-						player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
-						if (player == -1) {
-							throw new PrismException("No player owns action \"" + modulesFile.getSynch(modAct - 1) + "\"");
-						}
-						// 0-indexed to 1-indexed
-						player++;
+					int iPlayer = determinePlayerForChoice(modulesFile,
+							modelType, i);
+					if (player != -1 && iPlayer != player) {
+						throw new PrismException("Choices for both player "
+								+ player + " and  " + iPlayer + " in state "
+								+ state);
 					}
-					// Asynchronous action
-					else {
-						player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
-					}
-					if (!playerChoices.containsKey(player))
-						playerChoices.put(player, new ArrayList<Integer>());
-					playerChoices.get(player).add(i);
+					player = iPlayer;
 				}
-
-				// adding states for 'lazy' players
-				if (lazy && playerChoices.size() < nPlayers) {
-					choices = new ArrayList<Integer>(playerChoices.keySet());
-					Collections.sort(choices);
-
-					for (i = 0, j = 0; i < nPlayers; i++) {
-						if ((j < choices.size() && choices.get(j) != i + 1) || !(j < choices.size())) {
-
-							k = smg.addState(i + 1);
-							tempState = new State(state);
-							tempState.setValue(schedIndx, i + 1); // last variable is _sched
-							states.add(tempState);
-							if (!justReach) {
-
-								// add transition to new state
-								distr = new Distribution();
-								distr.add(k, 1.0);
-								smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr), "player" + (i + 1));
-
-								// add transition back
-								distr = new Distribution();
-								distr.add(originalStates.get(src), 1.0);
-								smg.setAction(k, smg.addChoice(k, distr), "player" + (i + 1));
-							}
-						}
-
-					}
-
-				}
-
-				// add a state for each player and transition to it from current state
-				for (Integer pl : playerChoices.keySet()) {
-
-					// create a state and add transition to it from the current state
-					k = smg.addState(pl);
-
-					// creating a new state
-					tempState = new State(state);
-					tempState.setValue(schedIndx, pl); // _sched value
-					states.add(tempState);
-
-					if (!justReach) {
-						distr = new Distribution();
-						distr.add(k, 1.0);
-						smg.setAction(originalStates.get(src), smg.addChoice(originalStates.get(src), distr), "player" + pl);
-					}
-
-					// copy the choices by player pl from the original state to the new one
-					for (Integer ch : playerChoices.get(pl)) {
-
-						if (!justReach)
-							distr = new Distribution();
-
-						// Look at each transition in the choice
-						nt = engine.getNumTransitions(ch);
-						for (j = 0; j < nt; j++) {
-							stateNew = engine.computeTransitionTarget(ch, j);
-
-							// Is this a new state?
-							if (states.add(stateNew)) {
-								// If so, add to the explore list
-								explore.add(stateNew);
-								// And to model
-								originalStates.add(modelSimple.addState());
-							}
-
-							// Get index of state in state set
-							dest = states.getIndexOfLastAdd();
-
-							if (!justReach) {
-								// Add transitions to model
-								distr.add(dest, engine.getTransitionProbability(ch, j));
-							}
-						}
-
-						if (!justReach) {
-							// adding a choice to the state
-							smg.setAction(k, smg.addChoice(k, distr), engine.getTransitionAction(ch, 0));
-						}
-					}
-				}
-
-				playerChoices.clear();
-
-				// Print some progress info occasionally
-				if (System.currentTimeMillis() - timerProgress > 3000) {
-					mainLog.print(" " + (src + 1));
-					mainLog.flush();
-					timerProgress = System.currentTimeMillis();
-				}
-			
-			}
-			smg.initialiseScheduler(SMG.SCHED_RANDOM);
-
-		} else {
-			// constructing all other models
-
-			// Explore...
-			src = -1;
-			while (!explore.isEmpty()) {
-				// Pick next state to explore
-				// (they are stored in order found so know index is src+1)
-				state = explore.removeFirst();
-				src++;
-
-				// Use simulator to explore all choices/transitions from this state
-				engine.initialisePath(state);
-				nc = engine.getNumChoices();
-				// For an STPG, first determine which player owns the state
-				if (modelType == ModelType.STPG) {
-					player = -1;
-					for (i = 0; i < nc; i++) {
-						int iPlayer = determinePlayerForChoice(modulesFile, modelType, i);
-						if (player != -1 && iPlayer != player) {
-							throw new PrismException("Choices for both player " + player + " and  " + iPlayer + " in state " + state);
-						}
-						player = iPlayer;
-					}
+				if (modelType == ModelType.STPG)
 					stpg.setPlayer(src, player);
+				else
+					smg.setPlayer(src, player);
+			}
+			// Look at each outgoing choice in turn
+			for (i = 0; i < nc; i++) {
+
+				if (!justReach
+						&& (modelType == ModelType.MDP
+								|| modelType == ModelType.STPG || modelType == ModelType.SMG)) {
+					distr = new Distribution();
 				}
-				// Look at each outgoing choice in turn
-				for (i = 0; i < nc; i++) {
+				// Look at each transition in the choice
+				nt = engine.getNumTransitions(i);
+				for (j = 0; j < nt; j++) {
+					stateNew = engine.computeTransitionTarget(i, j);
 
-					if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG)) {
-						distr = new Distribution();
-					}
-					// Look at each transition in the choice
-					nt = engine.getNumTransitions(i);
-					for (j = 0; j < nt; j++) {
-						stateNew = engine.computeTransitionTarget(i, j);
-
-						// Is this a new state?
-						if (states.add(stateNew)) {
-							// If so, add to the explore list
-							explore.add(stateNew);
-							// And to model
-							if (!justReach) {
-								modelSimple.addState();
-							}
-						}
-						// Get index of state in state set
-						dest = states.getIndexOfLastAdd();
-						// Add transitions to model
+					// Is this a new state?
+					if (states.add(stateNew)) {
+						// If so, add to the explore list
+						explore.add(stateNew);
+						// And to model
 						if (!justReach) {
-							switch (modelType) {
-							case DTMC:
-								dtmc.addToProbability(src, dest, engine.getTransitionProbability(i, j));
-								break;
-							case CTMC:
-								ctmc.addToProbability(src, dest, engine.getTransitionProbability(i, j));
-								break;
-							case MDP:
-							case STPG:
-								distr.add(dest, engine.getTransitionProbability(i, j));
-								break;
-							}
+							modelSimple.addState();
 						}
 					}
+					// Get index of state in state set
+					dest = states.getIndexOfLastAdd();
+					// Add transitions to model
 					if (!justReach) {
-						if (modelType == ModelType.MDP) {
-							if (distinguishActions) {
-								mdp.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
-							} else {
-								mdp.addChoice(src, distr);
-							}
-						} else if (modelType == ModelType.STPG) {
-							// TODO: need addActionLabelledChoice
-							int k = stpg.addChoice(src, distr);
-							stpg.setAction(src, k, engine.getTransitionAction(i, 0));
-						} else if (modelType == ModelType.SMG) {
-							int k = smg.addChoice(src, distr);
-							smg.setAction(src, k, engine.getTransitionAction(i, 0));
+						switch (modelType) {
+						case DTMC:
+							dtmc.addToProbability(src, dest, engine
+									.getTransitionProbability(i, j));
+							break;
+						case CTMC:
+							ctmc.addToProbability(src, dest, engine
+									.getTransitionProbability(i, j));
+							break;
+						case MDP:
+						case STPG:
+						case SMG:
+							distr.add(dest, engine.getTransitionProbability(i,
+									j));
+							break;
 						}
 					}
 				}
-
-				// Print some progress info occasionally
-				if (System.currentTimeMillis() - timerProgress > 3000) {
-					mainLog.print(" " + (src + 1));
-					mainLog.flush();
-					timerProgress = System.currentTimeMillis();
+				if (!justReach) {
+					if (modelType == ModelType.MDP) {
+						if (distinguishActions) {
+							mdp.addActionLabelledChoice(src, distr, engine
+									.getTransitionAction(i, 0));
+						} else {
+							mdp.addChoice(src, distr);
+						}
+					} else if (modelType == ModelType.STPG) {
+						// TODO: need addActionLabelledChoice
+						int k = stpg.addChoice(src, distr);
+						stpg
+								.setAction(src, k, engine.getTransitionAction(
+										i, 0));
+					} else if (modelType == ModelType.SMG) {
+						int k = smg.addChoice(src, distr);
+						smg.setAction(src, k, engine.getTransitionAction(i, 0));
+					}
 				}
+			}
+
+			// Print some progress info occasionally
+			if (System.currentTimeMillis() - timerProgress > 3000) {
+				mainLog.print(" " + (src + 1));
+				mainLog.flush();
+				timerProgress = System.currentTimeMillis();
 			}
 		}
 
@@ -429,15 +314,18 @@ public class ConstructModel
 		mainLog.println(" " + (src + 1));
 
 		// Reachability complete
-		mainLog.print("Reachable states exploration" + (justReach ? "" : " and model construction"));
-		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
+		mainLog.print("Reachable states exploration"
+				+ (justReach ? "" : " and model construction"));
+		mainLog.println(" done in "
+				+ ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
 		// mainLog.println(states);
 
 		// Fix deadlocks (if required)
 		if (!justReach && fixdl) {
 			BitSet deadlocks = modelSimple.findDeadlocks(true);
 			if (deadlocks.cardinality() > 0) {
-				mainLog.println("Added self-loops in " + deadlocks.cardinality() + " states...");
+				mainLog.println("Added self-loops in "
+						+ deadlocks.cardinality() + " states...");
 			}
 		}
 
@@ -449,7 +337,7 @@ public class ConstructModel
 			mainLog.println("Sorting reachable states list...");
 			permut = states.buildSortingPermutation();
 			statesList = states.toPermutedArrayList(permut);
-			//mainLog.println(permut);
+			// mainLog.println(permut);
 		} else {
 			statesList = states.toArrayList();
 		}
@@ -482,9 +370,11 @@ public class ConstructModel
 				break;
 			}
 			model.setStatesList(statesList);
-			model.setConstantValues(new Values(modulesFile.getConstantValues()));
-			//System.out.println(model);
-			//			mainLog.println("Model: " + model);
+			model
+					.setConstantValues(new Values(modulesFile
+							.getConstantValues()));
+			 //System.out.println(model);
+			// mainLog.println("Model: " + model);
 		}
 
 		// Discard permutation
@@ -494,57 +384,58 @@ public class ConstructModel
 	}
 
 	/**
-	 * For game models, determine the player who owns the {@code i}th choice
-	 * in the state currently being explored by the simulator.
-	 * Returns the index (starting from 1) of the player. 
+	 * For game models, determine the player who owns the {@code i}th choice in
+	 * the state currently being explored by the simulator. Returns the index
+	 * (starting from 1) of the player.
 	 */
-	private int determinePlayerForChoice(ModulesFile modulesFile, ModelType modelType, int i) throws PrismException
-	{
+	private int determinePlayerForChoice(ModulesFile modulesFile,
+			ModelType modelType, int i) throws PrismException {
 		int modAct, player;
-		
+
 		modAct = engine.getTransitionModuleOrActionIndex(i, 0);
 		// Synchronous action
 		if (modAct > 0) {
-			player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
+			player = modulesFile.getPlayerForAction(modulesFile
+					.getSynch(modAct - 1));
 			if (player == -1) {
-				throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
+				throw new PrismException("Action \""
+						+ modulesFile.getSynch(modAct - 1)
+						+ "\" is not assigned to any player");
 			}
 			// 0-indexed to 1-indexed
 			player++;
 		}
 		// Asynchronous action
 		else {
-			player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
+			player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0)
+					.substring(6));
 		}
-		
+
 		return player;
 	}
-	
+
 	/**
 	 * State placeholder
+	 * 
 	 * @author aissim
-	 *
+	 * 
 	 */
-	static class DummyState extends State
-	{
+	static class DummyState extends State {
 
-		public DummyState(int n)
-		{
+		public DummyState(int n) {
 			super(n);
 		}
 
-		public int compareTo(State s)
-		{
+		public int compareTo(State s) {
 			return -1;
 		}
 
 	}
-	
+
 	/**
 	 * Test method.
 	 */
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
 
 		// TODO HACK!
 		testSMG(args[0]);
@@ -552,15 +443,19 @@ public class ConstructModel
 			return;
 
 		try {
-			// Simple example: parse a PRISM file from a file, construct the model and export to a .tra file
+			// Simple example: parse a PRISM file from a file, construct the
+			// model and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
 			Prism prism = new Prism(mainLog, mainLog);
 			ModulesFile modulesFile = prism.parseModelFile(new File(args[0]));
-			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
+			UndefinedConstants undefinedConstants = new UndefinedConstants(
+					modulesFile, null);
 			if (args.length > 2)
 				undefinedConstants.defineUsingConstSwitch(args[1]);
-			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			modulesFile.setUndefinedConstants(undefinedConstants
+					.getMFConstantValues());
+			ConstructModel constructModel = new ConstructModel(prism
+					.getSimulator(), mainLog);
 			Model model = constructModel.constructModel(modulesFile);
 			MDP mdp = (MDP) model;
 			mainLog.println(mdp);
@@ -582,19 +477,22 @@ public class ConstructModel
 	}
 
 	/** Method to test STPG construction */
-	public static void testSTPG(String filename)
-	{
+	public static void testSTPG(String filename) {
 		try {
-			// Simple example: parse a PRISM file from a file, construct the model
+			// Simple example: parse a PRISM file from a file, construct the
+			// model
 			// and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
 			Prism prism = new Prism(mainLog, mainLog);
 			ModulesFile modulesFile = prism.parseModelFile(new File(filename));
-			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
+			UndefinedConstants undefinedConstants = new UndefinedConstants(
+					modulesFile, null);
 
-			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
+			modulesFile.setUndefinedConstants(undefinedConstants
+					.getMFConstantValues());
 
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(prism
+					.getSimulator(), mainLog);
 
 			Model model = constructModel.constructModel(modulesFile);
 
@@ -607,10 +505,14 @@ public class ConstructModel
 			BitSet target = new BitSet();
 			target.set(8);
 			stpg.exportToDotFile("stpg.dot", target);
-			System.out.println("min min: " + mc.computeReachProbs(stpg, target, true, true).soln[0]);
-			System.out.println("max min: " + mc.computeReachProbs(stpg, target, false, true).soln[0]);
-			System.out.println("min max: " + mc.computeReachProbs(stpg, target, true, false).soln[0]);
-			System.out.println("max max: " + mc.computeReachProbs(stpg, target, false, false).soln[0]);
+			System.out.println("min min: "
+					+ mc.computeReachProbs(stpg, target, true, true).soln[0]);
+			System.out.println("max min: "
+					+ mc.computeReachProbs(stpg, target, false, true).soln[0]);
+			System.out.println("min max: "
+					+ mc.computeReachProbs(stpg, target, true, false).soln[0]);
+			System.out.println("max max: "
+					+ mc.computeReachProbs(stpg, target, false, false).soln[0]);
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
@@ -623,21 +525,25 @@ public class ConstructModel
 
 	/**
 	 * Method to test SMG construction
+	 * 
 	 * @param filename
 	 */
-	public static void testSMG(String filename)
-	{
+	public static void testSMG(String filename) {
 		try {
-			// Simple example: parse a PRISM file from a file, construct the model
+			// Simple example: parse a PRISM file from a file, construct the
+			// model
 			// and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
 			Prism prism = new Prism(mainLog, mainLog);
 			ModulesFile modulesFile = prism.parseModelFile(new File(filename));
-			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
+			UndefinedConstants undefinedConstants = new UndefinedConstants(
+					modulesFile, null);
 
-			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
+			modulesFile.setUndefinedConstants(undefinedConstants
+					.getMFConstantValues());
 
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(prism
+					.getSimulator(), mainLog);
 
 			Model model = constructModel.constructModel(modulesFile);
 
@@ -648,11 +554,12 @@ public class ConstructModel
 
 			Set<Integer> player1 = new HashSet<Integer>();
 			player1.add(1);
-			SMG stpg_nondet = smg.clone().initialiseScheduler(SMG.SCHED_NONDET);
+			SMG stpg_nondet = smg.clone();
 
 			player1 = new HashSet<Integer>();
 			player1.add(1);
-			SMG stpg_rand = smg.clone().initialiseScheduler(SMG.SCHED_RANDOM);
+			SMG stpg_rand = smg.clone()
+			;
 
 			System.out.println("\nSMG: ");
 			mainLog.println(smg);
@@ -661,9 +568,9 @@ public class ConstructModel
 			System.out.println("\nSTPG-RAND: ");
 			mainLog.println(stpg_rand);
 
-			//smg.exportToDotFile("smg.dot");
-			//stpg_nondet.exportToDotFile("stpg_nondet.dot");
-			//stpg_rand.exportToDotFile("stpg_rand.dot");
+			// smg.exportToDotFile("smg.dot");
+			// stpg_nondet.exportToDotFile("stpg_nondet.dot");
+			// stpg_rand.exportToDotFile("stpg_rand.dot");
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());

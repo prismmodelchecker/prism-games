@@ -21,7 +21,7 @@
 #const d#
 #const L#
 
-mdp
+smg
 
 // number of households
 const int N = #N#;

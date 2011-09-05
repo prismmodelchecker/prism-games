@@ -47,9 +47,6 @@ import prism.ModelType;
  */
 public class SMG extends MDPSimple implements STPG
 {
-	public static final int SCHED_RANDOM = 0;
-	public static final int SCHED_NONDET = 1;
-	public static final int SCHED_ALTERNATING = 2;
 
 	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
@@ -81,53 +78,6 @@ public class SMG extends MDPSimple implements STPG
 		}
 
 	}
-
-	public SMG initialiseScheduler(int schedType)
-	{
-		// resolving scheduling
-		switch (schedType) {
-
-		case SCHED_NONDET:
-			// leave it as it is
-			break;
-
-		case SCHED_RANDOM:
-			// replaces distributions from player 0 states
-			// with uniform random choice
-			List<Distribution> distributions;
-			Distribution distr;
-			int n;
-			for (int i = 0; i < stateLabels.size(); i++) {
-
-				if (stateLabels.get(i) != 0)
-					continue;
-
-				distributions = super.trans.get(i);
-				n = distributions.size();
-
-				if (n == 0)
-					continue;
-
-				distr = new Distribution();
-				for (int j = 0; j < n; j++)
-					distr.add(distributions.get(j).iterator().next().getKey(), 1.0 / n);
-
-				// update distributions and actions
-				super.actions.set(i, Arrays.asList(new Object[] { "rand" }));
-				super.numDistrs -= n - 1;
-				super.trans.set(i, Arrays.asList(new Distribution[] { distr }));
-			}
-
-			break;
-
-		case SCHED_ALTERNATING:
-
-			// not implemented yet
-			break;
-		}
-		
-		return this;
-	}
 	
 	/**
 	 * Returns the list of states that belong to the scheduler
@@ -137,9 +87,9 @@ public class SMG extends MDPSimple implements STPG
 	public Set<Integer> getSchedulerStates()
 	{
 		Set<Integer> ret = new HashSet<Integer>();
-		for (int i = 0; i < stateLabels.size(); i++)
-			if (stateLabels.get(i) == 0)
-				ret.add(i);
+//		for (int i = 0; i < stateLabels.size(); i++)
+//			if (stateLabels.get(i) == 0)
+//				ret.add(i);
 		return ret;
 	}
 	
