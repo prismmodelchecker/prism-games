@@ -66,8 +66,15 @@ public class STPGModelChecker extends ProbModelChecker
 		// Temporal operators
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			
+			// Next
+			if(exprTemp.getOperator() == ExpressionTemporal.P_X)
+			{
+				probs = checkProbNext(model, exprTemp, min1, min2);
+			}
+			
 			// Until
-			if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
 				if (exprTemp.hasBounds()) {
 					probs = checkProbBoundedUntil(model, exprTemp, min1, min2);
 				} else {
@@ -84,6 +91,36 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException("Unrecognised path operator in P operator");
 
 		return probs;
+	}
+
+	private StateValues checkProbNext(Model model, ExpressionTemporal expr,
+			boolean min1, boolean min2) throws PrismException {
+
+		BitSet b;
+		int n;
+		double soln[], soln2[];
+		STPG stpg;
+
+		
+		stpg = (STPG) model;
+		
+		// model check the operand
+		b = (BitSet) checkExpression(model, expr.getOperand2());
+		
+		// Store num states
+		n = model.getNumStates();
+		
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+		
+		for(int i=0; i<n; i++)
+			soln[i] = b.get(i)?1.0:0.0;
+		
+		stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, null);
+		
+		// Return results
+		return StateValues.createFromDoubleArray(soln2);
 	}
 
 	/**
