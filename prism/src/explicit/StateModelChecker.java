@@ -479,6 +479,11 @@ public class StateModelChecker
 		if (expr instanceof ExpressionBinaryOp && Expression.isAnd(expr)) {
 			res = checkExpressionBinaryOp(model, (ExpressionBinaryOp) expr);
 		}
+		// Unary ops
+		// (just parentheses for now - more to come later)
+		else if (expr instanceof ExpressionUnaryOp && Expression.isParenth(expr)) {
+			res = checkExpressionUnaryOp(model, (ExpressionUnaryOp) expr);
+		}
 		// Literals
 		else if (expr instanceof ExpressionLiteral) {
 			res = checkExpressionLiteral(model, (ExpressionLiteral) expr);
@@ -544,6 +549,17 @@ public class StateModelChecker
 		BitSet res1bs = (BitSet) checkExpression(model, expr.getOperand1());
 		BitSet res2bs = (BitSet) checkExpression(model, expr.getOperand2());
 		res1bs.and(res2bs);
+		return res1bs;
+	}
+
+	/**
+	 * Model check a unary operator.
+	 */
+	protected Object checkExpressionUnaryOp(Model model, ExpressionBinaryOp expr) throws PrismException
+	{
+		// (just parentheses for now - more to come later)
+		// Parentheses are easy - nothing to do:
+		BitSet res1bs = (BitSet) checkExpression(model, expr.getOperand1());
 		return res1bs;
 	}
 
