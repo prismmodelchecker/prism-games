@@ -51,9 +51,9 @@ public class ProbModelChecker extends StateModelChecker
 	// Model checking functions
 
 	@Override
-	public Object checkExpression(Model model, Expression expr) throws PrismException
+	public StateValues checkExpression(Model model, Expression expr) throws PrismException
 	{
-		Object res;
+		StateValues res;
 
 		// P operator
 		if (expr instanceof ExpressionProb) {
@@ -66,7 +66,9 @@ public class ProbModelChecker extends StateModelChecker
 		// S operator
 		else if (expr instanceof ExpressionSS) {
 			throw new PrismException("Explicit engine does not yet handle the S operator");
-		} else if (expr instanceof ExpressionPATL) {
+		}
+		// PATL coalition operator
+		else if (expr instanceof ExpressionPATL) {
 			res = checkExpressionPATL(model, (ExpressionPATL) expr);
 		}
 		// Otherwise, use the superclass
@@ -77,9 +79,8 @@ public class ProbModelChecker extends StateModelChecker
 		return res;
 	}
 
-	private Object checkExpressionPATL(Model model, ExpressionPATL expr) throws PrismException
+	private StateValues checkExpressionPATL(Model model, ExpressionPATL expr) throws PrismException
 	{
-
 		int type = expr.getExpressionType();
 		ExpressionProb exprProb = expr.getExpressionProb();
 		ExpressionReward exprRew = expr.getExpressionRew();
@@ -140,7 +141,7 @@ public class ProbModelChecker extends StateModelChecker
 			else {
 				BitSet sol = probs.getBitSetFromInterval(relOp, p);
 				probs.clear();
-				return sol;
+				return StateValues.createFromBitSet(sol, model.getNumStates());
 			}
 		} else if (type == ExpressionPATL.REW) {
 			Object rs; // Reward struct index
@@ -200,7 +201,7 @@ public class ProbModelChecker extends StateModelChecker
 			else {
 				BitSet sol = rews.getBitSetFromInterval(relOp, r);
 				rews.clear();
-				return sol;
+				return StateValues.createFromBitSet(sol, model.getNumStates());
 			}
 		} else {
 			throw new PrismException("Expression type unknown.");
@@ -210,7 +211,7 @@ public class ProbModelChecker extends StateModelChecker
 	/**
 	 * Model check a P operator expression and return the values for all states.
 	 */
-	protected Object checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
+	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
 	{
 		// Probability bound
 		Expression pb; // (expression)
@@ -304,14 +305,14 @@ public class ProbModelChecker extends StateModelChecker
 		else {
 			BitSet sol = probs.getBitSetFromInterval(relOp, p);
 			probs.clear();
-			return sol;
+			return StateValues.createFromBitSet(sol, model.getNumStates());
 		}
 	}
 
 	/**
 	 * Model check an R operator expression and return the values for all states.
 	 */
-	protected Object checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
+	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
 	{
 		Object rs; // Reward struct index
 		RewardStruct rewStruct = null; // Reward struct object
@@ -437,7 +438,7 @@ public class ProbModelChecker extends StateModelChecker
 		else {
 			BitSet sol = rews.getBitSetFromInterval(relOp, r);
 			rews.clear();
-			return sol;
+			return StateValues.createFromBitSet(sol, model.getNumStates());
 		}
 	}
 }
