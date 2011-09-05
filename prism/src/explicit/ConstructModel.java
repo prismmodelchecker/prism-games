@@ -227,7 +227,7 @@ public class ConstructModel {
 							modelType, i);
 					if (player != -1 && iPlayer != player) {
 						throw new PrismException("Choices for both player "
-								+ player + " and  " + iPlayer + " in state "
+								+ player + " and " + iPlayer + " in state "
 								+ state);
 					}
 					player = iPlayer;
