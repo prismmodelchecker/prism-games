@@ -1,0 +1,8 @@
+% stpg
+prism-games -ex examples/games/investor/investor.nm -pctl 'Rmaxmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
+
+% smg
+prism-games -ex examples/games/investor/investor.nm -pctl '<<1>> Rmax=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
+
+% mdp
+prism-games -ex examples/games/investor/investor_sotp.nm -pctl 'Rmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
