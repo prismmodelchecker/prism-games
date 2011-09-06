@@ -141,7 +141,7 @@ public class ProbModelChecker extends StateModelChecker
 			else {
 				BitSet sol = probs.getBitSetFromInterval(relOp, p);
 				probs.clear();
-				return StateValues.createFromBitSet(sol, model.getNumStates());
+				return StateValues.createFromBitSet(sol, model);
 			}
 		} else if (type == ExpressionPATL.REW) {
 			Object rs; // Reward struct index
@@ -201,7 +201,7 @@ public class ProbModelChecker extends StateModelChecker
 			else {
 				BitSet sol = rews.getBitSetFromInterval(relOp, r);
 				rews.clear();
-				return StateValues.createFromBitSet(sol, model.getNumStates());
+				return StateValues.createFromBitSet(sol, model);
 			}
 		} else {
 			throw new PrismException("Expression type unknown.");
@@ -305,7 +305,7 @@ public class ProbModelChecker extends StateModelChecker
 		else {
 			BitSet sol = probs.getBitSetFromInterval(relOp, p);
 			probs.clear();
-			return StateValues.createFromBitSet(sol, model.getNumStates());
+			return StateValues.createFromBitSet(sol, model);
 		}
 	}
 
@@ -438,7 +438,7 @@ public class ProbModelChecker extends StateModelChecker
 		else {
 			BitSet sol = rews.getBitSetFromInterval(relOp, r);
 			rews.clear();
-			return StateValues.createFromBitSet(sol, model.getNumStates());
+			return StateValues.createFromBitSet(sol, model);
 		}
 	}
 }

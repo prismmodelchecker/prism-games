@@ -280,7 +280,7 @@ public class PrismExplicit
 		}
 		
 		// print out or export probabilities
-		probs.print(tmpLog, fileOut == null, exportType == Prism.EXPORT_MATLAB, fileOut == null);
+		probs.print(tmpLog, fileOut == null, exportType == Prism.EXPORT_MATLAB, fileOut == null, true);
 		
 		// print out computation time
 		mainLog.println("\nTime for steady-state probability computation: " + l/1000.0 + " seconds.");
@@ -354,7 +354,7 @@ public class PrismExplicit
 		}
 		
 		// print out or export probabilities
-		probs.print(tmpLog, fileOut == null, exportType == Prism.EXPORT_MATLAB, fileOut == null);
+		probs.print(tmpLog, fileOut == null, exportType == Prism.EXPORT_MATLAB, fileOut == null, true);
 		
 		// print out computation time
 		mainLog.println("\nTime for transient probability computation: " + l/1000.0 + " seconds.");

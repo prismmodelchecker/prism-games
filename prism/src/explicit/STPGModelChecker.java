@@ -121,7 +121,7 @@ public class STPGModelChecker extends ProbModelChecker
 		stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, null);
 		
 		// Return results
-		return StateValues.createFromDoubleArray(soln2);
+		return StateValues.createFromDoubleArray(soln2, model);
 	}
 
 	/**
@@ -158,10 +158,10 @@ public class STPGModelChecker extends ProbModelChecker
 		// a trivial case: "U<=0"
 		if (time == 0) {
 			// prob is 1 in b2 states, 0 otherwise
-			probs = StateValues.createFromBitSetAsDoubles(model.getNumStates(), b2);
+			probs = StateValues.createFromBitSetAsDoubles(b2, model);
 		} else {
 			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, min1, min2);
-			probs = StateValues.createFromDoubleArray(res.soln);
+			probs = StateValues.createFromDoubleArray(res.soln, model);
 		}
 
 		return probs;
@@ -187,7 +187,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// allDDRowVars.n()) + " states\n");
 
 		res = computeUntilProbs((STPG) model, b1, b2, min1, min2);
-		probs = StateValues.createFromDoubleArray(res.soln);
+		probs = StateValues.createFromDoubleArray(res.soln, model);
 
 		return probs;
 	}
@@ -233,7 +233,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// allDDRowVars.n()));
 
 		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2);
-		rewards = StateValues.createFromDoubleArray(res.soln);
+		rewards = StateValues.createFromDoubleArray(res.soln, model);
 
 		return rewards;
 	}

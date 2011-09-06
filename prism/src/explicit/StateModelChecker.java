@@ -439,7 +439,7 @@ public class StateModelChecker
 			expr = (Expression) expr.replaceConstants(constantValues);
 			
 			int numStates = model.getNumStates();
-			res = new StateValues(expr.getType(), numStates);
+			res = new StateValues(expr.getType(), model);
 			List<State> statesList = model.getStatesList();
 			if (expr.getType() instanceof TypeBool) {
 				for (int i = 0; i < numStates; i++) {
@@ -492,7 +492,7 @@ public class StateModelChecker
 	 */
 	protected StateValues checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
 	{
-		return new StateValues(expr.getType(), model.getNumStates(), expr.evaluate());
+		return new StateValues(expr.getType(), expr.evaluate(), model);
 	}
 
 	/**
@@ -510,14 +510,14 @@ public class StateModelChecker
 			for (i = 0; i < numStates; i++) {
 				bs.set(i, model.isFixedDeadlockState(i));
 			}
-			return StateValues.createFromBitSet(bs, numStates);
+			return StateValues.createFromBitSet(bs, model);
 		} else if (expr.getName().equals("init")) {
 			int numStates = model.getNumStates();
 			BitSet bs = new BitSet(numStates);
 			for (i = 0; i < numStates; i++) {
 				bs.set(i, model.isInitialState(i));
 			}
-			return StateValues.createFromBitSet(bs, numStates);
+			return StateValues.createFromBitSet(bs, model);
 		} else {
 			ll = propertiesFile.getCombinedLabelList();
 			i = ll.getLabelIndex(expr.getName());
@@ -546,20 +546,16 @@ public class StateModelChecker
 
 	protected StateValues checkExpressionFilter(Model model, ExpressionFilter expr) throws PrismException
 	{
-		//throw new PrismException("Explicit engine does not yet handle filters");
-		
 		// Filter info
 		Expression filter;
 		FilterOperator op;
 		String filterStatesString;
-		/*StateListMTBDD statesFilter;*/
 		boolean filterInit, filterInitSingle, filterTrue;
 		BitSet bsFilter = null;
 		// Result info
 		StateValues vals = null, resVals = null;
 		BitSet bsMatch = null, bs;
-		/*StateListMTBDD states;*/
-		double d = 0.0, d2 = 0.0;
+		StateValues states;
 		boolean b = false;
 		int count = 0;
 		String resultExpl = null;
@@ -577,7 +573,6 @@ public class StateModelChecker
 		// Store some more info
 		filterStatesString = filterTrue ? "all states" : "states satisfying filter";
 		bsFilter = checkExpression(model, filter).getBitSet();
-		/*statesFilter = new StateListMTBDD(bsFilter, model);*/
 		// Check if filter state set is empty; we treat this as an error
 		if (bsFilter.isEmpty()) {
 			throw new PrismException("Filter satisfies no states");
@@ -586,23 +581,20 @@ public class StateModelChecker
 		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
 		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
 		// Print out number of states satisfying filter
-		/*if (!filterInit)
-			mainLog.println("\nStates satisfying filter " + filter + ": " + statesFilter.sizeString());*/
+		if (!filterInit)
+			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
 
 		// Compute result according to filter type
 		op = expr.getOperatorType();
 		switch (op) {
-		/*case PRINT:
+		case PRINT:
 			// Format of print-out depends on type
 			if (expr.getType() instanceof TypeBool) {
 				// NB: 'usual' case for filter(print,...) on Booleans is to use no filter
 				mainLog.print("\nSatisfying states");
 				mainLog.println(filterTrue ? ":" : " that are also in filter " + filter + ":");
-				dd = vals.deepCopy().convertToStateValuesMTBDD().getJDDNode();
-				new StateListMTBDD(dd, model).print(mainLog);
-				JDD.Deref(dd);
+				vals.printFiltered(mainLog, bsFilter);
 			} else {
-				// TODO: integer-typed case: either add to print method or store in StateValues
 				mainLog.println("\nResults (non-zero only) for filter " + filter + ":");
 				vals.printFiltered(mainLog, bsFilter);
 			}
@@ -614,98 +606,88 @@ public class StateModelChecker
 			break;
 		case MIN:
 			// Compute min
-			d = vals.minOverBDD(bsFilter);
-			// Store as object/vector (note crazy Object cast to avoid Integer->int auto conversion)
-			resObj = (expr.getType() instanceof TypeInt) ? ((Object) new Integer((int) d)) : (new Double(d));
-			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			// Store as object/vector
+			resObj = vals.minOverBitSet(bsFilter);
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Minimum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			// Also find states that (are close to) selected value for display to log
-			ddMatch = vals.getBDDFromCloseValue(d, prism.getTermCritParam(), prism.getTermCrit() == Prism.ABSOLUTE);
-			JDD.Ref(bsFilter);
-			ddMatch = JDD.And(ddMatch, bsFilter);
+			bsMatch = vals.getBitSetFromCloseValue(resObj, termCritParam, termCrit == TermCrit.ABSOLUTE);
+			bsMatch.and(bsFilter);
 			break;
 		case MAX:
 			// Compute max
-			d = vals.maxOverBDD(bsFilter);
-			// Store as object/vector (note crazy Object cast to avoid Integer->int auto conversion)
-			resObj = (expr.getType() instanceof TypeInt) ? ((Object) new Integer((int) d)) : (new Double(d));
-			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			// Store as object/vector
+			resObj = vals.maxOverBitSet(bsFilter);
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Maximum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			// Also find states that (are close to) selected value for display to log
-			bsMatch = vals.getBitSetFromCloseValue(d, prism.getTermCritParam(), prism.getTermCrit() == Prism.ABSOLUTE);
-			JDD.Ref(bsFilter);
-			bsMatch = JDD.And(bsMatch, bsFilter);
+			bsMatch = vals.getBitSetFromCloseValue(resObj, termCritParam, termCrit == TermCrit.ABSOLUTE);
+			bsMatch.and(bsFilter);
 			break;
 		case ARGMIN:
 			// Compute/display min
-			d = vals.minOverBDD(bsFilter);
-			mainLog.print("\nMinimum value over " + filterStatesString + ": ");
-			mainLog.println((expr.getType() instanceof TypeInt) ? ((Object) new Integer((int) d)) : (new Double(d)));
+			resObj = vals.minOverBitSet(bsFilter);
+			mainLog.print("\nMinimum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			ddMatch = vals.getBDDFromCloseValue(d, prism.getTermCritParam(), prism.getTermCrit() == Prism.ABSOLUTE);
-			JDD.Ref(bsFilter);
-			ddMatch = JDD.And(ddMatch, bsFilter);
+			bsMatch = vals.getBitSetFromCloseValue(resObj, termCritParam, termCrit == TermCrit.ABSOLUTE);
+			bsMatch.and(bsFilter);
 			// Store states in vector; for ARGMIN, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
-			resVals = new StateValuesMTBDD(ddMatch, model);
+			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
-			mainLog.println("\nNumber of states with minimum value: " + resVals.getNNZString());
-			ddMatch = null;
+			mainLog.println("\nNumber of states with minimum value: " + bsMatch.cardinality());
+			bsMatch = null;
 			break;
 		case ARGMAX:
 			// Compute/display max
-			d = vals.maxOverBDD(bsFilter);
-			mainLog.print("\nMaximum value over " + filterStatesString + ": ");
-			mainLog.println((expr.getType() instanceof TypeInt) ? ((Object) new Integer((int) d)) : (new Double(d)));
+			resObj = vals.maxOverBitSet(bsFilter);
+			mainLog.print("\nMaximum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			ddMatch = vals.getBDDFromCloseValue(d, prism.getTermCritParam(), prism.getTermCrit() == Prism.ABSOLUTE);
-			JDD.Ref(bsFilter);
-			ddMatch = JDD.And(ddMatch, bsFilter);
+			bsMatch = vals.getBitSetFromCloseValue(resObj, termCritParam, termCrit == TermCrit.ABSOLUTE);
+			bsMatch.and(bsFilter);
 			// Store states in vector; for ARGMAX, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
-			resVals = new StateValuesMTBDD(ddMatch, model);
+			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
-			mainLog.println("\nNumber of states with maximum value: " + resVals.getNNZString());
-			ddMatch = null;
-			break;*/
+			mainLog.println("\nNumber of states with maximum value: " + bsMatch.cardinality());
+			bsMatch = null;
+			break;
 		case COUNT:
 			// Compute count
 			count = vals.countOverBitSet(bsFilter);
 			// Store as object/vector
 			resObj = new Integer(count);
-			resVals = new StateValues(expr.getType(), model.getNumStates(), resObj); 
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = filterTrue ? "Count of satisfying states" : "Count of satisfying states also in filter";
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			break;
-		/*case SUM:
+		case SUM:
 			// Compute sum
-			d = vals.sumOverBDD(bsFilter);
-			// Store as object/vector (note crazy Object cast to avoid Integer->int auto conversion)
-			resObj = (expr.getType() instanceof TypeInt) ? ((Object) new Integer((int) d)) : (new Double(d));
-			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			// Store as object/vector
+			resObj = vals.sumOverBitSet(bsFilter);
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Sum over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			break;
 		case AVG:
 			// Compute average
-			d = vals.sumOverBDD(bsFilter) / JDD.GetNumMinterms(bsFilter, allDDRowVars.n());
 			// Store as object/vector
-			resObj = new Double(d);
-			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			resObj = vals.averageOverBitSet(bsFilter);
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Average over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
-			break;*/
+			break;
 		case FIRST:
 			// Find first value
 			resObj = vals.firstFromBitSet(bsFilter);
-			resVals = new StateValues(expr.getType(), model.getNumStates(), resObj); 
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";
 			if (filterInit) {
@@ -738,7 +720,7 @@ public class StateModelChecker
 			b = vals.forallOverBitSet(bsFilter);
 			// Store as object/vector
 			resObj = new Boolean(b);
-			resVals = new StateValues(expr.getType(), model.getNumStates(), resObj); 
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
 			mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
@@ -759,18 +741,14 @@ public class StateModelChecker
 				}
 			}
 			break;
-		/*case EXISTS:
-			// Get access to BDD for this
-			dd = vals.convertToStateValuesMTBDD().getJDDNode();
+		case EXISTS:
+			// Get access to BitSet for this
+			bs = vals.getBitSet();
 			// Check "there exists" over filter
-			JDD.Ref(bsFilter);
-			dd = JDD.And(dd, bsFilter);
-			b = !dd.equals(JDD.ZERO);
+			b = vals.existsOverBitSet(bsFilter);
 			// Store as object/vector
 			resObj = new Boolean(b);
-			resVals = new StateValuesMTBDD(JDD.Constant(b ? 1.0 : 0.0), model);
-			// Set vals to null so that is not clear()-ed twice
-			vals = null;
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Property satisfied in ";
 			if (filterTrue) {
@@ -779,9 +757,7 @@ public class StateModelChecker
 				resultExpl += b ? "at least one filter state" : "no filter states";
 			}
 			mainLog.println("\n" + resultExpl);
-			// Derefs
-			JDD.Deref(dd);
-			break;*/
+			break;
 		case STATE:
 			// Check filter satisfied by exactly one state
 			if (bsFilter.cardinality() != 1) {
@@ -792,7 +768,7 @@ public class StateModelChecker
 			// Find first (only) value
 			// Store as object/vector
 			resObj = vals.firstFromBitSet(bsFilter);
-			resVals = new StateValues(expr.getType(), model.getNumStates(), resObj); 
+			resVals = new StateValues(expr.getType(), resObj, model); 
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";
 			if (filterInit) {
@@ -807,19 +783,19 @@ public class StateModelChecker
 		}
 
 		// For some operators, print out some matching states
-		/*if (bsMatch != null) {
-			states = new StateListMTBDD(bsMatch, model);
-			mainLog.print("\nThere are " + states.sizeString() + " states with ");
+		if (bsMatch != null) {
+			states = StateValues.createFromBitSet(bsMatch, model);
+			mainLog.print("\nThere are " + bsMatch.cardinality() + " states with ");
 			mainLog.print(expr.getType() instanceof TypeDouble ? "(approximately) " : "" + "this value");
-			if (!verbose && (states.size() == -1 || states.size() > 10)) {
+			boolean verbose = verbosity > 0; // TODO
+			if (!verbose && bsMatch.cardinality() > 10) {
 				mainLog.print(".\nThe first 10 states are displayed below. To view them all, enable verbose mode or use a print filter.\n");
 				states.print(mainLog, 10);
 			} else {
 				mainLog.print(":\n");
 				states.print(mainLog);
 			}
-			JDD.Deref(bsMatch);
-		}*/
+		}
 
 		// Store result
 		result.setResult(resObj);
@@ -830,7 +806,7 @@ public class StateModelChecker
 			result.setExplanation(null);
 		}
 
-		// Derefs, clears
+		// Clear up
 		if (vals != null)
 			vals.clear();
 
