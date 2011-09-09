@@ -949,7 +949,7 @@ public class STPGModelChecker extends ProbModelChecker
 			//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
 			double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
 			
-			if (verbosity >= 0) {
+			if (verbosity >= 1) {
 				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
 			}
 			
@@ -978,9 +978,8 @@ public class STPGModelChecker extends ProbModelChecker
 			
 			timerApprox = System.currentTimeMillis() - timerApprox;
 			
-			if (verbosity >= 0) {
-				mainLog.println("Computed an over-approximation of the solution (in " + (timerApprox/1000) + "s), this will now be used to get a real solution");
-				mainLog.println(Arrays.toString(res.soln));
+			if (verbosity >= 1) {
+				mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
 			}
 		}
 		
