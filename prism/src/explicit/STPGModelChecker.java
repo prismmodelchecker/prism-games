@@ -519,6 +519,92 @@ public class STPGModelChecker extends ProbModelChecker
 
 		return u;
 	}
+	
+	/**
+	 * Zero cummulative reward precomputation algorithm.
+	 * i.e. determine the states of an STPG which, with with probability 1 get min/max reward equal to 0.0 
+	 * before (possibly) reaching a state in {@code target}, while remaining in those in @{code remain}.
+	 * @param stpg The STPG
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 */
+	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain, BitSet target, boolean min1, boolean min2)
+	{
+		int n, iters;
+		double[] soln1, soln2;
+		BitSet unknown;
+		boolean done;
+		long timer;
+
+		// Start precomputation
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("Starting zeroRewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+
+
+		// Initialise vectors
+		n = stpg.getNumStates();
+		soln1 = new double[n];
+		soln2 = new double[n];
+
+		// Determine set of states actually need to perform computation for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		if(target != null)
+			unknown.andNot(target);
+		if (remain != null)
+			unknown.and(remain);
+		
+		//initialise the solution so that the forbidden states are penalised
+		for(int i = 0; i < n; i++) {
+			if (remain != null && !remain.get(i) && target != null && !target.get(i))
+				soln1[i] = Double.POSITIVE_INFINITY;
+		}
+		
+
+		// Nested fixed point loop
+		iters = 0;
+		done = false;
+		while (!done) {
+			iters++;
+			//at every iter at least one state must go from zero to nonzero, hence we have
+			//at most n iterations
+			assert iters <= n+1;
+			
+			stpg.mvMultRewMinMax(soln1, rewards, min1, min2, soln2, unknown, false, null);
+			
+			// Check termination (outer)
+			done = true;
+			
+			double[] tmp = soln2;
+			soln2 = soln1;
+			soln1 = tmp;
+			
+			for(int i = 0; i < n; i++) {
+				if (soln1[i] > 0.0 && soln2[i] == 0.0) {
+					done = true;
+					break;
+				}
+			}
+		}
+
+		// Finished precomputation
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1) {
+			mainLog.print("Prob1 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		BitSet result = new BitSet(n);
+		for(int i = 0; i < n; i++) {
+			if (soln1[i] == 0.0)
+				result.set(i);
+		}
+		
+		return result;
+	}
 
 	/**
 	 * Compute reachability probabilities using value iteration.
@@ -872,6 +958,8 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
 	{
+		boolean unreachingAsInfinity = true;
+		
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
@@ -896,6 +984,13 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 			target = targetNew;
 		}
+		
+		//If staying in zero component forever while not reaching a final state is
+		//allowed, add such states to target
+		if(!unreachingAsInfinity) {
+			//note: by definition the returned bitset contains all target states.
+			target = zeroRewards(stpg, rewards, null, target, min1, min2);
+		}
 
 		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
@@ -909,84 +1004,91 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 		
-		//Compute rewards with epsilon instead of zero
-		
-		//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
-		//also, check if by any chance all rewards are nonzero, then we don't need to precompute
-		double minimumReward = Double.POSITIVE_INFINITY;
-		double maximumReward = 0.0;
-		boolean allNonzero = true;
-		double r;
-		for (i = 0; i < n; i++) {
-			r = rewards.getStateReward(i);
-			if (r > 0.0 && r < minimumReward)
-				minimumReward = r;
-			if (r > maximumReward)
-				maximumReward = r;
-			allNonzero = allNonzero && r > 0;
-			
-			for (int j = 0; j < stpg.getNumChoices(i); j++) {
-				r = rewards.getTransitionReward(i,j);
-				if (r > 0.0  && r < minimumReward)
+		//Compute rewards with epsilon instead of zero. This is used to get the over-approximation
+		//of the real result, which deals with the problem of staying in zero components for free
+		//when infinity should be gained.
+		if (unreachingAsInfinity) {
+			//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
+			//also, check if by any chance all rewards are nonzero, then we don't need to precompute
+			double minimumReward = Double.POSITIVE_INFINITY;
+			double maximumReward = 0.0;
+			boolean allNonzero = true;
+			double r;
+			for (i = 0; i < n; i++) {
+				r = rewards.getStateReward(i);
+				if (r > 0.0 && r < minimumReward)
 					minimumReward = r;
 				if (r > maximumReward)
 					maximumReward = r;
-				allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
+				allNonzero = allNonzero && r > 0;
 				
-				for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
-					r = rewards.getNestedTransitionReward(i, j, k);
-					if (r > 0.0 && r < minimumReward)
+				for (int j = 0; j < stpg.getNumChoices(i); j++) {
+					r = rewards.getTransitionReward(i,j);
+					if (r > 0.0  && r < minimumReward)
 						minimumReward = r;
 					if (r > maximumReward)
 						maximumReward = r;
-					allNonzero = allNonzero && r > 0;
+					allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
+					
+					for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
+						r = rewards.getNestedTransitionReward(i, j, k);
+						if (r > 0.0 && r < minimumReward)
+							minimumReward = r;
+						if (r > maximumReward)
+							maximumReward = r;
+						allNonzero = allNonzero && r > 0;
+					}
+				}
+			}
+			
+			if (!allNonzero) {
+				timerApprox = System.currentTimeMillis();
+				//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
+				double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
+				
+				if (verbosity >= 1) {
+					mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
+				}
+				
+				//Modify the rewards
+				double origZeroReplacement;
+				if (rewards instanceof MDPRewardsSimple) {
+					origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
+					((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
+				} else {
+					throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+				}
+				
+				//Compute the value when rewards are nonzero
+				switch (solnMethod) {
+				case VALUE_ITERATION:
+					res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+					break;
+				default:
+					throw new PrismException("Unknown STPG solution method " + solnMethod);
+				}
+				
+				//Set the value iteration result to be the initial solution for the next part
+				//in which "proper" zero rewards are used
+				init = res.soln;
+				
+				//Return the rewards to the original state
+				if (rewards instanceof MDPRewardsSimple) {
+					((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
+				}
+				
+				timerApprox = System.currentTimeMillis() - timerApprox;
+				
+				if (verbosity >= 1) {
+					mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
 				}
 			}
 		}
 		
-		if (!allNonzero) {
-			timerApprox = System.currentTimeMillis();
-			//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
-			double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
-			
-			if (verbosity >= 1) {
-				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
-			}
-			
-			//Modify the rewards
-			double origZeroReplacement;
-			if (rewards instanceof MDPRewardsSimple) {
-				origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
-				((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
-			} else {
-				throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
-			}
-			
-			//Compute the value when rewards are nonzero
-			switch (solnMethod) {
-			case VALUE_ITERATION:
-				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
-				break;
-			default:
-				throw new PrismException("Unknown STPG solution method " + solnMethod);
-			}
-			
-			//Return the rewards to the original state
-			if (rewards instanceof MDPRewardsSimple) {
-				((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
-			}
-			
-			timerApprox = System.currentTimeMillis() - timerApprox;
-			
-			if (verbosity >= 1) {
-				mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
-			}
-		}
-		
-		// Compute real rewards 
+		// Compute real rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, res.soln, known);
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init , known);
 			break;
 		default:
 			throw new PrismException("Unknown STPG solution method " + solnMethod);
