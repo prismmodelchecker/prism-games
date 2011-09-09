@@ -1,5 +1,5 @@
 // For STPG mode
-Rminmax=? [ F i=2 ]
+Rmaxmin=? [ F i=2 ]
 
 // For SMG mode
 <<1>> Rmax=? [ F i=2 ]
