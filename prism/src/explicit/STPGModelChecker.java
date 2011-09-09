@@ -34,7 +34,9 @@ import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import prism.*;
 import explicit.rewards.MDPRewards;
+import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
+import explicit.rewards.STPGRewardsSimple;
 
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
@@ -873,7 +875,7 @@ public class STPGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
-		long timer, timerProb1;
+		long timer, timerProb1, timerApprox;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -906,11 +908,86 @@ public class STPGModelChecker extends ProbModelChecker
 		numInf = inf.cardinality();
 		if (verbosity >= 1)
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
-
-		// Compute rewards
+		
+		//Compute rewards with epsilon instead of zero
+		
+		//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
+		//also, check if by any chance all rewards are nonzero, then we don't need to precompute
+		double minimumReward = Double.POSITIVE_INFINITY;
+		double maximumReward = 0.0;
+		boolean allNonzero = true;
+		double r;
+		for (i = 0; i < n; i++) {
+			r = rewards.getStateReward(i);
+			if (r > 0.0 && r < minimumReward)
+				minimumReward = r;
+			if (r > maximumReward)
+				maximumReward = r;
+			allNonzero = allNonzero && r > 0;
+			
+			for (int j = 0; j < stpg.getNumChoices(i); j++) {
+				r = rewards.getTransitionReward(i,j);
+				if (r > 0.0  && r < minimumReward)
+					minimumReward = r;
+				if (r > maximumReward)
+					maximumReward = r;
+				allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
+				
+				for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
+					r = rewards.getNestedTransitionReward(i, j, k);
+					if (r > 0.0 && r < minimumReward)
+						minimumReward = r;
+					if (r > maximumReward)
+						maximumReward = r;
+					allNonzero = allNonzero && r > 0;
+				}
+			}
+		}
+		
+		if (!allNonzero) {
+			timerApprox = System.currentTimeMillis();
+			//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
+			double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
+			
+			if (verbosity >= 0) {
+				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
+			}
+			
+			//Modify the rewards
+			double origZeroReplacement;
+			if (rewards instanceof MDPRewardsSimple) {
+				origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
+				((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
+			} else {
+				throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+			}
+			
+			//Compute the value when rewards are nonzero
+			switch (solnMethod) {
+			case VALUE_ITERATION:
+				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+				break;
+			default:
+				throw new PrismException("Unknown STPG solution method " + solnMethod);
+			}
+			
+			//Return the rewards to the original state
+			if (rewards instanceof MDPRewardsSimple) {
+				((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
+			}
+			
+			timerApprox = System.currentTimeMillis() - timerApprox;
+			
+			if (verbosity >= 0) {
+				mainLog.println("Computed an over-approximation of the solution (in " + (timerApprox/1000) + "s), this will now be used to get a real solution");
+				mainLog.println(Arrays.toString(res.soln));
+			}
+		}
+		
+		// Compute real rewards 
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, res.soln, known);
 			break;
 		default:
 			throw new PrismException("Unknown STPG solution method " + solnMethod);
@@ -950,7 +1027,8 @@ public class STPGModelChecker extends ProbModelChecker
 		int adv[] = null;
 		boolean genAdv, done;
 		long timer;
-
+		
+		
 		// Are we generating an optimal adversary?
 		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
 
@@ -961,7 +1039,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Store num states
 		n = stpg.getNumStates();
-
+		
 		// Create solution vector(s)
 		soln = new double[n];
 		soln2 = (init == null) ? new double[n] : init;
@@ -978,7 +1056,7 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		} else {
 			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 10.0;
 		}
 
 		// Determine set of states actually need to compute values for
