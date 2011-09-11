@@ -5,4 +5,4 @@
 # Launch using main PRISM script
 PRISM_MAINCLASS="prism.Preprocessor"
 export PRISM_MAINCLASS
-~/Oxford/prism/prism-games/prism/bin/prism "$@"
+/home/scratch/software/ModelCheckers/PRISM/development/prism/bin/prism "$@"
