@@ -16,18 +16,14 @@
 //
 // Aistis Simaitis 25/08/11 
 
-#const N#
-#const D#
-#const d#
-#const L#
 
 mdp
 
 // number of households
-const int N = #N#;
+const int N = 2;
 
 // number of days
-const int D = #D#;
+const int D = 3;
 
 // number of time intervals in the day
 const int K = 16;
@@ -39,9 +35,10 @@ const int Exp_J = 9;
 const double price_limit = 1.5;
 
 // initiation probabilities for jobs (uuniform distribution)
-#for i=1:L#
-const double P_J#i# = 1/#L#;
-#end# 
+const double P_J1 = 1/4;
+const double P_J2 = 1/4;
+const double P_J3 = 1/4;
+const double P_J4 = 1/4;
 
 // probability of starting a task independently of the cost
 const double P_start;
@@ -73,9 +70,8 @@ const int max_time = K*D+1;
 global time : [1..max_time];
 
 // jobs of households
-#for i=1:N#
-global job#i# : [0..#L#];
-#end#
+global job1 : [0..4];
+global job2 : [0..4];
 
 // scheduling variable
 global sched : [0..N];
@@ -84,74 +80,72 @@ global sched : [0..N];
 module player0
 
 	[] sched = 0 -> 1/N : (sched'=1)
-#for i=2:N#
-		      + 1/N : (sched'=#i#)
-#end#;
+		      + 1/N : (sched'=2)
+;
 
 endmodule
 
 // definitions of deterministic households
-#for i=1:d#
-
-
-module player#i#
-	
-	job_arrived#i# : [0..#L#];
-
-	[] sched=#i# & active = 0 & job#i# > 0 & time < max_time -> (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (time'=time+1) & (sched'=0);
-
-	// initiate the job with probability P_init
-	[] sched=#i# & active = 0 & job#i# = 0 & time < max_time -> P_init*P_J1 : (job_arrived#i#'=1)
-				       			    #for j=2:L#
-							    + P_init*P_J#j# : (job_arrived#i#'=#j#)
-							    #end#
-				       			    + (1-P_init) : (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (time'=time+1) & (sched'=0);
-
-	// start job if cost below the limit
-	[] sched=#i# & job_arrived#i# > 0 & price <= price_limit & time < max_time -> (job#i#'=job_arrived#i#) #for j=1:i-1# & (job#j#'=new_j#j#)#end##for j=i+1:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0);
-
-	// back-off with probability 1-P_start
-	[] sched=#i# & job_arrived#i# > 0 & price > price_limit & time < max_time ->   P_start : (job#i#'=job_arrived#i#) #for j=1:i-1# & (job#j#'=new_j#j#)#end##for j=i+1:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0)
-						   + (1-P_start) : (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0);
-	// finished
-	[] sched=#i# & time=max_time -> (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (sched'=0);
-
-endmodule
-
-#end#
 
 // definitions of non-deterministic households
-#for i=d+1:N#
 
-module player#i#
+module player1
 	
-	job_arrived#i# : [0..#L#];
+	job_arrived1 : [0..4];
 
-	[] sched=#i# & active = 0 & job#i# > 0 & time < max_time -> (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (time'=time+1) & (sched'=0);
+	[] sched=1 & active = 0 & job1 > 0 & time < max_time -> (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
 
 	// initiate the job with probability P_init
-	[] sched=#i# & active = 0 & job#i# = 0 & time < max_time -> P_init*P_J1 : (job_arrived#i#'=1)
-				       			    #for j=2:L#
-							    + P_init*P_J#j# : (job_arrived#i#'=#j#)
-							    #end#
-				       			    + (1-P_init) : (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (time'=time+1) & (sched'=0);
+	[] sched=1 & active = 0 & job1 = 0 & time < max_time -> P_init*P_J1 : (job_arrived1'=1)
+							    + P_init*P_J2 : (job_arrived1'=2)
+							    + P_init*P_J3 : (job_arrived1'=3)
+							    + P_init*P_J4 : (job_arrived1'=4)
+				       			    + (1-P_init) : (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
 
 	// start job if cost below the limit
-	[] sched=#i# & job_arrived#i# > 0 & price <= price_limit & time < max_time-> (job#i#'=job_arrived#i#) #for j=1:i-1# & (job#j#'=new_j#j#)#end##for j=i+1:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0);
+	[] sched=1 & job_arrived1 > 0 & price <= price_limit & time < max_time-> (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
 
 	// back-off with probability 1-P_start
-	[] sched=#i# & job_arrived#i# > 0 & price > price_limit & time < max_time->   P_start : (job#i#'=job_arrived#i#) #for j=1:i-1# & (job#j#'=new_j#j#)#end##for j=i+1:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0)
-						   + (1-P_start) : (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0);
+	[] sched=1 & job_arrived1 > 0 & price > price_limit & time < max_time->   P_start : (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0)
+						   + (1-P_start) : (job1'=new_j1) & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
 
 	// don't back-off 
-	[] sched=#i# & job_arrived#i# > 0 & price > price_limit & time < max_time -> (job#i#'=job_arrived#i#) #for j=1:i-1# & (job#j#'=new_j#j#)#end##for j=i+1:N# & (job#j#'=new_j#j#)#end# & (job_arrived#i#'=0) & (time'=time+1) & (sched'=0);
+	[] sched=1 & job_arrived1 > 0 & price > price_limit & time < max_time -> (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
 
 	// finished
-	[] sched=#i# & time=max_time -> (job1'=new_j1)#for j=2:N# & (job#j#'=new_j#j#)#end# & (sched'=0);
+	[] sched=1 & time=max_time -> (job1'=new_j1) & (job2'=new_j2) & (sched'=0);
 
 endmodule
 
-#end#
+
+module player2
+	
+	job_arrived2 : [0..4];
+
+	[] sched=2 & active = 0 & job2 > 0 & time < max_time -> (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
+
+	// initiate the job with probability P_init
+	[] sched=2 & active = 0 & job2 = 0 & time < max_time -> P_init*P_J1 : (job_arrived2'=1)
+							    + P_init*P_J2 : (job_arrived2'=2)
+							    + P_init*P_J3 : (job_arrived2'=3)
+							    + P_init*P_J4 : (job_arrived2'=4)
+				       			    + (1-P_init) : (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
+
+	// start job if cost below the limit
+	[] sched=2 & job_arrived2 > 0 & price <= price_limit & time < max_time-> (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+
+	// back-off with probability 1-P_start
+	[] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time->   P_start : (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0)
+						   + (1-P_start) : (job1'=new_j1) & (job2'=new_j2) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+
+	// don't back-off 
+	[] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time -> (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+
+	// finished
+	[] sched=2 & time=max_time -> (job1'=new_j1) & (job2'=new_j2) & (sched'=0);
+
+endmodule
+
 
 
 
@@ -175,15 +169,14 @@ formula P_init = Exp_J *
 		 D_K16)))))))))))))));
 
 // formula to compute current cost
-formula jobs_running = (job1>0?1:0) #for i=2:N# + (job#i#>0?1:0)#end#;
+formula jobs_running = (job1>0?1:0)  + (job2>0?1:0);
 
 // formula to identify say that only one agent is active
-formula active = job_arrived1#for i=2:N# + job_arrived#i# #end#;
+formula active = job_arrived1 + job_arrived2 ;
 
 // formula to update job status
-#for i=1:N#
-formula new_j#i# = job#i#=0?0:job#i#-1;
-#end#
+formula new_j1 = job1=0?0:job1-1;
+formula new_j2 = job2=0?0:job2-1;
 
 formula price = jobs_running+1;
 
@@ -193,16 +186,16 @@ rewards "cost"
 endrewards
 
 rewards "tasks_started"
-#for i=1:N#
-	sched!=0 & job#i#=1 : 1;
-#end#
+	sched!=0 & job1=1 : 1;
+	sched!=0 & job2=1 : 1;
 endrewards
 
-#for i=1:N#
-rewards "value#i#"
-	sched!=0 & job#i#>0 : 1/jobs_running;
+rewards "value1"
+	sched!=0 & job1>0 : 1/jobs_running;
 endrewards
-#end#
+rewards "value2"
+	sched!=0 & job2>0 : 1/jobs_running;
+endrewards
 
 rewards "common_value"
 	sched!=0 : jobs_running=0?0:1/jobs_running;

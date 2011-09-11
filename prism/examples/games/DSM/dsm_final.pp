@@ -6,12 +6,13 @@
 // make a decision whether to execute their jobs modeled by non-determinism.
 // 
 // Model has to be built using PRISM preprocessor (http://www.prismmodelchecker.org/prismpp/)
-// using the following command: prismpp dsm_mdp-dtmc.pp <N> <D> <d> <L> > dsm_mdp-dtmc.pm, where 
+// using the following command: prismpp dsm_mdp-dtmc.pp <N> <D> <d> <L> <PS> > dsm_mdp-dtmc.pm, where 
 //
 // <N> - number of households
 // <D> - number of days
 // <d> - number of deterministic households
 // <L> - maximum job duration
+// <PS> - 0.Pstart
 //
 //
 // Aistis Simaitis 25/08/11 
@@ -20,6 +21,7 @@
 #const D#
 #const d#
 #const L#
+#const PS#
 
 smg
 
@@ -44,7 +46,7 @@ const double P_J#i# = 1/#L#;
 #end# 
 
 // probability of starting a task independently of the cost
-const double P_start = 0.75;
+const double P_start = 0.#PS#;
 
 // distribution of the expected demand across intervals
 const double D_K1 = 0.0614;
@@ -203,9 +205,13 @@ rewards "tasks_started"
 #end#
 endrewards
 
+
+
 #for i=1:N#
-rewards "value#i#"
-	sched!=0 & job#i#>0 : 1/jobs_running;
+rewards "value#for j=1:i##j##end#"
+	#for j=1:i#
+	sched!=0 & job#j#>0 : 1/jobs_running;
+	#end#
 endrewards
 #end#
 

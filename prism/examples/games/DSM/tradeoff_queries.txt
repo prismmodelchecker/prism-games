@@ -1,0 +1,58 @@
+// generate game models
+
+rm -f experiments/value_tradeoff/dsm7304.smg
+rm -f experiments/value_tradeoff/dsm6304.smg
+rm -f experiments/value_tradeoff/dsm5304.smg
+rm -f experiments/value_tradeoff/dsm4304.smg
+rm -f experiments/value_tradeoff/dsm3304.smg
+rm -f experiments/value_tradeoff/dsm2304.smg
+
+./prismpp dsm_final.pp 7 3 0 4 6 > experiments/value_tradeoff/dsm7304.smg
+./prismpp dsm_final.pp 6 3 0 4 6 > experiments/value_tradeoff/dsm6304.smg
+./prismpp dsm_final.pp 5 3 0 4 65 > experiments/value_tradeoff/dsm5304.smg
+./prismpp dsm_final.pp 4 3 0 4 7 > experiments/value_tradeoff/dsm4304.smg
+./prismpp dsm_final.pp 3 3 0 4 8 > experiments/value_tradeoff/dsm3304.smg
+./prismpp dsm_final.pp 2 3 0 4 0 > experiments/value_tradeoff/dsm2304.smg
+
+// PATL queries
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm2304.smg -ex -pctl '<<1,2>> R{"common_value"}min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm2304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm2304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm3304.smg -ex -pctl '<<1,2,3>> R{"common_value"}min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm3304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm3304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm3304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm4304.smg -ex -pctl '<<1,2,3,4>> R{"common_value"}min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm4304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm4304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm4304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm4304.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1,2,3,4,5>> R{"common_value"}min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm5304.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2,3,4,5,6>> R{"common_value"}min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm6304.smg -ex -pctl '<<1,2,3,4,5,6>> R{"value123456"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5,6,7>> R{"common_value"}e=max_time]'min=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5,6>> R{"value123456"}max=? [F time=max_time]'
+bin/prism examples/games/DSM/experiments/value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5,6,7>> R{"value1234567"}max=? [F time=max_time]'
+
+
