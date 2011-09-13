@@ -189,10 +189,8 @@ module player1
 
 endmodule
 
-
-// definitions of deterministic households
 player p2
-	player2, [start2], [backoff2]
+	player2, [start2], [backoff2], [nbackoff2]
 endplayer
 
 module player2
@@ -209,16 +207,22 @@ module player2
 				       			    + (1-P_init) : (job1'=new_j1) & (job2'=new_j2) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (time'=time+1) & (sched'=0);
 
 	// start job if cost below the limit
-	[start2] sched=2 & job_arrived2 > 0 & price <= price_limit & time < max_time -> (job2'=job_arrived2)  & (job1'=new_j1) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+	[start2] sched=2 & job_arrived2 > 0 & price <= price_limit & time < max_time-> (job2'=job_arrived2)  & (job1'=new_j1) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
 
 	// back-off with probability 1-P_start
-	[backoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time ->   P_start : (job2'=job_arrived2)  & (job1'=new_j1) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0)
+	[backoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time->   P_start : (job2'=job_arrived2)  & (job1'=new_j1) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0)
 						   + (1-P_start) : (job1'=new_j1) & (job2'=new_j2) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+
+	// don't back-off 
+	[nbackoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time -> (job2'=job_arrived2)  & (job1'=new_j1) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+
 	// finished
 	[] sched=2 & time=max_time -> (job1'=new_j1) & (job2'=new_j2) & (job3'=new_j3) & (job4'=new_j4) & (job5'=new_j5) & (job6'=new_j6) & (job7'=new_j7) & (sched'=0);
 
 endmodule
 
+
+// definitions of deterministic households
 player p3
 	player3, [start3], [backoff3]
 endplayer

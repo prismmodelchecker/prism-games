@@ -95,9 +95,10 @@ module player0
 
 endmodule
 
-// definitions of deterministic households
+
+// definitions of non-deterministic households
 player p1
-	player1, [start1], [backoff1]
+	player1, [start1], [backoff1], [nbackoff1]
 endplayer
 
 module player1
@@ -114,20 +115,24 @@ module player1
 				       			    + (1-P_init) : (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
 
 	// start job if cost below the limit
-	[start1] sched=1 & job_arrived1 > 0 & price <= price_limit & time < max_time -> (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
+	[start1] sched=1 & job_arrived1 > 0 & price <= price_limit & time < max_time-> (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
 
 	// back-off with probability 1-P_start
-	[backoff1] sched=1 & job_arrived1 > 0 & price > price_limit & time < max_time ->   P_start : (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0)
+	[backoff1] sched=1 & job_arrived1 > 0 & price > price_limit & time < max_time->   P_start : (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0)
 						   + (1-P_start) : (job1'=new_j1) & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
+
+	// don't back-off 
+	[nbackoff1] sched=1 & job_arrived1 > 0 & price > price_limit & time < max_time -> (job1'=job_arrived1)  & (job2'=new_j2) & (job_arrived1'=0) & (time'=time+1) & (sched'=0);
+
 	// finished
 	[] sched=1 & time=max_time -> (job1'=new_j1) & (job2'=new_j2) & (sched'=0);
 
 endmodule
 
 
-// definitions of non-deterministic households
+// definitions of deterministic households
 player p2
-	player2, [start2], [backoff2], [nbackoff2]
+	player2, [start2], [backoff2]
 endplayer
 
 module player2
@@ -144,15 +149,11 @@ module player2
 				       			    + (1-P_init) : (job1'=new_j1) & (job2'=new_j2) & (time'=time+1) & (sched'=0);
 
 	// start job if cost below the limit
-	[start2] sched=2 & job_arrived2 > 0 & price <= price_limit & time < max_time-> (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
+	[start2] sched=2 & job_arrived2 > 0 & price <= price_limit & time < max_time -> (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
 
 	// back-off with probability 1-P_start
-	[backoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time->   P_start : (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0)
+	[backoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time ->   P_start : (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0)
 						   + (1-P_start) : (job1'=new_j1) & (job2'=new_j2) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
-
-	// don't back-off 
-	[nbackoff2] sched=2 & job_arrived2 > 0 & price > price_limit & time < max_time -> (job2'=job_arrived2)  & (job1'=new_j1) & (job_arrived2'=0) & (time'=time+1) & (sched'=0);
-
 	// finished
 	[] sched=2 & time=max_time -> (job1'=new_j1) & (job2'=new_j2) & (sched'=0);
 
