@@ -1131,7 +1131,7 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		
 		// Are we generating an optimal adversary?
-		genAdv = !(settings.getString(PrismSettings.PRISM_EXPORT_ADV).equals("None"));
+		genAdv = exportAdv;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
