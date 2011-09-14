@@ -166,3 +166,45 @@ Time for model checking: 90.798 seconds.
 
 Result: 32.934415581248814 (value in the initial state)
 
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Wed Sep 14 11:52:30 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm5304p.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm5304p.smg"...
+
+1 property:
+(1) <<[1, 2, 3, 4, 5]>> R{"value12345"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 137896 298235 475667 553797 709392 743904
+Reachable states exploration and model construction done in 15.554 secs.
+Sorting reachable states list...
+
+Time for model construction: 16.117 seconds.
+
+Type:        SMG
+
+States:      743904 (1 initial)
+Transitions: 3123120
+Choices:     1327344
+Max/avg:     5/1.78
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3, 4, 5]>> R{"value12345"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 42.595977035063875
+
+Time for model checking: 91.83 seconds.
+
+Result: 42.595977035063875 (value in the initial state)
+
