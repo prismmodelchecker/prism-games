@@ -1,0 +1,168 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 19:55:01 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm5344p.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm5344p.smg"...
+
+1 property:
+(1) <<[1]>> R{"value1"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 150173 331809 526233 616459 743904
+Reachable states exploration and model construction done in 14.036 secs.
+Sorting reachable states list...
+
+Time for model construction: 14.488 seconds.
+
+Type:        SMG
+
+States:      743904 (1 initial)
+Transitions: 2812848
+Choices:     1017072
+Max/avg:     5/1.37
+
+-------------------------------------------
+
+Model checking: <<[1]>> R{"value1"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 6.96361065998593
+
+Time for model checking: 69.936 seconds.
+
+Result: 6.96361065998593 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 19:56:26 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm5334p.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm5334p.smg"...
+
+1 property:
+(1) <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 143078 317467 502924 591460 743904
+Reachable states exploration and model construction done in 14.57 secs.
+Sorting reachable states list...
+
+Time for model construction: 15.216 seconds.
+
+Type:        SMG
+
+States:      743904 (1 initial)
+Transitions: 2890416
+Choices:     1094640
+Max/avg:     5/1.47
+
+-------------------------------------------
+
+Model checking: <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 14.87174321002586
+
+Time for model checking: 68.035 seconds.
+
+Result: 14.87174321002586 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 19:57:51 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm5324p.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm5324p.smg"...
+
+1 property:
+(1) <<[1, 2, 3]>> R{"value123"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 137885 309519 492113 574235 743904
+Reachable states exploration and model construction done in 14.839 secs.
+Sorting reachable states list...
+
+Time for model construction: 15.311 seconds.
+
+Type:        SMG
+
+States:      743904 (1 initial)
+Transitions: 2967984
+Choices:     1172208
+Max/avg:     5/1.58
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3]>> R{"value123"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 23.59500138971711
+
+Time for model checking: 77.457 seconds.
+
+Result: 23.59500138971711 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 19:59:25 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm5314p.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm5314p.smg"...
+
+1 property:
+(1) <<[1, 2, 3, 4]>> R{"value1234"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 140423 306505 489291 571487 743904
+Reachable states exploration and model construction done in 14.921 secs.
+Sorting reachable states list...
+
+Time for model construction: 15.469 seconds.
+
+Type:        SMG
+
+States:      743904 (1 initial)
+Transitions: 3045552
+Choices:     1249776
+Max/avg:     5/1.68
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3, 4]>> R{"value1234"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 32.934415581248814
+
+Time for model checking: 90.798 seconds.
+
+Result: 32.934415581248814 (value in the initial state)
+

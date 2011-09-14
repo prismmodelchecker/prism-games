@@ -1,0 +1,210 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 20:01:12 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm6354p.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm6354p.smg"...
+
+1 property:
+(1) <<[1]>> R{"value1"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 120299 260351 416132 558731 634639 776321 926161 992419 1138336 1279239 1433181 1580345 1725518 1870519 2008242 2163463 2299102 2384369
+Reachable states exploration and model construction done in 55.447 secs.
+Sorting reachable states list...
+
+Time for model construction: 56.859 seconds.
+
+Type:        SMG
+
+States:      2384369 (1 initial)
+Transitions: 9083856
+Choices:     3112379
+Max/avg:     5/1.31
+
+-------------------------------------------
+
+Model checking: <<[1]>> R{"value1"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 6.015669527726123
+
+Time for model checking: 232.12 seconds.
+
+Result: 6.015669527726123 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 20:06:03 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm6344p.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm6344p.smg"...
+
+1 property:
+(1) <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 114077 245068 396970 522108 598770 740467 870586 963894 1105616 1232157 1382490 1512729 1667724 1688671 1832245 1959062 2104724 2234331 2379474 2384369
+Reachable states exploration and model construction done in 58.36 secs.
+Sorting reachable states list...
+
+Time for model construction: 67.908 seconds.
+
+Type:        SMG
+
+States:      2384369 (1 initial)
+Transitions: 9315216
+Choices:     3343739
+Max/avg:     5/1.40
+
+-------------------------------------------
+
+Model checking: <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 12.666469669256365
+
+Time for model checking: 264.897 seconds.
+
+Result: 12.666469669256365 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 20:11:37 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm6334p.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm6334p.smg"...
+
+1 property:
+(1) <<[1, 2, 3]>> R{"value123"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 122166 256529 402032 529672 609511 749831 871143 1022306 1094010 1232481 1365582 1515724 1646176 1785719 1936472 2063322 2210433 2316379 2384369
+Reachable states exploration and model construction done in 58.592 secs.
+Sorting reachable states list...
+
+Time for model construction: 60.083 seconds.
+
+Type:        SMG
+
+States:      2384369 (1 initial)
+Transitions: 9546576
+Choices:     3575099
+Max/avg:     5/1.50
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3]>> R{"value123"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 19.89100948934433
+
+Time for model checking: 275.722 seconds.
+
+Result: 19.89100948934433 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 20:17:15 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm6324p.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm6324p.smg"...
+
+1 property:
+(1) <<[1, 2, 3, 4]>> R{"value1234"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 111426 242168 380965 508732 584733 717888 853240 935449 1072726 1204876 1351241 1486614 1634795 1637789 1775468 1905470 2051934 2178298 2322932 2384369
+Reachable states exploration and model construction done in 59.081 secs.
+Sorting reachable states list...
+
+Time for model construction: 66.79 seconds.
+
+Type:        SMG
+
+States:      2384369 (1 initial)
+Transitions: 9777936
+Choices:     3806459
+Max/avg:     5/1.60
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3, 4]>> R{"value1234"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 27.5798435389031
+
+Time for model checking: 365.59 seconds.
+
+Result: 27.5798435389031 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 20:24:28 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm6314p.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm6314p.smg"...
+
+1 property:
+(1) <<[1, 2, 3, 4, 5]>> R{"value12345"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 113752 241293 383651 512296 582447 712936 849503 911482 1044901 1175657 1317516 1450820 1593703 1729158 1854418 1997480 2121101 2262219 2364302 2384369
+Reachable states exploration and model construction done in 64.927 secs.
+Sorting reachable states list...
+
+Time for model construction: 66.649 seconds.
+
+Type:        SMG
+
+States:      2384369 (1 initial)
+Transitions: 10009296
+Choices:     4037819
+Max/avg:     5/1.69
+
+-------------------------------------------
+
+Model checking: <<[1, 2, 3, 4, 5]>> R{"value12345"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 35.613223103685186
+
+Time for model checking: 302.499 seconds.
+
+Result: 35.613223103685186 (value in the initial state)
+
