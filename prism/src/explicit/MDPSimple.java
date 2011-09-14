@@ -32,10 +32,7 @@ import java.util.Map.Entry;
 import java.io.*;
 
 import explicit.rewards.MDPRewards;
-import explicit.rewards.MDPRewardsSimple;
-import prism.ModelType;
 import prism.PrismException;
-import prism.PrismLog;
 import prism.PrismUtils;
 
 /**
@@ -44,7 +41,7 @@ import prism.PrismUtils;
  * The model is, however, easy to manipulate. For a static model (i.e. one that does not change
  * after creation), consider MDPSparse, which is more efficient. 
  */
-public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
+public class MDPSimple extends MDPExplicit implements ModelSimple
 {
 	// Transition function (Steps)
 	protected List<List<Distribution>> trans;
@@ -89,7 +86,7 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		copyFrom(mdp);
 		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency) 
 		for (int s = 0; s < numStates; s++) {
-			List<Distribution> distrs = trans.get(s); 
+			List<Distribution> distrs = trans.get(s);
 			for (Distribution distr : mdp.trans.get(s)) {
 				distrs.add(new Distribution(distr));
 			}
@@ -143,7 +140,7 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency)
 		// (Since permut is a bijection, all structures and statistics are identical)
 		for (int s = 0; s < numStates; s++) {
-			List<Distribution> distrs = trans.get(permut[s]); 
+			List<Distribution> distrs = trans.get(permut[s]);
 			for (Distribution distr : mdp.trans.get(s)) {
 				distrs.add(new Distribution(distr, permut));
 			}
@@ -384,13 +381,7 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		actions.get(s).set(i, o);
 	}
 
-	// Accessors (for ModelSimple)
-
-	@Override
-	public ModelType getModelType()
-	{
-		return ModelType.MDP;
-	}
+	// Accessors (for Model)
 
 	@Override
 	public int getNumTransitions()
@@ -464,138 +455,25 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		return deadlocks;
 	}
 
-	@Override
-	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
-	{
-		int i, j;
-		Object action;
-		TreeMap<Integer, Double> sorted;
-		// Output transitions to .tra file
-		out.print(numStates + " " + numDistrs + " " + numTransitions + "\n");
-		sorted = new TreeMap<Integer, Double>();
-		for (i = 0; i < numStates; i++) {
-			j = -1;
-			for (Distribution distr : trans.get(i)) {
-				j++;
-				// Extract transitions and sort by destination state index (to match PRISM-exported files)
-				for (Map.Entry<Integer, Double> e : distr) {
-					sorted.put(e.getKey(), e.getValue());
-				}
-				// Print out (sorted) transitions
-				for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
-					// Note use of PrismUtils.formatDouble to match PRISM-exported files
-					out.print(i + " " + j + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()));
-					action = getAction(i, j);
-					out.print(action == null ? "\n" : (" " + action + "\n"));
-				}
-				sorted.clear();
-			}
-		}
-	}
-
-	@Override
-	public void exportToDotFile(String filename, BitSet mark) throws PrismException
-	{
-		int i, j;
-		String nij;
-		Object action;
-		try {
-			FileWriter out = new FileWriter(filename);
-			out.write("digraph " + getModelType() + " {\nsize=\"8,5\"\nnode [shape=box];\n");
-			for (i = 0; i < numStates; i++) {
-				if (mark != null && mark.get(i))
-					out.write(i + " [style=filled  fillcolor=\"#cccccc\"]\n");
-				j = -1;
-				for (Distribution distr : trans.get(i)) {
-					j++;
-					action = getAction(i, j);
-					nij = "n" + i + "_" + j;
-					out.write(i + " -> " + nij + " [ arrowhead=none,label=\"" + j);
-					if (action != null)
-						out.write(":" + action);
-					out.write("\" ];\n");
-					out.write(nij + " [ shape=point,width=0.1,height=0.1,label=\"\" ];\n");
-					for (Map.Entry<Integer, Double> e : distr) {
-						out.write(nij + " -> " + e.getKey() + " [ label=\"" + e.getValue() + "\" ];\n");
-					}
-				}
-			}
-			out.write("}\n");
-			out.close();
-		} catch (IOException e) {
-			throw new PrismException("Could not write " + getModelType() + " to file \"" + filename + "\"" + e);
-		}
-	}
-
-	@Override
-	public void exportToPrismLanguage(String filename) throws PrismException
-	{
-		int i, j;
-		boolean first;
-		FileWriter out;
-		TreeMap<Integer, Double> sorted;
-		Object action;
-		try {
-			// Output transitions to PRISM language file
-			out = new FileWriter(filename);
-			out.write(getModelType().keyword() + "\n");
-			out.write("module M\nx : [0.." + (numStates - 1) + "];\n");
-			sorted = new TreeMap<Integer, Double>();
-			for (i = 0; i < numStates; i++) {
-				j = -1;
-				for (Distribution distr : trans.get(i)) {
-					j++;
-					// Extract transitions and sort by destination state index (to match PRISM-exported files)
-					for (Map.Entry<Integer, Double> e : distr) {
-						sorted.put(e.getKey(), e.getValue());
-					}
-					// Print out (sorted) transitions
-					action = getAction(i, j);
-					out.write(action != null ? ("[" + action + "]") : "[]");
-					out.write("x=" + i + "->");
-					first = true;
-					for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
-						if (first)
-							first = false;
-						else
-							out.write("+");
-						// Note use of PrismUtils.formatDouble to match PRISM-exported files
-						out.write(PrismUtils.formatDouble(e.getValue()) + ":(x'=" + e.getKey() + ")");
-					}
-					out.write(";\n");
-					sorted.clear();
-				}
-			}
-			out.write("endmodule\n");
-			out.close();
-		} catch (IOException e) {
-			throw new PrismException("Could not export " + getModelType() + " to file \"" + filename + "\"" + e);
-		}
-	}
-
-	@Override
-	public String infoString()
-	{
-		String s = "";
-		s += numStates + " states (" + getNumInitialStates() + " initial)";
-		s += ", " + numTransitions + " transitions";
-		s += ", " + numDistrs + " choices";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numStates);
-		return s;
-	}
-
-	@Override
-	public String infoStringTable()
-	{
-		String s = "";
-		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
-		s += "Transitions: " + numTransitions + "\n";
-		s += "Choices:     " + numDistrs + "\n";
-		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numStates) + "\n";
-		return s;
-	}
-
 	// Accessors (for MDP)
+
+	@Override
+	public int getNumChoices()
+	{
+		return numDistrs;
+	}
+
+	@Override
+	public int getMaxNumChoices()
+	{
+		// Recompute if necessary
+		if (!maxNumDistrsOk) {
+			maxNumDistrs = 0;
+			for (int s = 0; s < numStates; s++)
+				maxNumDistrs = Math.max(maxNumDistrs, getNumChoices(s));
+		}
+		return maxNumDistrs;
+	}
 
 	@Override
 	public Object getAction(int s, int i)
@@ -673,23 +551,6 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 	}
 
 	@Override
-	public void mvMultMinMax(double vect[], boolean min, double result[], BitSet subset, boolean complement, int adv[])
-	{
-		int s;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++)
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
-		}
-	}
-
-	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
 	{
 		int j, k, advCh = -1;
@@ -721,8 +582,10 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		}
 		// If adversary generation is enabled, store optimal choice
 		if (adv != null & !first) {
-			// Only remember strictly better choices (required for max)
-			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			// For max, only remember strictly better choices
+			if (min) {
+				adv[s] = advCh;
+			} else if (adv[s] == -1 || minmax > vect[s]) {
 				adv[s] = advCh;
 			}
 		}
@@ -778,37 +641,6 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		}
 
 		return d;
-	}
-
-	@Override
-	public double mvMultGSMinMax(double vect[], boolean min, BitSet subset, boolean complement, boolean absolute)
-	{
-		int s;
-		double d, diff, maxDiff = 0.0;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				d = mvMultJacMinMaxSingle(s, vect, min);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		}
-		return maxDiff;
 	}
 
 	@Override
@@ -869,23 +701,6 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 			d /= diag;
 
 		return d;
-	}
-
-	@Override
-	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset, boolean complement, int adv[])
-	{
-		int s;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++)
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-		}
 	}
 
 	@Override
@@ -965,8 +780,8 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 	}
 
 	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source,
-			double[] dest) {
+	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
+	{
 		for (int s : states) {
 			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(s, adv[s]);
 			while (it.hasNext()) {
@@ -977,7 +792,7 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 			}
 		}
 	}
-	
+
 	// Accessors (other)
 
 	/**
@@ -997,28 +812,6 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 	}
 
 	/**
-	 * Get the total number of choices (distributions) over all states.
-	 */
-	public int getNumChoices()
-	{
-		return numDistrs;
-	}
-
-	/**
-	 * Get the maximum number of choices (distributions) in any state.
-	 */
-	public int getMaxNumChoices()
-	{
-		// Recompute if necessary
-		if (!maxNumDistrsOk) {
-			maxNumDistrs = 0;
-			for (int s = 0; s < numStates; s++)
-				maxNumDistrs = Math.max(maxNumDistrs, getNumChoices(s));
-		}
-		return maxNumDistrs;
-	}
-
-	/**
 	 * Returns the index of the choice {@code distr} for state {@code s}, if it exists.
 	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
 	 */
@@ -1026,7 +819,7 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 	{
 		return trans.get(s).indexOf(distr);
 	}
-	
+
 	/**
 	 * Returns the index of the {@code action}-labelled choice {@code distr} for state {@code s}, if it exists.
 	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
@@ -1036,31 +829,35 @@ public class MDPSimple extends ModelExplicit implements MDP, ModelSimple
 		List<Distribution> set = trans.get(s);
 		int i, n = set.size();
 		if (distr == null) {
-		    for (i = 0; i < n; i++) {
-		    	if (set.get(i) == null) {
-		    		Object a = getAction(s, i);
-		    		if (action == null) {
-		    			if (a == null) return i;
-		    		} else {
-		    			if (action.equals(a)) return i;
-		    		}
-		    	}
-		    }
+			for (i = 0; i < n; i++) {
+				if (set.get(i) == null) {
+					Object a = getAction(s, i);
+					if (action == null) {
+						if (a == null)
+							return i;
+					} else {
+						if (action.equals(a))
+							return i;
+					}
+				}
+			}
 		} else {
-		    for (i = 0; i < n; i++) {
-		    	if (distr.equals(set.get(i))) {
-		    		Object a = getAction(s, i);
-		    		if (action == null) {
-		    			if (a == null) return i;
-		    		} else {
-		    			if (action.equals(a)) return i;
-		    		}
-		    	}
-		    }
+			for (i = 0; i < n; i++) {
+				if (distr.equals(set.get(i))) {
+					Object a = getAction(s, i);
+					if (action == null) {
+						if (a == null)
+							return i;
+					} else {
+						if (action.equals(a))
+							return i;
+					}
+				}
+			}
 		}
 		return -1;
 	}
-	
+
 	// Standard methods
 
 	@Override
