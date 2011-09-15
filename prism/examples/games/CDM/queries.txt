@@ -1,0 +1,9 @@
+rm -f cdm5032.nm
+./prismpp cdm_location_independent.pp 5 0 3 2 > cdm5032.nm
+
+rm -f cdm8032.nm
+./prismpp cdm_location_independent.pp 8 0 3 2 > cdm10032.nm
+
+rm -f cdm5432.nm
+./prismpp cdm_location_independent.pp 5 4 3 2 > cdm5432.nm
+
