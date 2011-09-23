@@ -219,9 +219,18 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute rewards for a reachability reward operator.
+	 * Compute rewards for a reachability reward operator, where the runs not reaching the final state get infinity.
 	 */
 	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	{
+		return checkRewardReach(model, modelRewards, expr, min1, min2, true);
+	}
+
+	/**
+	 * Compute rewards for a reachability reward operator.
+	 * @param unreachingAsInfinity If true, the runs not reaching the final state get infinity, if false, these get cumulative reward.
+	 */
+	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2, boolean unreachingAsInfinity) throws PrismException
 	{
 		BitSet b;
 		StateValues rewards = null;
@@ -234,12 +243,12 @@ public class STPGModelChecker extends ProbModelChecker
 		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
 		// allDDRowVars.n()));
 
-		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2);
+		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2, null, null, unreachingAsInfinity);
 		rewards = StateValues.createFromDoubleArray(res.soln, model);
 
 		return rewards;
 	}
-
+	
 	// Numerical computation functions
 
 	/**
@@ -945,7 +954,7 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability rewards.
+	 * Compute expected reachability rewards, where the runs that don't reach the final state get infinity.
 	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
 	 * @param stpg The STPG
 	 * @param rewards The rewards
@@ -958,7 +967,24 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
 	{
-		boolean unreachingAsInfinity = true;
+		return computeReachRewards(stpg, rewards, target, min1, min2, init, known, true);
+	}
+	
+	/**
+	 * Compute expected reachability rewards, where the runs that don't reach the final state get infinity.
+	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param unreachingAsInfinity If true, the runs not reaching the final state get infinity, if false, these get cumulative reward.
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 */
+	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known, boolean unreachingAsInfinity) throws PrismException
+	{
 		
 		ModelCheckerResult res = null;
 		BitSet inf;

@@ -78,6 +78,9 @@ public class SMGModelChecker extends STPGModelChecker
 			case ExpressionTemporal.R_F:
 				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min);
 				break;
+			case ExpressionTemporal.R_Fc:
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, false);
+				break;
 			default:
 				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " operator in the R operator");
 			}
