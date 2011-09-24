@@ -249,6 +249,25 @@ public class STPGModelChecker extends ProbModelChecker
 		return rewards;
 	}
 	
+	protected StateValues checkRewardReachZero(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	{
+		BitSet b;
+		StateValues rewards = null;
+		ModelCheckerResult res = null;
+
+		// model check operand first
+		b = checkExpression(model, expr.getOperand2()).getBitSet();
+
+		// print out some info about num states
+		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
+		// allDDRowVars.n()));
+
+		res = computeReachRewardsZero((STPG) model, modelRewards, b, min1, min2, null, null);
+		rewards = StateValues.createFromDoubleArray(res.soln, model);
+
+		return rewards;
+	}
+	
 	// Numerical computation functions
 
 	/**
@@ -531,8 +550,8 @@ public class STPGModelChecker extends ProbModelChecker
 	
 	/**
 	 * Zero cummulative reward precomputation algorithm.
-	 * i.e. determine the states of an STPG which, with with probability 1 get min/max reward equal to 0.0 
-	 * before (possibly) reaching a state in {@code target}, while remaining in those in @{code remain}.
+	 * i.e. determine the states of an STPG which, with probability 1 get min/max reward equal to 0.0 
+	 * before (possibly) reaching a state in {@code target}, while remaining in those in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -1256,7 +1275,412 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
+	
+	/**
+	 * Computes the reachability reward under the semantics where nonreaching runs get 0.
+	 * @param stpg
+	 * @param rewards
+	 * @param target
+	 * @param min1
+	 * @param min2
+	 * @param init
+	 * @param known
+	 * @param unreachingAsInfinity
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeReachRewardsZero(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		BitSet inf;
+		int i, n, numTarget, numInf;
+		long timer, timerProb1, timerApprox;
+		
+		// Start expected reachability
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("Starting expected reachability...");
 
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		stpg.checkForDeadlocks(target);
+
+		// Store num states
+		n = stpg.getNumStates();
+				
+		//Currently we only allow integer rewards, check if all rewards are (close to) an integer.
+		//While traversing rewards, get largest reward, too
+		boolean hasNonInt = false;
+		double nonInt = 0; //will be used for output if there is non-integer reward
+		int maxReward = 0;
+		checkrewards: for (int s = 0; s < n; s++) {
+			double sr = rewards.getStateReward(s);
+			System.out.println(sr);
+			if (sr != Math.floor(sr)) {
+				hasNonInt = true;
+				nonInt = sr;
+				break;
+			}
+			
+			if (sr > maxReward)
+				maxReward = (int) sr;
+			
+			for (int c = 0; c < stpg.getNumChoices(s); c++) { 
+				double tr = rewards.getTransitionReward(s, c);
+				System.out.println(tr);
+				if (tr != Math.floor(tr)) {
+					hasNonInt = true;
+					nonInt = tr;
+					break checkrewards;
+				}
+				
+				if (tr > maxReward)
+					maxReward = (int) tr;
+			}
+		}
+		
+		if (verbosity >= 1)
+			mainLog.println("Maximal reward is " + maxReward);
+		
+		if (hasNonInt)
+			throw new PrismException("For 'zero' semantics reachability reward all rewards must be integers." +
+					"There is at least one non-integer reward: " + nonInt);
+
+		// Optimise by enlarging target set (if more info is available)
+		if (init != null && known != null) {
+			BitSet targetNew = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
+			}
+			target = targetNew;
+		}
+		
+		//TODO identify "dead" states, i.e. those from which F can't be reached with >0 prob
+		//and those from which the bad player can ensure 0.	This is optional, but
+		//should bring some speedup.
+
+		
+		BitSet zeroProb = prob0(stpg, null, target, min1, min2);
+		
+		BitSet positiveProb = new BitSet();
+		for(int k = 0; k < n; k++)
+			positiveProb.set(k, !zeroProb.get(k));
+		
+		
+		//...and those from which the bad player can ensure 0.	
+		BitSet zeroReward = zeroRewards(stpg, rewards, positiveProb, target, !min1, !min2);
+		
+		//Identify states that get infinity.
+		ModelCheckerResult mcri = computeReachRewards(stpg, rewards, target, min1, min2, new double[n], zeroProb, false);
+		BitSet infinity = new BitSet();
+		
+		for (int k = 0; k < n; k++)
+			infinity.set(k, mcri.soln[k] == Double.POSITIVE_INFINITY);
+		
+		//Get the rich man's strategy and its values
+		//Start with computing optimal probabilities to reach the final state
+		ModelCheckerResult mcrprob = computeReachProbs(stpg, target, min1, min2);
+		
+		System.out.println(Arrays.toString(mcrprob.soln));
+		
+		//Next, reweigh the rewards and make sure that only optimal actions are taken 
+		STPGRewards rewardsRestricted;
+		if (rewards instanceof MDPRewardsSimple) {
+			//And make sure only the best actions are used
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple((MDPRewardsSimple) rewards);
+			
+			for (int s = 0; s < n; s++) {
+				for (int c = 0; c < stpg.getNumChoices(s); c++)	{
+					double prob = 0.0;
+					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
+					while(it.hasNext()) {
+						Entry<Integer, Double> e = it.next();
+						prob += e.getValue() * mcrprob.soln[e.getKey()];
+					}
+					
+					//as a hack, set the transition reward of nonoptimal transitions
+					//to something extreme so they are never chosen
+					if (prob < mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.NEGATIVE_INFINITY);
+						System.out.println(s + " " + c + " -");
+					} else if (prob > mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && min1) || (stpg.getPlayer(s) == 2 && min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.POSITIVE_INFINITY);
+						System.out.println(s + " " + c + " +");
+					} else {
+						double newReward = rewards.getTransitionReward(s, c) * mcrprob.soln[s];
+						rewardsRestrictedSimple.setTransitionReward(s, c, newReward);
+						System.out.println(s + " " + c + " " + newReward);
+					}
+					System.out.println(" " + prob + " " + mcrprob.soln[s] + " " +stpg.getPlayer(s) + " " + min1);
+				}
+				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
+				rewardsRestrictedSimple.setStateReward(s, newReward);
+			}
+			rewardsRestricted = rewardsRestrictedSimple;
+		} else {
+			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+		}		
+		
+		//Next, compute the value for the rich man's strategy.
+		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, false);
+		System.out.println(Arrays.toString(mcrrich.soln));
+		
+		//compute B from the values for the rich man's strategy
+		int lastSwitch = 0;
+		for (int s = 0; s < n; s++) {
+			//for all choices c, find maximal B such that
+			//sum_{s'} prob(c,s')(r(s) + r(c) + B + rewRich(s'))  > probRich(s)*B + rewRich(s)
+			for (int c = 0; c < stpg.getNumChoices(s); c++) {
+				double numerator = mcrrich.soln[s];
+				double denominator = - mcrprob.soln[s];
+				double tRew = rewards.getTransitionReward(s, c);
+				Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
+				while(it.hasNext()) {
+					Entry<Integer, Double> e = it.next();
+					int ts = e.getKey();
+					double sRew = rewards.getStateReward(s);
+					double p = e.getValue();
+					
+					numerator -= p*(mcrprob.soln[ts]*(sRew + tRew) + mcrrich.soln[ts]);
+					denominator += p*mcrprob.soln[ts];
+					
+					int b = (int) Math.floor(numerator/denominator);
+					System.out.println(s + " " + c + " " + b);
+					if (lastSwitch < b)
+						lastSwitch = b;
+				}
+			}
+		}
+		
+		System.out.println("B: " + lastSwitch);
+		
+		//TODO using gcd of rewards could save us iterations in many cases
+		double[][] rews = new double[maxReward + 1][n];
+		double[][] probs = new double[maxReward + 1][n];
+		double[] tmp;
+		
+		//fill in the initial values from the rich man's strategy
+		for (int j = 0; j < n; j++) {
+			for (int k = 0; k < maxReward + 1; k++) {
+				rews[k][j] = mcrrich.soln[j] + (lastSwitch + k)*mcrprob.soln[j];
+				probs[k][j] = mcrprob.soln[j];
+			}
+		}
+		
+		System.out.println(Arrays.toString(rews[0]));
+		System.out.println(Arrays.deepToString(rews));
+		System.out.println();
+		
+		for(int iters = lastSwitch; iters >=0; iters--) {		
+			//reward[s,x] =
+			// opt_c sum_{s'} p(s ->c s')(prob_F[s,x+r(s)+r(c)]*(r(s)+r(c)) + reward[s'][x+r(s)+r(c)])
+			//where opt is either max or min, depending on the owner of s
+			//probs[s,x] is the probability of reaching F under the choice c chosen by rews
+			
+			for (int s = 0; s < n; s++) {
+				if (target.get(s))
+				{
+					rews[0][s] = iters;
+					probs[0][s] = 1.0;
+				}
+			}
+			
+			for (int s = 0; s < n; s++) {
+				if (target.get(s))
+				{
+					rews[0][s] = iters;
+					probs[0][s] = 1.0;
+					continue;
+				}
+				
+				//non-target states
+				boolean min = (stpg.getPlayer(s) == 1) ? min1 : min2;
+				double stateRew = 0;
+				double stateProb = 0;
+				for (int c = 0;  c < stpg.getNumChoices(s); c++) { 
+					double choiceRew = 0;
+					double r = rewards.getStateReward(s) + rewards.getTransitionReward(s, c);
+					int index = (int) r; //the reward determines in which array we will look
+					
+					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
+					while(it.hasNext()) {
+						Entry<Integer, Double> e = it.next();
+						int ts = e.getKey();
+						double p = e.getValue();
+						//choiceRew += p*(probs[index][ts]*r + rews[index][ts]);
+						choiceRew += p*(rews[index][ts]);
+					}
+					
+					System.out.println(s + " " + c + " " + choiceRew);
+					
+					boolean changeProb = false;
+					if (min && stateRew > choiceRew) {
+						stateRew = choiceRew;
+						changeProb = true;
+					}
+					else if (!min && stateRew < choiceRew) {
+						stateRew = choiceRew;
+						changeProb = true;
+					}
+					
+					if (changeProb) {
+						stateProb = 0;
+						it = stpg.getTransitionsIterator(s, c);
+						while(it.hasNext()) {
+							Entry<Integer, Double> e = it.next();
+							stateProb += e.getValue() * probs[index][e.getKey()];
+						}
+					}
+				}
+				rews[0][s] = stateRew;
+				probs[0][s] = stateProb;
+			}
+			
+			System.out.println(iters + ": " + Arrays.toString(rews[0]));
+			System.out.println(Arrays.deepToString(rews));
+			System.out.println();
+			
+			//shift the array 
+			double[] tmpRews = rews[maxReward];
+			double[] tmpProbs = probs[maxReward];
+			for (i = maxReward; i >= 1; i--) {
+				rews[i] = rews[i-1];
+				probs[i] = probs[i-1];
+			}
+			rews[0] = tmpRews;
+			probs[0] = tmpProbs;
+		}
+		
+		timer = System.currentTimeMillis() - timer;
+		
+		res = new ModelCheckerResult();
+		res.soln = rews[1];
+		res.lastSoln = (rews.length > 2) ? rews[2] : null;
+		res.numIters = lastSwitch;
+		res.timeTaken = timer / 1000;
+		return res;
+		
+		/*
+		//If staying in zero component forever while not reaching a final state is
+		//allowed, add such states to target
+		if(!unreachingAsInfinity) {
+			//note: by definition the returned bitset contains all target states.
+			target = zeroRewards(stpg, rewards, null, target, min1, min2);
+		}
+
+		// Precomputation (not optional)
+		timerProb1 = System.currentTimeMillis();
+		inf = prob1(stpg, null, target, !min1, !min2);
+		inf.flip(0, n);
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+
+		// Print results of precomputation
+		numTarget = target.cardinality();
+		numInf = inf.cardinality();
+		if (verbosity >= 1)
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
+		
+		//Compute rewards with epsilon instead of zero. This is used to get the over-approximation
+		//of the real result, which deals with the problem of staying in zero components for free
+		//when infinity should be gained.
+		if (unreachingAsInfinity) {
+			//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
+			//also, check if by any chance all rewards are nonzero, then we don't need to precompute
+			double minimumReward = Double.POSITIVE_INFINITY;
+			double maximumReward = 0.0;
+			boolean allNonzero = true;
+			double r;
+			for (i = 0; i < n; i++) {
+				r = rewards.getStateReward(i);
+				if (r > 0.0 && r < minimumReward)
+					minimumReward = r;
+				if (r > maximumReward)
+					maximumReward = r;
+				allNonzero = allNonzero && r > 0;
+				
+				for (int j = 0; j < stpg.getNumChoices(i); j++) {
+					r = rewards.getTransitionReward(i,j);
+					if (r > 0.0  && r < minimumReward)
+						minimumReward = r;
+					if (r > maximumReward)
+						maximumReward = r;
+					allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
+					
+					for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
+						r = rewards.getNestedTransitionReward(i, j, k);
+						if (r > 0.0 && r < minimumReward)
+							minimumReward = r;
+						if (r > maximumReward)
+							maximumReward = r;
+						allNonzero = allNonzero && r > 0;
+					}
+				}
+			}
+			
+			if (!allNonzero) {
+				timerApprox = System.currentTimeMillis();
+				//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
+				double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
+				
+				if (verbosity >= 1) {
+					mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
+				}
+				
+				//Modify the rewards
+				double origZeroReplacement;
+				if (rewards instanceof MDPRewardsSimple) {
+					origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
+					((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
+				} else {
+					throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+				}
+				
+				//Compute the value when rewards are nonzero
+				switch (solnMethod) {
+				case VALUE_ITERATION:
+					res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+					break;
+				default:
+					throw new PrismException("Unknown STPG solution method " + solnMethod);
+				}
+				
+				//Set the value iteration result to be the initial solution for the next part
+				//in which "proper" zero rewards are used
+				init = res.soln;
+				
+				//Return the rewards to the original state
+				if (rewards instanceof MDPRewardsSimple) {
+					((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
+				}
+				
+				timerApprox = System.currentTimeMillis() - timerApprox;
+				
+				if (verbosity >= 1) {
+					mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
+				}
+			}
+		}
+		
+		// Compute real rewards
+		switch (solnMethod) {
+		case VALUE_ITERATION:
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init , known);
+			break;
+		default:
+			throw new PrismException("Unknown STPG solution method " + solnMethod);
+		}
+
+		// Finished expected reachability
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1)
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timePre = timerProb1 / 1000.0;
+
+		return res;*/
+	}
+	
 	/**
 	 * Simple test program.
 	 */

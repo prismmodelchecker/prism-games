@@ -46,6 +46,11 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		nestedTransRewards = null;
 	}
 	
+	public STPGRewardsSimple(MDPRewardsSimple rewards) {
+		super(rewards);
+		nestedTransRewards = null;
+	}
+	
 	// Mutators
 
 	/**

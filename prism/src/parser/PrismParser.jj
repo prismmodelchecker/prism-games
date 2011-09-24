@@ -378,6 +378,7 @@ TOKEN :
 |	< FUNC:				"func" >
 |	< F:				"F" >
 |	< Fc:				"Fc" >
+|	< F0:				"F0" >
 |	< GLOBAL:			"global" >
 |	< G:				"G" >
 |	< INIT:				"init" >
@@ -1738,6 +1739,7 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 	| begin = <I> <EQ> expr = Expression(false, false) { ret = new ExpressionTemporal(ExpressionTemporal.R_I, null, null); ret.setUpperBound(expr);  }
 	| begin = <F> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_F, null, expr); }
 	| begin = <Fc> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_Fc, null, expr); }
+	| begin = <F0> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_F0, null, expr); }
 	| begin = <S> { ret = new ExpressionTemporal(ExpressionTemporal.R_S, null, null); } )
 	{ ret.setPosition(begin, getToken(0)); return ret; }
 }
