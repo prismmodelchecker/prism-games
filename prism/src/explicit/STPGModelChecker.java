@@ -610,9 +610,10 @@ public class STPGModelChecker extends ProbModelChecker
 			soln2 = soln1;
 			soln1 = tmp;
 			
+			done = true;
 			for(int i = 0; i < n; i++) {
 				if (soln1[i] > 0.0 && soln2[i] == 0.0) {
-					done = true;
+					done = false;
 					break;
 				}
 			}
@@ -621,7 +622,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Prob1 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.print("Zero Rewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
@@ -1041,6 +1042,20 @@ public class STPGModelChecker extends ProbModelChecker
 		timerProb1 = System.currentTimeMillis();
 		inf = prob1(stpg, null, target, !min1, !min2);
 		inf.flip(0, n);
+		
+		if (!unreachingAsInfinity) {
+			//in this case, inf might contain some state which don't reach target,
+			//but don't collect infinite reward either. Remove these.
+			
+			//TODO make sure that this is a correct way of identifying infinite values
+			BitSet falsePositives;
+			do {
+				falsePositives = zeroRewards(stpg, rewards, inf, target, min1, min2);
+				falsePositives.flip(0,n);
+				inf.andNot(falsePositives);
+			} while (!falsePositives.isEmpty() && !inf.isEmpty());
+		}
+		
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
 		// Print results of precomputation
@@ -1202,9 +1217,9 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		} else {
 			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 10.0;
+				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
 		}
-
+		
 		// Determine set of states actually need to compute values for
 		unknown = new BitSet();
 		unknown.set(0, n);
@@ -1220,7 +1235,7 @@ public class STPGModelChecker extends ProbModelChecker
 				adv[i] = -1;
 			}
 		}
-
+		
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -1314,7 +1329,7 @@ public class STPGModelChecker extends ProbModelChecker
 		int maxReward = 0;
 		checkrewards: for (int s = 0; s < n; s++) {
 			double sr = rewards.getStateReward(s);
-			System.out.println(sr);
+			//System.out.println(sr);
 			if (sr != Math.floor(sr)) {
 				hasNonInt = true;
 				nonInt = sr;
@@ -1326,7 +1341,7 @@ public class STPGModelChecker extends ProbModelChecker
 			
 			for (int c = 0; c < stpg.getNumChoices(s); c++) { 
 				double tr = rewards.getTransitionReward(s, c);
-				System.out.println(tr);
+				//System.out.println(tr);
 				if (tr != Math.floor(tr)) {
 					hasNonInt = true;
 					nonInt = tr;
@@ -1367,7 +1382,7 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		
 		//...and those from which the bad player can ensure 0.	
-		BitSet zeroReward = zeroRewards(stpg, rewards, positiveProb, target, !min1, !min2);
+		//BitSet zeroReward = zeroRewards(stpg, rewards, positiveProb, target, !min1, !min2);
 		
 		//Identify states that get infinity.
 		ModelCheckerResult mcri = computeReachRewards(stpg, rewards, target, min1, min2, new double[n], zeroProb, false);
@@ -1380,7 +1395,7 @@ public class STPGModelChecker extends ProbModelChecker
 		//Start with computing optimal probabilities to reach the final state
 		ModelCheckerResult mcrprob = computeReachProbs(stpg, target, min1, min2);
 		
-		System.out.println(Arrays.toString(mcrprob.soln));
+		System.out.println("maximal probs:" + Arrays.toString(mcrprob.soln));
 		
 		//Next, reweigh the rewards and make sure that only optimal actions are taken 
 		STPGRewards rewardsRestricted;
@@ -1401,14 +1416,14 @@ public class STPGModelChecker extends ProbModelChecker
 					//to something extreme so they are never chosen
 					if (prob < mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c, Double.NEGATIVE_INFINITY);
-						System.out.println(s + " " + c + " -");
+						System.out.println("choice " + s + " " + c + " changing " + rewards.getTransitionReward(s, c) + " to -inf");
 					} else if (prob > mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && min1) || (stpg.getPlayer(s) == 2 && min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c, Double.POSITIVE_INFINITY);
-						System.out.println(s + " " + c + " +");
+						System.out.println("choice " + s + " " + c + " changing " + rewards.getTransitionReward(s, c) + " to +inf");
 					} else {
 						double newReward = rewards.getTransitionReward(s, c) * mcrprob.soln[s];
 						rewardsRestrictedSimple.setTransitionReward(s, c, newReward);
-						System.out.println(s + " " + c + " " + newReward);
+						System.out.println("choice " + s + " " + c + " changing " + rewards.getTransitionReward(s, c) + " to " + newReward);
 					}
 					System.out.println(" " + prob + " " + mcrprob.soln[s] + " " +stpg.getPlayer(s) + " " + min1);
 				}
@@ -1422,7 +1437,7 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		//Next, compute the value for the rich man's strategy.
 		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, false);
-		System.out.println(Arrays.toString(mcrrich.soln));
+		System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 		
 		//compute B from the values for the rich man's strategy
 		int lastSwitch = 0;
@@ -1455,14 +1470,12 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		//TODO using gcd of rewards could save us iterations in many cases
 		double[][] rews = new double[maxReward + 1][n];
-		double[][] probs = new double[maxReward + 1][n];
 		double[] tmp;
 		
 		//fill in the initial values from the rich man's strategy
 		for (int j = 0; j < n; j++) {
 			for (int k = 0; k < maxReward + 1; k++) {
 				rews[k][j] = mcrrich.soln[j] + (lastSwitch + k)*mcrprob.soln[j];
-				probs[k][j] = mcrprob.soln[j];
 			}
 		}
 		
@@ -1470,84 +1483,77 @@ public class STPGModelChecker extends ProbModelChecker
 		System.out.println(Arrays.deepToString(rews));
 		System.out.println();
 		
-		for(int iters = lastSwitch; iters >=0; iters--) {		
+		
+		int iters = 0;
+		for(int x = lastSwitch; x >=0; x--) {		
 			//reward[s,x] =
 			// opt_c sum_{s'} p(s ->c s')(prob_F[s,x+r(s)+r(c)]*(r(s)+r(c)) + reward[s'][x+r(s)+r(c)])
 			//where opt is either max or min, depending on the owner of s
 			//probs[s,x] is the probability of reaching F under the choice c chosen by rews
+			boolean done = false;
 			
-			for (int s = 0; s < n; s++) {
-				if (target.get(s))
-				{
-					rews[0][s] = iters;
-					probs[0][s] = 1.0;
-				}
-			}
+			double difference;
+			do {
+				difference = 0;
 			
-			for (int s = 0; s < n; s++) {
-				if (target.get(s))
-				{
-					rews[0][s] = iters;
-					probs[0][s] = 1.0;
-					continue;
+				iters++;
+				for (int s = 0; s < n; s++) {
+					if (target.get(s))
+					{
+						rews[0][s] = x;
+					}
 				}
 				
-				//non-target states
-				boolean min = (stpg.getPlayer(s) == 1) ? min1 : min2;
-				double stateRew = 0;
-				double stateProb = 0;
-				for (int c = 0;  c < stpg.getNumChoices(s); c++) { 
-					double choiceRew = 0;
-					double r = rewards.getStateReward(s) + rewards.getTransitionReward(s, c);
-					int index = (int) r; //the reward determines in which array we will look
-					
-					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
-					while(it.hasNext()) {
-						Entry<Integer, Double> e = it.next();
-						int ts = e.getKey();
-						double p = e.getValue();
-						//choiceRew += p*(probs[index][ts]*r + rews[index][ts]);
-						choiceRew += p*(rews[index][ts]);
+				for (int s = 0; s < n; s++) {
+					if (target.get(s))
+					{
+						continue;
 					}
 					
-					System.out.println(s + " " + c + " " + choiceRew);
-					
-					boolean changeProb = false;
-					if (min && stateRew > choiceRew) {
-						stateRew = choiceRew;
-						changeProb = true;
-					}
-					else if (!min && stateRew < choiceRew) {
-						stateRew = choiceRew;
-						changeProb = true;
-					}
-					
-					if (changeProb) {
-						stateProb = 0;
-						it = stpg.getTransitionsIterator(s, c);
+					//non-target states
+					boolean min = (stpg.getPlayer(s) == 1) ? min1 : min2;
+					double stateRew = 0;
+					for (int c = 0;  c < stpg.getNumChoices(s); c++) { 
+						double choiceRew = 0;
+						double r = rewards.getStateReward(s) + rewards.getTransitionReward(s, c);
+						int index = (int) r; //the reward determines in which array we will look
+						
+						Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
 						while(it.hasNext()) {
 							Entry<Integer, Double> e = it.next();
-							stateProb += e.getValue() * probs[index][e.getKey()];
+							int ts = e.getKey();
+							double p = e.getValue();
+							//choiceRew += p*(probs[index][ts]*r + rews[index][ts]);
+							choiceRew += p*(rews[index][ts]);
 						}
+						
+						System.out.println(s + " " + c + " " + choiceRew);
+						
+						if (min && stateRew > choiceRew) {
+							stateRew = choiceRew;
+						}
+						else if (!min && stateRew < choiceRew) {
+							stateRew = choiceRew;
+						}
+						
 					}
+					double cDif = Math.abs(rews[0][s] - stateRew);
+					if (cDif > difference)
+						difference = cDif;
+					rews[0][s] = stateRew;
 				}
-				rews[0][s] = stateRew;
-				probs[0][s] = stateProb;
-			}
-			
-			System.out.println(iters + ": " + Arrays.toString(rews[0]));
-			System.out.println(Arrays.deepToString(rews));
-			System.out.println();
+				
+				System.out.println(x + ": " + Arrays.toString(rews[0]));
+				System.out.println(Arrays.deepToString(rews));
+				System.out.println();
+			} while (difference > 10e-7); //TODO some smarter convergence test
 			
 			//shift the array 
 			double[] tmpRews = rews[maxReward];
-			double[] tmpProbs = probs[maxReward];
 			for (i = maxReward; i >= 1; i--) {
 				rews[i] = rews[i-1];
-				probs[i] = probs[i-1];
 			}
 			rews[0] = tmpRews;
-			probs[0] = tmpProbs;
 		}
 		
 		timer = System.currentTimeMillis() - timer;
@@ -1557,6 +1563,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.lastSoln = (rews.length > 2) ? rews[2] : null;
 		res.numIters = lastSwitch;
 		res.timeTaken = timer / 1000;
+		res.numIters = iters;
 		return res;
 		
 		/*
