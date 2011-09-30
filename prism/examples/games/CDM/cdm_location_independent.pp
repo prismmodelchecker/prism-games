@@ -55,6 +55,20 @@ global confidence#i# : [1..L];
 global preference#i# : [0..K] init 0;
 #end#
 
+// scheduling variable
+global sched : [0..N];
+
+// definition of scheduling module
+module player0
+
+	// schedule players to act
+	[] sched = 0 -> 1/N : (sched'=1)
+#for i=2:N#
+		      + 1/N : (sched'=#i#)
+#end#;
+
+endmodule
+
 
 // non-deterministic agent definitions
 #for i=1:N-D#
@@ -75,18 +89,21 @@ module player#i#
 	[] committed#i#=0 & preference#i#!=0 -> 0 : true
 			#for j=1:i-1#
 			// -- trying to communicate with agent
-			  + Pmeet_p#i# * (preference#i#=preference#j#?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) // same site
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#=L)?1:0) : (committed#i#'=1) // same site (both max conf)
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#<L)?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) // same site
 			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * Pwin#i#_#j# : (confidence#i#'=inc_conf#i#) & (preference#j#'=preference#i#) & (confidence#j#'=1) // win
 			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * (1-Pwin#i#_#j#) : (confidence#i#'=1) & (preference#i#'=preference#j#) & (confidence#j#'=inc_conf#j#) // lose
 			
 			#end#
 			#for j=i+1:N#
 			// -- trying to communicate with agent
-			  + Pmeet_p#i# * (preference#i#=preference#j#?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) // same site
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#=L)?1:0) : (committed#i#'=1) // same site (both max conf)
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#<L)?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) // same site
 			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * Pwin#i#_#j# : (confidence#i#'=inc_conf#i#) & (preference#j#'=preference#i#) & (confidence#j#'=1) // win
 			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * (1-Pwin#i#_#j#) : (confidence#i#'=1) & (preference#i#'=preference#j#) & (confidence#j#'=inc_conf#j#) // lose
-			
 			#end#;
+
+	[] committed#i#=1 -> true;
 
 endmodule
 
@@ -125,7 +142,6 @@ module player#i#
 			  + (preference#i#=0?0:(1-Pexp)) * Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#<L)?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) // same site
 			  + (preference#i#=0?0:(1-Pexp)) * Pmeet_p#i# * (preference#i#=preference#j#?0:1) * Pwin#i#_#j# : (confidence#i#'=inc_conf#i#) & (preference#j#'=preference#i#) & (confidence#j#'=1) // win
 			  + (preference#i#=0?0:(1-Pexp)) * Pmeet_p#i# * (preference#i#=preference#j#?0:1) * (1-Pwin#i#_#j#) : (confidence#i#'=1) & (preference#i#'=preference#j#) & (confidence#j#'=inc_conf#j#) // lose
-			
 			#end#;
 
 	[] committed#i#=1 -> true;
@@ -192,6 +208,8 @@ endmodule
 	// confidence measures
 	formula all_max_conf = total_confidence/N = L;
 	formula half_max_conf = ((#+ j=1:N# confidence#j#=L?1:0 #end#)/N) >= 0.5;
+
+	formula all_committed = #& j=1:N# committed#j#=1 #end#;
 		
 // -- labels
 

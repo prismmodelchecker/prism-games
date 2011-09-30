@@ -69,12 +69,12 @@ global sched : [0..N];
 
 // scheduler module
 module player0
-	[] sched = 0 & !all_committed -> (committed1=1?0:1/(N-N_committed)) : (sched'=1)
-		      		       + ((committed2=1?0:1/(N-N_committed))) : (sched'=2)
-		      		       + ((committed3=1?0:1/(N-N_committed))) : (sched'=3)
-		      		       + ((committed4=1?0:1/(N-N_committed))) : (sched'=4)
-		      		       + ((committed5=1?0:1/(N-N_committed))) : (sched'=5)
-		      		       + ((committed6=1?0:1/(N-N_committed))) : (sched'=6)
+	[] sched = 0 & !all_committed -> 1/N : (sched'=1)
+		      		       + 1/N : (sched'=2)
+		      		       + 1/N : (sched'=3)
+		      		       + 1/N : (sched'=4)
+		      		       + 1/N : (sched'=5)
+		      		       + 1/N : (sched'=6)
 ;
 
 	[] sched = 0 & all_committed -> true;
@@ -133,6 +133,38 @@ module player1
 
 	[] sched=1 & committed1=1 -> (sched'=0);
 			
+	[] sched=1 & committed1=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p1 * ((preference1=preference2 & confidence1=L & confidence2=L)?1:0) : (committed1'=1) & (committed2'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p1 * ((preference1=preference2 & !(confidence1=L & confidence2=L))?1:0) : (confidence1'=inc_conf1) & (confidence2'=inc_conf2) & (sched'=0) // same site
+			  + Pmeet_p1 * (preference1=preference2?0:1) * Pwin1_2 : (confidence1'=inc_conf1) & (preference2'=(committed2=1?preference2:preference1)) & (confidence2'=(committed2=1?confidence2:1)) & (sched'=0) // win
+			  + Pmeet_p1 * (preference1=preference2?0:1) * (1-Pwin1_2) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p1 * ((preference1=preference3 & confidence1=L & confidence3=L)?1:0) : (committed1'=1) & (committed3'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p1 * ((preference1=preference3 & !(confidence1=L & confidence3=L))?1:0) : (confidence1'=inc_conf1) & (confidence3'=inc_conf3) & (sched'=0) // same site
+			  + Pmeet_p1 * (preference1=preference3?0:1) * Pwin1_3 : (confidence1'=inc_conf1) & (preference3'=(committed3=1?preference3:preference1)) & (confidence3'=(committed3=1?confidence3:1)) & (sched'=0) // win
+			  + Pmeet_p1 * (preference1=preference3?0:1) * (1-Pwin1_3) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p1 * ((preference1=preference4 & confidence1=L & confidence4=L)?1:0) : (committed1'=1) & (committed4'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p1 * ((preference1=preference4 & !(confidence1=L & confidence4=L))?1:0) : (confidence1'=inc_conf1) & (confidence4'=inc_conf4) & (sched'=0) // same site
+			  + Pmeet_p1 * (preference1=preference4?0:1) * Pwin1_4 : (confidence1'=inc_conf1) & (preference4'=(committed4=1?preference4:preference1)) & (confidence4'=(committed4=1?confidence4:1)) & (sched'=0) // win
+			  + Pmeet_p1 * (preference1=preference4?0:1) * (1-Pwin1_4) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p1 * ((preference1=preference5 & confidence1=L & confidence5=L)?1:0) : (committed1'=1) & (committed5'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p1 * ((preference1=preference5 & !(confidence1=L & confidence5=L))?1:0) : (confidence1'=inc_conf1) & (confidence5'=inc_conf5) & (sched'=0) // same site
+			  + Pmeet_p1 * (preference1=preference5?0:1) * Pwin1_5 : (confidence1'=inc_conf1) & (preference5'=(committed5=1?preference5:preference1)) & (confidence5'=(committed5=1?confidence5:1)) & (sched'=0) // win
+			  + Pmeet_p1 * (preference1=preference5?0:1) * (1-Pwin1_5) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p1 * ((preference1=preference6 & confidence1=L & confidence6=L)?1:0) : (committed1'=1) & (committed6'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p1 * ((preference1=preference6 & !(confidence1=L & confidence6=L))?1:0) : (confidence1'=inc_conf1) & (confidence6'=inc_conf6) & (sched'=0) // same site
+			  + Pmeet_p1 * (preference1=preference6?0:1) * Pwin1_6 : (confidence1'=inc_conf1) & (preference6'=(committed6=1?preference6:preference1)) & (confidence6'=(committed6=1?confidence6:1)) & (sched'=0) // win
+			  + Pmeet_p1 * (preference1=preference6?0:1) * (1-Pwin1_6) : (sched'=0) // lose
+			
+			;
 	
 
 endmodule
@@ -187,6 +219,38 @@ module player2
 
 	[] sched=2 & committed2=1 -> (sched'=0);
 			
+	[] sched=2 & committed2=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p2 * ((preference2=preference1 & confidence2=L & confidence1=L)?1:0) : (committed2'=1) & (committed1'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p2 * ((preference2=preference1 & !(confidence2=L & confidence1=L))?1:0) : (confidence2'=inc_conf2) & (confidence1'=inc_conf1) & (sched'=0) // same site
+			  + Pmeet_p2 * (preference2=preference1?0:1) * Pwin2_1 : (confidence2'=inc_conf2) & (preference1'=(committed1=1?preference1:preference2)) & (confidence1'=(committed1=1?confidence1:1)) & (sched'=0) // win
+			  + Pmeet_p2 * (preference2=preference1?0:1) * (1-Pwin2_1) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p2 * ((preference2=preference3 & confidence2=L & confidence3=L)?1:0) : (committed2'=1) & (committed3'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p2 * ((preference2=preference3 & !(confidence2=L & confidence3=L))?1:0) : (confidence2'=inc_conf2) & (confidence3'=inc_conf3) & (sched'=0) // same site
+			  + Pmeet_p2 * (preference2=preference3?0:1) * Pwin2_3 : (confidence2'=inc_conf2) & (preference3'=(committed3=1?preference3:preference2)) & (confidence3'=(committed3=1?confidence3:1)) & (sched'=0) // win
+			  + Pmeet_p2 * (preference2=preference3?0:1) * (1-Pwin2_3) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p2 * ((preference2=preference4 & confidence2=L & confidence4=L)?1:0) : (committed2'=1) & (committed4'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p2 * ((preference2=preference4 & !(confidence2=L & confidence4=L))?1:0) : (confidence2'=inc_conf2) & (confidence4'=inc_conf4) & (sched'=0) // same site
+			  + Pmeet_p2 * (preference2=preference4?0:1) * Pwin2_4 : (confidence2'=inc_conf2) & (preference4'=(committed4=1?preference4:preference2)) & (confidence4'=(committed4=1?confidence4:1)) & (sched'=0) // win
+			  + Pmeet_p2 * (preference2=preference4?0:1) * (1-Pwin2_4) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p2 * ((preference2=preference5 & confidence2=L & confidence5=L)?1:0) : (committed2'=1) & (committed5'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p2 * ((preference2=preference5 & !(confidence2=L & confidence5=L))?1:0) : (confidence2'=inc_conf2) & (confidence5'=inc_conf5) & (sched'=0) // same site
+			  + Pmeet_p2 * (preference2=preference5?0:1) * Pwin2_5 : (confidence2'=inc_conf2) & (preference5'=(committed5=1?preference5:preference2)) & (confidence5'=(committed5=1?confidence5:1)) & (sched'=0) // win
+			  + Pmeet_p2 * (preference2=preference5?0:1) * (1-Pwin2_5) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p2 * ((preference2=preference6 & confidence2=L & confidence6=L)?1:0) : (committed2'=1) & (committed6'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p2 * ((preference2=preference6 & !(confidence2=L & confidence6=L))?1:0) : (confidence2'=inc_conf2) & (confidence6'=inc_conf6) & (sched'=0) // same site
+			  + Pmeet_p2 * (preference2=preference6?0:1) * Pwin2_6 : (confidence2'=inc_conf2) & (preference6'=(committed6=1?preference6:preference2)) & (confidence6'=(committed6=1?confidence6:1)) & (sched'=0) // win
+			  + Pmeet_p2 * (preference2=preference6?0:1) * (1-Pwin2_6) : (sched'=0) // lose
+			
+			;
 	
 
 endmodule
@@ -241,6 +305,38 @@ module player3
 
 	[] sched=3 & committed3=1 -> (sched'=0);
 			
+	[] sched=3 & committed3=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p3 * ((preference3=preference1 & confidence3=L & confidence1=L)?1:0) : (committed3'=1) & (committed1'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p3 * ((preference3=preference1 & !(confidence3=L & confidence1=L))?1:0) : (confidence3'=inc_conf3) & (confidence1'=inc_conf1) & (sched'=0) // same site
+			  + Pmeet_p3 * (preference3=preference1?0:1) * Pwin3_1 : (confidence3'=inc_conf3) & (preference1'=(committed1=1?preference1:preference3)) & (confidence1'=(committed1=1?confidence1:1)) & (sched'=0) // win
+			  + Pmeet_p3 * (preference3=preference1?0:1) * (1-Pwin3_1) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p3 * ((preference3=preference2 & confidence3=L & confidence2=L)?1:0) : (committed3'=1) & (committed2'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p3 * ((preference3=preference2 & !(confidence3=L & confidence2=L))?1:0) : (confidence3'=inc_conf3) & (confidence2'=inc_conf2) & (sched'=0) // same site
+			  + Pmeet_p3 * (preference3=preference2?0:1) * Pwin3_2 : (confidence3'=inc_conf3) & (preference2'=(committed2=1?preference2:preference3)) & (confidence2'=(committed2=1?confidence2:1)) & (sched'=0) // win
+			  + Pmeet_p3 * (preference3=preference2?0:1) * (1-Pwin3_2) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p3 * ((preference3=preference4 & confidence3=L & confidence4=L)?1:0) : (committed3'=1) & (committed4'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p3 * ((preference3=preference4 & !(confidence3=L & confidence4=L))?1:0) : (confidence3'=inc_conf3) & (confidence4'=inc_conf4) & (sched'=0) // same site
+			  + Pmeet_p3 * (preference3=preference4?0:1) * Pwin3_4 : (confidence3'=inc_conf3) & (preference4'=(committed4=1?preference4:preference3)) & (confidence4'=(committed4=1?confidence4:1)) & (sched'=0) // win
+			  + Pmeet_p3 * (preference3=preference4?0:1) * (1-Pwin3_4) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p3 * ((preference3=preference5 & confidence3=L & confidence5=L)?1:0) : (committed3'=1) & (committed5'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p3 * ((preference3=preference5 & !(confidence3=L & confidence5=L))?1:0) : (confidence3'=inc_conf3) & (confidence5'=inc_conf5) & (sched'=0) // same site
+			  + Pmeet_p3 * (preference3=preference5?0:1) * Pwin3_5 : (confidence3'=inc_conf3) & (preference5'=(committed5=1?preference5:preference3)) & (confidence5'=(committed5=1?confidence5:1)) & (sched'=0) // win
+			  + Pmeet_p3 * (preference3=preference5?0:1) * (1-Pwin3_5) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p3 * ((preference3=preference6 & confidence3=L & confidence6=L)?1:0) : (committed3'=1) & (committed6'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p3 * ((preference3=preference6 & !(confidence3=L & confidence6=L))?1:0) : (confidence3'=inc_conf3) & (confidence6'=inc_conf6) & (sched'=0) // same site
+			  + Pmeet_p3 * (preference3=preference6?0:1) * Pwin3_6 : (confidence3'=inc_conf3) & (preference6'=(committed6=1?preference6:preference3)) & (confidence6'=(committed6=1?confidence6:1)) & (sched'=0) // win
+			  + Pmeet_p3 * (preference3=preference6?0:1) * (1-Pwin3_6) : (sched'=0) // lose
+			
+			;
 	
 
 endmodule
@@ -295,6 +391,38 @@ module player4
 
 	[] sched=4 & committed4=1 -> (sched'=0);
 			
+	[] sched=4 & committed4=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p4 * ((preference4=preference1 & confidence4=L & confidence1=L)?1:0) : (committed4'=1) & (committed1'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p4 * ((preference4=preference1 & !(confidence4=L & confidence1=L))?1:0) : (confidence4'=inc_conf4) & (confidence1'=inc_conf1) & (sched'=0) // same site
+			  + Pmeet_p4 * (preference4=preference1?0:1) * Pwin4_1 : (confidence4'=inc_conf4) & (preference1'=(committed1=1?preference1:preference4)) & (confidence1'=(committed1=1?confidence1:1)) & (sched'=0) // win
+			  + Pmeet_p4 * (preference4=preference1?0:1) * (1-Pwin4_1) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p4 * ((preference4=preference2 & confidence4=L & confidence2=L)?1:0) : (committed4'=1) & (committed2'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p4 * ((preference4=preference2 & !(confidence4=L & confidence2=L))?1:0) : (confidence4'=inc_conf4) & (confidence2'=inc_conf2) & (sched'=0) // same site
+			  + Pmeet_p4 * (preference4=preference2?0:1) * Pwin4_2 : (confidence4'=inc_conf4) & (preference2'=(committed2=1?preference2:preference4)) & (confidence2'=(committed2=1?confidence2:1)) & (sched'=0) // win
+			  + Pmeet_p4 * (preference4=preference2?0:1) * (1-Pwin4_2) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p4 * ((preference4=preference3 & confidence4=L & confidence3=L)?1:0) : (committed4'=1) & (committed3'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p4 * ((preference4=preference3 & !(confidence4=L & confidence3=L))?1:0) : (confidence4'=inc_conf4) & (confidence3'=inc_conf3) & (sched'=0) // same site
+			  + Pmeet_p4 * (preference4=preference3?0:1) * Pwin4_3 : (confidence4'=inc_conf4) & (preference3'=(committed3=1?preference3:preference4)) & (confidence3'=(committed3=1?confidence3:1)) & (sched'=0) // win
+			  + Pmeet_p4 * (preference4=preference3?0:1) * (1-Pwin4_3) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p4 * ((preference4=preference5 & confidence4=L & confidence5=L)?1:0) : (committed4'=1) & (committed5'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p4 * ((preference4=preference5 & !(confidence4=L & confidence5=L))?1:0) : (confidence4'=inc_conf4) & (confidence5'=inc_conf5) & (sched'=0) // same site
+			  + Pmeet_p4 * (preference4=preference5?0:1) * Pwin4_5 : (confidence4'=inc_conf4) & (preference5'=(committed5=1?preference5:preference4)) & (confidence5'=(committed5=1?confidence5:1)) & (sched'=0) // win
+			  + Pmeet_p4 * (preference4=preference5?0:1) * (1-Pwin4_5) : (sched'=0) // lose
+			
+						// - trying to communicate with agent
+			  + Pmeet_p4 * ((preference4=preference6 & confidence4=L & confidence6=L)?1:0) : (committed4'=1) & (committed6'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p4 * ((preference4=preference6 & !(confidence4=L & confidence6=L))?1:0) : (confidence4'=inc_conf4) & (confidence6'=inc_conf6) & (sched'=0) // same site
+			  + Pmeet_p4 * (preference4=preference6?0:1) * Pwin4_6 : (confidence4'=inc_conf4) & (preference6'=(committed6=1?preference6:preference4)) & (confidence6'=(committed6=1?confidence6:1)) & (sched'=0) // win
+			  + Pmeet_p4 * (preference4=preference6?0:1) * (1-Pwin4_6) : (sched'=0) // lose
+			
+			;
 	
 
 endmodule
@@ -349,6 +477,38 @@ module player5
 
 	[] sched=5 & committed5=1 -> (sched'=0);
 			
+	[] sched=5 & committed5=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p5 * ((preference5=preference1 & confidence5=L & confidence1=L)?1:0) : (committed5'=1) & (committed1'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p5 * ((preference5=preference1 & !(confidence5=L & confidence1=L))?1:0) : (confidence5'=inc_conf5) & (confidence1'=inc_conf1) & (sched'=0) // same site
+			  + Pmeet_p5 * (preference5=preference1?0:1) * Pwin5_1 : (confidence5'=inc_conf5) & (preference1'=(committed1=1?preference1:preference5)) & (confidence1'=(committed1=1?confidence1:1)) & (sched'=0) // win
+			  + Pmeet_p5 * (preference5=preference1?0:1) * (1-Pwin5_1) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p5 * ((preference5=preference2 & confidence5=L & confidence2=L)?1:0) : (committed5'=1) & (committed2'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p5 * ((preference5=preference2 & !(confidence5=L & confidence2=L))?1:0) : (confidence5'=inc_conf5) & (confidence2'=inc_conf2) & (sched'=0) // same site
+			  + Pmeet_p5 * (preference5=preference2?0:1) * Pwin5_2 : (confidence5'=inc_conf5) & (preference2'=(committed2=1?preference2:preference5)) & (confidence2'=(committed2=1?confidence2:1)) & (sched'=0) // win
+			  + Pmeet_p5 * (preference5=preference2?0:1) * (1-Pwin5_2) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p5 * ((preference5=preference3 & confidence5=L & confidence3=L)?1:0) : (committed5'=1) & (committed3'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p5 * ((preference5=preference3 & !(confidence5=L & confidence3=L))?1:0) : (confidence5'=inc_conf5) & (confidence3'=inc_conf3) & (sched'=0) // same site
+			  + Pmeet_p5 * (preference5=preference3?0:1) * Pwin5_3 : (confidence5'=inc_conf5) & (preference3'=(committed3=1?preference3:preference5)) & (confidence3'=(committed3=1?confidence3:1)) & (sched'=0) // win
+			  + Pmeet_p5 * (preference5=preference3?0:1) * (1-Pwin5_3) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p5 * ((preference5=preference4 & confidence5=L & confidence4=L)?1:0) : (committed5'=1) & (committed4'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p5 * ((preference5=preference4 & !(confidence5=L & confidence4=L))?1:0) : (confidence5'=inc_conf5) & (confidence4'=inc_conf4) & (sched'=0) // same site
+			  + Pmeet_p5 * (preference5=preference4?0:1) * Pwin5_4 : (confidence5'=inc_conf5) & (preference4'=(committed4=1?preference4:preference5)) & (confidence4'=(committed4=1?confidence4:1)) & (sched'=0) // win
+			  + Pmeet_p5 * (preference5=preference4?0:1) * (1-Pwin5_4) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p5 * ((preference5=preference6 & confidence5=L & confidence6=L)?1:0) : (committed5'=1) & (committed6'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p5 * ((preference5=preference6 & !(confidence5=L & confidence6=L))?1:0) : (confidence5'=inc_conf5) & (confidence6'=inc_conf6) & (sched'=0) // same site
+			  + Pmeet_p5 * (preference5=preference6?0:1) * Pwin5_6 : (confidence5'=inc_conf5) & (preference6'=(committed6=1?preference6:preference5)) & (confidence6'=(committed6=1?confidence6:1)) & (sched'=0) // win
+			  + Pmeet_p5 * (preference5=preference6?0:1) * (1-Pwin5_6) : (sched'=0) // lose
+			
+			;
 	
 
 endmodule
@@ -403,6 +563,38 @@ module player6
 
 	[] sched=6 & committed6=1 -> (sched'=0);
 			
+	[] sched=6 & committed6=1 -> 0 : true	
+			// - trying to communicate with agent
+			  + Pmeet_p6 * ((preference6=preference1 & confidence6=L & confidence1=L)?1:0) : (committed6'=1) & (committed1'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p6 * ((preference6=preference1 & !(confidence6=L & confidence1=L))?1:0) : (confidence6'=inc_conf6) & (confidence1'=inc_conf1) & (sched'=0) // same site
+			  + Pmeet_p6 * (preference6=preference1?0:1) * Pwin6_1 : (confidence6'=inc_conf6) & (preference1'=(committed1=1?preference1:preference6)) & (confidence1'=(committed1=1?confidence1:1)) & (sched'=0) // win
+			  + Pmeet_p6 * (preference6=preference1?0:1) * (1-Pwin6_1) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p6 * ((preference6=preference2 & confidence6=L & confidence2=L)?1:0) : (committed6'=1) & (committed2'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p6 * ((preference6=preference2 & !(confidence6=L & confidence2=L))?1:0) : (confidence6'=inc_conf6) & (confidence2'=inc_conf2) & (sched'=0) // same site
+			  + Pmeet_p6 * (preference6=preference2?0:1) * Pwin6_2 : (confidence6'=inc_conf6) & (preference2'=(committed2=1?preference2:preference6)) & (confidence2'=(committed2=1?confidence2:1)) & (sched'=0) // win
+			  + Pmeet_p6 * (preference6=preference2?0:1) * (1-Pwin6_2) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p6 * ((preference6=preference3 & confidence6=L & confidence3=L)?1:0) : (committed6'=1) & (committed3'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p6 * ((preference6=preference3 & !(confidence6=L & confidence3=L))?1:0) : (confidence6'=inc_conf6) & (confidence3'=inc_conf3) & (sched'=0) // same site
+			  + Pmeet_p6 * (preference6=preference3?0:1) * Pwin6_3 : (confidence6'=inc_conf6) & (preference3'=(committed3=1?preference3:preference6)) & (confidence3'=(committed3=1?confidence3:1)) & (sched'=0) // win
+			  + Pmeet_p6 * (preference6=preference3?0:1) * (1-Pwin6_3) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p6 * ((preference6=preference4 & confidence6=L & confidence4=L)?1:0) : (committed6'=1) & (committed4'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p6 * ((preference6=preference4 & !(confidence6=L & confidence4=L))?1:0) : (confidence6'=inc_conf6) & (confidence4'=inc_conf4) & (sched'=0) // same site
+			  + Pmeet_p6 * (preference6=preference4?0:1) * Pwin6_4 : (confidence6'=inc_conf6) & (preference4'=(committed4=1?preference4:preference6)) & (confidence4'=(committed4=1?confidence4:1)) & (sched'=0) // win
+			  + Pmeet_p6 * (preference6=preference4?0:1) * (1-Pwin6_4) : (sched'=0) // lose
+			
+			// - trying to communicate with agent
+			  + Pmeet_p6 * ((preference6=preference5 & confidence6=L & confidence5=L)?1:0) : (committed6'=1) & (committed5'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p6 * ((preference6=preference5 & !(confidence6=L & confidence5=L))?1:0) : (confidence6'=inc_conf6) & (confidence5'=inc_conf5) & (sched'=0) // same site
+			  + Pmeet_p6 * (preference6=preference5?0:1) * Pwin6_5 : (confidence6'=inc_conf6) & (preference5'=(committed5=1?preference5:preference6)) & (confidence5'=(committed5=1?confidence5:1)) & (sched'=0) // win
+			  + Pmeet_p6 * (preference6=preference5?0:1) * (1-Pwin6_5) : (sched'=0) // lose
+			
+;
 	
 
 endmodule

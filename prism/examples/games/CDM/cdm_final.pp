@@ -21,6 +21,7 @@
 #const D#
 #const K#
 #const L#
+
 smg
 
 // number of agents
@@ -33,14 +34,14 @@ const int K = #K#;
 const int L = #L#;
 
 // model parameters
-const double Pexp = 0.5;
-const double eta = 2.0;
-const double gamma = 2.0;
-const double lambda = 2.0;
+const double Pexp;
+const double eta;
+const double gamma;
+const double lambda;
 
 // quality of the sites
 #for i=1:K#
-const double Q#i# = 1.0;
+const double Q#i#;
 #end#
 
 // confidence levels of agents
@@ -63,9 +64,9 @@ global sched : [0..N];
 
 // scheduler module
 module player0
-	[] sched = 0 & !all_committed -> (committed1=1?0:1/(N-N_committed)) : (sched'=1)
+	[] sched = 0 & !all_committed -> 1/N : (sched'=1)
 #for i=2:N#
-		      		       + ((committed#i#=1?0:1/(N-N_committed))) : (sched'=#i#)
+		      		       + 1/N : (sched'=#i#)
 #end#;
 
 	[] sched = 0 & all_committed -> true;
@@ -105,6 +106,23 @@ module player#i#
 
 	[] sched=#i# & committed#i#=1 -> (sched'=0);
 			
+	[] sched=#i# & committed#i#=1 -> 0 : true	
+			#for j=1:i-1#
+			// - trying to communicate with agent
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#=L & confidence#j#=L)?1:0) : (committed#i#'=1) & (committed#j#'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & !(confidence#i#=L & confidence#j#=L))?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) & (sched'=0) // same site
+			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * Pwin#i#_#j# : (confidence#i#'=inc_conf#i#) & (preference#j#'=(committed#j#=1?preference#j#:preference#i#)) & (confidence#j#'=(committed#j#=1?confidence#j#:1)) & (sched'=0) // win
+			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * (1-Pwin#i#_#j#) : (sched'=0) // lose
+			
+			#end#
+			#for j=i+1:N#
+			// - trying to communicate with agent
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & confidence#i#=L & confidence#j#=L)?1:0) : (committed#i#'=1) & (committed#j#'=1) & (sched'=0) // same site (both max conf), agents commit to the site
+			  + Pmeet_p#i# * ((preference#i#=preference#j# & !(confidence#i#=L & confidence#j#=L))?1:0) : (confidence#i#'=inc_conf#i#) & (confidence#j#'=inc_conf#j#) & (sched'=0) // same site
+			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * Pwin#i#_#j# : (confidence#i#'=inc_conf#i#) & (preference#j#'=(committed#j#=1?preference#j#:preference#i#)) & (confidence#j#'=(committed#j#=1?confidence#j#:1)) & (sched'=0) // win
+			  + Pmeet_p#i# * (preference#i#=preference#j#?0:1) * (1-Pwin#i#_#j#) : (sched'=0) // lose
+			
+			#end#;
 	
 
 endmodule
