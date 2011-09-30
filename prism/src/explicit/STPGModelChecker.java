@@ -127,6 +127,115 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Computes a probability that a formula (F G target) is satisfied.
+	 * <p/>
+	 * This method exploits the fact that under any fixed strategies
+	 * this probability is equivalent to 
+	 * (1 - probability of satisfying formula (G F not target))
+	 * 
+	 * @param stpg The model.
+	 * @param target The set of states satisfying the innermost subformula.
+	 * @param expr The expression to verify (including the F G part)
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @return
+	 * @throws PrismException
+	 */
+	protected StateValues checkGF(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
+		BitSet b;
+		ModelCheckerResult res = null;
+		
+		//check if the formula is of the FG form
+		Expression subformula = null;
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprT = (ExpressionTemporal) expr;
+			// And children, if present, must be state (not path) formulas
+			if (exprT.getOperator() == ExpressionTemporal.P_G) {
+				Expression expr2 = exprT.getOperand2();
+				if (expr2 instanceof ExpressionTemporal) {
+					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
+					if (expr2T.getOperator() == ExpressionTemporal.P_F) {
+						Expression expr3 = expr2T.getOperand2();
+						if (!(expr3 instanceof ExpressionTemporal)) {
+							subformula = expr3;
+						}
+					}
+				}
+			}
+		}
+		
+		if (subformula == null)
+			throw new PrismException("The expression passed to checkGF must be of the form (G F psi) where psi is a state formula");
+
+		// model check operand first, then negate it because we want 'not target'
+		b = checkExpression(model, subformula).getBitSet();
+		b.flip(0,((STPG)model).getNumStates());
+
+		//model check using FG and swapped mins/maxes
+		res = computeFG((STPG) model, b, !min1, !min2);
+		
+		//get (1 - result) and return it
+		for(int i = 0; i < res.soln.length; i++)
+			res.soln[i] = 1 - res.soln[i];
+		
+		StateValues probs = StateValues.createFromDoubleArray(res.soln, model);
+		return probs;
+	}
+	
+	/**
+	 * Computes a probability that a formula (FG target) is satisfied.
+	 * <p/>
+	 * This method exploits the fact that this probability is
+	 * equivalent to the probability of satisfying formula
+	 * (F (P=1 [ G target ])).
+	 * @param stpg The model.
+	 * @param target The set of states satisfying the innermost subformula.
+	 * @param expr The expression to verify (including the F G part)
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @return
+	 * @throws PrismException
+	 */
+	protected StateValues checkFG(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
+		BitSet b;
+		ModelCheckerResult res = null;
+		
+		System.out.println("sss");
+		
+		//check if the formula is of the FG form
+		Expression subformula = null;
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprT = (ExpressionTemporal) expr;
+			// And children, if present, must be state (not path) formulas
+			if (exprT.getOperator() == ExpressionTemporal.P_F) {
+				Expression expr2 = exprT.getOperand2();
+				if (expr2 instanceof ExpressionTemporal) {
+					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
+					if (expr2T.getOperator() == ExpressionTemporal.P_G) {
+						Expression expr3 = expr2T.getOperand2();
+						if (!(expr3 instanceof ExpressionTemporal)) {
+							subformula = expr3;
+						}
+					}
+				}
+			}
+		}
+		
+		if (subformula == null)
+			throw new PrismException("The expression passed to checkFG must be of the form (F G psi) where psi is a state formula");
+		
+		// model check operand first
+		b = checkExpression(model, subformula).getBitSet();
+		
+		res = computeFG((STPG) model, b, min1, min2);
+		
+		StateValues probs = StateValues.createFromDoubleArray(res.soln, model);
+		return probs;
+	}
+	
+	/**
 	 * Compute probabilities for a bounded until operator.
 	 */
 	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
@@ -393,6 +502,39 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timePre = (timerProb0 + timerProb1) / 1000.0;
 
 		return res;
+	}
+	
+	
+	/**
+	 * Computes a probability that a formula (FG target) is satisfied.
+	 * <p/>
+	 * This method exploits the fact that this probability is
+	 * equivalent to the probability of satisfying formula
+	 * (F (P=1 [ G target ])).
+	 * @param stpg The model.
+	 * @param target The set of states satisfying the innermost subformula.
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeFG(STPG stpg, BitSet target, boolean min1, boolean min2) throws PrismException
+	{
+		//compute G=1
+		// we have G=1 target
+		// iff
+		// F=0 not target
+		
+		int n = stpg.getNumStates();
+		target.flip(0, n);
+		System.out.println(target);
+		BitSet g1 = prob0(stpg, null, target, !min1, !min2);
+		
+		System.out.println(g1);
+		//g1.flip(0,n);
+		
+		//do reachability
+		return computeReachProbs(stpg, g1, min1, min2);
 	}
 
 	/**
@@ -1031,29 +1173,34 @@ public class STPGModelChecker extends ProbModelChecker
 			target = targetNew;
 		}
 		
-		//If staying in zero component forever while not reaching a final state is
-		//allowed, add such states to target
-		if(!unreachingAsInfinity) {
-			//note: by definition the returned bitset contains all target states.
-			target = zeroRewards(stpg, rewards, null, target, min1, min2);
-		}
-
-		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
-		inf = prob1(stpg, null, target, !min1, !min2);
-		inf.flip(0, n);
-		
-		if (!unreachingAsInfinity) {
-			//in this case, inf might contain some state which don't reach target,
-			//but don't collect infinite reward either. Remove these.
+		//identify infinite values
+		if(unreachingAsInfinity) {
+			inf = prob1(stpg, null, target, !min1, !min2);
+			inf.flip(0, n);
+		} else {
+			//check that there are no transition rewards
+			//TODO fix the precomputation alg for infinity so that it
+			//allows transition rewards.
+			//At the same time find which states have nonzero reward
+			BitSet zeroRew = new BitSet();
+			for (int s = 0; s < n; s++) {
+				for (int t = 0; t < stpg.getNumChoices(s); t++) {
+					if (rewards.getTransitionReward(s, t) > 0) {
+						throw new PrismException("The Fc operator cannot currently work with transition rewards.");
+					}
+				}
+				if (rewards.getStateReward(s) == 0)
+					zeroRew.set(s);
+			}
 			
-			//TODO make sure that this is a correct way of identifying infinite values
-			BitSet falsePositives;
-			do {
-				falsePositives = zeroRewards(stpg, rewards, inf, target, min1, min2);
-				falsePositives.flip(0,n);
-				inf.andNot(falsePositives);
-			} while (!falsePositives.isEmpty() && !inf.isEmpty());
+			inf = new BitSet();
+			//TODO the following uses numeric computation, should be changed
+			//to something that is purely discrete.
+			ModelCheckerResult rm = computeFG(stpg, zeroRew, min1, min2);
+			for (int s = 0; s < n; s++)
+				if (rm.soln[s] < 1)
+					inf.set(s);
 		}
 		
 		timerProb1 = System.currentTimeMillis() - timerProb1;

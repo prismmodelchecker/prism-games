@@ -35,6 +35,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionTemporal;
+import parser.type.TypeBool;
 import prism.PrismException;
 
 /**
@@ -56,9 +57,45 @@ public class SMGModelChecker extends STPGModelChecker
 		// and then pass control to appropriate method. 
 		if (expr.isSimplePathFormula()) {
 			return super.checkProbPathFormulaSimple(model, expr, min, !min);
-		} else {
-			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
 		}
+		
+		//Test if this is FG
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprT = (ExpressionTemporal) expr;
+			if (exprT.getOperator() == ExpressionTemporal.P_F) {
+				Expression expr2 = exprT.getOperand2();
+				if (expr2 instanceof ExpressionTemporal) {
+					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
+					if (expr2T.getOperator() == ExpressionTemporal.P_G) {
+						Expression expr3 = expr2T.getOperand2();
+						if (!(expr3 instanceof ExpressionTemporal)) {
+							return super.checkFG(model, expr, min, !min);
+						}
+					}
+				}
+			}
+		}
+		
+		//Test whether this is GF
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprT = (ExpressionTemporal) expr;
+			if (exprT.getOperator() == ExpressionTemporal.P_G) {
+				Expression expr2 = exprT.getOperand2();
+				if (expr2 instanceof ExpressionTemporal) {
+					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
+					if (expr2T.getOperator() == ExpressionTemporal.P_F) {
+						Expression expr3 = expr2T.getOperand2();
+						if (!(expr3 instanceof ExpressionTemporal)) {
+							return super.checkGF(model, expr, min, !min);
+						}
+					}
+				}
+			}
+		}
+		
+		//in other case
+		throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
+		
 	}
 	
 	/**
