@@ -1,0 +1,220 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 11:30:20 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const 'Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) <<[0, 1]>> Pmax=? [ F all_committed&all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 80269 156133 175065
+Reachable states exploration and model construction done in 6.725 secs.
+Sorting reachable states list...
+
+Time for model construction: 7.138 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: <<[0, 1]>> Pmax=? [ F all_committed&all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+Value in the initial state: 0.11011651119110297
+
+Time for model checking: 68.052 seconds.
+
+Result: 0.11011651119110297 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 11:31:37 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const 'Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> Pmax=? [ F all_committed&all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 111634 175065
+Reachable states exploration and model construction done in 4.748 secs.
+Sorting reachable states list...
+
+Time for model construction: 5.11 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> Pmax=? [ F all_committed&all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+Value in the initial state: 0.3041681253994424
+
+Time for model checking: 41.521 seconds.
+
+Result: 0.3041681253994424 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 11:32:25 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const 'Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) <<[0, 1, 2, 3]>> Pmax=? [ F all_committed&all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 101308 175065
+Reachable states exploration and model construction done in 5.138 secs.
+Sorting reachable states list...
+
+Time for model construction: 5.511 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3]>> Pmax=? [ F all_committed&all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+Value in the initial state: 0.551071307816023
+
+Time for model checking: 35.876 seconds.
+
+Result: 0.551071307816023 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 11:33:07 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const 'Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) <<[0, 1, 2, 3, 4]>> Pmax=? [ F all_committed&all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 103560 175065
+Reachable states exploration and model construction done in 5.091 secs.
+Sorting reachable states list...
+
+Time for model construction: 5.477 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4]>> Pmax=? [ F all_committed&all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+Value in the initial state: 0.8227781170497326
+
+Time for model checking: 35.887 seconds.
+
+Result: 0.8227781170497326 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 11:33:50 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const 'Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) <<[0, 1, 2, 3, 4, 5]>> Pmax=? [ F all_committed&all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 106274 175065
+Reachable states exploration and model construction done in 5.092 secs.
+Sorting reachable states list...
+
+Time for model construction: 5.348 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4, 5]>> Pmax=? [ F all_committed&all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+Value in the initial state: 1.0
+
+Time for model checking: 4.312 seconds.
+
+Result: 1.0 (value in the initial state)
+
