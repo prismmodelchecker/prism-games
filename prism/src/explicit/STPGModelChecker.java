@@ -495,7 +495,7 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 		//do value iteration only if the values needed wasn't handled by precomputation
-		if (bound < 1.0) {
+		if (bound < 1.0 || !(precomp && prob1 && !genAdv)) {
 			// Compute probabilities
 			switch (solnMethod) {
 			case VALUE_ITERATION:
