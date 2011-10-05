@@ -56,7 +56,12 @@ public class SMGModelChecker extends STPGModelChecker
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method. 
 		if (expr.isSimplePathFormula()) {
-			return super.checkProbPathFormulaSimple(model, expr, min, !min);
+			double p = -1;
+			Expression pb = exprPATL.getExpressionProb().getProb();
+			if (pb != null)
+				p = pb.evaluateDouble(constantValues);
+			
+			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
 		}
 		
 		//Test if this is FG

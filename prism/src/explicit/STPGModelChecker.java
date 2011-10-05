@@ -48,12 +48,12 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
-	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2, double bound) throws PrismException
 	{
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method. 
 		if (expr.isSimplePathFormula()) {
-			return checkProbPathFormulaSimple(model, expr, min1, min2);
+			return checkProbPathFormulaSimple(model, expr, min1, min2, bound);
 		} else {
 			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
 		}
@@ -62,7 +62,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute probabilities for a simple, non-LTL path operator.
 	 */
-	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, boolean min1, boolean min2, double bound) throws PrismException
 	{
 		StateValues probs = null;
 
@@ -81,12 +81,12 @@ public class STPGModelChecker extends ProbModelChecker
 				if (exprTemp.hasBounds()) {
 					probs = checkProbBoundedUntil(model, exprTemp, min1, min2);
 				} else {
-					probs = checkProbUntil(model, exprTemp, min1, min2);
+					probs = checkProbUntil(model, exprTemp, min1, min2, bound);
 				}
 			}
 			// Anything else - convert to until and recurse
 			else {
-				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min1, min2);
+				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min1, min2, bound);
 			}
 		}
 
@@ -237,6 +237,9 @@ public class STPGModelChecker extends ProbModelChecker
 	
 	/**
 	 * Compute probabilities for a bounded until operator.
+	 * @param bound The bound of the probability, can be specified if the caller
+	 * is only interested whether a probability is greater/lower than {@code bound},
+	 * this method can use it to avoid unnecessary computations.
 	 */
 	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
 	{
@@ -281,7 +284,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute probabilities for an (unbounded) until operator.
 	 */
-	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2, double bound) throws PrismException
 	{
 		BitSet b1, b2;
 		StateValues probs = null;
@@ -297,7 +300,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
 		// allDDRowVars.n()) + " states\n");
 
-		res = computeUntilProbs((STPG) model, b1, b2, min1, min2);
+		res = computeUntilProbs((STPG) model, b1, b2, min1, min2, bound);
 		probs = StateValues.createFromDoubleArray(res.soln, model);
 
 		return probs;
@@ -389,7 +392,20 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2) throws PrismException
 	{
-		return computeReachProbs(stpg, null, target, min1, min2, null, null);
+		return computeReachProbs(stpg, target, min1, min2, -1);
+	}
+	
+	/**
+	 * Compute reachability probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target}.
+	 * @param stpg The STPG
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 */
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2, double bound) throws PrismException
+	{
+		return computeReachProbs(stpg, null, target, min1, min2, null, null, bound);
 	}
 
 	/**
@@ -402,9 +418,9 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeUntilProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2) throws PrismException
+	public ModelCheckerResult computeUntilProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double bound) throws PrismException
 	{
-		return computeReachProbs(stpg, remain, target, min1, min2, null, null);
+		return computeReachProbs(stpg, remain, target, min1, min2, null, null, bound);
 	}
 
 	/**
@@ -420,7 +436,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known)
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double bound)
 			throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -478,17 +494,26 @@ public class STPGModelChecker extends ProbModelChecker
 		numNo = no.cardinality();
 		if (verbosity >= 1)
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
-
-		// Compute probabilities
-		switch (solnMethod) {
-		case VALUE_ITERATION:
-			res = computeReachProbsValIter(stpg, no, yes, min1, min2, init, known);
-			break;
-		case GAUSS_SEIDEL:
-			res = computeReachProbsGaussSeidel(stpg, no, yes, min1, min2, init, known);
-			break;
-		default:
-			throw new PrismException("Unknown STPG solution method " + solnMethod);
+		//do value iteration only if the values needed wasn't handled by precomputation
+		if (bound < 1.0) {
+			// Compute probabilities
+			switch (solnMethod) {
+			case VALUE_ITERATION:
+				res = computeReachProbsValIter(stpg, no, yes, min1, min2, init, known);
+				break;
+			case GAUSS_SEIDEL:
+				res = computeReachProbsGaussSeidel(stpg, no, yes, min1, min2, init, known);
+				break;
+			default:
+				throw new PrismException("Unknown STPG solution method " + solnMethod);
+			}
+		} else {
+			res = new ModelCheckerResult();
+			res.numIters = 0;
+			res.soln = new double[n];
+			for(int k = 0; k < n; k++)
+				res.soln[k] = (yes.get(k)) ? 1.0 : 0.0;
+			System.out.println("Bound is 1, hence I am skipping the computation of other values than 1.");
 		}
 
 		// Finished probabilistic reachability

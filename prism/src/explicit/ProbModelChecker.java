@@ -448,7 +448,7 @@ public class ProbModelChecker extends StateModelChecker
 	{
 		// Probability bound
 		Expression pb; // (expression)
-		double p = 0; // (actual value)
+		double p = -1; // (actual value, -1 means undefined)
 		// Relational operator
 		String relOp;
 		// For nondeterministic models, are we finding min (true) or max (false) probs
@@ -515,10 +515,10 @@ public class ProbModelChecker extends StateModelChecker
 			probs = ((MDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
 			break;
 		case STPG:
-			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2);
+			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2, p);
 			break;
 		case SMG:
-			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min1, !min1);
+			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min1, !min1, p);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
