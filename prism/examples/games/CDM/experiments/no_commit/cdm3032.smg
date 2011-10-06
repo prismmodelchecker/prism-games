@@ -263,8 +263,8 @@ endmodule
 
 // -- rewards
 
-const int communication_cost = 1;
-const int exploration_cost = 2;
+const int communication_cost = 15;
+const int exploration_cost = 1;
 
 // communication n costs
 rewards "ncomm1"

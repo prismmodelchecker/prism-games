@@ -34,14 +34,14 @@ const int K = #K#;
 const int L = #L#;
 
 // model parameters
-const double Pexp=0.5;
-const double eta=1;
-const double gamma=1;
-const double lambda=1;
+const double Pexp;
+const double eta;
+const double gamma;
+const double lambda;
 
 // quality of the sites
 #for i=1:K#
-const double Q#i#=1;
+const double Q#i#;
 #end#
 
 // confidence levels of agents
@@ -216,7 +216,7 @@ endmodule
 
 // -- rewards
 
-const int communication_cost = 1;
+const int communication_cost = 15;
 const int exploration_cost = 1;
 
 // communication n costs

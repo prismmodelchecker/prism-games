@@ -18,7 +18,8 @@
 // Aistis Simaitis 23/06/11 
 
 
-mdp
+smg
+
 // number of agents
 const int N = 3;
 
@@ -30,14 +31,14 @@ const int L = 2;
 
 // model parameters
 const double Pexp;
-const double eta=1;
-const double gamma=1;
-const double lambda=1;
+const double eta;
+const double gamma;
+const double lambda;
 
 // quality of the sites
-const double Q1=1;
-const double Q2=1;
-const double Q3=1;
+const double Q1;
+const double Q2;
+const double Q3;
 
 // confidence levels of agents
 global confidence1 : [1..L];
@@ -248,7 +249,7 @@ endmodule
 // -- rewards
 
 const int communication_cost = 1;
-const int exploration_cost = 1;
+const int exploration_cost = 2;
 
 // communication n costs
 
