@@ -30,15 +30,15 @@ const int K = 3;
 const int L = 2;
 
 // model parameters
-const double Pexp=0.5;
-const double eta=1;
-const double gamma=1;
-const double lambda=1;
+const double Pexp;
+const double eta;
+const double gamma;
+const double lambda;
 
 // quality of the sites
-const double Q1=1;
-const double Q2=1;
-const double Q3=1;
+const double Q1;
+const double Q2;
+const double Q3;
 
 // confidence levels of agents
 global confidence1 : [1..L];
@@ -431,28 +431,28 @@ endmodule
 // -- rewards
 
 const int communication_cost = 1;
-const int exploration_cost = 1;
+const int exploration_cost = 2;
 
-// communication costs
-rewards "comm1"
+// communication n costs
+rewards "ncomm1"
 	[com1] true : communication_cost;
 endrewards
-rewards "comm12"
+rewards "ncomm12"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 endrewards
-rewards "comm123"
+rewards "ncomm123"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
 endrewards
-rewards "comm1234"
+rewards "ncomm1234"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
 	[com4] true : communication_cost;
 endrewards
-rewards "comm12345"
+rewards "ncomm12345"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
@@ -460,26 +460,28 @@ rewards "comm12345"
 	[com5] true : communication_cost;
 endrewards
 
-// exploration costs
-rewards "expl1"
+// communication d costs
+
+// exploration n costs
+rewards "nexpl1"
 	[exp1] true : exploration_cost;
 endrewards
-rewards "expl12"
+rewards "nexpl12"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 endrewards
-rewards "expl123"
+rewards "nexpl123"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
 endrewards
-rewards "expl1234"
+rewards "nexpl1234"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
 	[exp4] true : exploration_cost;
 endrewards
-rewards "expl12345"
+rewards "nexpl12345"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
@@ -487,18 +489,20 @@ rewards "expl12345"
 	[exp5] true : exploration_cost;
 endrewards
 
-// total costs
-rewards "tot1"
+// exploration d costs
+
+// total n costs
+rewards "ntot1"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 endrewards
-rewards "tot12"
+rewards "ntot12"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
 	[com2] true : communication_cost;
 endrewards
-rewards "tot123"
+rewards "ntot123"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
@@ -506,7 +510,7 @@ rewards "tot123"
 	[exp3] true : exploration_cost;
 	[com3] true : communication_cost;
 endrewards
-rewards "tot1234"
+rewards "ntot1234"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
@@ -516,7 +520,7 @@ rewards "tot1234"
 	[exp4] true : exploration_cost;
 	[com4] true : communication_cost;
 endrewards
-rewards "tot12345"
+rewards "ntot12345"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
@@ -529,6 +533,7 @@ rewards "tot12345"
 	[com5] true : communication_cost;
 endrewards
 
+// total d costs
 	
 rewards "runtime"
 	sched!=0 : 1;

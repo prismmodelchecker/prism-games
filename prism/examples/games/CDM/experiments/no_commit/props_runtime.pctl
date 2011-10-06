@@ -1,1 +1,0 @@
-PRISM_JAVAMAXMEM=1g bin/prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg  examples/games/CDM/experiments/no_commit/props_comm.pctl

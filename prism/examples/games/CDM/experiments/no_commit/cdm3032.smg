@@ -21,7 +21,7 @@
 smg
 
 // number of agents
-const int N = 4;
+const int N = 3;
 
 // number of sites
 const int K = 3;
@@ -44,13 +44,11 @@ const double Q3;
 global confidence1 : [1..L];
 global confidence2 : [1..L];
 global confidence3 : [1..L];
-global confidence4 : [1..L];
 
 // site preferences of agents
 global preference1 : [0..K] init 0;
 global preference2 : [0..K] init 0;
 global preference3 : [0..K] init 0;
-global preference4 : [0..K] init 0;
 
 
 // scheduling variable
@@ -61,7 +59,6 @@ module player0
 	[] sched = 0 -> 1/N : (sched'=1)
 		      + 1/N : (sched'=2)
 		      + 1/N : (sched'=3)
-		      + 1/N : (sched'=4)
 ;
 
 	
@@ -98,11 +95,6 @@ module player1
 			  + Pmeet_p1 * (preference1=preference3?1:0) : (confidence1'=inc_conf1) & (confidence3'=inc_conf3) & (sched'=0) // same site
 			  + Pmeet_p1 * (preference1=preference3?0:1) * Pwin1_3 : (confidence1'=inc_conf1) & (preference3'=preference1) & (confidence3'=1) & (sched'=0) // win
 			  + Pmeet_p1 * (preference1=preference3?0:1) * (1-Pwin1_3) : (confidence1'=1) & (preference1'=preference3) & (confidence3'=inc_conf3) & (sched'=0) // lose
-			
-						// - trying to communicate with agent
-			  + Pmeet_p1 * (preference1=preference4?1:0) : (confidence1'=inc_conf1) & (confidence4'=inc_conf4) & (sched'=0) // same site
-			  + Pmeet_p1 * (preference1=preference4?0:1) * Pwin1_4 : (confidence1'=inc_conf1) & (preference4'=preference1) & (confidence4'=1) & (sched'=0) // win
-			  + Pmeet_p1 * (preference1=preference4?0:1) * (1-Pwin1_4) : (confidence1'=1) & (preference1'=preference4) & (confidence4'=inc_conf4) & (sched'=0) // lose
 			
 			;
 			
@@ -141,11 +133,6 @@ module player2
 			  + Pmeet_p2 * (preference2=preference3?0:1) * Pwin2_3 : (confidence2'=inc_conf2) & (preference3'=preference2) & (confidence3'=1) & (sched'=0) // win
 			  + Pmeet_p2 * (preference2=preference3?0:1) * (1-Pwin2_3) : (confidence2'=1) & (preference2'=preference3) & (confidence3'=inc_conf3) & (sched'=0) // lose
 			
-						// - trying to communicate with agent
-			  + Pmeet_p2 * (preference2=preference4?1:0) : (confidence2'=inc_conf2) & (confidence4'=inc_conf4) & (sched'=0) // same site
-			  + Pmeet_p2 * (preference2=preference4?0:1) * Pwin2_4 : (confidence2'=inc_conf2) & (preference4'=preference2) & (confidence4'=1) & (sched'=0) // win
-			  + Pmeet_p2 * (preference2=preference4?0:1) * (1-Pwin2_4) : (confidence2'=1) & (preference2'=preference4) & (confidence4'=inc_conf4) & (sched'=0) // lose
-			
 			;
 			
 	// don't do anything
@@ -183,57 +170,10 @@ module player3
 			  + Pmeet_p3 * (preference3=preference2?0:1) * Pwin3_2 : (confidence3'=inc_conf3) & (preference2'=preference3) & (confidence2'=1) & (sched'=0) // win
 			  + Pmeet_p3 * (preference3=preference2?0:1) * (1-Pwin3_2) : (confidence3'=1) & (preference3'=preference2) & (confidence2'=inc_conf2) & (sched'=0) // lose
 			
-			// - trying to communicate with agent
-			  + Pmeet_p3 * (preference3=preference4?1:0) : (confidence3'=inc_conf3) & (confidence4'=inc_conf4) & (sched'=0) // same site
-			  + Pmeet_p3 * (preference3=preference4?0:1) * Pwin3_4 : (confidence3'=inc_conf3) & (preference4'=preference3) & (confidence4'=1) & (sched'=0) // win
-			  + Pmeet_p3 * (preference3=preference4?0:1) * (1-Pwin3_4) : (confidence3'=1) & (preference3'=preference4) & (confidence4'=inc_conf4) & (sched'=0) // lose
-			
-			;
-			
-	// don't do anything
-	[] sched=3 -> (sched'=0);
-
-endmodule
-
-player p4
-	player4, [exp4], [com4]
-endplayer
-
-module player4
-
-	// exploring sites
-	[exp4] sched=4 -> 0 : true
-			// -- evaluating site and changing preference with probability Pswitchxy
-			  + 1/K * Pswitch4_1 : (preference4'=1) & (confidence4'=1) & (sched'=0)
-			  + 1/K * (1-Pswitch4_1) : (sched'=0)
-						// -- evaluating site and changing preference with probability Pswitchxy
-			  + 1/K * Pswitch4_2 : (preference4'=2) & (confidence4'=1) & (sched'=0)
-			  + 1/K * (1-Pswitch4_2) : (sched'=0)
-						// -- evaluating site and changing preference with probability Pswitchxy
-			  + 1/K * Pswitch4_3 : (preference4'=3) & (confidence4'=1) & (sched'=0)
-			  + 1/K * (1-Pswitch4_3) : (sched'=0)
-			;
-	// communicating with other agents in the same site with probability 1-Pexp
-	[com4] sched=4 & preference4!=0 -> 0 : true	
-			// - trying to communicate with agent
-			  + Pmeet_p4 * (preference4=preference1?1:0) : (confidence4'=inc_conf4) & (confidence1'=inc_conf1) & (sched'=0) // same site
-			  + Pmeet_p4 * (preference4=preference1?0:1) * Pwin4_1 : (confidence4'=inc_conf4) & (preference1'=preference4) & (confidence1'=1) & (sched'=0) // win
-			  + Pmeet_p4 * (preference4=preference1?0:1) * (1-Pwin4_1) : (confidence4'=1) & (preference4'=preference1) & (confidence1'=inc_conf1) & (sched'=0) // lose
-			
-			// - trying to communicate with agent
-			  + Pmeet_p4 * (preference4=preference2?1:0) : (confidence4'=inc_conf4) & (confidence2'=inc_conf2) & (sched'=0) // same site
-			  + Pmeet_p4 * (preference4=preference2?0:1) * Pwin4_2 : (confidence4'=inc_conf4) & (preference2'=preference4) & (confidence2'=1) & (sched'=0) // win
-			  + Pmeet_p4 * (preference4=preference2?0:1) * (1-Pwin4_2) : (confidence4'=1) & (preference4'=preference2) & (confidence2'=inc_conf2) & (sched'=0) // lose
-			
-			// - trying to communicate with agent
-			  + Pmeet_p4 * (preference4=preference3?1:0) : (confidence4'=inc_conf4) & (confidence3'=inc_conf3) & (sched'=0) // same site
-			  + Pmeet_p4 * (preference4=preference3?0:1) * Pwin4_3 : (confidence4'=inc_conf4) & (preference3'=preference4) & (confidence3'=1) & (sched'=0) // win
-			  + Pmeet_p4 * (preference4=preference3?0:1) * (1-Pwin4_3) : (confidence4'=1) & (preference4'=preference3) & (confidence3'=inc_conf3) & (sched'=0) // lose
-			
 ;
 			
 	// don't do anything
-	[] sched=4 -> (sched'=0);
+	[] sched=3 -> (sched'=0);
 
 endmodule
 
@@ -246,7 +186,6 @@ endmodule
 	formula inc_conf1 = confidence1=L ? L : (confidence1+1);
 	formula inc_conf2 = confidence2=L ? L : (confidence2+1);
 	formula inc_conf3 = confidence3=L ? L : (confidence3+1);
-	formula inc_conf4 = confidence4=L ? L : (confidence4+1);
 
 // formulae to compute probabilities of agents to meet
 
@@ -254,14 +193,12 @@ endmodule
 	formula Pmeet_p1 = 1/(N-1);
 	formula Pmeet_p2 = 1/(N-1);
 	formula Pmeet_p3 = 1/(N-1);
-	formula Pmeet_p4 = 1/(N-1);
 
 
 // formulae to get qualities of agents' preferred sites
 	formula Q_p1 =  preference1=1 ? Q1 : ( preference1=1 ? Q2 : (Q3) ) ;
 	formula Q_p2 =  preference2=1 ? Q1 : ( preference2=1 ? Q2 : (Q3) ) ;
 	formula Q_p3 =  preference3=1 ? Q1 : ( preference3=1 ? Q2 : (Q3) ) ;
-	formula Q_p4 =  preference4=1 ? Q1 : ( preference4=1 ? Q2 : (Q3) ) ;
 
 // formulae for evaluating the sites (Pswitchij = prob of to switch from size i to site j).
 	
@@ -277,10 +214,6 @@ endmodule
 	formula Pswitch3_2 = preference3=0 ? 1 : (preference3=2 ? 0 : pow(Q2, eta) / (pow(Q2, eta) + pow(Q_p3, eta)));	
 	formula Pswitch3_3 = preference3=0 ? 1 : (preference3=3 ? 0 : pow(Q3, eta) / (pow(Q3, eta) + pow(Q_p3, eta)));	
 
-	formula Pswitch4_1 = preference4=0 ? 1 : (preference4=1 ? 0 : pow(Q1, eta) / (pow(Q1, eta) + pow(Q_p4, eta)));	
-	formula Pswitch4_2 = preference4=0 ? 1 : (preference4=2 ? 0 : pow(Q2, eta) / (pow(Q2, eta) + pow(Q_p4, eta)));	
-	formula Pswitch4_3 = preference4=0 ? 1 : (preference4=3 ? 0 : pow(Q3, eta) / (pow(Q3, eta) + pow(Q_p4, eta)));	
-
 
 // formulae for conducting tournaments
 
@@ -288,23 +221,13 @@ endmodule
 		((pow(Q_p1, lambda) * pow(confidence1, gamma))+(pow(Q_p2, lambda) * pow(confidence2, gamma))))));
 	formula Pwin1_3 = (preference3=0?1:(preference1=0?0:((pow(Q_p1, lambda) * pow(confidence1, gamma)) / 
 		((pow(Q_p1, lambda) * pow(confidence1, gamma))+(pow(Q_p3, lambda) * pow(confidence3, gamma))))));
-	formula Pwin1_4 = (preference4=0?1:(preference1=0?0:((pow(Q_p1, lambda) * pow(confidence1, gamma)) / 
-		((pow(Q_p1, lambda) * pow(confidence1, gamma))+(pow(Q_p4, lambda) * pow(confidence4, gamma))))));
 
 	formula Pwin2_1 = 1-Pwin1_2;
 	formula Pwin2_3 = (preference3=0?1:(preference2=0?0:((pow(Q_p2, lambda) * pow(confidence2, gamma)) / 
 		((pow(Q_p2, lambda) * pow(confidence2, gamma))+(pow(Q_p3, lambda) * pow(confidence3, gamma))))));
-	formula Pwin2_4 = (preference4=0?1:(preference2=0?0:((pow(Q_p2, lambda) * pow(confidence2, gamma)) / 
-		((pow(Q_p2, lambda) * pow(confidence2, gamma))+(pow(Q_p4, lambda) * pow(confidence4, gamma))))));
 
 	formula Pwin3_1 = 1-Pwin1_3;
 	formula Pwin3_2 = 1-Pwin2_3;
-	formula Pwin3_4 = (preference4=0?1:(preference3=0?0:((pow(Q_p3, lambda) * pow(confidence3, gamma)) / 
-		((pow(Q_p3, lambda) * pow(confidence3, gamma))+(pow(Q_p4, lambda) * pow(confidence4, gamma))))));
-
-	formula Pwin4_1 = 1-Pwin1_4;
-	formula Pwin4_2 = 1-Pwin2_4;
-	formula Pwin4_3 = 1-Pwin3_4;
 
 
 // labeling states
@@ -312,16 +235,16 @@ endmodule
 // -- formulae to generate labels
 	
 	// agreement on site
-	formula all_prefer_1 =  preference1=1 & preference2=1 & preference3=1 & preference4=1 ;
-	formula all_prefer_2 =  preference1=2 & preference2=2 & preference3=2 & preference4=2 ;
-	formula all_prefer_3 =  preference1=3 & preference2=3 & preference3=3 & preference4=3 ;
+	formula all_prefer_1 =  preference1=1 & preference2=1 & preference3=1 ;
+	formula all_prefer_2 =  preference1=2 & preference2=2 & preference3=2 ;
+	formula all_prefer_3 =  preference1=3 & preference2=3 & preference3=3 ;
 
 	// compute total confidence
-	formula total_confidence =  confidence1 + confidence2 + confidence3 + confidence4 ;
+	formula total_confidence =  confidence1 + confidence2 + confidence3 ;
 	
 	// confidence measures
 	formula all_max_conf = total_confidence/N = L;
-	formula half_max_conf = (( confidence1=L?1:0 + confidence2=L?1:0 + confidence3=L?1:0 + confidence4=L?1:0 )/N) >= 0.5;
+	formula half_max_conf = (( confidence1=L?1:0 + confidence2=L?1:0 + confidence3=L?1:0 )/N) >= 0.5;
 		
 // -- labels
 
@@ -356,12 +279,6 @@ rewards "ncomm123"
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
 endrewards
-rewards "ncomm1234"
-	[com1] true : communication_cost;
-	[com2] true : communication_cost;
-	[com3] true : communication_cost;
-	[com4] true : communication_cost;
-endrewards
 
 // communication d costs
 
@@ -377,12 +294,6 @@ rewards "nexpl123"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
-endrewards
-rewards "nexpl1234"
-	[exp1] true : exploration_cost;
-	[exp2] true : exploration_cost;
-	[exp3] true : exploration_cost;
-	[exp4] true : exploration_cost;
 endrewards
 
 // exploration d costs
@@ -405,16 +316,6 @@ rewards "ntot123"
 	[com2] true : communication_cost;
 	[exp3] true : exploration_cost;
 	[com3] true : communication_cost;
-endrewards
-rewards "ntot1234"
-	[exp1] true : exploration_cost;
-	[com1] true : communication_cost;
-	[exp2] true : exploration_cost;
-	[com2] true : communication_cost;
-	[exp3] true : exploration_cost;
-	[com3] true : communication_cost;
-	[exp4] true : exploration_cost;
-	[com4] true : communication_cost;
 endrewards
 
 // total d costs
