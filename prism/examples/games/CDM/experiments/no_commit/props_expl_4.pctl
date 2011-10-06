@@ -1,0 +1,5 @@
+<<0,1>> R{"nexpl1234"}min=? [F all_prefer_1]
+<<0,1,2>> R{"nexpl1234"}min=? [F all_prefer_1]
+<<0,1,2,3>> R{"nexpl1234"}min=? [F all_prefer_1]
+<<0,1,2,3,4>> R{"nexpl1234"}min=? [F all_prefer_1]
+

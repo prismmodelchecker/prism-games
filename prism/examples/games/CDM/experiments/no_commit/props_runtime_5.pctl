@@ -1,0 +1,6 @@
+<<0,1>> R{"runtime"}min=? [F all_prefer_1]
+<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]
+<<0,1,2,3>> R{"runtime"}min=? [F all_prefer_1]
+<<0,1,2,3,4>> R{"runtime"}min=? [F all_prefer_1]
+<<0,1,2,3,4,5>> R{"runtime"}min=? [F all_prefer_1]
+
