@@ -1,1 +1,21 @@
+rm -f experiments/no_commit/cdm5032.smg
+./prismpp cdm_final_free_.pp 5 0 3 2 > experiments/no_commit/cdm5032.smg
+
+rm -f experiments/no_commit/cdm6032.smg
+./prismpp cdm_final_free_.pp 6 0 3 2 > experiments/no_commit/cdm6032.smg
+
+
+rm -f experiments/no_commit/cdm4032.smg
+./prismpp cdm_final_free_.pp 4 0 3 2 > experiments/no_commit/cdm4032.smg
+
+rm -f experiments/no_commit/cdm4432.smg
+./prismpp cdm_final_free_.pp 4 4 3 2 > experiments/no_commit/cdm4432.smg
+
+rm -f experiments/no_commit/cdm4232.smg
+./prismpp cdm_final_free_.pp 4 2 3 2 > experiments/no_commit/cdm4232.smg
+
+
 PRISM_JAVAMAXMEM=1g bin/prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg  examples/games/CDM/experiments/no_commit/props_comm.pctl
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex examples/games/CDM/experiments/no_commit/cdm4432.smg  examples/games/CDM/experiments/no_commit/props_comm.pctl
+

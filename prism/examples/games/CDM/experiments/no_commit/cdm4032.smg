@@ -343,58 +343,62 @@ endmodule
 const int communication_cost = 1;
 const int exploration_cost = 1;
 
-// communication costs
-rewards "comm1"
+// communication n costs
+rewards "ncomm1"
 	[com1] true : communication_cost;
 endrewards
-rewards "comm12"
+rewards "ncomm12"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 endrewards
-rewards "comm123"
+rewards "ncomm123"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
 endrewards
-rewards "comm1234"
+rewards "ncomm1234"
 	[com1] true : communication_cost;
 	[com2] true : communication_cost;
 	[com3] true : communication_cost;
 	[com4] true : communication_cost;
 endrewards
 
-// exploration costs
-rewards "expl1"
+// communication d costs
+
+// exploration n costs
+rewards "nexpl1"
 	[exp1] true : exploration_cost;
 endrewards
-rewards "expl12"
+rewards "nexpl12"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 endrewards
-rewards "expl123"
+rewards "nexpl123"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
 endrewards
-rewards "expl1234"
+rewards "nexpl1234"
 	[exp1] true : exploration_cost;
 	[exp2] true : exploration_cost;
 	[exp3] true : exploration_cost;
 	[exp4] true : exploration_cost;
 endrewards
 
-// total costs
-rewards "tot1"
+// exploration d costs
+
+// total n costs
+rewards "ntot1"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 endrewards
-rewards "tot12"
+rewards "ntot12"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
 	[com2] true : communication_cost;
 endrewards
-rewards "tot123"
+rewards "ntot123"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
@@ -402,7 +406,7 @@ rewards "tot123"
 	[exp3] true : exploration_cost;
 	[com3] true : communication_cost;
 endrewards
-rewards "tot1234"
+rewards "ntot1234"
 	[exp1] true : exploration_cost;
 	[com1] true : communication_cost;
 	[exp2] true : exploration_cost;
@@ -413,6 +417,7 @@ rewards "tot1234"
 	[com4] true : communication_cost;
 endrewards
 
+// total d costs
 	
 rewards "runtime"
 	sched!=0 : 1;
