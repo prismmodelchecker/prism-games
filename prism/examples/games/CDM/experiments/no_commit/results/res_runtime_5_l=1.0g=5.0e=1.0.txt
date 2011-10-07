@@ -1,0 +1,99 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 16:36:50 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm5032.smg examples/games/CDM/experiments/no_commit/props_runtime_5.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm5032.smg"...
+
+Parsing properties file "examples/games/CDM/experiments/no_commit/props_runtime_5.pctl"...
+
+5 properties:
+(1) <<[0, 1]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(2) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(3) <<[0, 1, 2, 3]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(4) <<[0, 1, 2, 3, 4]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(5) <<[0, 1, 2, 3, 4, 5]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 77192 100032
+Reachable states exploration and model construction done in 4.085 secs.
+Sorting reachable states list...
+
+Time for model construction: 4.426 seconds.
+
+Type:        SMG
+
+States:      100032 (1 initial)
+Transitions: 843775
+Choices:     255092
+Max/avg:     3/2.55
+
+-------------------------------------------
+
+Model checking: <<[0, 1]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 428.2631299429457
+
+Time for model checking: 764.143 seconds.
+
+Result: 428.2631299429457 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 72.18600244419252
+
+Time for model checking: 188.673 seconds.
+
+Result: 72.18600244419252 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 32.27674259582515
+
+Time for model checking: 86.964 seconds.
+
+Result: 32.27674259582515 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.591779837181335
+
+Time for model checking: 36.395 seconds.
+
+Result: 19.591779837181335 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4, 5]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 13.859293373089532
+
+Time for model checking: 19.512 seconds.
+
+Result: 13.859293373089532 (value in the initial state)
+

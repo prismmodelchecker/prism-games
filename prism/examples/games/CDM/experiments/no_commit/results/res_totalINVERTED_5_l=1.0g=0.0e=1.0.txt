@@ -1,0 +1,164 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 16:01:49 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm5032_.smg examples/games/CDM/experiments/no_commit/props_total_5.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm5032_.smg"...
+
+Parsing properties file "examples/games/CDM/experiments/no_commit/props_total_5.pctl"...
+
+10 properties:
+(1) <<[0, 1]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+(2) <<[0, 1, 2]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+(3) <<[0, 1, 2, 3]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+(4) <<[0, 1, 2, 3, 4]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+(5) <<[0, 1, 2, 3, 4, 5]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+(6) <<[0, 1]>> R{"ntot1"}min=? [ F all_prefer_1 ]
+(7) <<[0, 1, 2]>> R{"ntot12"}min=? [ F all_prefer_1 ]
+(8) <<[0, 1, 2, 3]>> R{"ntot123"}min=? [ F all_prefer_1 ]
+(9) <<[0, 1, 2, 3, 4]>> R{"ntot1234"}min=? [ F all_prefer_1 ]
+(10) <<[0, 1, 2, 3, 4, 5]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 90055 100032
+Reachable states exploration and model construction done in 3.329 secs.
+Sorting reachable states list...
+
+Time for model construction: 3.568 seconds.
+
+Type:        SMG
+
+States:      100032 (1 initial)
+Transitions: 843775
+Choices:     255092
+Max/avg:     3/2.55
+
+-------------------------------------------
+
+Model checking: <<[0, 1]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 1133.4141739931201
+
+Time for model checking: 291.166 seconds.
+
+Result: 1133.4141739931201 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 337.8606488748795
+
+Time for model checking: 58.983 seconds.
+
+Result: 337.8606488748795 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 198.09150832533652
+
+Time for model checking: 31.779 seconds.
+
+Result: 198.09150832533652 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 126.1447889182804
+
+Time for model checking: 28.38 seconds.
+
+Result: 126.1447889182804 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4, 5]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 60.49095044573863
+
+Time for model checking: 45.09 seconds.
+
+Result: 60.49095044573863 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1]>> R{"ntot1"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 170.89852909251834
+
+Time for model checking: 396.171 seconds.
+
+Result: 170.89852909251834 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"ntot12"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 83.77031213200662
+
+Time for model checking: 97.685 seconds.
+
+Result: 83.77031213200662 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3]>> R{"ntot123"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 71.77225320632137
+
+Time for model checking: 56.061 seconds.
+
+Result: 71.77225320632137 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4]>> R{"ntot1234"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 65.71905685362239
+
+Time for model checking: 51.863 seconds.
+
+Result: 65.71905685362239 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3, 4, 5]>> R{"ntot12345"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 60.49095044573863
+
+Time for model checking: 52.099 seconds.
+
+Result: 60.49095044573863 (value in the initial state)
+
