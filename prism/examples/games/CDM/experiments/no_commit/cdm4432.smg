@@ -320,8 +320,8 @@ endmodule
 
 // -- rewards
 
-const int communication_cost = 1;
-const int exploration_cost = 2;
+const int communication_cost = 15;
+const int exploration_cost = 1;
 
 // communication n costs
 
@@ -371,22 +371,22 @@ endrewards
 
 // total d costs
 rewards "dtot1"
-	[] sched=1 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
+	[] sched=1 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
 endrewards
 rewards "dtot12"
-	[] sched=1 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=2 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
+	[] sched=1 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=2 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
 endrewards
 rewards "dtot123"
-	[] sched=1 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=2 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=3 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
+	[] sched=1 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=2 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=3 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
 endrewards
 rewards "dtot1234"
-	[] sched=1 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=2 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=3 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
-	[] sched=4 : Pexp*communication_cost + (1-Pexp)*exploration_cost;
+	[] sched=1 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=2 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=3 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
+	[] sched=4 : Pexp*exploration_cost + (1-Pexp)*communication_cost;
 endrewards
 	
 rewards "runtime"

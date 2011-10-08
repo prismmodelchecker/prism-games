@@ -261,6 +261,9 @@ endmodule
 	// agreement on a site
 	label "decision_made" =  all_prefer_1 | all_prefer_2 | all_prefer_3 ;
 
+// -- property constants
+const int k;
+
 // -- rewards
 
 const int communication_cost = 15;
@@ -323,6 +326,7 @@ endrewards
 rewards "runtime"
 	sched!=0 : 1;
 endrewards
+
 
 
 
