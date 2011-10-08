@@ -1,0 +1,73 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Sat Oct 08 12:52:46 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm3032.smg examples/games/CDM/experiments/no_commit/props_runtime_3.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm3032.smg"...
+
+Parsing properties file "examples/games/CDM/experiments/no_commit/props_runtime_3.pctl"...
+
+3 properties:
+(1) <<[0, 1]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(2) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+(3) <<[0, 1, 2, 3]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 1240
+Reachable states exploration and model construction done in 0.239 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.258 seconds.
+
+Type:        SMG
+
+States:      1240 (1 initial)
+Transitions: 7161
+Choices:     2980
+Max/avg:     3/2.40
+
+-------------------------------------------
+
+Model checking: <<[0, 1]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 28.289219149356626
+
+Time for model checking: 0.573 seconds.
+
+Result: 28.289219149356626 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 12.145354700479613
+
+Time for model checking: 0.117 seconds.
+
+Result: 12.145354700479613 (value in the initial state)
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2, 3]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 7.988217999841085
+
+Time for model checking: 0.081 seconds.
+
+Result: 7.988217999841085 (value in the initial state)
+
