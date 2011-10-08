@@ -214,9 +214,12 @@ endmodule
 	// agreement on a site
 	label "decision_made" = #| j=1:K# all_prefer_#j# #end#;
 
+// -- property constants
+const int k;
+
 // -- rewards
 
-const int communication_cost = 15;
+const int communication_cost = 3;
 const int exploration_cost = 1;
 
 // communication n costs
@@ -269,7 +272,7 @@ endrewards
 #for i=N-D+1:N#
 rewards "dtot#for j=N-D+1:i##j##end#"
 	#for j=N-D+1:i#
-	[] sched=#j# : Pexp*communication_cost + (1-Pexp)*exploration_cost;
+	[] sched=#j# : Pexp*exploration_cost + (1-Pexp)*communication_cost;
 	#end#
 endrewards
 #end#
@@ -277,6 +280,7 @@ endrewards
 rewards "runtime"
 	sched!=0 : 1;
 endrewards
+
 
 
 
