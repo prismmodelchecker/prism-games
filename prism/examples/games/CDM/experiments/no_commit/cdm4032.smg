@@ -343,7 +343,7 @@ const int k;
 
 // -- rewards
 
-const int communication_cost = 15;
+const int communication_cost = 3;
 const int exploration_cost = 1;
 
 // communication n costs
