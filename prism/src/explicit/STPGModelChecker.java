@@ -436,6 +436,26 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known)
+			throws PrismException
+	{
+		// TODO: clean this up
+		return computeReachProbs(stpg, remain, target, min1, min2, init, known, 0.5);
+	}
+	
+	/**
+	 * Compute reachability/until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param stpg The STPG
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 */
 	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double bound)
 			throws PrismException
 	{
@@ -1212,6 +1232,7 @@ public class STPGModelChecker extends ProbModelChecker
 			for (int s = 0; s < n; s++) {
 				for (int t = 0; t < stpg.getNumChoices(s); t++) {
 					if (rewards.getTransitionReward(s, t) > 0) {
+						System.out.println (s + "," + t + "," + rewards.getTransitionReward(s, t));
 						throw new PrismException("The Fc operator cannot currently work with transition rewards.");
 					}
 				}
