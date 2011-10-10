@@ -440,7 +440,7 @@ public class STPGModelChecker extends ProbModelChecker
 			throws PrismException
 	{
 		// TODO: clean this up
-		return computeReachProbs(stpg, remain, target, min1, min2, init, known, 0.5);
+		return computeReachProbs(stpg, remain, target, min1, min2, init, known, -1);
 	}
 	
 	/**
