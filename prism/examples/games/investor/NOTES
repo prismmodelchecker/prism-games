@@ -12,3 +12,6 @@ prism-games -ex examples/games/investor/investor_sotp.nm -pctl 'Rmin=? [ F i=2 ]
 % smg
 prism-games -ex examples/games/investor/investor_min.nm -pctl '<<1>> Rmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
 
+% smg with Fc or F0
+prism-games -ex examples/games/investor/investor_zero.nm -pctl '<<1>> Rmax=? [ Fc i=2 ]' -const vinit=5
+prism-games -ex examples/games/investor/investor_zero.nm -pctl '<<1>> Rmax=? [ F0 i=2 ]' -const vinit=5
