@@ -1,17 +1,15 @@
 % stpg
-prism-games -ex examples/games/investor/investor.nm -pctl 'Rmaxmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
+prism-games -ex examples/games/investor/investor.nm -pctl 'Rmaxmin=? [ F i=2 ]' -const vmax=10,vinit=0:10 -exportresults stdout
 
-% smg
-prism-games -ex examples/games/investor/investor.nm -pctl '<<1>> Rmax=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
+% mdp - "seat of the pants" strategy
+prism-games -ex examples/games/investor/investor_sotp.nm -pctl 'Rmin=? [ F i=2 ]' -const vmax=10,vinit=0:10 -exportresults stdout
 
-% mdp
-prism-games -ex examples/games/investor/investor_sotp.nm -pctl 'Rmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
+% THIS ONE GOES IN THE PAPER:
+% smg with Fc (could use F0 too but not yet)
+prism-games -ex examples/games/investor/investor.nm -pctl '<<1>> Rmax=? [ Fc i=2 ]' -const vmax=10,vinit=5
 
-% MIN CASE
+% smg - modified so that does not have infinite loop (breaks max with normal F)
+prism-games -ex examples/games/investor/investor_mod.nm -pctl '<<1>> Rmax=? [ F i=2 ]' -const vmax=10,vinit=0:10 -exportresults stdout
 
-% smg
-prism-games -ex examples/games/investor/investor_min.nm -pctl '<<1>> Rmin=? [ F i=2 ]' -const vinit=0:10 -exportresults stdout
-
-% smg with Fc or F0
-prism-games -ex examples/games/investor/investor_zero.nm -pctl '<<1>> Rmax=? [ Fc i=2 ]' -const vinit=5
-prism-games -ex examples/games/investor/investor_zero.nm -pctl '<<1>> Rmax=? [ F0 i=2 ]' -const vinit=5
+% smg - hack to use min rewards with norm F (but breaks because of ECs)
+prism-games -ex examples/games/investor/investor_min.nm -pctl '<<1>> Rmin=? [ F i=2 ]' -const vmax=10,vinit=0:10 -exportresults stdout

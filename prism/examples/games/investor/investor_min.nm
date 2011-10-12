@@ -62,7 +62,7 @@ module barred
 endmodule
 
 // Value of the shares
-const vmax = 10;
+const vmax;
 const vinit;
 module value
 	
@@ -90,7 +90,7 @@ module probability
 endmodule
 
 // Cap on the value of the shares
-const int cmax = 10;
+const int cmax = vmax;
 module cap
 	
 	c : [0..cmax] init cmax;
