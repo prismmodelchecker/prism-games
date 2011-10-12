@@ -102,5 +102,5 @@ endmodule
 // Reward: one-off collection of shares value at the end
 rewards "profit"
 	//[cashin] i=1 : v;
-	i=1 & b=0 : v;
+	i=1 & b=0 & m=0 : v;
 endrewards
