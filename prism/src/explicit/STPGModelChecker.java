@@ -572,10 +572,10 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		int n = stpg.getNumStates();
 		target.flip(0, n);
-		System.out.println(target);
+		//System.out.println(target);
 		BitSet g1 = prob0(stpg, null, target, !min1, !min2);
 		
-		System.out.println(g1);
+		//System.out.println(g1);
 		//g1.flip(0,n);
 		
 		//do reachability
