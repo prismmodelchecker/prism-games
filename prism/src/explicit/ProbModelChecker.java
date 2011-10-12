@@ -414,10 +414,11 @@ public class ProbModelChecker extends StateModelChecker
 				throw new PrismException("Invalid reward structure index \"" + rs + "\"");
 
 			// Build rewards
+			mainLog.println("Building reward structure...");
 			ConstructRewards constructRewards = new ConstructRewards(mainLog);
 			smgRewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
 			// Compute rewards
-			mainLog.println("Building reward structure...");
+			mainLog.println("Computing rewards..." + verbosity);
 			rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, expr, min);
 
 			// Print out probabilities

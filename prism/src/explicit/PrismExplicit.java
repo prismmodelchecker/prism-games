@@ -171,7 +171,7 @@ public class PrismExplicit
 		mc.setLog(mainLog);
 		mc.setSettings(settings);
 		//temporary HACK, we should eventually decide if we use boolean verbose or int verbosity
-		mc.setVerbosity(settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 0);
+		mc.setVerbosity(settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1);
 
 		// Do model checking
 		mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile);
