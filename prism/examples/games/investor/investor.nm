@@ -95,6 +95,9 @@ module cap
 
 endmodule
 
+// Labels
+label "finished" = i=2;
+
 // Reward: one-off collection of shares value at the end
 rewards "profit"
 

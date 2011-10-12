@@ -1,0 +1,3 @@
+// What is the maximum possible expected reward (i.e. profit)
+// that player 1 (the investor) can guarantee?
+<<1>> Rmax=? [ Fc "finished" ]
