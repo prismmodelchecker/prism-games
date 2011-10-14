@@ -2,9 +2,9 @@ PRISM
 =====
 
 Version: 4.0.1.games
-Date: Thu Oct 06 15:15:07 BST 2011
+Date: Fri Oct 14 21:19:20 BST 2011
 Hostname: qavbench.comlab
-Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm5032.smg examples/games/CDM/experiments/no_commit/props_runtime_5.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=1.0'
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm5032.smg examples/games/CDM/experiments/no_commit/props_runtime_5.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=1.0,k=0'
 
 Parsing model file "examples/games/CDM/experiments/no_commit/cdm5032.smg"...
 
@@ -17,83 +17,143 @@ Parsing properties file "examples/games/CDM/experiments/no_commit/props_runtime_
 (4) <<[0, 1, 2, 3, 4]>> R{"runtime"}min=? [ F all_prefer_1 ]
 (5) <<[0, 1, 2, 3, 4, 5]>> R{"runtime"}min=? [ F all_prefer_1 ]
 
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 
 -------------------------------------------
 
 Building model...
 
 Computing reachable states...
- 93955 100032
-Reachable states exploration and model construction done in 3.289 secs.
+ 74087 100032
+Reachable states exploration and model construction done in 4.12 secs.
 Sorting reachable states list...
 
-Time for model construction: 3.495 seconds.
+Time for model construction: 4.371 seconds.
 
 Type:        SMG
 
 States:      100032 (1 initial)
-Transitions: 843775
-Choices:     255092
-Max/avg:     3/2.55
+Transitions: 760430
+Choices:     171747
+Max/avg:     2/1.72
 
 -------------------------------------------
 
 Model checking: <<[0, 1]>> R{"runtime"}min=? [ F all_prefer_1 ]
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.841 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 820 iterations and 66.776 seconds.
+Computed an over-approximation of the solution (in 66 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 513 iterations and 40.708 seconds.
+Expected reachability took 108.358 seconds.
 
-Value in the initial state: 194.81522413498408
+Value in the initial state: 53.530182562712625
 
-Time for model checking: 276.153 seconds.
+Time for model checking: 108.469 seconds.
 
-Result: 194.81522413498408 (value in the initial state)
+Result: 53.530182562712625 (value in the initial state)
 
 -------------------------------------------
 
 Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.897 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 419 iterations and 34.825 seconds.
+Computed an over-approximation of the solution (in 34 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 276 iterations and 21.929 seconds.
+Expected reachability took 57.7 seconds.
 
-Value in the initial state: 49.354605486949666
+Value in the initial state: 31.052435142705477
 
-Time for model checking: 68.03 seconds.
+Time for model checking: 57.733 seconds.
 
-Result: 49.354605486949666 (value in the initial state)
+Result: 31.052435142705477 (value in the initial state)
 
 -------------------------------------------
 
 Model checking: <<[0, 1, 2, 3]>> R{"runtime"}min=? [ F all_prefer_1 ]
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.791 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 278 iterations and 23.181 seconds.
+Computed an over-approximation of the solution (in 23 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 188 iterations and 15.33 seconds.
+Expected reachability took 39.317 seconds.
 
-Value in the initial state: 27.26954152430529
+Value in the initial state: 22.41547253471005
 
-Time for model checking: 33.504 seconds.
+Time for model checking: 39.345 seconds.
 
-Result: 27.26954152430529 (value in the initial state)
+Result: 22.41547253471005 (value in the initial state)
 
 -------------------------------------------
 
 Model checking: <<[0, 1, 2, 3, 4]>> R{"runtime"}min=? [ F all_prefer_1 ]
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.791 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 208 iterations and 17.285 seconds.
+Computed an over-approximation of the solution (in 17 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 143 iterations and 11.686 seconds.
+Expected reachability took 29.779 seconds.
 
-Value in the initial state: 18.98298161669617
+Value in the initial state: 17.714952704794026
 
-Time for model checking: 20.121 seconds.
+Time for model checking: 29.805 seconds.
 
-Result: 18.98298161669617 (value in the initial state)
+Result: 17.714952704794026 (value in the initial state)
 
 -------------------------------------------
 
 Model checking: <<[0, 1, 2, 3, 4, 5]>> R{"runtime"}min=? [ F all_prefer_1 ]
-Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=0
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 11 iterations and 0.72 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 163 iterations and 13.509 seconds.
+Computed an over-approximation of the solution (in 13 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 114 iterations and 9.437 seconds.
+Expected reachability took 23.683 seconds.
 
-Value in the initial state: 14.71980141979702
+Value in the initial state: 14.719801406776492
 
-Time for model checking: 16.38 seconds.
+Time for model checking: 23.709 seconds.
 
-Result: 14.71980141979702 (value in the initial state)
+Result: 14.719801406776492 (value in the initial state)
 
