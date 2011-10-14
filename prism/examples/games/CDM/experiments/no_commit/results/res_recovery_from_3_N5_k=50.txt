@@ -2,7 +2,7 @@ PRISM
 =====
 
 Version: 4.0.1.games
-Date: Sat Oct 08 17:40:16 BST 2011
+Date: Fri Oct 14 21:38:46 BST 2011
 Hostname: qavbench.comlab
 Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm5032.smg examples/games/CDM/experiments/no_commit/props_recovery_from_3_N5.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=1.0,k=50'
 
@@ -16,10 +16,10 @@ Parsing properties file "examples/games/CDM/experiments/no_commit/props_recovery
 (3) filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 (4) filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 (5) filter(range, <<[1, 2, 3, 4, 5]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5)&(<<[1, 2, 3, 4, 5]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
-(6) filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> R{"ntot1"}<10 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
-(7) filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> R{"ntot12"}<20 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
-(8) filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> R{"ntot123"}<30 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
-(9) filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> R{"ntot1234"}<40 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+(6) filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> R{"ntot1"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+(7) filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> R{"ntot12"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+(8) filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> R{"ntot123"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+(9) filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> R{"ntot1234"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 (10) filter(range, <<[1, 2, 3, 4, 5]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5)&(<<[1, 2, 3, 4, 5]>> R{"ntot12345"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
@@ -29,151 +29,241 @@ Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building model...
 
 Computing reachable states...
- 95990 100032
-Reachable states exploration and model construction done in 3.199 secs.
+ 100032
+Reachable states exploration and model construction done in 2.882 secs.
 Sorting reachable states list...
 
-Time for model construction: 3.434 seconds.
+Time for model construction: 3.066 seconds.
 
 Type:        SMG
 
 States:      100032 (1 initial)
-Transitions: 843775
-Choices:     255092
-Max/avg:     3/2.55
+Transitions: 760430
+Choices:     171747
+Max/avg:     2/1.72
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 10 iterations and 0.536 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.812 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.004893065409883799,0.007271112670107667]
+Range of values over states satisfying filter: [0.04114926750793953,0.047817510935770566]
 
-Time for model checking: 3.996 seconds.
+Time for model checking: 3.404 seconds.
 
-Result: [0.004893065409883799,0.007271112670107667] (range of values over states satisfying filter)
+Result: [0.04114926750793953,0.047817510935770566] (range of values over states satisfying filter)
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 10 iterations and 0.509 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.601 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.0693378216350124,0.09457709369461557]
+Range of values over states satisfying filter: [0.18074750616454138,0.20949759215414157]
 
-Time for model checking: 3.94 seconds.
+Time for model checking: 3.137 seconds.
 
-Result: [0.0693378216350124,0.09457709369461557] (range of values over states satisfying filter)
+Result: [0.18074750616454138,0.20949759215414157] (range of values over states satisfying filter)
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 10 iterations and 0.512 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.566 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.26803918367197754,0.3330804733504974]
+Range of values over states satisfying filter: [0.40137453422010183,0.4583375061245053]
 
-Time for model checking: 4.193 seconds.
+Time for model checking: 3.107 seconds.
 
-Result: [0.26803918367197754,0.3330804733504974] (range of values over states satisfying filter)
+Result: [0.40137453422010183,0.4583375061245053] (range of values over states satisfying filter)
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 10 iterations and 0.512 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.827 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.5626039665788283,0.6505481312053183]
+Range of values over states satisfying filter: [0.6411748594952263,0.7177317734167794]
 
-Time for model checking: 3.926 seconds.
+Time for model checking: 3.376 seconds.
 
-Result: [0.5626039665788283,0.6505481312053183] (range of values over states satisfying filter)
+Result: [0.6411748594952263,0.7177317734167794] (range of values over states satisfying filter)
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1, 2, 3, 4, 5]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5)&(<<[1, 2, 3, 4, 5]>> P>0.9 [ F<=10 all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 10 iterations and 0.561 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.586 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.8243999912177957,0.905560651227339]
+Range of values over states satisfying filter: [0.8371864238282869,0.917978840851093]
 
-Time for model checking: 3.804 seconds.
+Time for model checking: 3.192 seconds.
 
-Result: [0.8243999912177957,0.905560651227339] (range of values over states satisfying filter)
+Result: [0.8371864238282869,0.917978840851093] (range of values over states satisfying filter)
 
 -------------------------------------------
 
-Model checking: filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> R{"ntot1"}<10 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+Model checking: filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> R{"ntot1"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.666 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.1 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 1692 iterations and 91.664 seconds.
+Computed an over-approximation of the solution (in 91 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 2833 iterations and 152.056 seconds.
+Expected reachability took 244.423 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.344 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.2597771361622854,0.28641706073652495]
+Range of values over states satisfying filter: [0.9962221068137043,0.9962221068137043]
 
-Time for model checking: 29.939 seconds.
+Time for model checking: 246.87 seconds.
 
-Result: [0.2597771361622854,0.28641706073652495] (range of values over states satisfying filter)
+Result: [0.9962221068137043,0.9962221068137043] (range of values over states satisfying filter)
 
 -------------------------------------------
 
-Model checking: filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> R{"ntot12"}<20 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+Model checking: filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> R{"ntot12"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.677 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.1 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 1091 iterations and 60.564 seconds.
+Computed an over-approximation of the solution (in 60 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 1557 iterations and 84.749 seconds.
+Expected reachability took 146.005 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 2.172 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.6166896487636044,0.6412431083107302]
+Range of values over states satisfying filter: [0.6528084200957018,0.6751058620014975]
 
-Time for model checking: 40.649 seconds.
+Time for model checking: 148.33 seconds.
 
-Result: [0.6166896487636044,0.6412431083107302] (range of values over states satisfying filter)
+Result: [0.6528084200957018,0.6751058620014975] (range of values over states satisfying filter)
 
 -------------------------------------------
 
-Model checking: filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> R{"ntot123"}<30 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+Model checking: filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> R{"ntot123"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.656 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.1 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 760 iterations and 42.642 seconds.
+Computed an over-approximation of the solution (in 42 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 871 iterations and 54.111 seconds.
+Expected reachability took 97.422 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 3.442 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.7153156874310453,0.7537383918571113]
+Range of values over states satisfying filter: [0.7351276193148609,0.7689379519232701]
 
-Time for model checking: 70.798 seconds.
+Time for model checking: 101.012 seconds.
 
-Result: [0.7153156874310453,0.7537383918571113] (range of values over states satisfying filter)
+Result: [0.7351276193148609,0.7689379519232701] (range of values over states satisfying filter)
 
 -------------------------------------------
 
-Model checking: filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> R{"ntot1234"}<40 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
+Model checking: filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> R{"ntot1234"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 12 iterations and 0.819 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.1 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 536 iterations and 41.899 seconds.
+Computed an over-approximation of the solution (in 41 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 553 iterations and 42.835 seconds.
+Expected reachability took 85.577 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 3.569 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.5626039665788283,0.6505481312053183]
+Range of values over states satisfying filter: [0.8496247176686657,0.8861540245296882]
 
-Time for model checking: 348.576 seconds.
+Time for model checking: 89.392 seconds.
 
-Result: [0.5626039665788283,0.6505481312053183] (range of values over states satisfying filter)
+Result: [0.8496247176686657,0.8861540245296882] (range of values over states satisfying filter)
 
 -------------------------------------------
 
 Model checking: filter(range, <<[1, 2, 3, 4, 5]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5)&(<<[1, 2, 3, 4, 5]>> R{"ntot12345"}<50 [ F all_prefer_1 ])) ], all_prefer_3&sched=0)
 Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=50
 Building reward structure...
+Computing rewards...1
+Starting expected reachability...
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 11 iterations and 0.742 seconds.
+target=192, inf=0, rest=99840
+Computing the upper bound where 0.1 is used instead of 0.0
+Starting value iteration (minmax)...
+Value iteration (minmax) took 397 iterations and 30.844 seconds.
+Computed an over-approximation of the solution (in 30 seconds), this will now be used to get the solution
+Starting value iteration (minmax)...
+Value iteration (minmax) took 304 iterations and 23.422 seconds.
+Expected reachability took 55.034 seconds.
+Starting bounded probabilistic reachability...
+Bounded probabilistic reachability (maxmin) took 50 iterations and 3.5 seconds.
 
 States satisfying filter all_prefer_3&sched=0: 32
 
-Range of values over states satisfying filter: [0.8243999912177957,0.905560651227339]
+Range of values over states satisfying filter: [0.9506104012260488,0.9781741724254361]
 
-Time for model checking: 4.95 seconds.
+Time for model checking: 58.84 seconds.
 
-Result: [0.8243999912177957,0.905560651227339] (range of values over states satisfying filter)
+Result: [0.9506104012260488,0.9781741724254361] (range of values over states satisfying filter)
 
