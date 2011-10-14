@@ -338,10 +338,10 @@ public class ProbModelChecker extends StateModelChecker
 		}
 
 		// determine whether the problem is minimisation or maximisation
-		if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
+		if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("min=")) {
 			// min
 			min = true;
-		} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
+		} else if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("max=")) {
 			// max
 			min = false;
 		} else {
