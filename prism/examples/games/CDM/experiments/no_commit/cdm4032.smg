@@ -107,7 +107,7 @@ module player1
 			;
 			
 	// don't do anything
-	[] sched=1 -> (sched'=0);
+//	[] sched=1 -> (sched'=0);
 
 endmodule
 
@@ -149,7 +149,7 @@ module player2
 			;
 			
 	// don't do anything
-	[] sched=2 -> (sched'=0);
+//	[] sched=2 -> (sched'=0);
 
 endmodule
 
@@ -191,7 +191,7 @@ module player3
 			;
 			
 	// don't do anything
-	[] sched=3 -> (sched'=0);
+//	[] sched=3 -> (sched'=0);
 
 endmodule
 
@@ -233,7 +233,7 @@ module player4
 ;
 			
 	// don't do anything
-	[] sched=4 -> (sched'=0);
+//	[] sched=4 -> (sched'=0);
 
 endmodule
 
@@ -343,7 +343,7 @@ const int k;
 
 // -- rewards
 
-const int communication_cost = 3;
+const int communication_cost = 10;
 const int exploration_cost = 1;
 
 // communication n costs
