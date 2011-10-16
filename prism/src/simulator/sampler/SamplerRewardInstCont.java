@@ -74,7 +74,20 @@ public class SamplerRewardInstCont extends SamplerDouble
 				value = path.getCurrentStateReward(rewardStructIndex);
 			}
 		}
+		// Or, if we are now at a deadlock
+		else if (transList != null && transList.isDeadlock()) {
+			valueKnown = true;
+			value = path.getCurrentStateReward(rewardStructIndex);
+		}
+		// Otherwise, don't know
 		
 		return valueKnown;
+	}
+	
+	@Override
+	public boolean needsBoundedNumSteps()
+	{
+		// Always bounded (although we don't know the exact num steps, just the time bound)
+		return true;
 	}
 }
