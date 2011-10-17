@@ -116,7 +116,8 @@ public class ExpressionPATL extends Expression {
 
 	@Override
 	public String toString() {
-		return "<<"+coalition+">> " + (exprType==PRB?exprProb.toString():exprType==REW?exprRew.toString():"");
+		String coalitionText = coalition.toString();
+		return "<<"+coalitionText.substring(1, coalitionText.length() - 1)+">> " + (exprType==PRB?exprProb.toString():exprType==REW?exprRew.toString():"");
 	}
 	
 	@Override
