@@ -1248,8 +1248,11 @@ public class STPGModelChecker extends ProbModelChecker
 			//zeroRew.flip(0, n);
 			//System.out.println(target);
 			target.flip(0,n);
+			System.out.println(posRew);
+			System.out.println(target);
 			BitSet g1 = prob0(stpg, target, posRew, min1, min2);
 			target.flip(0,n);
+			g1.or(target);
 			
 			//do reachability
 			ModelCheckerResult rm =  computeReachProbs(stpg, g1, !min1, !min2);
