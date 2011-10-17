@@ -1229,7 +1229,7 @@ public class STPGModelChecker extends ProbModelChecker
 			//TODO fix the precomputation alg for infinity so that it
 			//allows transition rewards.
 			//At the same time find which states have nonzero reward
-			BitSet zeroRew = new BitSet();
+			BitSet posRew = new BitSet();
 			for (int s = 0; s < n; s++) {
 				for (int t = 0; t < stpg.getNumChoices(s); t++) {
 					if (rewards.getTransitionReward(s, t) > 0) {
@@ -1237,14 +1237,24 @@ public class STPGModelChecker extends ProbModelChecker
 						throw new PrismException("The Fc operator cannot currently work with transition rewards.");
 					}
 				}
-				if (rewards.getStateReward(s) == 0 || !target.get(s))
-					zeroRew.set(s);
+				if (rewards.getStateReward(s) > 0)
+					posRew.set(s);
 			}
 			
 			inf = new BitSet();
 			//TODO the following uses numeric computation, should be changed
 			//to something that is purely discrete.
-			ModelCheckerResult rm = computeFG(stpg, zeroRew, !min1, !min2);
+			
+			//zeroRew.flip(0, n);
+			//System.out.println(target);
+			target.flip(0,n);
+			BitSet g1 = prob0(stpg, target, posRew, min1, min2);
+			target.flip(0,n);
+			
+			//do reachability
+			ModelCheckerResult rm =  computeReachProbs(stpg, g1, !min1, !min2);
+			
+			//ModelCheckerResult rm = computeFG(stpg, zeroRew, !min1, !min2);
 			System.out.println(Arrays.toString(rm.soln));
 			for (int s = 0; s < n; s++)
 				if (rm.soln[s] < 1)
