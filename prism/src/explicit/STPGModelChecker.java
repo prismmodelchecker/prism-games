@@ -1680,11 +1680,43 @@ public class STPGModelChecker extends ProbModelChecker
 		//BitSet zeroReward = zeroRewards(stpg, rewards, positiveProb, target, !min1, !min2);
 		
 		//Identify states that get infinity.
-		ModelCheckerResult mcri = computeReachRewards(stpg, rewards, target, min1, min2, new double[n], zeroProb, R_CUMULATIVE);
-		BitSet infinity = new BitSet();
+		//First, remove the rewards which are gained at places from which the target can't be reached
+		STPGRewards rewardsRestricted;
+		if (rewards instanceof MDPRewardsSimple) {
+			//And make sure only the best actions are used
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple((MDPRewardsSimple) rewards);
+			
+			for (int s = 0; s < n; s++) {
+				for (int c = 0; c < stpg.getNumChoices(s); c++)	{
+					Iterator<Entry<Integer,Double>> iterator = stpg.getTransitionsIterator(s, c);
+					boolean hasPositiveSuccessor = false;
+					while (iterator.hasNext()) {
+						if (positiveProb.get(iterator.next().getKey())) {
+							hasPositiveSuccessor = true;
+							break;
+						}
+					}
+					if (hasPositiveSuccessor)
+						rewardsRestrictedSimple.setTransitionReward(s, c, rewards.getTransitionReward(s,c));
+				}
+				if (positiveProb.get(s))
+					rewardsRestrictedSimple.setStateReward(s, rewards.getStateReward(s));
+			}
+			rewardsRestricted = rewardsRestrictedSimple;
+		} else {
+			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+		}
+		target.flip(0,n);
+		BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
+		target.flip(0,n);
+		g1.or(target);
 		
+		//do reachability
+		inf = prob1(stpg, null, g1, !min1, !min2);
+		inf.flip(0,n);
 		for (int k = 0; k < n; k++)
-			infinity.set(k, mcri.soln[k] == Double.POSITIVE_INFINITY);
+			if (inf.get(k))
+				init[k] = Double.POSITIVE_INFINITY;
 		
 		//Get the rich man's strategy and its values
 		//Start with computing optimal probabilities to reach the final state
@@ -1693,7 +1725,6 @@ public class STPGModelChecker extends ProbModelChecker
 		//System.out.println("maximal probs:" + Arrays.toString(mcrprob.soln));
 		
 		//Next, reweigh the rewards and make sure that only optimal actions are taken 
-		STPGRewards rewardsRestricted;
 		if (rewards instanceof MDPRewardsSimple) {
 			//And make sure only the best actions are used
 			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple((MDPRewardsSimple) rewards);
