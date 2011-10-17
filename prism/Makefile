@@ -361,7 +361,8 @@ make_dirs:
 	fi
 
 tests:
-	cd ~/prism-tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=../bin/prism
+#	cd ~/prism-tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=../bin/prismdd
+	@(test -d tests && cd tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=$(PWD)/bin/prism) || (echo "Skipping tests")
 
 bin_scripts: $(BIN_TARGETS)
 	@./install.sh silent
