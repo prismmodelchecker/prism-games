@@ -61,8 +61,8 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		List<List<Double>> list1;
 		List<Double> list2;
 		// Nothing to do for zero reward
-		if (r == 0.0)
-			return;
+		//if (r == 0.0)
+		//	return;
 		// If no rewards array created yet, create it
 		if (nestedTransRewards == null) {
 			nestedTransRewards = new ArrayList<List<List<Double>>>(numStates);

@@ -1677,27 +1677,25 @@ public class STPGModelChecker extends ProbModelChecker
 							break;
 						}
 					}
-					if (hasPositiveSuccessor)
-						rewardsRestrictedSimple.setTransitionReward(s, c, rewards.getTransitionReward(s,c));
+					if (!hasPositiveSuccessor)
+						rewardsRestrictedSimple.setTransitionReward(s, c, 0);
 				}
-				if (positiveProb.get(s))
-					rewardsRestrictedSimple.setStateReward(s, rewards.getStateReward(s));
+				if (!positiveProb.get(s))
+					rewardsRestrictedSimple.setStateReward(s, 0);
 			}
 			rewardsRestricted = rewardsRestrictedSimple;
 		} else {
 			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
 		}
+		
 		target.flip(0,n);
-		BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
+		BitSet g1 = zeroRewards(stpg, rewardsRestricted, target, null, min1, min2);
 		target.flip(0,n);
 		g1.or(target);
 		
 		//do reachability
 		inf = prob1(stpg, null, g1, !min1, !min2);
 		inf.flip(0,n);
-		for (int k = 0; k < n; k++)
-			if (inf.get(k))
-				init[k] = Double.POSITIVE_INFINITY;
 		
 		//Get the rich man's strategy and its values
 		//Start with computing optimal probabilities to reach the final state
@@ -1765,7 +1763,7 @@ public class STPGModelChecker extends ProbModelChecker
 					numerator -= p*(mcrprob.soln[ts]*(sRew + tRew) + mcrrich.soln[ts]);
 					denominator += p*mcrprob.soln[ts];
 					
-					int b = (int) Math.floor(numerator/denominator);
+					int b = (denominator == 0) ? 0 : (int) Math.floor(numerator/denominator);
 					//System.out.println(s + " " + c + " " + b);
 					if (lastSwitch < b)
 						lastSwitch = b;
@@ -1783,7 +1781,10 @@ public class STPGModelChecker extends ProbModelChecker
 		//fill in the initial values from the rich man's strategy
 		for (int j = 0; j < n; j++) {
 			for (int k = 0; k < maxReward + 1; k++) {
-				rews[k][j] = mcrrich.soln[j] + (lastSwitch + k)*mcrprob.soln[j];
+				if (inf.get(j))
+					rews[k][j] = Double.POSITIVE_INFINITY;
+				else
+					rews[k][j] = mcrrich.soln[j] + (lastSwitch + k)*mcrprob.soln[j];
 			}
 		}
 		
