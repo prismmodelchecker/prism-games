@@ -569,6 +569,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// we have G=1 target
 		// iff
 		// F=0 not target
+		System.out.println(min1 + " & " + min2);
 		
 		int n = stpg.getNumStates();
 		target.flip(0, n);
@@ -1236,14 +1237,15 @@ public class STPGModelChecker extends ProbModelChecker
 						throw new PrismException("The Fc operator cannot currently work with transition rewards.");
 					}
 				}
-				if (rewards.getStateReward(s) == 0)
+				if (rewards.getStateReward(s) == 0 || !target.get(s))
 					zeroRew.set(s);
 			}
 			
 			inf = new BitSet();
 			//TODO the following uses numeric computation, should be changed
 			//to something that is purely discrete.
-			ModelCheckerResult rm = computeFG(stpg, zeroRew, min1, min2);
+			ModelCheckerResult rm = computeFG(stpg, zeroRew, !min1, !min2);
+			System.out.println(Arrays.toString(rm.soln));
 			for (int s = 0; s < n; s++)
 				if (rm.soln[s] < 1)
 					inf.set(s);
