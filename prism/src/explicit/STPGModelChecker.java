@@ -380,26 +380,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		return rewards;
 	}
-	
-	protected StateValues checkRewardReachZero(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
-	{
-		BitSet b;
-		StateValues rewards = null;
-		ModelCheckerResult res = null;
 
-		// model check operand first
-		b = checkExpression(model, expr.getOperand2()).getBitSet();
-
-		// print out some info about num states
-		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
-		// allDDRowVars.n()));
-
-		res = computeReachRewardsZero((STPG) model, modelRewards, b, min1, min2, null, null);
-		rewards = StateValues.createFromDoubleArray(res.soln, model);
-
-		return rewards;
-	}
-	
 	// Numerical computation functions
 
 	/**
