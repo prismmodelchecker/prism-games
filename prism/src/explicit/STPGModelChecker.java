@@ -43,6 +43,26 @@ import explicit.rewards.STPGRewardsSimple;
  */
 public class STPGModelChecker extends ProbModelChecker
 {
+	/**
+	 * Used when calling methods computing reachability rewards.
+	 * Says that the runs which don't reach the target get
+	 * reward infinity.
+	 */
+	public static final int R_INFINITY = 0;
+	/**
+	 * Used when calling methods computing reachability rewards.
+	 * Says that the runs which don't reach the target get
+	 * the reward cumulated along the run (i.e. possibly infinite,
+	 * possibly finite)
+	 */
+	public static final int R_CUMULATIVE = 1;
+	/**
+	 * Used when calling methods computing reachability rewards.
+	 * Says that the runs which don't reach the target get
+	 * reward zero.
+	 */
+	public static final int R_ZERO = 2;
+	
 	// Model checking functions
 
 	/**
@@ -335,14 +355,14 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
 	{
-		return checkRewardReach(model, modelRewards, expr, min1, min2, true);
+		return checkRewardReach(model, modelRewards, expr, min1, min2, R_INFINITY);
 	}
 
 	/**
 	 * Compute rewards for a reachability reward operator.
-	 * @param unreachingAsInfinity If true, the runs not reaching the final state get infinity, if false, these get cumulative reward.
+	 * @param unreachingSemantics Determines how to treat runs that don't reach the target. One of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {{@link #R_ZERO}. 
 	 */
-	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2, boolean unreachingAsInfinity) throws PrismException
+	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2, int unreachingSemantics) throws PrismException
 	{
 		BitSet b;
 		StateValues rewards = null;
@@ -355,7 +375,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
 		// allDDRowVars.n()));
 
-		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2, null, null, unreachingAsInfinity);
+		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2, null, null, unreachingSemantics);
 		rewards = StateValues.createFromDoubleArray(res.soln, model);
 
 		return rewards;
@@ -1175,7 +1195,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
 	{
-		return computeReachRewards(stpg, rewards, target, min1, min2, init, known, true);
+		return computeReachRewards(stpg, rewards, target, min1, min2, init, known, R_INFINITY);
 	}
 	
 	/**
@@ -1187,163 +1207,23 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
 	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (may be overwritten) 
-	 * @param known Optionally, a set of states for which the exact answer is known
-	 * @param unreachingAsInfinity If true, the runs not reaching the final state get infinity, if false, these get cumulative reward.
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 * @param known Optionally, a set of states for which the exact answer is known.
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values. 
+	 * @param unreachingSemantics Determines how to treat runs that don't reach the target. One of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {{@link #R_ZERO}. 
 	 */
-	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known, boolean unreachingAsInfinity) throws PrismException
+	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known, int unreachingSemantics) throws PrismException
 	{
-		ModelCheckerResult res = null;
-		BitSet inf;
-		int i, n, numTarget, numInf;
-		long timer, timerProb1, timerApprox;
-
-		// Start expected reachability
-		timer = System.currentTimeMillis();
-		if (verbosity >= 1)
-			mainLog.println("Starting expected reachability...");
-
-		// Check for deadlocks in non-target state (because breaks e.g. prob1)
-		stpg.checkForDeadlocks(target);
-
-		// Store num states
-		n = stpg.getNumStates();
-
-		// Optimise by enlarging target set (if more info is available)
-		if (init != null && known != null) {
-			BitSet targetNew = new BitSet(n);
-			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
-			}
-			target = targetNew;
-		}
-		
-		timerProb1 = System.currentTimeMillis();
-		//identify infinite values
-		if(unreachingAsInfinity) {
-			inf = prob1(stpg, null, target, !min1, !min2);
-			inf.flip(0, n);
-		} else {
-			inf = new BitSet();
-			
-			target.flip(0,n);
-			BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
-			target.flip(0,n);
-			g1.or(target);
-			
-			//do reachability
-			inf = prob1(stpg, null, g1, !min1, !min2);
-			inf.flip(0,n);
-		}
-		
-		timerProb1 = System.currentTimeMillis() - timerProb1;
-
-		// Print results of precomputation
-		numTarget = target.cardinality();
-		numInf = inf.cardinality();
-		if (verbosity >= 1)
-			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
-		
-		//Compute rewards with epsilon instead of zero. This is used to get the over-approximation
-		//of the real result, which deals with the problem of staying in zero components for free
-		//when infinity should be gained.
-		if (unreachingAsInfinity) {
-			//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
-			//also, check if by any chance all rewards are nonzero, then we don't need to precompute
-			double minimumReward = Double.POSITIVE_INFINITY;
-			double maximumReward = 0.0;
-			boolean allNonzero = true;
-			double r;
-			for (i = 0; i < n; i++) {
-				r = rewards.getStateReward(i);
-				if (r > 0.0 && r < minimumReward)
-					minimumReward = r;
-				if (r > maximumReward)
-					maximumReward = r;
-				allNonzero = allNonzero && r > 0;
-				
-				for (int j = 0; j < stpg.getNumChoices(i); j++) {
-					r = rewards.getTransitionReward(i,j);
-					if (r > 0.0  && r < minimumReward)
-						minimumReward = r;
-					if (r > maximumReward)
-						maximumReward = r;
-					allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
-					
-					for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
-						r = rewards.getNestedTransitionReward(i, j, k);
-						if (r > 0.0 && r < minimumReward)
-							minimumReward = r;
-						if (r > maximumReward)
-							maximumReward = r;
-						allNonzero = allNonzero && r > 0;
-					}
-				}
-			}
-			
-			if (!allNonzero) {
-				timerApprox = System.currentTimeMillis();
-				//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
-				double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
-				
-				if (verbosity >= 1) {
-					mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
-				}
-				
-				//Modify the rewards
-				double origZeroReplacement;
-				if (rewards instanceof MDPRewardsSimple) {
-					origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
-					((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
-				} else {
-					throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
-				}
-				
-				//Compute the value when rewards are nonzero
-				switch (solnMethod) {
-				case VALUE_ITERATION:
-					res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
-					break;
-				default:
-					throw new PrismException("Unknown STPG solution method " + solnMethod);
-				}
-				
-				//Set the value iteration result to be the initial solution for the next part
-				//in which "proper" zero rewards are used
-				init = res.soln;
-				
-				//Return the rewards to the original state
-				if (rewards instanceof MDPRewardsSimple) {
-					((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
-				}
-				
-				timerApprox = System.currentTimeMillis() - timerApprox;
-				
-				if (verbosity >= 1) {
-					mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
-				}
-			}
-		}
-		
-		// Compute real rewards
-		switch (solnMethod) {
-		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init , known);
-			break;
-		default:
-			throw new PrismException("Unknown STPG solution method " + solnMethod);
+		switch (unreachingSemantics) {
+			case R_INFINITY:
+				return computeReachRewardsInfinity(stpg, rewards, target, min1, min2, init, known);
+			case R_CUMULATIVE:
+				return computeReachRewardsCumulative(stpg, rewards, target, min1, min2, init, known);
+			case R_ZERO:
+				return computeReachRewardsZero(stpg, rewards, target, min1, min2, init, known);
+			default : 
+				throw new PrismException("Unknown semantics for runs unreaching the target in STPGModelChecker: " + unreachingSemantics);
 		}
 
-		// Finished expected reachability
-		timer = System.currentTimeMillis() - timer;
-		if (verbosity >= 1)
-			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
-
-		// Update time taken
-		res.timeTaken = timer / 1000.0;
-		res.timePre = timerProb1 / 1000.0;
-
-		return res;
 	}
 
 	/**
@@ -1472,6 +1352,241 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 	
 	/**
+	 * Computes the reachability reward under the semantics where nonreaching runs get infinity.
+	 * @param stpg
+	 * @param rewards
+	 * @param target
+	 * @param min1
+	 * @param min2
+	 * @param init
+	 * @param known
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeReachRewardsInfinity(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		BitSet inf;
+		int i, n, numTarget, numInf;
+		long timer, timerProb1, timerApprox;
+
+		// Start expected reachability
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("Starting expected reachability...");
+
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		stpg.checkForDeadlocks(target);
+
+		// Store num states
+		n = stpg.getNumStates();
+
+		// Optimise by enlarging target set (if more info is available)
+		if (init != null && known != null) {
+			BitSet targetNew = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
+			}
+			target = targetNew;
+		}
+		
+		timerProb1 = System.currentTimeMillis();
+		//identify infinite values
+		inf = prob1(stpg, null, target, !min1, !min2);
+		inf.flip(0, n);
+		
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+
+		// Print results of precomputation
+		numTarget = target.cardinality();
+		numInf = inf.cardinality();
+		if (verbosity >= 1)
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
+		
+		//Compute rewards with epsilon instead of zero. This is used to get the over-approximation
+		//of the real result, which deals with the problem of staying in zero components for free
+		//when infinity should be gained.
+		
+		//first, get the minimum nonzero reward and maximal reward, will be used as a basis for epsilon
+		//also, check if by any chance all rewards are nonzero, then we don't need to precompute
+		double minimumReward = Double.POSITIVE_INFINITY;
+		double maximumReward = 0.0;
+		boolean allNonzero = true;
+		double r;
+		for (i = 0; i < n; i++) {
+			r = rewards.getStateReward(i);
+			if (r > 0.0 && r < minimumReward)
+				minimumReward = r;
+			if (r > maximumReward)
+				maximumReward = r;
+			allNonzero = allNonzero && r > 0;
+			
+			for (int j = 0; j < stpg.getNumChoices(i); j++) {
+				r = rewards.getTransitionReward(i,j);
+				if (r > 0.0  && r < minimumReward)
+					minimumReward = r;
+				if (r > maximumReward)
+					maximumReward = r;
+				allNonzero = allNonzero && rewards.getTransitionReward(i,j) > 0;
+				
+				for (int k= 0; k < stpg.getNumNestedChoices(i, j); k++) {
+					r = rewards.getNestedTransitionReward(i, j, k);
+					if (r > 0.0 && r < minimumReward)
+						minimumReward = r;
+					if (r > maximumReward)
+						maximumReward = r;
+					allNonzero = allNonzero && r > 0;
+				}
+			}
+		}
+		
+		if (!allNonzero) {
+			timerApprox = System.currentTimeMillis();
+			//A simple heuristic that gives small epsilon, but still is hopefully safe floating-point-wise
+			double epsilon = Math.min(minimumReward, maximumReward * 0.01);;
+			
+			if (verbosity >= 1) {
+				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
+			}
+			
+			//Modify the rewards
+			double origZeroReplacement;
+			if (rewards instanceof MDPRewardsSimple) {
+				origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
+				((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
+			} else {
+				throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
+			}
+			
+			//Compute the value when rewards are nonzero
+			switch (solnMethod) {
+			case VALUE_ITERATION:
+				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+				break;
+			default:
+				throw new PrismException("Unknown STPG solution method " + solnMethod);
+			}
+			
+			//Set the value iteration result to be the initial solution for the next part
+			//in which "proper" zero rewards are used
+			init = res.soln;
+			
+			//Return the rewards to the original state
+			if (rewards instanceof MDPRewardsSimple) {
+				((MDPRewardsSimple)rewards).setZeroReplacement(origZeroReplacement);
+			}
+			
+			timerApprox = System.currentTimeMillis() - timerApprox;
+			
+			if (verbosity >= 1) {
+				mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000 + " seconds), this will now be used to get the solution");
+			}
+		}
+		
+		// Compute real rewards
+		switch (solnMethod) {
+		case VALUE_ITERATION:
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init , known);
+			break;
+		default:
+			throw new PrismException("Unknown STPG solution method " + solnMethod);
+		}
+
+		// Finished expected reachability
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1)
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timePre = timerProb1 / 1000.0;
+
+		return res;
+	}
+	
+	/**
+	 * Computes the reachability reward under the semantics where nonreaching runs get
+	 * their total cumulative reward (i.e. anything between 0 and infinity).
+	 * @param stpg
+	 * @param rewards
+	 * @param target
+	 * @param min1
+	 * @param min2
+	 * @param init
+	 * @param known
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeReachRewardsCumulative(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		BitSet inf;
+		int i, n, numTarget, numInf;
+		long timer, timerProb1, timerApprox;
+
+		// Start expected reachability
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("Starting expected reachability...");
+
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		stpg.checkForDeadlocks(target);
+
+		// Store num states
+		n = stpg.getNumStates();
+
+		// Optimise by enlarging target set (if more info is available)
+		if (init != null && known != null) {
+			BitSet targetNew = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
+			}
+			target = targetNew;
+		}
+		
+		timerProb1 = System.currentTimeMillis();
+		//identify infinite values
+		inf = new BitSet();
+		
+		target.flip(0,n);
+		BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
+		target.flip(0,n);
+		g1.or(target);
+		
+		//do reachability
+		inf = prob1(stpg, null, g1, !min1, !min2);
+		inf.flip(0,n);
+			
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+
+		// Print results of precomputation
+		numTarget = target.cardinality();
+		numInf = inf.cardinality();
+		if (verbosity >= 1)
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
+		
+		// Compute real rewards
+		switch (solnMethod) {
+		case VALUE_ITERATION:
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init , known);
+			break;
+		default:
+			throw new PrismException("Unknown STPG solution method " + solnMethod);
+		}
+
+		// Finished expected reachability
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1)
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timePre = timerProb1 / 1000.0;
+
+		return res;
+	}
+	
+	/**
 	 * Computes the reachability reward under the semantics where nonreaching runs get 0.
 	 * @param stpg
 	 * @param rewards
@@ -1565,7 +1680,7 @@ public class STPGModelChecker extends ProbModelChecker
 		//BitSet zeroReward = zeroRewards(stpg, rewards, positiveProb, target, !min1, !min2);
 		
 		//Identify states that get infinity.
-		ModelCheckerResult mcri = computeReachRewards(stpg, rewards, target, min1, min2, new double[n], zeroProb, false);
+		ModelCheckerResult mcri = computeReachRewards(stpg, rewards, target, min1, min2, new double[n], zeroProb, R_CUMULATIVE);
 		BitSet infinity = new BitSet();
 		
 		for (int k = 0; k < n; k++)
@@ -1616,7 +1731,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}		
 		
 		//Next, compute the value for the rich man's strategy.
-		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, false);
+		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
 		//System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 		
 		//compute B from the values for the rich man's strategy
