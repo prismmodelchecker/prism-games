@@ -1242,26 +1242,17 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 			
 			inf = new BitSet();
-			//TODO the following uses numeric computation, should be changed
+			//TODO the following partly uses numeric computation, should be changed
 			//to something that is purely discrete.
 			
-			//zeroRew.flip(0, n);
-			//System.out.println(target);
 			target.flip(0,n);
-			System.out.println(posRew);
-			System.out.println(target);
 			BitSet g1 = prob0(stpg, target, posRew, min1, min2);
 			target.flip(0,n);
 			g1.or(target);
 			
 			//do reachability
-			ModelCheckerResult rm =  computeReachProbs(stpg, g1, !min1, !min2);
-			
-			//ModelCheckerResult rm = computeFG(stpg, zeroRew, !min1, !min2);
-			System.out.println(Arrays.toString(rm.soln));
-			for (int s = 0; s < n; s++)
-				if (rm.soln[s] < 1)
-					inf.set(s);
+			inf = prob1(stpg, null, g1, !min1, !min2);
+			inf.flip(0,n);
 		}
 		
 		timerProb1 = System.currentTimeMillis() - timerProb1;
