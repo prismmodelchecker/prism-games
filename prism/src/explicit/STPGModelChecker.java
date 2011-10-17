@@ -1193,7 +1193,6 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known, boolean unreachingAsInfinity) throws PrismException
 	{
-		
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
@@ -1225,28 +1224,10 @@ public class STPGModelChecker extends ProbModelChecker
 			inf = prob1(stpg, null, target, !min1, !min2);
 			inf.flip(0, n);
 		} else {
-			//check that there are no transition rewards
-			//TODO fix the precomputation alg for infinity so that it
-			//allows transition rewards.
-			//At the same time find which states have nonzero reward
-			BitSet posRew = new BitSet();
-			for (int s = 0; s < n; s++) {
-				for (int t = 0; t < stpg.getNumChoices(s); t++) {
-					if (rewards.getTransitionReward(s, t) > 0) {
-						System.out.println (s + "," + t + "," + rewards.getTransitionReward(s, t));
-						throw new PrismException("The Fc operator cannot currently work with transition rewards.");
-					}
-				}
-				if (rewards.getStateReward(s) > 0)
-					posRew.set(s);
-			}
-			
 			inf = new BitSet();
-			//TODO the following partly uses numeric computation, should be changed
-			//to something that is purely discrete.
 			
 			target.flip(0,n);
-			BitSet g1 = prob0(stpg, target, posRew, min1, min2);
+			BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
 			target.flip(0,n);
 			g1.or(target);
 			
