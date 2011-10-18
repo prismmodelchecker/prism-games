@@ -276,10 +276,11 @@ public class SemanticCheck extends ASTTraverse
 				s = "Module \"" + m.getName() + "\" is not allowed to modify variable \"" + var + "\"";
 				throw new PrismLangException(s, e.getVarIdent(i));
 			}
-			if (isGlobal && !c.getSynch().equals("")) {
+			//TODO this should be dealt with so that the check is not commented out
+			/*if (isGlobal && !c.getSynch().equals("")) {
 				s = "Synchronous command cannot modify global variable";
 				throw new PrismLangException(s, e.getVarIdent(i));
-			}
+			}*/
 		}
 	}
 
