@@ -150,7 +150,7 @@ public class ConstructRewards
 							numChoices = mdp.getNumChoices(j);
 							for (k = 0; k < numChoices; k++) {
 								mdpAction = mdp.getAction(j, k);
-								if (mdpAction == null ? (action == null) : mdpAction.equals(action)) {
+								if (mdpAction == null ? (action.isEmpty()) : mdpAction.equals(action)) {
 									rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 								}
 							}
@@ -201,13 +201,13 @@ public class ConstructRewards
 							numChoices = stpg.getNumChoices(s);
 							for (j = 0; j < numChoices; j++) {
 								stpgAction = stpg.getAction(s, j);
-								if (stpgAction == null ? (action == null) : stpgAction.equals(action)) {
+								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
 									rewSimple.setTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 								}
 								numChoices2 = stpg.getNumNestedChoices(s, j);
 								for (k = 0; k < numChoices2; k++) {
 									stpgAction = stpg.getNestedAction(s, j, k);
-									if (stpgAction == null ? (action == null) : stpgAction.equals(action)) {
+									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
 										rewSimple.setNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 									}
 								}
@@ -265,7 +265,7 @@ public class ConstructRewards
 							numChoices = smg.getNumChoices(j);
 							for (k = 0; k < numChoices; k++) {
 								smgAction = smg.getAction(j, k);
-								if (smgAction == null ? (action == null) : smgAction.equals(action)) {
+								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
 									rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 								}
 							}
