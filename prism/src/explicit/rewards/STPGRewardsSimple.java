@@ -125,7 +125,7 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 			return this.zeroReplacement;
 		if (list2.size() <= j)
 			return this.zeroReplacement;
-		return (list2.get(j) > 0.0) ? list2.get(j) : zeroReplacement;
+		return (list2.get(j) != 0.0) ? list2.get(j) : zeroReplacement;
 	}
 	
 	@Override

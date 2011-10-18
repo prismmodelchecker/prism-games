@@ -37,6 +37,7 @@ import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
+import explicit.rewards.StateRewardsConstant;
 
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
@@ -1684,6 +1685,15 @@ public class STPGModelChecker extends ProbModelChecker
 					rewardsRestrictedSimple.setStateReward(s, 0);
 			}
 			rewardsRestricted = rewardsRestrictedSimple;
+		} else if (rewards instanceof StateRewardsConstant) {
+			//And make sure only the best actions are used
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple(n);
+			
+			for (int s = 0; s < n; s++) {
+				if (positiveProb.get(s))
+					rewardsRestrictedSimple.setStateReward(s, rewards.getStateReward(s));
+			}
+			rewardsRestricted = rewardsRestrictedSimple;
 		} else {
 			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
 		}
@@ -1700,8 +1710,6 @@ public class STPGModelChecker extends ProbModelChecker
 		//Get the rich man's strategy and its values
 		//Start with computing optimal probabilities to reach the final state
 		ModelCheckerResult mcrprob = computeReachProbs(stpg, target, min1, min2);
-		
-		//System.out.println("maximal probs:" + Arrays.toString(mcrprob.soln));
 		
 		//Next, reweigh the rewards and make sure that only optimal actions are taken 
 		if (rewards instanceof MDPRewardsSimple) {
@@ -1736,10 +1744,35 @@ public class STPGModelChecker extends ProbModelChecker
 				rewardsRestrictedSimple.setStateReward(s, newReward);
 			}
 			rewardsRestricted = rewardsRestrictedSimple;
+		} else if (rewards instanceof StateRewardsConstant) {
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple(n);
+			
+			for (int s = 0; s < n; s++) {
+				for (int c = 0; c < stpg.getNumChoices(s); c++)	{
+					double prob = 0.0;
+					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
+					while(it.hasNext()) {
+						Entry<Integer, Double> e = it.next();
+						prob += e.getValue() * mcrprob.soln[e.getKey()];
+					}
+					
+					//as a hack, set the transition reward of nonoptimal transitions
+					//to something extreme so they are never chosen
+					if (prob < mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.NEGATIVE_INFINITY);
+						//System.out.println("choice " + s + " " + c + " changing " + rewards.getTransitionReward(s, c) + " to -inf");
+					} else if (prob > mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && min1) || (stpg.getPlayer(s) == 2 && min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.POSITIVE_INFINITY);
+						//System.out.println("choice " + s + " " + c + " changing " + rewards.getTransitionReward(s, c) + " to +inf");
+					} //else the reward remains 0
+				}
+				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
+				rewardsRestrictedSimple.setStateReward(s, newReward);
+			}
+			rewardsRestricted = rewardsRestrictedSimple;
 		} else {
 			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
 		}		
-		
 		//Next, compute the value for the rich man's strategy.
 		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
 		//System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
@@ -1868,7 +1901,7 @@ public class STPGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		
 		res = new ModelCheckerResult();
-		res.soln = rews[1];
+		res.soln = (rews.length > 1) ? rews[1] : rews[0];
 		res.lastSoln = (rews.length > 2) ? rews[2] : null;
 		res.numIters = lastSwitch;
 		res.timeTaken = timer / 1000;

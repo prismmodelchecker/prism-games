@@ -185,7 +185,7 @@ public class MDPRewardsSimple implements MDPRewards
 	{
 		if (stateRewards == null)
 			return this.zeroReplacement;
-		return (stateRewards.get(s) > 0.0) ? stateRewards.get(s) : this.zeroReplacement;
+		return (stateRewards.get(s) != 0.0) ? stateRewards.get(s) : this.zeroReplacement;
 	}
 	
 	@Override
@@ -196,7 +196,7 @@ public class MDPRewardsSimple implements MDPRewards
 			return this.zeroReplacement;
 		if (list.size() <= i)
 			return this.zeroReplacement;
-		return (list.get(i) > 0) ? list.get(i) : this.zeroReplacement;
+		return (list.get(i) != 0) ? list.get(i) : this.zeroReplacement;
 	}
 	
 	@Override
