@@ -1,0 +1,28 @@
+smg
+
+// Player info
+player p1 [a] endplayer
+player p2 [b] endplayer
+player p3 [c] endplayer
+
+
+module player1
+	s : [0..3] init 0;
+
+	[a] s=0 -> 0.3 : (s'=0) + 0.7 : (s'=1);
+	[a] s=0 -> 0.5 : (s'=1) + 0.5 : (s'=2);
+	[a] s=3 -> true;
+	[b] s=1 -> (s'=1);
+	[b] s=1 -> (s'=2);
+	[c] s=2 -> (s'=1);
+	[c] s=2 -> (s'=3);
+
+endmodule
+
+label "t" = s=3;
+
+rewards "r"
+	[a] true : 0;
+	[b] true : 1;
+	[c] true : 2;
+endrewards

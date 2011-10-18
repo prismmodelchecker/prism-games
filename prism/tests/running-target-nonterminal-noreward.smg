@@ -1,0 +1,37 @@
+smg
+
+// Player info
+player p1 player1 endplayer
+player p2 player2 endplayer
+player p3 player3 endplayer
+
+global s : [0..4] init 0;
+
+module player1
+
+	[] s=0 -> 0.3 : (s'=0) + 0.7 : (s'=1);
+	[] s=0 -> 0.5 : (s'=1) + 0.5 : (s'=2);
+	[] s=3 -> (s'=4);
+	[] s=4 -> (s'=4);
+
+endmodule
+
+module player2
+
+	[] s=1 -> (s'=1);
+	[] s=1 -> (s'=2);
+
+endmodule
+
+module player3
+
+	[] s=2 -> (s'=1);
+	[] s=2 -> (s'=3);
+
+endmodule
+
+label "t" = s=3;
+
+rewards "r"
+	true : s;
+endrewards
