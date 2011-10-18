@@ -64,6 +64,7 @@ public class SMGModelChecker extends STPGModelChecker
 			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
 		}
 		
+		/*TODO implement FG and GF formulae
 		//Test if this is FG
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprT = (ExpressionTemporal) expr;
@@ -96,7 +97,7 @@ public class SMGModelChecker extends STPGModelChecker
 					}
 				}
 			}
-		}
+		}*/
 		
 		//in other case
 		throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
