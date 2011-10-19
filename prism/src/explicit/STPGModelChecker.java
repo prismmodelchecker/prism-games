@@ -223,8 +223,6 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet b;
 		ModelCheckerResult res = null;
 		
-		System.out.println("sss");
-		
 		//check if the formula is of the FG form
 		Expression subformula = null;
 		if (expr instanceof ExpressionTemporal) {
@@ -535,7 +533,7 @@ public class STPGModelChecker extends ProbModelChecker
 			res.soln = new double[n];
 			for(int k = 0; k < n; k++)
 				res.soln[k] = (yes.get(k)) ? 1.0 : 0.0;
-			System.out.println("Bound is 1, hence I am skipping the computation of other values than 1.");
+			mainLog.println("Bound is 1, hence I am skipping the computation of other values than 1.");
 		}
 
 		// Finished probabilistic reachability
@@ -571,7 +569,6 @@ public class STPGModelChecker extends ProbModelChecker
 		// we have G=1 target
 		// iff
 		// F=0 not target
-		System.out.println(min1 + " & " + min2);
 		
 		int n = stpg.getNumStates();
 		target.flip(0, n);
