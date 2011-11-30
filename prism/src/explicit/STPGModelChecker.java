@@ -1525,16 +1525,68 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		timerProb1 = System.currentTimeMillis();
 		//identify infinite values
-		inf = new BitSet();
 		
-		target.flip(0,n);
-		BitSet g1 = zeroRewards(stpg, rewards, target, null, min1, min2);
-		target.flip(0,n);
-		g1.or(target);
+		BitSet aRew = new BitSet();
 		
-		//do reachability
-		inf = prob1(stpg, null, g1, !min1, !min2);
-		inf.flip(0,n);
+		for(i = 0; i < n; i++)
+		{
+			// check for state reward
+			if (rewards.getStateReward(i) > 0.0)
+				aRew.set(i);
+			
+			// check for transition rewards
+			int nonZeroRewards = 0;
+			for(int k = 0; k <  stpg.getNumChoices(i); k++)
+			{
+				if (rewards.getTransitionReward(i, k) > 0.0) {
+					nonZeroRewards++;
+					aRew.set(i);
+				}
+			}
+			
+			if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i))
+				throw new PrismException("If transition reward is nonzero, all transitions going from the state must be.");
+		}
+		
+		System.out.println("aRew: " + aRew);
+		
+		BitSet b1 = aRew;
+		BitSet b2 = new BitSet();
+		
+		BitSet all = new BitSet(n);
+		all.flip(0,n);
+		//BitSet none = new BitSet();
+		
+		while(true) {
+			b2 = prob1(stpg, null, b1, min1, min2);
+			System.out.println("b2: " + b2);
+			
+			BitSet b3 = new BitSet();
+			stpg.prob1step(all, b2, all, min1, min2, b3);
+			System.out.println("b3 pre: " + b3);
+			b3.and(b1);
+			
+			System.out.println("b3: " + b3);
+			
+			//check if the alg is correct
+			for (i = 0; i < n; i++)
+			{
+				if (b3.get(i) && !b1.get(i))
+				{
+					throw new PrismException("There is some error in the implementation");
+				}
+			}
+			
+			if (b3.equals(b1))
+				break;
+			
+			BitSet tmp = b3;
+			b3=b1;
+			b1=tmp;
+		}
+		
+		inf = prob0(stpg, null, b1, min1, min2);
+		inf.flip(0, n);
 			
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
