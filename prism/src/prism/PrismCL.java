@@ -61,6 +61,7 @@ public class PrismCL
 	private boolean exporttransdotstates = false;
 	private boolean exportbsccs = false;
 	private boolean exportresults = false;
+	private boolean exportresultsmatrix = false;
 	private boolean exportprism = false;
 	private boolean exportprismconst = false;
 	private boolean exportPlainDeprecated = false;
@@ -78,7 +79,7 @@ public class PrismCL
 	private boolean testExitsOnFail = true;
 
 	// property info
-	private int propertyToCheck = -1;
+	private Object propertyToCheck = null;
 	private String propertyString = "";
 
 	// argument to -const switch
@@ -356,7 +357,7 @@ public class PrismCL
 				// for simulation we can do multiple values of property constants simultaneously
 				if (simulate && undefinedConstants[j].getNumPropertyIterations() > 1) {
 					try {
-						mainLog.println("\n-------------------------------------------");
+						mainLog.printSeparator();
 						mainLog.println("\nSimulating: " + propertiesToCheck.get(j));
 						if (definedMFConstants != null)
 							if (definedMFConstants.getNumValues() > 0)
@@ -390,7 +391,7 @@ public class PrismCL
 							}
 
 							// log output
-							mainLog.println("\n-------------------------------------------");
+							mainLog.printSeparator();
 							mainLog.println("\n" + (simulate ? "Simulating" : "Model checking") + ": " + propertiesToCheck.get(j));
 							if (definedMFConstants != null)
 								if (definedMFConstants.getNumValues() > 0)
@@ -492,6 +493,8 @@ public class PrismCL
 		if (exportresults) {
 
 			mainLog.print("\nExporting results ");
+			if (exportresultsmatrix)
+				mainLog.print("in matrix form ");
 			if (!exportResultsFilename.equals("stdout"))
 				mainLog.println("to file \"" + exportResultsFilename + "\"...");
 			else
@@ -503,7 +506,11 @@ public class PrismCL
 			for (i = 0; i < numPropertiesToCheck; i++) {
 				if (i > 0)
 					tmpLog.println();
-				tmpLog.print(propertiesToCheck.get(i) + ":\n" + results[i].toString(false, " ", " "));
+				if (exportresultsmatrix) {
+					tmpLog.print(results[i].toStringMatrix("\t"));
+				} else {
+					tmpLog.print(propertiesToCheck.get(i) + ":\n" + results[i].toString(false, " ", " "));
+				}
 			}
 			tmpLog.close();
 		}
@@ -521,7 +528,7 @@ public class PrismCL
 		// even if a new log is created shortly
 		mainLog = new PrismFileLog("stdout");
 		techLog = new PrismFileLog("stdout");
-
+		
 		// create prism object(s)
 		prism = new Prism(mainLog, techLog);
 		prismExpl = new PrismExplicit(mainLog, prism.getSettings());
@@ -610,7 +617,8 @@ public class PrismCL
 		mainLog.print("\n" + propertiesFile.getNumProperties());
 		mainLog.print(" propert" + ((propertiesFile.getNumProperties() == 1) ? "y" : "ies") + ":\n");
 		for (i = 0; i < propertiesFile.getNumProperties(); i++) {
-			mainLog.println("(" + (i + 1) + ") " + propertiesFile.getProperty(i));
+			String name = propertiesFile.getPropertyName(i);
+			mainLog.println("(" + (i + 1) + ") " + ((name != null) ? ("\"" + name + "\" : ") : "") + propertiesFile.getProperty(i));
 		}
 	}
 
@@ -627,7 +635,7 @@ public class PrismCL
 			numPropertiesToCheck = 0;
 		}
 		// unless specified, verify all properties
-		else if (propertyToCheck == -1) {
+		else if (propertyToCheck == null) {
 			numPropertiesToCheck = propertiesFile.getNumProperties();
 			for (i = 0; i < numPropertiesToCheck; i++) {
 				propertiesToCheck.add(propertiesFile.getPropertyObject(i));
@@ -635,11 +643,20 @@ public class PrismCL
 		}
 		// otherwise just verify the relevant property
 		else {
-			if (propertyToCheck > 0 && propertyToCheck <= propertiesFile.getNumProperties()) {
+			if (propertyToCheck instanceof Integer) {
+				int propIndex = (Integer) propertyToCheck;
+				if (propIndex <= 0 || propIndex > propertiesFile.getNumProperties())
+					errorAndExit("There is not a property " + propIndex + " to verify");
 				numPropertiesToCheck = 1;
-				propertiesToCheck.add(propertiesFile.getPropertyObject(propertyToCheck - 1));
+				propertiesToCheck.add(propertiesFile.getPropertyObject(propIndex - 1));
+			} else if (propertyToCheck instanceof String) {
+				Property p = propertiesFile.getPropertyObjectByName((String) propertyToCheck);
+				if (p == null)
+					errorAndExit("There is not a property \"" + propertyToCheck + "\" to check");
+				numPropertiesToCheck = 1;
+				propertiesToCheck.add(p);
 			} else {
-				errorAndExit("There is not a property " + propertyToCheck + " to verify");
+				errorAndExit("There is not a property " + propertyToCheck + " to check");
 			}
 		}
 	}
@@ -697,7 +714,7 @@ public class PrismCL
 		StateList states;
 		int i;
 
-		mainLog.println("\n-------------------------------------------");
+		mainLog.printSeparator();
 
 		// build model
 		if (!explicit) {
@@ -747,7 +764,7 @@ public class PrismCL
 				}
 				// if requested, remove them
 				else if (fixdl) {
-					mainLog.print("\nWarning: " + states.size() + " deadlock states detected; adding self-loops in these states...\n");
+					mainLog.printWarning(states.size() + " deadlock states detected; adding self-loops in these states...");
 					model.fixDeadlocks();
 				}
 				// otherwise print error and bail out
@@ -764,7 +781,7 @@ public class PrismCL
 					}
 					mainLog.print("\nTip: Use the -fixdl switch to automatically add self-loops in deadlock states.\n");
 					model.clear();
-					exit();
+					exit(1);
 				}
 			}
 		} else {
@@ -776,7 +793,7 @@ public class PrismCL
 					mainLog.println();
 					mainLog.print("\nError: Model contains " + deadlocks.size() + " deadlock states");
 					mainLog.print("\nTip: Use the -fixdl switch to automatically add self-loops in deadlock states.\n");
-					exit();
+					exit(1);
 				}
 			}
 		}
@@ -846,7 +863,7 @@ public class PrismCL
 			}
 
 			if (exportPlainDeprecated)
-				mainLog.println("\nWarning: The -exportplain switch is now deprecated. Please use -exporttrans in future.");
+				mainLog.printWarning("The -exportplain switch is now deprecated. Please use -exporttrans in future.");
 		}
 
 		// export state rewards to a file
@@ -984,7 +1001,7 @@ public class PrismCL
 				prism.doSteadyState(model, exportType, exportSteadyStateFile);
 			}
 		} else {
-			mainLog.println("\nWarning: Steady-state probabilities only computed for DTMCs/CTMCs.");
+			mainLog.printWarning("Steady-state probabilities only computed for DTMCs/CTMCs.");
 		}
 	}
 
@@ -1034,7 +1051,7 @@ public class PrismCL
 				prism.doTransient(model, i, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
 			}
 		} else {
-			mainLog.println("\nWarning: Transient probabilities only computed for DTMCs/CTMCs.");
+			mainLog.printWarning("Transient probabilities only computed for DTMCs/CTMCs.");
 		}
 	}
 
@@ -1044,6 +1061,17 @@ public class PrismCL
 	{
 		// clear up and close down
 		prism.closeDown(true);
+		// notify about any warnings
+		int numWarnings = mainLog.getNumberOfWarnings();
+		if (numWarnings > 0) {
+			mainLog.printSeparator();
+			mainLog.print("\nNote: There ");
+			if (numWarnings == 1)
+				mainLog.print("was 1 warning");
+			else
+				mainLog.print("were " + numWarnings + " warnings");
+			mainLog.println(" during computation.");
+		}
 		mainLog.println();
 	}
 
@@ -1094,15 +1122,13 @@ public class PrismCL
 						errorAndExit("No property specified for -" + sw + " switch");
 					}
 				}
-				// which property to check
+				// which property to check (int index or string name)
 				else if (sw.equals("prop") || sw.equals("property")) {
 					if (i < args.length - 1) {
 						try {
 							propertyToCheck = Integer.parseInt(args[++i]);
-							if (propertyToCheck < 1)
-								throw new NumberFormatException();
 						} catch (NumberFormatException e) {
-							errorAndExit("Invalid value for -" + sw + " switch");
+							propertyToCheck = args[i];
 						}
 					} else {
 						errorAndExit("No value specified for -" + sw + " switch");
@@ -1231,6 +1257,16 @@ public class PrismCL
 				else if (sw.equals("exportresults")) {
 					if (i < args.length - 1) {
 						exportresults = true;
+						exportResultsFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// export results, in matrix form
+				else if (sw.equals("exportresultsmatrix")) {
+					if (i < args.length - 1) {
+						exportresults = true;
+						exportresultsmatrix = true;
 						exportResultsFilename = args[++i];
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
@@ -1796,7 +1832,7 @@ public class PrismCL
 				aSimMethod = new CIconfidence(simWidth, simNumSamples);
 			}
 			if (simApproxGiven) {
-				mainLog.println("\nWarning: Option -simapprox is not used for the CI method and is being ignored");
+				mainLog.printWarning("Option -simapprox is not used for the CI method and is being ignored");
 			}
 		}
 		// ACI
@@ -1818,7 +1854,7 @@ public class PrismCL
 				aSimMethod = new ACIconfidence(simWidth, simNumSamples);
 			}
 			if (simApproxGiven) {
-				mainLog.println("\nWarning: Option -simapprox is not used for the ACI method and is being ignored");
+				mainLog.printWarning("Option -simapprox is not used for the ACI method and is being ignored");
 			}
 		}
 		// APMC
@@ -1840,7 +1876,7 @@ public class PrismCL
 				aSimMethod = new APMCconfidence(simApprox, simNumSamples);
 			}
 			if (simWidthGiven) {
-				mainLog.println("\nWarning: Option -simwidth is not used for the APMC method and is being ignored");
+				mainLog.printWarning("Option -simwidth is not used for the APMC method and is being ignored");
 			}
 		}
 		// SPRT
@@ -1850,10 +1886,10 @@ public class PrismCL
 			}
 			aSimMethod = new SPRTMethod(simConfidence, simConfidence, simWidth);
 			if (simApproxGiven) {
-				mainLog.println("\nWarning: Option -simapprox is not used for the SPRT method and is being ignored");
+				mainLog.printWarning("Option -simapprox is not used for the SPRT method and is being ignored");
 			}
 			if (simNumSamplesGiven) {
-				mainLog.println("\nWarning: Option -simsamples is not used for the SPRT method and is being ignored");
+				mainLog.printWarning("Option -simsamples is not used for the SPRT method and is being ignored");
 			}
 		} else
 			throw new PrismException("Unknown simulation method \"" + simMethodName + "\"");
@@ -1952,8 +1988,9 @@ public class PrismCL
 		mainLog.println();
 	}
 
-	// report (non-fatal) error
-
+	/**
+	 * Report a (non-fatal) error to the log.
+	 */
 	private void error(String s)
 	{
 		// If (and only if) we are in "test" (and not "testall") mode, treat any error as fatal
@@ -1964,8 +2001,9 @@ public class PrismCL
 		mainLog.println("\nError: " + s + ".");
 	}
 
-	// report error and exit cleanly
-
+	/**
+	 * Report a (fatal) error and exit cleanly (with exit code 1).
+	 */
 	private void errorAndExit(String s)
 	{
 		prism.closeDown(false);
@@ -1973,12 +2011,22 @@ public class PrismCL
 		System.exit(1);
 	}
 
-	// exit cleanly (no error)
-
+	/**
+	 * Exit cleanly (with exit code 0).
+	 */
 	private void exit()
 	{
 		prism.closeDown(true);
 		System.exit(0);
+	}
+
+	/**
+	 * Exit cleanly (with exit code i).
+	 */
+	private void exit(int i)
+	{
+		prism.closeDown(true);
+		System.exit(i);
 	}
 
 	// main method

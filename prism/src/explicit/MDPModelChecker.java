@@ -250,8 +250,11 @@ public class MDPModelChecker extends ProbModelChecker
 		boolean genAdv;
 
 		// Check for some unsupported combinations
-		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
-			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
+		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE) {
+			if (!(precomp && prob0)) 
+				throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
+			if (!min) 
+				throw new PrismException("Value iteration from above only works for minimum probabilities");
 		}
 
 		// Are we generating an optimal adversary?
@@ -560,6 +563,13 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Value iteration (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
+		// Non-convergence is an error
+		if (!done) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+		
 		// Print adversary
 		if (genAdv) {
 			PrismLog out = new PrismFileLog(exportAdvFilename);
@@ -648,6 +658,13 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Gauss-Seidel");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
+		// Non-convergence is an error
+		if (!done) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+		
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;
@@ -1113,6 +1130,13 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Value iteration (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
+		// Non-convergence is an error
+		if (!done) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+		
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;

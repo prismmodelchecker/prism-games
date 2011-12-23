@@ -114,13 +114,13 @@ public class SimulateModelCheckThread extends GUIComputationThread
 
 			try {
 				// display info
-				logln("\n-------------------------------------------");
+				logSeparator();
 				log("\nSimulating");
 				if (pf.getNumProperties() == 1) {
 					logln(": " + properties.get(0));
 				} else {
 					logln(" " + pf.getNumProperties() + " properties:");
-					for (int i = 0; i < pf.getNumProperties(); i++) {
+					for (int i = 0; i < properties.size(); i++) {
 						logln(" " + properties.get(i));
 					}
 				}
@@ -164,6 +164,7 @@ public class SimulateModelCheckThread extends GUIComputationThread
 				gp.setResult((results == null) ? new Result(resultError) : results[i]);
 				gp.setMethodString("Simulation");
 				gp.setConstants(definedMFConstants, definedPFConstants);
+				gp.setNumberOfWarnings(prism.getMainLog().getNumberOfWarnings());
 			}
 		}
 		// do each property individually
@@ -177,7 +178,7 @@ public class SimulateModelCheckThread extends GUIComputationThread
 				ict.start();
 				// do model checking
 				try {
-					logln("\n-------------------------------------------");
+					logSeparator();
 					logln("\nSimulating" + ": " + pf.getProperty(i));
 					if (definedMFConstants != null)
 						if (definedMFConstants.getNumValues() > 0)

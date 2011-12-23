@@ -114,11 +114,14 @@ public class ModelCheckThread extends GUIComputationThread
 
 		IconThread ic = new IconThread(null);
 
+		//numAuxiliary is the number of properties we don't check but that are contained because
+		//they are referenced. These are at the beginning of the file.
+		int numAuxiliary = propertiesFile.getNumProperties() - guiProps.size();
 		// Work through list of properties
-		for (int i = 0; i < propertiesFile.getNumProperties(); i++) {
+		for (int i = numAuxiliary; i < propertiesFile.getNumProperties(); i++) {
 
 			// Get ith property
-			GUIProperty gp = guiProps.get(i);
+			GUIProperty gp = guiProps.get(i - numAuxiliary);
 			// Animate it's clock icon
 			ic = new IconThread(gp);
 			ic.start();
@@ -126,7 +129,7 @@ public class ModelCheckThread extends GUIComputationThread
 			// Do model checking
 			try {
 				// Print info to log
-				logln("\n-------------------------------------------");
+				logSeparator();
 				logln("\nModel checking: " + propertiesFile.getProperty(i));
 				if (definedMFConstants != null)
 					if (definedMFConstants.getNumValues() > 0)
@@ -142,7 +145,7 @@ public class ModelCheckThread extends GUIComputationThread
 					modulesFileToCheck = dc.getNewModulesFile();
 					modulesFileToCheck.setUndefinedConstants(modulesFile.getConstantValues());
 					// build model
-					logln("\n-------------------------------------------");
+					logSeparator();
 					model = prism.buildModel(modulesFileToCheck);
 					clear = false;
 					// by construction, deadlocks can only occur from timelocks
@@ -184,6 +187,7 @@ public class ModelCheckThread extends GUIComputationThread
 			gp.setResult(result);
 			gp.setMethodString("Verification");
 			gp.setConstants(definedMFConstants, definedPFConstants);
+			gp.setNumberOfWarnings(prism.getMainLog().getNumberOfWarnings());
 
 			parent.repaintList();
 		}

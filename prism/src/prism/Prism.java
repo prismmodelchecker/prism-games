@@ -53,6 +53,7 @@ public class Prism implements PrismSettingsListener
 	// prism version
 	private static String version = "4.0.2";
 	// prism version suffix
+	//private static String versionSuffix = "";
 	private static String versionSuffix = ".games"; //".rXXXX";;
 	
 	//------------------------------------------------------------------------------
@@ -204,7 +205,7 @@ public class Prism implements PrismSettingsListener
 			}
 			catch(PrismException ex)
 			{
-				System.err.println("Warning: Failed to create new PRISM settings file.");
+				mainLog.printWarning("Failed to create new PRISM settings file.");
 			}
 		}
 		// add this Prism object as a listener
@@ -275,6 +276,16 @@ public class Prism implements PrismSettingsListener
 	public void setPrecomp(boolean b) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_PRECOMPUTATION, b);
+	}
+	
+	public void setProb0(boolean b) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_PROB0, b);
+	}
+	
+	public void setProb1(boolean b) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_PROB1, b);
 	}
 	
 	public void setDoProbChecks(boolean b) throws PrismException
@@ -477,6 +488,12 @@ public class Prism implements PrismSettingsListener
 	
 	public boolean getPrecomp()
 	{ return settings.getBoolean(PrismSettings.PRISM_PRECOMPUTATION); }
+	
+	public boolean getProb0()
+	{ return settings.getBoolean(PrismSettings.PRISM_PROB0); }
+	
+	public boolean getProb1()
+	{ return settings.getBoolean(PrismSettings.PRISM_PROB1); }
 	
 	public boolean getFairness()
 	{ return settings.getBoolean(PrismSettings.PRISM_FAIRNESS); }
@@ -779,6 +796,8 @@ public class Prism implements PrismSettingsListener
 	 */
 	public void initialise() throws PrismException
 	{
+		boolean verbose = this.getSettings().getBoolean("PRISM_VERBOSE");
+		mainLog.setVerbosityLevel(verbose ? PrismLog.VL_ALL : PrismLog.VL_DEFAULT);
 		mainLog.print("PRISM\n=====\n");
 		mainLog.print("\nVersion: " + getVersion() + "\n");
 		mainLog.print("Date: " + new java.util.Date() + "\n");
@@ -1257,17 +1276,17 @@ public class Prism implements PrismSettingsListener
 	{
 		// can only do ordered version of export for MDPs
 		if (model.getModelType() == ModelType.MDP) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition matrix for MDPs; using ordered.");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition matrix for MDPs; using ordered.");
 			ordered = true;
 		}
 		// can only do ordered version of export for MRMC
 		if (exportType == EXPORT_MRMC) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition matrix in MRMC format; using ordered.");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition matrix in MRMC format; using ordered.");
 			ordered = true;
 		}
 		// can only do ordered version of export for rows format
 		if (exportType == EXPORT_ROWS) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition matrix in rows format; using ordered.");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition matrix in rows format; using ordered.");
 			ordered = true;
 		}
 		
@@ -1338,17 +1357,17 @@ public class Prism implements PrismSettingsListener
 		
 		// can only do ordered version of export for MDPs
 		if (model.getModelType() == ModelType.MDP) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition reward matrix for MDPs; using ordered");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition reward matrix for MDPs; using ordered.");
 			ordered = true;
 		}
 		// can only do ordered version of export for MRMC
 		if (exportType == EXPORT_MRMC) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition reward matrix in MRMC format; using ordered");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition reward matrix in MRMC format; using ordered.");
 			ordered = true;
 		}
 		// can only do ordered version of export for rows format
 		if (exportType == EXPORT_ROWS) {
-			if (!ordered) mainLog.println("\nWarning: Cannot export unordered transition matrix in rows format; using ordered.");
+			if (!ordered) mainLog.printWarning("Cannot export unordered transition matrix in rows format; using ordered.");
 			ordered = true;
 		}
 		

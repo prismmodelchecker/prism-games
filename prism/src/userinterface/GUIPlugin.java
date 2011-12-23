@@ -66,6 +66,8 @@ import userinterface.util.*;
  */
 public abstract class GUIPlugin extends JPanel implements GUIEventListener, PrismSettingsListener
 {
+	private static final long serialVersionUID = 1L;
+	
 	//ATTRIBUTES
 	private GUIPrism gui;
 	private Prism prism;
@@ -539,6 +541,21 @@ public abstract class GUIPlugin extends JPanel implements GUIEventListener, Pris
 	public void setTabEnabled(boolean enabled)
 	{
 		gui.enableTab(this, enabled);
+	}
+	
+	/** Method to add a separator to the log contained within the parent GUIPrism.
+	 */	
+	public void logSeparator()
+	{
+		notifyEventListeners(new GUILogEvent(GUILogEvent.PRINTSEPARATOR, ""));
+	}
+	
+	/** Method to add a warning message to the log contained within the parent GUIPrism.
+	 * @param message The message to be added to the log
+	 */	
+	public void logWarning(String message)
+	{
+		notifyEventListeners(new GUILogEvent(GUILogEvent.PRINTWARNING, message));
 	}
 	
 	/** Utility method to automatically jump this plugin to the front of the tabs

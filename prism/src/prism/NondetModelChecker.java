@@ -79,17 +79,17 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Inherit some options from parent Prism object and store locally.
 		precomp = prism.getPrecomp();
-		prob0 = true;
-		prob1 = true;
+		prob0 = prism.getProb0();
+		prob1 = prism.getProb1();
 		fairness = prism.getFairness();
 
 		// Display warning and/or make changes for some option combinations
 		if (prism.getExportAdv() != Prism.EXPORT_ADV_NONE) {
 			if (engine != Prism.SPARSE) {
-				mainLog.println("\nWarning: Adversary generation is only implemented for the sparse engine");
+				mainLog.printWarning("Adversary generation is only implemented for the sparse engine");
 			}
 			if (precomp && prob1) {
-				mainLog.println("\nWarning: Disabling Prob1 since this is needed for adversary generation");
+				mainLog.printWarning("Disabling Prob1 since this is needed for adversary generation");
 				prob1 = false;
 			}
 		}
@@ -177,11 +177,11 @@ public class NondetModelChecker extends NonProbModelChecker
 		// Check for trivial (i.e. stupid) cases
 		if (pb != null) {
 			if ((p == 0 && relOp.equals(">=")) || (p == 1 && relOp.equals("<="))) {
-				mainLog.print("\nWarning: checking for probability " + relOp + " " + p + " - formula trivially satisfies all states\n");
+				mainLog.printWarning("Checking for probability " + relOp + " " + p + " - formula trivially satisfies all states");
 				JDD.Ref(reach);
 				return new StateValuesMTBDD(reach, model);
 			} else if ((p == 0 && relOp.equals("<")) || (p == 1 && relOp.equals(">"))) {
-				mainLog.print("\nWarning: checking for probability " + relOp + " " + p + " - formula trivially satisfies no states\n");
+				mainLog.printWarning("Checking for probability " + relOp + " " + p + " - formula trivially satisfies no states");
 				return new StateValuesMTBDD(JDD.Constant(0), model);
 			}
 		}
@@ -269,11 +269,11 @@ public class NondetModelChecker extends NonProbModelChecker
 		// check for trivial (i.e. stupid) cases
 		if (rb != null) {
 			if (r == 0 && relOp.equals(">=")) {
-				mainLog.print("\nWarning: checking for reward " + relOp + " " + r + " - formula trivially satisfies all states\n");
+				mainLog.printWarning("Checking for reward " + relOp + " " + r + " - formula trivially satisfies all states");
 				JDD.Ref(reach);
 				return new StateValuesMTBDD(reach, model);
 			} else if (r == 0 && relOp.equals("<")) {
-				mainLog.print("\nWarning: checking for reward " + relOp + " " + r + " - formula trivially satisfies no states\n");
+				mainLog.printWarning("Checking for reward " + relOp + " " + r + " - formula trivially satisfies no states");
 				return new StateValuesMTBDD(JDD.Constant(0), model);
 			}
 		}
@@ -456,7 +456,7 @@ public class NondetModelChecker extends NonProbModelChecker
 				mainLog.println("\nExporting product transition matrix to file \"" + prism.getExportProductTransFilename() + "\"...");
 				prism.exportTransToFile(modelProduct, true, Prism.EXPORT_PLAIN, new File(prism.getExportProductTransFilename()));
 			} catch (FileNotFoundException e) {
-				mainLog.println("\nWarning: Could not export product transition matrix to file \"" + prism.getExportProductTransFilename() + "\"");
+				mainLog.printWarning("Could not export product transition matrix to file \"" + prism.getExportProductTransFilename() + "\"");
 			}
 		}
 		if (prism.getExportProductStates()) {
@@ -465,7 +465,7 @@ public class NondetModelChecker extends NonProbModelChecker
 				prism.exportTransToFile(modelProduct, true, Prism.EXPORT_PLAIN, new File(prism.getExportProductStatesFilename()));
 				prism.exportStatesToFile(modelProduct, Prism.EXPORT_PLAIN, new File(prism.getExportProductStatesFilename()));
 			} catch (FileNotFoundException e) {
-				mainLog.println("\nWarning: Could not export product state space to file \"" + prism.getExportProductStatesFilename() + "\"");
+				mainLog.printWarning("Could not export product state space to file \"" + prism.getExportProductStatesFilename() + "\"");
 			}
 		}
 
@@ -670,7 +670,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		// if requested (i.e. when prob bound is 0 or 1 and precomputation algorithms are enabled),
 		// compute probabilities qualitatively
 		if (qual) {
-			mainLog.print("\nWarning: probability bound in formula is" + " 0/1 so exact probabilities may not be computed\n");
+			mainLog.print("\nProbability bound in formula is 0/1 so not computing exact probabilities...\n");
 			// for fairness, we compute max here
 			probs = computeUntilProbsQual(trans01, newb1, newb2, min && !fairness);
 		}
@@ -975,7 +975,7 @@ public class NondetModelChecker extends NonProbModelChecker
 				mainLog.println("\nExporting target states info to file \"" + prism.getExportTargetFilename() + "\"...");
 				PrismMTBDD.ExportLabels(labels, labelNames, "l", model.getAllDDRowVars(), model.getODD(), Prism.EXPORT_PLAIN, prism.getExportTargetFilename());
 			} catch (FileNotFoundException e) {
-				mainLog.println("\nWarning: Could not export target to file \"" + prism.getExportTargetFilename() + "\"");
+				mainLog.printWarning("Could not export target to file \"" + prism.getExportTargetFilename() + "\"");
 			}
 		}
 
@@ -995,7 +995,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		} else {
 			// no
 			// if precomputation enabled
-			if (precomp && prob0) {
+			// (nb: prob1 needs prob0)
+			if (precomp && (prob0 || prob1)) {
 				// min
 				if (min) {
 					// no: "min prob = 0" equates to "there exists an adversary prob equals 0"
@@ -1016,8 +1017,8 @@ public class NondetModelChecker extends NonProbModelChecker
 				no = JDD.And(reach, JDD.Not(JDD.Or(b1, b2)));
 			}
 			// yes
-			// if precomputation enabled (need both prob0/prob1 to be enabled to do prob1)
-			if (precomp && prob0 && prob1) {
+			// if precomputation enabled
+			if (precomp && prob1) {
 				// min
 				if (min) {
 					// yes: "min prob = 1" equates to "for all adversaries prob equals 1"
@@ -1202,13 +1203,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		if (prism.getCheckZeroLoops()) {
 			// need to deal with zero loops yet
 			if (min && zeroCostEndComponents != null && zeroCostEndComponents.size() > 0) {
-				mainLog.println("\nWarning: PRISM detected your model contains " + zeroCostEndComponents.size() + " zero-reward "
-						+ ((zeroCostEndComponents.size() == 1) ? "loop." : "loops."));
-				mainLog.println("Your minimum rewards may be too low...");
+				mainLog.printWarning("PRISM detected your model contains " + zeroCostEndComponents.size() + " zero-reward "
+						+ ((zeroCostEndComponents.size() == 1) ? "loop." : "loops.\n")
+						+ "Your minimum rewards may be too low...");
 			}
 		} else if (min) {
-			mainLog.println("\nWarning: PRISM hasn't checked for zero-reward loops.");
-			mainLog.println("Your minimum rewards may be too low...");
+			mainLog.printWarning("PRISM hasn't checked for zero-reward loops.\n"
+				+ "Your minimum rewards may be too low...");
 		}
 
 		// print out yes/no/maybe

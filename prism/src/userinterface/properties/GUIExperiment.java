@@ -45,7 +45,6 @@ public class GUIExperiment
 	private GUIMultiProperties guiProp;
 	private GUIExperimentTable table;
 	private prism.ResultsCollection results;
-	private String modString;
 	private boolean finished = false;
 
 	private ModulesFile mod;
@@ -63,7 +62,7 @@ public class GUIExperiment
 	private Result res;
 
 	/** Creates a new instance of GUIExperiment */
-	public GUIExperiment(GUIExperimentTable table, GUIMultiProperties guiProp, PropertiesFile prop, UndefinedConstants cons, ModulesFile mod, String modString,
+	public GUIExperiment(GUIExperimentTable table, GUIMultiProperties guiProp, PropertiesFile prop, UndefinedConstants cons, ModulesFile mod,
 			boolean useSimulation)
 	{
 		this.table = table;
@@ -71,7 +70,6 @@ public class GUIExperiment
 		this.prop = prop;
 		this.cons = cons;
 		this.mod = mod;
-		this.modString = modString;
 		this.useSimulation = useSimulation;
 
 		results = new prism.ResultsCollection(cons, prop.getProperty(0).getResultName());
@@ -89,7 +87,7 @@ public class GUIExperiment
 		return results.getCurrentIteration();
 	}
 
-	public Vector getRangingConstants()
+	public Vector<DefinedConstant> getRangingConstants()
 	{
 		return cons.getRangingConstants();
 	}
@@ -106,12 +104,14 @@ public class GUIExperiment
 
 	public String getPropertyString()
 	{
-		return prop.getProperty(0).toString();
+		int i = prop.getNumProperties() - 1;
+		return prop.getProperty(i).toString();
 	}
 
 	public Type getPropertyType()
 	{
-		return prop.getProperty(0).getType();
+		int i = prop.getNumProperties() - 1;
+		return prop.getProperty(i).getType();
 	}
 
 	public ResultsCollection getResults()
@@ -217,7 +217,8 @@ public class GUIExperiment
 			Model model = null;
 
 			ModulesFile modulesFileToCheck;
-			Expression propertyToCheck = propertiesFile.getProperty(0);
+			int propertyIndex = propertiesFile.getNumProperties() - 1;
+			Expression propertyToCheck = propertiesFile.getProperty(propertyIndex);
 			SimulationInformation info = null;
 			boolean reuseInfo = false, reuseInfoAsked = false;
 
@@ -263,7 +264,7 @@ public class GUIExperiment
 
 						// build model
 						try {
-							logln("\n-------------------------------------------");
+							logSeparator();
 							model = prism.buildModel(modulesFile);
 							clear = false;
 						} catch (PrismException e) {
@@ -282,7 +283,7 @@ public class GUIExperiment
 						StateList states = model.getDeadlockStates();
 						if (states != null) {
 							if (states.size() > 0) {
-								guiProp.log("\nWarning: " + states.size() + " deadlock states detected; adding self-loops in these states...\n");
+								guiProp.logWarning(states.size() + " deadlock states detected; adding self-loops in these states...");
 								model.fixDeadlocks();
 							}
 						}
@@ -351,7 +352,7 @@ public class GUIExperiment
 					else if (useSimulation && prism.getSettings().getBoolean(PrismSettings.SIMULATOR_SIMULTANEOUS)
 							&& undefinedConstants.getNumPropertyIterations() > 1) {
 						try {
-							logln("\n-------------------------------------------");
+							logSeparator();
 							logln("\nSimulating: " + propertyToCheck);
 							if (definedMFConstants != null)
 								if (definedMFConstants.getNumValues() > 0)
@@ -397,7 +398,7 @@ public class GUIExperiment
 								}
 
 								// log output
-								logln("\n-------------------------------------------");
+								logSeparator();
 								logln("\n" + (useSimulation ? "Simulating" : "Model checking") + ": " + propertyToCheck);
 								if (definedMFConstants != null)
 									if (definedMFConstants.getNumValues() > 0)
@@ -414,7 +415,7 @@ public class GUIExperiment
 									modulesFileToCheck = dc.getNewModulesFile();
 									modulesFileToCheck.setUndefinedConstants(modulesFile.getConstantValues());
 									// build model
-									logln("\n-------------------------------------------");
+									logSeparator();
 									model = prism.buildModel(modulesFileToCheck);
 									clear = false;
 									// by construction, deadlocks can only occur from timelocks

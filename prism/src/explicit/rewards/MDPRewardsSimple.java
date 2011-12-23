@@ -99,9 +99,6 @@ public class MDPRewardsSimple implements MDPRewards
 	 */
 	public void setStateReward(int s, double r)
 	{
-		// Nothing to do for zero reward
-		//if (r == 0.0)
-		//	return;
 		// If no rewards array created yet, create it
 		if (stateRewards == null) {
 			stateRewards = new ArrayList<Double>(numStates);
@@ -118,9 +115,6 @@ public class MDPRewardsSimple implements MDPRewards
 	public void setTransitionReward(int s, int i, double r)
 	{
 		List<Double> list;
-		// Nothing to do for zero reward
-		//if (r == 0.0)
-		//	return;
 		// If no rewards array created yet, create it
 		if (transRewards == null) {
 			transRewards = new ArrayList<List<Double>>(numStates);
