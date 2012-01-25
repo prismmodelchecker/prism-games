@@ -202,20 +202,20 @@ public class ConstructRewards
 							for (j = 0; j < numChoices; j++) {
 								stpgAction = stpg.getAction(s, j);
 								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-									rewSimple.setTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+									rewSimple.addToTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 								}
 								numChoices2 = stpg.getNumNestedChoices(s, j);
 								for (k = 0; k < numChoices2; k++) {
 									stpgAction = stpg.getNestedAction(s, j, k);
 									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-										rewSimple.setNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+										rewSimple.addToNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 									}
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.setStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+							rewSimple.addToStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 						}
 					}
 				}
@@ -266,13 +266,13 @@ public class ConstructRewards
 							for (k = 0; k < numChoices; k++) {
 								smgAction = smg.getAction(j, k);
 								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
-									rewSimple.setTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.setStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 						}
 					}
 				}

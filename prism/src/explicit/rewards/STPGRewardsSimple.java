@@ -102,6 +102,14 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 	}
 
 	/**
+	 * Add {@code r} to the reward for the {@code i},{@code j}th nested transition of state {@code s}.
+	 */
+	public void addToNestedTransitionReward(int s, int i, int j, double r)
+	{
+		setNestedTransitionReward(s, i, j, getNestedTransitionReward(s, i, j) + r);
+	}
+	
+	/**
 	 * Clear all rewards for state s.
 	 */
 	public void clearRewards(int s)
