@@ -110,6 +110,14 @@ public class MDPRewardsSimple implements MDPRewards
 	}
 
 	/**
+	 * Add {@code r} to the state reward for state {@code s}.
+	 */
+	public void addToStateReward(int s, double r)
+	{
+		setStateReward(s, stateRewards.get(s) + r);
+	}
+
+	/**
 	 * Set the transition reward for choice {@code i} of state {@code s} to {@code r}.
 	 */
 	public void setTransitionReward(int s, int i, double r)
@@ -139,6 +147,14 @@ public class MDPRewardsSimple implements MDPRewards
 		list.set(i, r);
 	}
 
+	/**
+	 * Add {@code r} to the transition reward for choice {@code i} of state {@code s}.
+	 */
+	public void addToTransitionReward(int s, int i, double r)
+	{
+		setTransitionReward(s, i, getTransitionReward(s, i) + r);
+	}
+	
 	/**
 	 * Clear all rewards for state s.
 	 */

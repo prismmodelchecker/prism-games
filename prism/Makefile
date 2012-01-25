@@ -156,7 +156,7 @@ ifeq ($(OSTYPE),linux)
 		LDFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		BINDISTSUFFIX = linux64
 	else
-		CUDD_XCFLAGS = -m32 -mtune=native -malign-double -DHAVE_IEEE_754 -DBSD $(DEBUG)
+		CUDD_XCFLAGS = -m32 -malign-double -DHAVE_IEEE_754 -DBSD $(DEBUG)
 		CFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		CPPFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		LDFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
@@ -365,9 +365,15 @@ make_dirs:
 	  for lib in `ls *$(LIBSUFFIX)`; do ln -fs $$lib `echo $$lib | sed s/$(LIBSUFFIX)/.jnilib/`; done;); \
 	fi
 
-tests:
-#	cd ~/prism-tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=../bin/prismdd
-	@(test -d tests && cd tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=$(PWD)/bin/prism) || (echo "Skipping tests")
+tests: testslocal
+	@if [ -d ~/prism-tests ]; then \
+	  cd ~/prism-tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=../bin/prism; \
+	fi
+
+testslocal:
+	@if [ -d tests ]; then \
+	  cd tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=../bin/prism; \
+	fi
 
 bin_scripts: $(BIN_TARGETS)
 	@./install.sh silent

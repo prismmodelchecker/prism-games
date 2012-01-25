@@ -38,7 +38,6 @@ import sparse.*;
 import hybrid.*;
 import parser.ast.*;
 import parser.visitor.ASTTraverse;
-import jltl2dstar.*;
 
 /*
  * Model checker for MDPs
@@ -94,28 +93,15 @@ public class NondetModelChecker extends NonProbModelChecker
 			}
 		}
 
-		// Pass some options onto engines/native code.
+		// Pass some options onto native code.
+		PrismNative.setCompact(prism.getCompact());
+		PrismNative.setTermCrit(prism.getTermCrit());
+		PrismNative.setTermCritParam(prism.getTermCritParam());
+		PrismNative.setMaxIters(prism.getMaxIters());
+		PrismNative.setSBMaxMem(prism.getSBMaxMem());
+		PrismNative.setNumSBLevels(prism.getNumSBLevels());
 		PrismNative.setExportAdv(prism.getExportAdv());
 		PrismNative.setExportAdvFilename(prism.getExportAdvFilename());
-		switch (engine) {
-		case Prism.MTBDD:
-			PrismMTBDD.setTermCrit(prism.getTermCrit());
-			PrismMTBDD.setTermCritParam(prism.getTermCritParam());
-			PrismMTBDD.setMaxIters(prism.getMaxIters());
-			break;
-		case Prism.SPARSE:
-			PrismSparse.setTermCrit(prism.getTermCrit());
-			PrismSparse.setTermCritParam(prism.getTermCritParam());
-			PrismSparse.setMaxIters(prism.getMaxIters());
-			PrismSparse.setCompact(prism.getCompact());
-		case Prism.HYBRID:
-			PrismHybrid.setTermCrit(prism.getTermCrit());
-			PrismHybrid.setTermCritParam(prism.getTermCritParam());
-			PrismHybrid.setMaxIters(prism.getMaxIters());
-			PrismHybrid.setCompact(prism.getCompact());
-			PrismHybrid.setSBMaxMem(prism.getSBMaxMem());
-			PrismHybrid.setNumSBLevels(prism.getNumSBLevels());
-		}
 	}
 
 	// -----------------------------------------------------------------------------------
@@ -431,14 +417,14 @@ public class NondetModelChecker extends NonProbModelChecker
 		// Convert LTL formula to deterministic Rabin automaton (DRA)
 		// For min probabilities, need to negate the formula
 		// (But check fairness setting since this may affect min/max)
-		mainLog.println("\nBuilding deterministic Rabin automaton (for " + (min && !fairness ? "!" : "") + ltl + ")...");
-		l = System.currentTimeMillis();
+		// (add parentheses to allow re-parsing if required)
 		if (min && !fairness) {
-			dra = LTL2Rabin.ltl2rabin(ltl.convertForJltl2ba().negate());
-		} else {
-			dra = LTL2Rabin.ltl2rabin(ltl.convertForJltl2ba());
+			ltl = Expression.Not(Expression.Parenth(ltl));
 		}
-		mainLog.println("\nDRA has " + dra.size() + " states, " + dra.acceptance().size() + " pairs.");
+		mainLog.println("\nBuilding deterministic Rabin automaton (for " + ltl + ")...");
+		l = System.currentTimeMillis();
+		dra = LTLModelChecker.convertLTLFormulaToDRA(ltl);
+		mainLog.println("\nDRA has " + dra.size() + " states, " + dra.getNumAcceptancePairs() + " pairs.");
 		// dra.print(System.out);
 		l = System.currentTimeMillis() - l;
 		mainLog.println("\nTime for Rabin translation: " + l / 1000.0 + " seconds.");
@@ -462,7 +448,6 @@ public class NondetModelChecker extends NonProbModelChecker
 		if (prism.getExportProductStates()) {
 			try {
 				mainLog.println("\nExporting product state space to file \"" + prism.getExportProductStatesFilename() + "\"...");
-				prism.exportTransToFile(modelProduct, true, Prism.EXPORT_PLAIN, new File(prism.getExportProductStatesFilename()));
 				prism.exportStatesToFile(modelProduct, Prism.EXPORT_PLAIN, new File(prism.getExportProductStatesFilename()));
 			} catch (FileNotFoundException e) {
 				mainLog.printWarning("Could not export product state space to file \"" + prism.getExportProductStatesFilename() + "\"");
@@ -841,6 +826,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		// otherwise explicitly compute the remaining probabilities
 		else {
 			// compute probabilities
+			mainLog.println("\nComputing probabilities...");
+			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
 				case Prism.MTBDD:
@@ -1057,7 +1044,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		else {
 			// compute probabilities
 			mainLog.println("\nComputing remaining probabilities...");
-
+			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
 				case Prism.MTBDD:
@@ -1098,6 +1085,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		JDDNode rewardsMTBDD;
 		DoubleVector rewardsDV;
 		StateValues rewards = null;
+		// Local copy of setting
+		int engine = this.engine;
 
 		// a trivial case: "=0"
 		if (time == 0) {
@@ -1107,6 +1096,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		// otherwise we compute the actual rewards
 		else {
 			// compute the rewards
+			mainLog.println("\nComputing rewards...");
+			// switch engine, if necessary
+			if (engine == Prism.HYBRID) {
+				mainLog.println("Switching engine since hybrid engine does yet support this computation...");
+				engine = Prism.SPARSE;
+			}
+			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
 				case Prism.MTBDD:
@@ -1138,6 +1134,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		JDDNode rewardsMTBDD;
 		DoubleVector rewardsDV;
 		StateValues rewards = null;
+		// Local copy of setting
+		int engine = this.engine;
 
 		Vector<JDDNode> zeroCostEndComponents = null;
 
@@ -1204,12 +1202,10 @@ public class NondetModelChecker extends NonProbModelChecker
 			// need to deal with zero loops yet
 			if (min && zeroCostEndComponents != null && zeroCostEndComponents.size() > 0) {
 				mainLog.printWarning("PRISM detected your model contains " + zeroCostEndComponents.size() + " zero-reward "
-						+ ((zeroCostEndComponents.size() == 1) ? "loop." : "loops.\n")
-						+ "Your minimum rewards may be too low...");
+						+ ((zeroCostEndComponents.size() == 1) ? "loop." : "loops.\n") + "Your minimum rewards may be too low...");
 			}
 		} else if (min) {
-			mainLog.printWarning("PRISM hasn't checked for zero-reward loops.\n"
-				+ "Your minimum rewards may be too low...");
+			mainLog.printWarning("PRISM hasn't checked for zero-reward loops.\n" + "Your minimum rewards may be too low...");
 		}
 
 		// print out yes/no/maybe
@@ -1225,6 +1221,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		// otherwise we compute the actual rewards
 		else {
 			// compute the rewards
+			mainLog.println("\nComputing remaining rewards...");
+			// switch engine, if necessary
+			if (engine == Prism.HYBRID) {
+				mainLog.println("Switching engine since hybrid engine does yet support this computation...");
+				engine = Prism.SPARSE;
+			}
+			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
 				case Prism.MTBDD:
