@@ -28,8 +28,10 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import explicit.rewards.MDPRewards;
@@ -221,9 +223,9 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
-				if (stateLabels.get(i) == PLAYER_1)
+				if (getPlayer(i) == PLAYER_1)
 					forall = forall1;
-				else if (stateLabels.get(i) == PLAYER_2)
+				else if (getPlayer(i) == PLAYER_2)
 					forall = forall2;
 
 				b1 = forall; // there exists or for all
@@ -256,9 +258,9 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 
-				if (stateLabels.get(i) == PLAYER_1)
+				if (getPlayer(i) == PLAYER_1)
 					forall = forall1;
-				else if (stateLabels.get(i) == PLAYER_2)
+				else if (getPlayer(i) == PLAYER_2)
 					forall = forall2;
 
 				b1 = forall; // there exists or for all
@@ -290,27 +292,27 @@ public class STPGExplicit extends MDPSimple implements STPG
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
 			}
@@ -320,14 +322,14 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
 	{
-		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
 		return mvMultMinMaxSingle(s, vect, min, null);
 	}
 
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min1, boolean min2, double val)
 	{
-		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
 		return mvMultMinMaxSingleChoices(s, vect, min, val);
 	}
 
@@ -365,7 +367,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
 	{
-		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
 		return mvMultJacMinMaxSingle(s, vect, min);
 	}
 
@@ -378,25 +380,25 @@ public class STPGExplicit extends MDPSimple implements STPG
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (stateLabels.get(s) == PLAYER_1)
+				if (getPlayer(s) == PLAYER_1)
 					min = min1;
-				else if (stateLabels.get(s) == PLAYER_2)
+				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
 				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 			}
@@ -407,7 +409,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
 		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 	}
 
@@ -415,7 +417,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = stateLabels.get(s) == PLAYER_1 ? min1 : stateLabels.get(s) == PLAYER_2 ? min2 : false;
+		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
 		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
 	}
 
@@ -455,7 +457,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + "): ";
+			s += i + "(P-" + getPlayer(i) + "): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {
@@ -472,6 +474,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 		return s;
 	}
 
+	
 	public static void main(String[] args)
 	{
 		STPGModelChecker mc;

@@ -1551,15 +1551,22 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		for(i = 0; i < n; i++)
 		{
+			// skipping target states
+			if(target.get(i)) continue;
+
 			// check for state reward
 			if (rewards.getStateReward(i) > 0.0)
 				aRew.set(i);
 			
 			// check for transition rewards
 			int nonZeroRewards = 0;
+			double trp = 0;
 			for(int k = 0; k <  stpg.getNumChoices(i); k++)
 			{
-				if (rewards.getTransitionReward(i, k) > 0.0) {
+				
+				trp = rewards.getTransitionReward(i, k);
+				// ignoring infinite rewards as these transitions will neven be taken
+				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
 					nonZeroRewards++;
 					aRew.set(i);
 				}
@@ -1575,6 +1582,8 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet all = new BitSet(n);
 		all.flip(0,n);
 		//BitSet none = new BitSet();
+		
+		//System.out.println("aRew " + aRew);
 		
 		while(true) {
 			b2 = prob1(stpg, null, b1, min1, min2);
@@ -1601,6 +1610,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		
 		inf = prob0(stpg, null, b1, min1, min2);
+		//System.out.println("infset " +inf );
 		inf.flip(0, n);
 			
 		timerProb1 = System.currentTimeMillis() - timerProb1;
@@ -1741,7 +1751,7 @@ public class STPGModelChecker extends ProbModelChecker
 							hasPositiveSuccessor = true;
 							break;
 						}
-					}
+					}	
 					if (!hasPositiveSuccessor)
 						rewardsRestrictedSimple.setTransitionReward(s, c, 0);
 				}
@@ -1766,6 +1776,9 @@ public class STPGModelChecker extends ProbModelChecker
 		
 		for(i = 0; i < n; i++)
 		{
+			//skipping target states
+			if(target.get(i)) continue;
+			
 			// check for state reward
 			if (rewardsRestricted.getStateReward(i) > 0.0)
 				aRew.set(i);
@@ -1867,6 +1880,7 @@ public class STPGModelChecker extends ProbModelChecker
 						prob += e.getValue() * mcrprob.soln[e.getKey()];
 					}
 					
+					
 					//as a hack, set the transition reward of nonoptimal transitions
 					//to something extreme so they are never chosen
 					if (prob < mcrprob.soln[s] && ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
@@ -1886,7 +1900,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}		
 		//Next, compute the value for the rich man's strategy.
 		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
-		//System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
+		System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 		
 		//compute B from the values for the rich man's strategy
 		int lastSwitch = 0;
@@ -2019,6 +2033,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		return res;
 	}
+
 	
 	/**
 	 * Simple test program.
@@ -2028,7 +2043,7 @@ public class STPGModelChecker extends ProbModelChecker
 		STPGModelChecker mc;
 		STPGAbstrSimple stpg;
 		ModelCheckerResult res;
-		BitSet target;
+		BitSet target = new BitSet();
 		Map<String, BitSet> labels;
 		boolean min1 = true, min2 = true;
 		try {
@@ -2036,9 +2051,9 @@ public class STPGModelChecker extends ProbModelChecker
 			stpg = new STPGAbstrSimple();
 			stpg.buildFromPrismExplicit(args[0]);
 			//System.out.println(stpg);
-			labels = mc.loadLabelsFile(args[1]);
+			//labels = mc.loadLabelsFile(args[1]);
 			//System.out.println(labels);
-			target = labels.get(args[2]);
+			//target = labels.get(args[2]);
 			if (target == null)
 				throw new PrismException("Unknown label \"" + args[2] + "\"");
 			for (int i = 3; i < args.length; i++) {

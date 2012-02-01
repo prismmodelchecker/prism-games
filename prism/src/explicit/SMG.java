@@ -31,7 +31,9 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -39,33 +41,31 @@ import explicit.rewards.MDPRewards;
 import explicit.rewards.STPGRewards;
 
 import prism.ModelType;
+import prism.PrismException;
 
 /**
- * Simple explicit-state representation of a stochastic multi-player game
- * (SMG). States can be labelled arbitrarily with player 1..n, player 0
- * has a special purpose of scheduling the moves of other players
+ * Simple explicit-state representation of a stochastic multi-player game (SMG).
+ * States can be labelled arbitrarily with player 1..n, player 0 has a special
+ * purpose of scheduling the moves of other players
  */
-public class SMG extends MDPSimple implements STPG
-{
+public class SMG extends STPGExplicit implements STPG {
 
 	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
-	
+
 	// Set of players which form a coalition
 	protected Set<Integer> coalition;
 
-	public SMG()
-	{
+	public SMG() {
 		super();
 		stateLabels = new ArrayList<Integer>(numStates);
 	}
 
 	/**
-	 * Construct an SMG from an existing one and a state index permutation,
-	 * i.e. in which state index i becomes index permut[i].
+	 * Construct an SMG from an existing one and a state index permutation, i.e.
+	 * in which state index i becomes index permut[i].
 	 */
-	public SMG(SMG smg, int permut[])
-	{
+	public SMG(SMG smg, int permut[]) {
 		super(smg, permut);
 		stateLabels = new ArrayList<Integer>(numStates);
 		// Create blank array of correct size
@@ -78,28 +78,22 @@ public class SMG extends MDPSimple implements STPG
 		}
 
 	}
-	
+
 	/**
 	 * Returns the list of states that belong to the scheduler
 	 * 
 	 * @return the list of states that belong to the scheduler
 	 */
-	public Set<Integer> getSchedulerStates()
-	{
+	public Set<Integer> getSchedulerStates() {
 		Set<Integer> ret = new HashSet<Integer>();
-//		for (int i = 0; i < stateLabels.size(); i++)
-//			if (stateLabels.get(i) == 0)
-//				ret.add(i);
 		return ret;
 	}
-	
-	
+
 	/**
 	 * Adds one state, assigned to player 0
 	 */
 	@Override
-	public int addState()
-	{
+	public int addState() {
 		return addState(0);
 	}
 
@@ -107,8 +101,7 @@ public class SMG extends MDPSimple implements STPG
 	 * Adds specified number of states all assigned to player 0
 	 */
 	@Override
-	public void addStates(int numToAdd)
-	{
+	public void addStates(int numToAdd) {
 		for (int i = 0; i < numToAdd; i++)
 			stateLabels.add(0);
 	}
@@ -116,14 +109,13 @@ public class SMG extends MDPSimple implements STPG
 	/**
 	 * Adds state assigned to the specified player
 	 * 
-	 * @param player state owner
+	 * @param player
+	 *            state owner
 	 * @return state id
 	 */
-	public int addState(int player)
-	{
+	public int addState(int player) {
 		super.addStates(1);
 		stateLabels.add(player);
-
 		return numStates - 1;
 	}
 
@@ -131,10 +123,10 @@ public class SMG extends MDPSimple implements STPG
 	 * Adds the number of states the same as number of Integer in the list, each
 	 * assigned to the corresponding player
 	 * 
-	 * @param players list of players (to which corresponding state belongs)
+	 * @param players
+	 *            list of players (to which corresponding state belongs)
 	 */
-	public void addStates(List<Integer> players)
-	{
+	public void addStates(List<Integer> players) {
 		super.addStates(players.size());
 		stateLabels.addAll(players);
 	}
@@ -142,25 +134,28 @@ public class SMG extends MDPSimple implements STPG
 	/**
 	 * labels the given state with the given player
 	 * 
-	 * @param s state
-	 * @param player player
+	 * @param s
+	 *            state
+	 * @param player
+	 *            player
 	 */
-	public void setPlayer(int s, int player)
-	{
+	public void setPlayer(int s, int player) {
 		if (s < stateLabels.size())
 			stateLabels.set(s, player);
 	}
-	
-	public void setCoalition(Set<Integer> coalition)
-	{
+
+	/**
+	 * Sets the coalition (representing Player 1)
+	 * @param coalition
+	 */
+	public void setCoalition(Set<Integer> coalition) {
 		this.coalition = coalition;
 	}
 
 	/**
 	 * Makes a half-deep (up to one reference level) copy of itself
 	 */
-	public SMG clone()
-	{
+	public SMG clone() {
 		SMG smg = new SMG();
 		smg.copyFrom(this);
 		smg.actions = new ArrayList<List<Object>>(this.actions);
@@ -177,285 +172,210 @@ public class SMG extends MDPSimple implements STPG
 	// Accessors (for Model)
 
 	@Override
-	public ModelType getModelType()
-	{
+	public ModelType getModelType() {
 		return ModelType.SMG;
 	}
 
 	// Accessors (for STPG)
 
+	/**
+	 * Returns the 1 if the state belong to coalition and 2 otherwise
+	 */
 	@Override
-	public int getPlayer(int s)
-	{
-		return stateLabels.get(s);
-	}
-	
-	@Override
-	public Object getAction(int s, int i)
-	{
-		return super.getAction(s, i);
+	public int getPlayer(int s) {
+		return coalition.contains(stateLabels.get(s))?1:2;
 	}
 
-	@Override
-	public int getNumTransitions(int s, int i)
-	{
-		return super.getNumTransitions(s, i);
-	}
 
-	@Override
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
-	{
-		return super.getTransitionsIterator(s, i);
-	}
 
-	@Override
-	public boolean isChoiceNested(int s, int i)
-	{
-		// No nested choices
-		return false;
-	}
-
-	@Override
-	public int getNumNestedChoices(int s, int i)
-	{
-		// No nested choices
-		return 0;
-	}
-
-	@Override
-	public Object getNestedAction(int s, int i, int j)
-	{
-		// No nested choices
-		return null;
-	}
-
-	@Override
-	public int getNumNestedTransitions(int s, int i, int j)
-	{
-		// No nested choices
-		return 0;
-	}
-
-	@Override
-	public Iterator<Entry<Integer, Double>> getNestedTransitionsIterator(int s, int i, int j)
-	{
-		// No nested choices
-		return null;
-	}
-
-	@Override
-	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
-	{
-		int i;
-		boolean b1, b2;
-		boolean forall = false;
-
-		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-
-				if (coalition.contains(stateLabels.get(i)))
-					forall = forall1;
-				else //if (stateLabels.get(i).equals(2))
-					forall = forall2;
-
-				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
-					b2 = distr.containsOneOf(u);
-					if (forall) {
-						if (!b2) {
-							b1 = false;
-							continue;
-						}
-					} else {
-						if (b2) {
-							b1 = true;
-							continue;
-						}
-					}
-				}
-				result.set(i, b1);
-			}
-		}
-	}
-
-	@Override
-	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
-	{
-		int i;
-		boolean b1, b2;
-		boolean forall = false;
-
-		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-
-				if (coalition.contains(stateLabels.get(i)))
-					forall = forall1;
-				else //if (stateLabels.get(i).equals(2))
-					forall = forall2;
-
-				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
-					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
-					if (forall) {
-						if (!b2) {
-							b1 = false;
-							continue;
-						}
-					} else {
-						if (b2) {
-							b1 = true;
-							continue;
-						}
-					}
-				}
-				result.set(i, b1);
-			}
-		}
-	}
-
-	@Override
-	public double mvMultGSMinMax(double[] vect, boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
-	{
-		int s;
-		double d, diff, maxDiff = 0.0;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		}
-		return maxDiff;
-	}
-
-	@Override
-	public double mvMultJacMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
-	{
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		return mvMultJacMinMaxSingle(s, vect, min);
-	}
-
-	@Override
-	public void mvMultMinMax(double[] vect, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv)
-	{
+	// Methods for intervals
+	// TODO fix the method
+	public List<List<Interval>> mvMultIntervals(boolean min1, boolean min2,
+			List<List<Interval>> intervals) throws PrismException {
 		int s;
 		boolean min = false;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else //if (stateLabels.get(s).equals(2))
-					min = min2;
+		List<List<Interval>> intervals_ = new ArrayList<List<Interval>>(
+				intervals.size());
+		for (s = 0; s < numStates; s++) {
+			if (getPlayer(s)==1)
+				min = min1;
+			else
+				min = min2;
+			// System.out.println("Checking state " + s);
+			intervals_.add(mvMultIntervalsSingle(s, intervals, min));
+		}
+		return intervals_;
+	}
 
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else //if (stateLabels.get(s).equals(2))
-					min = min2;
+	public List<Interval> mvMultIntervalsSingle(int s,
+			List<List<Interval>> intervals, boolean min) throws PrismException {
+		int k;
+		List<Distribution> step;
+		List<List<Interval>> distInts;
+		List<Interval> ints;
+		Interval int1, int2;
 
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+		int states[] = new int[2];
+		double probs[] = new double[2];
+
+		distInts = new ArrayList<List<Interval>>(2);
+		// collect intervals for distributions
+		step = trans.get(s);
+		if (step.size() == 1)
+			step.add(step.get(0));
+
+		// System.out.println("Checking distributions");
+		for (Distribution distr : step) {
+
+			k = 0;
+			// gets transition probabilities
+			for (Map.Entry<Integer, Double> e : distr) {
+				states[k] = (Integer) e.getKey();
+				probs[k++] = (Double) e.getValue();
 			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else //if (stateLabels.get(s).equals(2))
-					min = min2;
-				result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+
+			ints = new ArrayList<Interval>(10);
+			for (int i = 0; i < intervals.get(states[0]).size(); i++) {
+				int1 = intervals.get(states[0]).get(i);
+				for (int j = 0; j < intervals.get(states[1]).size(); j++) {
+					int2 = intervals.get(states[1]).get(j);
+					ints.add(new Interval((probs[0] * int1.lhs)
+							+ (probs[1] * int2.lhs), (probs[0] * int1.rhs)
+							+ (probs[1] * int2.rhs)));
+				}
+			}
+
+			// System.out.println("Filtering");
+			// System.out.println(ints);
+			// removing obsolete intervals
+			filterIntervals(ints);
+			// System.out.println(ints);
+
+			// add intervals to the distr
+			distInts.add(ints);
+
+		}
+
+		// System.out.println("Taking unions and intersections");
+		// System.out.println(distInts);
+		// generating a new list
+		ints = new LinkedList<Interval>();
+
+		// if player maximising player's state take the 'union'
+		if (!min) {
+			// System.out.println("Union");
+			// joining all the lists
+			for (List<Interval> l : distInts)
+				ints.addAll(l);
+		}
+		// if player is minimising player's state: take the 'intersection'
+		else {
+			// System.out.println("Intersection");
+			// Adding unions
+			for (int i = 0; i < distInts.get(0).size(); i++)
+				for (int j = 0; j < distInts.get(1).size(); j++)
+					ints.add(Interval.getUnion(distInts.get(0).get(i), distInts
+							.get(1).get(j)));
+
+			// Adding intersections
+			for (Interval i1 : distInts.get(0))
+				for (Interval i21 : distInts.get(1))
+					for (Interval i22 : distInts.get(1))
+						if (i1.achievableFrom(i21) || i1.achievableFrom(i21)
+								|| i1.achievableFrom(i21, i22))
+							ints.add(i1);
+			for (Interval i2 : distInts.get(1))
+				for (Interval i11 : distInts.get(0))
+					for (Interval i12 : distInts.get(0))
+						if (i2.achievableFrom(i11) || i2.achievableFrom(i11)
+								|| i2.achievableFrom(i11, i12))
+							ints.add(i2);
+
+		}
+		// System.out.println("Filtering");
+		// System.out.println(ints);
+		// removing obsolete intervals
+		filterIntervals(ints);
+		// System.out.println(ints);
+
+		// System.out.println("Finished with this state");
+
+		return ints;
+
+	}
+
+	private void filterIntervals(List<Interval> ints) {
+
+		Interval int1;
+		boolean remove;
+
+		// remove intervals which are the same
+		BitSet toRemove = new BitSet(ints.size());
+
+		for (int i = 0; i < ints.size(); i++) {
+			int1 = ints.get(i);
+
+			remove = false;
+
+			// checking for equality
+			for (int j = i + 1; j < ints.size(); j++) {
+				if (int1.equals(ints.get(j))) {
+					toRemove.set(i);
+					remove = true;
+					break;
+				}
+			}
+			if (remove)
+				continue;
+
+//			// checking for individual containment
+//			for (int j = 0; j < ints.size(); j++) {
+//				if (j == i || toRemove.get(j))
+//					continue;
+//				if (int1.achievableFrom(ints.get(j))) {
+//					toRemove.set(i);
+//					remove = true;
+//					break;
+//				}
+//			}
+//			if (remove)
+//				continue;
+
+			// check for convex containment
+			for (int j = 0; j < ints.size(); j++) {
+				if (j == i || toRemove.get(j))
+					continue;
+				for (int k = 0; k < ints.size(); k++) {
+					if (k == i || toRemove.get(k))
+						continue;
+					if (int1.achievableFrom(ints.get(j), ints.get(k))) {
+						toRemove.set(i);
+						remove = true;
+						break;
+					}
+				}
+				if (remove)
+					break;
 			}
 		}
+
+		removeElements(ints, toRemove);
+
+		// if(ints.isEmpty())
+		// ints.add(new Interval(0,1));
 	}
 
-	@Override
-	public double mvMultMinMaxSingle(int s, double[] vect, boolean min1, boolean min2)
-	{
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		return mvMultMinMaxSingle(s, vect, min, null);
+	private void removeElements(List<Interval> ints, BitSet remove) {
 
-	}
-
-	@Override
-	public List<Integer> mvMultMinMaxSingleChoices(int s, double[] vect, boolean min1, boolean min2, double val)
-	{
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		return mvMultMinMaxSingleChoices(s, vect, min, val);
-	}
-
-	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
-	{
-		int s;
-		boolean min = false;
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else
-					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else
-					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				if (coalition.contains(stateLabels.get(s)))
-					min = min1;
-				else
-					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-			}
-		}
-	}
-
-	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
-	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;		
-		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-	}
-
-	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
-	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = coalition.contains(stateLabels.get(s)) ? min1 : min2;
-		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
+		for (int i = ints.size() - 1; i >= 0; i--)
+			if (remove.get(i))
+				ints.remove(i);
 	}
 
 	// Standard methods
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		int i, j, n;
 		Object o;
 		String s = "";
@@ -463,7 +383,8 @@ public class SMG extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i) + "): ";
+			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i)
+					+ "): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {

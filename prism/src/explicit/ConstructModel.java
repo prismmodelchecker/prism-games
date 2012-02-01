@@ -265,18 +265,18 @@ public class ConstructModel {
 					if (!justReach) {
 						switch (modelType) {
 						case DTMC:
-							dtmc.addToProbability(src, dest, engine
-									.getTransitionProbability(i, j));
+							dtmc.addToProbability(src, dest,
+									engine.getTransitionProbability(i, j));
 							break;
 						case CTMC:
-							ctmc.addToProbability(src, dest, engine
-									.getTransitionProbability(i, j));
+							ctmc.addToProbability(src, dest,
+									engine.getTransitionProbability(i, j));
 							break;
 						case MDP:
 						case STPG:
 						case SMG:
-							distr.add(dest, engine.getTransitionProbability(i,
-									j));
+							distr.add(dest,
+									engine.getTransitionProbability(i, j));
 							break;
 						}
 					}
@@ -284,17 +284,15 @@ public class ConstructModel {
 				if (!justReach) {
 					if (modelType == ModelType.MDP) {
 						if (distinguishActions) {
-							mdp.addActionLabelledChoice(src, distr, engine
-									.getTransitionAction(i, 0));
+							mdp.addActionLabelledChoice(src, distr,
+									engine.getTransitionAction(i, 0));
 						} else {
 							mdp.addChoice(src, distr);
 						}
 					} else if (modelType == ModelType.STPG) {
 						// TODO: need addActionLabelledChoice
 						int k = stpg.addChoice(src, distr);
-						stpg
-								.setAction(src, k, engine.getTransitionAction(
-										i, 0));
+						stpg.setAction(src, k, engine.getTransitionAction(i, 0));
 					} else if (modelType == ModelType.SMG) {
 						int k = smg.addChoice(src, distr);
 						smg.setAction(src, k, engine.getTransitionAction(i, 0));
@@ -370,10 +368,8 @@ public class ConstructModel {
 				break;
 			}
 			model.setStatesList(statesList);
-			model
-					.setConstantValues(new Values(modulesFile
-							.getConstantValues()));
-			 //System.out.println(model);
+			model.setConstantValues(new Values(modulesFile.getConstantValues()));
+			// System.out.println(model);
 			// mainLog.println("Model: " + model);
 		}
 
@@ -407,8 +403,23 @@ public class ConstructModel {
 		}
 		// Asynchronous action
 		else {
-			player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0)
-					.substring(6));
+			player = modulesFile.getPlayerForModule(engine
+					.getTransitionModuleOrAction(i, 0));
+			if (player == -1) {
+
+				// for backwards compatibility trying to parse player from the
+				// module name (e.g., playerX)
+				try {
+					player = Integer.parseInt(engine
+							.getTransitionModuleOrAction(i, 0).substring(6));
+				} catch (Exception e) {
+					throw new PrismException("Module \""
+							+ engine.getTransitionModuleOrAction(i, 0)
+							+ "\" is not assigned to any player");
+				}
+			}
+			// 0-indexed to 1-indexed
+			player++;
 		}
 
 		return player;
@@ -454,8 +465,8 @@ public class ConstructModel {
 				undefinedConstants.defineUsingConstSwitch(args[1]);
 			modulesFile.setUndefinedConstants(undefinedConstants
 					.getMFConstantValues());
-			ConstructModel constructModel = new ConstructModel(prism
-					.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(
+					prism.getSimulator(), mainLog);
 			Model model = constructModel.constructModel(modulesFile);
 			MDP mdp = (MDP) model;
 			mainLog.println(mdp);
@@ -491,8 +502,8 @@ public class ConstructModel {
 			modulesFile.setUndefinedConstants(undefinedConstants
 					.getMFConstantValues());
 
-			ConstructModel constructModel = new ConstructModel(prism
-					.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(
+					prism.getSimulator(), mainLog);
 
 			Model model = constructModel.constructModel(modulesFile);
 
@@ -542,8 +553,8 @@ public class ConstructModel {
 			modulesFile.setUndefinedConstants(undefinedConstants
 					.getMFConstantValues());
 
-			ConstructModel constructModel = new ConstructModel(prism
-					.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(
+					prism.getSimulator(), mainLog);
 
 			Model model = constructModel.constructModel(modulesFile);
 
@@ -558,8 +569,7 @@ public class ConstructModel {
 
 			player1 = new HashSet<Integer>();
 			player1.add(1);
-			SMG stpg_rand = smg.clone()
-			;
+			SMG stpg_rand = smg.clone();
 
 			System.out.println("\nSMG: ");
 			mainLog.println(smg);

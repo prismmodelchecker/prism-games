@@ -114,7 +114,7 @@ public class MDPRewardsSimple implements MDPRewards
 	 */
 	public void addToStateReward(int s, double r)
 	{
-		setStateReward(s, stateRewards.get(s) + r);
+		setStateReward(s, getStateReward(s) + r);
 	}
 
 	/**

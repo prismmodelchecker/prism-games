@@ -358,13 +358,31 @@ public class ModulesFile extends ASTElement
 
 	/**
 	 * Get the (index of the) player that owns action {@code a}.
-	 * Players are 0-indexed; returns -1 if no owener found.
+	 * Players are 0-indexed; returns -1 if no owner found.
 	 */
 	public int getPlayerForAction(String a)
 	{
 		int i = 0;
 		for (Player player : players) {
 			for (String s : player.getActions()) {
+				if (s.equals(a)) {
+					return i; 
+				}
+			}
+			i++;
+		}
+		return -1;
+	}
+	
+	/**
+	 * Get the (index of the) player that owns module {@code a}.
+	 * Players are 0-indexed; returns -1 if no owner found.
+	 */
+	public int getPlayerForModule(String a)
+	{
+		int i = 0;
+		for (Player player : players) {
+			for (String s : player.getModules()) {
 				if (s.equals(a)) {
 					return i; 
 				}
