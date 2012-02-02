@@ -35,7 +35,7 @@ const int Exp_J = 9;
 // cost limits for households
 const double price_limit = 1.5;
 
-// initiation probabilities for jobs (uuniform distribution)
+// initiation probabilities for jobs (uniform distribution)
 const double P_J1 = 1/4;
 const double P_J2 = 1/4;
 const double P_J3 = 1/4;

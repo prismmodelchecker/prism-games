@@ -29,7 +29,7 @@ filter(forall, <<3>> R{"r"}>=2 [Fc "t"] <=> (s=0|s=1|s=2))
 filter(forall, <<3>> R{"r"}>=2000 [Fc "t"] <=> (s=0|s=1|s=2))
 
 // RESULT: true
-filter(forall, <<3>> R{"r"}>=2 [F0 "t"] <=> (false))
+filter(forall, <<3>> R{"r"}>=2 [F0 "t"] <=> (s=2))
 
 // RESULT: true
 filter(forall, <<3>> R{"r"}>=2000 [F0 "t"] <=> (false))

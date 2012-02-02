@@ -4,7 +4,7 @@ PRISM_EXEC = prism
 # Use TESTALL=true at command-line to not exit on first test fail
 TESTALL =
 
-MODEL_FILES = $(shell find -E . -regex ".*[.]([psn]m|smg)")
+MODEL_FILES = $(shell find . \( -name '*.pm' -o -name '*.sm' -o -name '*.nm' -o -name '*.smg' \) )
 LOG_FILES = $(MODEL_FILES:%=%.log)
 
 default: all
