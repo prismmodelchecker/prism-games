@@ -1,0 +1,8 @@
+// RESULT: 3.8742048900000006
+<<1>> R{"r"}max=? [F0 "t"]
+
+// RESULT: 9.999916647515823
+<<1>> R{"r"}max=? [Fc "t"]
+
+// RESULT: Infinity
+<<1>> R{"r"}max=? [F "t"]
