@@ -1882,7 +1882,6 @@ public class STPGModelChecker extends ProbModelChecker {
 		all.flip(0, n);
 		// BitSet none = new BitSet();
 
-		// System.out.println("aRew " + aRew);
 
 		while (true) {
 			b2 = prob1(stpg, null, b1, min1, min2);
@@ -1908,7 +1907,6 @@ public class STPGModelChecker extends ProbModelChecker {
 		}
 
 		inf = prob0(stpg, null, b1, min1, min2);
-		// System.out.println("infset " +inf );
 		inf.flip(0, n);
 
 		timerProb1 = System.currentTimeMillis() - timerProb1;
@@ -1987,7 +1985,6 @@ public class STPGModelChecker extends ProbModelChecker {
 		int maxReward = 0;
 		checkrewards: for (int s = 0; s < n; s++) {
 			double sr = rewards.getStateReward(s);
-			// System.out.println(sr);
 			if (sr != Math.floor(sr)) {
 				hasNonInt = true;
 				nonInt = sr;
@@ -1999,7 +1996,6 @@ public class STPGModelChecker extends ProbModelChecker {
 
 			for (int c = 0; c < stpg.getNumChoices(s); c++) {
 				double tr = rewards.getTransitionReward(s, c);
-				// System.out.println(tr);
 				if (tr != Math.floor(tr)) {
 					hasNonInt = true;
 					nonInt = tr;
@@ -2123,7 +2119,6 @@ public class STPGModelChecker extends ProbModelChecker {
 						"If transition reward is nonzero, all transitions going from the state must be.");
 		}
 
-		//System.out.println("aRew: " + aRew);
 		
 		BitSet b1 = aRew;
 		BitSet b2 = new BitSet();
@@ -2162,7 +2157,6 @@ public class STPGModelChecker extends ProbModelChecker {
 		inf = prob0(stpg, null, b1, min1, min2);
 		inf.flip(0, n);
 		
-		//System.out.println("inf: " + inf);
 
 		// Get the rich man's strategy and its values
 		// Start with computing optimal probabilities to reach the final state
@@ -2195,29 +2189,18 @@ public class STPGModelChecker extends ProbModelChecker {
 									.getPlayer(s) == 2 && !min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c,
 								Double.NEGATIVE_INFINITY);
-						// System.out.println("choice " + s + " " + c +
-						// " changing " + rewards.getTransitionReward(s, c) +
-						// " to -inf");
 					} else if (stpg.getNumChoices(s) > 1
 							&& prob > mcrprob.soln[s]
 							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg
 									.getPlayer(s) == 2 && min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c,
 								Double.POSITIVE_INFINITY);
-						// System.out.println("choice " + s + " " + c +
-						// " changing " + rewards.getTransitionReward(s, c) +
-						// " to +inf");
 					} else {
 						double newReward = rewards.getTransitionReward(s, c)
 								* mcrprob.soln[s];
 						rewardsRestrictedSimple.setTransitionReward(s, c,
 								newReward);
-						// System.out.println("choice " + s + " " + c +
-						// " changing " + rewards.getTransitionReward(s, c) +
-						// " to " + newReward);
 					}
-					// System.out.println(" " + prob + " " + mcrprob.soln[s] +
-					// " " +stpg.getPlayer(s) + " " + min1);
 				}
 				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
 				rewardsRestrictedSimple.setStateReward(s, newReward);
@@ -2245,18 +2228,12 @@ public class STPGModelChecker extends ProbModelChecker {
 									.getPlayer(s) == 2 && !min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c,
 								Double.NEGATIVE_INFINITY);
-						// System.out.println("choice " + s + " " + c +
-						// " changing " + rewards.getTransitionReward(s, c) +
-						// " to -inf");
 					} else if (stpg.getNumChoices(s) > 1
 							&& prob > mcrprob.soln[s]
 							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg
 									.getPlayer(s) == 2 && min2))) {
 						rewardsRestrictedSimple.setTransitionReward(s, c,
 								Double.POSITIVE_INFINITY);
-						// System.out.println("choice " + s + " " + c +
-						// " changing " + rewards.getTransitionReward(s, c) +
-						// " to +inf");
 					} // else the reward remains 0
 				}
 				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
@@ -2299,7 +2276,7 @@ public class STPGModelChecker extends ProbModelChecker {
 
 					int b = (denominator == 0) ? 0 : (int) Math.floor(numerator
 							/ denominator);
-					// System.out.println(s + " " + c + " " + b);
+					
 					if (lastSwitch < b)
 						lastSwitch = b;
 				}
@@ -2324,10 +2301,6 @@ public class STPGModelChecker extends ProbModelChecker {
 							* mcrprob.soln[j];
 			}
 		}
-
-		 //System.out.println(Arrays.toString(rews[0]));
-		 //System.out.println(Arrays.deepToString(rews));
-		// System.out.println();
 
 		int iters = 0;
 		for (int x = lastSwitch; x >= 0; x--) {
@@ -2376,7 +2349,6 @@ public class STPGModelChecker extends ProbModelChecker {
 							choiceRew += p * (rews[index][ts]);
 						}
 
-						// System.out.println(s + " " + c + " " + choiceRew);
 
 						if (min && stateRew > choiceRew) {
 							stateRew = choiceRew;
@@ -2391,9 +2363,6 @@ public class STPGModelChecker extends ProbModelChecker {
 					rews[0][s] = stateRew;
 				}
 
-				// System.out.println(x + ": " + Arrays.toString(rews[0]));
-				// System.out.println(Arrays.deepToString(rews));
-				// System.out.println();
 			} while (difference > 10e-7); // TODO some smarter convergence test
 
 			// shift the array

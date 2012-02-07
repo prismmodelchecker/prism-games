@@ -67,16 +67,14 @@ public class SMGModelChecker extends STPGModelChecker {
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 
-//				System.out
-//						.println("\n *** I am hijacking this function HA HA HA *** \n");
-//
+
 //				BitSet target = checkExpression(model,
 //						((ExpressionTemporal) expr).getOperand1()).getBitSet();
 //				BitSet zero = checkExpression(model,
 //						((ExpressionTemporal) expr).getOperand2()).getBitSet();
 //				this.computeIntervalSet(min, !min, (STPG) model, target, zero);
 
-				// TODO END of hijack.............
+		
 			}
 			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
 		}
