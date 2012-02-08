@@ -568,7 +568,7 @@ public class ModulesFile extends ASTElement
 		findAllVars(varNames, varTypes);
 
 		// Find all instances of property refs
-		findAllProps(this, null);
+		findAllPropRefs(this, null);
 
 		// Check reward structure names
 		checkRewardStructNames();

@@ -5,6 +5,7 @@
 //	* Andrew Hinton <ug60axh@cs.bham.ac.uk> (University of Birmingham)
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
 //	* Mark Kattenbelt <mark.kattenbelt@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -35,8 +36,6 @@ import javax.swing.*;
 import userinterface.GUIPrism;
 import parser.*;
 import parser.ast.*;
-import parser.visitor.FindAllProps;
-import parser.visitor.GetAllReferencedProperties;
 import prism.*;
 
 /**
@@ -412,9 +411,8 @@ public class GUIProperty
 			if (getStatus() == STATUS_PARSE_ERROR)
 				setStatus(STATUS_NOT_DONE);
 			
-			//get the referenced names
-			this.referencedNames = new Vector<String>();
-			(new GetAllReferencedProperties(this.referencedNames, m, ff)).visit(ff.getPropertyObject(namedCount));
+			// get the referenced names
+			this.referencedNames = ff.getPropertyObject(namedCount).getAllPropRefsRecursively(ff); 
 			
 		} catch (PrismException ex) {
 			this.expr = null;

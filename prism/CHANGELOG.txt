@@ -1,27 +1,32 @@
-This file contains details of the changes in each new version of PRISM,
-including development and beta versions. For a less detailed overview
-of the main changes in each public release, see the file VERSIONS.txt.
+This file contains details of the changes in each new version of PRISM.
 
+-----------------------------------------------------------------------------
 Latest changes (mostly reverse chronological):
-[correct wrt svn rev 4136]
+[correct wrt svn rev 4512]
+-----------------------------------------------------------------------------
 
-Changes:
+-----------------------------------------------------------------------------
+Version 4.0.3 (released 30/1/2012)
+-----------------------------------------------------------------------------
 
-* Export of results in matrix form, e.g. for surface plots (-exportresultsmatrix)
-* And export of results in CSV format (-exportresultscsv and -exportresultsmatrixcsv)
-* Can disable Prob0/Prob1 precomputation algorithms independently (-noprob0, -noprob1)
-* Bash completion scripts + additional syntax highlighters
-* Added PrismTest class to illustrate programmatic use of PRISM
-* GUI on Macs uses Cmd, not Ctrl
+* Property names
+  - properties can be named, by prefixing with "name":
+  - properties can appear as sub-formulae of other properties using name references
+  - command-line -prop switch allows selection of property to check by name
+* New options for results export
+  - export in matrix form, e.g. for surface plots
+  - export in CSV (rather than tab-separated) form
+  - expanded switch: -exportresults file[,opt1,opt2,...] with options: matrix,csv
+* Automatically engine switching if numerical computation not supported
+* Optimised Rabin automata for a few common LTL formulae
+* Added -pf as a command-line switch alias for -pctl/-csl
+* Add .props as a properties file extension (in GUI)
+* New switches -noprob0/-noprob1 to disable individual precomputation algorithms
 * Added prominence given to log warning messages in command-line/GUI
+* GUI on Macs uses Cmd, not Ctrl
+* Added PrismTest class to illustrate programmatic use of PRISM
 * Command-line scripts can signal termination via growlnotify/notify-send 
-
-Ongoing changes:
-
-* Need to decide on switch options format for -exportresults
-* Handling of verbosity in log: PrismLog updated, not used yet
-* Properties can be named, by prefixing with "name":, and reference each other
-* CTL AG/EF
+* Bash completion scripts + additional syntax highlighters
 
 -----------------------------------------------------------------------------
 Version 4.0.2 (released 9/10/2011)
