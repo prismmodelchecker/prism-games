@@ -1,0 +1,55 @@
+// Simple game where one player tosses a coin and another has to guess
+// the outcome. The order in which the players act is determined at random
+// or nondeterministically by the scheduler
+
+smg
+
+const bool sched_random = true; // determine whether scheduling is random 
+const bool sched_nondet = !sched_random;
+
+global sched : [0..3];
+
+player p1 scheduler endplayer
+player p2 player1 endplayer
+player p3 player2 endplayer
+
+module scheduler
+
+	// if scheduling is random
+	[] sched_random & sched=0 -> 1/2 : (sched'=1) + 1/2 : (sched'=2);
+
+	// if scheduling is nondeterministic
+	[] sched_nondet & sched=0 -> (sched'=1);
+	[] sched_nondet & sched=0 -> (sched'=2);
+
+	[] sched!=0 & coin!=0 & guess!=0 -> (sched'=3);
+
+endmodule
+
+module player1
+
+	coin : [0..2];
+
+	[] sched=1 & coin=0 & guess=0 -> 1/2 : (coin'=1) & (sched'=2) + 1/2 : (coin'=2) & (sched'=2);
+	[] sched=1 & coin=0 & guess!=0 -> 1/2 : (coin'=1)  + 1/2 : (coin'=2);
+
+endmodule
+
+module player2
+
+	guess : [0..2];
+
+	[] sched=2 & guess=0 & coin=0 -> (guess'=1) & (sched'=1);
+	[] sched=2 & guess=0 & coin=0 -> (guess'=2) & (sched'=1);
+
+	[] sched=2 & guess=0 & coin!=0 -> (guess'=1);
+	[] sched=2 & guess=0 & coin!=0 -> (guess'=2);
+
+endmodule
+
+label "correct" = guess=coin & sched=3;
+
+rewards "correct_guess"
+	guess!=0 & guess=coin : 5;
+endrewards
+
