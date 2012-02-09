@@ -1,0 +1,53 @@
+// RESULT: 0.75
+<<1,2,3>> Pmax=? [F "correct"]
+
+// RESULT: 0.75
+<<2,3>> Pmax=? [F "correct"]
+
+// RESULT: 0.25
+<<1,2>> Pmax=? [F "correct"]
+
+// RESULT: 0.75
+<<1,3>> Pmax=? [F "correct"]
+
+// RESULT: 0.25
+<<1>> Pmax=? [F "correct"]
+
+// RESULT: Infinity
+<<1,2,3>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: Infinity
+<<2,3>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: Infinity
+<<1,2>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: Infinity
+<<1,3>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: Infinity
+<<1>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: 3.75
+<<2,3>> R{"correct_guess"}max=? [F0 "correct"]
+
+// RESULT: 1.25
+<<2>> R{"correct_guess"}max=? [F0 "correct"]
+
+// RESULT: 3.75
+<<3>> R{"correct_guess"}max=? [F0 "correct"]
+
+// RESULT: 1.25
+<<1>> R{"correct_guess"}max=? [F0 "correct"]  
+
+// RESULT: 3.75
+<<2,3>> R{"correct_guess"}max=? [Fc "correct"]
+
+// RESULT: 1.25
+<<2>> R{"correct_guess"}max=? [Fc "correct"]
+
+// RESULT: 3.75
+<<3>> R{"correct_guess"}max=? [Fc "correct"]
+
+// RESULT: 1.25
+<<1>> R{"correct_guess"}max=? [Fc "correct"]  
