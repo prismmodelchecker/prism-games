@@ -1,5 +1,8 @@
 This case study concerns the Tree Identify Protocol of the IEEE 1394 High Performance Serial Bus (called ``FireWire'').
 
+These are probabilistic timed automaton (PTA) models. You can also find, in the directory ../../firewire,
+manually-created MDP models for this case study, built using the "digital clocks" semantics [KNPS06].
+
 We consider the following probabilistic timed automata models of the root contention part of the 
 tree identify protocol, which are based on probabilistic I/O automata models presented in [SV99].
 
@@ -10,8 +13,6 @@ impl: which consists of the parallel composition of two nodes (Node1 and Node2),
 
 abst: which is represented by a single probabilistic timed automaton and is an abstraction of Impl 
       based on the the probabilistic I/O automaton I1 of [SV99].
-
-For both models we have used the integer semantics given in [KNPS06].
 
 For more information, see: http://www.prismmodelchecker.org/casestudies/firewire.php
 
