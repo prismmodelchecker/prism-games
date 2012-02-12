@@ -2272,6 +2272,9 @@ public class Prism implements PrismSettingsListener
 			case STPG:
 				mc = new STPGModelChecker();
 				break;
+			case SMG:
+				mc = new SMGModelChecker();
+				break;
 			default:
 				throw new PrismException("Unknown model type " + currentModelType);
 			}
