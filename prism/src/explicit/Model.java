@@ -31,6 +31,7 @@ import java.util.*;
 
 import parser.State;
 import parser.Values;
+import parser.VarList;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
@@ -75,11 +76,35 @@ public interface Model
 	public boolean isInitialState(int i);
 
 	/**
-	 * Check whether a state is a "fixed" deadlock, i.e. a state that was
-	 * originally a deadlock but has been fixed through the addition of a self-loop,
-	 * or a state that is still a deadlock but in a model where this acceptable, e.g. a CTMC.
+	 * Get the number of states that are/were deadlocks.
+	 * (Such states may have been fixed at build-time by adding self-loops)
 	 */
-	public boolean isFixedDeadlockState(int i);
+	public int getNumDeadlockStates();
+
+	/**
+	 * Get iterator over states that are/were deadlocks.
+	 * (Such states may have been fixed at build-time by adding self-loops)
+	 */
+	public Iterable<Integer> getDeadlockStates();
+	
+	/**
+	 * Get list of states that are/were deadlocks.
+	 * (Such states may have been fixed at build-time by adding self-loops)
+	 */
+	public StateValues getDeadlockStatesList();
+	
+	/**
+	 * Get the index of the first state that is/was a deadlock.
+	 * (i.e. the one with the lowest index).
+	 * Returns -1 if there are no initial states.
+	 */
+	public int getFirstDeadlockState();
+
+	/**
+	 * Check whether a state is/was deadlock.
+	 * (Such states may have been fixed at build-time by adding self-loops)
+	 */
+	public boolean isDeadlockState(int i);
 	
 	/**
 	 * Get access to an (optional) list of states.
@@ -121,16 +146,17 @@ public interface Model
 	public int getNumChoices(int s);
 	
 	/**
+	 * Find all deadlock states and store this information in the model.
+	 * If requested (if fix=true) and if needed (i.e. for DTMCs/CTMCs),
+	 * fix deadlocks by adding self-loops in these states.
+	 * The set of deadlocks (before any possible fixing) can be obtained from {@link #getDeadlocks()}.
+	 */
+	public void findDeadlocks(boolean fix) throws PrismException;
+
+	/**
 	 * Checks for deadlocks and throws an exception if any exist.
 	 */
 	public void checkForDeadlocks() throws PrismException;
-
-	/**
-	 * Find all deadlocks and return a BitSet of these states.
-	 * If requested (if fix=true), then add self-loops in these states
-	 * (and update the "fixed" deadlock information).
-	 */
-	public BitSet findDeadlocks(boolean fix) throws PrismException;
 
 	/**
 	 * Checks for deadlocks and throws an exception if any exist.
@@ -172,6 +198,11 @@ public interface Model
 	 * Export to a equivalent PRISM language model description.
 	 */
 	public void exportToPrismLanguage(String filename) throws PrismException;
+	
+	/**
+	 * Export states list.
+	 */
+	public void exportStates(int exportType, VarList varList, PrismLog log) throws PrismException;
 	
 	/**
 	 * Report info/stats about the model as a string.

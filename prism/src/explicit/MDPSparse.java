@@ -86,10 +86,7 @@ public class MDPSparse extends MDPExplicit
 		int i, j, k, n;
 		TreeMap<Integer, Double> sorted = null;
 		initialise(mdp.getNumStates());
-		for (int in : mdp.getInitialStates()) {
-			addInitialState(in);
-		}
-		statesList = mdp.getStatesList();
+		copyFrom(mdp);
 		// Copy stats
 		numDistrs = mdp.getNumChoices();
 		numTransitions = mdp.getNumTransitions();
@@ -154,11 +151,7 @@ public class MDPSparse extends MDPExplicit
 		TreeMap<Integer, Double> sorted = null;
 		int permutInv[];
 		initialise(mdp.getNumStates());
-		for (int in : mdp.getInitialStates()) {
-			addInitialState(permut[in]);
-		}
-		// Don't copy states list (it will be wrong)
-		statesList = null;
+		copyFrom(mdp, permut);
 		// Copy stats
 		numDistrs = mdp.getNumChoices();
 		numTransitions = mdp.getNumTransitions();
@@ -225,6 +218,9 @@ public class MDPSparse extends MDPExplicit
 		initialise(states.size());
 		for (int in : mdp.getInitialStates()) {
 			addInitialState(in);
+		}
+		for (int dl : mdp.getDeadlockStates()) {
+			addDeadlockState(dl);
 		}
 		statesList = new ArrayList<State>();
 		for (int s : states) {
@@ -439,29 +435,26 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
+	public void findDeadlocks(boolean fix) throws PrismException
+	{
+		for (int i = 0; i < numStates; i++) {
+			// Note that no distributions is a deadlock, not an empty distribution
+			if (getNumChoices(i) == 0) {
+				addDeadlockState(i);
+				if (fix) {
+					throw new PrismException("Can't fix deadlocks in an MDPSparse since it cannot be modified after construction");
+				}
+			}
+		}
+	}
+
+	@Override
 	public void checkForDeadlocks(BitSet except) throws PrismException
 	{
 		for (int i = 0; i < numStates; i++) {
 			if (getNumChoices(i) == 0 && (except == null || !except.get(i)))
 				throw new PrismException("MDP has a deadlock in state " + i);
 		}
-	}
-
-	@Override
-	public BitSet findDeadlocks(boolean fix) throws PrismException
-	{
-		int i;
-		BitSet deadlocks = new BitSet();
-		for (i = 0; i < numStates; i++) {
-			// Note that no distributions is a deadlock, not an empty distribution
-			if (getNumChoices(i) == 0)
-				deadlocks.set(i);
-		}
-		if (fix) {
-			// TODO disallow this call?
-			throw new RuntimeException("Can't modify this model");
-		}
-		return deadlocks;
 	}
 
 	// Accessors (for MDP)

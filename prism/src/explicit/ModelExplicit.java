@@ -31,7 +31,9 @@ import java.util.*;
 
 import parser.State;
 import parser.Values;
+import parser.VarList;
 import prism.ModelType;
+import prism.Prism;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismFileLog;
@@ -46,11 +48,10 @@ public abstract class ModelExplicit implements Model
 	// Initial states
 	protected List<Integer> initialStates; // TODO: should be a (linkedhash?) set really
 	/**
-	 * States with deadlocks that have been "fixed", i.e. a state that was
-	 * originally a deadlock but has been fixed through the addition of a self-loop,
-	 * or a state that is still a deadlock but in a model where this acceptable, e.g. a CTMC.
+	 * States that are/were deadlocks. Where requested and where appropriate (DTMCs/MDPs),
+	 * these states may have been fixed at build time by adding self-loops.
 	 */
-	protected TreeSet<Integer> deadlocksFixed;
+	protected TreeSet<Integer> deadlocks;
 	// State info (read only, just a pointer)
 	protected List<State> statesList;
 	// Constant info (read only, just a pointer)
@@ -67,6 +68,9 @@ public abstract class ModelExplicit implements Model
 		numStates = model.numStates;
 		for (int in : model.initialStates) {
 			addInitialState(in);
+		}
+		for (int dl : model.deadlocks) {
+			addDeadlockState(dl);
 		}
 		// Shallow copy of read-only stuff
 		statesList = model.statesList;
@@ -86,6 +90,9 @@ public abstract class ModelExplicit implements Model
 		for (int in : model.initialStates) {
 			addInitialState(permut[in]);
 		}
+		for (int dl : model.deadlocks) {
+			addDeadlockState(permut[dl]);
+		}
 		// Shallow copy of (some) read-only stuff
 		// (i.e. info that is not broken by permute)
 		statesList = null;
@@ -99,7 +106,7 @@ public abstract class ModelExplicit implements Model
 	{
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
-		deadlocksFixed = new TreeSet<Integer>();
+		deadlocks = new TreeSet<Integer>();
 		statesList = null;
 	}
 
@@ -112,11 +119,11 @@ public abstract class ModelExplicit implements Model
 	}
 
 	/**
-	 * Add a state to the list of "fixed" deadlock states.
+	 * Add a state to the list of deadlock states.
 	 */
-	public void addFixedDeadlockState(int i)
+	public void addDeadlockState(int i)
 	{
-		deadlocksFixed.add(i);
+		deadlocks.add(i);
 	}
 
 	/**
@@ -176,9 +183,38 @@ public abstract class ModelExplicit implements Model
 	}
 
 	@Override
-	public boolean isFixedDeadlockState(int i)
+	public int getNumDeadlockStates()
 	{
-		return deadlocksFixed.contains(i);
+		return deadlocks.size();
+	}
+	
+	@Override
+	public Iterable<Integer> getDeadlockStates()
+	{
+		return deadlocks;
+	}
+
+	@Override
+	public StateValues getDeadlockStatesList()
+	{
+		BitSet bs = new BitSet();
+		for (int dl : deadlocks) {
+			bs.set(dl);
+		}
+		
+		return StateValues.createFromBitSet(bs, this);
+	}
+
+	@Override
+	public int getFirstDeadlockState()
+	{
+		return deadlocks.isEmpty() ? -1 : deadlocks.first();
+	}
+
+	@Override
+	public boolean isDeadlockState(int i)
+	{
+		return deadlocks.contains(i);
 	}
 	
 	@Override
@@ -246,6 +282,40 @@ public abstract class ModelExplicit implements Model
 	@Override
 	public abstract void exportToPrismLanguage(String filename) throws PrismException;
 
+	@Override
+	public void exportStates(int exportType, VarList varList, PrismLog log) throws PrismException
+	{
+		if (statesList == null)
+			return;
+		
+		// Print header: list of model vars
+		if (exportType == Prism.EXPORT_MATLAB)
+			log.print("% ");
+		log.print("(");
+		int numVars = varList.getNumVars();
+		for (int i = 0; i < numVars; i++) {
+			log.print(varList.getName(i));
+			if (i < numVars - 1)
+				log.print(",");
+		}
+		log.println(")");
+		if (exportType == Prism.EXPORT_MATLAB)
+			log.println("states=[");
+
+		// Print states
+		int numStates = statesList.size();
+		for (int i = 0; i < numStates; i++) {
+			if (exportType != Prism.EXPORT_MATLAB)
+				log.println(i + ":" + statesList.get(i).toString());
+			else
+				log.println(statesList.get(i).toStringNoParentheses());
+		}
+
+		// Print footer
+		if (exportType == Prism.EXPORT_MATLAB)
+			log.println("];");
+	}
+	
 	@Override
 	public abstract String infoString();
 

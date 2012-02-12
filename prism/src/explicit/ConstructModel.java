@@ -43,6 +43,12 @@ public class ConstructModel {
 	// PRISM settings object (optional)
 	private PrismSettings settings;
 
+	// Options:
+	// Find deadlocks during model construction?
+	private boolean findDeadlocks = true;
+	// Automatically fix deadlocks?
+	private boolean fixDeadlocks = true;
+	
 	// Basic info needed about model
 	// private ModelType modelType;
 
@@ -63,6 +69,11 @@ public class ConstructModel {
 		return statesList;
 	}
 
+	public void setFixDeadlocks(boolean b)
+	{
+		fixDeadlocks = b;
+	}
+	
 	/**
 	 * Build the set of reachable states for a PRISM model language description
 	 * and return.
@@ -142,7 +153,6 @@ public class ConstructModel {
 		// Misc
 		int i, j, nc, nt, src, dest, player;
 		long timer, timerProgress;
-		boolean fixdl = false;
 		// int id;
 		int nPlayers = 0;
 		State tempState;
@@ -318,13 +328,9 @@ public class ConstructModel {
 				+ ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
 		// mainLog.println(states);
 
-		// Fix deadlocks (if required)
-		if (!justReach && fixdl) {
-			BitSet deadlocks = modelSimple.findDeadlocks(true);
-			if (deadlocks.cardinality() > 0) {
-				mainLog.println("Added self-loops in "
-						+ deadlocks.cardinality() + " states...");
-			}
+		// Find/fix deadlocks (if required)
+		if (!justReach && findDeadlocks) {
+			modelSimple.findDeadlocks(fixDeadlocks);
 		}
 
 		boolean sort = true;

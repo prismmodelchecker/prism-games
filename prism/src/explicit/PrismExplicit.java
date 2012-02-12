@@ -45,8 +45,6 @@ public class PrismExplicit
 	// Parent Prism object
 	private PrismLog mainLog = null;
 	private PrismSettings settings = null;
-	// Model checker(s)
-	private StateModelChecker mc = null;
 
 	public PrismExplicit(PrismLog mainLog, PrismSettings settings)
 	{
@@ -55,7 +53,7 @@ public class PrismExplicit
 	}
 
 	/**
-	 * Build a model from a PRISM modelling language description, storing it explicitly.,
+	 * Build a model from a PRISM modelling language description, storing it explicitly.
 	 * It is assumed that all constants in the model file have been defined by now.  
 	 * @param modulesFile Model to build
 	 * @param simEngine PRISM simulator engine (for model exploration)
@@ -176,7 +174,7 @@ public class PrismExplicit
 		try {
 			statesList = new StateValues(TypeBool.getInstance(), new Boolean(true), model);
 		} catch (PrismLangException e) {
-			// Can't go wrong - type always 
+			// Can't go wrong - type always fine
 		}
 		if (exportType != Prism.EXPORT_MATLAB)
 			statesList.print(tmpLog);
@@ -199,6 +197,7 @@ public class PrismExplicit
 	 */
 	public Result modelCheck(Model model, ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
+		StateModelChecker mc = null;
 		Result result = null;
 
 		// Check that property is valid for this model type
@@ -258,6 +257,9 @@ public class PrismExplicit
 		long l = 0; // timer
 		StateValues probs = null;
 		PrismLog tmpLog;
+		
+		if (!(model.getModelType() == ModelType.CTMC || model.getModelType() == ModelType.DTMC))
+			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
 		
 		// no specific states format for MRMC
 		if (exportType == Prism.EXPORT_MRMC) exportType = Prism.EXPORT_PLAIN;
@@ -451,12 +453,10 @@ public class PrismExplicit
 			prism.initialise();
 			prism.setDoProbChecks(false);
 			ModulesFile modulesFile = prism.parseModelFile(new File(args[0]));
-			modulesFile.setUndefinedConstants(null);
 			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(args[1]));
-			propertiesFile.setUndefinedConstants(null);
-			prism.Model model = prism.buildModel(modulesFile);
-			prism.exportTransToFile(model, true, Prism.EXPORT_PLAIN, new File("tmp.tra"));
-			prism.exportLabelsToFile(model, modulesFile, null, Prism.EXPORT_PLAIN, new File("tmp.lab"));
+			prism.loadPRISMModel(modulesFile);
+			prism.exportTransToFile(true, Prism.EXPORT_PLAIN, new File("tmp.tra"));
+			prism.exportLabelsToFile(null, Prism.EXPORT_PLAIN, new File("tmp.lab"));
 			DTMCSimple modelExplicit = new DTMCSimple();
 			modelExplicit.buildFromPrismExplicit("tmp.tra");
 			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
