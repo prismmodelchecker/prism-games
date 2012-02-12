@@ -1460,6 +1460,8 @@ public class Prism implements PrismSettingsListener
 	 */
 	public void setPRISMModelConstants(Values definedMFConstants) throws PrismLangException
 	{
+		if (currentDefinedMFConstants == null && definedMFConstants == null)
+			return;
 		if (currentDefinedMFConstants != null && currentDefinedMFConstants.equals(definedMFConstants))
 			return;
 
