@@ -40,9 +40,6 @@ public class ConstructModel {
 	private SimulatorEngine engine;
 	private PrismLog mainLog;
 
-	// PRISM settings object (optional)
-	private PrismSettings settings;
-
 	// Options:
 	// Find deadlocks during model construction?
 	private boolean findDeadlocks = true;
@@ -58,11 +55,6 @@ public class ConstructModel {
 	public ConstructModel(SimulatorEngine engine, PrismLog mainLog) {
 		this.engine = engine;
 		this.mainLog = mainLog;
-		settings = null;
-	}
-
-	public void setSettings(PrismSettings settings) {
-		this.settings = settings;
 	}
 
 	public List<State> getStatesList() {
