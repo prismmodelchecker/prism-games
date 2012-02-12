@@ -200,6 +200,10 @@ public class Prism implements PrismSettingsListener
 	// Has the CUDD library been initialised yet?
 	private boolean cuddStarted = false;
 
+	// Info about automatic engine switching
+	private int engineOld = -1;
+	private boolean engineSwitched = false;
+
 	//------------------------------------------------------------------------------
 	// Constructors + options methods
 	//------------------------------------------------------------------------------
@@ -1409,6 +1413,32 @@ public class Prism implements PrismSettingsListener
 		}
 		mainLog.println();
 
+		// For some models, automatically switch engine
+		switch (currentModelType) {
+		case SMG:
+		case STPG:
+		case CTMDP:
+			mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
+			engineOld = getEngine();
+			engineSwitched = true;
+			try {
+				setEngine(Prism.EXPLICIT);
+			} catch (PrismException e) {
+				// Won't happen
+			}
+			break;
+		// For other models, switch engine back if changed earlier
+		default:
+			if (engineSwitched) {
+				try {
+					setEngine(engineOld);
+				} catch (PrismException e) {
+					// Won't happen
+				}
+				engineSwitched = false;
+			}
+		}
+
 		// If required, export parsed PRISM model
 		if (exportPrism) {
 			try {
@@ -2234,70 +2264,54 @@ public class Prism implements PrismSettingsListener
 			return modelCheckPTA(propertiesFile, expr, definedPFConstants);
 		}
 
-		// Switch engine, if necessary
-		int engineOld = getEngine();
-		switch (currentModelType) {
-		case SMG:
-		case STPG:
-		case CTMDP:
-			mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
-			setEngine(Prism.EXPLICIT);
-			break;
-		}
+		// Build model, if necessary
+		buildModelIfRequired();
 
-		try {
-			// Build model, if necessary
-			buildModelIfRequired();
-
-			// Create new model checker object and do model checking
-			if (!getExplicit()) {
-				ModelChecker mc = null;
-				switch (currentModelType) {
-				case DTMC:
-					mc = new ProbModelChecker(this, currentModel, propertiesFile);
-					break;
-				case MDP:
-					mc = new NondetModelChecker(this, currentModel, propertiesFile);
-					break;
-				case CTMC:
-					mc = new StochModelChecker(this, currentModel, propertiesFile);
-					break;
-				default:
-					throw new PrismException("Unknown model type " + currentModelType);
-				}
-				res = mc.check(expr);
-			} else {
-				explicit.StateModelChecker mc = null;
-				switch (currentModelType) {
-				case DTMC:
-					mc = new DTMCModelChecker();
-					break;
-				case MDP:
-					mc = new MDPModelChecker();
-					break;
-				case CTMC:
-					mc = new CTMCModelChecker();
-					break;
-				case CTMDP:
-					mc = new CTMDPModelChecker();
-					break;
-				case STPG:
-					mc = new STPGModelChecker();
-					break;
-				case SMG:
-					mc = new SMGModelChecker();
-					break;
-				default:
-					throw new PrismException("Unknown model type " + currentModelType);
-				}
-				mc.setLog(mainLog);
-				mc.setSettings(settings);
-				mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
-				res = mc.check(currentModelExpl, expr);
+		// Create new model checker object and do model checking
+		if (!getExplicit()) {
+			ModelChecker mc = null;
+			switch (currentModelType) {
+			case DTMC:
+				mc = new ProbModelChecker(this, currentModel, propertiesFile);
+				break;
+			case MDP:
+				mc = new NondetModelChecker(this, currentModel, propertiesFile);
+				break;
+			case CTMC:
+				mc = new StochModelChecker(this, currentModel, propertiesFile);
+				break;
+			default:
+				throw new PrismException("Unknown model type " + currentModelType);
 			}
-		} finally {
-			// Revert engine in case switched
-			setEngine(engineOld);
+			res = mc.check(expr);
+		} else {
+			explicit.StateModelChecker mc = null;
+			switch (currentModelType) {
+			case DTMC:
+				mc = new DTMCModelChecker();
+				break;
+			case MDP:
+				mc = new MDPModelChecker();
+				break;
+			case CTMC:
+				mc = new CTMCModelChecker();
+				break;
+			case CTMDP:
+				mc = new CTMDPModelChecker();
+				break;
+			case STPG:
+				mc = new STPGModelChecker();
+				break;
+			case SMG:
+				mc = new SMGModelChecker();
+				break;
+			default:
+				throw new PrismException("Unknown model type " + currentModelType);
+			}
+			mc.setLog(mainLog);
+			mc.setSettings(settings);
+			mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+			res = mc.check(currentModelExpl, expr);
 		}
 
 		// Return result
