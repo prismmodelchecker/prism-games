@@ -1054,10 +1054,12 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		}
 
 		modelFilters = new GUIPrismFileFilter[GM_ENABLED ? 3 : 2];
-		modelFilters[FILTER_PRISM_MODEL] = new GUIPrismFileFilter("PRISM models (*.pm, *.nm, *.sm)");
+		modelFilters[FILTER_PRISM_MODEL] = new GUIPrismFileFilter("PRISM models (*.pm, *.nm, *.sm, *.prism, *.smg)");
 		modelFilters[FILTER_PRISM_MODEL].addExtension("pm");
 		modelFilters[FILTER_PRISM_MODEL].addExtension("nm");
 		modelFilters[FILTER_PRISM_MODEL].addExtension("sm");
+		modelFilters[FILTER_PRISM_MODEL].addExtension("prism");
+		modelFilters[FILTER_PRISM_MODEL].addExtension("smg");
 		if (GM_ENABLED)
 			modelFilters[FILTER_GRAPHIC_MODEL] = new GUIPrismFileFilter("Graphical PRISM models (*.gm)");
 		if (GM_ENABLED)

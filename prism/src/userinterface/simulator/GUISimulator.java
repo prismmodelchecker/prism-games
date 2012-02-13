@@ -2056,7 +2056,18 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				try {
 					switch (columnIndex) {
 					case 0:
-						return engine.getTransitionModuleOrAction(rowIndex);
+						String modAct = engine.getTransitionModuleOrAction(rowIndex);
+						if (parsedModel.getModelType() != ModelType.SMG)
+							return modAct;
+		
+						// Printing player who controls the state
+						int player = parsedModel.getPlayerForModule(modAct);
+						if (player == -1)
+							player = parsedModel.getPlayerForAction(modAct);
+						if (player == -1)
+							return modAct;
+						return modAct + " (" + (player + 1) + ":"
+								+ parsedModel.getPlayer(player).getName() + ")";
 					case 1:
 						return "" + engine.getTransitionProbability(rowIndex);
 					case 2:
@@ -2076,7 +2087,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			if (pathActive) {
 				switch (column) {
 				case 0:
-					return "Module/[action]";
+					if (parsedModel.getModelType() != ModelType.SMG)
+						return "Module/[action]";
+					
+					// if model type SMG return player info as well
+					return "Module/[action] (player)";
 				case 1: {
 					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
 				}
