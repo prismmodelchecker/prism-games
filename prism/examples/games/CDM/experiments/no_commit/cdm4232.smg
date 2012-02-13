@@ -56,15 +56,18 @@ global preference4 : [0..K] init 0;
 // scheduling variable
 global sched : [0..N];
 
+
+player p0
+	player0
+endplayer
+
 // scheduler module
 module player0
 	[] sched = 0 -> 1/N : (sched'=1)
 		      + 1/N : (sched'=2)
 		      + 1/N : (sched'=3)
 		      + 1/N : (sched'=4)
-;
-
-	
+;	
 endmodule
 
 
