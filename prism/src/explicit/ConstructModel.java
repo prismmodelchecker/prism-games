@@ -362,7 +362,10 @@ public class ConstructModel {
 				model = new STPGExplicit(stpg, permut);
 				break;
 			case SMG:
-				model = new SMG(smg, permut);
+				HashMap<String, Integer> players = new HashMap<String, Integer>();
+				for (i = 0; i < modulesFile.getNumPlayers(); i++)
+					players.put(modulesFile.getPlayer(i).getName(), i+1);
+				model = new SMG(smg, permut,players);
 				break;
 			}
 			model.setStatesList(statesList);

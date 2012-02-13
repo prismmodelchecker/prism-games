@@ -44,12 +44,12 @@ public class ExpressionPATL extends Expression {
 	private ExpressionProb exprProb; // expression for probabilistic PATL formula
 	private ExpressionReward exprRew; // expression for reward-based PATL formula
 	
-	private Set<Integer> coalition;
+	private Set<String> coalition;
 	
 	public ExpressionPATL()
 	{}
 	
-	public ExpressionPATL(Set<Integer> coal, Expression expr, int type)
+	public ExpressionPATL(Set<String> coal, Expression expr, int type)
 	{
 		coalition = coal;
 		switch(type)
@@ -75,7 +75,7 @@ public class ExpressionPATL extends Expression {
 	public ExpressionReward getExpressionRew()
 	{return exprRew;}
 	
-	public Set<Integer> getCoalition()
+	public Set<String> getCoalition()
 	{return coalition;}
 	
 	// setters
@@ -88,7 +88,7 @@ public class ExpressionPATL extends Expression {
 	public void setExpressionRew(ExpressionReward expr)
 	{exprRew = expr;}
 	
-	public void setCoalition(Set<Integer> coal)
+	public void setCoalition(Set<String> coal)
 	{coalition=coal;}
 	
 
@@ -131,7 +131,7 @@ public class ExpressionPATL extends Expression {
 		
 		ExpressionPATL expr = new ExpressionPATL();
 		
-		expr.setCoalition(new HashSet<Integer>(coalition));
+		expr.setCoalition(new HashSet<String>(coalition));
 		expr.setExpressionType(exprType);
 		expr.setType(type);
 		expr.setPosition(this);

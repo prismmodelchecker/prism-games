@@ -317,7 +317,7 @@ public class ProbModelChecker extends StateModelChecker
 		int type = expr.getExpressionType();
 		ExpressionProb exprProb = expr.getExpressionProb();
 		ExpressionReward exprRew = expr.getExpressionRew();
-		Set<Integer> coalition = expr.getCoalition();
+		Set<String> coalition = expr.getCoalition();
 
 		Expression pb; // Probability bound (expression)
 		double p = 0; // Probability bound (actual value)

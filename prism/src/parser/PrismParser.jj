@@ -1431,27 +1431,27 @@ void ExpressionPATLArgs(boolean prop, boolean pathprop, Set coalition) :
 	Expression expr;
 }
 {
-	// parsing a list of integers
-	<REG_INT> {
-		try {
-			
-			int i = Integer.parseInt(getToken(0).image);
-			coalition.add(i);	
-		} catch (NumberFormatException e) {
-			// Need to catch this because some matches for regexp REG_INT
-			// are not valid integers (e.g. too big).
-			throw generateParseException();
-		}}
-	(<COMMA> <REG_INT> {
-		try {
-			
-			int i = Integer.parseInt(getToken(0).image);
-			coalition.add(i);		
-		} catch (NumberFormatException e) {
-			// Need to catch this because some matches for regexp REG_INT
-			// are not valid integers (e.g. too big).
-			throw generateParseException();
-		}}
+	// parsing a list of players
+	(
+		<REG_INT> {
+	  		coalition.add(""+getToken(0).image);
+	  	}
+		|
+		<REG_IDENT> {
+			coalition.add(getToken(0).image);	
+		}
+		
+	)*
+	(<COMMA> 
+	(
+		<REG_INT> {
+	  		coalition.add(""+getToken(0).image);
+	  	}
+		|
+		<REG_IDENT> {
+			coalition.add(getToken(0).image);	
+		}
+	)
 	)*
 }
 
@@ -1573,7 +1573,7 @@ Expression ExpressionPATL(boolean prop, boolean pathprop) :
 	ExpressionPATL ret = new ExpressionPATL();
 	ExpressionProb prob = new ExpressionProb();
 	ExpressionReward rew = new ExpressionReward();
-	Set<Integer> coalition = new HashSet<Integer>();
+	Set<String> coalition = new HashSet<String>();
 	Token begin = null;
 	boolean isBool;
 	

@@ -55,6 +55,9 @@ public class SMG extends STPGExplicit implements STPG {
 
 	// Set of players which form a coalition
 	protected Set<Integer> coalition;
+	
+	// player-integer mapping
+	protected Map<String,Integer> players;
 
 	public SMG() {
 		super();
@@ -65,8 +68,9 @@ public class SMG extends STPGExplicit implements STPG {
 	 * Construct an SMG from an existing one and a state index permutation, i.e.
 	 * in which state index i becomes index permut[i].
 	 */
-	public SMG(SMG smg, int permut[]) {
+	public SMG(SMG smg, int permut[], Map<String, Integer> players) {
 		super(smg, permut);
+		this.players = players;
 		stateLabels = new ArrayList<Integer>(numStates);
 		// Create blank array of correct size
 		for (int i = 0; i < numStates; i++) {
@@ -76,6 +80,7 @@ public class SMG extends STPGExplicit implements STPG {
 		for (int i = 0; i < numStates; i++) {
 			stateLabels.set(permut[i], smg.stateLabels.get(i));
 		}
+		coalition = new HashSet<Integer>();
 
 	}
 
@@ -144,12 +149,43 @@ public class SMG extends STPGExplicit implements STPG {
 			stateLabels.set(s, player);
 	}
 
+//	/**
+//	 * Sets the coalition (representing Player 1)
+//	 * @param coalition
+//	 */
+//	public void setCoalition(Set<Integer> coalition) {
+//		this.coalition = coalition;
+//	}
+//	
 	/**
 	 * Sets the coalition (representing Player 1)
 	 * @param coalition
+	 * @throws PrismException 
 	 */
-	public void setCoalition(Set<Integer> coalition) {
-		this.coalition = coalition;
+	public void setCoalition(Set<String> coalition) throws PrismException {
+		
+		this.coalition.clear();
+		
+		int pl;
+		for(String player : coalition)
+		{
+			if(players.containsKey(player))
+			{ // get the number of the player
+				this.coalition.add(players.get(player));
+			}
+			else
+			{ // try parsing an integer
+				try{
+					this.coalition.add(Integer.parseInt(player));
+				}
+				catch(NumberFormatException e)
+				{
+					throw new PrismException("Player " + player + " is not present in the model");
+				}
+			}
+			
+		}
+		
 	}
 
 	/**
