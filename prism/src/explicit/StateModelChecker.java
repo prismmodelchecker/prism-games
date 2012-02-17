@@ -26,15 +26,40 @@
 
 package explicit;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import parser.State;
 import parser.Values;
-import parser.ast.*;
+import parser.ast.Expression;
+import parser.ast.ExpressionBinaryOp;
+import parser.ast.ExpressionConstant;
+import parser.ast.ExpressionFilter;
 import parser.ast.ExpressionFilter.FilterOperator;
-import parser.type.*;
+import parser.ast.ExpressionFormula;
+import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionIdent;
+import parser.ast.ExpressionLabel;
+import parser.ast.ExpressionLiteral;
+import parser.ast.ExpressionProp;
+import parser.ast.ExpressionUnaryOp;
+import parser.ast.ExpressionVar;
+import parser.ast.LabelList;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import parser.ast.Property;
+import parser.type.TypeBool;
+import parser.type.TypeDouble;
+import parser.type.TypeInt;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
 import prism.PrismSettings;
@@ -106,7 +131,7 @@ public class StateModelChecker
 	/**
 	 * Set settings from a PRISMSettings object.
 	 */
-	public void setSettings(PrismSettings settings)
+	public void setSettings(PrismSettings settings) throws PrismException
 	{
 		verbosity = settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1;
 	}
@@ -251,13 +276,37 @@ public class StateModelChecker
 			res = checkExpressionBinaryOp(model, (ExpressionBinaryOp) expr);
 		}
 		// Unary ops
-		// (just parentheses for now - more to come later)
-		else if (expr instanceof ExpressionUnaryOp && Expression.isParenth(expr)) {
+		else if (expr instanceof ExpressionUnaryOp) {
 			res = checkExpressionUnaryOp(model, (ExpressionUnaryOp) expr);
+		}
+		// Functions
+		else if (expr instanceof ExpressionFunc) {
+			res = checkExpressionFunc(model, (ExpressionFunc) expr);
+		}
+		// Identifiers
+		else if (expr instanceof ExpressionIdent) {
+			// Should never happen
+			throw new PrismException("Unknown identifier \"" + ((ExpressionIdent) expr).getName() + "\"");
 		}
 		// Literals
 		else if (expr instanceof ExpressionLiteral) {
 			res = checkExpressionLiteral(model, (ExpressionLiteral) expr);
+		}
+		// Constants
+		else if (expr instanceof ExpressionConstant) {
+			res = checkExpressionConstant(model, (ExpressionConstant) expr);
+		}
+		// Formulas
+		else if (expr instanceof ExpressionFormula) {
+			// This should have been defined or expanded by now.
+			if (((ExpressionFormula) expr).getDefinition() != null)
+				return checkExpression(model, ((ExpressionFormula) expr).getDefinition());
+			else
+				throw new PrismException("Unexpanded formula \"" + ((ExpressionFormula) expr).getName() + "\"");
+		}
+		// Variables
+		else if (expr instanceof ExpressionVar) {
+			res = checkExpressionVar(model, (ExpressionVar) expr);
 		}
 		// Labels
 		else if (expr instanceof ExpressionLabel) {
@@ -271,33 +320,10 @@ public class StateModelChecker
 		else if (expr instanceof ExpressionFilter) {
 			res = checkExpressionFilter(model, (ExpressionFilter) expr);
 		}
-
-		// Anything else - just evaluate expression repeatedly
-		else {
-			// Evaluate/replace any constants first
-			expr = (Expression) expr.replaceConstants(constantValues);
-			
-			int numStates = model.getNumStates();
-			res = new StateValues(expr.getType(), model);
-			List<State> statesList = model.getStatesList();
-			if (expr.getType() instanceof TypeBool) {
-				for (int i = 0; i < numStates; i++) {
-					res.setBooleanValue(i, expr.evaluateBoolean(statesList.get(i)));
-				}
-			} else if (expr.getType() instanceof TypeInt) {
-				for (int i = 0; i < numStates; i++) {
-					res.setIntValue(i, expr.evaluateInt(statesList.get(i)));
-				}
-			} else if (expr.getType() instanceof TypeDouble) {
-				for (int i = 0; i < numStates; i++) {
-					res.setDoubleValue(i, expr.evaluateDouble(statesList.get(i)));
-				}
-			}
-		}
 		// Anything else - error
-		/*else {
+		else {
 			throw new PrismException("Couldn't check " + expr.getClass());
-		}*/
+		}
 
 		return res;
 	}
@@ -339,6 +365,117 @@ public class StateModelChecker
 	}
 
 	/**
+	 * Model check a function.
+	 */
+	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr) throws PrismException
+	{
+		switch (expr.getNameCode()) {
+		case ExpressionFunc.MIN:
+		case ExpressionFunc.MAX:
+			return checkExpressionFuncNary(model, expr);
+		case ExpressionFunc.FLOOR:
+		case ExpressionFunc.CEIL:
+			return checkExpressionFuncUnary(model, expr);
+		case ExpressionFunc.POW:
+		case ExpressionFunc.MOD:
+		case ExpressionFunc.LOG:
+			return checkExpressionFuncBinary(model, expr);
+		default:
+			throw new PrismException("Unrecognised function \"" + expr.getName() + "\"");
+		}
+	}
+
+	protected StateValues checkExpressionFuncUnary(Model model, ExpressionFunc expr) throws PrismException
+	{
+		StateValues res1 = null;
+		int op = expr.getNameCode();
+		
+		// Check operand recursively
+		res1 = checkExpression(model, expr.getOperand(0));
+		
+		// Apply operation
+		try {
+			res1.applyFunctionUnary(op);
+		} catch (PrismException e) {
+			if (res1 != null)
+				res1.clear();
+			if (e instanceof PrismLangException)
+				((PrismLangException) e).setASTElement(expr);
+			throw e;
+		}
+		
+		return res1;
+	}
+	
+	protected StateValues checkExpressionFuncBinary(Model model, ExpressionFunc expr) throws PrismException
+	{
+		StateValues res1 = null, res2 = null;
+		int op = expr.getNameCode();
+		
+		// Check operands recursively
+		try {
+			res1 = checkExpression(model, expr.getOperand(0));
+			res2 = checkExpression(model, expr.getOperand(1));
+		} catch (PrismException e) {
+			if (res1 != null)
+				res1.clear();
+			throw e;
+		}
+		
+		// Apply operation
+		try {
+			res1.applyFunctionBinary(op, res2);
+			res2.clear();
+		} catch (PrismException e) {
+			if (res1 != null)
+				res1.clear();
+			if (res2 != null)
+				res2.clear();
+			if (e instanceof PrismLangException)
+				((PrismLangException) e).setASTElement(expr);
+			throw e;
+		}
+		
+		return res1;
+	}
+	
+	protected StateValues checkExpressionFuncNary(Model model, ExpressionFunc expr) throws PrismException
+	{
+		StateValues res1 = null, res2 = null;
+		int i, n, op = expr.getNameCode();
+		
+		// Check first operand recursively
+		res1 = checkExpression(model, expr.getOperand(0));
+		// Go through remaining operands
+		n = expr.getNumOperands();
+		for (i = 1; i < n; i++) {
+			// Check next operand recursively
+			try {
+				res2 = checkExpression(model, expr.getOperand(i));
+			} catch (PrismException e) {
+				if (res2 != null)
+					res2.clear();
+				throw e;
+			}
+			// Apply operation
+			try {
+				res1.applyFunctionBinary(op, res2);
+				res2.clear();
+			} catch (PrismException e) {
+				if (res1 != null)
+					res1.clear();
+				if (res2 != null)
+					res2.clear();
+				if (e instanceof PrismLangException)
+					((PrismLangException) e).setASTElement(expr);
+				throw e;
+			}
+		}
+		
+		return res1;
+	}
+	
+	/**
 	 * Model check a literal.
 	 */
 	protected StateValues checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
@@ -346,6 +483,38 @@ public class StateModelChecker
 		return new StateValues(expr.getType(), expr.evaluate(), model);
 	}
 
+	/**
+	 * Model check a constant.
+	 */
+	protected StateValues checkExpressionConstant(Model model, ExpressionConstant expr) throws PrismException
+	{
+		return new StateValues(expr.getType(), expr.evaluate(constantValues), model);
+	}
+
+	/**
+	 * Model check a variable reference.
+	 */
+	protected StateValues checkExpressionVar(Model model, ExpressionVar expr) throws PrismException
+	{
+		int numStates = model.getNumStates();
+		StateValues res = new StateValues(expr.getType(), model);
+		List<State> statesList = model.getStatesList();
+		if (expr.getType() instanceof TypeBool) {
+			for (int i = 0; i < numStates; i++) {
+				res.setBooleanValue(i, expr.evaluateBoolean(statesList.get(i)));
+			}
+		} else if (expr.getType() instanceof TypeInt) {
+			for (int i = 0; i < numStates; i++) {
+				res.setIntValue(i, expr.evaluateInt(statesList.get(i)));
+			}
+		} else if (expr.getType() instanceof TypeDouble) {
+			for (int i = 0; i < numStates; i++) {
+				res.setDoubleValue(i, expr.evaluateDouble(statesList.get(i)));
+			}
+		}
+		return res;
+	}
+	
 	/**
 	 * Model check a label.
 	 */

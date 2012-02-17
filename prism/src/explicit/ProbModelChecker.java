@@ -51,6 +51,10 @@ public class ProbModelChecker extends StateModelChecker
 {
 	// Flags/settings
 
+	// Method used to solve linear equation systems
+	protected LinEqMethod linEqMethod = LinEqMethod.GAUSS_SEIDEL;
+	// Method used to solve MDPs
+	protected MDPSolnMethod mdpSolnMethod = MDPSolnMethod.GAUSS_SEIDEL;
 	// Iterative numerical method termination criteria
 	protected TermCrit termCrit = TermCrit.RELATIVE;
 	// Parameter for iterative numerical method termination criteria
@@ -71,6 +75,54 @@ public class ProbModelChecker extends StateModelChecker
 
 	// Enums for flags/settings
 
+	// Method used for numerical solution
+	public enum LinEqMethod {
+		POWER, JACOBI, GAUSS_SEIDEL, BACKWARDS_GAUSS_SEIDEL, JOR, SOR, BACKWARDS_SOR;
+		public String fullName()
+		{
+			switch (this) {
+			case POWER:
+				return "Power method";
+			case JACOBI:
+				return "Jacobi";
+			case GAUSS_SEIDEL:
+				return "Gauss-Seidel";
+			case BACKWARDS_GAUSS_SEIDEL:
+				return "Backwards Gauss-Seidel";
+			case JOR:
+				return "JOR";
+			case SOR:
+				return "SOR";
+			case BACKWARDS_SOR:
+				return "Backwards SOR";
+			default:
+				return this.toString();
+			}
+		}
+	};
+
+	// Method used for solving MDPs
+	public enum MDPSolnMethod {
+		VALUE_ITERATION, GAUSS_SEIDEL, POLICY_ITERATION, MODIFIED_POLICY_ITERATION, LINEAR_PROGRAMMING;
+		public String fullName()
+		{
+			switch (this) {
+			case VALUE_ITERATION:
+				return "Value iteration";
+			case GAUSS_SEIDEL:
+				return "Gauss-Seidel";
+			case POLICY_ITERATION:
+				return "Policy iteration";
+			case MODIFIED_POLICY_ITERATION:
+				return "Modified policy iteration";
+			case LINEAR_PROGRAMMING:
+				return "Linear programming";
+			default:
+				return this.toString();
+			}
+		}
+	};
+
 	// Iterative numerical method termination criteria
 	public enum TermCrit {
 		ABSOLUTE, RELATIVE
@@ -83,17 +135,52 @@ public class ProbModelChecker extends StateModelChecker
 
 	// Method used for numerical solution
 	public enum SolnMethod {
-		VALUE_ITERATION, GAUSS_SEIDEL, POLICY_ITERATION, MODIFIED_POLICY_ITERATION
+		VALUE_ITERATION, GAUSS_SEIDEL, POLICY_ITERATION, MODIFIED_POLICY_ITERATION, LINEAR_PROGRAMMING
 	};
 
 	// Settings methods
-	
+
 	/**
 	 * Set settings from a PRISMSettings object.
 	 */
-	public void setSettings(PrismSettings settings)
+	public void setSettings(PrismSettings settings) throws PrismException
 	{
 		String s;
+		// PRISM_LIN_EQ_METHOD
+		s = settings.getString(PrismSettings.PRISM_LIN_EQ_METHOD);
+		if (s.equals("Power")) {
+			setLinEqMethod(LinEqMethod.POWER);
+		} else if (s.equals("Jacobi")) {
+			setLinEqMethod(LinEqMethod.JACOBI);
+		} else if (s.equals("Gauss-Seidel")) {
+			setLinEqMethod(LinEqMethod.GAUSS_SEIDEL);
+		} else if (s.equals("Backwards Gauss-Seidel")) {
+			setLinEqMethod(LinEqMethod.BACKWARDS_GAUSS_SEIDEL);
+		} else if (s.equals("JOR")) {
+			setLinEqMethod(LinEqMethod.JOR);
+		} else if (s.equals("SOR")) {
+			setLinEqMethod(LinEqMethod.SOR);
+		} else if (s.equals("Backwards SOR")) {
+			setLinEqMethod(LinEqMethod.BACKWARDS_SOR);
+		} else {
+			throw new PrismException("Explicit engine does not support linear equation solution method \"" + s + "\"");
+		}
+		// PRISM_MDP_SOLN_METHOD
+		s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
+		if (s.equals("Value iteration")) {
+			setSolnMethod(SolnMethod.VALUE_ITERATION);
+		} else if (s.equals("Gauss-Seidel")) {
+			setSolnMethod(SolnMethod.GAUSS_SEIDEL);
+		} else if (s.equals("Policy iteration")) {
+			setSolnMethod(SolnMethod.POLICY_ITERATION);
+		} else if (s.equals("Modified policy iteration")) {
+			setSolnMethod(SolnMethod.MODIFIED_POLICY_ITERATION);
+		} else if (s.equals("Linear programming")) {
+			setSolnMethod(SolnMethod.LINEAR_PROGRAMMING);
+		} else {
+			throw new PrismException("Explicit engine does not support MDP solution method \"" + s + "\"");
+		}
+
 		s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
 		if (s.equals("Absolute")) {
 			setTermCrit(TermCrit.ABSOLUTE);
@@ -106,22 +193,6 @@ public class ProbModelChecker extends StateModelChecker
 		setProb0(settings.getBoolean(PrismSettings.PRISM_PROB0));
 		setProb1(settings.getBoolean(PrismSettings.PRISM_PROB1));
 		// valiterdir
-		s = settings.getString(PrismSettings.PRISM_LIN_EQ_METHOD);
-		if (s.equals("Gauss-Seidel")) {
-			setSolnMethod(SolnMethod.GAUSS_SEIDEL);
-		} else {
-			setSolnMethod(SolnMethod.VALUE_ITERATION);
-		}
-		s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
-		if (s.equals("Gauss-Seidel")) {
-			setSolnMethod(SolnMethod.GAUSS_SEIDEL);
-		} else if (s.equals("Policy iteration")) {
-			setSolnMethod(SolnMethod.POLICY_ITERATION);
-		} else if (s.equals("Modified policy iteration")) {
-			setSolnMethod(SolnMethod.MODIFIED_POLICY_ITERATION);
-		} else {
-			setSolnMethod(SolnMethod.VALUE_ITERATION);
-		}
 		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
 		if (!(s.equals("None")))
 			exportAdv = true;
@@ -150,6 +221,8 @@ public class ProbModelChecker extends StateModelChecker
 	public void printSettings()
 	{
 		super.printSettings();
+		mainLog.print("linEqMethod = " + linEqMethod + " ");
+		mainLog.print("mdpSolnMethod = " + mdpSolnMethod + " ");
 		mainLog.print("termCrit = " + termCrit + " ");
 		mainLog.print("termCritParam = " + termCritParam + " ");
 		mainLog.print("maxIters = " + maxIters + " ");
@@ -168,6 +241,22 @@ public class ProbModelChecker extends StateModelChecker
 	public void setVerbosity(int verbosity)
 	{
 		this.verbosity = verbosity;
+	}
+
+	/**
+	 * Set method used to solve linear equation systems.
+	 */
+	public void setLinEqMethod(LinEqMethod linEqMethod)
+	{
+		this.linEqMethod = linEqMethod;
+	}
+
+	/**
+	 * Set method used to solve MDPs.
+	 */
+	public void setMDPSolnMethod(MDPSolnMethod mdpSolnMethod)
+	{
+		this.mdpSolnMethod = mdpSolnMethod;
 	}
 
 	/**
@@ -239,6 +328,16 @@ public class ProbModelChecker extends StateModelChecker
 	public int getVerbosity()
 	{
 		return verbosity;
+	}
+
+	public LinEqMethod getLinEqMethod()
+	{
+		return linEqMethod;
+	}
+
+	public MDPSolnMethod getMDPSolnMethod()
+	{
+		return mdpSolnMethod;
 	}
 
 	public TermCrit getTermCrit()

@@ -35,6 +35,8 @@ import java.util.List;
 
 import parser.State;
 import parser.ast.ExpressionBinaryOp;
+import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionUnaryOp;
 import parser.type.Type;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
@@ -290,7 +292,8 @@ public class StateValues
 	}
 
 	/**
-	 * Modify the vector by applying binary operator {@code op} with second operand {@code sv}.
+	 * Modify the vector by applying binary operator {@code op} with second operand {@code sv},
+	 * where {@code op} refers to the codes in {@link ExpressionBinaryOp}.
 	 */
 	public void applyBinaryOp(int op, StateValues sv) throws PrismException
 	{
@@ -771,6 +774,297 @@ public class StateValues
 		}
 	}
 		
+	/**
+	 * Modify the vector by applying unary operator {@code op},
+	 * where {@code op} refers to the codes in {@link ExpressionUnaryOp}.
+	 */
+	public void applyUnaryOp(int op) throws PrismException
+	{
+		switch (op) {
+		case ExpressionUnaryOp.NOT:
+			not();
+			break;
+		case ExpressionUnaryOp.MINUS:
+			minus();
+			break;
+		default:
+			throw new PrismException("Unknown binary operator");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'not'
+	 */
+	public void not() throws PrismException
+	{
+		if (!(type instanceof TypeBool)) {
+			throw new PrismException("Operator ! can only be applied to Boolean vectors");
+		}
+		valuesB.flip(0, size);
+	}
+
+	/**
+	 * Modify the vector by applying (unary) 'minus'.
+	 */
+	public void minus() throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			for (int i = 0; i < size; i++) {
+				valuesI[i] = -valuesI[i];
+			}
+		} else if (type instanceof TypeDouble) {
+			for (int i = 0; i < size; i++) {
+				valuesD[i] = -valuesD[i];
+			}
+		} else {
+			throw new PrismException("Operator - can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying (unary) function {@code op},
+	 * where {@code op} refers to the codes in {@link parser.ast.ExpressionFunc}.
+	 */
+	public void applyFunctionUnary(int op) throws PrismException
+	{
+		switch (op) {
+		case ExpressionFunc.FLOOR:
+			floor();
+			break;
+		case ExpressionFunc.CEIL:
+			ceil();
+			break;
+		default:
+			throw new PrismException("Unknown unary function");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'floor'.
+	 */
+	public void floor() throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			// Nothing to do
+		} else if (type instanceof TypeDouble) {
+			valuesI = new int[size];
+			type = TypeInt.getInstance();
+			for (int i = 0; i < size; i++) {
+				valuesI[i] = ExpressionFunc.evaluateFloor(valuesD[i]);
+			}
+			valuesD = null;
+		} else {
+			throw new PrismException("Function floor can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'ceil'.
+	 */
+	public void ceil() throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			// Nothing to do
+		} else if (type instanceof TypeDouble) {
+			valuesI = new int[size];
+			type = TypeInt.getInstance();
+			for (int i = 0; i < size; i++) {
+				valuesI[i] = ExpressionFunc.evaluateCeil(valuesD[i]);
+			}
+			valuesD = null;
+		} else {
+			throw new PrismException("Function ceil can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying (binary or N-ary) function {@code op} with second operand {@code sv},
+	 * where {@code op} refers to the codes in {@link parser.ast.ExpressionFunc}.
+	 */
+	public void applyFunctionBinary(int op, StateValues sv) throws PrismException
+	{
+		switch (op) {
+		case ExpressionFunc.POW:
+			pow(sv);
+			break;
+		case ExpressionFunc.MOD:
+			mod(sv);
+			break;
+		case ExpressionFunc.LOG:
+			log(sv);
+			break;
+		case ExpressionFunc.MIN:
+			min(sv);
+			break;
+		case ExpressionFunc.MAX:
+			max(sv);
+			break;
+		default:
+			throw new PrismException("Unknown binary function");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'pow' with second operand {@code sv}.
+	 */
+	public void pow(StateValues sv) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesI[i] = ExpressionFunc.evaluatePowInt(valuesI[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				valuesD = new double[size];
+				type = TypeDouble.getInstance();
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluatePowDouble(valuesI[i], sv.valuesD[i]);
+				}
+				valuesI = null;
+			} else {
+				throw new PrismException("Function pow() can not be applied to Boolean vectors");
+			}
+		} else if (type instanceof TypeDouble) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluatePowDouble(valuesD[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluatePowDouble(valuesD[i], sv.valuesD[i]);
+				}
+			} else {
+				throw new PrismException("Function pow() can not be applied to Boolean vectors");
+			}
+		} else {
+			throw new PrismException("Function pow() can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'mod' with second operand {@code sv}.
+	 */
+	public void mod(StateValues sv) throws PrismException
+	{
+		if (!(type instanceof TypeInt && sv.type instanceof TypeInt)) {
+			throw new PrismException("Function mod() can only be applied to integer vectors");
+		}
+		for (int i = 0; i < size; i++) {
+			valuesI[i] = ExpressionFunc.evaluateMod(valuesI[i], sv.valuesI[i]);
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'log' with operand {@code sv}.
+	 */
+	public void log(StateValues sv) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			valuesD = new double[size];
+			type = TypeDouble.getInstance();
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluateLog(valuesI[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluateLog(valuesI[i], sv.valuesD[i]);
+				}
+			} else {
+				throw new PrismException("Function log() can not be applied to Boolean vectors");
+			}
+			valuesI = null;
+		} else if (type instanceof TypeDouble) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluateLog(valuesD[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = ExpressionFunc.evaluateLog(valuesD[i], sv.valuesD[i]);
+				}
+			} else {
+				throw new PrismException("Function log() can not be applied to Boolean vectors");
+			}
+		} else {
+			throw new PrismException("Function log() can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'min' with operand {@code sv}.
+	 */
+	public void min(StateValues sv) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesI[i] = Math.min(valuesI[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				valuesD = new double[size];
+				type = TypeDouble.getInstance();
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.min(valuesI[i], sv.valuesD[i]);
+				}
+				valuesI = null;
+			} else {
+				throw new PrismException("Function min() can not be applied to Boolean vectors");
+			}
+		} else if (type instanceof TypeDouble) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.min(valuesD[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.min(valuesD[i], sv.valuesD[i]);
+				}
+			} else {
+				throw new PrismException("Function min() can not be applied to Boolean vectors");
+			}
+		} else {
+			throw new PrismException("Function min() can not be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'max' with operand {@code sv}.
+	 */
+	public void max(StateValues sv) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesI[i] = Math.max(valuesI[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				valuesD = new double[size];
+				type = TypeDouble.getInstance();
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.max(valuesI[i], sv.valuesD[i]);
+				}
+				valuesI = null;
+			} else {
+				throw new PrismException("Function max() can not be applied to Boolean vectors");
+			}
+		} else if (type instanceof TypeDouble) {
+			if (sv.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.max(valuesD[i], sv.valuesI[i]);
+				}
+			} else if (sv.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = Math.max(valuesD[i], sv.valuesD[i]);
+				}
+			} else {
+				throw new PrismException("Function max() can not be applied to Boolean vectors");
+			}
+		} else {
+			throw new PrismException("Function max() can not be applied to Boolean vectors");
+		}
+	}
+
 	/**
 	 * Set the elements of this vector by reading them in from a file.
 	 */
