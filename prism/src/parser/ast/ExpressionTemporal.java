@@ -27,7 +27,7 @@
 package parser.ast;
 
 import parser.EvaluateContext;
-import parser.visitor.*;
+import parser.visitor.ASTVisitor;
 import prism.PrismLangException;
 
 public class ExpressionTemporal extends Expression
@@ -59,6 +59,8 @@ public class ExpressionTemporal extends Expression
 	// Strictness of (time) bounds
 	protected boolean lBoundStrict = false; // true: >, false: >= 
 	protected boolean uBoundStrict = false; // true: <, false: <=
+	// Display as =T rather than [T,T] ?
+	protected boolean equals = false;
 
 	// Constructors
 
@@ -90,16 +92,8 @@ public class ExpressionTemporal extends Expression
 		operand2 = e2;
 	}
 
-	public int getNumOperands()
-	{
-		if (operand1 == null)
-			return 0;
-		else
-			return (operand2 == null) ? 1 : 2;
-	}
-
 	/**
-	 * Set lower timer bound to be of form >= e
+	 * Set lower time bound to be of form >= e
 	 * (null denotes no lower bound, i.e. zero)
 	 */
 	public void setLowerBound(Expression e)
@@ -108,7 +102,7 @@ public class ExpressionTemporal extends Expression
 	}
 
 	/**
-	 * Set lower timer bound to be of form >= e or > e
+	 * Set lower time bound to be of form >= e or > e
 	 * (null denotes no lower bound, i.e. zero)
 	 */
 	public void setLowerBound(Expression e, boolean strict)
@@ -118,7 +112,7 @@ public class ExpressionTemporal extends Expression
 	}
 
 	/**
-	 * Set upper timer bound to be of form <= e
+	 * Set upper time bound to be of form <= e
 	 * (null denotes no upper bound, i.e. infinity)
 	 */
 	public void setUpperBound(Expression e)
@@ -127,13 +121,25 @@ public class ExpressionTemporal extends Expression
 	}
 
 	/**
-	 * Set upper timer bound to be of form <= e or < e
+	 * Set upper time bound to be of form <= e or < e
 	 * (null denotes no upper bound, i.e. infinity)
 	 */
 	public void setUpperBound(Expression e, boolean strict)
 	{
 		uBound = e;
 		uBoundStrict = strict;
+	}
+
+	/**
+	 * Set both lower/upper time bound to e, i.e. "=e".
+	 */
+	public void setEqualBounds(Expression e)
+	{
+		lBound = e;
+		lBoundStrict = false;
+		uBound = e;
+		uBoundStrict = false;
+		equals = true;
 	}
 
 	// Get methods
@@ -156,6 +162,14 @@ public class ExpressionTemporal extends Expression
 	public Expression getOperand2()
 	{
 		return operand2;
+	}
+
+	public int getNumOperands()
+	{
+		if (operand1 == null)
+			return 0;
+		else
+			return (operand2 == null) ? 1 : 2;
 	}
 
 	public boolean hasBounds()
@@ -181,6 +195,14 @@ public class ExpressionTemporal extends Expression
 	public boolean upperBoundIsStrict()
 	{
 		return uBoundStrict;
+	}
+
+	/**
+	 * Returns true if lower/upper bound are equal and should be displayed as =T 
+	 */
+	public boolean getEquals()
+	{
+		return equals;
 	}
 
 	// Methods required for Expression:
@@ -238,7 +260,10 @@ public class ExpressionTemporal extends Expression
 			if (uBound == null) {
 				s += ">" + (lBoundStrict ? "" : "=") + lBound;
 			} else {
-				s += "[" + lBound + "," + uBound + "]";
+				if (equals)
+					s += "=" + lBound;
+				else
+					s += "[" + lBound + "," + uBound + "]";
 			}
 		}
 		if (operand2 != null)
@@ -259,6 +284,7 @@ public class ExpressionTemporal extends Expression
 			expr.setOperand2(operand2.deepCopy());
 		expr.setLowerBound(lBound == null ? null : lBound.deepCopy(), lBoundStrict);
 		expr.setUpperBound(uBound == null ? null : uBound.deepCopy(), uBoundStrict);
+		expr.equals = equals;
 		expr.setType(type);
 		expr.setPosition(this);
 		return expr;
@@ -282,6 +308,7 @@ public class ExpressionTemporal extends Expression
 			exprTemp = new ExpressionTemporal(P_U, op1, operand2);
 			exprTemp.setLowerBound(lBound, lBoundStrict);
 			exprTemp.setUpperBound(uBound, uBoundStrict);
+			exprTemp.equals = equals;
 			return exprTemp;
 		case P_G:
 			// G a == !(true U !a)
@@ -290,6 +317,7 @@ public class ExpressionTemporal extends Expression
 			exprTemp = new ExpressionTemporal(P_U, op1, op2);
 			exprTemp.setLowerBound(lBound, lBoundStrict);
 			exprTemp.setUpperBound(uBound, uBoundStrict);
+			exprTemp.equals = equals;
 			return Expression.Not(exprTemp);
 		case P_W:
 			// a W b == !(a&!b U !a&!b)
@@ -298,6 +326,7 @@ public class ExpressionTemporal extends Expression
 			exprTemp = new ExpressionTemporal(P_U, op1, op2);
 			exprTemp.setLowerBound(lBound, lBoundStrict);
 			exprTemp.setUpperBound(uBound, uBoundStrict);
+			exprTemp.equals = equals;
 			return Expression.Not(exprTemp);
 		case P_R:
 			// a R b == !(!a U !b)
@@ -306,6 +335,7 @@ public class ExpressionTemporal extends Expression
 			exprTemp = new ExpressionTemporal(P_U, op1, op2);
 			exprTemp.setLowerBound(lBound, lBoundStrict);
 			exprTemp.setUpperBound(uBound, uBoundStrict);
+			exprTemp.equals = equals;
 			return Expression.Not(exprTemp);
 		}
 		throw new PrismLangException("Cannot convert " + getOperatorSymbol() + " to until form");

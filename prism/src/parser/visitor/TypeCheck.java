@@ -584,6 +584,7 @@ public class TypeCheck extends ASTTraverse
 			break;
 		case FIRST:
 		case PRINT:
+		case PRINTALL:
 		case STATE:
 			// Anything goes
 			break;
@@ -598,6 +599,7 @@ public class TypeCheck extends ASTTraverse
 		case SUM:
 		case FIRST:
 		case PRINT:
+		case PRINTALL:
 		case STATE:
 			e.setType(t);
 			break;

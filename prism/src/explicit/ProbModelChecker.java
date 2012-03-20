@@ -50,6 +50,7 @@ import explicit.rewards.STPGRewards;
 public class ProbModelChecker extends StateModelChecker
 {
 	// Flags/settings
+	// (NB: defaults do not necessarily coincide with PRISM)
 
 	// Method used to solve linear equation systems
 	protected LinEqMethod linEqMethod = LinEqMethod.GAUSS_SEIDEL;
@@ -60,7 +61,7 @@ public class ProbModelChecker extends StateModelChecker
 	// Parameter for iterative numerical method termination criteria
 	protected double termCritParam = 1e-8;
 	// Max iterations for numerical solution
-	protected int maxIters = 100000; // TODO: make same as PRISM?
+	protected int maxIters = 100000;
 	// Use precomputation algorithms in model checking?
 	protected boolean precomp = true;
 	protected boolean prob0 = true;
@@ -168,34 +169,47 @@ public class ProbModelChecker extends StateModelChecker
 		// PRISM_MDP_SOLN_METHOD
 		s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
 		if (s.equals("Value iteration")) {
-			setSolnMethod(SolnMethod.VALUE_ITERATION);
+			setMDPSolnMethod(MDPSolnMethod.VALUE_ITERATION);
 		} else if (s.equals("Gauss-Seidel")) {
-			setSolnMethod(SolnMethod.GAUSS_SEIDEL);
+			setMDPSolnMethod(MDPSolnMethod.GAUSS_SEIDEL);
 		} else if (s.equals("Policy iteration")) {
-			setSolnMethod(SolnMethod.POLICY_ITERATION);
+			setMDPSolnMethod(MDPSolnMethod.POLICY_ITERATION);
 		} else if (s.equals("Modified policy iteration")) {
-			setSolnMethod(SolnMethod.MODIFIED_POLICY_ITERATION);
+			setMDPSolnMethod(MDPSolnMethod.MODIFIED_POLICY_ITERATION);
 		} else if (s.equals("Linear programming")) {
-			setSolnMethod(SolnMethod.LINEAR_PROGRAMMING);
+			setMDPSolnMethod(MDPSolnMethod.LINEAR_PROGRAMMING);
 		} else {
 			throw new PrismException("Explicit engine does not support MDP solution method \"" + s + "\"");
 		}
-
+		// PRISM_TERM_CRIT
 		s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
 		if (s.equals("Absolute")) {
 			setTermCrit(TermCrit.ABSOLUTE);
 		} else if (s.equals("Relative")) {
 			setTermCrit(TermCrit.RELATIVE);
+		} else {
+			throw new PrismException("Unknown termination criterion \"" + s + "\"");
 		}
+		// PRISM_TERM_CRIT_PARAM
 		setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
+		// PRISM_MAX_ITERS
 		setMaxIters(settings.getInteger(PrismSettings.PRISM_MAX_ITERS));
+		// PRISM_PRECOMPUTATION
 		setPrecomp(settings.getBoolean(PrismSettings.PRISM_PRECOMPUTATION));
+		// PRISM_PROB0
 		setProb0(settings.getBoolean(PrismSettings.PRISM_PROB0));
+		// PRISM_PROB1
 		setProb1(settings.getBoolean(PrismSettings.PRISM_PROB1));
-		// valiterdir
+		// PRISM_FAIRNESS
+		if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
+			throw new PrismException("The explicit engine does not support model checking MDPs under fairness");
+		}
+		
+		// PRISM_EXPORT_ADV
 		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
 		if (!(s.equals("None")))
 			exportAdv = true;
+		// PRISM_EXPORT_ADV_FILENAME
 		exportAdvFilename = settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME);
 	}
 

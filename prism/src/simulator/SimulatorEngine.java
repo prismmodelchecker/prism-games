@@ -29,8 +29,6 @@ package simulator;
 import java.util.*;
 import java.io.*;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
-
 import simulator.method.*;
 import simulator.sampler.*;
 import parser.*;
@@ -69,6 +67,7 @@ import prism.*;
  * 
  * For sampling-based approximate model checking, use:
  * <UL>
+ * <LI> {@link #isPropertyOKForSimulation}
  * <LI> {@link #checkPropertyForSimulation}
  * <LI> {@link #modelCheckSingleProperty}
  * <LI> {@link #modelCheckMultipleProperties}
@@ -462,7 +461,10 @@ public class SimulatorEngine
 			for (j = 0; j < numTrans; j++) {
 				if (transitionList.computeTransitionTarget(j, state).equals(nextState)) {
 					found = true;
-					manualTransition(j);
+					if (modelType.continuousTime() && newPath.hasTimeInfo())
+						manualTransition(j, newPath.getTime(i));
+					else
+						manualTransition(j);
 					break;
 				}
 			}
@@ -1206,22 +1208,47 @@ public class SimulatorEngine
 
 	/**
 	 * Check whether a property is suitable for approximate model checking using the simulator.
+	 */
+	public boolean isPropertyOKForSimulation(Expression expr)
+	{
+		return isPropertyOKForSimulationString(expr) == null;
+	}
+	
+	/**
+	 * Check whether a property is suitable for approximate model checking using the simulator.
 	 * If not, an explanatory error message is thrown as an exception.
 	 */
-	public void checkPropertyForSimulation(Expression prop) throws PrismException
+	public void checkPropertyForSimulation(Expression expr) throws PrismException
+	{
+		String errMsg = isPropertyOKForSimulationString(expr);
+		if (errMsg != null)
+			throw new PrismException(errMsg);
+	}
+	
+	/**
+	 * Check whether a property is suitable for approximate model checking using the simulator.
+	 * If yes, return null; if not, return an explanatory error message.
+	 */
+	private String isPropertyOKForSimulationString(Expression expr)
 	{
 		// Simulator can only be applied to P or R properties (without filters)
-		if (!(prop instanceof ExpressionProb || prop instanceof ExpressionReward)) {
-			if (prop instanceof ExpressionFilter) {
-				if (((ExpressionFilter) prop).getOperand() instanceof ExpressionProb || ((ExpressionFilter) prop).getOperand() instanceof ExpressionReward)
-					throw new PrismException("Simulator cannot handle P or R properties with filters");
+		if (!(expr instanceof ExpressionProb || expr instanceof ExpressionReward)) {
+			if (expr instanceof ExpressionFilter) {
+				if (((ExpressionFilter) expr).getOperand() instanceof ExpressionProb || ((ExpressionFilter) expr).getOperand() instanceof ExpressionReward)
+					return "Simulator cannot handle P or R properties with filters";
 			}
-			throw new PrismException("Simulator can only handle P or R properties");
+			return "Simulator can only handle P or R properties";
 		}
 		// Check that there are no nested probabilistic operators
-		if (prop.computeProbNesting() > 1) {
-			throw new PrismException("Simulator cannot handle nested P, R or S operators");
+		try {
+			if (expr.computeProbNesting() > 1) {
+				return "Simulator cannot handle nested P, R or S operators";
+			}
+		} catch (PrismException e) {
+			return "Simulator cannot handle this property: " + e.getMessage();
 		}
+		// No errors
+		return null;
 	}
 
 	/**

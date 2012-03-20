@@ -33,6 +33,22 @@ JNIEXPORT jint JNICALL Java_odd_ODDUtils_ODD_1GetNumODDNodes
 
 /*
  * Class:     odd_ODDUtils
+ * Method:    ODD_GetIndexOfFirstFromDD
+ * Signature: (JJJI)I
+ */
+JNIEXPORT jint JNICALL Java_odd_ODDUtils_ODD_1GetIndexOfFirstFromDD
+  (JNIEnv *, jclass, jlong, jlong, jlong, jint);
+
+/*
+ * Class:     odd_ODDUtils
+ * Method:    ODD_SingleIndexToDD
+ * Signature: (IJJI)J
+ */
+JNIEXPORT jlong JNICALL Java_odd_ODDUtils_ODD_1SingleIndexToDD
+  (JNIEnv *, jclass, jint, jlong, jlong, jint);
+
+/*
+ * Class:     odd_ODDUtils
  * Method:    ODD_GetTOff
  * Signature: (J)J
  */

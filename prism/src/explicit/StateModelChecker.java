@@ -45,6 +45,7 @@ import parser.ast.ExpressionFilter;
 import parser.ast.ExpressionFilter.FilterOperator;
 import parser.ast.ExpressionFormula;
 import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionITE;
 import parser.ast.ExpressionIdent;
 import parser.ast.ExpressionLabel;
 import parser.ast.ExpressionLiteral;
@@ -58,6 +59,7 @@ import parser.ast.Property;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
+import prism.Filter;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
@@ -84,6 +86,9 @@ public class StateModelChecker
 
 	// Constants (extracted from model/properties)
 	protected Values constantValues;
+
+	// The filter to be applied to the current property
+	protected Filter currentFilter;
 
 	// The result of model checking will be stored here
 	protected Result result;
@@ -189,14 +194,9 @@ public class StateModelChecker
 		// Create storage for result
 		result = new Result();
 
-		// Remove labels from property, using combined label list (on a copy of the expression)
-		// This is done now so that we can handle labels nested below operators that are not
-		// handled natively by the model checker yet (just evaluate()ed in a loop).
-		expr = (Expression) expr.deepCopy().expandLabels(propertiesFile.getCombinedLabelList());
-
-		// Also evaluate/replace any constants
-		//expr = (Expression) expr.replaceConstants(constantValues);
-
+		// Remove any existing filter info
+		currentFilter = null;
+		
 		// The final result of model checking will be a single value. If the expression to be checked does not
 		// already yield a single value (e.g. because a filter has not been explicitly included), we need to wrap
 		// a new (invisible) filter around it. Note that some filters (e.g. print/argmin/argmax) also do not
@@ -271,8 +271,12 @@ public class StateModelChecker
 	{
 		StateValues res = null;
 
+		// If-then-else
+		if (expr instanceof ExpressionITE) {
+			res = checkExpressionITE(model, (ExpressionITE) expr);
+		}
 		// Binary ops
-		if (expr instanceof ExpressionBinaryOp) {
+		else if (expr instanceof ExpressionBinaryOp) {
 			res = checkExpressionBinaryOp(model, (ExpressionBinaryOp) expr);
 		}
 		// Unary ops
@@ -326,6 +330,34 @@ public class StateModelChecker
 		}
 
 		return res;
+	}
+
+	/**
+	 * Model check a binary operator.
+	 */
+	protected StateValues checkExpressionITE(Model model, ExpressionITE expr) throws PrismException
+	{
+		StateValues res1 = null, res2 = null, res3 = null;
+		
+		// Check operands recursively
+		try {
+			res1 = checkExpression(model, expr.getOperand1());
+			res2 = checkExpression(model, expr.getOperand2());
+			res3 = checkExpression(model, expr.getOperand3());
+		} catch (PrismException e) {
+			if (res1 != null)
+				res1.clear();
+			if (res2 != null)
+				res2.clear();
+			throw e;
+		}
+		
+		// Apply operation
+		res3.applyITE(res1, res2);
+		res1.clear();
+		res2.clear();
+		
+		return res3;
 	}
 
 	/**
@@ -581,8 +613,6 @@ public class StateModelChecker
 		String resultExpl = null;
 		Object resObj = null;
 
-		// Check operand recursively
-		vals = checkExpression(model, expr.getOperand());
 		// Translate filter
 		filter = expr.getFilter();
 		// Create default filter (true) if none given
@@ -600,14 +630,30 @@ public class StateModelChecker
 		// Remember whether filter is for the initial state and, if so, whether there's just one
 		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
 		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
+
+		// For some types of filter, store info that may be used to optimise model checking
+		op = expr.getOperatorType();
+		if (op == FilterOperator.STATE) {
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
+		} else if (op == FilterOperator.FORALL && filterInit && filterInitSingle) {
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
+		} else if (op == FilterOperator.FIRST && filterInit && filterInitSingle) {
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
+		} else {
+			currentFilter = null;
+		}
+		
+		// Check operand recursively
+		vals = checkExpression(model, expr.getOperand());
+		
 		// Print out number of states satisfying filter
 		if (!filterInit)
 			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
 
 		// Compute result according to filter type
-		op = expr.getOperatorType();
 		switch (op) {
 		case PRINT:
+		case PRINTALL:
 			// Format of print-out depends on type
 			if (expr.getType() instanceof TypeBool) {
 				// NB: 'usual' case for filter(print,...) on Booleans is to use no filter
@@ -615,10 +661,15 @@ public class StateModelChecker
 				mainLog.println(filterTrue ? ":" : " that are also in filter " + filter + ":");
 				vals.printFiltered(mainLog, bsFilter);
 			} else {
-				mainLog.println("\nResults (non-zero only) for filter " + filter + ":");
-				vals.printFiltered(mainLog, bsFilter);
+				if (op == FilterOperator.PRINT) {
+					mainLog.println("\nResults (non-zero only) for filter " + filter + ":");
+					vals.printFiltered(mainLog, bsFilter);
+				} else {
+					mainLog.println("\nResults (including zeros) for filter " + filter + ":");
+					vals.printFiltered(mainLog, bsFilter, false, false, true, true);
+				}
 			}
-			// Result vector is unchanged; for ARGMIN, don't store a single value (in resObj)
+			// Result vector is unchanged; for PRINT/PRINTALL, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
 			resVals = vals;
 			// Set vals to null to stop it being cleared below

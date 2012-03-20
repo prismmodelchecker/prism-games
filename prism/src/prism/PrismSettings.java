@@ -766,7 +766,7 @@ public class PrismSettings implements Observer
 
 		// NUMERICAL SOLUTION OPTIONS:
 		
-		// Linear equation solver method
+		// Linear equation solver + MDP soln method
 		else if (sw.equals("power") || sw.equals("pow") || sw.equals("pwr")) {
 			set(PRISM_LIN_EQ_METHOD, "Power");
 		} else if (sw.equals("jacobi") || sw.equals("jac")) {
@@ -790,6 +790,8 @@ public class PrismSettings implements Observer
 			set(PRISM_LIN_EQ_METHOD, "Pseudo-SOR");
 		} else if (sw.equals("bpsor")) {
 			set(PRISM_LIN_EQ_METHOD, "Backwards Pseudo-SOR");
+		} else if (sw.equals("valiter")) {
+			set(PRISM_MDP_SOLN_METHOD, "Value iteration");
 		}
 		// Linear equation solver over-relaxation parameter
 		else if (sw.equals("omega")) {

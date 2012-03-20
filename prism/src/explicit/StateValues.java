@@ -292,6 +292,54 @@ public class StateValues
 	}
 
 	/**
+	 * Modify the vector by applying If-Then-Else, i.e. {@code svIf} ? {@code svThen} : {@code this}.
+	 */
+	public void applyITE(StateValues svIf, StateValues svThen) throws PrismException
+	{
+		if (!(svIf.type instanceof TypeBool)) {
+			throw new PrismException("Type error in ? operator");
+		}
+		if (type instanceof TypeInt) {
+			if (svThen.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesI[i] = svIf.valuesB.get(i) ? svThen.valuesI[i] : valuesI[i];
+				}
+			} else if (svThen.type instanceof TypeDouble) {
+				valuesD = new double[size];
+				type = TypeDouble.getInstance();
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = svIf.valuesB.get(i) ? svThen.valuesD[i] : valuesD[i];
+				}
+				valuesI = null;
+			} else {
+				throw new PrismException("Type error in ? operator");
+			}
+		} else if (type instanceof TypeDouble) {
+			if (svThen.type instanceof TypeInt) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = svIf.valuesB.get(i) ? svThen.valuesI[i] : valuesD[i];
+				}
+			} else if (svThen.type instanceof TypeDouble) {
+				for (int i = 0; i < size; i++) {
+					valuesD[i] = svIf.valuesB.get(i) ? svThen.valuesD[i] : valuesD[i];
+				}
+			} else {
+				throw new PrismException("Type error in ? operator");
+			}
+		} else if (type instanceof TypeBool) {
+			if (svThen.type instanceof TypeBool) {
+				for (int i = svIf.valuesB.nextSetBit(0); i >= 0; i = svIf.valuesB.nextSetBit(i + 1)) {
+					valuesB.set(i, svThen.valuesB.get(i));
+				}
+			} else {
+				throw new PrismException("Type error in ? operator");
+			}
+		} else {
+			throw new PrismException("Type error in ? operator");
+		}
+	}
+
+	/**
 	 * Modify the vector by applying binary operator {@code op} with second operand {@code sv},
 	 * where {@code op} refers to the codes in {@link ExpressionBinaryOp}.
 	 */
@@ -1452,26 +1500,26 @@ public class StateValues
 			log.println("];");
 	}
 
-	private boolean printLine(PrismLog log, int i, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
+	private boolean printLine(PrismLog log, int n, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
 	{
-		if (!printSparse || isNonZero(i)) {
+		if (!printSparse || isNonZero(n)) {
 			if (printMatlab) {
 				if (printSparse) {
-					log.println("v(" + (i + 1) + ")=" + getValue(i) + ";");
+					log.println("v(" + (n + 1) + ")=" + getValue(n) + ";");
 				} else {
-					log.println(getValue(i));
+					log.println(getValue(n));
 				}
 			} else {
 				if (printIndices)
-					log.print(i);
+					log.print(n);
 				if (printStates && statesList != null)
-					log.print(":" + statesList.get(i).toString());
+					log.print(":" + statesList.get(n).toString());
 				if (printSparse && type instanceof TypeBool) {
 					log.println();
 				} else {
 					if (printIndices || printStates)
 						log.print("=");
-					log.println(getValue(i));
+					log.println(getValue(n));
 				}
 			}
 			return true;

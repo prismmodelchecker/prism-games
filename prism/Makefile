@@ -70,10 +70,10 @@ endif
 # whether java is 32/64-bit (since these need to match)
 ifeq ($(OSTYPE),darwin)
     JAVA_VERSION_STRING = $(shell java -version 2>&1)
-    ifneq (, $(findstring 64-bit, $(JAVA_VERSION_STRING)) )
+    ifneq (,$(findstring 64-bit, $(JAVA_VERSION_STRING)) )
         ARCH = x86_64
     endif
-    ifneq (, $(findstring 64-Bit, $(JAVA_VERSION_STRING)) )
+    ifneq (,$(findstring 64-Bit, $(JAVA_VERSION_STRING)) )
         ARCH = x86_64
     endif
 endif
@@ -339,14 +339,14 @@ make_dirs:
 
 tests: testslocal
 	@if [ -d ~/prism-tests ]; then \
-	  cd ~/prism-tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=$(PWD)/bin/prism; \
+	  cd ~/prism-tests && $(PWD)/etc/scripts/prism-auto -t -m . -p $(PWD)/bin/prism; \
 	else \
 	  echo "Skipping tests"; \
 	fi
 
 testslocal:
 	@if [ -d tests ]; then \
-	  cd tests && $(MAKE) clean && $(MAKE) PRISM_EXEC=$(PWD)/bin/prism; \
+	  cd tests && $(PWD)/etc/scripts/prism-auto -t -m . -p $(PWD)/bin/prism; \
 	else \
 	  echo "Skipping local tests"; \
 	fi
@@ -445,7 +445,7 @@ tarcf:
 	echo Building tar file "../"$$TARCF_DIR".tar.gz" && \
 	(cd ..; tar cfz $$TARCF_DIR".tar.gz" $$TARCF_DIR)
 
-PRISM_CLASSPATH = "$(CLASSES_DIR)$(CLASSPATHSEP)$(LIB_DIR)/jcommon.jar$(CLASSPATHSEP)$(LIB_DIR)/jfreechart.jar$(CLASSPATHSEP)$(LIB_DIR)/epsgraphics.jar$(CLASSPATHSEP)$(LIB_DIR)/colt.jar"
+PRISM_CLASSPATH = "$(THIS_DIR)/$(PRISM_DIR_REL)/$(CLASSES_DIR)$(CLASSPATHSEP)$(THIS_DIR)/$(PRISM_DIR_REL)/lib/*"
 
 javadoc:
 	@JAVADOC_DIRS=`echo $(MAKE_DIRS) | sed 's/\//./g' | sed 's/ /:/g'` && \mkdir -p javadoc; javadoc -d javadoc -overview $(SRC_DIR)/overview.html -sourcepath $(SRC_DIR) -classpath $(SRC_DIR)$(CLASSPATHSEP)$(PRISM_CLASSPATH) -subpackages $$JAVADOC_DIRS

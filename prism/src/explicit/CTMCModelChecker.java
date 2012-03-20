@@ -56,12 +56,6 @@ public class CTMCModelChecker extends DTMCModelChecker
 		StateValues probs = null;
 		ModelCheckerResult tmpRes = null, res = null;
 
-		// check not LTL
-		if (!(expr.getOperand1().getType() instanceof TypeBool))
-			throw new PrismException("Invalid path formula");
-		if (!(expr.getOperand2().getType() instanceof TypeBool))
-			throw new PrismException("Invalid path formula");
-
 		// get info from bounded until
 
 		// lower bound is 0 if not specified
@@ -168,16 +162,7 @@ public class CTMCModelChecker extends DTMCModelChecker
 	 */
 	public StateValues doTransient(CTMC ctmc, double t, File initDistFile) throws PrismException
 	{
-		StateValues initDist = null;
-
-		if (initDistFile != null) {
-			mainLog.println("\nImporting initial probability distribution from file \"" + initDistFile + "\"...");
-			// Build an empty vector 
-			initDist = new StateValues(TypeDouble.getInstance(), ctmc);
-			// Populate vector from file
-			initDist.readFromFile(initDistFile);
-		}
-
+		StateValues initDist = readDistributionFromFile(initDistFile, ctmc);
 		return doTransient(ctmc, t, initDist);
 	}
 

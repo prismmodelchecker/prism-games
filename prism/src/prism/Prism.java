@@ -151,6 +151,9 @@ public class Prism implements PrismSettingsListener
 	// (e.g. checking that probabilities sum to 1 in an update).
 	private double sumRoundOff = 1e-5;
 
+	// Method to use for (symbolic) state-space reachability
+	private int reachMethod = REACH_BFS;
+
 	//------------------------------------------------------------------------------
 	// Logs
 	//------------------------------------------------------------------------------
@@ -196,6 +199,12 @@ public class Prism implements PrismSettingsListener
 	private explicit.Model currentModelExpl = null;
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
+	
+	// Info for explicit files load
+	private File explicitFilesStatesFile = null;
+	private File explicitFilesTransFile = null;
+	private File explicitFilesLabelsFile = null;
+	private int explicitFilesNumStates = -1;
 
 	// Has the CUDD library been initialised yet?
 	private boolean cuddStarted = false;
@@ -493,6 +502,14 @@ public class Prism implements PrismSettingsListener
 		sumRoundOff = d;
 	}
 
+	public static int REACH_BFS = 1;
+	public static int REACH_FRONTIER = 2;
+
+	public void setReachMethod(int reachMethod)
+	{
+		this.reachMethod = reachMethod;
+	}
+
 	// Get methods
 
 	public static String getVersion()
@@ -741,6 +758,11 @@ public class Prism implements PrismSettingsListener
 	public double getSumRoundOff()
 	{
 		return sumRoundOff;
+	}
+
+	public int getReachMethod()
+	{
+		return reachMethod;
 	}
 
 	public void addModelListener(PrismModelListener listener)
@@ -1066,7 +1088,8 @@ public class Prism implements PrismSettingsListener
 		cuddStarted = true;
 		JDD.SetOutputStream(techLog.getFilePointer());
 
-		// initialise all three engines
+		// initialise libraries/engines
+		PrismNative.initialise(this);
 		PrismMTBDD.initialise(mainLog, techLog);
 		PrismSparse.initialise(mainLog, techLog);
 		PrismHybrid.initialise(mainLog, techLog);
@@ -1541,9 +1564,14 @@ public class Prism implements PrismSettingsListener
 		currentModelSource = ModelSource.EXPLICIT_FILES;
 		// Clear any existing built model(s)
 		clearBuiltModel();
-		// Create ExplicitFiles2MTBDD object and build state space
-		expf2mtbdd = new ExplicitFiles2MTBDD(this, statesFile, transFile, labelsFile, typeOverride);
-		currentModulesFile = expf2mtbdd.buildStates();
+		// Construct ModulesFile
+		ExplicitFiles2ModulesFile ef2mf = new ExplicitFiles2ModulesFile(this);
+		currentModulesFile = ef2mf.buildModulesFile(statesFile, transFile, typeOverride);
+		// Store explicit files info for later
+		explicitFilesStatesFile = statesFile;
+		explicitFilesTransFile = transFile;
+		explicitFilesLabelsFile = labelsFile;
+		explicitFilesNumStates = ef2mf.getNumStates();
 		// Reset dependent info
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentDefinedMFConstants = null;
@@ -1673,10 +1701,8 @@ public class Prism implements PrismSettingsListener
 				break;
 			case EXPLICIT_FILES:
 				if (!getExplicit()) {
-					// check ExplicitFiles2MTBDD object created
-					if (expf2mtbdd == null)
-						throw new PrismException("ExplicitFiles2MTBDD object never created");
-					currentModel = expf2mtbdd.buildModel();
+					expf2mtbdd = new ExplicitFiles2MTBDD(this);
+					currentModel = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, currentModulesFile, explicitFilesNumStates);
 				} else {
 					throw new PrismException("Explicit import not yet supported for explicit engine");
 				}
@@ -2247,23 +2273,33 @@ public class Prism implements PrismSettingsListener
 	 */
 	public Result modelCheck(PropertiesFile propertiesFile, Expression expr) throws PrismException, PrismLangException
 	{
+		return modelCheck(propertiesFile, new Property(expr));
+	}
+	
+	/**
+	 * Perform model checking of a property on the currently loaded model and return result.
+	 * @param propertiesFile Parent property file of property (for labels/constants/...)
+	 * @param expr The property to check
+	 */
+	public Result modelCheck(PropertiesFile propertiesFile, Property prop) throws PrismException, PrismLangException
+	{
 		Result res = null;
 		Values definedPFConstants = propertiesFile.getConstantValues();
 
 		if (!digital)
 			mainLog.printSeparator();
-		mainLog.println("\nModel checking: " + expr);
+		mainLog.println("\nModel checking: " + prop);
 		if (currentDefinedMFConstants != null && currentDefinedMFConstants.getNumValues() > 0)
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 		if (definedPFConstants != null && definedPFConstants.getNumValues() > 0)
 			mainLog.println("Property constants: " + definedPFConstants);
 
 		// Check that property is valid for the current model type
-		expr.checkValid(currentModelType);
+		prop.getExpression().checkValid(currentModelType);
 
 		// For PTAs...
 		if (currentModelType == ModelType.PTA) {
-			return modelCheckPTA(propertiesFile, expr, definedPFConstants);
+			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
 		// Build model, if necessary
@@ -2285,7 +2321,7 @@ public class Prism implements PrismSettingsListener
 			default:
 				throw new PrismException("Unknown model type " + currentModelType);
 			}
-			res = mc.check(expr);
+			res = mc.check(prop.getExpression());
 		} else {
 			explicit.StateModelChecker mc = null;
 			switch (currentModelType) {
@@ -2313,7 +2349,7 @@ public class Prism implements PrismSettingsListener
 			mc.setLog(mainLog);
 			mc.setSettings(settings);
 			mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
-			res = mc.check(currentModelExpl, expr);
+			res = mc.check(currentModelExpl, prop.getExpression());
 		}
 
 		// Return result
@@ -2369,6 +2405,15 @@ public class Prism implements PrismSettingsListener
 		}
 	}
 
+	/**
+	 * Check whether a property is suitable for approximate model checking using the simulator.
+	 * @param expr The property to check.
+	 */
+	public boolean isPropertyOKForSimulation(Expression expr)
+	{
+		return getSimulator().isPropertyOKForSimulation(expr);
+	}
+	
 	/**
 	 * Check if a property is suitable for analysis with the simulator.
 	 * If not, an explanatory exception is thrown.
@@ -2604,8 +2649,9 @@ public class Prism implements PrismSettingsListener
 	}
 
 	/**
-	 * Compute transient probabilities for the current model (DTMCs/CTMCs only).
-	 * Output probability distribution to log. 
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to log.
+	 * For a discrete-time model, {@code time} will be cast to an integer.
 	 */
 	public void doTransient(double time) throws PrismException
 	{
@@ -2613,12 +2659,13 @@ public class Prism implements PrismSettingsListener
 	}
 
 	/**
-	 * Compute transient probabilities for the current model (DTMCs/CTMCs only).
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
 	 * Output probability distribution to a file (or, if file is null, to log). 
+	 * For a discrete-time model, {@code time} will be cast to an integer.
 	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
 	 */
-	public void doTransient(double time, int exportType, File file, File fileIn) throws PrismException
+	public void doTransient(double time, int exportType, File fileOut, File fileIn) throws PrismException
 	{
 		long l = 0; // timer
 		ModelChecker mc = null;
@@ -2632,7 +2679,7 @@ public class Prism implements PrismSettingsListener
 		if (time < 0)
 			throw new PrismException("Cannot compute transient probabilities for negative time value");
 
-		if (file != null && getEngine() == MTBDD)
+		if (fileOut != null && getEngine() == MTBDD)
 			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
 
 		mainLog.printSeparator();
@@ -2680,16 +2727,16 @@ public class Prism implements PrismSettingsListener
 		// print message
 		mainLog.print("\nPrinting transient probabilities ");
 		mainLog.print(getStringForExportType(exportType) + " ");
-		mainLog.println(getDestinationStringForFile(file));
+		mainLog.println(getDestinationStringForFile(fileOut));
 
 		// create new file log or use main log
-		tmpLog = getPrismLogForFile(file);
+		tmpLog = getPrismLogForFile(fileOut);
 
 		// print out or export probabilities
 		if (!getExplicit())
-			probs.print(tmpLog, file == null, exportType == EXPORT_MATLAB, file == null);
+			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
 		else
-			probsExpl.print(tmpLog, file == null, exportType == EXPORT_MATLAB, file == null, true);
+			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, true);
 
 		// print out computation time
 		mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
@@ -2699,7 +2746,134 @@ public class Prism implements PrismSettingsListener
 			probs.clear();
 		else
 			probsExpl.clear();
-		if (file != null)
+		if (fileOut != null)
+			tmpLog.close();
+	}
+
+	/**
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only)
+	 * for a range of time points. Each distribution is computed incrementally.
+	 * Output probability distribution to a file (or, if file is null, to log).
+	 * Time points are specified using an UndefinedConstants with a single ranging variable  
+	 * (of the appropriate type (int/double) and with arbitrary name).
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 */
+	public void doTransient(UndefinedConstants times, int exportType, File fileOut, File fileIn) throws PrismException
+	{
+		int i, timeInt = 0, initTimeInt = 0;
+		double timeDouble = 0, initTimeDouble = 0;
+		Object time;
+		long l = 0; // timer
+		StateValues probs = null, initDist = null;
+		explicit.StateValues probsExpl = null, initDistExpl = null;
+		PrismLog tmpLog = null;
+		File fileOutActual = null;
+
+		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
+			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
+
+		if (fileOut != null && getEngine() == MTBDD)
+			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
+
+		// no specific states format for MRMC
+		if (exportType == EXPORT_MRMC)
+			exportType = EXPORT_PLAIN;
+		// rows format does not apply to states output
+		if (exportType == EXPORT_ROWS)
+			exportType = EXPORT_PLAIN;
+
+		// Step through required time points
+		for (i = 0; i < times.getNumPropertyIterations(); i++) {
+			
+			// Get time, check non-negative
+			time = times.getPFConstantValues().getValue(0);
+			if (currentModelType.continuousTime())
+				timeDouble = ((Double) time).doubleValue();
+			else
+				timeInt = ((Integer) time).intValue();
+			if (currentModelType.continuousTime() ? (((Double) time).doubleValue() < 0) : (((Integer) time).intValue() < 0))
+				throw new PrismException("Cannot compute transient probabilities for negative time value");
+
+			mainLog.printSeparator();
+			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
+			
+			// Build model, if necessary
+			buildModelIfRequired();
+
+			l = System.currentTimeMillis();
+
+			if (!getExplicit()) {
+				if (currentModelType.continuousTime()) {
+					StochModelChecker mc = new StochModelChecker(this, currentModel, null);
+					if (i == 0) {
+						initDist = mc.readDistributionFromFile(fileIn);
+						initTimeDouble = 0;
+					}
+					probs = ((StochModelChecker) mc).doTransient(timeDouble - initTimeDouble, initDist);
+				} else {
+					ProbModelChecker mc = new ProbModelChecker(this, currentModel, null);
+					if (i == 0) {
+						initDist = mc.readDistributionFromFile(fileIn);
+						initTimeInt = 0;
+					}
+					probs = ((ProbModelChecker) mc).doTransient(timeInt - initTimeInt, initDist);
+				}
+			} else {
+				if (currentModelType.continuousTime()) {
+					CTMCModelChecker mc = new CTMCModelChecker();
+					mc.setLog(mainLog);
+					mc.setSettings(settings);
+					if (i == 0) {
+						initDistExpl = mc.readDistributionFromFile(fileIn, currentModelExpl);
+						initTimeDouble = 0;
+					}
+					probsExpl = mc.doTransient((CTMC) currentModelExpl, timeDouble - initTimeDouble, initDistExpl);
+				} else {
+					throw new PrismException("Not implemented yet");
+				}
+			}
+
+			l = System.currentTimeMillis() - l;
+
+			// If output is to a file and there are multiple points, change filename
+			if (fileOut != null && times.getNumPropertyIterations() > 1) {
+				fileOutActual = new File(PrismUtils.addSuffixToFilename(fileOut.getPath(), time.toString()));
+			} else {
+				fileOutActual = fileOut;
+			}
+			
+			// print message
+			mainLog.print("\nPrinting transient probabilities ");
+			mainLog.print(getStringForExportType(exportType) + " ");
+			mainLog.println(getDestinationStringForFile(fileOutActual));
+
+			// create new file log or use main log
+			tmpLog = getPrismLogForFile(fileOutActual);
+
+			// print out or export probabilities
+			if (!getExplicit())
+				probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
+			else
+				probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, true);
+
+			// print out computation time
+			mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
+
+			// Prepare for next iteration
+			initDist = probs;
+			initDistExpl = probsExpl;
+			initTimeInt = timeInt;
+			initTimeDouble = timeDouble;
+			times.iterateProperty();
+		}
+
+		// tidy up
+		if (!getExplicit())
+			probs.clear();
+		else
+			probsExpl.clear();
+		if (fileOut != null)
 			tmpLog.close();
 	}
 
@@ -2765,7 +2939,8 @@ public class Prism implements PrismSettingsListener
 	{
 		// Clear any built model(s)
 		clearBuiltModel();
-		// Close down engines
+		// Close down libraries/engines
+		PrismNative.closeDown();
 		PrismMTBDD.closeDown();
 		PrismSparse.closeDown();
 		PrismHybrid.closeDown();

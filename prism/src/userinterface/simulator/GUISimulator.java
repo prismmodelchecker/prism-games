@@ -606,6 +606,14 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	public void a_loadPath(PathFullInfo pathNew)
 	{
 		try {
+			// get properties constants/labels
+			PropertiesFile pf;
+			try {
+				pf = getPrism().parsePropertiesString(parsedModel, guiProp.getConstantsString().toString() + guiProp.getLabelsString());
+			} catch (PrismLangException e) {
+				// ignore properties if they don't parse
+				pf = null; //if any problems
+			}
 			// Insert path table
 			tableScroll.setViewportView(pathTable);
 
@@ -617,9 +625,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			setPathActive(true);
 			pathTableModel.setPath(engine.getPathFull());
 			pathTableModel.restartPathTable();
-			pathTable.getSelectionModel().setSelectionInterval(0, 0);
+			int last = pathTable.getRowCount() - 1;
+			pathTable.getSelectionModel().setSelectionInterval(last, last);
 			updateTableModel.restartUpdatesTable();
-			//repopulateFormulae(pf);
+			repopulateFormulae(pf);
 			// Update display
 			repaintLists();
 			updatePathInfoAll(null);
