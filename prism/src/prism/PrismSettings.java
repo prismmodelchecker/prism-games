@@ -503,8 +503,11 @@ public class PrismSettings implements Observer
 	
 	public synchronized void saveSettingsFile() throws PrismException
 	{
-		File file = getLocationForSettingsFile();
-		
+		saveSettingsFile(getLocationForSettingsFile());
+	}
+	
+	public synchronized void saveSettingsFile(File file) throws PrismException
+	{
 		try
 		{
 			FileWriter out = new FileWriter(file);
@@ -548,8 +551,11 @@ public class PrismSettings implements Observer
 	
 	public synchronized void loadSettingsFile() throws PrismException
 	{
-		File file = getLocationForSettingsFile();
-		
+		loadSettingsFile(getLocationForSettingsFile());
+	}
+	
+	public synchronized void loadSettingsFile(File file) throws PrismException
+	{
 		BufferedReader reader;
 		String line = null;
 		String key = "";

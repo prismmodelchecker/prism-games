@@ -120,6 +120,9 @@ public class Prism implements PrismSettingsListener
 	protected File exportPrismFile = null;
 	protected boolean exportPrismConst = false;
 	protected File exportPrismConstFile = null;
+	// Export digital clocks translation PRISM model?
+	protected boolean exportDigital = false;
+	protected File exportDigitalFile = null;
 	// Export target state info?
 	protected boolean exportTarget = false;
 	protected String exportTargetFilename = null;
@@ -230,23 +233,47 @@ public class Prism implements PrismSettingsListener
 
 		// set up some default options
 		settings = new PrismSettings();
-		// load user's default settings
-		try {
-			settings.loadSettingsFile();
-		} catch (PrismException e) {
-			// if there were no user defaults to load, create them
-			try {
-				settings.saveSettingsFile();
-			} catch (PrismException ex) {
-				mainLog.printWarning("Failed to create new PRISM settings file.");
-			}
-		}
 		// add this Prism object as a results listener
 		settings.addSettingsListener(this);
 		// create list of model listeners
 		modelListeners = new ArrayList<PrismModelListener>();
 	}
 
+	/**
+	 * Read in PRISM settings from the default file (.prism in user's home directory).
+	 * If no file exists, attempt to create a new one with default settings.
+	 */
+	public void loadUserSettingsFile()
+	{
+		loadUserSettingsFile(null);
+	}
+	
+	/**
+	 * Read in PRISM settings from a specified file.
+	 * If the file is null, use the default (.prism in user's home directory).
+	 * If no file exists, attempt to create a new one with default settings.
+	 */
+	public void loadUserSettingsFile(File settingsFile)
+	{
+		// load user's default settings
+		try {
+			if (settingsFile == null)
+				settings.loadSettingsFile();
+			else
+				settings.loadSettingsFile(settingsFile);
+		} catch (PrismException e) {
+			// if there were no user defaults to load, create them
+			try {
+				if (settingsFile == null)
+					settings.saveSettingsFile();
+				else
+					settings.saveSettingsFile(settingsFile);
+			} catch (PrismException ex) {
+				mainLog.printWarning("Failed to create new PRISM settings file.");
+			}
+		}
+	}
+	
 	// Set methods
 
 	/**
@@ -440,6 +467,19 @@ public class Prism implements PrismSettingsListener
 	public void setExportPrismConstFile(File f) throws PrismException
 	{
 		exportPrismConstFile = f;
+	}
+
+	public void setExportDigital(boolean b) throws PrismException
+	{
+		exportDigital = b;
+	}
+
+	/**
+	 * Set file to export digital clocks translation PRISM file to (null = stdout).
+	 */
+	public void setExportDigitalFile(File f) throws PrismException
+	{
+		exportDigitalFile = f;
 	}
 
 	public void setExportTarget(boolean b) throws PrismException
@@ -1713,15 +1753,16 @@ public class Prism implements PrismSettingsListener
 			l = System.currentTimeMillis() - l;
 			mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
 
+			// For digital clocks, do some extra checks on the built model
+			if (digital) {
+				doBuildModelDigitalClocksChecks();
+			}
+			
 			// Deal with deadlocks
 			if (!getExplicit()) {
 				StateList deadlocks = currentModel.getDeadlockStates();
 				int numDeadlocks = deadlocks.size();
 				if (numDeadlocks > 0) {
-					if (digital) {
-						// For digital clocks, by construction, deadlocks can only occur from timelocks (and are not allowed)
-						throw new PrismException("Timelock in PTA, e.g. in state (" + deadlocks.getFirstAsValues() + ")");
-					}
 					if (getFixDeadlocks()) {
 						mainLog.printWarning("Deadlocks detected and fixed in " + numDeadlocks + " states");
 					} else {
@@ -1742,12 +1783,6 @@ public class Prism implements PrismSettingsListener
 				explicit.StateValues deadlocks = currentModelExpl.getDeadlockStatesList();
 				int numDeadlocks = currentModelExpl.getNumDeadlockStates();
 				if (numDeadlocks > 0) {
-					if (digital) {
-						// For digital clocks, by construction, deadlocks can only occur from timelocks (and are not allowed)
-						int dl = currentModelExpl.getFirstDeadlockState();
-						String dls = currentModelExpl.getStatesList().get(dl).toString(currentModulesFile);
-						throw new PrismException("Timelock in PTA, e.g. in state " + dls);
-					}
 					if (getFixDeadlocks()) {
 						mainLog.printWarning("Deadlocks detected and fixed in " + numDeadlocks + " states");
 					} else {
@@ -1792,6 +1827,41 @@ public class Prism implements PrismSettingsListener
 		}
 	}
 
+	private void doBuildModelDigitalClocksChecks() throws PrismException
+	{
+		// For digital clocks, by construction, deadlocks can only occur from timelocks (and are not allowed)
+		if (!getExplicit()) {
+			StateList deadlocks = currentModel.getDeadlockStates();
+			if (deadlocks.size() > 0) {
+				throw new PrismException("Timelock in PTA, e.g. in state (" + deadlocks.getFirstAsValues() + ")");
+			}
+		} else {
+			if (currentModelExpl.getNumDeadlockStates() > 0) {
+				int dl = currentModelExpl.getFirstDeadlockState();
+				String dls = currentModelExpl.getStatesList().get(dl).toString(currentModulesFile);
+				throw new PrismException("Timelock in PTA, e.g. in state " + dls);
+			}
+		}
+				
+		/*// Create new model checker object and do model checking
+		PropertiesFile pf = parsePropertiesString(currentModulesFile, "filter(exists,!\"invariants\"); E[F!\"invariants\"]");
+		if (!getExplicit()) {
+			ModelChecker mc = new NondetModelChecker(this, currentModel, pf);
+			if (((Boolean) mc.check(pf.getProperty(0)).getResult()).booleanValue()) {
+				mainLog.println(mc.check(pf.getProperty(1)).getCounterexample());
+			}
+			//sv.pr
+			//mainLog.println("XX" + res.getResult());
+		} else {
+			explicit.StateModelChecker mc = new MDPModelChecker();
+			mc.setLog(mainLog);
+			mc.setSettings(settings);
+			mc.setModulesFileAndPropertiesFile(currentModulesFile, pf);
+			explicit.StateValues sv = mc.checkExpression(currentModelExpl, pf.getProperty(0));
+			sv.print(mainLog, 1);
+		}*/
+	}
+	
 	/**
 	 * Build a model from a PRISM modelling language description, storing it symbolically,
 	 * as MTBDDs) via explicit-state reachability and model construction.
@@ -1841,6 +1911,9 @@ public class Prism implements PrismSettingsListener
 		mainLog.println(getDestinationStringForFile(file));
 		PrismLog tmpLog = getPrismLogForFile(file);
 		tmpLog.print(currentModulesFile.toString());
+		// tidy up
+		if (file != null)
+			tmpLog.close();
 	}
 
 	/**
@@ -1858,6 +1931,9 @@ public class Prism implements PrismSettingsListener
 		// NB: Don't use simplify() here because doesn't work for the purposes of printing out
 		// (e.g. loss of parentheses causes precedence problems)
 		tmpLog.print(mfTmp.toString());
+		// tidy up
+		if (file != null)
+			tmpLog.close();
 	}
 
 	/**
@@ -2379,13 +2455,13 @@ public class Prism implements PrismSettingsListener
 				currentModulesFile.setUndefinedConstants(oldModulesFile.getConstantValues());
 				currentModelType = ModelType.MDP;
 				// If required, export generated PRISM model
-				if (exportPrism) {
+				if (exportDigital) {
 					try {
-						exportPRISMModel(exportPrismFile);
+						exportPRISMModel(exportDigitalFile);
 					}
 					// In case of error, just print a warning
 					catch (FileNotFoundException e) {
-						mainLog.printWarning("PRISM code export failed: Couldn't open file \"" + exportPrismFile + "\" for output");
+						mainLog.printWarning("PRISM code export failed: Couldn't open file \"" + exportDigitalFile + "\" for output");
 					} catch (PrismException e) {
 						mainLog.printWarning("PRISM code export failed: " + e.getMessage());
 					}

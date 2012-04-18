@@ -29,8 +29,11 @@ package prism;
 import java.io.*;
 import java.util.*;
 
+import cex.CexPathStates;
+
 import parser.*;
 import parser.ast.*;
+import simulator.SimulatorEngine;
 import simulator.method.*;
 
 // prism - command line version
@@ -88,6 +91,7 @@ public class PrismCL implements PrismModelListener
 	// files/filenames
 	private String mainLogFilename = "stdout";
 	private String techLogFilename = "stdout";
+	private String settingsFilename = null;
 	private String modelFilename = null;
 	private String importStatesFilename = null;
 	private String importLabelsFilename = null;
@@ -300,7 +304,7 @@ public class PrismCL implements PrismModelListener
 						// in case of build failure during model checking, store as result for any const values and continue
 						if (modelBuildFail) {
 							results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
-							continue;
+							break;
 						}
 
 						// store result of model checking
@@ -309,6 +313,13 @@ public class PrismCL implements PrismModelListener
 						if (cex != null) {
 							mainLog.println("\nCounterexample/witness:");
 							mainLog.println(cex);
+							/*SimulatorEngine engine = prism.getSimulator();
+							try {
+								engine.loadPath(modulesFile, (CexPathStates) cex);
+								engine.exportPath(null, true, ",", null);
+							} catch (PrismException e) {
+								error(e.getMessage());
+							}*/
 							if (cex instanceof cex.CexPathAsBDDs) {
 								((cex.CexPathAsBDDs) cex).clear();
 							}
@@ -333,19 +344,14 @@ public class PrismCL implements PrismModelListener
 						// iterate to next property
 						undefinedConstants[j].iterateProperty();
 					}
+				}
 
-					// in case of build failure during model checking, store as result for any further properties, and go on to the next model
-					if (modelBuildFail) {
-						for (j++; j < numPropertiesToCheck; j++) {
-							results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
-						}
-						// iterate to next model
-						undefinedMFConstants.iterateModel();
-						for (j = 0; j < numPropertiesToCheck; j++) {
-							undefinedConstants[j].iterateModel();
-						}
-						continue;
+				// in case of build failure during model checking, store as result for any further properties and continue
+				if (modelBuildFail) {
+					for (j++; j < numPropertiesToCheck; j++) {
+						results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
 					}
+					break;
 				}
 			}
 
@@ -421,6 +427,10 @@ public class PrismCL implements PrismModelListener
 
 			// parse command line arguments
 			parseArguments(args);
+			
+			// load setting file if requested
+			if (settingsFilename != null)
+				prism.loadUserSettingsFile(new File(settingsFilename));
 
 			// initialise
 			prism.initialise();
@@ -834,6 +844,14 @@ public class PrismCL implements PrismModelListener
 					printVersion();
 					exit();
 				}
+				// load settings
+				else if (sw.equals("settings")) {
+					if (i < args.length - 1) {
+						settingsFilename = args[++i].trim();
+					} else {
+						errorAndExit("Incomplete -" + sw + " switch");
+					}
+				}
 				// print a list of all keywords (hidden option)
 				else if (sw.equals("keywords")) {
 					printListOfKeywords();
@@ -1137,6 +1155,17 @@ public class PrismCL implements PrismModelListener
 						File f = (filename.equals("stdout")) ? null : new File(filename);
 						prism.setExportPrismConst(true);
 						prism.setExportPrismConstFile(f);
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
+				// export digital clocks translation prism model to file
+				else if (sw.equals("exportdigital")) {
+					if (i < args.length - 1) {
+						String filename = args[++i];
+						File f = (filename.equals("stdout")) ? null : new File(filename);
+						prism.setExportDigital(true);
+						prism.setExportDigitalFile(f);
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
@@ -1628,6 +1657,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println();
 		mainLog.println("-help .......................... Display this help message");
 		mainLog.println("-version ....................... Display tool version");
+		mainLog.println("-settings <file>................ Load settings from <file>");
 		mainLog.println();
 		mainLog.println("-pf <props> (or -pctl or -csl) . Model check properties <props>");
 		mainLog.println("-property <n> (or -prop <n>) ... Only model check property <n>");

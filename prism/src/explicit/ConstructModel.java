@@ -144,7 +144,7 @@ public class ConstructModel {
 		Distribution distr = null;
 		// Misc
 		int i, j, nc, nt, src, dest, player;
-		long timer, timerProgress;
+		long timer;
 		// int id;
 		int nPlayers = 0;
 		State tempState;
@@ -165,7 +165,9 @@ public class ConstructModel {
 		// Starting reachability...
 		mainLog.print("\nComputing reachable states...\n");
 		mainLog.flush();
-		timer = timerProgress = System.currentTimeMillis();
+		ProgressDisplay progress = new ProgressDisplay(mainLog);
+		progress.start();
+		timer = System.currentTimeMillis();
 
 		// Initialise simulator for this model
 		modelType = modulesFile.getModelType();
@@ -301,17 +303,13 @@ public class ConstructModel {
 					}
 				}
 			}
-
 			// Print some progress info occasionally
-			if (System.currentTimeMillis() - timerProgress > 3000) {
-				mainLog.print(" " + (src + 1));
-				mainLog.flush();
-				timerProgress = System.currentTimeMillis();
-			}
+			progress.updateIfReady(src + 1);
 		}
 
 		// Finish progress display
-		mainLog.println(" " + (src + 1));
+		progress.update(src + 1);
+		progress.end(" states");
 
 		// Reachability complete
 		mainLog.print("Reachable states exploration"

@@ -2056,7 +2056,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		public int getRowCount()
 		{
-			return pathActive ? engine.getNumTransitions() : 0;
+			try {
+				return pathActive ? engine.getNumTransitions() : 0;
+			} catch (PrismException e) {
+				return 0;
+			}
 		}
 
 		public Object getValueAt(int rowIndex, int columnIndex)
@@ -2169,7 +2173,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		public int getChoiceIndexOf(int row)
 		{
-			return engine.getChoiceIndexOfTransition(row);
+			try {
+				return engine.getChoiceIndexOfTransition(row);
+			} catch (PrismException e) {
+				return -1;
+			}
 		}
 	}
 

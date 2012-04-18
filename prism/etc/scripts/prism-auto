@@ -172,10 +172,12 @@ def getArgsListsFromFile(file):
 
 # Create a valid name for a log file based on a list of benchmark arguments
 
-def createLogFileName(args):
+def createLogFileName(args, dir=""):
 	logFile = '.'.join(args)
+	if len(dir) > 0:
+		logFile = re.sub(dir, '', logFile)
 	logFile = re.sub('/', '_', logFile)
-	logFile = re.sub('[^a-zA-Z0-9_=, \.]', '', logFile)
+	logFile = re.sub('[^a-zA-Z0-9=_, \.]', '', logFile)
 	logFile = re.sub('[ ]+', '.', logFile)
 	logFile = re.sub('[\.]+', '.', logFile)
 	logFile = re.sub('^[\._]+', '', logFile)
@@ -197,18 +199,18 @@ def walk(dir, meth):
 
 # Run PRISM with a given list of command-line args
 
-def runPrism(args):
+def runPrism(args, dir=""):
 	if options.test:
-		args.append("-test")
-	if options.echo:
-		print ' '.join(args)
-		return
+		if options.testAll: args.append("-testall")
+		else: args.append("-test")
 	prismArgs = [options.prismExec] + args
 	if options.extraArgs:
 		prismArgs += options.extraArgs.split(' ');
 	print ' '.join(prismArgs)
+	if options.echo:
+		return
 	if options.logDir:
-		logFile = os.path.join(options.logDir, createLogFileName(args))
+		logFile = os.path.join(options.logDir, createLogFileName(args, dir))
 		f = open(logFile, 'w')
 		exitCode = subprocess.Popen(prismArgs, stdout=f).wait()
 		#exitCode = subprocess.Popen(prismArgs, cwd=dir, stdout=f).wait()
@@ -227,21 +229,23 @@ def runPrism(args):
 		for line in open(logFile, 'r').readlines():
 			if re.match('Error:', line):
 				print line,
-		print "Log file: " + logFile
-		sys.exit(1)
+		print "To see log file, run:"
+		print "cat " + logFile
+		if not options.testAll:
+			sys.exit(1)
 
 # Run a benchmark, specified by a list of command-line args,
 # possibly iterating over further lists of args from a "bm" file
 
-def benchmark(args):
+def benchmark(args, dir=""):
 	# Loop through benchmark options, if required
 	if options.bmFile and os.path.isfile(os.path.join(options.bmFile)):
 		argsLists = getArgsListsFromFile(options.bmFile)
 		for bmArgs in argsLists:
-			runPrism(args + bmArgs)
+			runPrism(args + bmArgs, dir)
 	# If none, just use existing args
 	else:
-		runPrism(args)
+		runPrism(args, dir)
 
 # Execute benchmarking based on (possibly recursive) processing of a directory
 
@@ -257,13 +261,13 @@ def benchmarkDir(dir):
 		for modelFile in modelFiles:
 			# Build mode: just build
 			if options.build:
-				benchmark(modelFile + args)
+				benchmark(modelFile, dir)
 			# Otherwise, find properties
 			else:
 				if options.matching: propertiesFiles = getMatchingPropertiesInDir(dir, modelFile[0])
 				else: propertiesFiles = getPropertiesInDir(dir)
 				for propertiesFile in propertiesFiles:
-					benchmark(modelFile + propertiesFile)
+					benchmark(modelFile + propertiesFile, dir)
 
 # Execute benchmarking based on a single file (model, property, list)
 
@@ -344,6 +348,7 @@ parser.add_option("-p", "--prog", dest="prismExec", metavar="FILE", default="pri
 parser.add_option("-n", "--non-recursive", action="store_true", dest="nonRec", default=False, help="Don't recurse into directories")
 parser.add_option("-x", "--extra", dest="extraArgs", metavar="XXX", default="", help="Pass (single string of) extra switches to PRISM")
 parser.add_option("-t", "--test", action="store_true", dest="test", default=False, help="Run in test mode")
+parser.add_option("--test-all", action="store_true", dest="testAll", default=False, help="In test mode, don't stop after an error")
 (options, args) = parser.parse_args()
 if len(args) != 1:
 	parser.print_help()

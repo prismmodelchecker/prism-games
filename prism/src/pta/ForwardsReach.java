@@ -94,17 +94,18 @@ public class ForwardsReach
 		ReachabilityGraph graph;
 		int src, dest, count, dests[];
 		boolean canDiverge;
-		long timer, timerProgress;
-		boolean progressDisplayed;
+		long timer;
 
 		// Store target info
 		this.targetLocs = targetLocs;
 		this.targetConstraint = targetConstraint;
 
 		// Starting reachability...
-		mainLog.println("\nBuilding forwards reachability graph...");
-		timer = timerProgress = System.currentTimeMillis();
-		progressDisplayed = false;
+		mainLog.print("\nBuilding forwards reachability graph...");
+		mainLog.flush();
+		ProgressDisplay progress = new ProgressDisplay(mainLog);
+		progress.start();
+		timer = System.currentTimeMillis();
 
 		// Re-compute max clock constraint value if required
 		if (targetConstraint != null)
@@ -231,20 +232,13 @@ public class ForwardsReach
 				throw new PrismException(s);
 			}
 			// Print some progress info occasionally
-			if (System.currentTimeMillis() - timerProgress > 3000) {
-				if (!progressDisplayed) {
-					mainLog.print("Number of states so far:");
-					progressDisplayed = true;
-				}
-				mainLog.print(" " + Yset.size());
-				mainLog.flush();
-				timerProgress = System.currentTimeMillis();
-			}
+			if (progress.ready())
+				progress.update(Yset.size());
 		}
 
 		// Tidy up progress display
-		if (progressDisplayed)
-			mainLog.println(" " + Yset.size());
+		progress.update(Yset.size());
+		progress.end(" states");
 
 		// Convert state set to ArrayList and store
 		graph.states = Yset.toArrayList();
@@ -257,7 +251,7 @@ public class ForwardsReach
 		timer = System.currentTimeMillis() - timer;
 		mainLog.println("Graph constructed in " + (timer / 1000.0) + " secs.");
 		mainLog.print("Graph: " + graph.states.size() + " symbolic states");
-		mainLog.println("), " + target.cardinality() + " target states");
+		mainLog.println(" (" + initialStates.size() + " initial, " + target.cardinality() + " target)");
 
 		// Print a warning if there are no target states
 		if (target.cardinality() == 0)
