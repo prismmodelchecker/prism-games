@@ -226,6 +226,15 @@ public class Distribution implements Iterable<Entry<Integer,Double>>
 		return distrNew;
 	}
 	
+	/**
+	 * Return the set of successors for the distribution
+	 * @return the set of successor states for the distribution
+	 */
+	public Set<Integer> keySet()
+	{
+		return map.keySet();
+	}
+	
 	@Override
 	public boolean equals(Object o)
 	{
