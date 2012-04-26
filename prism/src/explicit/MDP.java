@@ -241,4 +241,13 @@ public interface MDP extends Model
 	 * Export to a dot file, highlighting states in 'mark' and choices for a (memoryless) adversary.
 	 */
 	public void exportToDotFileWithAdv(String filename, BitSet mark, int adv[]) throws PrismException;
+	
+	/**
+	 * Checks  whether all successors of action c in state s are in a given set
+	 * @param s state
+	 * @param c choice
+	 * @param set target set
+	 * @return true if all successors are, false otherwise
+	 */
+	public boolean allSuccessorsInSet(int s, int c, BitSet set);
 }

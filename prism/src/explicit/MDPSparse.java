@@ -37,27 +37,37 @@ import prism.PrismException;
 import prism.PrismUtils;
 
 /**
- * Sparse matrix (non-mutable) explicit-state representation of an MDP.
- * This is much faster to access than e.g. MDPSimple and should also be more compact.
- * The catch is that you have to create the model all in one go and then can't modify it.
+ * Sparse matrix (non-mutable) explicit-state representation of an MDP. This is
+ * much faster to access than e.g. MDPSimple and should also be more compact.
+ * The catch is that you have to create the model all in one go and then can't
+ * modify it.
  */
-public class MDPSparse extends MDPExplicit
-{
+public class MDPSparse extends MDPExplicit {
 	// Sparse matrix storing transition function (Steps)
 	/** Probabilities for each transition (array of size numTransitions) */
 	protected double nonZeros[];
-	/** Column (destination) indices for each transition (array of size numTransitions) */
+	/**
+	 * Column (destination) indices for each transition (array of size
+	 * numTransitions)
+	 */
 	protected int cols[];
-	/** Indices into nonZeros/cols giving the start of the transitions for each choice (distribution);
-	 * array is of size numDistrs+1 and last entry is always equal to numTransitions */
+	/**
+	 * Indices into nonZeros/cols giving the start of the transitions for each
+	 * choice (distribution); array is of size numDistrs+1 and last entry is
+	 * always equal to numTransitions
+	 */
 	protected int choiceStarts[];
-	/** Indices into choiceStarts giving the start of the choices for each state;
-	 * array is of size numStates+1 and last entry is always equal to numDistrs */
+	/**
+	 * Indices into choiceStarts giving the start of the choices for each state;
+	 * array is of size numStates+1 and last entry is always equal to numDistrs
+	 */
 	protected int rowStarts[];
 
 	// Action labels
-	/** Array of action labels for choices;
-	 * if null, there are no actions; otherwise, is an array of size numDistrs */
+	/**
+	 * Array of action labels for choices; if null, there are no actions;
+	 * otherwise, is an array of size numDistrs
+	 */
 	protected Object actions[];
 
 	// Other statistics
@@ -70,19 +80,20 @@ public class MDPSparse extends MDPExplicit
 	/**
 	 * Copy constructor (from MDPSimple).
 	 */
-	public MDPSparse(MDPSimple mdp)
-	{
+	public MDPSparse(MDPSimple mdp) {
 		this(mdp, false);
 	}
 
 	/**
 	 * Copy constructor (from MDPSimple). Optionally, transitions within choices
 	 * are sorted (by ascending order of column index).
-	 * @param mdp The MDP to copy
-	 * @param sort Whether or not to sort column indices
+	 * 
+	 * @param mdp
+	 *            The MDP to copy
+	 * @param sort
+	 *            Whether or not to sort column indices
 	 */
-	public MDPSparse(MDPSimple mdp, boolean sort)
-	{
+	public MDPSparse(MDPSimple mdp, boolean sort) {
 		int i, j, k, n;
 		TreeMap<Integer, Double> sorted = null;
 		initialise(mdp.getNumStates());
@@ -137,16 +148,19 @@ public class MDPSparse extends MDPExplicit
 
 	/**
 	 * Copy constructor (from MDPSimple). Optionally, transitions within choices
-	 * are sorted (by ascending order of column index). Also, optionally, a state
-	 * index permutation can be provided, i.e. old state index i becomes index permut[i].
-	 * Note: a states list, if present, will not be permuted and should be set
-	 * separately afterwards if required.
-	 * @param mdp The MDP to copy
-	 * @param sort Whether or not to sort column indices
-	 * @param permut State space permutation
+	 * are sorted (by ascending order of column index). Also, optionally, a
+	 * state index permutation can be provided, i.e. old state index i becomes
+	 * index permut[i]. Note: a states list, if present, will not be permuted
+	 * and should be set separately afterwards if required.
+	 * 
+	 * @param mdp
+	 *            The MDP to copy
+	 * @param sort
+	 *            Whether or not to sort column indices
+	 * @param permut
+	 *            State space permutation
 	 */
-	public MDPSparse(MDPSimple mdp, boolean sort, int permut[])
-	{
+	public MDPSparse(MDPSimple mdp, boolean sort, int permut[]) {
 		int i, j, k, n;
 		TreeMap<Integer, Double> sorted = null;
 		int permutInv[];
@@ -206,15 +220,18 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	/**
-	 * Copy constructor for a (sub-)MDP from a given MDP.
-	 * The states and actions will be indexed as given by the order
-	 * of the lists {@code states} and {@code actions}.
-	 * @param mdp MDP to copy from
-	 * @param states States to copy
-	 * @param actions Actions to copy
+	 * Copy constructor for a (sub-)MDP from a given MDP. The states and actions
+	 * will be indexed as given by the order of the lists {@code states} and
+	 * {@code actions}.
+	 * 
+	 * @param mdp
+	 *            MDP to copy from
+	 * @param states
+	 *            States to copy
+	 * @param actions
+	 *            Actions to copy
 	 */
-	public MDPSparse(MDP mdp, List<Integer> states, List<List<Integer>> actions)
-	{
+	public MDPSparse(MDP mdp, List<Integer> states, List<List<Integer>> actions) {
 		initialise(states.size());
 		for (int in : mdp.getInitialStates()) {
 			addInitialState(in);
@@ -258,7 +275,8 @@ public class MDPSparse extends MDPExplicit
 				choiceStarts[choiceIndex] = colIndex;
 				this.actions[choiceIndex] = mdp.getAction(s, a);
 				choiceIndex++;
-				Iterator<Entry<Integer, Double>> it = mdp.getTransitionsIterator(s, a);
+				Iterator<Entry<Integer, Double>> it = mdp
+						.getTransitionsIterator(s, a);
 				while (it.hasNext()) {
 					Entry<Integer, Double> next = it.next();
 					cols[colIndex] = reverseStates[next.getKey()];
@@ -274,16 +292,14 @@ public class MDPSparse extends MDPExplicit
 	// Mutators (other)
 
 	@Override
-	public void initialise(int numStates)
-	{
+	public void initialise(int numStates) {
 		super.initialise(numStates);
 		numDistrs = numTransitions = maxNumDistrs = 0;
 		actions = null;
 	}
 
 	@Override
-	public void buildFromPrismExplicit(String filename) throws PrismException
-	{
+	public void buildFromPrismExplicit(String filename) throws PrismException {
 		BufferedReader in;
 		String s, ss[];
 		int i, j, k, iLast, kLast, jCount, kCount, n, lineNum = 0;
@@ -351,29 +367,31 @@ public class MDPSparse extends MDPExplicit
 			in.close();
 			// Sanity checks
 			if (kCount != numDistrs) {
-				throw new PrismException("Choice count is wrong in tra file (" + kCount + "!=" + numTransitions + ")");
+				throw new PrismException("Choice count is wrong in tra file ("
+						+ kCount + "!=" + numTransitions + ")");
 			}
 			if (jCount != numTransitions) {
-				throw new PrismException("Transition count is wrong in tra file (" + kCount + "!=" + numTransitions + ")");
+				throw new PrismException(
+						"Transition count is wrong in tra file (" + kCount
+								+ "!=" + numTransitions + ")");
 			}
 		} catch (IOException e) {
 			System.exit(1);
 		} catch (NumberFormatException e) {
-			throw new PrismException("Problem in .tra file (line " + lineNum + ") for " + getModelType());
+			throw new PrismException("Problem in .tra file (line " + lineNum
+					+ ") for " + getModelType());
 		}
 	}
 
 	// Accessors (for Model)
 
 	@Override
-	public int getNumTransitions()
-	{
+	public int getNumTransitions() {
 		return numTransitions;
 	}
 
 	@Override
-	public boolean isSuccessor(int s1, int s2)
-	{
+	public boolean isSuccessor(int s1, int s2) {
 		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s1];
 		h1 = rowStarts[s1 + 1];
@@ -391,8 +409,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public boolean allSuccessorsInSet(int s, BitSet set)
-	{
+	public boolean allSuccessorsInSet(int s, BitSet set) {
 		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
@@ -410,8 +427,23 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public boolean someSuccessorsInSet(int s, BitSet set)
-	{
+	public boolean allSuccessorsInSet(int s, int c, BitSet set) {
+
+		int j, k, l, h;
+		l = choiceStarts[rowStarts[s] + c];
+		h = choiceStarts[rowStarts[s] + c + 1];
+		for (k = l; k < h; k++) {
+			// Assume that only non-zero entries are stored
+			if (!set.get(cols[k])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	@Override
+	public boolean someSuccessorsInSet(int s, BitSet set) {
 		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
@@ -429,28 +461,27 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public int getNumChoices(int s)
-	{
+	public int getNumChoices(int s) {
 		return rowStarts[s + 1] - rowStarts[s];
 	}
 
 	@Override
-	public void findDeadlocks(boolean fix) throws PrismException
-	{
+	public void findDeadlocks(boolean fix) throws PrismException {
 		for (int i = 0; i < numStates; i++) {
-			// Note that no distributions is a deadlock, not an empty distribution
+			// Note that no distributions is a deadlock, not an empty
+			// distribution
 			if (getNumChoices(i) == 0) {
 				addDeadlockState(i);
 				if (fix) {
-					throw new PrismException("Can't fix deadlocks in an MDPSparse since it cannot be modified after construction");
+					throw new PrismException(
+							"Can't fix deadlocks in an MDPSparse since it cannot be modified after construction");
 				}
 			}
 		}
 	}
 
 	@Override
-	public void checkForDeadlocks(BitSet except) throws PrismException
-	{
+	public void checkForDeadlocks(BitSet except) throws PrismException {
 		for (int i = 0; i < numStates; i++) {
 			if (getNumChoices(i) == 0 && (except == null || !except.get(i)))
 				throw new PrismException("MDP has a deadlock in state " + i);
@@ -460,86 +491,74 @@ public class MDPSparse extends MDPExplicit
 	// Accessors (for MDP)
 
 	@Override
-	public int getNumChoices()
-	{
+	public int getNumChoices() {
 		return numDistrs;
 	}
 
 	@Override
-	public int getMaxNumChoices()
-	{
+	public int getMaxNumChoices() {
 		return maxNumDistrs;
 	}
 
 	@Override
-	public Object getAction(int s, int i)
-	{
+	public Object getAction(int s, int i) {
 		return actions == null ? null : actions[rowStarts[s] + i];
 	}
 
 	@Override
-	public int getNumTransitions(int s, int i)
-	{
-		return choiceStarts[rowStarts[s] + i + 1] - choiceStarts[rowStarts[s] + i];
+	public int getNumTransitions(int s, int i) {
+		return choiceStarts[rowStarts[s] + i + 1]
+				- choiceStarts[rowStarts[s] + i];
 	}
 
 	@Override
-	public Iterator<Entry<Integer, Double>> getTransitionsIterator(final int s, final int i)
-	{
-		return new Iterator<Entry<Integer, Double>>()
-		{
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(final int s,
+			final int i) {
+		return new Iterator<Entry<Integer, Double>>() {
 			final int start = choiceStarts[rowStarts[s] + i];
 			int col = start;
 			final int end = choiceStarts[rowStarts[s] + i + 1];
 
 			@Override
-			public boolean hasNext()
-			{
+			public boolean hasNext() {
 				return col < end;
 			}
 
 			@Override
-			public Entry<Integer, Double> next()
-			{
+			public Entry<Integer, Double> next() {
 				assert (col < end);
 				final int i = col;
 				col++;
-				return new Entry<Integer, Double>()
-				{
+				return new Entry<Integer, Double>() {
 					int key = cols[i];
 					double value = nonZeros[i];
 
 					@Override
-					public Integer getKey()
-					{
+					public Integer getKey() {
 						return key;
 					}
 
 					@Override
-					public Double getValue()
-					{
+					public Double getValue() {
 						return value;
 					}
 
 					@Override
-					public Double setValue(Double arg0)
-					{
+					public Double setValue(Double arg0) {
 						throw new UnsupportedOperationException();
 					}
 				};
 			}
 
 			@Override
-			public void remove()
-			{
+			public void remove() {
 				throw new UnsupportedOperationException();
 			}
 		};
 	}
 
 	@Override
-	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
-	{
+	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result) {
 		int i, j, k, l1, h1, l2, h2;
 		boolean b1, some;
 		for (i = 0; i < numStates; i++) {
@@ -576,8 +595,8 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
-	{
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall,
+			BitSet result) {
 		int i, j, k, l1, h1, l2, h2;
 		boolean b1, some, all;
 		for (i = 0; i < numStates; i++) {
@@ -617,8 +636,8 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
-	{
+	public double mvMultMinMaxSingle(int s, double vect[], boolean min,
+			int adv[]) {
 		int j, k, l1, h1, l2, h2, advCh = -1;
 		double d, minmax;
 		boolean first;
@@ -658,15 +677,15 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
-	{
+	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[],
+			boolean min, double val) {
 		int j, k, l1, h1, l2, h2;
 		double d;
 		List<Integer> res;
 
 		// Create data structures to store strategy
 		res = new ArrayList<Integer>();
-		// One row of matrix-vector operation 
+		// One row of matrix-vector operation
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
@@ -687,8 +706,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultSingle(int s, int k, double vect[])
-	{
+	public double mvMultSingle(int s, int k, double vect[]) {
 		int j, l2, h2;
 		double d;
 
@@ -705,8 +723,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
-	{
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min) {
 		int j, k, l1, h1, l2, h2;
 		double diag, d, minmax;
 		boolean first;
@@ -740,8 +757,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultJacSingle(int s, int k, double vect[])
-	{
+	public double mvMultJacSingle(int s, int k, double vect[]) {
 		int j, l2, h2;
 		double diag, d;
 
@@ -765,8 +781,8 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[])
-	{
+	public double mvMultRewMinMaxSingle(int s, double vect[],
+			MDPRewards mdpRewards, boolean min, int adv[]) {
 		int j, k, l1, h1, l2, h2, advCh = -1;
 		double d, minmax;
 		boolean first;
@@ -795,7 +811,8 @@ public class MDPSparse extends MDPExplicit
 		// If adversary generation is enabled, store optimal choice
 		if (adv != null & !first) {
 			// Only remember strictly better choices (required for max)
-			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			if (adv[s] == -1 || (min && minmax < vect[s])
+					|| (!min && minmax > vect[s])) {
 				adv[s] = advCh;
 			}
 		}
@@ -806,8 +823,8 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min)
-	{
+	public double mvMultRewJacMinMaxSingle(int s, double vect[],
+			MDPRewards mdpRewards, boolean min) {
 		int j, k, l1, h1, l2, h2;
 		double diag, d, minmax;
 		boolean first;
@@ -843,15 +860,15 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val)
-	{
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[],
+			MDPRewards mdpRewards, boolean min, double val) {
 		int j, k, l1, h1, l2, h2;
 		double d;
 		List<Integer> res;
 
 		// Create data structures to store strategy
 		res = new ArrayList<Integer>();
-		// One row of matrix-vector operation 
+		// One row of matrix-vector operation
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
@@ -872,8 +889,8 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
-	{
+	public void mvMultRight(int[] states, int[] adv, double[] source,
+			double[] dest) {
 		for (int s : states) {
 			int j, l2, h2;
 			int k = adv[s];
@@ -885,12 +902,11 @@ public class MDPSparse extends MDPExplicit
 			}
 		}
 	}
-	
+
 	// Standard methods
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		int i, j, k, l1, h1, l2, h2;
 		Object o;
 		String s = "";
@@ -925,8 +941,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public boolean equals(Object o)
-	{
+	public boolean equals(Object o) {
 		if (o == null || !(o instanceof MDPSparse))
 			return false;
 		MDPSparse mdp = (MDPSparse) o;
