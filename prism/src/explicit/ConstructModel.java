@@ -87,7 +87,7 @@ public class ConstructModel {
 	 *            The PRISM model
 	 */
 	public Model constructModel(ModulesFile modulesFile) throws PrismException {
-		return constructModel(modulesFile, false, false, true);
+		return constructModel(modulesFile, false, false, false);
 	}
 
 	/**
@@ -350,6 +350,7 @@ public class ConstructModel {
 				model = new CTMCSimple(ctmc, permut);
 				break;
 			case MDP:
+//				buildSparse = false;
 				if (buildSparse) {
 					model = new MDPSparse(mdp, true, permut);
 				} else {
