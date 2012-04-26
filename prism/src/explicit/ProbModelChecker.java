@@ -38,6 +38,7 @@ import parser.ast.RewardStruct;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismSettings;
+import strat.Strategy;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
@@ -73,6 +74,7 @@ public class ProbModelChecker extends StateModelChecker
 	// Adversary export
 	protected boolean exportAdv = false;
 	protected String exportAdvFilename;
+	protected Strategy strategy;
 
 	// Enums for flags/settings
 
