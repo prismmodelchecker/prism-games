@@ -30,12 +30,19 @@ package userinterface.simulator;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.swing.*;
 import javax.swing.table.*;
 import javax.swing.event.*;
 
+import explicit.Distribution;
+
 import simulator.*;
 import simulator.networking.*;
+import strat.InvalidStrategyStateException;
+import strat.Strategy;
 import parser.*;
 import parser.ast.*;
 import prism.*;
@@ -60,6 +67,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	//Current State
 	private boolean pathActive;
 	private ModulesFile parsedModel;
+	private boolean strategyGenerated = false;
+	private Strategy strategy = null;
+	private Map<State, Integer> stateIds = null;
 
 	private GUISimulatorPathTableModel pathTableModel;
 	private UpdateTableModel updateTableModel;
@@ -74,6 +84,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	//Actions
 	private Action randomExploration, backtrack, backtrackToHere, removeToHere, newPath, newPathFromState, resetPath, exportPath, configureView;
 
+	
 	/** Creates a new instance of GUISimulator */
 	public GUISimulator(GUIPrism gui)
 	{
@@ -185,6 +196,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		getPrism().getSettings().setFileSelector(PrismSettings.SIMULATOR_NETWORK_FILE, netEdit);
 
 		autoTimeCheck.setSelected(true);
+		showStrategyCheck.setSelected(false);
 		currentUpdatesTable.requestFocus();
 
 		manualUpdateTableScrollPane.setToolTipText("Double-click or right-click below to create a new path");
@@ -381,6 +393,21 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
+			// check if we need to initialise a strategy
+			if(strategyGenerated)
+			{
+				// get reference to the strategy
+				strategy = getPrism().getStrategy();
+				
+				// for efficient access store indices of states in the hashmap
+				stateIds = new HashMap<State, Integer>();
+				java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
+				for(int i=0; i<stateslist.size(); i++)
+				{
+					stateIds.put(stateslist.get(i), i);
+				}
+			}
+			
 			// Insert path table
 			tableScroll.setViewportView(pathTable);
 
@@ -819,7 +846,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		currentUpdatesTable.setEnabled(pathActive && !computing);
 		autoTimeCheck.setEnabled(pathActive && parsedModel != null && parsedModel.getModelType().continuousTime());
-
+		showStrategyCheck.setEnabled(pathActive && parsedModel != null && strategyGenerated);
+		
 		//resetPathButton.setEnabled(pathActive && !computing);
 		//exportPathButton.setEnabled(pathActive && !computing);
 		//configureViewButton.setEnabled(pathActive && !computing);
@@ -918,6 +946,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		currentUpdatesTable = new GUISimulatorUpdatesTable(updateTableModel, this);
 		autoTimeCheckPanel = new javax.swing.JPanel();
 		autoTimeCheck = new javax.swing.JCheckBox();
+		showStrategyCheck = new javax.swing.JCheckBox();
 		outerBottomPanel = new javax.swing.JPanel();
 		bottomPanel = new javax.swing.JPanel();
 		tableScroll = new javax.swing.JScrollPane();
@@ -1267,8 +1296,39 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		autoTimeCheck.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 		autoTimeCheck.setMargin(new java.awt.Insets(0, 0, 0, 0));
 		autoTimeCheckPanel.add(autoTimeCheck, java.awt.BorderLayout.EAST);
+		showStrategyCheck.setText("Show strategy");
+		showStrategyCheck.setToolTipText("Shows the choices taken by the strategy that is currently in memory");
+		showStrategyCheck.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+		showStrategyCheck.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+		showStrategyCheck.setMargin(new java.awt.Insets(0, 0, 0, 0));
+		showStrategyCheck.addItemListener(new ItemListener() {
+		      public void itemStateChanged(ItemEvent itemEvent) {
+		          int state = itemEvent.getStateChange();
+		          if (state == ItemEvent.SELECTED) {
+			            updateTableModel.fireTableStructureChanged();
+							try {
+								updateTableModel.updateUpdatesTable();
+							} catch (PrismException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 
+		          }
+		          else if (state == ItemEvent.DESELECTED)
+		          {
+			            updateTableModel.fireTableStructureChanged();
+							try {
+								updateTableModel.updateUpdatesTable();
+							} catch (PrismException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+		          }
+		        }});
+		autoTimeCheckPanel.add(showStrategyCheck, java.awt.BorderLayout.WEST);
+		
 		innerManualUpdatesPanel.add(autoTimeCheckPanel, java.awt.BorderLayout.SOUTH);
+		
 
 		manualUpdatesPanel.add(innerManualUpdatesPanel, java.awt.BorderLayout.CENTER);
 
@@ -1663,6 +1723,35 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		this.pathActive = pathActive;
 		pathTableModel.setPathActive(pathActive);
 	}
+	
+	/**
+	 * Setter for property strategyGenerated.
+	 * @param strategyGenerated New value of property strategyGenerated.
+	 */
+	public void setStrategyGenerated(boolean strategyGenerated)
+	{
+		this.strategyGenerated = strategyGenerated;
+	}
+	
+	/**
+	 * Setter for property strategy.
+	 * @param strategy New value of property strategy.
+	 */
+	public void setStrategy(Strategy strategy)
+	{
+		this.strategy = strategy;
+	}
+	
+	/**
+	 * Setter for property stateIds.
+	 * @param stateIds New value of property stateIds.
+	 */
+	public void setStateIds(Map<State,Integer> stateIds)
+	{
+		this.stateIds = stateIds;
+	}
+	
+	
 
 	/**
 	 * Setter for property parsedModel.
@@ -1990,6 +2079,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	// End of variables declaration//GEN-END:variables
 
+	private javax.swing.JCheckBox showStrategyCheck;
+	
 	public void sortOutColumnSizes()
 	{
 		int prevWidth = pathTable.getWidth();
@@ -2051,7 +2142,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		public int getColumnCount()
 		{
-			return pathActive ? 3 : 0;
+			return pathActive ? (showStrategyCheck.isSelected() && strategyGenerated ? 4: 3) : 0;
 		}
 
 		public int getRowCount()
@@ -2067,8 +2158,20 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			if (pathActive) {
 				try {
-					switch (columnIndex) {
+					int i=1;
+					if(showStrategyCheck.isSelected()  && strategyGenerated)
+						i=0;
+					switch (columnIndex+i) {
 					case 0:
+						if(strategyGenerated && strategy != null && stateIds != null) {
+							Distribution dist = strategy.getNextMove(stateIds.get(engine.getCurrentState()));	
+							if(dist.contains(rowIndex))
+								return rowIndex + "->" + dist.get(rowIndex);
+							else
+								return "x";
+							}
+						else return "";
+					case 1:
 						String modAct = engine.getTransitionModuleOrAction(rowIndex);
 						if (parsedModel.getModelType() != ModelType.SMG)
 							return modAct;
@@ -2081,15 +2184,18 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 							return modAct;
 						return modAct + " (" + (player + 1) + ":"
 								+ parsedModel.getPlayer(player).getName() + ")";
-					case 1:
-						return "" + engine.getTransitionProbability(rowIndex);
 					case 2:
+						return "" + engine.getTransitionProbability(rowIndex);
+					case 3:
 						return engine.getTransitionUpdateString(rowIndex);
 					default:
 						return "";
 					}
 				} catch (PrismException e) {
 					return "";
+				} catch (InvalidStrategyStateException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 			return "";
@@ -2098,17 +2204,22 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public String getColumnName(int column)
 		{
 			if (pathActive) {
-				switch (column) {
+				int i=1;
+				if(showStrategyCheck.isSelected() && strategyGenerated)
+					i=0;
+				switch (column+i) {
 				case 0:
+					return "Strategy choice";
+				case 1:
 					if (parsedModel.getModelType() != ModelType.SMG)
 						return "Module/[action]";
 					
 					// if model type SMG return player info as well
 					return "Module/[action] (player)";
-				case 1: {
+				case 2: {
 					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
 				}
-				case 2:
+				case 3:
 					return "Update";
 				default:
 					return "";

@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -146,6 +147,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults,
 			exportResultsListText, exportResultsListCSV, exportResultsMatrixText, exportResultsMatrixCSV, simulate, details;
+	private JCheckBoxMenuItem generateStrategy, implementStrategy;
+	private JMenu strategiesMenu;
+	
 
 	// Current properties
 	private GUIPropertiesList propList;
@@ -853,6 +857,16 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 		// Reset warnings counter 
 		getPrism().getMainLog().resetNumberOfWarnings();
+		
+		// set strategy generation flag
+		try {
+			getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, generateStrategy.getState());
+		} catch (PrismException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+			
 		// Request a parse
 		verifyAfterReceiveParseNotification = true;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
@@ -871,6 +885,18 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				repaintList();
 				new GUIPropertyResultDialog(getGUI(), this, gp).display();
 			}
+		}
+		
+		// if strategy generation was enabled notifying the simulator
+		if(getPrism().getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && getPrism().getStrategy()!= null)
+		{
+			simulator.setStrategyGenerated(true);
+			simulator.setStrategy(getPrism().getStrategy());
+		}
+		else
+		{
+			simulator.setStrategyGenerated(false);
+			simulator.setStrategy(null);
 		}
 		
 		// For a single property with a displayable counterexample, offer to do show it
@@ -1084,6 +1110,11 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			t.setPriority(Thread.NORM_PRIORITY);
 			t.start();
 		}
+	}
+	
+	public void a_generateStrategy()
+	{
+		
 	}
 
 	//METHODS TO IMPLEMENT GUIPlugin INTERFACE
@@ -1635,6 +1666,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		//experiment
 		propertiesPopup.add(newExperiment);
 		propertiesPopup.add(details);
+		// strategies
+		strategiesMenu = new JMenu("Strategies");
+		strategiesMenu.setMnemonic('S');
+		strategiesMenu.setIcon(GUIPrism.getIconFromImage("smallStrategy.png"));
+		strategiesMenu.add(generateStrategy);
+		strategiesMenu.add(implementStrategy);
+		propertiesPopup.add(strategiesMenu);
+		// standard actions
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCutAction());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCopyAction());
@@ -1966,6 +2005,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		stopExperiment.putValue(Action.LONG_DESCRIPTION, "Stops the Experiment that is currently running");
 		stopExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStop.png"));
 		stopExperiment.setEnabled(false);
+		
+		generateStrategy = new JCheckBoxMenuItem("Generate strategy"); 
+		implementStrategy = new JCheckBoxMenuItem("Implement strategy");
+		
 	}
 
 	/**

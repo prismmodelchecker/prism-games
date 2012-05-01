@@ -99,6 +99,7 @@ public class PrismSettings implements Observer
 	public static final String PRISM_GAME_OPTIONS					= "prism.gameOptions";
 	public static final String PRISM_EXPORT_ADV					= "prism.exportAdv";
 	public static final String PRISM_EXPORT_ADV_FILENAME			= "prism.exportAdvFilename";
+	public static final String PRISM_GENERATE_STRATEGY				= "prism.generateStrategy";
 	
 	//Simulator
 	public static final String SIMULATOR_DEFAULT_NUM_SAMPLES		= "simulator.defaultNumSamples";
@@ -256,6 +257,8 @@ public class PrismSettings implements Observer
 																			"Type of adversary to generate and export during MDP model checking" },
 			{ STRING_TYPE,		PRISM_EXPORT_ADV_FILENAME,				"Adversary export filename",			"3.3",			"adv.tra",																	"",															
 																			"Name of file for MDP adversary export (if enabled)" },
+			{ BOOLEAN_TYPE,		PRISM_GENERATE_STRATEGY,				"GenerateStrategy",			"4.0.3",			new Boolean(false),																	"",															
+																			"Generates strategy when model checking" },
 		},
 		{
 			{ INTEGER_TYPE,		SIMULATOR_DEFAULT_NUM_SAMPLES,			"Default number of samples",			"4.0",		new Integer(1000),			"1,",

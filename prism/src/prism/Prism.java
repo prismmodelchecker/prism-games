@@ -35,6 +35,7 @@ import explicit.*;
 import odd.*;
 import mtbdd.*;
 import sparse.*;
+import strat.Strategy;
 import hybrid.*;
 import parser.*;
 import parser.ast.*;
@@ -202,6 +203,9 @@ public class Prism implements PrismSettingsListener
 	private explicit.Model currentModelExpl = null;
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
+	
+	// Info about the strategy that was generated
+	private strat.Strategy strategy;
 	
 	// Info for explicit files load
 	private File explicitFilesStatesFile = null;
@@ -1656,6 +1660,15 @@ public class Prism implements PrismSettingsListener
 	{
 		return currentModelExpl;
 	}
+	
+	/**
+	 * Get the currently stored strategy
+	 * @return
+	 */
+	public strat.Strategy getStrategy()
+	{
+		return strategy;
+	}
 
 	/**
 	 * Returns true if the current model is of a type that can be built (e.g. not a PTA).
@@ -2426,6 +2439,12 @@ public class Prism implements PrismSettingsListener
 			mc.setSettings(settings);
 			mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 			res = mc.check(currentModelExpl, prop.getExpression());
+			
+			// saving strategy if it was generated.
+			if(settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && mc instanceof explicit.ProbModelChecker)
+			{
+				strategy = ((explicit.ProbModelChecker)mc).getStrategy();
+			}
 		}
 
 		// Return result

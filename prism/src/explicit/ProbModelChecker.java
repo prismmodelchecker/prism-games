@@ -76,6 +76,7 @@ public class ProbModelChecker extends StateModelChecker
 	protected String exportAdvFilename;
 	protected Strategy strategy;
 
+
 	// Enums for flags/settings
 
 	// Method used for numerical solution
@@ -409,6 +410,11 @@ public class ProbModelChecker extends StateModelChecker
 		return solnMethod;
 	}
 
+	public Strategy getStrategy()
+	{
+		return strategy;
+	}
+	
 	// Model checking functions
 
 	@Override
