@@ -865,6 +865,13 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void a_verifySelected()
 	{
+		// check if strategy implementation is enabled
+		if (implementStrategy.isSelected()) {
+			int i = JOptionPane.showConfirmDialog(this,
+					"The property will be verified with respect to the given strategy. Do you want to continue?");
+			System.out.println(i);
+		}
+
 		consTable.correctEditors();
 		labTable.correctEditors();
 		// Bail out if there are no valid properties to verify
