@@ -406,6 +406,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				{
 					stateIds.put(stateslist.get(i), i);
 				}
+				showStrategyCheck.setSelected(true);
 			}
 			
 			// Insert path table
@@ -2165,8 +2166,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					case 0:
 						if(strategyGenerated && strategy != null && stateIds != null) {
 							Distribution dist = strategy.getNextMove(stateIds.get(engine.getCurrentState()));	
-							if(dist.contains(rowIndex))
-								return rowIndex + "->" + dist.get(rowIndex);
+							int choice = engine.getChoiceIndexOfTransition(rowIndex);
+							if(dist.contains(choice))
+								return choice + "->" + dist.get(choice);
 							else
 								return "x";
 							}

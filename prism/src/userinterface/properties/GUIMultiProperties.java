@@ -58,6 +58,7 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -146,7 +147,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private JLabel fileLabel;
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults,
-			exportResultsListText, exportResultsListCSV, exportResultsMatrixText, exportResultsMatrixCSV, simulate, details;
+			exportResultsListText, exportResultsListCSV, exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, 
+			exportStratProduct, exportStratPlain;
 	private JCheckBoxMenuItem generateStrategy, implementStrategy;
 	private JMenu strategiesMenu;
 	
@@ -1112,9 +1114,68 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 	
-	public void a_generateStrategy()
+	public void a_exportStratProduct()
 	{
+		// checking if everything is available
+		if(getPrism().getStrategy() == null)
+		{
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if(getPrism().getBuiltModelExplicit() == null)
+		{
+			JOptionPane.showMessageDialog(this, "No model is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+			
+		// creating filters
+		GUIPrismFileFilter[] filters = new GUIPrismFileFilter[1];
+		filters[0] = new GUIPrismFileFilter("Explicit representation *.tra file");
+		filters[0].addExtension("tra");
 		
+		// choosing file and exporting                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+		if (showSaveFileDialog(filters, filters[0]) == JFileChooser.APPROVE_OPTION) {
+			final File file = getChooserFile();
+			Thread t = new Thread(){
+				@Override
+				public void run()
+				{
+					try {
+						getPrism().getStrategy().buildProduct(getPrism().getBuiltModelExplicit()).exportToPrismExplicitTra(file);
+					} catch (PrismException e) {
+						JOptionPane.showMessageDialog(GUIMultiProperties.this, "Strategy export failed", "Cannot export", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			};
+			t.start();
+		}
+	}
+	
+	public void a_exportStratPlain()
+	{
+		if(getPrism().getStrategy() == null)
+		{
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
+		// creating filters
+		GUIPrismFileFilter[] filters = new GUIPrismFileFilter[1];
+		filters[0] = new GUIPrismFileFilter("Explicit representation *.adv file");
+		filters[0].addExtension("adv");
+		
+		// choosing file and exporting                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+		if (showSaveFileDialog(filters, filters[0]) == JFileChooser.APPROVE_OPTION) {
+			final File file = getChooserFile();
+			Thread t = new Thread(){
+				@Override
+				public void run()
+				{
+					getPrism().getStrategy().exportToFile(file.getAbsolutePath());
+				}
+			};
+			t.start();
+		}
 	}
 
 	//METHODS TO IMPLEMENT GUIPlugin INTERFACE
@@ -1666,13 +1727,21 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		//experiment
 		propertiesPopup.add(newExperiment);
 		propertiesPopup.add(details);
+		
 		// strategies
 		strategiesMenu = new JMenu("Strategies");
 		strategiesMenu.setMnemonic('S');
 		strategiesMenu.setIcon(GUIPrism.getIconFromImage("smallStrategy.png"));
 		strategiesMenu.add(generateStrategy);
 		strategiesMenu.add(implementStrategy);
+		JMenu stratExportMenu = new JMenu("Export strategy");
+		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
+		stratExportMenu.add(exportStratProduct);
+		stratExportMenu.add(exportStratPlain);
+		strategiesMenu.add(new JSeparator());
+		strategiesMenu.add(stratExportMenu);
 		propertiesPopup.add(strategiesMenu);
+		
 		// standard actions
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCutAction());
@@ -2008,6 +2077,26 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		
 		generateStrategy = new JCheckBoxMenuItem("Generate strategy"); 
 		implementStrategy = new JCheckBoxMenuItem("Implement strategy");
+		
+		exportStratProduct = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStratProduct();
+			}
+		};
+		exportStratProduct.putValue(Action.LONG_DESCRIPTION, "Export the product of the model and strategy to .tra file");
+		exportStratProduct.putValue(Action.NAME, "Export product .tra");
+		
+		exportStratPlain = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStratPlain();
+			}
+		};
+		exportStratPlain.putValue(Action.LONG_DESCRIPTION, "Export the strategy in default format");
+		exportStratPlain.putValue(Action.NAME, "Export strategy");
 		
 	}
 
