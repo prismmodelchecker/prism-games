@@ -72,10 +72,13 @@ public class ProbModelChecker extends StateModelChecker
 	// Method used for numerical solution
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Adversary export
-	protected boolean exportAdv = false;
+	//protected boolean exportAdv = false;
 	protected String exportAdvFilename;
-	protected Strategy strategy;
 
+	// Strategy generation
+	protected boolean generateStrategy = false;
+	protected boolean implementStrategy = false;
+	protected Strategy strategy = null;
 
 	// Enums for flags/settings
 
@@ -147,11 +150,12 @@ public class ProbModelChecker extends StateModelChecker
 	/**
 	 * Set settings from a PRISMSettings object.
 	 */
+	@Override
 	public void setSettings(PrismSettings settings) throws PrismException
 	{
 		if (settings == null)
 			return;
-		
+
 		String s;
 		// PRISM_LIN_EQ_METHOD
 		s = settings.getString(PrismSettings.PRISM_LIN_EQ_METHOD);
@@ -210,13 +214,17 @@ public class ProbModelChecker extends StateModelChecker
 		if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
 			throw new PrismException("The explicit engine does not support model checking MDPs under fairness");
 		}
-		
+
 		// PRISM_EXPORT_ADV
-		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
-		if (!(s.equals("None")))
-			setExportAdv(true);
+		//		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
+		//		if (!(s.equals("None")))
+		//			setExportAdv(true);
 		// PRISM_EXPORT_ADV_FILENAME
 		setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
+
+		// Strategy stuff
+		setGenerateStrategy(settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY));
+		setImplementStrategy(settings.getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY));
 	}
 
 	/**
@@ -343,16 +351,26 @@ public class ProbModelChecker extends StateModelChecker
 		this.solnMethod = solnMethod;
 	}
 
-	public void setExportAdv(boolean exportAdv)
-	{
-		this.exportAdv = exportAdv;
-	}
-	
+	//	public void setExportAdv(boolean exportAdv)
+	//	{
+	//		this.exportAdv = exportAdv;
+	//	}
+
 	public void setExportAdvFilename(String exportAdvFilename)
 	{
 		this.exportAdvFilename = exportAdvFilename;
 	}
-	
+
+	public void setGenerateStrategy(boolean b)
+	{
+		this.generateStrategy = b;
+	}
+
+	public void setImplementStrategy(boolean b)
+	{
+		this.implementStrategy = b;
+	}
+
 	// Get methods for flags/settings
 
 	public int getVerbosity()
@@ -414,7 +432,7 @@ public class ProbModelChecker extends StateModelChecker
 	{
 		return strategy;
 	}
-	
+
 	// Model checking functions
 
 	@Override
@@ -612,7 +630,8 @@ public class ProbModelChecker extends StateModelChecker
 					// max
 					min1 = false;
 				} else {
-					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+					throw new PrismException(
+							"Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
 				if (relOp.equals("minmin=")) {
@@ -631,7 +650,8 @@ public class ProbModelChecker extends StateModelChecker
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator() + " properties for " + modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator()
+						+ " properties for " + modelType + "s");
 			}
 		}
 
@@ -662,7 +682,7 @@ public class ProbModelChecker extends StateModelChecker
 		// Print out probabilities
 		if (getVerbosity() > 5) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
-			probs.print(mainLog);	
+			probs.print(mainLog);
 		}
 
 		// For =? properties, just return values
@@ -716,7 +736,8 @@ public class ProbModelChecker extends StateModelChecker
 					// max
 					min1 = false;
 				} else {
-					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+					throw new PrismException(
+							"Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
 				if (relOp.equals("minmin=")) {
@@ -735,7 +756,8 @@ public class ProbModelChecker extends StateModelChecker
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator() + " properties for " + modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator()
+						+ " properties for " + modelType + "s");
 			}
 		}
 

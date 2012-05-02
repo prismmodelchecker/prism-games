@@ -1,8 +1,5 @@
 package strat;
 
-import java.io.File;
-
-import prism.PrismException;
 import explicit.Distribution;
 import explicit.Model;
 
@@ -26,7 +23,8 @@ import explicit.Model;
  * @author aistis
  * 
  */
-public interface Strategy {
+public interface Strategy
+{
 
 	/**
 	 * Initialises memory based on a state
@@ -50,8 +48,7 @@ public interface Strategy {
 	 *             if memory update function is not defined for the given
 	 *             action, state and the current strategy's memory state.
 	 */
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException;
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException;
 
 	/**
 	 * Next move function
@@ -64,8 +61,7 @@ public interface Strategy {
 	 *             if next move function is undefined for the given state in
 	 *             current strategy's memory state.
 	 */
-	public Distribution getNextMove(int state)
-			throws InvalidStrategyStateException;
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	/**
 	 * Resets the strategy to uninitialised state
@@ -88,5 +84,32 @@ public interface Strategy {
 	 * 
 	 */
 	public Model buildProduct(Model model);
+
+	/**
+	 * Get textual description of the strategy
+	 *
+	 * @return the textual description of the strategy
+	 */
+	public String getInfo();
+
+	/**
+	 * Set textual description of the strategy
+	 *
+	 * @param info strategy information
+	 */
+	public void setInfo(String info);
+
+	/**
+	 * Returns the size of memory of the strategy.
+	 * @return size of memory
+	 */
+	public int getMemorySize();
+
+	/**
+	 * Returns strategy type
+	 *
+	 * @return type of the strategy
+	 */
+	public String getType();
 
 }

@@ -149,7 +149,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty,
 			newConstant, removeConstant, newLabel, removeLabel, newExperiment, deleteExperiment, stopExperiment,
 			viewResults, plotResults, exportResultsListText, exportResultsListCSV, exportResultsMatrixText,
-			exportResultsMatrixCSV, simulate, details, exportStratProduct, exportStratPlain;
+			exportResultsMatrixCSV, simulate, details, exportStratProduct, exportStratPlain, strategyInfo;
 	private JRadioButtonMenuItem generateStrategy, implementStrategy;
 	private JMenu strategiesMenu;
 
@@ -866,10 +866,33 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void a_verifySelected()
 	{
 		// check if strategy implementation is enabled
-		if (implementStrategy.isSelected()) {
-			int i = JOptionPane.showConfirmDialog(this,
-					"The property will be verified with respect to the given strategy. Do you want to continue?");
-			System.out.println(i);
+		if (implementStrategy.isSelected() && getPrism().getStrategy() != null) {
+			int n = JOptionPane
+					.showOptionDialog(
+							this,
+							"The property will be verified with respect to the strategy. Do you want to continue? Disable this option in Strategies menu.",
+							"Use strategy?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+							new String[] { "Yes", "No" }, "Yes");
+
+			// if no do nothing
+			if (n == 1)
+				return;
+
+			// set the settings option
+			try {
+				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
+			} catch (PrismException error) {
+				// TODO Auto-generated catch block
+				error.printStackTrace();
+			}
+		} else {
+			// disabling strategy implementation
+			try {
+				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
+			} catch (PrismException error) {
+				// TODO Auto-generated catch block
+				error.printStackTrace();
+			}
 		}
 
 		consTable.correctEditors();
@@ -914,13 +937,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		// if strategy generation was enabled notifying the simulator
 		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)
-				&& getPrism().getStrategy() != null) {
+				&& getPrism().getStrategy() != null
+				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) {
 			simulator.setStrategyGenerated(true);
 			simulator.setStrategy(getPrism().getStrategy());
-		} else {
-			simulator.setStrategyGenerated(false);
-			simulator.setStrategy(null);
 		}
+		//		} else {
+		//			simulator.setStrategyGenerated(false);
+		//			simulator.setStrategy(null);
+		//		}
 
 		// For a single property with a displayable counterexample, offer to do show it
 		if (selected.length == 1) {
@@ -1200,6 +1225,16 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				}
 			};
 			t.start();
+		}
+	}
+
+	public void a_showStrategyInfo()
+	{
+		if (getPrism().getStrategy() == null) {
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "No Strategy", JOptionPane.ERROR_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(this, getPrism().getStrategy().getInfo(), "Strategy info",
+					JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 
@@ -1761,23 +1796,29 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		strategiesMenu.setMnemonic('S');
 		strategiesMenu.setIcon(GUIPrism.getIconFromImage("smallStrategy.png"));
 
+		// add strategy info
+		strategiesMenu.add(strategyInfo);
+		strategiesMenu.add(new JSeparator());
+
 		//a group of radio button menu items
 		ButtonGroup group = new ButtonGroup();
 		JRadioButtonMenuItem none = new JRadioButtonMenuItem("Do nothing");
 		group.add(none);
 		group.add(generateStrategy);
 		group.add(implementStrategy);
-
 		strategiesMenu.add(none);
 		strategiesMenu.add(generateStrategy);
 		strategiesMenu.add(implementStrategy);
+
+		// adding export menu
+		strategiesMenu.add(new JSeparator());
 
 		JMenu stratExportMenu = new JMenu("Export strategy");
 		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
 		stratExportMenu.add(exportStratProduct);
 		stratExportMenu.add(exportStratPlain);
-		strategiesMenu.add(new JSeparator());
 		strategiesMenu.add(stratExportMenu);
+
 		propertiesPopup.add(strategiesMenu);
 
 		// standard actions
@@ -2129,6 +2170,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		stopExperiment.putValue(Action.LONG_DESCRIPTION, "Stops the Experiment that is currently running");
 		stopExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStop.png"));
 		stopExperiment.setEnabled(false);
+
+		strategyInfo = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_showStrategyInfo();
+			}
+		};
+		strategyInfo.putValue(Action.NAME, "Strategy info");
 
 		generateStrategy = new JRadioButtonMenuItem("Generate strategy");
 		implementStrategy = new JRadioButtonMenuItem("Implement strategy");

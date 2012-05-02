@@ -1,8 +1,8 @@
 package strat;
 
-import cern.colt.Arrays;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import cern.colt.Arrays;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
@@ -14,11 +14,14 @@ import explicit.Model;
  * @author aistis
  * 
  */
-public class MemorylessDeterministicStrategy implements Strategy {
+public class MemorylessDeterministicStrategy implements Strategy
+{
 
 	private Distribution[] choices;
+	private String info = "No information available.";
 
-	public MemorylessDeterministicStrategy(int[] choices) {
+	public MemorylessDeterministicStrategy(int[] choices)
+	{
 		this.choices = new Distribution[choices.length];
 		Distribution dist;
 		for (int i = 0; i < choices.length; i++) {
@@ -29,35 +32,37 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	}
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException {
+	public void init(int state) throws InvalidStrategyStateException
+	{
 		// do nothing
 	}
 
 	@Override
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException {
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	{
 		// do nothing
 	}
 
 	@Override
-	public Distribution getNextMove(int state)
-			throws InvalidStrategyStateException {
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	{
 
 		if (choices == null || state >= choices.length || state < 0)
-			throw new InvalidStrategyStateException(
-					"Strategy not defined for state " + state + ".");
+			throw new InvalidStrategyStateException("Strategy not defined for state " + state + ".");
 
 		return choices[state];
 	}
 
 	@Override
-	public void reset() {
+	public void reset()
+	{
 		// do nothing
 	}
 
 	@Override
-	public Model buildProduct(Model model) {
-		
+	public Model buildProduct(Model model)
+	{
+
 		// checking for supported model types
 		if (model instanceof MDPSimple) {
 			return this.buildProductMDPSimple((MDPSimple) model);
@@ -66,13 +71,13 @@ public class MemorylessDeterministicStrategy implements Strategy {
 			return this.buildProductMDPSparse((MDPSparse) model);
 		}
 
-		throw new UnsupportedOperationException(
-				"The product building is not supported for this class of models");
+		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 
 	}
 
 	@Override
-	public void exportToFile(String file) {
+	public void exportToFile(String file)
+	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
 		out.print("Adv:");
@@ -83,7 +88,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	}
 
 	@Override
-	public String toString() {
+	public String toString()
+	{
 		return Arrays.toString(choices);
 	}
 
@@ -93,7 +99,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @param model
 	 *            model
 	 */
-	public MDPSimple buildProductMDPSimple(MDPSimple model) {
+	public MDPSimple buildProductMDPSimple(MDPSimple model)
+	{
 		MDPSimple mdp = new MDPSimple(model);
 		int n = mdp.getNumStates();
 		int c;
@@ -129,16 +136,42 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @param model
 	 *            model
 	 */
-	public MDPSparse buildProductMDPSparse(MDPSparse model) {
+	public MDPSparse buildProductMDPSparse(MDPSparse model)
+	{
 		return new MDPSparse(buildProductMDPSimple(new MDPSimple(model)));
 	}
 
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public String getInfo()
+	{
+		return info;
+	}
+
+	@Override
+	public void setInfo(String info)
+	{
+		this.info = info;
+	}
+
+	@Override
+	public int getMemorySize()
+	{
+		return 0;
+	}
+
+	@Override
+	public String getType()
+	{
+		return "Memoryless deterministic";
 	}
 
 }
