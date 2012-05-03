@@ -42,13 +42,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JPopupMenu;
@@ -74,7 +73,6 @@ import prism.PrismSettings;
 import prism.PrismSettingsListener;
 import prism.PrismUtils;
 import prism.UndefinedConstants;
-import simulator.PathFull;
 import simulator.PathFullInfo;
 import simulator.SimulatorEngine;
 import simulator.networking.SimulatorNetworkHandler;
@@ -114,7 +112,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private boolean strategyGenerated = false;
 	private Strategy strategy = null;
 	private Map<State, Integer> stateIds = null;
-	private List<Object> strategyPath = null;
 
 	private GUISimulatorPathTableModel pathTableModel;
 	private UpdateTableModel updateTableModel;
@@ -299,11 +296,15 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		pathLengthLabel.setText(pathActive ? "" + engine.getPathSize() : "0");
 		totalTimeLabel.setText(pathActive ? formatDouble(engine.getTotalTimeForPath()) : "0");
+		if (strategyGenerated)
+			updateStrategyInfoPanel();
 	}
 
-	private void updateStrategy()
+	private void updateStrategyInfoPanel()
 	{
-		//PathFull pf = new PathFull
+		stratMemElem.setText(strategy.getCurrentMemoryElement() == null ? "-" : strategy.getCurrentMemoryElement()
+				.toString());
+		stratMemElem.repaint();
 	}
 
 	/**
@@ -457,9 +458,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Create a new path in the simulator and add labels/properties 
 			engine.createNewPath(parsedModel);
 			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
-			
-			
-			
+
 			// Update model/path/tables/lists
 			setPathActive(true);
 			pathTableModel.setPath(engine.getPathFull());
@@ -467,7 +466,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			pathTable.getSelectionModel().setSelectionInterval(0, 0);
 			updateTableModel.restartUpdatesTable();
 			repopulateFormulae(pf);
-			
+
 			// check if we need to initialise a strategy
 			if (strategyGenerated && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
@@ -481,25 +480,21 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					stateIds.put(stateslist.get(i), i);
 				}
 				showStrategyCheck.setSelected(true);
-				
-				// initialising strategy memory storage
-				strategyPath = new LinkedList<Object>();
-				
+
 				// resetting strategy
 				strategy.reset();
-				
+
 				// initialising strategy
 				try {
 					strategy.init(stateIds.get(engine.getPathFull().getCurrentState()));
+					updateStrategyInfoPanel();
 				} catch (InvalidStrategyStateException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
-				// storing strategies memory state
-				strategyPath.add(strategy.getCurrentMemoryElement());
+
 			}
-			
+
 			// Update display
 			repaintLists();
 			updatePathInfoAll(uCon);
@@ -540,6 +535,16 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			engine.automaticTransitions(noSteps, displayPathLoops);
 
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			int height = (int) pathTable.getPreferredSize().getHeight();
@@ -575,6 +580,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				engine.computeTransitionsForCurrentState();
 			}
 			engine.automaticTransitions(time, displayPathLoops);
+
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			int height = (int) pathTable.getPreferredSize().getHeight();
@@ -597,6 +613,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		try {
 			setComputing(true);
 			engine.backtrackTo(time);
+
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			updateTableModel.updateUpdatesTable();
@@ -615,6 +642,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		try {
 			setComputing(true);
 			engine.backtrackTo(step);
+
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			updateTableModel.updateUpdatesTable();
@@ -633,6 +671,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		try {
 			setComputing(true);
 			engine.backtrackTo(0);
+
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			updateTableModel.updateUpdatesTable();
@@ -650,6 +699,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		setComputing(true);
 		engine.removePrecedingStates(step);
+
+		// update strategy
+		if (strategyGenerated) {
+			try {
+				strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+			} catch (InvalidStrategyStateException error) {
+				// TODO Auto-generated catch block
+				error.printStackTrace();
+			}
+		}
+
 		// Update model/path/tables/lists
 		pathTableModel.updatePathTable();
 		updateTableModel.updateUpdatesTable();
@@ -687,21 +747,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			} else {
 				engine.manualTransition(currentUpdatesTable.getSelectedRow());
 			}
-			
-			// Update strategy
-			if(strategyGenerated)
-			{
-				// updating memory for single step
-				PathFull path = engine.getPathFull();
+
+			// update strategy
+			if (strategyGenerated) {
 				try {
-					strategy.updateMemory(path.getChoice(path.size()-1), stateIds.get(path.getCurrentState()));
-					System.out.println(path.getChoice(path.size()-1));
-				} catch (InvalidStrategyStateException e) {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					error.printStackTrace();
 				}
 			}
-			
+
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			int height = (int) pathTable.getPreferredSize().getHeight();
@@ -742,6 +798,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			// Load new path into the simulator 
 			engine.loadPath(parsedModel, pathNew);
+
+			// update strategy
+			if (strategyGenerated) {
+				try {
+					strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathSize()));
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+
 			// Update model/path/tables/lists
 			setPathActive(true);
 			pathTableModel.setPath(engine.getPathFull());
@@ -942,12 +1009,12 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		currentUpdatesTable.setEnabled(pathActive && !computing);
 		autoTimeCheck.setEnabled(pathActive && parsedModel != null && parsedModel.getModelType().continuousTime());
-		
-		if(!getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) 
+
+		if (!getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit"))
 			strategyGenerated = false;
 		showStrategyCheck.setEnabled(pathActive && parsedModel != null && strategyGenerated
 				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit"));
-		
+		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
 
 		//resetPathButton.setEnabled(pathActive && !computing);
 		//exportPathButton.setEnabled(pathActive && !computing);
@@ -1052,6 +1119,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		bottomPanel = new javax.swing.JPanel();
 		tableScroll = new javax.swing.JScrollPane();
 		pathTablePlaceHolder = new javax.swing.JPanel();
+
+		strategyInfoPanel = new javax.swing.JPanel();
+		innerStrategyInfoPanel = new javax.swing.JPanel();
+		stratMemElem = new JLabel("n/a");
 
 		innerButtonPanel.setLayout(new java.awt.GridLayout(2, 2, 10, 10));
 
@@ -1235,6 +1306,14 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		informationPanel.add(innerInformationPanel, java.awt.BorderLayout.NORTH);
 
 		tabbedPane.addTab("Path information", informationPanel);
+
+		strategyInfoPanel.setLayout(new java.awt.BorderLayout());
+		strategyInfoPanel.setMinimumSize(new java.awt.Dimension(211, 0));
+		strategyInfoPanel.add(innerStrategyInfoPanel, java.awt.BorderLayout.NORTH);
+		tabbedPane.addTab("Strategy information", strategyInfoPanel);
+		innerStrategyInfoPanel.setLayout(new java.awt.BorderLayout());
+		innerStrategyInfoPanel.add(new JLabel("Memory state:"), java.awt.BorderLayout.NORTH);
+		innerStrategyInfoPanel.add(stratMemElem, java.awt.BorderLayout.CENTER);
 
 		topSplit.setRightComponent(tabbedPane);
 
@@ -1836,6 +1915,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	public void setStrategyGenerated(boolean strategyGenerated)
 	{
 		this.strategyGenerated = strategyGenerated;
+		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
 	}
 
 	/**
@@ -2185,6 +2265,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	// End of variables declaration//GEN-END:variables
 
 	private javax.swing.JCheckBox showStrategyCheck;
+	private javax.swing.JPanel strategyInfoPanel, innerStrategyInfoPanel;
+	private javax.swing.JLabel stratMemElem;
 
 	public void sortOutColumnSizes()
 	{

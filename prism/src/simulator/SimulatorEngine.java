@@ -26,15 +26,36 @@
 
 package simulator;
 
-import java.util.*;
-import java.io.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import simulator.method.*;
-import simulator.sampler.*;
-import parser.*;
-import parser.ast.*;
-import parser.type.*;
-import prism.*;
+import parser.State;
+import parser.Values;
+import parser.VarList;
+import parser.ast.Expression;
+import parser.ast.ExpressionFilter;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionReward;
+import parser.ast.LabelList;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import parser.type.Type;
+import prism.ModelType;
+import prism.Prism;
+import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLangException;
+import prism.PrismLog;
+import prism.PrismUtils;
+import prism.ResultsCollection;
+import prism.UndefinedConstants;
+import simulator.method.SimulationMethod;
+import simulator.sampler.Sampler;
+import strat.InvalidStrategyStateException;
+import strat.Strategy;
 
 /**
  * A discrete event simulation engine for PRISM models.
@@ -117,6 +138,10 @@ public class SimulatorEngine
 	// Random number generator
 	private RandomNumberGenerator rng;
 
+	// strategy information
+	private Strategy strategy;
+	private Map<State, Integer> stateIds;
+
 	// ------------------------------------------------------------------------------
 	// Basic setup
 	// ------------------------------------------------------------------------------
@@ -146,6 +171,7 @@ public class SimulatorEngine
 		tmpTransitionRewards = null;
 		updater = null;
 		rng = new RandomNumberGenerator();
+		strategy = null;
 	}
 
 	/**
@@ -216,7 +242,11 @@ public class SimulatorEngine
 		}
 		updater.calculateStateRewards(currentState, tmpStateRewards);
 		// Initialise stored path
-		path.initialise(currentState, tmpStateRewards);
+		if (strategy == null)
+			path.initialise(currentState, tmpStateRewards);
+		else if (path instanceof PathFull)
+			((PathFull) path).initialise(currentState, tmpStateRewards, strategy.getCurrentMemoryElement());
+
 		// Reset transition list
 		transitionListBuilt = false;
 		transitionListState = null;
@@ -482,7 +512,7 @@ public class SimulatorEngine
 			state = nextState;
 		}
 	}
-	
+
 	// ------------------------------------------------------------------------------
 	// Methods for adding/querying labels and properties
 	// ------------------------------------------------------------------------------
@@ -699,7 +729,20 @@ public class SimulatorEngine
 		// Compute state rewards for new state 
 		updater.calculateStateRewards(currentState, tmpStateRewards);
 		// Update path
-		path.addStep(index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		if (strategy != null && path instanceof PathFull) {
+			// update strategy
+			try {
+				strategy.updateMemory(i, stateIds.get(currentState));
+			} catch (InvalidStrategyStateException error) {
+				//error.printStackTrace();
+				throw new PrismException("Strategy update failed");
+			}
+			((PathFull) path).addStep(index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState,
+					tmpStateRewards, transitions, strategy.getCurrentMemoryElement());
+		} else
+			path.addStep(index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState, tmpStateRewards,
+					transitions);
+
 		// Reset transition list 
 		transitionListBuilt = false;
 		transitionListState = null;
@@ -734,7 +777,19 @@ public class SimulatorEngine
 		// Compute state rewards for new state 
 		updater.calculateStateRewards(currentState, tmpStateRewards);
 		// Update path
-		path.addStep(time, index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		if (strategy != null && path instanceof PathFull) {
+			// update strategy
+			try {
+				strategy.updateMemory(i, stateIds.get(currentState));
+			} catch (InvalidStrategyStateException error) {
+				//error.printStackTrace();
+				throw new PrismException("Strategy update failed");
+			}
+			((PathFull) path).addStep(time, index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState,
+					tmpStateRewards, transitions, strategy.getCurrentMemoryElement());
+		} else
+			path.addStep(time, index, choice.getModuleOrActionIndex(), tmpTransitionRewards, currentState,
+					tmpStateRewards, transitions);
 		// Reset transition list 
 		transitionListBuilt = false;
 		transitionListState = null;
@@ -836,7 +891,7 @@ public class SimulatorEngine
 		}
 		return transitionList;
 	}
-	
+
 	/**
 	 * Returns the current number of available choices.
 	 */
@@ -1055,7 +1110,7 @@ public class SimulatorEngine
 	{
 		return (PathFull) path;
 	}
-	
+
 	/**
 	 * Get the value of a variable at a given step of the path.
 	 * (Not applicable for on-the-fly paths)
@@ -1233,7 +1288,7 @@ public class SimulatorEngine
 	{
 		return isPropertyOKForSimulationString(expr) == null;
 	}
-	
+
 	/**
 	 * Check whether a property is suitable for approximate model checking using the simulator.
 	 * If not, an explanatory error message is thrown as an exception.
@@ -1244,7 +1299,7 @@ public class SimulatorEngine
 		if (errMsg != null)
 			throw new PrismException(errMsg);
 	}
-	
+
 	/**
 	 * Check whether a property is suitable for approximate model checking using the simulator.
 	 * If yes, return null; if not, return an explanatory error message.
@@ -1254,7 +1309,8 @@ public class SimulatorEngine
 		// Simulator can only be applied to P or R properties (without filters)
 		if (!(expr instanceof ExpressionProb || expr instanceof ExpressionReward)) {
 			if (expr instanceof ExpressionFilter) {
-				if (((ExpressionFilter) expr).getOperand() instanceof ExpressionProb || ((ExpressionFilter) expr).getOperand() instanceof ExpressionReward)
+				if (((ExpressionFilter) expr).getOperand() instanceof ExpressionProb
+						|| ((ExpressionFilter) expr).getOperand() instanceof ExpressionReward)
 					return "Simulator cannot handle P or R properties with filters";
 			}
 			return "Simulator can only handle P or R properties";
@@ -1284,8 +1340,8 @@ public class SimulatorEngine
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-	public Object modelCheckSingleProperty(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, State initialState, int maxPathLength,
-			SimulationMethod simMethod) throws PrismException
+	public Object modelCheckSingleProperty(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr,
+			State initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
 		ArrayList<Expression> exprs;
 		Object res[];
@@ -1315,8 +1371,9 @@ public class SimulatorEngine
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-	public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
-			int maxPathLength, SimulationMethod simMethod) throws PrismException
+	public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, PropertiesFile propertiesFile,
+			List<Expression> exprs, State initialState, int maxPathLength, SimulationMethod simMethod)
+			throws PrismException
 	{
 		// Load model into simulator
 		createNewOnTheFlyPath(modulesFile);
@@ -1385,21 +1442,25 @@ public class SimulatorEngine
 		// Display results to log
 		if (results.length == 1) {
 			mainLog.print("\nSimulation method parameters: ");
-			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0]).getSimulationMethod().getParametersString());
+			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0])
+					.getSimulationMethod().getParametersString());
 			mainLog.print("\nSimulation result details: ");
-			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0]).getSimulationMethodResultExplanation());
+			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0])
+					.getSimulationMethodResultExplanation());
 			if (!(results[0] instanceof PrismException))
 				mainLog.println("\nResult: " + results[0]);
 		} else {
 			mainLog.println("\nSimulation method parameters:");
 			for (int i = 0; i < results.length; i++) {
 				mainLog.print(exprs.get(i) + " : ");
-				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethod().getParametersString());
+				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i])
+						.getSimulationMethod().getParametersString());
 			}
 			mainLog.println("\nSimulation result details:");
 			for (int i = 0; i < results.length; i++) {
 				mainLog.print(exprs.get(i) + " : ");
-				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethodResultExplanation());
+				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i])
+						.getSimulationMethodResultExplanation());
 			}
 			mainLog.println("\nResults:");
 			for (int i = 0; i < results.length; i++)
@@ -1429,8 +1490,9 @@ public class SimulatorEngine
 	 * @throws PrismException if something goes wrong with the sampling algorithm
 	 * @throws InterruptedException if the thread is interrupted
 	 */
-	public void modelCheckExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants,
-			ResultsCollection resultsCollection, Expression expr, State initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException,
+	public void modelCheckExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile,
+			UndefinedConstants undefinedConstants, ResultsCollection resultsCollection, Expression expr,
+			State initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException,
 			InterruptedException
 	{
 		// Load model into simulator
@@ -1512,15 +1574,18 @@ public class SimulatorEngine
 		mainLog.println("\nSimulation method parameters:");
 		for (int i = 0; i < results.length; i++) {
 			mainLog.print(pfcs[i] + " : ");
-			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethod().getParametersString());
+			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i])
+					.getSimulationMethod().getParametersString());
 		}
 		mainLog.println("\nSimulation result details:");
 		for (int i = 0; i < results.length; i++) {
 			mainLog.print(pfcs[i] + " : ");
-			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethodResultExplanation());
+			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i])
+					.getSimulationMethodResultExplanation());
 		}
 		mainLog.println("\nResults:");
-		mainLog.print(resultsCollection.toStringPartial(undefinedConstants.getMFConstantValues(), true, " ", " : ", false));
+		mainLog.print(resultsCollection.toStringPartial(undefinedConstants.getMFConstantValues(), true, " ", " : ",
+				false));
 	}
 
 	/**
@@ -1636,9 +1701,10 @@ public class SimulatorEngine
 			stop = System.currentTimeMillis();
 			time_taken = (stop - start) / 1000.0;
 			mainLog.print("\nSampling complete: ");
-			mainLog.print(iters + " iterations in " + time_taken + " seconds (average " + PrismUtils.formatDouble(2, time_taken / iters) + ")\n");
-			mainLog.print("Path length statistics: average " + PrismUtils.formatDouble(2, avgPathLength) + ", min " + minPathFound + ", max " + maxPathFound
-					+ "\n");
+			mainLog.print(iters + " iterations in " + time_taken + " seconds (average "
+					+ PrismUtils.formatDouble(2, time_taken / iters) + ")\n");
+			mainLog.print("Path length statistics: average " + PrismUtils.formatDouble(2, avgPathLength) + ", min "
+					+ minPathFound + ", max " + maxPathFound + "\n");
 		} else {
 			mainLog.print(" ...\n\nSampling terminated early after " + iters + " iterations.\n");
 		}
@@ -1666,5 +1732,22 @@ public class SimulatorEngine
 	public void stopSampling()
 	{
 		// TODO
+	}
+
+	/**
+	 * Update strategy reference
+	 *
+	 * @param strategy
+	 */
+	public void setStrategy(Strategy strategy)
+	{
+		this.strategy = strategy;
+		if (strategy != null) {
+			stateIds = new HashMap<State, Integer>();
+			java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
+			for (int i = 0; i < stateslist.size(); i++) {
+				stateIds.put(stateslist.get(i), i);
+			}
+		}
 	}
 }

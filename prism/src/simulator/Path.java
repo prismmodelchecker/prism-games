@@ -34,7 +34,7 @@ import parser.State;
 public abstract class Path
 {
 	// MUTATORS
-	
+
 	/**
 	 * Initialise the path with an initial state and rewards.
 	 * Note: State object and array will be copied, not stored directly.
@@ -45,13 +45,15 @@ public abstract class Path
 	 * Add a step to the path.
 	 * Note: State object and arrays will be copied, not stored directly.
 	 */
-	public abstract void addStep(int choice, int actionIndex, double[] transRewards, State newState, double[] newStateRewards, TransitionList transitionList);
+	public abstract void addStep(int choice, int actionIndex, double[] transRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList);
 
 	/**
 	 * Add a timed step to the path.
 	 * Note: State object and arrays will be copied, not stored directly.
 	 */
-	public abstract void addStep(double time, int choice, int actionIndex, double[] transRewards, State newState, double[] newStateRewards, TransitionList transitionList);
+	public abstract void addStep(double time, int choice, int actionIndex, double[] transRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList);
 
 	// ACCESSORS
 
@@ -81,26 +83,26 @@ public abstract class Path
 	 * For discrete-time models, just returns 0.0.
 	 */
 	public abstract double getTotalTime();
-	
+
 	/**
 	 * For paths with continuous-time info, get the time spent in the previous state.
 	 */
 	public abstract double getTimeInPreviousState();
-	
+
 	/**
 	 * Get the total reward accumulated so far
 	 * (includes reward for previous transition but no state reward for current (final) state).
 	 * @param rsi Reward structure index
 	 */
 	public abstract double getTotalCumulativeReward(int rsi);
-	
+
 	/**
 	 * Get the state reward for the previous state.
 	 * (For continuous-time models, need to multiply this by time spent in the state.)
 	 * @param rsi Reward structure index
 	 */
 	public abstract double getPreviousStateReward(int rsi);
-	
+
 	/**
 	 * Get the transition reward for the transition between the previous and current states.
 	 * @param rsi Reward structure index
@@ -113,17 +115,17 @@ public abstract class Path
 	 * @param rsi Reward structure index
 	 */
 	public abstract double getCurrentStateReward(int rsi);
-	
+
 	/**
 	 * Does the path contain a deterministic loop?
 	 */
 	public abstract boolean isLooping();
-	
+
 	/**
 	 * What is the step index of the start of the deterministic loop, if it exists?
 	 */
 	public abstract int loopStart();
-	
+
 	/**
 	 * What is the step index of the end of the deterministic loop, if it exists?
 	 */

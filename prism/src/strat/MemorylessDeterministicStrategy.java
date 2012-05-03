@@ -41,6 +41,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
 		// do nothing
+		//System.out.println("memory update initiated");
 	}
 
 	@Override
@@ -175,13 +176,17 @@ public class MemorylessDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public Object getCurrentMemoryElement() {
+	public Object getCurrentMemoryElement()
+	{
+		//System.out.println("Memory element requested");
 		return null;
 	}
 
 	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException {
+	public void setMemory(Object memory) throws InvalidStrategyStateException
+	{
 		// do nothing
+		//System.out.println("Set memory element");
 	}
 
 }

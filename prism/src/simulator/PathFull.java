@@ -28,8 +28,8 @@ package simulator;
 
 import java.util.ArrayList;
 
-import parser.*;
-import parser.ast.*;
+import parser.State;
+import parser.ast.ModulesFile;
 import prism.PrismException;
 import prism.PrismLog;
 
@@ -46,12 +46,12 @@ public class PathFull extends Path implements PathFullInfo
 	private boolean continuousTime;
 	// Model info/stats
 	private int numRewardStructs;
-	
+
 	// The path, i.e. list of states, etc.
 	private ArrayList<Step> steps;
 	// The path length (just for convenience; equal to steps.size() - 1)
 	private int size;
-	
+
 	// Loop detector for path
 	protected LoopDetector loopDet;
 
@@ -102,14 +102,31 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.initialise();
 	}
 
+	// Overloaded method including strategy state
+	public void initialise(State initialState, double[] initialStateRewards, Object stratState)
+	{
+		initialise(initialState, initialStateRewards);
+		steps.get(steps.size() - 1).stratState = stratState;
+	}
+
 	@Override
-	public void addStep(int choice, int moduleOrActionIndex, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList)
+	public void addStep(int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList)
 	{
 		addStep(0.0, choice, moduleOrActionIndex, transitionRewards, newState, newStateRewards, transitionList);
 	}
 
+	// Overloaded version with strategy state
+	public void addStep(int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList, Object stratState)
+	{
+		addStep(0.0, choice, moduleOrActionIndex, transitionRewards, newState, newStateRewards, transitionList,
+				stratState);
+	}
+
 	@Override
-	public void addStep(double time, int choice, int moduleOrActionIndex, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList)
+	public void addStep(double time, int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList)
 	{
 		Step stepOld, stepNew;
 		// Add info to last existing step
@@ -140,8 +157,16 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.addStep(this, transitionList);
 	}
 
+	// Overloaded version including strategy state
+	public void addStep(double time, int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList, Object stratState)
+	{
+		addStep(time, choice, moduleOrActionIndex, transitionRewards, newState, newStateRewards, transitionList);
+		steps.get(steps.size() - 1).stratState = stratState;
+	}
+
 	// MUTATORS (additional)
-	
+
 	/**
 	 * Backtrack to a particular step within the current path.
 	 * @param step The step of the path to backtrack to (step >= 0)
@@ -165,7 +190,7 @@ public class PathFull extends Path implements PathFullInfo
 		// Update loop detector
 		loopDet.backtrack(this);
 	}
-	
+
 	/**
 	 * Remove the prefix of the current path up to the given path step.
 	 * Index step should be >=0 and <= the total path size. 
@@ -175,7 +200,7 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		int i, j, numKeep, sizeOld;
 		double timeCumul, rewardsCumul[];
-		
+
 		// Ignore trivial case
 		if (step == 0)
 			return;
@@ -203,7 +228,7 @@ public class PathFull extends Path implements PathFullInfo
 		// Update loop detector
 		loopDet.removePrecedingStates(this, step);
 	}
-	
+
 	// ACCESSORS (for Path (and some of PathFullInfo))
 
 	@Override
@@ -211,7 +236,7 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		return continuousTime;
 	}
-	
+
 	@Override
 	public int size()
 	{
@@ -247,43 +272,43 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		return steps.get(steps.size() - 1).rewardsCumul[rsi];
 	}
-	
+
 	@Override
 	public double getPreviousStateReward(int rsi)
 	{
 		return steps.get(steps.size() - 2).stateRewards[rsi];
 	}
-	
+
 	@Override
 	public double getPreviousTransitionReward(int rsi)
 	{
 		return steps.get(steps.size() - 2).transitionRewards[rsi];
 	}
-	
+
 	@Override
 	public double getCurrentStateReward(int rsi)
 	{
 		return steps.get(steps.size() - 1).stateRewards[rsi];
 	}
-	
+
 	@Override
 	public boolean isLooping()
 	{
 		return loopDet.isLooping();
 	}
-	
+
 	@Override
 	public int loopStart()
 	{
 		return loopDet.loopStart();
 	}
-	
+
 	@Override
 	public int loopEnd()
 	{
 		return loopDet.loopEnd();
 	}
-	
+
 	// ACCESSORS (for PathFullInfo)
 
 	/**
@@ -383,33 +408,38 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		return true;
 	}
-	
+
 	@Override
 	public boolean hasChoiceInfo()
 	{
 		return true;
 	}
-	
+
 	@Override
 	public boolean hasActionInfo()
 	{
 		return true;
 	}
-	
+
 	@Override
 	public boolean hasTimeInfo()
 	{
 		return true;
 	}
-	
+
 	@Override
 	public boolean hasLoopInfo()
 	{
 		return true;
 	}
-	
+
+	public Object getStrategyState(int step)
+	{
+		return steps.get(step).stratState;
+	}
+
 	// Other methods
-	
+
 	/**
 	 * Export path to a file.
 	 * @param log PrismLog to which the path should be exported to.
@@ -417,7 +447,8 @@ public class PathFull extends Path implements PathFullInfo
 	 * @param colSep String used to separate columns in display
 	 * @param vars Restrict printing to these variables (indices) and steps which change them (ignore if null)
 	 */
-	public void exportToLog(PrismLog log, boolean timeCumul, String colSep, ArrayList<Integer> vars) throws PrismException
+	public void exportToLog(PrismLog log, boolean timeCumul, String colSep, ArrayList<Integer> vars)
+			throws PrismException
 	{
 		int i, j, n, nv;
 		double d, t;
@@ -540,7 +571,9 @@ public class PathFull extends Path implements PathFullInfo
 			choice = -1;
 			moduleOrActionIndex = 0;
 			transitionRewards = new double[numRewardStructs];
+			stratState = null;
 		}
+
 		// Current state (before transition)
 		public State state;
 		// State rewards for current state
@@ -558,5 +591,7 @@ public class PathFull extends Path implements PathFullInfo
 		public int moduleOrActionIndex;
 		// Transition rewards associated with step
 		public double transitionRewards[];
+		// Strategy state
+		public Object stratState;
 	}
 }
