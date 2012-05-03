@@ -174,4 +174,14 @@ public class MemorylessDeterministicStrategy implements Strategy
 		return "Memoryless deterministic";
 	}
 
+	@Override
+	public Object getCurrentMemoryElement() {
+		return null;
+	}
+
+	@Override
+	public void setMemory(Object memory) throws InvalidStrategyStateException {
+		// do nothing
+	}
+
 }

@@ -111,5 +111,19 @@ public interface Strategy
 	 * @return type of the strategy
 	 */
 	public String getType();
+	
+	/**
+	 * Returns the current memory element that fully describes state of the strategy
+	 * @return
+	 */
+	public Object getCurrentMemoryElement();
+	
+	/**
+	 * Updates the strategy's state to the one provided
+	 * 
+	 * @param memory memory element representing the state of the strategy
+	 * @throws InvalidStrategyStateException if the memory element is not recognised by the strategy
+	 */
+	public void setMemory(Object memory) throws InvalidStrategyStateException;
 
 }

@@ -42,6 +42,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
@@ -72,6 +74,7 @@ import prism.PrismSettings;
 import prism.PrismSettingsListener;
 import prism.PrismUtils;
 import prism.UndefinedConstants;
+import simulator.PathFull;
 import simulator.PathFullInfo;
 import simulator.SimulatorEngine;
 import simulator.networking.SimulatorNetworkHandler;
@@ -111,6 +114,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private boolean strategyGenerated = false;
 	private Strategy strategy = null;
 	private Map<State, Integer> stateIds = null;
+	private List<Object> strategyPath = null;
 
 	private GUISimulatorPathTableModel pathTableModel;
 	private UpdateTableModel updateTableModel;
@@ -445,6 +449,25 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
+			// Insert path table
+			tableScroll.setViewportView(pathTable);
+
+			displayPathLoops = true;
+
+			// Create a new path in the simulator and add labels/properties 
+			engine.createNewPath(parsedModel);
+			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
+			
+			
+			
+			// Update model/path/tables/lists
+			setPathActive(true);
+			pathTableModel.setPath(engine.getPathFull());
+			pathTableModel.restartPathTable();
+			pathTable.getSelectionModel().setSelectionInterval(0, 0);
+			updateTableModel.restartUpdatesTable();
+			repopulateFormulae(pf);
+			
 			// check if we need to initialise a strategy
 			if (strategyGenerated && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
@@ -458,23 +481,25 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					stateIds.put(stateslist.get(i), i);
 				}
 				showStrategyCheck.setSelected(true);
+				
+				// initialising strategy memory storage
+				strategyPath = new LinkedList<Object>();
+				
+				// resetting strategy
+				strategy.reset();
+				
+				// initialising strategy
+				try {
+					strategy.init(stateIds.get(engine.getPathFull().getCurrentState()));
+				} catch (InvalidStrategyStateException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				// storing strategies memory state
+				strategyPath.add(strategy.getCurrentMemoryElement());
 			}
-
-			// Insert path table
-			tableScroll.setViewportView(pathTable);
-
-			displayPathLoops = true;
-
-			// Create a new path in the simulator and add labels/properties 
-			engine.createNewPath(parsedModel);
-			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
-			// Update model/path/tables/lists
-			setPathActive(true);
-			pathTableModel.setPath(engine.getPathFull());
-			pathTableModel.restartPathTable();
-			pathTable.getSelectionModel().setSelectionInterval(0, 0);
-			updateTableModel.restartUpdatesTable();
-			repopulateFormulae(pf);
+			
 			// Update display
 			repaintLists();
 			updatePathInfoAll(uCon);
@@ -662,6 +687,21 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			} else {
 				engine.manualTransition(currentUpdatesTable.getSelectedRow());
 			}
+			
+			// Update strategy
+			if(strategyGenerated)
+			{
+				// updating memory for single step
+				PathFull path = engine.getPathFull();
+				try {
+					strategy.updateMemory(path.getChoice(path.size()-1), stateIds.get(path.getCurrentState()));
+					System.out.println(path.getChoice(path.size()-1));
+				} catch (InvalidStrategyStateException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 			int height = (int) pathTable.getPreferredSize().getHeight();
@@ -902,8 +942,12 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		currentUpdatesTable.setEnabled(pathActive && !computing);
 		autoTimeCheck.setEnabled(pathActive && parsedModel != null && parsedModel.getModelType().continuousTime());
+		
+		if(!getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) 
+			strategyGenerated = false;
 		showStrategyCheck.setEnabled(pathActive && parsedModel != null && strategyGenerated
 				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit"));
+		
 
 		//resetPathButton.setEnabled(pathActive && !computing);
 		//exportPathButton.setEnabled(pathActive && !computing);
