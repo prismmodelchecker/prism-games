@@ -46,8 +46,8 @@ import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JPopupMenu;
@@ -302,8 +302,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	private void updateStrategyInfoPanel()
 	{
-		stratMemElem.setText(strategy.getCurrentMemoryElement() == null ? "-" : strategy.getCurrentMemoryElement()
-				.toString());
+		if (strategy != null)
+			stratMemElem.setText(strategy.getStateDescription());
 		stratMemElem.repaint();
 	}
 
@@ -1122,7 +1122,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		strategyInfoPanel = new javax.swing.JPanel();
 		innerStrategyInfoPanel = new javax.swing.JPanel();
-		stratMemElem = new JLabel("n/a");
+		stratMemElem = new JEditorPane();
 
 		innerButtonPanel.setLayout(new java.awt.GridLayout(2, 2, 10, 10));
 
@@ -1312,8 +1312,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		strategyInfoPanel.add(innerStrategyInfoPanel, java.awt.BorderLayout.NORTH);
 		tabbedPane.addTab("Strategy information", strategyInfoPanel);
 		innerStrategyInfoPanel.setLayout(new java.awt.BorderLayout());
-		innerStrategyInfoPanel.add(new JLabel("Memory state:"), java.awt.BorderLayout.NORTH);
-		innerStrategyInfoPanel.add(stratMemElem, java.awt.BorderLayout.CENTER);
+		//		innerStrategyInfoPanel.setMinimumSize(new java.awt.Dimension(400, 400));
+		//		stratMemElem.setMinimumSize(new java.awt.Dimension(400, 400));
+		stratMemElem.setEditable(false);
+		innerStrategyInfoPanel.add(stratMemElem);
 
 		topSplit.setRightComponent(tabbedPane);
 
@@ -2266,7 +2268,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	private javax.swing.JCheckBox showStrategyCheck;
 	private javax.swing.JPanel strategyInfoPanel, innerStrategyInfoPanel;
-	private javax.swing.JLabel stratMemElem;
+	private JEditorPane stratMemElem;
 
 	public void sortOutColumnSizes()
 	{

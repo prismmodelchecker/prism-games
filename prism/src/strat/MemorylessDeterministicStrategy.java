@@ -189,4 +189,18 @@ public class MemorylessDeterministicStrategy implements Strategy
 		//System.out.println("Set memory element");
 	}
 
+	/**
+	 *
+	 * @return
+	 */
+	@Override
+	public String getStateDescription()
+	{
+		String desc = "";
+		desc += "Memoryless deterministic strategy\n";
+		desc += "Size of memory: 0\n";
+		desc += "Size of choice function: " + choices.length + "\n";
+		return desc;
+	}
+
 }
