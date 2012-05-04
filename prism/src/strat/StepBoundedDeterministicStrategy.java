@@ -3,8 +3,9 @@ package strat;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import explicit.Distribution;
+import explicit.Model;
 
-public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
+public class StepBoundedDeterministicStrategy implements Strategy
 {
 
 	// memory: the number of steps currently made
@@ -16,6 +17,9 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
 	// choices of a strategy
 	private int[][] choices;
 	private int chSize;
+
+	// information
+	private String info = "No information available";
 
 	/**
 	 * Initialises the strategy
@@ -178,6 +182,48 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
 			System.out.println(strat.getNextMove(0) + ", " + strat.getNextMove(1));
 			strat.updateMemory(0, 0);
 		}
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	@Override
+	public Model buildProduct(Model model)
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	@Override
+	public String getInfo()
+	{
+		return info;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	@Override
+	public String getType()
+	{
+		return "Finite memory strategy";
+	}
+
+	/**
+	 *
+	 * @param info
+	 */
+	@Override
+	public void setInfo(String info)
+	{
+		this.info = info;
 	}
 
 }
