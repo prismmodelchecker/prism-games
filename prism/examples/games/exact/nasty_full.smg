@@ -32,5 +32,5 @@ module foo
 	
 endmodule
 
-label "T" = s=3;
-label "Z" = s=4;
+label "T1" = s=3;
+label "T2" = s=4;
