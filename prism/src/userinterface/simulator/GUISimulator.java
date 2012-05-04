@@ -459,14 +459,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			engine.createNewPath(parsedModel);
 			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
 
-			// Update model/path/tables/lists
-			setPathActive(true);
-			pathTableModel.setPath(engine.getPathFull());
-			pathTableModel.restartPathTable();
-			pathTable.getSelectionModel().setSelectionInterval(0, 0);
-			updateTableModel.restartUpdatesTable();
-			repopulateFormulae(pf);
-
 			// check if we need to initialise a strategy
 			if (strategyGenerated && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
@@ -484,16 +476,24 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				// resetting strategy
 				strategy.reset();
 
-				// initialising strategy
-				try {
-					strategy.init(stateIds.get(engine.getPathFull().getCurrentState()));
-					updateStrategyInfoPanel();
-				} catch (InvalidStrategyStateException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
+				//				// initialising strategy
+				//				try {
+				//					strategy.init(stateIds.get(new parser.State(initialState, parsedModel)));
+				//					updateStrategyInfoPanel();
+				//				} catch (InvalidStrategyStateException e) {
+				//					// TODO Auto-generated catch block
+				//					e.printStackTrace();
+				//				}
+				updateStrategyInfoPanel();
 			}
+
+			// Update model/path/tables/lists
+			setPathActive(true);
+			pathTableModel.setPath(engine.getPathFull());
+			pathTableModel.restartPathTable();
+			pathTable.getSelectionModel().setSelectionInterval(0, 0);
+			updateTableModel.restartUpdatesTable();
+			repopulateFormulae(pf);
 
 			// Update display
 			repaintLists();

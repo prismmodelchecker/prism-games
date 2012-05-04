@@ -2,7 +2,8 @@ package strat;
 
 import explicit.Distribution;
 
-public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy {
+public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
+{
 
 	// memory: the number of steps currently made
 	private int memory;
@@ -23,7 +24,8 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy {
 	 *            where ck represents the choice to be made by the strategy when
 	 *            B-k steps have elapsed.
 	 */
-	public StepBoundedDeterministicStrategy(int[][] choices, int bound) {
+	public StepBoundedDeterministicStrategy(int[][] choices, int bound)
+	{
 		this.choices = choices;
 
 		if (bound < 0)
@@ -33,8 +35,9 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy {
 
 		// computing the size of the choice function and validating the format
 		chSize = 0;
-		int prev = -1;
-		for (int i = 0; i < choices.length; i++)
+		int prev;
+		for (int i = 0; i < choices.length; i++) {
+			prev = bound;
 			for (int j = 0; j < choices[i].length; j++) {
 				chSize++;
 
@@ -57,27 +60,31 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy {
 					if (choices[i][j] > prev)
 						throw new IllegalArgumentException(
 								"The format of choices is invalid: pivots have to be in decreasing order.");
+					else
+						prev = choices[i][j];
 			}
+		}
 	}
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException {
+	public void init(int state) throws InvalidStrategyStateException
+	{
 		memory = bound;
 	}
 
 	@Override
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException {
-		memory--;
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	{
+		if (memory > 0)
+			memory--;
 	}
 
 	@Override
-	public Distribution getNextMove(int state)
-			throws InvalidStrategyStateException {
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	{
 
 		if (state > choices.length)
-			throw new InvalidStrategyStateException(
-					"The strategy undefined for state " + state + ".");
+			throw new InvalidStrategyStateException("The strategy undefined for state " + state + ".");
 
 		// determining the action
 		int[] actions = choices[state];
@@ -95,51 +102,55 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy {
 	}
 
 	@Override
-	public void reset() {
+	public void reset()
+	{
 		memory = bound;
 	}
 
 	@Override
-	public int getMemorySize() {
+	public int getMemorySize()
+	{
+		return bound;
+	}
+
+	@Override
+	public Object getCurrentMemoryElement()
+	{
 		return memory;
 	}
 
 	@Override
-	public Object getCurrentMemoryElement() {
-		return memory;
-	}
-
-	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException {
+	public void setMemory(Object memory) throws InvalidStrategyStateException
+	{
 		if (memory instanceof Integer) {
 			this.memory = (Integer) memory;
 		} else {
-			throw new InvalidStrategyStateException(
-					"Memory has to integer for this strategy.");
+			throw new InvalidStrategyStateException("Memory has to integer for this strategy.");
 		}
 	}
 
 	@Override
-	public String getStateDescription() {
+	public String getStateDescription()
+	{
 		String desc = "";
 		desc += "Finite memory deterministic strategy\n";
 		desc += "Size of memory: " + bound + "\n";
 		desc += "Size of next move function: " + chSize + " \n";
+		desc += "Memory state: " + memory;
 		return desc;
 	}
 
-	public static void main(String[] args) throws InvalidStrategyStateException {
+	public static void main(String[] args) throws InvalidStrategyStateException
+	{
 		int[][] choices = { { 30, 1, 28, 2 }, { 25, 1, 24, 2 } };
 		int bound = 25;
-		
-		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(
-				choices, bound);
+
+		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(choices, bound);
 		strat.init(0);
 
 		for (int i = 0; i < 25; i++) {
 			System.out.println("i = " + i);
-			System.out.println(strat.getNextMove(0) + ", "
-					+ strat.getNextMove(1));
+			System.out.println(strat.getNextMove(0) + ", " + strat.getNextMove(1));
 			strat.updateMemory(0, 0);
 		}
 	}
