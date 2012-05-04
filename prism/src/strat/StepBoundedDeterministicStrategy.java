@@ -1,8 +1,14 @@
 package strat;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import parser.State;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import explicit.Distribution;
+import explicit.MDPSimple;
+import explicit.MDPSparse;
 import explicit.Model;
 
 public class StepBoundedDeterministicStrategy implements Strategy
@@ -149,7 +155,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	@Override
 	public void exportToFile(String file)
 	{
-		System.out.println("Printing strategy");
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
 		out.print("// Strategy for step-bounded properties\n");
@@ -186,18 +191,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 
 	/**
 	 *
-	 * @param model
-	 * @return
-	 */
-	@Override
-	public Model buildProduct(Model model)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 *
 	 * @return
 	 */
 	@Override
@@ -226,4 +219,93 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		this.info = info;
 	}
 
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	@Override
+	public Model buildProduct(Model model)
+	{
+		// checking for supported model types
+		if (model instanceof MDPSimple) {
+			return this.buildProductMDPSimple((MDPSimple) model);
+		}
+		if (model instanceof MDPSparse) {
+			return this.buildProductMDPSparse((MDPSparse) model);
+		}
+
+		throw new UnsupportedOperationException("The product building is not supported for this class of models");
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	private Model buildProductMDPSparse(MDPSparse model)
+	{
+		return new MDPSparse(buildProductMDPSimple(new MDPSimple(model)));
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	private MDPSimple buildProductMDPSimple(MDPSimple model)
+	{
+		// construct a new MDP of size ModelSize * MemorySize
+		MDPSimple mdp = new MDPSimple(model.getStatesList().size() * bound);
+		int n = mdp.getNumStates();
+
+		List<State> oldStates = model.getStatesList();
+
+		// creating helper states for constructing the product
+		State[] mem = new State[bound];
+		for (int i = bound; i >= 1; i--) {
+			mem[bound - i] = new State(1);
+			mem[bound - i].setValue(0, i);
+		}
+
+		// creating product state list
+		List<State> newStates = new ArrayList<State>(n);
+		for (int j = 0; j < bound; j++)
+			for (int i = 0; i < oldStates.size(); i++)
+				newStates.add(new State(oldStates.get(i), mem[j]));
+
+		// setting the states list to MDP
+		mdp.setStatesList(newStates);
+
+		// adding choices for the product MDP
+
+		// adding transitions to the state with the next memory element 
+		Distribution distr, newDistr;
+		for (int j = bound; j >= 1; j--) {
+			// setting memory 
+			this.memory = j;
+			for (int i = 0; i < oldStates.size(); i++) {
+				// retrieving choice chosen by the optimal strategy
+				try {
+					distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
+
+					// create a new distribution for the product
+					newDistr = new Distribution();
+					for (Integer succ : distr.keySet())
+						// adding transition to the state with the memory element one larger smaller than the current one (j)
+						// except for the case where j==1, when we add transition to the same
+						newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + i, distr.get(succ));
+
+					// adding the choice
+					mdp.addChoice(oldStates.size() * (bound - j) + i, newDistr);
+
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+			}
+		}
+
+		return mdp;
+	}
 }

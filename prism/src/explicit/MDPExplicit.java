@@ -27,14 +27,18 @@
 
 package explicit;
 
-import java.util.*;
-import java.io.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 
-import explicit.rewards.MDPRewards;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import explicit.rewards.MDPRewards;
 
 /**
  * Base class for explicit-state representations of an MDP.
@@ -56,7 +60,8 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		s += ", " + getNumTransitions() + " transitions";
 		s += ", " + getNumChoices() + " choices";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates);
+		s += ", dist max/avg = " + getMaxNumChoices() + "/"
+				+ PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates);
 		return s;
 	}
 
@@ -67,7 +72,8 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
 		s += "Transitions: " + getNumTransitions() + "\n";
 		s += "Choices:     " + getNumChoices() + "\n";
-		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates) + "\n";
+		s += "Max/avg:     " + getMaxNumChoices() + "/"
+				+ PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates) + "\n";
 		return s;
 	}
 
@@ -99,6 +105,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 				sorted.clear();
 			}
 		}
+		out.flush();
 	}
 
 	@Override
@@ -280,7 +287,8 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset,
+			boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
@@ -297,7 +305,8 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 	}
 
 	@Override
-	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute)
+	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset,
+			boolean complement, boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;

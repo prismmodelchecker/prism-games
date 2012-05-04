@@ -27,13 +27,20 @@
 
 package explicit;
 
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.io.*;
 
-import explicit.rewards.MDPRewards;
 import prism.PrismException;
 import prism.PrismUtils;
+import explicit.rewards.MDPRewards;
 
 /**
  * Simple explicit-state representation of an MDP. The implementation is far
@@ -41,7 +48,8 @@ import prism.PrismUtils;
  * is, however, easy to manipulate. For a static model (i.e. one that does not
  * change after creation), consider MDPSparse, which is more efficient.
  */
-public class MDPSimple extends MDPExplicit implements ModelSimple {
+public class MDPSimple extends MDPExplicit implements ModelSimple
+{
 	// Transition function (Steps)
 	protected List<List<Distribution>> trans;
 
@@ -64,21 +72,24 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	/**
 	 * Constructor: empty MDP.
 	 */
-	public MDPSimple() {
+	public MDPSimple()
+	{
 		initialise(0);
 	}
 
 	/**
 	 * Constructor: new MDP with fixed number of states.
 	 */
-	public MDPSimple(int numStates) {
+	public MDPSimple(int numStates)
+	{
 		initialise(numStates);
 	}
 
 	/**
 	 * Copy constructor.
 	 */
-	public MDPSimple(MDPSimple mdp) {
+	public MDPSimple(MDPSimple mdp)
+	{
 		this(mdp.numStates);
 		copyFrom(mdp);
 		// Copy storage directly to avoid worrying about duplicate distributions
@@ -115,7 +126,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	/**
 	 * Constructor: new MDP copied from an existing DTMC.
 	 */
-	public MDPSimple(DTMCSimple dtmc) {
+	public MDPSimple(DTMCSimple dtmc)
+	{
 		this(dtmc.getNumStates());
 		copyFrom(dtmc);
 		for (int s = 0; s < numStates; s++) {
@@ -130,7 +142,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * Distributions from scratch anyway to do this, so may as well provide this
 	 * functionality as a constructor.
 	 */
-	public MDPSimple(MDPSimple mdp, int permut[]) {
+	public MDPSimple(MDPSimple mdp, int permut[])
+	{
 		this(mdp.numStates);
 		copyFrom(mdp, permut);
 		// Copy storage directly to avoid worrying about duplicate distributions
@@ -171,7 +184,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * 
 	 * @param mdp
 	 */
-	public MDPSimple(MDPSparse mdp) {
+	public MDPSimple(MDPSparse mdp)
+	{
 		this(mdp.numStates);
 		copyFrom(mdp);
 
@@ -219,7 +233,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	// Mutators (for ModelSimple)
 
 	@Override
-	public void initialise(int numStates) {
+	public void initialise(int numStates)
+	{
 		super.initialise(numStates);
 		numDistrs = numTransitions = maxNumDistrs = 0;
 		maxNumDistrsOk = true;
@@ -231,7 +246,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public void clearState(int s) {
+	public void clearState(int s)
+	{
 		// Do nothing if state does not exist
 		if (s >= numStates || s < 0)
 			return;
@@ -248,13 +264,15 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public int addState() {
+	public int addState()
+	{
 		addStates(1);
 		return numStates - 1;
 	}
 
 	@Override
-	public void addStates(int numToAdd) {
+	public void addStates(int numToAdd)
+	{
 		for (int i = 0; i < numToAdd; i++) {
 			trans.add(new ArrayList<Distribution>());
 			if (actions != null)
@@ -264,7 +282,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public void buildFromPrismExplicit(String filename) throws PrismException {
+	public void buildFromPrismExplicit(String filename) throws PrismException
+	{
 		BufferedReader in;
 		Distribution distr;
 		String s, ss[];
@@ -323,8 +342,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 			System.out.println(e);
 			System.exit(1);
 		} catch (NumberFormatException e) {
-			throw new PrismException("Problem in .tra file (line " + lineNum
-					+ ") for " + getModelType());
+			throw new PrismException("Problem in .tra file (line " + lineNum + ") for " + getModelType());
 		}
 		// Set initial state (assume 0)
 		initialStates.add(0);
@@ -334,12 +352,13 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 
 	/**
 	 * Add a choice (distribution {@code distr}) to state {@code s} (which must
-	 * exist). Distribution is only actually added if it does not already exists
+	 * exist). Distribution is only actually added if it does not already exist
 	 * for state {@code s}. (Assuming {@code allowDupes} flag is not enabled.)
 	 * Returns the index of the (existing or newly added) distribution. Returns
 	 * -1 in case of error.
 	 */
-	public int addChoice(int s, Distribution distr) {
+	public int addChoice(int s, Distribution distr)
+	{
 		List<Distribution> set;
 		// Check state exists
 		if (s >= numStates || s < 0)
@@ -369,7 +388,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * {@code allowDupes} flag is not enabled.) Returns the index of the
 	 * (existing or newly added) distribution. Returns -1 in case of error.
 	 */
-	public int addActionLabelledChoice(int s, Distribution distr, Object action) {
+	public int addActionLabelledChoice(int s, Distribution distr, Object action)
+	{
 		List<Distribution> set;
 		// Check state exists
 		if (s >= numStates || s < 0)
@@ -401,7 +421,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * {@link #addActionLabelledChoice(int, Distribution, Object)} which is more
 	 * reliable.
 	 */
-	public void setAction(int s, int i, Object o) {
+	public void setAction(int s, int i, Object o)
+	{
 		// If action to be set is null, nothing to do
 		if (o == null)
 			return;
@@ -427,12 +448,14 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	// Accessors (for Model)
 
 	@Override
-	public int getNumTransitions() {
+	public int getNumTransitions()
+	{
 		return numTransitions;
 	}
 
 	@Override
-	public boolean isSuccessor(int s1, int s2) {
+	public boolean isSuccessor(int s1, int s2)
+	{
 		for (Distribution distr : trans.get(s1)) {
 			if (distr.contains(s2))
 				return true;
@@ -441,7 +464,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public boolean allSuccessorsInSet(int s, BitSet set) {
+	public boolean allSuccessorsInSet(int s, BitSet set)
+	{
 		for (Distribution distr : trans.get(s)) {
 			if (!distr.isSubsetOf(set))
 				return false;
@@ -450,7 +474,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public boolean allSuccessorsInSet(int s, int c, BitSet set) {
+	public boolean allSuccessorsInSet(int s, int c, BitSet set)
+	{
 		if (!trans.get(s).get(c).isSubsetOf(set))
 			return false;
 		return true;
@@ -458,7 +483,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public boolean someSuccessorsInSet(int s, BitSet set) {
+	public boolean someSuccessorsInSet(int s, BitSet set)
+	{
 		for (Distribution distr : trans.get(s)) {
 			if (distr.containsOneOf(set))
 				return true;
@@ -467,12 +493,14 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public int getNumChoices(int s) {
+	public int getNumChoices(int s)
+	{
 		return trans.get(s).size();
 	}
 
 	@Override
-	public void findDeadlocks(boolean fix) throws PrismException {
+	public void findDeadlocks(boolean fix) throws PrismException
+	{
 		for (int i = 0; i < numStates; i++) {
 			// Note that no distributions is a deadlock, not an empty
 			// distribution
@@ -488,7 +516,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public void checkForDeadlocks(BitSet except) throws PrismException {
+	public void checkForDeadlocks(BitSet except) throws PrismException
+	{
 		for (int i = 0; i < numStates; i++) {
 			if (trans.get(i).isEmpty() && (except == null || !except.get(i)))
 				throw new PrismException("MDP has a deadlock in state " + i);
@@ -498,12 +527,14 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	// Accessors (for MDP)
 
 	@Override
-	public int getNumChoices() {
+	public int getNumChoices()
+	{
 		return numDistrs;
 	}
 
 	@Override
-	public int getMaxNumChoices() {
+	public int getMaxNumChoices()
+	{
 		// Recompute if necessary
 		if (!maxNumDistrsOk) {
 			maxNumDistrs = 0;
@@ -514,7 +545,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public Object getAction(int s, int i) {
+	public Object getAction(int s, int i)
+	{
 		List<Object> list;
 		if (actions == null || (list = actions.get(s)) == null)
 			return null;
@@ -522,17 +554,20 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public int getNumTransitions(int s, int i) {
+	public int getNumTransitions(int s, int i)
+	{
 		return trans.get(s).get(i).size();
 	}
 
 	@Override
-	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i) {
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
+	{
 		return trans.get(s).get(i).iterator();
 	}
 
 	@Override
-	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result) {
+	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
+	{
 		int i;
 		boolean b1, b2;
 		for (i = 0; i < numStates; i++) {
@@ -558,8 +593,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall,
-			BitSet result) {
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
+	{
 		int i;
 		boolean b1, b2;
 		for (i = 0; i < numStates; i++) {
@@ -585,8 +620,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultMinMaxSingle(int s, double vect[], boolean min,
-			int adv[]) {
+	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
+	{
 		int j, k, advCh = -1;
 		double d, prob, minmax;
 		boolean first;
@@ -628,8 +663,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[],
-			boolean min, double val) {
+	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
+	{
 		int j, k;
 		double d, prob;
 		List<Integer> res;
@@ -662,7 +697,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultSingle(int s, int k, double vect[]) {
+	public double mvMultSingle(int s, int k, double vect[])
+	{
 		double d, prob;
 
 		Distribution distr = trans.get(s).get(k);
@@ -678,7 +714,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min) {
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
+	{
 		int k;
 		double diag, d, prob, minmax;
 		boolean first;
@@ -712,7 +749,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultJacSingle(int s, int k, double vect[]) {
+	public double mvMultJacSingle(int s, int k, double vect[])
+	{
 		double diag, d, prob;
 		Distribution distr;
 
@@ -736,8 +774,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[],
-			MDPRewards mdpRewards, boolean min, int adv[]) {
+	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[])
+	{
 		int j, k, advCh = -1;
 		double d, prob, minmax;
 		boolean first;
@@ -768,8 +806,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 		// If adversary generation is enabled, store optimal choice
 		if (adv != null & !first) {
 			// Only remember strictly better choices (required for max)
-			if (adv[s] == -1 || (min && minmax < vect[s])
-					|| (!min && minmax > vect[s])) {
+			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
 				adv[s] = advCh;
 			}
 		}
@@ -780,8 +817,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public double mvMultRewJacMinMaxSingle(int s, double vect[],
-			MDPRewards mdpRewards, boolean min) {
+	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min)
+	{
 		int j, k;
 		double diag, d, prob, minmax;
 		boolean first;
@@ -819,8 +856,9 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[],
-			MDPRewards mdpRewards, boolean min, double val) {
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
+			double val)
+	{
 		int j, k;
 		double d, prob;
 		List<Integer> res;
@@ -853,11 +891,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source,
-			double[] dest) {
+	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
+	{
 		for (int s : states) {
-			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(
-					s, adv[s]);
+			Iterator<Entry<Integer, Double>> it = this.getTransitionsIterator(s, adv[s]);
 			while (it.hasNext()) {
 				Entry<Integer, Double> next = it.next();
 				int col = next.getKey();
@@ -872,14 +909,16 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	/**
 	 * Get the list of choices (distributions) for state s.
 	 */
-	public List<Distribution> getChoices(int s) {
+	public List<Distribution> getChoices(int s)
+	{
 		return trans.get(s);
 	}
 
 	/**
 	 * Get the ith choice (distribution) for state s.
 	 */
-	public Distribution getChoice(int s, int i) {
+	public Distribution getChoice(int s, int i)
+	{
 		return trans.get(s).get(i);
 	}
 
@@ -888,7 +927,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * exists. If none, -1 is returned. If there are multiple (i.e. allowDupes
 	 * is true), the first is returned.
 	 */
-	public int indexOfChoice(int s, Distribution distr) {
+	public int indexOfChoice(int s, Distribution distr)
+	{
 		return trans.get(s).indexOf(distr);
 	}
 
@@ -897,8 +937,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	 * state {@code s}, if it exists. If none, -1 is returned. If there are
 	 * multiple (i.e. allowDupes is true), the first is returned.
 	 */
-	public int indexOfActionLabelledChoice(int s, Distribution distr,
-			Object action) {
+	public int indexOfActionLabelledChoice(int s, Distribution distr, Object action)
+	{
 		List<Distribution> set = trans.get(s);
 		int i, n = set.size();
 		if (distr == null) {
@@ -934,7 +974,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	// Standard methods
 
 	@Override
-	public String toString() {
+	public String toString()
+	{
 		int i, j, n;
 		Object o;
 		String s = "";
@@ -960,7 +1001,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(Object o)
+	{
 		if (o == null || !(o instanceof MDPSimple))
 			return false;
 		MDPSimple mdp = (MDPSimple) o;
