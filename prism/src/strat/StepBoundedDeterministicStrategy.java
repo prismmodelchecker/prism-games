@@ -1,5 +1,7 @@
 package strat;
 
+import prism.PrismFileLog;
+import prism.PrismLog;
 import explicit.Distribution;
 
 public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
@@ -138,6 +140,29 @@ public class StepBoundedDeterministicStrategy extends FiniteMemoryStrategy
 		desc += "Size of next move function: " + chSize + " \n";
 		desc += "Memory state: " + memory;
 		return desc;
+	}
+
+	@Override
+	public void exportToFile(String file)
+	{
+		System.out.println("Printing strategy");
+		// Print adversary
+		PrismLog out = new PrismFileLog(file);
+		out.print("// Strategy for step-bounded properties\n");
+		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
+		out.print("// (b1>b2>...>bn)\n");
+		out
+				.print("// where: ci  (1<=i<n )is the choice taken when the number of steps remaining before the bound is exceeded is >=bi and <bi+1\n");
+		out.print("// cn is the choice taken after bn or less steps remain until bound is exceeded.\n");
+		out.print("Strategy:\n");
+		for (int i = 0; i < choices.length; i++) {
+			out.print(i);
+			for (int j = 0; j < choices[i].length; j++) {
+				out.print(", " + choices[i][j]);
+			}
+			out.println();
+		}
+		out.flush();
 	}
 
 	public static void main(String[] args) throws InvalidStrategyStateException
