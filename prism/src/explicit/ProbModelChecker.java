@@ -216,9 +216,9 @@ public class ProbModelChecker extends StateModelChecker
 		}
 
 		// PRISM_EXPORT_ADV
-		//		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
-		//		if (!(s.equals("None")))
-		//			setExportAdv(true);
+		// s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
+		// if (!(s.equals("None")))
+		// setExportAdv(true);
 		// PRISM_EXPORT_ADV_FILENAME
 		setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
 

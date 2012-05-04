@@ -199,7 +199,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 		String desc = "";
 		desc += "Memoryless deterministic strategy\n";
 		desc += "Size of memory: 0\n";
-		desc += "Size of choice function: " + choices.length + "\n";
+		desc += "Size of next move function: " + choices.length + "\n";
 		return desc;
 	}
 

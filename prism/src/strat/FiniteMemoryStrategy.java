@@ -3,42 +3,26 @@ package strat;
 import explicit.Distribution;
 import explicit.Model;
 
-public class FiniteMemoryStrategy implements Strategy
+public abstract class FiniteMemoryStrategy implements Strategy
 {
+	private String info = null;
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-
-	}
+	abstract public void init(int state) throws InvalidStrategyStateException;
 
 	@Override
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-
-	}
+	abstract public void updateMemory(int action, int state) throws InvalidStrategyStateException;
 
 	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
+	abstract public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	@Override
-	public void reset()
-	{
-		// TODO Auto-generated method stub
-
-	}
+	abstract public void reset();
 
 	@Override
 	public void exportToFile(String file)
 	{
 		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -51,50 +35,30 @@ public class FiniteMemoryStrategy implements Strategy
 	@Override
 	public String getInfo()
 	{
-		// TODO Auto-generated method stub
-		return null;
-	}
+		return info;
+		}
 
 	@Override
 	public void setInfo(String info)
 	{
-		// TODO Auto-generated method stub
-
+		this.info=info;
 	}
 
 	@Override
-	public int getMemorySize()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
+	abstract public int getMemorySize();
 
 	@Override
 	public String getType()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return "Finite memory strategy";
 	}
 
 	@Override
-	public Object getCurrentMemoryElement()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
+	abstract public Object getCurrentMemoryElement();
+	
+	@Override
+	abstract public void setMemory(Object memory) throws InvalidStrategyStateException;
 
 	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public String getStateDescription()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+	abstract public String getStateDescription();
 }
