@@ -24,3 +24,7 @@ module m1
 	[] t>0 -> true;
 
 endmodule
+
+rewards 
+    mod(s,2)=0 : 1;
+endrewards
