@@ -1400,6 +1400,8 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], soln2[], tmpsoln[];
 		boolean done;
 		long timer;
+		boolean genAdv = generateStrategy;
+		int[] adv = null;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -1438,6 +1440,24 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		if (genAdv) {
+			adv = new int[n];
+			for (i = 0; i < n; i++) {
+				adv[i] = -1;
+			}
+
+			int s;
+			for (i = 0; i < inf.length(); i++) {
+				s = inf.nextSetBit(i);
+				for (int c = 0; c < mdp.getNumChoices(s); c++) {
+					if (mdp.allSuccessorsInSet(s, c, inf)) {
+						adv[i] = c;
+						break;
+					}
+				}
+			}
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -1445,7 +1465,7 @@ public class MDPModelChecker extends ProbModelChecker
 			// mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultRewMinMax(soln, mdpRewards, min, soln2, unknown, false, null);
+			mdp.mvMultRewMinMax(soln, mdpRewards, min, soln2, unknown, false, adv);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -1464,6 +1484,10 @@ public class MDPModelChecker extends ProbModelChecker
 			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
+		}
+
+		if (genAdv) {
+			strategy = new MemorylessDeterministicStrategy(adv);
 		}
 
 		// Return results
