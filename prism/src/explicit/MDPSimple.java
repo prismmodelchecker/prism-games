@@ -878,6 +878,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 				prob = (Double) e.getValue();
 				d += prob * vect[k];
 			}
+
 			// Store strategy info if value matches
 			// if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit ==
 			// TermCrit.ABSOLUTE)) {
