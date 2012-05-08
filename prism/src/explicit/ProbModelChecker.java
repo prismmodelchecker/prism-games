@@ -74,8 +74,6 @@ public class ProbModelChecker extends StateModelChecker
 	//protected boolean exportAdv = false;
 	protected String exportAdvFilename;
 
-
-
 	// Enums for flags/settings
 
 	// Method used for numerical solution
@@ -357,7 +355,6 @@ public class ProbModelChecker extends StateModelChecker
 		this.exportAdvFilename = exportAdvFilename;
 	}
 
-
 	// Get methods for flags/settings
 
 	public int getVerbosity()
@@ -491,6 +488,9 @@ public class ProbModelChecker extends StateModelChecker
 				if (p < 0 || p > 1)
 					throw new PrismException("Invalid probability bound " + p + " in P operator");
 			}
+
+			if (!(this instanceof SMGModelChecker))
+				throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
 			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min);
 

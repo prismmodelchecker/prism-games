@@ -26,14 +26,18 @@
 
 package parser.ast;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Vector;
 
-import parser.*;
-import parser.visitor.*;
-import prism.PrismException;
-import prism.PrismLangException;
+import parser.State;
+import parser.Values;
+import parser.VarList;
+import parser.type.Type;
+import parser.visitor.ASTVisitor;
 import prism.ModelType;
-import parser.type.*;
+import prism.PrismLangException;
 
 // Class representing parsed model file
 
@@ -362,18 +366,20 @@ public class ModulesFile extends ASTElement
 	 */
 	public int getPlayerForAction(String a)
 	{
+		if (a.charAt(0) == '[' && a.charAt(a.length() - 1) == ']')
+			a = a.substring(1, a.length() - 1);
 		int i = 0;
 		for (Player player : players) {
 			for (String s : player.getActions()) {
 				if (s.equals(a)) {
-					return i; 
+					return i;
 				}
 			}
 			i++;
 		}
 		return -1;
 	}
-	
+
 	/**
 	 * Get the (index of the) player that owns module {@code a}.
 	 * Players are 0-indexed; returns -1 if no owner found.
@@ -384,7 +390,7 @@ public class ModulesFile extends ASTElement
 		for (Player player : players) {
 			for (String s : player.getModules()) {
 				if (s.equals(a)) {
-					return i; 
+					return i;
 				}
 			}
 			i++;
@@ -580,7 +586,7 @@ public class ModulesFile extends ASTElement
 		semanticCheck(this);
 		// Type checking
 		typeCheck();
-		
+
 		// If there are no undefined constants, set up values for constants
 		// (to avoid need for a later call to setUndefinedConstants).
 		// NB: Can't call setUndefinedConstants if there are undefined constants
@@ -639,12 +645,13 @@ public class ModulesFile extends ASTElement
 			for (i2 = 0; i2 < n2; i2++) {
 				s = module.getOldName(i2);
 				if (!renamedSoFar.add(s)) {
-					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \"" + module.getName() + "\"",
-							module.getOldNameASTElement(i2));
+					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \""
+							+ module.getName() + "\"", module.getOldNameASTElement(i2));
 				}
 				if (formulaList.getFormulaIndex(s) != -1) {
-					throw new PrismLangException("Formula \"" + s + "\" cannot be renamed since formulas are expanded before module renaming",
-							module.getOldNameASTElement(i2));
+					throw new PrismLangException("Formula \"" + s
+							+ "\" cannot be renamed since formulas are expanded before module renaming", module
+							.getOldNameASTElement(i2));
 				}
 			}
 			// Then rename (a copy of) base module and replace
@@ -698,7 +705,8 @@ public class ModulesFile extends ASTElement
 			s = getModule(i).getName();
 			for (j = 0; j < i; j++) {
 				if (s.equals(moduleNames[j])) {
-					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i).getNameASTElement());
+					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i)
+							.getNameASTElement());
 				}
 			}
 			moduleNames[i] = s;
@@ -747,7 +755,8 @@ public class ModulesFile extends ASTElement
 		for (i = 0; i < n; i++) {
 			s = constantList.getConstantName(i);
 			if (isIdentUsed(s)) {
-				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList.getConstantNameIdent(i));
+				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList
+						.getConstantNameIdent(i));
 			} else {
 				constantIdents.add(s);
 			}
@@ -830,19 +839,23 @@ public class ModulesFile extends ASTElement
 			for (String m : player.getModules()) {
 				// Check existing
 				if (getModuleIndex(m) == -1)
-					throw new PrismLangException("Module name \"" + m + "\" in player defintion \"" + player.getName() + "\" does not exist", player);
+					throw new PrismLangException("Module name \"" + m + "\" in player defintion \"" + player.getName()
+							+ "\" does not exist", player);
 				// Check for dupes
 				if (modulesUsed.contains(m))
-					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player defintions", player);
+					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player defintions",
+							player);
 				modulesUsed.add(m);
 			}
 			for (String a : player.getActions()) {
 				// Check existing
 				if (!isSynch(a))
-					throw new PrismLangException("Action name \"" + a + "\" in player defintion \"" + player.getName() + "\" does not exist", player);
+					throw new PrismLangException("Action name \"" + a + "\" in player defintion \"" + player.getName()
+							+ "\" does not exist", player);
 				// Check for dupes
 				if (actionsUsed.contains(a))
-					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player defintions", player);
+					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player defintions",
+							player);
 				actionsUsed.add(a);
 			}
 		}

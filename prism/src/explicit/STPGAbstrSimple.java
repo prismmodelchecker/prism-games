@@ -27,15 +27,24 @@
 
 package explicit;
 
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
-import java.io.*;
 
-import explicit.rewards.STPGRewards;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import explicit.rewards.STPGRewards;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game (STPG),
@@ -372,7 +381,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 					// Print out (sorted) transitions
 					for (Map.Entry<Integer, Double> e : distr) {
 						// Note use of PrismUtils.formatDouble to match PRISM-exported files
-						out.print(i + " " + j + " " + k + " " + e.getKey() + " " + PrismUtils.formatDouble(e.getValue()) + "\n");
+						out.print(i + " " + j + " " + k + " " + e.getKey() + " "
+								+ PrismUtils.formatDouble(e.getValue()) + "\n");
 					}
 					sorted.clear();
 				}
@@ -442,8 +452,10 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
 		s += "Transitions: " + numTransitions + "\n";
 		s += "Choices:     " + numDistrs + "\n";
-		s += "P1 max/avg:  " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates) + "\n";
-		s += "P2 max/avg:  " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets) + "\n";
+		s += "P1 max/avg:  " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates)
+				+ "\n";
+		s += "P2 max/avg:  " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets)
+				+ "\n";
 		return s;
 	}
 
@@ -455,7 +467,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		// All states are player 1
 		return 1;
 	}
-	
+
 	@Override
 	public Object getAction(int s, int i)
 	{
@@ -471,7 +483,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
 	{
 		// All choices are nested
 		return null;
@@ -597,7 +609,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
+			boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
@@ -692,7 +705,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
+			boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;
@@ -766,7 +780,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
+			BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
@@ -783,7 +798,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
+			int adv[])
 	{
 		int dsIter, dIter, k;
 		double d, prob, minmax1, minmax2;
@@ -824,7 +840,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
+			boolean min2, double val)
 	{
 		int dsIter, dIter, k;
 		double d, prob, minmax2;
@@ -918,6 +935,11 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	{
 		// TODO: Recompute if necessary
 		return maxNumDistrs;
+	}
+
+	public boolean allSuccessorsInSet(int s, int c, BitSet set)
+	{
+		throw new UnsupportedOperationException("Method not implemented");
 	}
 
 	// Standard methods

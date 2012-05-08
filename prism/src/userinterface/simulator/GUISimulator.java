@@ -2390,6 +2390,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			return "";
 		}
 
+		@Override
 		public String getColumnName(int column)
 		{
 			if (pathActive) {

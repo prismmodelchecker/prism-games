@@ -37,9 +37,8 @@ import java.util.Map.Entry;
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
 import prism.PrismUtils;
+import strat.MemorylessDeterministicStrategy;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
@@ -1006,16 +1005,16 @@ public class STPGModelChecker extends ProbModelChecker
 				adv[i] = -1;
 			}
 
-//			int s;
-//			for (i = 0; i < no.length(); i++) {
-//				s = no.nextSetBit(i);
-//				for (int c = 0; c < stpg.getNumChoices(s); c++) {
-//					if (stpg.allSuccessorsInSet(s, c, no)) {
-//						adv[i] = c;
-//						break;
-//					}
-//				}
-//			}
+			int s;
+			for (i = 0; i < no.length(); i++) {
+				s = no.nextSetBit(i);
+				for (int c = 0; c < stpg.getNumChoices(s); c++) {
+					if (stpg.allSuccessorsInSet(s, c, no)) {
+						adv[i] = c;
+						break;
+					}
+				}
+			}
 		}
 
 		// Start iterations
@@ -1047,14 +1046,22 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		// Print adversary
+		//
 		if (genAdv) {
-			PrismLog out = new PrismFileLog(exportAdvFilename);
-			for (i = 0; i < n; i++) {
-				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
-			}
-			out.println();
+			strategy = new MemorylessDeterministicStrategy(adv);
+			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
+			// new File(exportAdvFilename + "_"));
+			// strategy.exportToFile(exportAdvFilename + "_adv");
 		}
+
+		// Print adversary
+		//		if (genAdv) {
+		//			PrismLog out = new PrismFileLog(exportAdvFilename);
+		//			for (i = 0; i < n; i++) {
+		//				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+		//			}
+		//			out.println();
+		//		}
 
 		// Return results
 		res = new ModelCheckerResult();

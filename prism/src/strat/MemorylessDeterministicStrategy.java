@@ -7,6 +7,8 @@ import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
+import explicit.SMG;
+import explicit.STPGExplicit;
 
 /**
  * Implementation of the memoryless deterministic strategy
@@ -65,11 +67,17 @@ public class MemorylessDeterministicStrategy implements Strategy
 	{
 
 		// checking for supported model types
-		if (model instanceof MDPSimple) {
+		if (model.getClass().equals(MDPSimple.class)) {
 			return this.buildProductMDPSimple((MDPSimple) model);
 		}
-		if (model instanceof MDPSparse) {
+		if (model.getClass().equals(MDPSparse.class)) {
 			return this.buildProductMDPSparse((MDPSparse) model);
+		}
+		if (model.getClass().equals(STPGExplicit.class)) {
+			return this.buildProductSTPGExplicit((STPGExplicit) model);
+		}
+		if (model.getClass().equals(SMG.class)) {
+			return this.buildProductSMG((SMG) model);
 		}
 
 		throw new UnsupportedOperationException("The product building is not supported for this class of models");
@@ -143,6 +151,89 @@ public class MemorylessDeterministicStrategy implements Strategy
 	}
 
 	/**
+	 * Builds product between the given two player game and the strategy
+	 * Implements strategy for player 1 only, thus returning MDP
+	 * 
+	 * @param model the model
+	 * @return strategy
+	 */
+	private Model buildProductSTPGExplicit(STPGExplicit model)
+	{
+		STPGExplicit stpg = new STPGExplicit(model);
+		int n = stpg.getNumStates();
+		int c;
+		Distribution distr;
+
+		for (int s = 0; s < n; s++) {
+			// checking if the state belong to player 1
+			if (stpg.getPlayer(s) != STPGExplicit.PLAYER_1)
+				// if not then doing nothing
+				continue;
+
+			// getting the choice of a strategy for this state
+			try {
+				c = this.getNextMove(s).keySet().iterator().next();
+
+				// if for adversary choice is undefined, taking the first one as
+				// default
+				if (c < 0)
+					c = 0;
+			} catch (InvalidStrategyStateException e) {
+				// strategy undefined for this state -- keep calm and carry
+				// on
+				continue;
+			}
+
+			// replacing the choices with the one prescribed by the strategy
+			distr = stpg.getChoice(s, c);
+			stpg.clearState(s);
+			stpg.addChoice(s, distr);
+		}
+		return stpg;
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	private Model buildProductSMG(SMG model)
+	{
+		SMG smg = new SMG(model);
+		int n = smg.getNumStates();
+		int c;
+		Distribution distr;
+
+		for (int s = 0; s < n; s++) {
+			// checking if the state belong to player 1
+			if (smg.getPlayer(s) != SMG.PLAYER_1)
+				// if not then doing nothing
+				continue;
+
+			// getting the choice of a strategy for this state
+			try {
+				c = this.getNextMove(s).keySet().iterator().next();
+
+				// if for adversary choice is undefined, taking the first one as
+				// default
+				if (c < 0)
+					c = 0;
+			} catch (InvalidStrategyStateException e) {
+				// strategy undefined for this state -- keep calm and carry
+				// on
+				continue;
+			}
+
+			// replacing the choices with the one prescribed by the strategy
+			distr = smg.getChoice(s, c);
+			smg.clearState(s);
+			smg.addChoice(s, distr);
+		}
+
+		return smg;
+	}
+
+	/**
 	 * @param args
 	 */
 	public static void main(String[] args)
@@ -204,7 +295,8 @@ public class MemorylessDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public int getInitialStateOfTheProduct(int s) {
+	public int getInitialStateOfTheProduct(int s)
+	{
 		return -1;
 	}
 

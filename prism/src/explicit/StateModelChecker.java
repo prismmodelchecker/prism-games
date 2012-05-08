@@ -42,7 +42,6 @@ import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionConstant;
 import parser.ast.ExpressionFilter;
-import parser.ast.ExpressionFilter.FilterOperator;
 import parser.ast.ExpressionFormula;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionITE;
@@ -56,6 +55,7 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
+import parser.ast.ExpressionFilter.FilterOperator;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
@@ -71,7 +71,8 @@ import strat.Strategy;
 /**
  * Super class for explicit-state model checkers
  */
-public class StateModelChecker {
+public class StateModelChecker
+{
 	// Log for output (default to System.out)
 	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
 
@@ -108,14 +109,16 @@ public class StateModelChecker {
 	/**
 	 * Set log for output.
 	 */
-	public void setLog(PrismLog log) {
+	public void setLog(PrismLog log)
+	{
 		this.mainLog = log;
 	}
 
 	/**
 	 * Get log for output.
 	 */
-	public PrismLog getLog() {
+	public PrismLog getLog()
+	{
 		return mainLog;
 	}
 
@@ -125,7 +128,8 @@ public class StateModelChecker {
 	 * @param b
 	 *            new value
 	 */
-	public void setGenerateStrategy(boolean b) {
+	public void setGenerateStrategy(boolean b)
+	{
 		this.generateStrategy = b;
 	}
 
@@ -134,7 +138,8 @@ public class StateModelChecker {
 	 * 
 	 * @param b
 	 */
-	public void setImplementStrategy(boolean b) {
+	public void setImplementStrategy(boolean b)
+	{
 		this.implementStrategy = b;
 	}
 
@@ -143,16 +148,18 @@ public class StateModelChecker {
 	 * 
 	 * @return the strategy that had been generated
 	 */
-	public Strategy getStrategy() {
+	public Strategy getStrategy()
+	{
 		return strategy;
 	}
-	
+
 	/**
 	 * Method sets the strategy to be used by the model checker
 	 * @param strategy strategy
 	 */
-	public void setStrategy(Strategy strategy) {
-		this.strategy=strategy;
+	public void setStrategy(Strategy strategy)
+	{
+		this.strategy = strategy;
 	}
 
 	/**
@@ -160,8 +167,8 @@ public class StateModelChecker {
 	 * checking) and the attached properties file (for e.g. constants/labels
 	 * when model checking)
 	 */
-	public void setModulesFileAndPropertiesFile(ModulesFile modulesFile,
-			PropertiesFile propertiesFile) {
+	public void setModulesFileAndPropertiesFile(ModulesFile modulesFile, PropertiesFile propertiesFile)
+	{
 		this.modulesFile = modulesFile;
 		this.propertiesFile = propertiesFile;
 		// Get combined constant values from model/properties
@@ -176,7 +183,8 @@ public class StateModelChecker {
 	/**
 	 * Set settings from a PRISMSettings object.
 	 */
-	public void setSettings(PrismSettings settings) throws PrismException {
+	public void setSettings(PrismSettings settings) throws PrismException
+	{
 		if (settings == null)
 			return;
 
@@ -186,7 +194,8 @@ public class StateModelChecker {
 	/**
 	 * Inherit settings (and other info) from another model checker object.
 	 */
-	public void inheritSettings(StateModelChecker other) {
+	public void inheritSettings(StateModelChecker other)
+	{
 		setLog(other.getLog());
 		setVerbosity(other.getVerbosity());
 	}
@@ -194,7 +203,8 @@ public class StateModelChecker {
 	/**
 	 * Print summary of current settings.
 	 */
-	public void printSettings() {
+	public void printSettings()
+	{
 		mainLog.print("verbosity = " + verbosity + " ");
 	}
 
@@ -203,13 +213,15 @@ public class StateModelChecker {
 	/**
 	 * Set verbosity level, i.e. amount of output produced.
 	 */
-	public void setVerbosity(int verbosity) {
+	public void setVerbosity(int verbosity)
+	{
 		this.verbosity = verbosity;
 	}
 
 	// Get methods for flags/settings
 
-	public int getVerbosity() {
+	public int getVerbosity()
+	{
 		return verbosity;
 	}
 
@@ -222,7 +234,8 @@ public class StateModelChecker {
 	 * {@link #setModulesFile} and {@link #setPropertiesFile} to attach the
 	 * original model/properties files.
 	 */
-	public Result check(Model model, Expression expr) throws PrismException {
+	public Result check(Model model, Expression expr) throws PrismException
+	{
 		ExpressionFilter exprFilter = null;
 		long timer = 0;
 		StateValues vals;
@@ -247,19 +260,16 @@ public class StateModelChecker {
 			// Boolean expressions...
 			if (expr.getType() instanceof TypeBool) {
 				// Result is true iff true for all initial states
-				exprFilter = new ExpressionFilter("forall", expr,
-						new ExpressionLabel("init"));
+				exprFilter = new ExpressionFilter("forall", expr, new ExpressionLabel("init"));
 			}
 			// Non-Boolean (double or integer) expressions...
 			else {
 				// Result is for the initial state, if there is just one,
 				// or the range over all initial states, if multiple
 				if (model.getNumInitialStates() == 1) {
-					exprFilter = new ExpressionFilter("state", expr,
-							new ExpressionLabel("init"));
+					exprFilter = new ExpressionFilter("state", expr, new ExpressionLabel("init"));
 				} else {
-					exprFilter = new ExpressionFilter("range", expr,
-							new ExpressionLabel("init"));
+					exprFilter = new ExpressionFilter("range", expr, new ExpressionLabel("init"));
 				}
 			}
 		}
@@ -272,8 +282,7 @@ public class StateModelChecker {
 		// we process a filter.
 		else if (!(expr instanceof ExpressionFilter)) {
 			// We just pick the first value (they are all the same)
-			exprFilter = new ExpressionFilter("first", expr,
-					new ExpressionLabel("init"));
+			exprFilter = new ExpressionFilter("first", expr, new ExpressionLabel("init"));
 			// We stop any additional explanation being displayed to avoid
 			// confusion.
 			exprFilter.setExplanationEnabled(false);
@@ -293,8 +302,7 @@ public class StateModelChecker {
 		timer = System.currentTimeMillis();
 		vals = checkExpression(model, expr);
 		timer = System.currentTimeMillis() - timer;
-		mainLog.println("\nTime for model checking: " + timer / 1000.0
-				+ " seconds.");
+		mainLog.println("\nTime for model checking: " + timer / 1000.0 + " seconds.");
 
 		// Print result to log
 		resultString = "Result";
@@ -317,8 +325,8 @@ public class StateModelChecker {
 	 * use the methods {@link #setModulesFile} and {@link #setPropertiesFile} to
 	 * attach the original model/properties files.
 	 */
-	public StateValues checkExpression(Model model, Expression expr)
-			throws PrismException {
+	public StateValues checkExpression(Model model, Expression expr) throws PrismException
+	{
 		StateValues res = null;
 
 		// If-then-else
@@ -340,8 +348,7 @@ public class StateModelChecker {
 		// Identifiers
 		else if (expr instanceof ExpressionIdent) {
 			// Should never happen
-			throw new PrismException("Unknown identifier \""
-					+ ((ExpressionIdent) expr).getName() + "\"");
+			throw new PrismException("Unknown identifier \"" + ((ExpressionIdent) expr).getName() + "\"");
 		}
 		// Literals
 		else if (expr instanceof ExpressionLiteral) {
@@ -355,11 +362,9 @@ public class StateModelChecker {
 		else if (expr instanceof ExpressionFormula) {
 			// This should have been defined or expanded by now.
 			if (((ExpressionFormula) expr).getDefinition() != null)
-				return checkExpression(model,
-						((ExpressionFormula) expr).getDefinition());
+				return checkExpression(model, ((ExpressionFormula) expr).getDefinition());
 			else
-				throw new PrismException("Unexpanded formula \""
-						+ ((ExpressionFormula) expr).getName() + "\"");
+				throw new PrismException("Unexpanded formula \"" + ((ExpressionFormula) expr).getName() + "\"");
 		}
 		// Variables
 		else if (expr instanceof ExpressionVar) {
@@ -388,8 +393,8 @@ public class StateModelChecker {
 	/**
 	 * Model check a binary operator.
 	 */
-	protected StateValues checkExpressionITE(Model model, ExpressionITE expr)
-			throws PrismException {
+	protected StateValues checkExpressionITE(Model model, ExpressionITE expr) throws PrismException
+	{
 		StateValues res1 = null, res2 = null, res3 = null;
 
 		// Check operands recursively
@@ -416,8 +421,8 @@ public class StateModelChecker {
 	/**
 	 * Model check a binary operator.
 	 */
-	protected StateValues checkExpressionBinaryOp(Model model,
-			ExpressionBinaryOp expr) throws PrismException {
+	protected StateValues checkExpressionBinaryOp(Model model, ExpressionBinaryOp expr) throws PrismException
+	{
 		StateValues res1 = null, res2 = null;
 		int op = expr.getOperator();
 
@@ -441,8 +446,8 @@ public class StateModelChecker {
 	/**
 	 * Model check a unary operator.
 	 */
-	protected StateValues checkExpressionUnaryOp(Model model,
-			ExpressionUnaryOp expr) throws PrismException {
+	protected StateValues checkExpressionUnaryOp(Model model, ExpressionUnaryOp expr) throws PrismException
+	{
 		// (just parentheses for now - more to come later)
 		// Parentheses are easy - nothing to do:
 		StateValues res1 = checkExpression(model, expr.getOperand());
@@ -452,8 +457,8 @@ public class StateModelChecker {
 	/**
 	 * Model check a function.
 	 */
-	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr)
-			throws PrismException {
+	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr) throws PrismException
+	{
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MIN:
 		case ExpressionFunc.MAX:
@@ -466,13 +471,12 @@ public class StateModelChecker {
 		case ExpressionFunc.LOG:
 			return checkExpressionFuncBinary(model, expr);
 		default:
-			throw new PrismException("Unrecognised function \""
-					+ expr.getName() + "\"");
+			throw new PrismException("Unrecognised function \"" + expr.getName() + "\"");
 		}
 	}
 
-	protected StateValues checkExpressionFuncUnary(Model model,
-			ExpressionFunc expr) throws PrismException {
+	protected StateValues checkExpressionFuncUnary(Model model, ExpressionFunc expr) throws PrismException
+	{
 		StateValues res1 = null;
 		int op = expr.getNameCode();
 
@@ -493,8 +497,8 @@ public class StateModelChecker {
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncBinary(Model model,
-			ExpressionFunc expr) throws PrismException {
+	protected StateValues checkExpressionFuncBinary(Model model, ExpressionFunc expr) throws PrismException
+	{
 		StateValues res1 = null, res2 = null;
 		int op = expr.getNameCode();
 
@@ -525,8 +529,8 @@ public class StateModelChecker {
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncNary(Model model,
-			ExpressionFunc expr) throws PrismException {
+	protected StateValues checkExpressionFuncNary(Model model, ExpressionFunc expr) throws PrismException
+	{
 		StateValues res1 = null, res2 = null;
 		int i, n, op = expr.getNameCode();
 
@@ -564,25 +568,24 @@ public class StateModelChecker {
 	/**
 	 * Model check a literal.
 	 */
-	protected StateValues checkExpressionLiteral(Model model,
-			ExpressionLiteral expr) throws PrismException {
+	protected StateValues checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
+	{
 		return new StateValues(expr.getType(), expr.evaluate(), model);
 	}
 
 	/**
 	 * Model check a constant.
 	 */
-	protected StateValues checkExpressionConstant(Model model,
-			ExpressionConstant expr) throws PrismException {
-		return new StateValues(expr.getType(), expr.evaluate(constantValues),
-				model);
+	protected StateValues checkExpressionConstant(Model model, ExpressionConstant expr) throws PrismException
+	{
+		return new StateValues(expr.getType(), expr.evaluate(constantValues), model);
 	}
 
 	/**
 	 * Model check a variable reference.
 	 */
-	protected StateValues checkExpressionVar(Model model, ExpressionVar expr)
-			throws PrismException {
+	protected StateValues checkExpressionVar(Model model, ExpressionVar expr) throws PrismException
+	{
 		int numStates = model.getNumStates();
 		StateValues res = new StateValues(expr.getType(), model);
 		List<State> statesList = model.getStatesList();
@@ -605,8 +608,8 @@ public class StateModelChecker {
 	/**
 	 * Model check a label.
 	 */
-	protected StateValues checkExpressionLabel(Model model, ExpressionLabel expr)
-			throws PrismException {
+	protected StateValues checkExpressionLabel(Model model, ExpressionLabel expr) throws PrismException
+	{
 		LabelList ll;
 		int i;
 
@@ -629,8 +632,7 @@ public class StateModelChecker {
 			ll = propertiesFile.getCombinedLabelList();
 			i = ll.getLabelIndex(expr.getName());
 			if (i == -1)
-				throw new PrismException("Unknown label \"" + expr.getName()
-						+ "\" in property");
+				throw new PrismException("Unknown label \"" + expr.getName() + "\" in property");
 			// check recursively
 			return checkExpression(model, ll.getLabel(i));
 		}
@@ -638,11 +640,10 @@ public class StateModelChecker {
 
 	// Check property ref
 
-	protected StateValues checkExpressionProp(Model model, ExpressionProp expr)
-			throws PrismException {
+	protected StateValues checkExpressionProp(Model model, ExpressionProp expr) throws PrismException
+	{
 		// Look up property and check recursively
-		Property prop = propertiesFile.lookUpPropertyObjectByName(expr
-				.getName());
+		Property prop = propertiesFile.lookUpPropertyObjectByName(expr.getName());
 		if (prop != null) {
 			mainLog.println("\nModel checking : " + prop);
 			return checkExpression(model, prop.getExpression());
@@ -653,8 +654,8 @@ public class StateModelChecker {
 
 	// Check filter
 
-	protected StateValues checkExpressionFilter(Model model,
-			ExpressionFilter expr) throws PrismException {
+	protected StateValues checkExpressionFilter(Model model, ExpressionFilter expr) throws PrismException
+	{
 		// Filter info
 		Expression filter;
 		FilterOperator op;
@@ -678,8 +679,7 @@ public class StateModelChecker {
 		// Remember whether filter is "true"
 		filterTrue = Expression.isTrue(filter);
 		// Store some more info
-		filterStatesString = filterTrue ? "all states"
-				: "states satisfying filter";
+		filterStatesString = filterTrue ? "all states" : "states satisfying filter";
 		bsFilter = checkExpression(model, filter).getBitSet();
 		// Check if filter state set is empty; we treat this as an error
 		if (bsFilter.isEmpty()) {
@@ -687,14 +687,13 @@ public class StateModelChecker {
 		}
 
 		// Remove states which have non-initial strategy memory elements
-		if (implementStrategy && strategy!=null) {
+		if (implementStrategy && strategy != null) {
 			for (int i = 0; i < model.getNumStates(); i++) {
 				// if state does not contain initial memory element - remove it
 				// from the filter
 				if (bsFilter.get(i)
-						&& (Integer) model.getStatesList().get(i).varValues[model
-								.getStatesList().get(i).varValues.length - 1] != strategy
-								.getInitialStateOfTheProduct(i)) {
+						&& (Integer) model.getStatesList().get(i).varValues[model.getStatesList().get(i).varValues.length - 1] != strategy
+								.getInitialStateOfTheProduct(i) && strategy.getInitialStateOfTheProduct(i) != -1) {
 					bsFilter.set(i, false);
 				}
 			}
@@ -702,23 +701,18 @@ public class StateModelChecker {
 
 		// Remember whether filter is for the initial state and, if so, whether
 		// there's just one
-		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter)
-				.getName().equals("init"));
+		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
 		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
 
 		// For some types of filter, store info that may be used to optimise
 		// model checking
 		op = expr.getOperatorType();
 		if (op == FilterOperator.STATE) {
-			currentFilter = new Filter(Filter.FilterOperator.STATE,
-					bsFilter.nextSetBit(0));
-		} else if (op == FilterOperator.FORALL && filterInit
-				&& filterInitSingle) {
-			currentFilter = new Filter(Filter.FilterOperator.STATE,
-					bsFilter.nextSetBit(0));
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
+		} else if (op == FilterOperator.FORALL && filterInit && filterInitSingle) {
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
 		} else if (op == FilterOperator.FIRST && filterInit && filterInitSingle) {
-			currentFilter = new Filter(Filter.FilterOperator.STATE,
-					bsFilter.nextSetBit(0));
+			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
 		} else {
 			currentFilter = null;
 		}
@@ -728,8 +722,7 @@ public class StateModelChecker {
 
 		// Print out number of states satisfying filter
 		if (!filterInit)
-			mainLog.println("\nStates satisfying filter " + filter + ": "
-					+ bsFilter.cardinality());
+			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
 
 		// Compute result according to filter type
 		switch (op) {
@@ -740,19 +733,15 @@ public class StateModelChecker {
 				// NB: 'usual' case for filter(print,...) on Booleans is to use
 				// no filter
 				mainLog.print("\nSatisfying states");
-				mainLog.println(filterTrue ? ":" : " that are also in filter "
-						+ filter + ":");
+				mainLog.println(filterTrue ? ":" : " that are also in filter " + filter + ":");
 				vals.printFiltered(mainLog, bsFilter);
 			} else {
 				if (op == FilterOperator.PRINT) {
-					mainLog.println("\nResults (non-zero only) for filter "
-							+ filter + ":");
+					mainLog.println("\nResults (non-zero only) for filter " + filter + ":");
 					vals.printFiltered(mainLog, bsFilter);
 				} else {
-					mainLog.println("\nResults (including zeros) for filter "
-							+ filter + ":");
-					vals.printFiltered(mainLog, bsFilter, false, false, true,
-							true);
+					mainLog.println("\nResults (including zeros) for filter " + filter + ":");
+					vals.printFiltered(mainLog, bsFilter, false, false, true, true);
 				}
 			}
 			// Result vector is unchanged; for PRINT/PRINTALL, don't store a
@@ -795,8 +784,7 @@ public class StateModelChecker {
 		case ARGMIN:
 			// Compute/display min
 			resObj = vals.minOverBitSet(bsFilter);
-			mainLog.print("\nMinimum value over " + filterStatesString + ": "
-					+ resObj);
+			mainLog.print("\nMinimum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
 			// TODO: un-hard-code precision once StateValues knows hoe precise
 			// it is
@@ -807,15 +795,13 @@ public class StateModelChecker {
 			// Also, don't bother with explanation string
 			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
-			mainLog.println("\nNumber of states with minimum value: "
-					+ bsMatch.cardinality());
+			mainLog.println("\nNumber of states with minimum value: " + bsMatch.cardinality());
 			bsMatch = null;
 			break;
 		case ARGMAX:
 			// Compute/display max
 			resObj = vals.maxOverBitSet(bsFilter);
-			mainLog.print("\nMaximum value over " + filterStatesString + ": "
-					+ resObj);
+			mainLog.print("\nMaximum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
 			// TODO: un-hard-code precision once StateValues knows hoe precise
 			// it is
@@ -826,8 +812,7 @@ public class StateModelChecker {
 			// Also, don't bother with explanation string
 			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
-			mainLog.println("\nNumber of states with maximum value: "
-					+ bsMatch.cardinality());
+			mainLog.println("\nNumber of states with maximum value: " + bsMatch.cardinality());
 			bsMatch = null;
 			break;
 		case COUNT:
@@ -837,8 +822,7 @@ public class StateModelChecker {
 			resObj = new Integer(count);
 			resVals = new StateValues(expr.getType(), resObj, model);
 			// Create explanation of result and print some details to log
-			resultExpl = filterTrue ? "Count of satisfying states"
-					: "Count of satisfying states also in filter";
+			resultExpl = filterTrue ? "Count of satisfying states" : "Count of satisfying states also in filter";
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			break;
 		case SUM:
@@ -866,18 +850,15 @@ public class StateModelChecker {
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";
 			if (filterInit) {
-				resultExpl += filterInitSingle ? "the initial state"
-						: "first initial state";
+				resultExpl += filterInitSingle ? "the initial state" : "first initial state";
 			} else {
-				resultExpl += filterTrue ? "the first state"
-						: "first state satisfying filter";
+				resultExpl += filterTrue ? "the first state" : "first state satisfying filter";
 			}
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			break;
 		case RANGE:
 			// Find range of values
-			resObj = new prism.Interval(vals.minOverBitSet(bsFilter),
-					vals.maxOverBitSet(bsFilter));
+			resObj = new prism.Interval(vals.minOverBitSet(bsFilter), vals.maxOverBitSet(bsFilter));
 			// Leave result vector unchanged: for a range, result is only
 			// available from Result object
 			resVals = vals;
@@ -892,11 +873,9 @@ public class StateModelChecker {
 			// Get access to BitSet for this
 			bs = vals.getBitSet();
 			// Print some info to log
-			mainLog.print("\nNumber of states satisfying " + expr.getOperand()
-					+ ": ");
+			mainLog.print("\nNumber of states satisfying " + expr.getOperand() + ": ");
 			mainLog.print(bs.cardinality());
-			mainLog.println(bs.cardinality() == model.getNumStates() ? " (all in model)"
-					: "");
+			mainLog.println(bs.cardinality() == model.getNumStates() ? " (all in model)" : "");
 			// Check "for all" over filter
 			b = vals.forallOverBitSet(bsFilter);
 			// Store as object/vector
@@ -904,25 +883,21 @@ public class StateModelChecker {
 			resVals = new StateValues(expr.getType(), resObj, model);
 			// Create explanation of result and print some details to log
 			resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
-			mainLog.print("\nProperty satisfied in "
-					+ vals.countOverBitSet(bsFilter));
+			mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
 			if (filterInit) {
 				if (filterInitSingle) {
 					resultExpl += "the initial state";
 				} else {
 					resultExpl += "all initial states";
 				}
-				mainLog.println(" of " + model.getNumInitialStates()
-						+ " initial states.");
+				mainLog.println(" of " + model.getNumInitialStates() + " initial states.");
 			} else {
 				if (filterTrue) {
 					resultExpl += "all states";
-					mainLog.println(" of all " + model.getNumStates()
-							+ " states.");
+					mainLog.println(" of all " + model.getNumStates() + " states.");
 				} else {
 					resultExpl += "all filter states";
-					mainLog.println(" of " + bsFilter.cardinality()
-							+ " filter states.");
+					mainLog.println(" of " + bsFilter.cardinality() + " filter states.");
 				}
 			}
 			break;
@@ -939,8 +914,7 @@ public class StateModelChecker {
 			if (filterTrue) {
 				resultExpl += b ? "at least one state" : "no states";
 			} else {
-				resultExpl += b ? "at least one filter state"
-						: "no filter states";
+				resultExpl += b ? "at least one filter state" : "no filter states";
 			}
 			mainLog.println("\n" + resultExpl);
 			break;
@@ -948,8 +922,7 @@ public class StateModelChecker {
 			// Check filter satisfied by exactly one state
 			if (bsFilter.cardinality() != 1) {
 				String s = "Filter should be satisfied in exactly 1 state";
-				s += " (but \"" + filter + "\" is true in "
-						+ bsFilter.cardinality() + " states)";
+				s += " (but \"" + filter + "\" is true in " + bsFilter.cardinality() + " states)";
 				throw new PrismException(s);
 			}
 			// Find first (only) value
@@ -966,20 +939,18 @@ public class StateModelChecker {
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			break;
 		default:
-			throw new PrismException("Unrecognised filter type \""
-					+ expr.getOperatorName() + "\"");
+			throw new PrismException("Unrecognised filter type \"" + expr.getOperatorName() + "\"");
 		}
 
 		// For some operators, print out some matching states
 		if (bsMatch != null) {
 			states = StateValues.createFromBitSet(bsMatch, model);
-			mainLog.print("\nThere are " + bsMatch.cardinality()
-					+ " states with ");
-			mainLog.print(expr.getType() instanceof TypeDouble ? "(approximately) "
-					: "" + "this value");
+			mainLog.print("\nThere are " + bsMatch.cardinality() + " states with ");
+			mainLog.print(expr.getType() instanceof TypeDouble ? "(approximately) " : "" + "this value");
 			boolean verbose = verbosity > 0; // TODO
 			if (!verbose && bsMatch.cardinality() > 10) {
-				mainLog.print(".\nThe first 10 states are displayed below. To view them all, enable verbose mode or use a print filter.\n");
+				mainLog
+						.print(".\nThe first 10 states are displayed below. To view them all, enable verbose mode or use a print filter.\n");
 				states.print(mainLog, 10);
 			} else {
 				mainLog.print(":\n");
@@ -1008,8 +979,8 @@ public class StateModelChecker {
 	 * (Actually, it returns a map from label name Strings to BitSets.) (Note:
 	 * the size of the BitSet may be smaller than the number of states.)
 	 */
-	public Map<String, BitSet> loadLabelsFile(String filename)
-			throws PrismException {
+	public Map<String, BitSet> loadLabelsFile(String filename) throws PrismException
+	{
 		BufferedReader in;
 		ArrayList<String> labels;
 		BitSet bitsets[];
@@ -1072,8 +1043,7 @@ public class StateModelChecker {
 			}
 			return res;
 		} catch (IOException e) {
-			throw new PrismException("Error reading labels file \"" + filename
-					+ "\"");
+			throw new PrismException("Error reading labels file \"" + filename + "\"");
 		} catch (NumberFormatException e) {
 			throw new PrismException("Error in labels file");
 		}

@@ -28,18 +28,14 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-
-import explicit.rewards.MDPRewards;
-import explicit.rewards.MDPRewardsSimple;
-import explicit.rewards.STPGRewards;
 
 import prism.ModelType;
 import prism.PrismException;
+import explicit.rewards.MDPRewards;
+import explicit.rewards.STPGRewards;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game
@@ -77,6 +73,15 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (int i = 0; i < numStates; i++) {
 			stateLabels.set(permut[i], stpg.stateLabels.get(i));
 		}
+	}
+
+	/**
+	 * Copy constructor
+	 */
+	public STPGExplicit(STPGExplicit stpg)
+	{
+		super(stpg);
+		stateLabels = new ArrayList<Integer>(stpg.stateLabels);
 	}
 
 	/**
@@ -159,7 +164,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	{
 		return stateLabels.get(s);
 	}
-	
+
 	@Override
 	public Object getAction(int s, int i)
 	{
@@ -173,7 +178,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i)
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
 	{
 		return super.getTransitionsIterator(s, i);
 	}
@@ -285,7 +290,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 
 	// TODO fix the method
 	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
+			boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
@@ -334,7 +340,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
+			boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;
@@ -372,7 +379,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
+			BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
@@ -406,7 +414,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
+			int adv[])
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
@@ -414,7 +423,8 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
+			boolean min2, double val)
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
@@ -422,7 +432,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	// Accessors (other)
-	
+
 	/** Checks whether the given player is valid and throws exception otherwise **/
 	private void checkPlayer(int player)
 	{
@@ -446,7 +456,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	// Standard methods
-	
+
 	@Override
 	public String toString()
 	{
@@ -474,7 +484,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		return s;
 	}
 
-	
 	public static void main(String[] args)
 	{
 		STPGModelChecker mc;

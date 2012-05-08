@@ -1751,7 +1751,7 @@ public class SimulatorEngine
 	public void setStrategy(Strategy strategy)
 	{
 		this.strategy = strategy;
-		if (strategy != null) {
+		if (strategy != null && getPrism().getBuiltModelExplicit() != null) {
 			stateIds = new HashMap<State, Integer>();
 			java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
 			for (int i = 0; i < stateslist.size(); i++) {

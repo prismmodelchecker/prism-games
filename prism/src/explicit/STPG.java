@@ -26,7 +26,9 @@
 
 package explicit;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import explicit.rewards.STPGRewards;
@@ -75,7 +77,7 @@ public interface STPG extends Model
 	 * Is choice {@code i} of state {@code s} in nested form? (See {@link explicit.STPG} for details)
 	 */
 	public boolean isChoiceNested(int s, int i);
-	
+
 	/**
 	 * Get the number of (nested) choices in choice {@code i} of state {@code s}.
 	 */
@@ -134,7 +136,8 @@ public interface STPG extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
+			boolean complement, int adv[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication followed by min/max,
@@ -170,7 +173,8 @@ public interface STPG extends Model
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute);
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
+			boolean absolute);
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
@@ -193,7 +197,8 @@ public interface STPG extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
+			BitSet subset, boolean complement, int adv[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
@@ -204,7 +209,8 @@ public interface STPG extends Model
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[]);
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
+			int adv[]);
 
 	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.
@@ -214,5 +220,15 @@ public interface STPG extends Model
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val);
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
+			boolean min2, double val);
+
+	/**
+	 * Checks  whether all successors of action c in state s are in a given set
+	 * @param s state
+	 * @param c choice
+	 * @param set target set
+	 * @return true if all successors are, false otherwise
+	 */
+	public boolean allSuccessorsInSet(int s, int c, BitSet set);
 }
