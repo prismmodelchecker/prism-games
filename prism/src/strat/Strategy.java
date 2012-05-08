@@ -77,7 +77,10 @@ public interface Strategy
 	public void exportToFile(String file);
 
 	/**
-	 * Builds the product of the model and the strategy..
+	 * Builds the product of the model and the strategy. The product is built
+	 * by adding extra integer variable to the state to represent the memory state of the strategy.
+	 * The initial states are the first N states of the product where N is the size
+	 * of the original model.
 	 * 
 	 * @param model
 	 *            The model for which the strategy is defined.
@@ -133,5 +136,16 @@ public interface Strategy
 	 * @return textual description of the current state of the strategy
 	 */
 	public String getStateDescription();
+	
+	/**
+	 * Returns the initial memory state of the strategy for the state.
+	 * It is required by the model checker to determine which states can be 
+	 * treated as initial in the product.
+	 * 
+	 * @param s the state for which to return initial memory element
+	 * 
+	 * @return non negative integer or -1 if product does not contain extra variables 
+	 */
+	public int getInitialStateOfTheProduct(int s);
 
 }

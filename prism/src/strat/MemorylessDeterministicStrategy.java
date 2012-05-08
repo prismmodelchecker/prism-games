@@ -203,4 +203,9 @@ public class MemorylessDeterministicStrategy implements Strategy
 		return desc;
 	}
 
+	@Override
+	public int getInitialStateOfTheProduct(int s) {
+		return -1;
+	}
+
 }

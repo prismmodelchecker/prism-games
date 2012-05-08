@@ -38,7 +38,6 @@ import parser.ast.RewardStruct;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismSettings;
-import strat.Strategy;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
@@ -75,10 +74,7 @@ public class ProbModelChecker extends StateModelChecker
 	//protected boolean exportAdv = false;
 	protected String exportAdvFilename;
 
-	// Strategy generation
-	protected boolean generateStrategy = false;
-	protected boolean implementStrategy = false;
-	protected Strategy strategy = null;
+
 
 	// Enums for flags/settings
 
@@ -361,15 +357,6 @@ public class ProbModelChecker extends StateModelChecker
 		this.exportAdvFilename = exportAdvFilename;
 	}
 
-	public void setGenerateStrategy(boolean b)
-	{
-		this.generateStrategy = b;
-	}
-
-	public void setImplementStrategy(boolean b)
-	{
-		this.implementStrategy = b;
-	}
 
 	// Get methods for flags/settings
 
@@ -426,11 +413,6 @@ public class ProbModelChecker extends StateModelChecker
 	public SolnMethod getSolnMethod()
 	{
 		return solnMethod;
-	}
-
-	public Strategy getStrategy()
-	{
-		return strategy;
 	}
 
 	// Model checking functions

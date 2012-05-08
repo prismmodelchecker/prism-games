@@ -51,6 +51,31 @@ public class Interval {
 		return false;
 	}
 	
+	/**
+	 * HACK
+	 */
+	public boolean convexAchievableFrom(Interval int1, Interval int2)
+	{
+		
+		
+		double a = (lhs - int2.lhs) / (int1.lhs-int2.lhs);
+		if(a>=0 && a<=1)
+		{
+			if(rhs >= a*int1.rhs + (1-a)*int2.rhs)
+				return true;
+		}
+		
+		
+		double b = (rhs - int2.rhs) / (int1.rhs-int2.rhs);
+		if(b>=0 && b<=1)
+		{
+			if(lhs <= b*int1.lhs + (1-b)*int2.lhs)
+				return true;
+		}
+		
+		return false;
+	}
+	
 	public static Interval getUnion(Interval int1, Interval int2)
 	{
 		return new Interval(Math.min(int1.lhs, int2.lhs), Math.max(int1.rhs, int2.rhs));

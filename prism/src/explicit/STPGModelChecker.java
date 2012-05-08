@@ -1005,6 +1005,17 @@ public class STPGModelChecker extends ProbModelChecker
 			for (i = 0; i < n; i++) {
 				adv[i] = -1;
 			}
+
+//			int s;
+//			for (i = 0; i < no.length(); i++) {
+//				s = no.nextSetBit(i);
+//				for (int c = 0; c < stpg.getNumChoices(s); c++) {
+//					if (stpg.allSuccessorsInSet(s, c, no)) {
+//						adv[i] = c;
+//						break;
+//					}
+//				}
+//			}
 		}
 
 		// Start iterations

@@ -11,8 +11,7 @@ import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
 
-public class StepBoundedDeterministicStrategy implements Strategy
-{
+public class StepBoundedDeterministicStrategy implements Strategy {
 
 	// memory: the number of steps currently made
 	private int memory;
@@ -36,8 +35,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	 *            where ck represents the choice to be made by the strategy when
 	 *            B-k steps have elapsed.
 	 */
-	public StepBoundedDeterministicStrategy(int[][] choices, int bound)
-	{
+	public StepBoundedDeterministicStrategy(int[][] choices, int bound) {
 		this.choices = choices;
 
 		if (bound < 0)
@@ -79,24 +77,24 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException
-	{
+	public void init(int state) throws InvalidStrategyStateException {
 		memory = bound;
 	}
 
 	@Override
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException
-	{
+	public void updateMemory(int action, int state)
+			throws InvalidStrategyStateException {
 		if (memory > 0)
 			memory--;
 	}
 
 	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
-	{
+	public Distribution getNextMove(int state)
+			throws InvalidStrategyStateException {
 
 		if (state > choices.length)
-			throw new InvalidStrategyStateException("The strategy undefined for state " + state + ".");
+			throw new InvalidStrategyStateException(
+					"The strategy undefined for state " + state + ".");
 
 		// determining the action
 		int[] actions = choices[state];
@@ -114,36 +112,32 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public void reset()
-	{
+	public void reset() {
 		memory = bound;
 	}
 
 	@Override
-	public int getMemorySize()
-	{
+	public int getMemorySize() {
 		return bound;
 	}
 
 	@Override
-	public Object getCurrentMemoryElement()
-	{
+	public Object getCurrentMemoryElement() {
 		return memory;
 	}
 
 	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException
-	{
+	public void setMemory(Object memory) throws InvalidStrategyStateException {
 		if (memory instanceof Integer) {
 			this.memory = (Integer) memory;
 		} else {
-			throw new InvalidStrategyStateException("Memory has to integer for this strategy.");
+			throw new InvalidStrategyStateException(
+					"Memory has to integer for this strategy.");
 		}
 	}
 
 	@Override
-	public String getStateDescription()
-	{
+	public String getStateDescription() {
 		String desc = "";
 		desc += "Finite memory deterministic strategy\n";
 		desc += "Size of memory: " + bound + "\n";
@@ -153,15 +147,13 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public void exportToFile(String file)
-	{
+	public void exportToFile(String file) {
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
 		out.print("// Strategy for step-bounded properties\n");
 		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 		out.print("// (b1>b2>...>bn)\n");
-		out
-				.print("// where: ci  (1<=i<n )is the choice taken when the number of steps remaining before the bound is exceeded is >=bi and <bi+1\n");
+		out.print("// where: ci  (1<=i<n )is the choice taken when the number of steps remaining before the bound is exceeded is >=bi and <bi+1\n");
 		out.print("// cn is the choice taken after bn or less steps remain until bound is exceeded.\n");
 		out.print("Strategy:\n");
 		for (int i = 0; i < choices.length; i++) {
@@ -174,59 +166,56 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		out.flush();
 	}
 
-	public static void main(String[] args) throws InvalidStrategyStateException
-	{
+	public static void main(String[] args) throws InvalidStrategyStateException {
 		int[][] choices = { { 30, 1, 28, 2 }, { 25, 1, 24, 2 } };
 		int bound = 25;
 
-		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(choices, bound);
+		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(
+				choices, bound);
 		strat.init(0);
 
 		for (int i = 0; i < 25; i++) {
 			System.out.println("i = " + i);
-			System.out.println(strat.getNextMove(0) + ", " + strat.getNextMove(1));
+			System.out.println(strat.getNextMove(0) + ", "
+					+ strat.getNextMove(1));
 			strat.updateMemory(0, 0);
 		}
 	}
 
 	/**
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
-	public String getInfo()
-	{
+	public String getInfo() {
 		return info;
 	}
 
 	/**
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
-	public String getType()
-	{
+	public String getType() {
 		return "Finite memory strategy";
 	}
 
 	/**
-	 *
+	 * 
 	 * @param info
 	 */
 	@Override
-	public void setInfo(String info)
-	{
+	public void setInfo(String info) {
 		this.info = info;
 	}
 
 	/**
-	 *
+	 * 
 	 * @param model
 	 * @return
 	 */
 	@Override
-	public Model buildProduct(Model model)
-	{
+	public Model buildProduct(Model model) {
 		// checking for supported model types
 		if (model instanceof MDPSimple) {
 			return this.buildProductMDPSimple((MDPSimple) model);
@@ -235,26 +224,25 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			return this.buildProductMDPSparse((MDPSparse) model);
 		}
 
-		throw new UnsupportedOperationException("The product building is not supported for this class of models");
+		throw new UnsupportedOperationException(
+				"The product building is not supported for this class of models");
 	}
 
 	/**
-	 *
+	 * 
 	 * @param model
 	 * @return
 	 */
-	private Model buildProductMDPSparse(MDPSparse model)
-	{
+	private Model buildProductMDPSparse(MDPSparse model) {
 		return new MDPSparse(buildProductMDPSimple(new MDPSimple(model)));
 	}
 
 	/**
-	 *
+	 * 
 	 * @param model
 	 * @return
 	 */
-	private MDPSimple buildProductMDPSimple(MDPSimple model)
-	{
+	private MDPSimple buildProductMDPSimple(MDPSimple model) {
 		// construct a new MDP of size ModelSize * MemorySize
 		MDPSimple mdp = new MDPSimple(model.getStatesList().size() * bound);
 		int n = mdp.getNumStates();
@@ -279,22 +267,27 @@ public class StepBoundedDeterministicStrategy implements Strategy
 
 		// adding choices for the product MDP
 
-		// adding transitions to the state with the next memory element 
+		// adding transitions to the state with the next memory element
 		Distribution distr, newDistr;
 		for (int j = bound; j >= 1; j--) {
-			// setting memory 
+			// setting memory
 			this.memory = j;
 			for (int i = 0; i < oldStates.size(); i++) {
 				// retrieving choice chosen by the optimal strategy
 				try {
-					distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
+					distr = model.getChoice(i, this.getNextMove(i).keySet()
+							.iterator().next());
 
 					// create a new distribution for the product
 					newDistr = new Distribution();
 					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory element one larger smaller than the current one (j)
-						// except for the case where j==1, when we add transition to the same
-						newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + i, distr.get(succ));
+						// adding transition to the state with the memory
+						// element one larger smaller than the current one (j)
+						// except for the case where j==1, when we add
+						// transition to the same
+						newDistr.add(oldStates.size()
+								* (bound - j + j == 1 ? 0 : 1) + succ,
+								distr.get(succ));
 
 					// adding the choice
 					mdp.addChoice(oldStates.size() * (bound - j) + i, newDistr);
@@ -306,6 +299,14 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			}
 		}
 
+		// setting initial state for the MDP
+		mdp.addInitialState(0);
+
 		return mdp;
+	}
+
+	@Override
+	public int getInitialStateOfTheProduct(int s) {
+		return bound;
 	}
 }

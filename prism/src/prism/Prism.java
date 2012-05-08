@@ -2484,6 +2484,7 @@ public class Prism implements PrismSettingsListener
 			// if implement strategy option is enabled, build a product with strategy before model checking
 			if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
 				try {
+					mc.setStrategy(strategy);
 					res = mc.check(strategy.buildProduct(currentModelExpl), prop.getExpression());
 				} catch (UnsupportedOperationException e) {
 					throw new PrismException("Building the product of the model and strategy failed");
@@ -2492,8 +2493,8 @@ public class Prism implements PrismSettingsListener
 				res = mc.check(currentModelExpl, prop.getExpression());
 
 			// saving strategy if it was generated.
-			if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && mc instanceof explicit.ProbModelChecker) {
-				strategy = ((explicit.ProbModelChecker) mc).getStrategy();
+			if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) ) {
+				strategy =  mc.getStrategy();
 				strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType()
 						+ "\nMemory size: " + strategy.getMemorySize());
 			}

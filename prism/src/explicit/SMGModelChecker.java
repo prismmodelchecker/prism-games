@@ -31,24 +31,77 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import cern.colt.Arrays;
+
 import explicit.rewards.SMGRewards;
 import explicit.rewards.STPGRewards;
 
+import parser.ast.Command;
+import parser.ast.ConstantList;
+import parser.ast.Declaration;
+import parser.ast.DeclarationArray;
+import parser.ast.DeclarationBool;
+import parser.ast.DeclarationClock;
+import parser.ast.DeclarationInt;
 import parser.ast.Expression;
+import parser.ast.ExpressionBinaryOp;
+import parser.ast.ExpressionConstant;
+import parser.ast.ExpressionExists;
+import parser.ast.ExpressionFilter;
+import parser.ast.ExpressionForAll;
+import parser.ast.ExpressionFormula;
+import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionITE;
+import parser.ast.ExpressionIdent;
+import parser.ast.ExpressionLabel;
+import parser.ast.ExpressionLiteral;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
+import parser.ast.ExpressionProp;
+import parser.ast.ExpressionReward;
+import parser.ast.ExpressionSS;
 import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
+import parser.ast.ExpressionVar;
+import parser.ast.Filter;
+import parser.ast.ForLoop;
+import parser.ast.FormulaList;
+import parser.ast.LabelList;
+import parser.ast.Module;
+import parser.ast.ModulesFile;
+import parser.ast.Player;
+import parser.ast.PropertiesFile;
+import parser.ast.Property;
+import parser.ast.RenamedModule;
+import parser.ast.RewardStruct;
+import parser.ast.RewardStructItem;
+import parser.ast.SystemBrackets;
+import parser.ast.SystemFullParallel;
+import parser.ast.SystemHide;
+import parser.ast.SystemInterleaved;
+import parser.ast.SystemModule;
+import parser.ast.SystemParallel;
+import parser.ast.SystemRename;
+import parser.ast.Update;
+import parser.ast.Updates;
 import parser.type.TypeBool;
+import parser.visitor.ASTTraverse;
+import parser.visitor.ASTVisitor;
 import prism.PrismException;
+import prism.PrismLangException;
 
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
  */
 public class SMGModelChecker extends STPGModelChecker {
+
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
@@ -67,15 +120,68 @@ public class SMGModelChecker extends STPGModelChecker {
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 
+				// the case with arbitrary objectives
+				// Expression exp = ((ExpressionTemporal) expr).getOperand1();
+				// final List<Expression> exps = new ArrayList<Expression>(5);
+				// ((ExpressionUnaryOp) exp).getOperand().accept(
+				// new ASTTraverse() {
+				// @Override
+				// public Object visit(ExpressionBinaryOp e)
+				// throws PrismLangException {
+				// visitPre(e);
+				// // System.out.println(e);
+				// // if(!exps.contains(e.getOperand1()))
+				//
+				// // if(!exps.contains(e.getOperand2()))
+				// if (e.getOperand2() instanceof ExpressionUnaryOp
+				// && !e.getOperand2().toString()
+				// .startsWith("((")) {
+				// // System.out.println("Adding " +
+				// // e.getOperand2());
+				// exps.add(e.getOperand2());
+				//
+				// }
+				// if (e.getOperand1() instanceof ExpressionUnaryOp
+				// && !e.getOperand1().toString()
+				// .startsWith("((")) {
+				// // System.out.println("Adding " +
+				// // e.getOperand1());
+				// exps.add(e.getOperand1());
+				// }
+				// e.getOperand1().accept(this);
+				// e.getOperand2().accept(this);
+				// visitPost(e);
+				// return null;
+				// }
+				// });
+				//
+				// Collections.reverse(exps);
+				//
+				// // just the case with 2 objectives
+				// // BitSet t1 = checkExpression(model,
+				// // ((ExpressionTemporal) expr).getOperand1()).getBitSet();
+				// // BitSet t2 = checkExpression(model,
+				// // ((ExpressionTemporal) expr).getOperand2()).getBitSet();
+				//
+				// List<BitSet> targets = new ArrayList<BitSet>(2);
+				// for (Expression e : exps) {
+				// targets.add(checkExpression(model, e).getBitSet());
+				// }
+				//
+				// List<Set<ReachTuple>> result =
+				// this.computeReachabilityTuples(
+				// min, !min, (STPG) model, targets);
+				//
+				// System.out.println("Printing results..");
+				// for (int i = 0; i < result.size(); i++) {
+				// System.out.println(i + " " + result.get(i));
+				// }
+				// System.out.println("------------------");
 
-//				BitSet target = checkExpression(model,
-//						((ExpressionTemporal) expr).getOperand1()).getBitSet();
-//				BitSet zero = checkExpression(model,
-//						((ExpressionTemporal) expr).getOperand2()).getBitSet();
-//				this.computeIntervalSet(min, !min, (STPG) model, target, zero);
+				// this.computeIntervalSet(min, !min, (STPG) model, t1, t2);
 
-		
 			}
+			
 			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
 		}
 
@@ -147,6 +253,114 @@ public class SMGModelChecker extends STPGModelChecker {
 		return rewards;
 	}
 
+	/**
+	 * Computes convex hull of all achievable reachability tuples for targets
+	 * 
+	 * @param min1
+	 *            false if player 1 maximising, true otherwise
+	 * @param min2
+	 *            false if player 2 maximising, true otherwise
+	 * @param stpg
+	 *            stochastic two player game model
+	 * @param targets
+	 *            set of reachability targets (only disjoint is supprted atm)
+	 * @return
+	 * @throws PrismException
+	 */
+	public List<Set<ReachTuple>> computeReachabilityTuples(boolean min1,
+			boolean min2, STPG stpg, List<BitSet> targets)
+			throws PrismException {
+
+		int gameSize = stpg.getStatesList().size();
+
+		// checking for disjointness
+		BitSet bs = new BitSet(gameSize);
+		bs.set(0, gameSize - 1, true);
+		for (BitSet tar : targets)
+			bs.and(tar);
+		if (bs.cardinality() != 0)
+			throw new PrismException("Target sets have to be disjoint!");
+
+		// intialise results storage
+		List<Set<ReachTuple>> result = new ArrayList<Set<ReachTuple>>(gameSize);
+		for (int i = 0; i < gameSize; i++)
+			result.add(new HashSet<ReachTuple>());
+
+		// compute initial tuples for states
+		// System.out.println("Computing initial values for states..");
+		double[] maxmin;
+		ReachTuple tuple;
+		BitSet ones = new BitSet(gameSize);
+		ones.set(0, gameSize - 1, true);
+
+		// 0 - from initial intervals
+		// 1 - from 1
+		int initValues = 1;
+
+		for (int t = 0; t < targets.size(); t++) {
+
+			maxmin = computeUntilProbs(stpg, ones, targets.get(t), false, true,
+					0).soln;
+			// System.out.println(Arrays.toString(maxmin));
+			for (int s = gameSize - targets.size(); s < gameSize; s++) {
+				// if(maxmin[s] == 0) continue;
+				tuple = new ReachTuple(targets.size());
+				tuple.setValue(t, maxmin[s]);
+				result.get(s).add(tuple);
+			}
+			for (int s = 0; s < gameSize - targets.size(); s++) {
+				// if(maxmin[s] == 0) continue;
+				tuple = new ReachTuple(targets.size());
+				switch (initValues) {
+				case 0:
+					tuple.setValue(t, maxmin[s]);
+					break;
+				case 1:
+					tuple.setValue(t, 1);
+					break;
+				// case 2 : tuple.setValue(t, 0); break;
+				}
+				result.get(s).add(tuple);
+			}
+			// TODO consider states which are in multiple targets!
+		}
+
+		// System.out.println(result.toString());
+		// starting value iterationinit
+		int maxIter = 20;
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		Set<ReachTuple> sample;
+		while (maxIter-- > 0) {
+			 System.out.println(result.toString());
+			 System.out.println("--------------");
+			 sample= result.get(0);
+			 System.out.println(sample.size());
+			 System.out.println(sample);
+			 System.out.println(result.get(1));
+			 System.out.println("--------------");
+
+			result = ((SMG) stpg).mvMultiObjective(min1, min2, result);
+//			 try {
+//			 in.readLine();
+//			 } catch (IOException e) {
+//			 // TODO Auto-generated catch block
+//			 e.printStackTrace();
+//			 }
+
+			// perform upward perturbation when half way
+//			if (maxIter == 10)
+//				for (Set<ReachTuple> ts : result)
+//					for (ReachTuple t : ts)
+//						if (initValues == 0)
+//							t.perturbateUp();
+//						else
+//							t.perturbateDown();
+
+		}
+
+		return result;
+	}
+
 	public void computeIntervalSet(boolean min1, boolean min2, STPG stpg,
 			BitSet target, BitSet zero) throws PrismException {
 		System.out.println(stpg);
@@ -160,46 +374,33 @@ public class SMGModelChecker extends STPGModelChecker {
 		List<List<Interval>> intervals_ = new ArrayList<List<Interval>>(n);
 
 		// initialising intervals
+		// compute initial tuples for states
+		System.out.println("Computing initial values for states..");
+		double[] minmin;
+		double[] minmax;
+		double[] maxmin;
+		double[] maxmax;
+		BitSet ones = new BitSet(n);
+		ones.set(0, n - 1, true);
+
+		minmin = computeUntilProbs(stpg, ones, target, true, true, 0).soln;
+		minmax = computeUntilProbs(stpg, ones, target, true, false, 0).soln;
+		maxmin = computeUntilProbs(stpg, ones, target, false, true, 0).soln;
+		maxmax = computeUntilProbs(stpg, ones, target, false, false, 0).soln;
+
 		List<Interval> init;
-		boolean overapprox = false;
-		for (int i = 0; i < n; i++) {
+		for (int s = 0; s < n; s++) {
 			init = new LinkedList<Interval>();
-			if (target.get(i))
-				init.add(new Interval(1.0, 1.0));
-			else if (zero.get(i))
-				init.add(new Interval(0.0, 0.0));
-			else
-			{
-				if(overapprox){
-					init.add(new Interval(1.0, 1.0));
-					init.add(new Interval(0.0, 0.0));
-				}
-				else
-				{
-					init.add(new Interval(0.0, 1.0));
-				}
-				//				if(i==0){
-//					init.add(new Interval(0.2, 0.2));
-//					init.add(new Interval(0.8, 0.8));
-//				}
-//				else if(i==1){
-//					init.add(new Interval(0.4, 0.4));
-//					init.add(new Interval(0.6, 0.6));
-//				}
-//				else
-//				{
-//					init.add(new Interval(0.0, 1.0));
-//					//init.add(new Interval(0.0, 0.0));
-//				}
-				
-			}
+			init.add(new Interval(minmin[s], minmax[s]));
+			init.add(new Interval(maxmin[s], maxmax[s]));
 			intervals.add(init);
 		}
+		// TODO consider states which are in multiple targets!
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
 		// set number of iterations
-		it = 40;
+		it = 15;
 		System.out.println(intervals);
 		while (true) {
 			intervals_ = ((SMG) stpg).mvMultIntervals(min1, min2, intervals);
