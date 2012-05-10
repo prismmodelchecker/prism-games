@@ -639,7 +639,6 @@ public class StateModelChecker
 	}
 
 	// Check property ref
-
 	protected StateValues checkExpressionProp(Model model, ExpressionProp expr) throws PrismException
 	{
 		// Look up property and check recursively
