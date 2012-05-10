@@ -50,7 +50,8 @@ import explicit.rewards.StateRewardsConstant;
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
  */
-public class STPGModelChecker extends ProbModelChecker {
+public class STPGModelChecker extends ProbModelChecker
+{
 	/**
 	 * Used when calling methods computing reachability rewards. Says that the
 	 * runs which don't reach the target get reward infinity.
@@ -73,24 +74,24 @@ public class STPGModelChecker extends ProbModelChecker {
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
-	protected StateValues checkProbPathFormula(Model model, Expression expr,
-			boolean min1, boolean min2, double bound) throws PrismException {
+	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2, double bound)
+			throws PrismException
+	{
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method.
 		if (expr.isSimplePathFormula()) {
 			return checkProbPathFormulaSimple(model, expr, min1, min2, bound);
 		} else {
-			throw new PrismException(
-					"Explicit engine does not yet handle LTL-style path formulas");
+			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
 		}
 	}
 
 	/**
 	 * Compute probabilities for a simple, non-LTL path operator.
 	 */
-	protected StateValues checkProbPathFormulaSimple(Model model,
-			Expression expr, boolean min1, boolean min2, double bound)
-			throws PrismException {
+	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, boolean min1, boolean min2,
+			double bound) throws PrismException
+	{
 		StateValues probs = null;
 
 		// Temporal operators
@@ -112,8 +113,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			}
 			// Anything else - convert to until and recurse
 			else {
-				probs = checkProbPathFormulaSimple(model,
-						exprTemp.convertToUntilForm(), min1, min2, bound);
+				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min1, min2, bound);
 			}
 		}
 
@@ -123,8 +123,9 @@ public class STPGModelChecker extends ProbModelChecker {
 		return probs;
 	}
 
-	private StateValues checkProbNext(Model model, ExpressionTemporal expr,
-			boolean min1, boolean min2) throws PrismException {
+	private StateValues checkProbNext(Model model, ExpressionTemporal expr, boolean min1, boolean min2)
+			throws PrismException
+	{
 
 		BitSet b;
 		int n;
@@ -186,8 +187,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	protected StateValues checkGF(Model model, Expression expr, boolean min1,
-			boolean min2) throws PrismException {
+	protected StateValues checkGF(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
 		BitSet b;
 		ModelCheckerResult res = null;
 
@@ -250,8 +251,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	protected StateValues checkFG(Model model, Expression expr, boolean min1,
-			boolean min2) throws PrismException {
+	protected StateValues checkFG(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
+	{
 		BitSet b;
 		ModelCheckerResult res = null;
 
@@ -296,9 +297,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            {@code bound}, this method can use it to avoid unnecessary
 	 *            computations.
 	 */
-	protected StateValues checkProbBoundedUntil(Model model,
-			ExpressionTemporal expr, boolean min1, boolean min2)
-			throws PrismException {
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2)
+			throws PrismException
+	{
 		int time;
 		BitSet b1, b2;
 		StateValues probs = null;
@@ -309,10 +310,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (expr.upperBoundIsStrict())
 			time--;
 		if (time < 0) {
-			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<="
-					+ time;
-			throw new PrismException("Invalid bound " + bound
-					+ " in bounded until formula");
+			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<=" + time;
+			throw new PrismException("Invalid bound " + bound + " in bounded until formula");
 		}
 
 		// model check operands first
@@ -332,8 +331,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			// prob is 1 in b2 states, 0 otherwise
 			probs = StateValues.createFromBitSetAsDoubles(b2, model);
 		} else {
-			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, min1,
-					min2);
+			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, min1, min2);
 			probs = StateValues.createFromDoubleArray(res.soln, model);
 		}
 
@@ -343,8 +341,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	/**
 	 * Compute probabilities for an (unbounded) until operator.
 	 */
-	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr,
-			boolean min1, boolean min2, double bound) throws PrismException {
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2, double bound)
+			throws PrismException
+	{
 		BitSet b1, b2;
 		StateValues probs = null;
 		ModelCheckerResult res = null;
@@ -368,23 +367,20 @@ public class STPGModelChecker extends ProbModelChecker {
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
-	protected StateValues checkRewardFormula(Model model,
-			STPGRewards modelRewards, Expression expr, boolean min1,
-			boolean min2) throws PrismException {
+	protected StateValues checkRewardFormula(Model model, STPGRewards modelRewards, Expression expr, boolean min1,
+			boolean min2) throws PrismException
+	{
 		StateValues rewards = null;
 
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min1,
-						min2);
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min1, min2);
 				break;
 			default:
-				throw new PrismException(
-						"Explicit engine does not yet handle the "
-								+ exprTemp.getOperatorSymbol()
-								+ " operator in the R operator");
+				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol()
+						+ " operator in the R operator");
 			}
 		}
 
@@ -398,11 +394,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * Compute rewards for a reachability reward operator, where the runs not
 	 * reaching the final state get infinity.
 	 */
-	protected StateValues checkRewardReach(Model model,
-			STPGRewards modelRewards, ExpressionTemporal expr, boolean min1,
-			boolean min2) throws PrismException {
-		return checkRewardReach(model, modelRewards, expr, min1, min2,
-				R_INFINITY);
+	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr,
+			boolean min1, boolean min2) throws PrismException
+	{
+		return checkRewardReach(model, modelRewards, expr, min1, min2, R_INFINITY);
 	}
 
 	/**
@@ -413,9 +408,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {
 	 *            {@link #R_ZERO}.
 	 */
-	protected StateValues checkRewardReach(Model model,
-			STPGRewards modelRewards, ExpressionTemporal expr, boolean min1,
-			boolean min2, int unreachingSemantics) throws PrismException {
+	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr,
+			boolean min1, boolean min2, int unreachingSemantics) throws PrismException
+	{
 		BitSet b;
 		StateValues rewards = null;
 		ModelCheckerResult res = null;
@@ -427,8 +422,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
 		// allDDRowVars.n()));
 
-		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2,
-				null, null, unreachingSemantics);
+		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2, null, null, unreachingSemantics);
 		rewards = StateValues.createFromDoubleArray(res.soln, model);
 
 		return rewards;
@@ -450,8 +444,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target,
-			boolean min1, boolean min2) throws PrismException {
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2)
+			throws PrismException
+	{
 		return computeReachProbs(stpg, target, min1, min2, -1);
 	}
 
@@ -469,10 +464,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target,
-			boolean min1, boolean min2, double bound) throws PrismException {
-		return computeReachProbs(stpg, null, target, min1, min2, null, null,
-				bound);
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2, double bound)
+			throws PrismException
+	{
+		return computeReachProbs(stpg, null, target, min1, min2, null, null, bound);
 	}
 
 	/**
@@ -492,11 +487,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeUntilProbs(STPG stpg, BitSet remain,
-			BitSet target, boolean min1, boolean min2, double bound)
-			throws PrismException {
-		return computeReachProbs(stpg, remain, target, min1, min2, null, null,
-				bound);
+	public ModelCheckerResult computeUntilProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2,
+			double bound) throws PrismException
+	{
+		return computeReachProbs(stpg, remain, target, min1, min2, null, null, bound);
 	}
 
 	/**
@@ -522,12 +516,11 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain,
-			BitSet target, boolean min1, boolean min2, double init[],
-			BitSet known) throws PrismException {
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2,
+			double init[], BitSet known) throws PrismException
+	{
 		// TODO: clean this up
-		return computeReachProbs(stpg, remain, target, min1, min2, init, known,
-				-1);
+		return computeReachProbs(stpg, remain, target, min1, min2, init, known, -1);
 	}
 
 	/**
@@ -553,9 +546,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain,
-			BitSet target, boolean min1, boolean min2, double init[],
-			BitSet known, double bound) throws PrismException {
+	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2,
+			double init[], BitSet known, double bound) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		BitSet no, yes;
 		int i, n, numYes, numNo;
@@ -563,10 +556,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		boolean genAdv;
 
 		// Check for some unsupported combinations
-		if (solnMethod == SolnMethod.VALUE_ITERATION
-				&& valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
-			throw new PrismException(
-					"Precomputation (Prob0) must be enabled for value iteration from above");
+		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
+			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
 		}
 
 		// Are we generating an optimal adversary?
@@ -587,8 +578,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null && known != null) {
 			BitSet targetNew = new BitSet(n);
 			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i)
-						|| (known.get(i) && init[i] == 1.0));
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 1.0));
 			}
 			target = targetNew;
 		}
@@ -613,8 +603,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		numYes = yes.cardinality();
 		numNo = no.cardinality();
 		if (verbosity >= 1)
-			mainLog.println("target=" + target.cardinality() + ", yes="
-					+ numYes + ", no=" + numNo + ", maybe="
+			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe="
 					+ (n - (numYes + numNo)));
 		// do value iteration only if the values needed wasn't handled by
 		// precomputation
@@ -622,16 +611,13 @@ public class STPGModelChecker extends ProbModelChecker {
 			// Compute probabilities
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				res = computeReachProbsValIter(stpg, no, yes, min1, min2, init,
-						known);
+				res = computeReachProbsValIter(stpg, no, yes, min1, min2, init, known);
 				break;
 			case GAUSS_SEIDEL:
-				res = computeReachProbsGaussSeidel(stpg, no, yes, min1, min2,
-						init, known);
+				res = computeReachProbsGaussSeidel(stpg, no, yes, min1, min2, init, known);
 				break;
 			default:
-				throw new PrismException("Unknown STPG solution method "
-						+ solnMethod);
+				throw new PrismException("Unknown STPG solution method " + solnMethod);
 			}
 		} else {
 			res = new ModelCheckerResult();
@@ -645,8 +631,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1)
-			mainLog.println("Probabilistic reachability took " + timer / 1000.0
-					+ " seconds.");
+			mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
 		// Update time taken
 		res.timeTaken = timer / 1000.0;
@@ -674,8 +659,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeFG(STPG stpg, BitSet target, boolean min1,
-			boolean min2) throws PrismException {
+	public ModelCheckerResult computeFG(STPG stpg, BitSet target, boolean min1, boolean min2) throws PrismException
+	{
 		// compute G=1
 		// we have G=1 target
 		// iff
@@ -711,8 +696,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public BitSet prob0(STPG stpg, BitSet remain, BitSet target, boolean min1,
-			boolean min2) {
+	public BitSet prob0(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2)
+	{
 		int n, iters;
 		BitSet u, soln, unknown;
 		boolean u_done;
@@ -721,8 +706,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start precomputation
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting Prob0 (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting Prob0 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
@@ -767,10 +751,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Prob0 (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Prob0 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		return u;
@@ -793,8 +775,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public BitSet prob1(STPG stpg, BitSet remain, BitSet target, boolean min1,
-			boolean min2) {
+	public BitSet prob1(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2)
+	{
 		int n, iters;
 		BitSet u, v, soln, unknown;
 		boolean u_done, v_done;
@@ -803,8 +785,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start precomputation
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting Prob1 (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting Prob1 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
@@ -857,10 +838,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Prob1 (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Prob1 (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		return u;
@@ -884,8 +863,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain,
-			BitSet target, boolean min1, boolean min2) {
+	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain, BitSet target, boolean min1, boolean min2)
+	{
 		int n, iters;
 		double[] soln1, soln2;
 		BitSet unknown;
@@ -895,8 +874,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start precomputation
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting zeroRewards (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting zeroRewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Initialise vectors
 		n = stpg.getNumStates();
@@ -913,8 +891,7 @@ public class STPGModelChecker extends ProbModelChecker {
 
 		// initialise the solution so that the forbidden states are penalised
 		for (int i = 0; i < n; i++) {
-			if (remain != null && !remain.get(i) && target != null
-					&& !target.get(i))
+			if (remain != null && !remain.get(i) && target != null && !target.get(i))
 				soln1[i] = Double.POSITIVE_INFINITY;
 		}
 
@@ -928,8 +905,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			// at most n iterations
 			assert iters <= n + 1;
 
-			stpg.mvMultRewMinMax(soln1, rewards, min1, min2, soln2, unknown,
-					false, null);
+			stpg.mvMultRewMinMax(soln1, rewards, min1, min2, soln2, unknown, false, null);
 
 			// Check termination (outer)
 			done = true;
@@ -950,10 +926,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Zero Rewards (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Zero Rewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		BitSet result = new BitSet(n);
@@ -986,9 +960,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult computeReachProbsValIter(STPG stpg, BitSet no,
-			BitSet yes, boolean min1, boolean min2, double init[], BitSet known)
-			throws PrismException {
+	protected ModelCheckerResult computeReachProbsValIter(STPG stpg, BitSet no, BitSet yes, boolean min1, boolean min2,
+			double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		BitSet unknown;
 		int i, n, iters;
@@ -1003,8 +977,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration ("
-					+ (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -1023,17 +996,14 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = known.get(i) ? init[i]
-							: yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+					soln[i] = soln2[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
 			} else {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0
-							: init[i];
+					soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
 			}
 		} else {
 			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0
-						: initVal;
+				soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
 		}
 
 		// Determine set of states actually need to compute values for
@@ -1069,11 +1039,9 @@ public class STPGModelChecker extends ProbModelChecker {
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultMinMax(soln, min1, min2, soln2, unknown, false,
-					genAdv ? adv : null);
+			stpg.mvMultMinMax(soln, min1, min2, soln2, unknown, false, genAdv ? adv : null);
 			// Check termination
-			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam,
-					termCrit == TermCrit.ABSOLUTE);
+			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -1083,16 +1051,13 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		// Non-convergence is an error
 		if (!done) {
-			String msg = "Iterative method did not converge within " + iters
-					+ " iterations.";
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
 		}
@@ -1144,9 +1109,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult computeReachProbsGaussSeidel(STPG stpg,
-			BitSet no, BitSet yes, boolean min1, boolean min2, double init[],
-			BitSet known) throws PrismException {
+	protected ModelCheckerResult computeReachProbsGaussSeidel(STPG stpg, BitSet no, BitSet yes, boolean min1,
+			boolean min2, double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res;
 		BitSet unknown;
 		int i, n, iters;
@@ -1157,8 +1122,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration ("
-					+ (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -1176,8 +1140,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
-					soln[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no
-							.get(i) ? 0.0 : init[i];
+					soln[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
 			} else {
 				for (i = 0; i < n; i++)
 					soln[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
@@ -1201,8 +1164,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false,
-					termCrit == TermCrit.ABSOLUTE);
+			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false, termCrit == TermCrit.ABSOLUTE);
 			// Check termination
 			done = maxDiff < termCritParam;
 		}
@@ -1210,16 +1172,13 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished Gauss-Seidel
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		// Non-convergence is an error
 		if (!done) {
-			String msg = "Iterative method did not converge within " + iters
-					+ " iterations.";
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
 		}
@@ -1251,9 +1210,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            Vector of probabilities from which to recompute in one
 	 *            iteration
 	 */
-	public List<Integer> probReachStrategy(STPG stpg, int state, BitSet target,
-			boolean min1, boolean min2, double lastSoln[])
-			throws PrismException {
+	public List<Integer> probReachStrategy(STPG stpg, int state, BitSet target, boolean min1, boolean min2,
+			double lastSoln[]) throws PrismException
+	{
 		double val = stpg.mvMultMinMaxSingle(state, lastSoln, min1, min2);
 		return stpg.mvMultMinMaxSingleChoices(state, lastSoln, min1, min2, val);
 	}
@@ -1274,11 +1233,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeBoundedReachProbs(STPG stpg,
-			BitSet target, int k, boolean min1, boolean min2)
-			throws PrismException {
-		return computeBoundedReachProbs(stpg, null, target, k, min1, min2,
-				null, null);
+	public ModelCheckerResult computeBoundedReachProbs(STPG stpg, BitSet target, int k, boolean min1, boolean min2)
+			throws PrismException
+	{
+		return computeBoundedReachProbs(stpg, null, target, k, min1, min2, null, null);
 	}
 
 	/**
@@ -1300,11 +1258,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeBoundedUntilProbs(STPG stpg,
-			BitSet remain, BitSet target, int k, boolean min1, boolean min2)
-			throws PrismException {
-		return computeBoundedReachProbs(stpg, remain, target, k, min1, min2,
-				null, null);
+	public ModelCheckerResult computeBoundedUntilProbs(STPG stpg, BitSet remain, BitSet target, int k, boolean min1,
+			boolean min2) throws PrismException
+	{
+		return computeBoundedReachProbs(stpg, remain, target, k, min1, min2, null, null);
 	}
 
 	/**
@@ -1331,9 +1288,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            Optional array of size k+1 to store (init state) results for
 	 *            each step (null if unused)
 	 */
-	public ModelCheckerResult computeBoundedReachProbs(STPG stpg,
-			BitSet remain, BitSet target, int k, boolean min1, boolean min2,
-			double init[], double results[]) throws PrismException {
+	public ModelCheckerResult computeBoundedReachProbs(STPG stpg, BitSet remain, BitSet target, int k, boolean min1,
+			boolean min2, double init[], double results[]) throws PrismException
+	{
 		// TODO: implement until
 
 		ModelCheckerResult res = null;
@@ -1373,8 +1330,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Store intermediate results if required
 		// (compute min/max value over initial states for first step)
 		if (results != null) {
-			results[0] = Utils.minMaxOverArraySubset(soln2,
-					stpg.getInitialStates(), min2);
+			results[0] = Utils.minMaxOverArraySubset(soln2, stpg.getInitialStates(), min2);
 		}
 
 		// Start iterations
@@ -1386,13 +1342,11 @@ public class STPGModelChecker extends ProbModelChecker {
 				adv = new int[n];
 
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultMinMax(soln, min1, min2, soln2, target, true,
-					generateStrategy ? adv : null);
+			stpg.mvMultMinMax(soln, min1, min2, soln2, target, true, generateStrategy ? adv : null);
 			// Store intermediate results if required
 			// (compute min/max value over initial states for this step)
 			if (results != null) {
-				results[iters] = Utils.minMaxOverArraySubset(soln2,
-						stpg.getInitialStates(), min2);
+				results[iters] = Utils.minMaxOverArraySubset(soln2, stpg.getInitialStates(), min2);
 			}
 
 			// Store strategy information
@@ -1406,10 +1360,8 @@ public class STPGModelChecker extends ProbModelChecker {
 						stratChoices.get(s).add(adv[s]);
 					} else {
 						// increase the count
-						stratChoices.get(s).set(
-								stratChoices.get(s).size() - 2,
-								stratChoices.get(s).get(
-										stratChoices.get(s).size() - 2) + 1);
+						stratChoices.get(s).set(stratChoices.get(s).size() - 2,
+								stratChoices.get(s).get(stratChoices.get(s).size() - 2) + 1);
 					}
 				}
 			}
@@ -1428,10 +1380,9 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Bounded probabilistic reachability ("
-					+ (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Bounded probabilistic reachability (" + (min1 ? "min" : "max") + (min2 ? "min" : "max")
+					+ ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		// Creating strategy object
@@ -1478,11 +1429,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @param min2
 	 *            Min or max rewards for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachRewards(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2)
-			throws PrismException {
-		return computeReachRewards(stpg, rewards, target, min1, min2, null,
-				null);
+	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1,
+			boolean min2) throws PrismException
+	{
+		return computeReachRewards(stpg, rewards, target, min1, min2, null, null);
 	}
 
 	/**
@@ -1507,11 +1457,10 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	public ModelCheckerResult computeReachRewards(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2,
-			double init[], BitSet known) throws PrismException {
-		return computeReachRewards(stpg, rewards, target, min1, min2, init,
-				known, R_INFINITY);
+	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1,
+			boolean min2, double init[], BitSet known) throws PrismException
+	{
+		return computeReachRewards(stpg, rewards, target, min1, min2, init, known, R_INFINITY);
 	}
 
 	/**
@@ -1540,24 +1489,19 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {
 	 *            {@link #R_ZERO}.
 	 */
-	public ModelCheckerResult computeReachRewards(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2,
-			double init[], BitSet known, int unreachingSemantics)
-			throws PrismException {
+	public ModelCheckerResult computeReachRewards(STPG stpg, STPGRewards rewards, BitSet target, boolean min1,
+			boolean min2, double init[], BitSet known, int unreachingSemantics) throws PrismException
+	{
 		switch (unreachingSemantics) {
 		case R_INFINITY:
-			return computeReachRewardsInfinity(stpg, rewards, target, min1,
-					min2, init, known);
+			return computeReachRewardsInfinity(stpg, rewards, target, min1, min2, init, known);
 		case R_CUMULATIVE:
-			return computeReachRewardsCumulative(stpg, rewards, target, min1,
-					min2, init, known);
+			return computeReachRewardsCumulative(stpg, rewards, target, min1, min2, init, known);
 		case R_ZERO:
-			return computeReachRewardsZero(stpg, rewards, target, min1, min2,
-					init, known);
+			return computeReachRewardsZero(stpg, rewards, target, min1, min2, init, known);
 		default:
-			throw new PrismException(
-					"Unknown semantics for runs unreaching the target in STPGModelChecker: "
-							+ unreachingSemantics);
+			throw new PrismException("Unknown semantics for runs unreaching the target in STPGModelChecker: "
+					+ unreachingSemantics);
 		}
 
 	}
@@ -1584,9 +1528,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 *            known Note: if 'known' is specified (i.e. is non-null, 'init'
 	 *            must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult computeReachRewardsValIter(STPG stpg,
-			STPGRewards rewards, BitSet target, BitSet inf, boolean min1,
-			boolean min2, double init[], BitSet known) throws PrismException {
+	protected ModelCheckerResult computeReachRewardsValIter(STPG stpg, STPGRewards rewards, BitSet target, BitSet inf,
+			boolean min1, boolean min2, double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res;
 		BitSet unknown, notInf;
 		int i, n, iters;
@@ -1601,8 +1545,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration ("
-					+ (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -1618,19 +1561,15 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = known.get(i) ? init[i]
-							: target.get(i) ? 0.0
-									: inf.get(i) ? Double.POSITIVE_INFINITY
-											: init[i];
+					soln[i] = soln2[i] = known.get(i) ? init[i] : target.get(i) ? 0.0
+							: inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
 			} else {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = target.get(i) ? 0.0
-							: inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
+					soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
 			}
 		} else {
 			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = target.get(i) ? 0.0
-						: inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
 		}
 
 		// Determine set of states actually need to compute values for
@@ -1640,10 +1579,10 @@ public class STPGModelChecker extends ProbModelChecker {
 		unknown.andNot(inf);
 		if (known != null)
 			unknown.andNot(known);
-		
+
 		// constructing not infinity set
-		notInf = (BitSet)inf.clone();
-		notInf.flip(0,n);
+		notInf = (BitSet) inf.clone();
+		notInf.flip(0, n);
 
 		// Create/initialise adversary storage
 		if (genAdv) {
@@ -1657,8 +1596,7 @@ public class STPGModelChecker extends ProbModelChecker {
 				s = inf.nextSetBit(i);
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
 					// for player 1 check
-					if (stpg.getPlayer(s) == STPGExplicit.PLAYER_1
-							&& !stpg.allSuccessorsInSet(s, c, notInf)) {
+					if (stpg.getPlayer(s) == STPGExplicit.PLAYER_1 && !stpg.allSuccessorsInSet(s, c, notInf)) {
 						adv[i] = c;
 						break;
 					}
@@ -1673,11 +1611,9 @@ public class STPGModelChecker extends ProbModelChecker {
 			// mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown,
-					false, genAdv ? adv : null);
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null);
 			// Check termination
-			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam,
-					termCrit == TermCrit.ABSOLUTE);
+			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -1687,10 +1623,8 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max")
-					+ (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer
-					/ 1000.0 + " seconds.");
+			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
 		if (generateStrategy) {
@@ -1718,8 +1652,7 @@ public class STPGModelChecker extends ProbModelChecker {
 
 		// Non-convergence is an error
 		if (!done) {
-			String msg = "Iterative method did not converge within " + iters
-					+ " iterations.";
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
 		}
@@ -1746,9 +1679,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeReachRewardsInfinity(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2,
-			double init[], BitSet known) throws PrismException {
+	public ModelCheckerResult computeReachRewardsInfinity(STPG stpg, STPGRewards rewards, BitSet target, boolean min1,
+			boolean min2, double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
@@ -1769,8 +1702,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null && known != null) {
 			BitSet targetNew = new BitSet(n);
 			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i)
-						|| (known.get(i) && init[i] == 0.0));
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
 			}
 			target = targetNew;
 		}
@@ -1786,8 +1718,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		numTarget = target.cardinality();
 		numInf = inf.cardinality();
 		if (verbosity >= 1)
-			mainLog.println("target=" + numTarget + ", inf=" + numInf
-					+ ", rest=" + (n - (numTarget + numInf)));
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// Compute rewards with epsilon instead of zero. This is used to get the
 		// over-approximation
@@ -1817,8 +1748,7 @@ public class STPGModelChecker extends ProbModelChecker {
 					minimumReward = r;
 				if (r > maximumReward)
 					maximumReward = r;
-				allNonzero = allNonzero
-						&& rewards.getTransitionReward(i, j) > 0;
+				allNonzero = allNonzero && rewards.getTransitionReward(i, j) > 0;
 
 				for (int k = 0; k < stpg.getNumNestedChoices(i, j); k++) {
 					r = rewards.getNestedTransitionReward(i, j, k);
@@ -1831,7 +1761,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			}
 		}
 
-		if (!allNonzero) {
+		if (!allNonzero && !(rewards instanceof StateRewardsConstant)) {
 			timerApprox = System.currentTimeMillis();
 			// A simple heuristic that gives small epsilon, but still is
 			// hopefully safe floating-point-wise
@@ -1839,15 +1769,13 @@ public class STPGModelChecker extends ProbModelChecker {
 			;
 
 			if (verbosity >= 1) {
-				mainLog.println("Computing the upper bound where " + epsilon
-						+ " is used instead of 0.0");
+				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
 			}
 
 			// Modify the rewards
 			double origZeroReplacement;
 			if (rewards instanceof MDPRewardsSimple) {
-				origZeroReplacement = ((MDPRewardsSimple) rewards)
-						.getZeroReplacement();
+				origZeroReplacement = ((MDPRewardsSimple) rewards).getZeroReplacement();
 				((MDPRewardsSimple) rewards).setZeroReplacement(epsilon);
 			} else {
 				throw new PrismException(
@@ -1858,12 +1786,10 @@ public class STPGModelChecker extends ProbModelChecker {
 			// Compute the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				res = computeReachRewardsValIter(stpg, rewards, target, inf,
-						min1, min2, init, known);
+				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 				break;
 			default:
-				throw new PrismException("Unknown STPG solution method "
-						+ solnMethod);
+				throw new PrismException("Unknown STPG solution method " + solnMethod);
 			}
 
 			// Set the value iteration result to be the initial solution for the
@@ -1873,16 +1799,13 @@ public class STPGModelChecker extends ProbModelChecker {
 
 			// Return the rewards to the original state
 			if (rewards instanceof MDPRewardsSimple) {
-				((MDPRewardsSimple) rewards)
-						.setZeroReplacement(origZeroReplacement);
+				((MDPRewardsSimple) rewards).setZeroReplacement(origZeroReplacement);
 			}
 
 			timerApprox = System.currentTimeMillis() - timerApprox;
 
 			if (verbosity >= 1) {
-				mainLog.println("Computed an over-approximation of the solution (in "
-						+ timerApprox
-						/ 1000
+				mainLog.println("Computed an over-approximation of the solution (in " + timerApprox / 1000
 						+ " seconds), this will now be used to get the solution");
 			}
 		}
@@ -1890,19 +1813,16 @@ public class STPGModelChecker extends ProbModelChecker {
 		// Compute real rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1,
-					min2, init, known);
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 			break;
 		default:
-			throw new PrismException("Unknown STPG solution method "
-					+ solnMethod);
+			throw new PrismException("Unknown STPG solution method " + solnMethod);
 		}
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1)
-			mainLog.println("Expected reachability took " + timer / 1000.0
-					+ " seconds.");
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
 
 		// Update time taken
 		res.timeTaken = timer / 1000.0;
@@ -1926,9 +1846,9 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeReachRewardsCumulative(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2,
-			double init[], BitSet known) throws PrismException {
+	public ModelCheckerResult computeReachRewardsCumulative(STPG stpg, STPGRewards rewards, BitSet target,
+			boolean min1, boolean min2, double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
@@ -1949,8 +1869,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		if (init != null && known != null) {
 			BitSet targetNew = new BitSet(n);
 			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i)
-						|| (known.get(i) && init[i] == 0.0));
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
 			}
 			target = targetNew;
 		}
@@ -1977,17 +1896,14 @@ public class STPGModelChecker extends ProbModelChecker {
 				trp = rewards.getTransitionReward(i, k);
 				// ignoring infinite rewards as these transitions will neven be
 				// taken
-				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY
-						&& trp != Double.NEGATIVE_INFINITY) {
+				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
 					nonZeroRewards++;
 					aRew.set(i);
-				} else if (trp == Double.POSITIVE_INFINITY
-						|| trp == Double.NEGATIVE_INFINITY)
+				} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
 					inftyRewards++;
 			}
 
-			if (nonZeroRewards != 0
-					&& nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
+			if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
 				throw new PrismException(
 						"If transition reward is nonzero, all transitions going from the state must be.");
 		}
@@ -2009,8 +1925,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			// check if the alg is correct
 			for (i = 0; i < n; i++) {
 				if (b3.get(i) && !b1.get(i)) {
-					throw new PrismException(
-							"There is some error in the implementation");
+					throw new PrismException("There is some error in the implementation");
 				}
 			}
 
@@ -2031,25 +1946,21 @@ public class STPGModelChecker extends ProbModelChecker {
 		numTarget = target.cardinality();
 		numInf = inf.cardinality();
 		if (verbosity >= 1)
-			mainLog.println("target=" + numTarget + ", inf=" + numInf
-					+ ", rest=" + (n - (numTarget + numInf)));
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// Compute real rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1,
-					min2, init, known);
+			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 			break;
 		default:
-			throw new PrismException("Unknown STPG solution method "
-					+ solnMethod);
+			throw new PrismException("Unknown STPG solution method " + solnMethod);
 		}
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1)
-			mainLog.println("Expected reachability took " + timer / 1000.0
-					+ " seconds.");
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
 
 		// Update time taken
 		res.timeTaken = timer / 1000.0;
@@ -2073,13 +1984,14 @@ public class STPGModelChecker extends ProbModelChecker {
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeReachRewardsZero(STPG stpg,
-			STPGRewards rewards, BitSet target, boolean min1, boolean min2,
-			double init[], BitSet known) throws PrismException {
+	public ModelCheckerResult computeReachRewardsZero(STPG stpg, STPGRewards rewards, BitSet target, boolean min1,
+			boolean min2, double init[], BitSet known) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		BitSet inf;
 		int i, n, numTarget, numInf;
 		long timer, timerProb1, timerApprox;
+		int[][] optAdv = null;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -2127,17 +2039,14 @@ public class STPGModelChecker extends ProbModelChecker {
 			mainLog.println("Maximal reward is " + maxReward);
 
 		if (hasNonInt)
-			throw new PrismException(
-					"For 'zero' semantics reachability reward all rewards must be integers."
-							+ "There is at least one non-integer reward: "
-							+ nonInt);
+			throw new PrismException("For 'zero' semantics reachability reward all rewards must be integers."
+					+ "There is at least one non-integer reward: " + nonInt);
 
 		// Optimise by enlarging target set (if more info is available)
 		if (init != null && known != null) {
 			BitSet targetNew = new BitSet(n);
 			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i)
-						|| (known.get(i) && init[i] == 0.0));
+				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
 			}
 			target = targetNew;
 		}
@@ -2164,13 +2073,11 @@ public class STPGModelChecker extends ProbModelChecker {
 		STPGRewards rewardsRestricted;
 		if (rewards instanceof MDPRewardsSimple) {
 			// And make sure only the best actions are used
-			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple(
-					(MDPRewardsSimple) rewards);
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple((MDPRewardsSimple) rewards);
 
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
-					Iterator<Entry<Integer, Double>> iterator = stpg
-							.getTransitionsIterator(s, c);
+					Iterator<Entry<Integer, Double>> iterator = stpg.getTransitionsIterator(s, c);
 					boolean hasPositiveSuccessor = false;
 					while (iterator.hasNext()) {
 						if (positiveProb.get(iterator.next().getKey())) {
@@ -2191,8 +2098,7 @@ public class STPGModelChecker extends ProbModelChecker {
 
 			for (int s = 0; s < n; s++) {
 				if (positiveProb.get(s))
-					rewardsRestrictedSimple.setStateReward(s,
-							rewards.getStateReward(s));
+					rewardsRestrictedSimple.setStateReward(s, rewards.getStateReward(s));
 			}
 			rewardsRestricted = rewardsRestrictedSimple;
 		} else {
@@ -2220,17 +2126,14 @@ public class STPGModelChecker extends ProbModelChecker {
 				trp = rewards.getTransitionReward(i, k);
 				// ignoring infinite rewards as these transitions will neven be
 				// taken
-				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY
-						&& trp != Double.NEGATIVE_INFINITY) {
+				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
 					nonZeroRewards++;
 					aRew.set(i);
-				} else if (trp == Double.POSITIVE_INFINITY
-						|| trp == Double.NEGATIVE_INFINITY)
+				} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
 					inftyRewards++;
 			}
 
-			if (nonZeroRewards != 0
-					&& nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
+			if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
 				throw new PrismException(
 						"If transition reward is nonzero, all transitions going from the state must be.");
 		}
@@ -2252,8 +2155,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			// check if the alg is correct
 			for (i = 0; i < n; i++) {
 				if (b3.get(i) && !b1.get(i)) {
-					throw new PrismException(
-							"There is some error in the implementation");
+					throw new PrismException("There is some error in the implementation");
 				}
 			}
 
@@ -2280,14 +2182,12 @@ public class STPGModelChecker extends ProbModelChecker {
 		// taken
 		if (rewards instanceof MDPRewardsSimple) {
 			// And make sure only the best actions are used
-			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple(
-					(MDPRewardsSimple) rewards);
+			STPGRewardsSimple rewardsRestrictedSimple = new STPGRewardsSimple((MDPRewardsSimple) rewards);
 
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
 					double prob = 0.0;
-					Iterator<Entry<Integer, Double>> it = stpg
-							.getTransitionsIterator(s, c);
+					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
 					while (it.hasNext()) {
 						Entry<Integer, Double> e = it.next();
 						prob += e.getValue() * mcrprob.soln[e.getKey()];
@@ -2297,23 +2197,15 @@ public class STPGModelChecker extends ProbModelChecker {
 					// transitions
 					// to something extreme so they are never chosen
 
-					if (stpg.getNumChoices(s) > 1
-							&& prob < mcrprob.soln[s]
-							&& ((stpg.getPlayer(s) == 1 && !min1) || (stpg
-									.getPlayer(s) == 2 && !min2))) {
-						rewardsRestrictedSimple.setTransitionReward(s, c,
-								Double.NEGATIVE_INFINITY);
-					} else if (stpg.getNumChoices(s) > 1
-							&& prob > mcrprob.soln[s]
-							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg
-									.getPlayer(s) == 2 && min2))) {
-						rewardsRestrictedSimple.setTransitionReward(s, c,
-								Double.POSITIVE_INFINITY);
+					if (stpg.getNumChoices(s) > 1 && prob < mcrprob.soln[s]
+							&& ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.NEGATIVE_INFINITY);
+					} else if (stpg.getNumChoices(s) > 1 && prob > mcrprob.soln[s]
+							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg.getPlayer(s) == 2 && min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.POSITIVE_INFINITY);
 					} else {
-						double newReward = rewards.getTransitionReward(s, c)
-								* mcrprob.soln[s];
-						rewardsRestrictedSimple.setTransitionReward(s, c,
-								newReward);
+						double newReward = rewards.getTransitionReward(s, c) * mcrprob.soln[s];
+						rewardsRestrictedSimple.setTransitionReward(s, c, newReward);
 					}
 				}
 				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
@@ -2326,8 +2218,7 @@ public class STPGModelChecker extends ProbModelChecker {
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
 					double prob = 0.0;
-					Iterator<Entry<Integer, Double>> it = stpg
-							.getTransitionsIterator(s, c);
+					Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
 					while (it.hasNext()) {
 						Entry<Integer, Double> e = it.next();
 						prob += e.getValue() * mcrprob.soln[e.getKey()];
@@ -2336,18 +2227,12 @@ public class STPGModelChecker extends ProbModelChecker {
 					// as a hack, set the transition reward of nonoptimal
 					// transitions
 					// to something extreme so they are never chosen
-					if (stpg.getNumChoices(s) > 1
-							&& prob < mcrprob.soln[s]
-							&& ((stpg.getPlayer(s) == 1 && !min1) || (stpg
-									.getPlayer(s) == 2 && !min2))) {
-						rewardsRestrictedSimple.setTransitionReward(s, c,
-								Double.NEGATIVE_INFINITY);
-					} else if (stpg.getNumChoices(s) > 1
-							&& prob > mcrprob.soln[s]
-							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg
-									.getPlayer(s) == 2 && min2))) {
-						rewardsRestrictedSimple.setTransitionReward(s, c,
-								Double.POSITIVE_INFINITY);
+					if (stpg.getNumChoices(s) > 1 && prob < mcrprob.soln[s]
+							&& ((stpg.getPlayer(s) == 1 && !min1) || (stpg.getPlayer(s) == 2 && !min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.NEGATIVE_INFINITY);
+					} else if (stpg.getNumChoices(s) > 1 && prob > mcrprob.soln[s]
+							&& ((stpg.getPlayer(s) == 1 && min1) || (stpg.getPlayer(s) == 2 && min2))) {
+						rewardsRestrictedSimple.setTransitionReward(s, c, Double.POSITIVE_INFINITY);
 					} // else the reward remains 0
 				}
 				double newReward = rewards.getStateReward(s) * mcrprob.soln[s];
@@ -2360,11 +2245,11 @@ public class STPGModelChecker extends ProbModelChecker {
 							+ rewards.getClass().getName());
 		}
 		// Next, compute the value for the rich man's strategy.
-		ModelCheckerResult mcrrich = computeReachRewards(stpg,
-				rewardsRestricted, target, min1, min2, init, known,
+		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known,
 				R_CUMULATIVE);
-		System.out.println("maximal rews for rich man's strategy: "
-				+ Arrays.toString(mcrrich.soln));
+		System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
+
+		// TODO generate rich man strategy.
 
 		// compute B from the values for the rich man's strategy
 		int lastSwitch = 0;
@@ -2376,20 +2261,17 @@ public class STPGModelChecker extends ProbModelChecker {
 				double numerator = mcrrich.soln[s];
 				double denominator = -mcrprob.soln[s];
 				double tRew = rewards.getTransitionReward(s, c);
-				Iterator<Entry<Integer, Double>> it = stpg
-						.getTransitionsIterator(s, c);
+				Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
 				while (it.hasNext()) {
 					Entry<Integer, Double> e = it.next();
 					int ts = e.getKey();
 					double sRew = rewards.getStateReward(s);
 					double p = e.getValue();
 
-					numerator -= p
-							* (mcrprob.soln[ts] * (sRew + tRew) + mcrrich.soln[ts]);
+					numerator -= p * (mcrprob.soln[ts] * (sRew + tRew) + mcrrich.soln[ts]);
 					denominator += p * mcrprob.soln[ts];
 
-					int b = (denominator == 0) ? 0 : (int) Math.floor(numerator
-							/ denominator);
+					int b = (denominator == 0) ? 0 : (int) Math.floor(numerator / denominator);
 
 					if (lastSwitch < b)
 						lastSwitch = b;
@@ -2398,8 +2280,7 @@ public class STPGModelChecker extends ProbModelChecker {
 		}
 
 		if (verbosity >= 1)
-			mainLog.println("Last switching point is when the reward cumulated in the past becomes "
-					+ lastSwitch);
+			mainLog.println("Last switching point is when the reward cumulated in the past becomes " + lastSwitch);
 
 		// TODO using gcd of rewards could save us iterations in many cases
 		int kSize = maxReward + 1;
@@ -2414,11 +2295,13 @@ public class STPGModelChecker extends ProbModelChecker {
 				if (inf.get(j))
 					rews[k][j] = Double.POSITIVE_INFINITY;
 				else
-					rews[k][j] = mcrrich.soln[j] + (lastSwitch + k)
-							* mcrprob.soln[j];
+					rews[k][j] = mcrrich.soln[j] + (lastSwitch + k) * mcrprob.soln[j];
 			}
 		}
 
+		int[] adv = null;
+		if (generateStrategy)
+			optAdv = new int[kSize][];
 		for (int x = lastSwitch; x >= 0; x--) {
 			// reward[s,x] =
 			// opt_c sum_{s'} p(s ->c s')(prob_F[s,x+r(s)+r(c)]*(r(s)+r(c))
@@ -2442,6 +2325,8 @@ public class STPGModelChecker extends ProbModelChecker {
 					}
 				}
 
+				if (generateStrategy)
+					adv = new int[n];
 				for (int s = 0; s < n; s++) {
 					if (target.get(s)) {
 						continue;
@@ -2452,16 +2337,14 @@ public class STPGModelChecker extends ProbModelChecker {
 					double stateRew = -1;
 					for (int c = 0; c < stpg.getNumChoices(s); c++) {
 						double choiceRew = 0;
-						double r = rewards.getStateReward(s)
-								+ rewards.getTransitionReward(s, c);
+						double r = rewards.getStateReward(s) + rewards.getTransitionReward(s, c);
 						int index = (int) r; // the reward determines in
 						// which
 						// array we will look
 
 						// System.out.println("s="+s + " c="+c +"index="+index);
 
-						Iterator<Entry<Integer, Double>> it = stpg
-								.getTransitionsIterator(s, c);
+						Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(s, c);
 						while (it.hasNext()) {
 							Entry<Integer, Double> e = it.next();
 							int ts = e.getKey();
@@ -2473,10 +2356,16 @@ public class STPGModelChecker extends ProbModelChecker {
 
 						if (stateRew < 0) {
 							stateRew = choiceRew;
+							if (generateStrategy)
+								adv[s] = c;
 						} else if (min && stateRew > choiceRew) {
 							stateRew = choiceRew;
+							if (generateStrategy)
+								adv[s] = c;
 						} else if (!min && stateRew < choiceRew) {
 							stateRew = choiceRew;
+							if (generateStrategy)
+								adv[s] = c;
 						}
 
 					}
@@ -2490,6 +2379,9 @@ public class STPGModelChecker extends ProbModelChecker {
 
 			} while (difference > 10e-6); // TODO some smarter convergence
 			// test
+
+			// storing adversary for level x
+			optAdv[lastSwitch - x] = adv;
 
 			// shift the array
 			double[] tmpRews = rews[kSize - 1];
@@ -2513,7 +2405,8 @@ public class STPGModelChecker extends ProbModelChecker {
 	/**
 	 * Simple test program.
 	 */
-	public static void main(String args[]) {
+	public static void main(String args[])
+	{
 		STPGModelChecker mc;
 		STPGAbstrSimple stpg;
 		ModelCheckerResult res;

@@ -1336,7 +1336,7 @@ public class MDPModelChecker extends ProbModelChecker
 			BitSet inf, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
-		BitSet unknown;
+		BitSet unknown, notInf;
 		int i, n, iters;
 		double soln[], maxDiff;
 		boolean done;
@@ -1380,6 +1380,10 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// constructing not infinity set
+		notInf = (BitSet) inf.clone();
+		notInf.flip(0, n);
+
 		if (genAdv) {
 			adv = new int[n];
 			for (i = 0; i < n; i++) {
@@ -1390,7 +1394,7 @@ public class MDPModelChecker extends ProbModelChecker
 			for (i = 0; i < inf.length(); i++) {
 				s = inf.nextSetBit(i);
 				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (mdp.allSuccessorsInSet(s, c, inf)) {
+					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
 						adv[i] = c;
 						break;
 					}
@@ -1465,7 +1469,7 @@ public class MDPModelChecker extends ProbModelChecker
 			boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res;
-		BitSet unknown;
+		BitSet unknown, notInf;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		boolean done;
@@ -1510,6 +1514,10 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// constructing not infinity set
+		notInf = (BitSet) inf.clone();
+		notInf.flip(0, n);
+
 		if (genAdv) {
 			adv = new int[n];
 			for (i = 0; i < n; i++) {
@@ -1520,7 +1528,7 @@ public class MDPModelChecker extends ProbModelChecker
 			for (i = 0; i < inf.length(); i++) {
 				s = inf.nextSetBit(i);
 				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (mdp.allSuccessorsInSet(s, c, inf)) {
+					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
 						adv[i] = c;
 						break;
 					}
