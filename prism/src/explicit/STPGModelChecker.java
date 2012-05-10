@@ -40,6 +40,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import prism.PrismException;
 import prism.PrismUtils;
+import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
 import explicit.rewards.MDPRewardsSimple;
@@ -1991,7 +1992,9 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet inf;
 		int i, n, numTarget, numInf;
 		long timer, timerProb1, timerApprox;
-		int[][] optAdv = null;
+		List<List<Integer>> stratChoices = null;
+		int[] adv = null;
+		boolean updateChoice;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -2299,9 +2302,13 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
-		int[] adv = null;
-		if (generateStrategy)
-			optAdv = new int[kSize][];
+		// create strategy vectors
+		if (generateStrategy) {
+			stratChoices = new ArrayList<List<Integer>>(n);
+			for (i = 0; i < n; i++)
+				stratChoices.add(new LinkedList<Integer>());
+		}
+
 		for (int x = lastSwitch; x >= 0; x--) {
 			// reward[s,x] =
 			// opt_c sum_{s'} p(s ->c s')(prob_F[s,x+r(s)+r(c)]*(r(s)+r(c))
@@ -2354,6 +2361,7 @@ public class STPGModelChecker extends ProbModelChecker
 							choiceRew += p * (rews[index][ts]);
 						}
 
+						updateChoice = false;
 						if (stateRew < 0) {
 							stateRew = choiceRew;
 							if (generateStrategy)
@@ -2380,9 +2388,22 @@ public class STPGModelChecker extends ProbModelChecker
 			} while (difference > 10e-6); // TODO some smarter convergence
 			// test
 
-			// storing adversary for level x
-			if (generateStrategy)
-				optAdv[lastSwitch - x] = adv;
+			// Store strategy information
+			if (generateStrategy) {
+				for (int s = 0; s < n; s++) {
+					i = stratChoices.get(s).size();
+					// if not yet initialised, or choice has changed, storing
+					// initial choice
+					if (i == 0 || stratChoices.get(s).get(i - 1) != adv[s]) {
+						stratChoices.get(s).add(iters);
+						stratChoices.get(s).add(adv[s]);
+					} else {
+						// increase the count
+						stratChoices.get(s).set(stratChoices.get(s).size() - 2,
+								stratChoices.get(s).get(stratChoices.get(s).size() - 2) + 1);
+					}
+				}
+			}
 
 			// shift the array
 			double[] tmpRews = rews[kSize - 1];
@@ -2394,7 +2415,22 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		timer = System.currentTimeMillis() - timer;
 
-		// TODO create adversary
+		// Creating strategy object
+		if (generateStrategy) {
+			// converting list into array
+			int[][] choices = new int[n][];
+			for (i = 0; i < n; i++) {
+				choices[i] = new int[stratChoices.get(i).size()];
+
+				// reversing the list
+				for (int j = stratChoices.get(i).size() - 2, x = 0; j >= 0; j -= 2, x += 2) {
+					choices[i][x] = stratChoices.get(i).get(j);
+					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
+				}
+			}
+
+			strategy = new BoundedRewardDeterministicStrategy(choices, lastSwitch, rewards);
+		}
 
 		res = new ModelCheckerResult();
 		res.soln = (rews.length > 1) ? rews[1] : rews[0];
