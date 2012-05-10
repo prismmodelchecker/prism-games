@@ -2381,7 +2381,8 @@ public class STPGModelChecker extends ProbModelChecker
 			// test
 
 			// storing adversary for level x
-			optAdv[lastSwitch - x] = adv;
+			if (generateStrategy)
+				optAdv[lastSwitch - x] = adv;
 
 			// shift the array
 			double[] tmpRews = rews[kSize - 1];
@@ -2392,6 +2393,8 @@ public class STPGModelChecker extends ProbModelChecker
 
 		}
 		timer = System.currentTimeMillis() - timer;
+
+		// TODO create adversary
 
 		res = new ModelCheckerResult();
 		res.soln = (rews.length > 1) ? rews[1] : rews[0];
