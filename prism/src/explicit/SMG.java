@@ -43,8 +43,7 @@ import prism.PrismException;
  * States can be labelled arbitrarily with player 1..n, player 0 has a special
  * purpose of scheduling the moves of other players
  */
-public class SMG extends STPGExplicit implements STPG
-{
+public class SMG extends STPGExplicit implements STPG {
 
 	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
@@ -55,9 +54,13 @@ public class SMG extends STPGExplicit implements STPG
 	// player-integer mapping
 	protected Map<String, Integer> players;
 
-	public SMG()
-	{
+	public SMG() {
 		super();
+		stateLabels = new ArrayList<Integer>(numStates);
+	}
+
+	public SMG(int n) {
+		super(n);
 		stateLabels = new ArrayList<Integer>(numStates);
 	}
 
@@ -65,8 +68,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * Construct an SMG from an existing one and a state index permutation, i.e.
 	 * in which state indexsetPlayer i becomes index permut[i].
 	 */
-	public SMG(SMG smg, int permut[], Map<String, Integer> players)
-	{
+	public SMG(SMG smg, int permut[], Map<String, Integer> players) {
 		super(smg, permut);
 		this.players = players;
 		stateLabels = new ArrayList<Integer>(numStates);
@@ -85,8 +87,7 @@ public class SMG extends STPGExplicit implements STPG
 	/**
 	 * Copy constructor
 	 */
-	public SMG(SMG smg)
-	{
+	public SMG(SMG smg) {
 		super(smg);
 		this.players = new HashMap<String, Integer>(smg.players);
 		stateLabels = new ArrayList<Integer>(smg.stateLabels);
@@ -98,8 +99,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * 
 	 * @return the list of states that belong to the scheduler
 	 */
-	public Set<Integer> getSchedulerStates()
-	{
+	public Set<Integer> getSchedulerStates() {
 		Set<Integer> ret = new HashSet<Integer>();
 		return ret;
 	}
@@ -108,8 +108,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * Adds one state, assigned to player 0
 	 */
 	@Override
-	public int addState()
-	{
+	public int addState() {
 		return addState(0);
 	}
 
@@ -117,8 +116,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * Adds specified number of states all assigned to player 0
 	 */
 	@Override
-	public void addStates(int numToAdd)
-	{
+	public void addStates(int numToAdd) {
 		for (int i = 0; i < numToAdd; i++)
 			stateLabels.add(0);
 	}
@@ -130,8 +128,7 @@ public class SMG extends STPGExplicit implements STPG
 	 *            state owner
 	 * @return state id
 	 */
-	public int addState(int player)
-	{
+	public int addState(int player) {
 		super.addStates(1);
 		stateLabels.add(player);
 		return numStates - 1;
@@ -144,8 +141,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * @param players
 	 *            list of players (to which corresponding state belongs)
 	 */
-	public void addStates(List<Integer> players)
-	{
+	public void addStates(List<Integer> players) {
 		super.addStates(players.size());
 		stateLabels.addAll(players);
 	}
@@ -158,8 +154,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * @param player
 	 *            player
 	 */
-	public void setPlayer(int s, int player)
-	{
+	public void setPlayer(int s, int player) {
 		if (s < stateLabels.size())
 			stateLabels.set(s, player);
 	}
@@ -178,8 +173,7 @@ public class SMG extends STPGExplicit implements STPG
 	 * @param coalition
 	 * @throws PrismException
 	 */
-	public void setCoalition(Set<String> coalition) throws PrismException
-	{
+	public void setCoalition(Set<String> coalition) throws PrismException {
 
 		this.coalition.clear();
 
@@ -191,7 +185,8 @@ public class SMG extends STPGExplicit implements STPG
 				try {
 					this.coalition.add(Integer.parseInt(player));
 				} catch (NumberFormatException e) {
-					throw new PrismException("Player " + player + " is not present in the model");
+					throw new PrismException("Player " + player
+							+ " is not present in the model");
 				}
 			}
 
@@ -200,10 +195,21 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
+	 * Sets the coalition (representing Player 1)
+	 * 
+	 * @param coalition
+	 * @throws PrismException
+	 */
+	public void setCoalitionInts(Set<Integer> coalition) throws PrismException {
+
+		this.coalition = coalition;
+
+	}
+
+	/**
 	 * Makes a half-deep (up to one reference level) copy of itself
 	 */
-	public SMG clone()
-	{
+	public SMG clone() {
 		SMG smg = new SMG();
 		smg.copyFrom(this);
 		smg.actions = new ArrayList<List<Object>>(this.actions);
@@ -220,8 +226,7 @@ public class SMG extends STPGExplicit implements STPG
 	// Accessors (for Model)
 
 	@Override
-	public ModelType getModelType()
-	{
+	public ModelType getModelType() {
 		return ModelType.SMG;
 	}
 
@@ -231,16 +236,28 @@ public class SMG extends STPGExplicit implements STPG
 	 * Returns the 1 if the state belong to coalition and 2 otherwise
 	 */
 	@Override
-	public int getPlayer(int s)
-	{
+	public int getPlayer(int s) {
 		return coalition.contains(stateLabels.get(s)) ? PLAYER_1 : PLAYER_2;
 	}
 
-	public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2, List<Set<ReachTuple>> init)
-	{
+	public Set<Integer> getCoalition() {
+		return this.coalition;
+	}
+
+	public Map<String, Integer> getPlayerMapping() {
+		return this.players;
+	}
+
+	public void setPlayerMapping(Map<String, Integer> pl) {
+		this.players = pl;
+	}
+
+	public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2,
+			List<Set<ReachTuple>> init) {
 		int s;
 		boolean min = false;
-		List<Set<ReachTuple>> tuples = new ArrayList<Set<ReachTuple>>(init.size());
+		List<Set<ReachTuple>> tuples = new ArrayList<Set<ReachTuple>>(
+				init.size());
 		for (s = 0; s < numStates; s++) {
 			if (getPlayer(s) == 1)
 				min = min1;
@@ -252,14 +269,15 @@ public class SMG extends STPGExplicit implements STPG
 		return tuples;
 	}
 
-	private Set<ReachTuple> mvMultiObjectiveSingle(int s, List<Set<ReachTuple>> tuples, boolean min)
-	{
+	private Set<ReachTuple> mvMultiObjectiveSingle(int s,
+			List<Set<ReachTuple>> tuples, boolean min) {
 
 		// retrieving choices for state
 		List<Distribution> dists = trans.get(s);
 
-		//System.out.println("Computing tuples for distributions for state " + s
-		//		+ "..");
+		// System.out.println("Computing tuples for distributions for state " +
+		// s
+		// + "..");
 		// for each distribution compute a set of reach tuples
 		List<Set<ReachTuple>> distTuples = new ArrayList<Set<ReachTuple>>();
 		Distribution distr;
@@ -271,20 +289,20 @@ public class SMG extends STPGExplicit implements STPG
 			states = new ArrayList<Integer>(distr.keySet());
 			stateTuples = new HashSet<ReachTuple>();
 
-			//System.out.println("Computing tuple for distribution " + d);
+			// System.out.println("Computing tuple for distribution " + d);
 
 			// computing the tuples
 			computeDistTuples(distr, tuples, stateTuples, states, 0, null);
-			//System.out.println("Done.");
-			//System.out.println(stateTuples);
-			//System.out.println("Filtering tuples");
+			// System.out.println("Done.");
+			// System.out.println(stateTuples);
+			// System.out.println("Filtering tuples");
 			filterTuples(stateTuples);
-			//System.out.println("Done.");
-			//System.out.println(stateTuples);
+			// System.out.println("Done.");
+			// System.out.println(stateTuples);
 			distTuples.add(stateTuples);
 		}
 
-		//System.out.println(distTuples);
+		// System.out.println(distTuples);
 		// System.out.println("Done.");
 
 		Set<ReachTuple> ret = new HashSet<ReachTuple>();
@@ -300,7 +318,7 @@ public class SMG extends STPGExplicit implements STPG
 		// if player is minimising, take the intersection
 		else {
 			//
-			//System.out.println("Computing intersection..");
+			// System.out.println("Computing intersection..");
 			// checking for convex containment
 			for (int d = 0; d < distTuples.size(); d++) {
 				for (ReachTuple t : distTuples.get(d)) {
@@ -333,64 +351,70 @@ public class SMG extends STPGExplicit implements STPG
 			// System.out.println(ret);
 		}
 
-		//System.out.println(ret);
-		//System.out.println("Filtering");
+		// System.out.println(ret);
+		// System.out.println("Filtering");
 		filterTuples(ret);
-		//System.out.println(ret);
+		// System.out.println(ret);
 
 		return ret;
 	}
 
-	private void computeTupleIntersections(Set<ReachTuple> ret, List<Set<ReachTuple>> distTuples,
-			ReachTuple currentTuple, int depth)
-	{
+	private void computeTupleIntersections(Set<ReachTuple> ret,
+			List<Set<ReachTuple>> distTuples, ReachTuple currentTuple, int depth) {
 
 		if (currentTuple != null && currentTuple.isZero() && ret.size() > 0)
 			return;
 
 		if (depth == distTuples.size()) {
 			ret.add(currentTuple);
-			//filterTuples(ret);
+			// filterTuples(ret);
 			return;
 		}
 
 		// proceeding to recursion
 		if (depth == 0)
 			for (ReachTuple rt : distTuples.get(0))
-				computeTupleIntersections(ret, distTuples, new ReachTuple(rt.getValues()), depth + 1);
+				computeTupleIntersections(ret, distTuples,
+						new ReachTuple(rt.getValues()), depth + 1);
 		else
 			for (ReachTuple rt : distTuples.get(depth))
-				computeTupleIntersections(ret, distTuples, new ReachTuple(currentTuple, rt, true), depth + 1);
+				computeTupleIntersections(ret, distTuples, new ReachTuple(
+						currentTuple, rt, true), depth + 1);
 	}
 
-	private void computeDistTuples(Distribution dist, List<Set<ReachTuple>> tuples, Set<ReachTuple> stateTuples,
-			List<Integer> states, int depth, ReachTuple currentTuple)
-	{
+	private void computeDistTuples(Distribution dist,
+			List<Set<ReachTuple>> tuples, Set<ReachTuple> stateTuples,
+			List<Integer> states, int depth, ReachTuple currentTuple) {
 
 		// finished, adding tuple to the set, filtering the set
 		if (depth == states.size()) {
-			//System.out.println("Adding tuple " + currentTuple);
+			// System.out.println("Adding tuple " + currentTuple);
 			stateTuples.add(currentTuple);
-			//filterTuples(stateTuples);
+			// filterTuples(stateTuples);
 			return;
 		} else {
-			//System.out.println("Not yet adding tuple " + currentTuple);
+			// System.out.println("Not yet adding tuple " + currentTuple);
 		}
 
 		// proceeding to recursion
 		if (depth == 0)
 			for (ReachTuple rt : tuples.get(states.get(0)))
-				computeDistTuples(dist, tuples, stateTuples, states, depth + 1, new ReachTuple(rt, dist.get(states
-						.get(0))));
+				computeDistTuples(dist, tuples, stateTuples, states, depth + 1,
+						new ReachTuple(rt, dist.get(states.get(0))));
 		else
 			for (ReachTuple rt : tuples.get(states.get(depth)))
-				computeDistTuples(dist, tuples, stateTuples, states, depth + 1, new ReachTuple(currentTuple, 1.0, rt,
-						dist.get(states.get(depth))));
+				computeDistTuples(
+						dist,
+						tuples,
+						stateTuples,
+						states,
+						depth + 1,
+						new ReachTuple(currentTuple, 1.0, rt, dist.get(states
+								.get(depth))));
 
 	}
 
-	private void filterTuples(Set<ReachTuple> tupleSet)
-	{
+	private void filterTuples(Set<ReachTuple> tupleSet) {
 
 		List<ReachTuple> tuples = new ArrayList<ReachTuple>(tupleSet);
 		ReachTuple tuple;
@@ -435,12 +459,12 @@ public class SMG extends STPGExplicit implements STPG
 
 	// Methods for intervals
 	// TODO fix the method
-	public List<List<Interval>> mvMultIntervals(boolean min1, boolean min2, List<List<Interval>> intervals)
-			throws PrismException
-	{
+	public List<List<Interval>> mvMultIntervals(boolean min1, boolean min2,
+			List<List<Interval>> intervals) throws PrismException {
 		int s;
 		boolean min = false;
-		List<List<Interval>> intervals_ = new ArrayList<List<Interval>>(intervals.size());
+		List<List<Interval>> intervals_ = new ArrayList<List<Interval>>(
+				intervals.size());
 		for (s = 0; s < numStates; s++) {
 			if (getPlayer(s) == 1)
 				min = min1;
@@ -452,9 +476,8 @@ public class SMG extends STPGExplicit implements STPG
 		return intervals_;
 	}
 
-	public List<Interval> mvMultIntervalsSingle(int s, List<List<Interval>> intervals, boolean min)
-			throws PrismException
-	{
+	public List<Interval> mvMultIntervalsSingle(int s,
+			List<List<Interval>> intervals, boolean min) throws PrismException {
 		int k;
 		List<Distribution> step;
 		List<List<Interval>> distInts;
@@ -485,7 +508,8 @@ public class SMG extends STPGExplicit implements STPG
 				int1 = intervals.get(states[0]).get(i);
 				for (int j = 0; j < intervals.get(states[1]).size(); j++) {
 					int2 = intervals.get(states[1]).get(j);
-					ints.add(new Interval((probs[0] * int1.lhs) + (probs[1] * int2.lhs), (probs[0] * int1.rhs)
+					ints.add(new Interval((probs[0] * int1.lhs)
+							+ (probs[1] * int2.lhs), (probs[0] * int1.rhs)
 							+ (probs[1] * int2.rhs)));
 				}
 			}
@@ -519,18 +543,21 @@ public class SMG extends STPGExplicit implements STPG
 			// Adding unions
 			for (int i = 0; i < distInts.get(0).size(); i++)
 				for (int j = 0; j < distInts.get(1).size(); j++)
-					ints.add(Interval.getUnion(distInts.get(0).get(i), distInts.get(1).get(j)));
+					ints.add(Interval.getUnion(distInts.get(0).get(i), distInts
+							.get(1).get(j)));
 
 			// Adding intersections
 			for (Interval i1 : distInts.get(0))
 				for (Interval i21 : distInts.get(1))
 					for (Interval i22 : distInts.get(1))
-						if (i1.achievableFrom(i21) || i1.achievableFrom(i21) || i1.achievableFrom(i21, i22))
+						if (i1.achievableFrom(i21) || i1.achievableFrom(i21)
+								|| i1.achievableFrom(i21, i22))
 							ints.add(i1);
 			for (Interval i2 : distInts.get(1))
 				for (Interval i11 : distInts.get(0))
 					for (Interval i12 : distInts.get(0))
-						if (i2.achievableFrom(i11) || i2.achievableFrom(i11) || i2.achievableFrom(i11, i12))
+						if (i2.achievableFrom(i11) || i2.achievableFrom(i11)
+								|| i2.achievableFrom(i11, i12))
 							ints.add(i2);
 
 		}
@@ -593,8 +620,7 @@ public class SMG extends STPGExplicit implements STPG
 	// // ints.add(new Interval(0,1));
 	// }
 
-	private static void filterIntervals(List<Interval> ints)
-	{
+	private static void filterIntervals(List<Interval> ints) {
 
 		Interval int1;
 		boolean remove;
@@ -655,8 +681,7 @@ public class SMG extends STPGExplicit implements STPG
 		// ints.add(new Interval(0,1));
 	}
 
-	private static void removeElements(List<Interval> ints, BitSet remove)
-	{
+	private static void removeElements(List<Interval> ints, BitSet remove) {
 
 		for (int i = ints.size() - 1; i >= 0; i--)
 			if (remove.get(i))
@@ -666,8 +691,7 @@ public class SMG extends STPGExplicit implements STPG
 	// Standard methods
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		int i, j, n;
 		Object o;
 		String s = "";
@@ -675,7 +699,8 @@ public class SMG extends STPGExplicit implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i) + "): ";
+			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i)
+					+ "): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {
@@ -692,21 +717,23 @@ public class SMG extends STPGExplicit implements STPG
 		return s;
 	}
 
-	private static void testFilterTuples()
-	{
-		//[ [, 0.0], [, ], [, ], [, ]]
+	private static void testFilterTuples() {
+		// [ [, 0.0], [, ], [, ], [, ]]
 		Set<ReachTuple> tuples = new HashSet<ReachTuple>();
 		tuples.add(new ReachTuple(new double[] { 0.9500853890588071, 0.0 }));
-		tuples.add(new ReachTuple(new double[] { 0.9500853890588071, 2.5198393476577576E-17 }));
+		tuples.add(new ReachTuple(new double[] { 0.9500853890588071,
+				2.5198393476577576E-17 }));
 
 		tuples.add(new ReachTuple(new double[] { 0.7, 0.21990576147089536 }));
 		tuples.add(new ReachTuple(new double[] { 0.7, 0.21990576147089538 }));
 
 		tuples.add(new ReachTuple(new double[] { 0.0, 0.21990576147089538 }));
-		tuples.add(new ReachTuple(new double[] { 2.6371112196923456E-17, 0.21990576147089536 }));
+		tuples.add(new ReachTuple(new double[] { 2.6371112196923456E-17,
+				0.21990576147089536 }));
 
 		tuples.add(new ReachTuple(new double[] { 0.2500853890588072, 0.0 }));
-		tuples.add(new ReachTuple(new double[] { 0.2500853890588072, 2.5198393476577576E-17 }));
+		tuples.add(new ReachTuple(new double[] { 0.2500853890588072,
+				2.5198393476577576E-17 }));
 
 		System.out.println(tuples);
 		new SMG().filterTuples(tuples);
@@ -714,8 +741,7 @@ public class SMG extends STPGExplicit implements STPG
 
 	}
 
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
 
 		testFilterTuples();
 
@@ -769,7 +795,8 @@ public class SMG extends STPGExplicit implements STPG
 			int1 = ints1.get(i);
 			for (int j = 0; j < ints2.size(); j++) {
 				int2 = ints2.get(j);
-				result.add(new Interval((0.5 * int1.lhs) + (0.5 * int2.lhs), (0.5 * int1.rhs) + (0.5 * int2.rhs)));
+				result.add(new Interval((0.5 * int1.lhs) + (0.5 * int2.lhs),
+						(0.5 * int1.rhs) + (0.5 * int2.rhs)));
 			}
 		}
 
@@ -809,6 +836,14 @@ public class SMG extends STPGExplicit implements STPG
 			System.out.println(result.get(i).rhs);
 		}
 
+	}
+
+	public List<Integer> getStateLabels() {
+		return stateLabels;
+	}
+
+	public void setStateLabels(List<Integer> list) {
+		stateLabels = list;
 	}
 
 }

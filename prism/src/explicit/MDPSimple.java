@@ -645,7 +645,6 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 				// If adversary generation is enabled, remember optimal choice
 				if (adv != null)
 				{
-					System.out.println(s + " " + j + " " + d);
 					advCh = j;
 				}
 			}
@@ -809,7 +808,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		// If adversary generation is enabled, store optimal choice
 		if (adv != null & !first) {
 			// Only remember strictly better choices (required for max)
-			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s]) || this instanceof STPG) {
 				adv[s] = advCh;
 			}
 		}

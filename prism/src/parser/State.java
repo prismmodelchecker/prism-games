@@ -190,6 +190,7 @@ public class State implements Comparable<State>
 				else
 					continue;
 			} else {
+				System.out.println(i);
 				throw new ClassCastException("Can't compare " + o1.getClass() + " and " + o2.getClass());
 			}
 		}

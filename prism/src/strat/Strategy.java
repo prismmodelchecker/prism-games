@@ -1,5 +1,6 @@
 package strat;
 
+import prism.PrismException;
 import explicit.Distribution;
 import explicit.Model;
 
@@ -84,9 +85,10 @@ public interface Strategy
 	 * 
 	 * @param model
 	 *            The model for which the strategy is defined.
+	 * @throws PrismException 
 	 * 
 	 */
-	public Model buildProduct(Model model);
+	public Model buildProduct(Model model) throws PrismException;
 
 	/**
 	 * Get textual description of the strategy

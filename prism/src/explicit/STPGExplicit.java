@@ -57,6 +57,15 @@ public class STPGExplicit extends MDPSimple implements STPG
 		stateLabels = new ArrayList<Integer>(numStates);
 	}
 
+	public STPGExplicit(int n)
+	{
+		super(n);
+
+		// initialising state labels
+		stateLabels = new ArrayList<Integer>(n);
+	}
+
+	
 	/**
 	 * Construct an STPG from an existing one and a state index permutation,
 	 * i.e. in which state index i becomes index permut[i].

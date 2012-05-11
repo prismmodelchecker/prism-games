@@ -1366,8 +1366,8 @@ public class STPGModelChecker extends ProbModelChecker
 					}
 				}
 			}
-			System.out.println(Arrays.toString(soln));
-			System.out.println(Arrays.toString(adv));
+//			System.out.println(Arrays.toString(soln));
+//			System.out.println(Arrays.toString(adv));
 
 			// Swap vectors for next iter
 			tmpsoln = soln;
@@ -1992,9 +1992,7 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet inf;
 		int i, n, numTarget, numInf;
 		long timer, timerProb1, timerApprox;
-		List<List<Integer>> stratChoices = null;
-		int[] adv = null;
-		boolean updateChoice;
+		int[][] optAdv = null;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -2302,13 +2300,9 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
-		// create strategy vectors
-		if (generateStrategy) {
-			stratChoices = new ArrayList<List<Integer>>(n);
-			for (i = 0; i < n; i++)
-				stratChoices.add(new LinkedList<Integer>());
-		}
-
+		int[] adv = null;
+		if (generateStrategy)
+			optAdv = new int[lastSwitch+1][];
 		for (int x = lastSwitch; x >= 0; x--) {
 			// reward[s,x] =
 			// opt_c sum_{s'} p(s ->c s')(prob_F[s,x+r(s)+r(c)]*(r(s)+r(c))
@@ -2361,7 +2355,6 @@ public class STPGModelChecker extends ProbModelChecker
 							choiceRew += p * (rews[index][ts]);
 						}
 
-						updateChoice = false;
 						if (stateRew < 0) {
 							stateRew = choiceRew;
 							if (generateStrategy)
@@ -2388,22 +2381,9 @@ public class STPGModelChecker extends ProbModelChecker
 			} while (difference > 10e-6); // TODO some smarter convergence
 			// test
 
-			// Store strategy information
-			if (generateStrategy) {
-				for (int s = 0; s < n; s++) {
-					i = stratChoices.get(s).size();
-					// if not yet initialised, or choice has changed, storing
-					// initial choice
-					if (i == 0 || stratChoices.get(s).get(i - 1) != adv[s]) {
-						stratChoices.get(s).add(iters);
-						stratChoices.get(s).add(adv[s]);
-					} else {
-						// increase the count
-						stratChoices.get(s).set(stratChoices.get(s).size() - 2,
-								stratChoices.get(s).get(stratChoices.get(s).size() - 2) + 1);
-					}
-				}
-			}
+			// storing adversary for level x
+			if(generateStrategy)
+			optAdv[lastSwitch - x] = adv;
 
 			// shift the array
 			double[] tmpRews = rews[kSize - 1];
@@ -2415,23 +2395,9 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		timer = System.currentTimeMillis() - timer;
 
-		// Creating strategy object
-		if (generateStrategy) {
-			// converting list into array
-			int[][] choices = new int[n][];
-			for (i = 0; i < n; i++) {
-				choices[i] = new int[stratChoices.get(i).size()];
-
-				// reversing the list
-				for (int j = stratChoices.get(i).size() - 2, x = 0; j >= 0; j -= 2, x += 2) {
-					choices[i][x] = stratChoices.get(i).get(j);
-					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
-				}
-			}
-
-			strategy = new BoundedRewardDeterministicStrategy(choices, lastSwitch, rewards);
-		}
-
+		if(generateStrategy)
+			strategy = new BoundedRewardDeterministicStrategy(optAdv, lastSwitch+1, rewards);
+		
 		res = new ModelCheckerResult();
 		res.soln = (rews.length > 1) ? rews[1] : rews[0];
 		res.lastSoln = (rews.length > 2) ? rews[2] : null;
