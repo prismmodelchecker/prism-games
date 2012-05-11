@@ -41,6 +41,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -758,16 +759,24 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
+			Date d1, d2, d3;
+			d1 = new Date();
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
+
 			int height = (int) pathTable.getPreferredSize().getHeight();
 			int width = (int) pathTable.getPreferredSize().getWidth();
 			pathTable.scrollRectToVisible(new Rectangle(0, height - 10, width, height));
 			updateTableModel.updateUpdatesTable();
+			d2 = new Date();
+
 			// Update display
 			repaintLists();
 			updatePathInfo();
 			setComputing(false);
+			d3 = new Date();
+
+			System.out.println((d2.getTime() - d1.getTime()) + " " + (d3.getTime() - d2.getTime()));
 
 		} catch (NumberFormatException e) {
 			this

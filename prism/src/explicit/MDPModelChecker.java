@@ -787,7 +787,8 @@ public class MDPModelChecker extends ProbModelChecker
 				if (no.get(i))
 					continue;
 				// get the first choice of the available ones
-				adv[i] = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln[i]).get(0);
+				List<Integer> choi = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln[i]);
+				adv[i] = choi.size() == 0 ? 0 : choi.get(0);
 			}
 			strategy = new MemorylessDeterministicStrategy(adv);
 		}
