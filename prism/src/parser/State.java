@@ -26,7 +26,7 @@
 
 package parser;
 
-import java.util.*;
+import java.util.List;
 
 import parser.ast.ModulesFile;
 import prism.PrismLangException;
@@ -190,7 +190,7 @@ public class State implements Comparable<State>
 				else
 					continue;
 			} else {
-				System.out.println(i);
+				System.out.println(o1 + " " + o2);
 				throw new ClassCastException("Can't compare " + o1.getClass() + " and " + o2.getClass());
 			}
 		}

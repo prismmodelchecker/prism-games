@@ -10,11 +10,8 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import explicit.Distribution;
-import explicit.MDPSimple;
-import explicit.MDPSparse;
 import explicit.Model;
 import explicit.SMG;
-import explicit.STPGExplicit;
 import explicit.rewards.STPGRewards;
 
 /**
@@ -22,38 +19,46 @@ import explicit.rewards.STPGRewards;
  * @author aissim
  * @version
  */
-public class BoundedRewardDeterministicStrategy extends
-		StepBoundedDeterministicStrategy {
+public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministicStrategy
+{
 
+	// rewards
 	private STPGRewards rewards;
 
-	public BoundedRewardDeterministicStrategy(int[][] choices, int bound,
-			STPGRewards rewards) {
+	// number of states in the game for which the strategy is defined
+	private int nStates;
+
+	public BoundedRewardDeterministicStrategy(int[][] choices, int bound, STPGRewards rewards)
+	{
 		super(choices, bound);
 		this.rewards = rewards;
+		nStates = choices.length;
 	}
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException {
+	public void init(int state) throws InvalidStrategyStateException
+	{
 		memory = bound - (int) rewards.getStateReward(state);
 	}
 
 	@Override
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException {
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	{
 		memory -= rewards.getStateReward(state);
 		if (memory < 0)
 			memory = 0;
 	}
 
 	@Override
-	public void exportToFile(String file) {
+	public void exportToFile(String file)
+	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
 		out.print("// Strategy for F0 reward properties\n");
 		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 		out.print("// (b1>b2>...>bn)\n");
-		out.print("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
+		out
+				.print("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
 		out.print("// cn is the choice taken after bn or less remain to accummulate until bound is reached.\n");
 		out.print("Strategy:\n");
 		for (int i = 0; i < choices.length; i++) {
@@ -73,21 +78,21 @@ public class BoundedRewardDeterministicStrategy extends
 	 * @throws PrismException
 	 */
 	@Override
-	public Model buildProduct(Model model) throws PrismException {
+	public Model buildProduct(Model model) throws PrismException
+	{
 
 		if (model.getClass().equals(SMG.class)) {
 			return this.buildProductSMG((SMG) model);
 		}
 
-		throw new UnsupportedOperationException(
-				"The product building is not supported for this class of models");
+		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 	}
 
-	private Model buildProductSMG(SMG model) throws PrismException {
+	private Model buildProductSMG(SMG model) throws PrismException
+	{
 		// construct a new SMG of size ModelSize * MemorySize
 		SMG smg = new SMG(model.getStatesList().size() * bound);
-		smg.setPlayerMapping(new HashMap<String, Integer>(model
-				.getPlayerMapping()));
+		smg.setPlayerMapping(new HashMap<String, Integer>(model.getPlayerMapping()));
 		smg.setCoalitionInts(new HashSet<Integer>(model.getCoalition()));
 		int n = smg.getNumStates();
 
@@ -117,16 +122,18 @@ public class BoundedRewardDeterministicStrategy extends
 		// adding choices for the product SMG
 		// adding transitions to the state with the next memory element
 		Distribution distr, newDistr;
+		int initial = -1;
 		for (int j = bound; j >= 1; j--) {
 			// setting memory
 			this.memory = j;
 			for (int i = 0; i < oldStates.size(); i++) {
+				if (i == 0 && j == bound - rewards.getStateReward(i))
+					initial = (bound - j) * oldStates.size() + i;
 				// if the state belongs to player 1 retrieving choice chosen by
 				// the optimal strategy
 				if (model.getPlayer(i) == SMG.PLAYER_1) {
 					try {
-						distr = model.getChoice(i, this.getNextMove(i).keySet()
-								.iterator().next());
+						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
 
 						// create a new distribution for the product
 						newDistr = new Distribution();
@@ -136,16 +143,12 @@ public class BoundedRewardDeterministicStrategy extends
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(
-									oldStates.size()
-											* (bound - j + j == 1 ? 0
-													: (int) rewards
-															.getStateReward(succ))
-											+ succ, distr.get(succ));
+							newDistr.add(oldStates.size()
+									* (bound - j + (j == 1 ? 0 : (int) rewards.getStateReward(succ))) + succ, distr
+									.get(succ));
 
 						// adding the choice
-						smg.addChoice(oldStates.size() * (bound - j) + i,
-								newDistr);
+						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
 
 					} catch (InvalidStrategyStateException error) {
 						// TODO Auto-generated catch block
@@ -164,26 +167,27 @@ public class BoundedRewardDeterministicStrategy extends
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(
-									oldStates.size()
-											* (bound - j + j == 1 ? 0
-													: (int) rewards
-															.getStateReward(succ))
-											+ succ, distr.get(succ));
+							newDistr.add(oldStates.size()
+									* (bound - j + j == 1 ? 0 : (int) rewards.getStateReward(succ)) + succ, distr
+									.get(succ));
 
 						// adding the choice
-						smg.addChoice(oldStates.size() * (bound - j) + i,
-								newDistr);
+						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
 					}
 				}
 			}
 		}
 
 		// setting initial state for the game
-		smg.addInitialState(0);
+		smg.addInitialState(initial);
 
 		return smg;
 
 	}
 
+	@Override
+	public int getInitialStateOfTheProduct(int s)
+	{
+		return bound - (int) rewards.getStateReward(s % nStates);
+	}
 }
