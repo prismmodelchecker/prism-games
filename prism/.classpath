@@ -7,7 +7,6 @@
 	<classpathentry kind="lib" path="lib/jfreechart.jar" sourcepath="/jfreechart/source"/>
 	<classpathentry kind="lib" path="lib/colt.jar" sourcepath="/Users/dxp/colt/src"/>
 	<classpathentry kind="lib" path="lib/pepa.zip"/>
-	<classpathentry kind="lib" path="/home/aistis/Oxford/prism/prism-games/prism"/>
 	<classpathentry kind="lib" path="lib"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
