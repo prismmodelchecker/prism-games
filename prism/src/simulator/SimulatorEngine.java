@@ -243,9 +243,8 @@ public class SimulatorEngine
 		updater.calculateStateRewards(currentState, tmpStateRewards);
 
 		// Initialise stored path
-		if (strategy == null)
-			path.initialise(currentState, tmpStateRewards);
-		else if (path instanceof PathFull) {
+		path.initialise(currentState, tmpStateRewards);
+		if (strategy!= null && path instanceof PathFull) {
 			// initialising the strategy
 			try {
 				strategy.init(stateIds.get(currentState));
@@ -253,7 +252,7 @@ public class SimulatorEngine
 				// TODO Auto-generated catch block
 				error.printStackTrace();
 			}
-			((PathFull) path).initialise(currentState, tmpStateRewards, strategy.getCurrentMemoryElement());
+			((PathFull) path).initialiseStrat(strategy.getCurrentMemoryElement());
 		}
 
 		// Reset transition list

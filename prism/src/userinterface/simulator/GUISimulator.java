@@ -1023,7 +1023,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			strategyGenerated = false;
 		showStrategyCheck.setEnabled(pathActive && parsedModel != null && strategyGenerated
 				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit"));
-		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
+		if(!strategyGenerated) getPrism().getSimulator().setStrategy(null);
+//		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
 
 		//resetPathButton.setEnabled(pathActive && !computing);
 		//exportPathButton.setEnabled(pathActive && !computing);
