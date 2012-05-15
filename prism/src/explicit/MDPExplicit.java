@@ -30,6 +30,7 @@ package explicit;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -45,6 +46,10 @@ import explicit.rewards.MDPRewards;
  */
 public abstract class MDPExplicit extends ModelExplicit implements MDP
 {
+	// list of actions that are disabled in the model
+	protected Map<Integer, BitSet> disabledChoices = new HashMap<Integer, BitSet>();
+	protected boolean someChoicesDisabled = false;
+
 	// Accessors (for Model)
 
 	@Override
@@ -343,5 +348,21 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 			}
 		}*/
 		return maxDiff;
+	}
+
+	@Override
+	public void disableChoice(int s, int c)
+	{
+		if (!disabledChoices.containsKey(s))
+			disabledChoices.put(s, new BitSet());
+		disabledChoices.get(s).set(c);
+		someChoicesDisabled = true;
+	}
+
+	@Override
+	public void enableAllChoices()
+	{
+		disabledChoices.clear();
+		someChoicesDisabled = false;
 	}
 }

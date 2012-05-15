@@ -26,12 +26,13 @@
 
 package explicit;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import prism.PrismException;
-
-import explicit.rewards.*;
+import explicit.rewards.MDPRewards;
 
 /**
  * Interface for classes that provide (read) access to an explicit-state MDP.
@@ -42,12 +43,12 @@ public interface MDP extends Model
 	 * Get the total number of choices (distributions) over all states.
 	 */
 	public int getNumChoices();
-	
+
 	/**
 	 * Get the maximum number of choices (distributions) in any state.
 	 */
 	public int getMaxNumChoices();
-	
+
 	/**
 	 * Get the action label (if any) for choice {@code i} of state {@code s}.
 	 */
@@ -61,7 +62,7 @@ public interface MDP extends Model
 	/**
 	 * Get an iterator over the transitions from choice {@code i} of state {@code s}.
 	 */
-	public Iterator<Entry<Integer,Double>> getTransitionsIterator(int s, int i);
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i);
 
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
@@ -74,7 +75,7 @@ public interface MDP extends Model
 	 * @param result Store results here
 	 */
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result);
-	
+
 	/**
 	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some choices,
@@ -87,7 +88,7 @@ public interface MDP extends Model
 	 * @param result Store results here
 	 */
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result);
-	
+
 	/**
 	 * Do a matrix-vector multiplication followed by min/max, i.e. one step of value iteration,
 	 * i.e. for all s: result[s] = min/max_k { sum_j P_k(s,j)*vect[j] }
@@ -128,7 +129,7 @@ public interface MDP extends Model
 	 * @param vect Vector to multiply by
 	 */
 	public double mvMultSingle(int s, int k, double vect[]);
-	
+
 	/**
 	 * Do a Gauss-Seidel-style matrix-vector multiplication followed by min/max.
 	 * i.e. for all s: vect[s] = min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
@@ -173,7 +174,8 @@ public interface MDP extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset, boolean complement, int adv[]);
+	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset,
+			boolean complement, int adv[]);
 
 	/**
 	 * Do a Gauss-Seidel-style matrix-vector multiplication and sum of action reward followed by min/max.
@@ -189,8 +191,9 @@ public interface MDP extends Model
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute);
-	
+	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset,
+			boolean complement, boolean absolute);
+
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
 	 * i.e. return min/max_k { rew(s) + sum_j P_k(s,j)*vect[j] }
@@ -220,7 +223,8 @@ public interface MDP extends Model
 	 * @param min Min or max (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val);
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
+			double val);
 
 	/**
 	 * Multiply the probability matrix induced by the mdp and {@code adv}
@@ -241,7 +245,7 @@ public interface MDP extends Model
 	 * Export to a dot file, highlighting states in 'mark' and choices for a (memoryless) adversary.
 	 */
 	public void exportToDotFileWithAdv(String filename, BitSet mark, int adv[]) throws PrismException;
-	
+
 	/**
 	 * Checks  whether all successors of action c in state s are in a given set
 	 * @param s state
@@ -250,4 +254,17 @@ public interface MDP extends Model
 	 * @return true if all successors are, false otherwise
 	 */
 	public boolean allSuccessorsInSet(int s, int c, BitSet set);
+
+	/**
+	 * Disables the given choice in the state of the MDP
+	 *
+	 * @param s state
+	 * @param c choice to be disabled
+	 */
+	public void disableChoice(int s, int c);
+
+	/**
+	 * Enables all choices that have been disabled previously
+	 */
+	public void enableAllChoices();
 }

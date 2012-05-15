@@ -65,7 +65,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		stateLabels = new ArrayList<Integer>(n);
 	}
 
-	
 	/**
 	 * Construct an STPG from an existing one and a state index permutation,
 	 * i.e. in which state index i becomes index permut[i].
@@ -230,7 +229,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
+		int i, c;
 		boolean b1, b2;
 		boolean forall = false;
 
@@ -242,8 +241,13 @@ public class STPGExplicit extends MDPSimple implements STPG
 				else if (getPlayer(i) == PLAYER_2)
 					forall = forall2;
 
+				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(c++) == true)
+						continue;
 					b2 = distr.containsOneOf(u);
 					if (forall) {
 						if (!b2) {
@@ -265,7 +269,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
+		int i, c;
 		boolean b1, b2;
 		boolean forall = false;
 
@@ -277,8 +281,13 @@ public class STPGExplicit extends MDPSimple implements STPG
 				else if (getPlayer(i) == PLAYER_2)
 					forall = forall2;
 
+				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(c++) == true)
+						continue;
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
 						if (!b2) {

@@ -405,13 +405,18 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c;
 		l1 = rowStarts[s1];
 		h1 = rowStarts[s1 + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
+			c = 0;
 			for (k = l2; k < h2; k++) {
+				// ignoring the choice if it is disabled
+				if (someChoicesDisabled && disabledChoices.containsKey(s1) && disabledChoices.get(s1).get(c++) == true)
+					continue;
+
 				// Assume that only non-zero entries are stored
 				if (cols[k] == s2) {
 					return true;
@@ -424,13 +429,17 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean allSuccessorsInSet(int s, BitSet set)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
+			c = 0;
 			for (k = l2; k < h2; k++) {
+				// ignoring the choice if it is disabled
+				if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+					continue;
 				// Assume that only non-zero entries are stored
 				if (!set.get(cols[k])) {
 					return false;
@@ -460,13 +469,17 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
+			c = 0;
 			for (k = l2; k < h2; k++) {
+				// ignoring the choice if it is disabled
+				if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+					continue;
 				// Assume that only non-zero entries are stored
 				if (set.get(cols[k])) {
 					return true;
@@ -590,14 +603,19 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
 	{
-		int i, j, k, l1, h1, l2, h2;
+		int i, j, k, l1, h1, l2, h2, c;
 		boolean b1, some;
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				b1 = forall; // there exists or for all
 				l1 = rowStarts[i];
 				h1 = rowStarts[i + 1];
+				c = 0;
 				for (j = l1; j < h1; j++) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(c++) == true)
+						continue;
 					some = false;
 					l2 = choiceStarts[j];
 					h2 = choiceStarts[j + 1];
@@ -628,14 +646,19 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
 	{
-		int i, j, k, l1, h1, l2, h2;
+		int i, j, k, l1, h1, l2, h2, c;
 		boolean b1, some, all;
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				b1 = forall; // there exists or for all
 				l1 = rowStarts[i];
 				h1 = rowStarts[i + 1];
+				c = 0;
 				for (j = l1; j < h1; j++) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(c++) == true)
+						continue;
 					some = false;
 					all = true;
 					l2 = choiceStarts[j];
@@ -669,7 +692,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
 	{
-		int j, k, l1, h1, l2, h2, advCh = -1;
+		int j, k, l1, h1, l2, h2, advCh = -1, c = 0;
 		double d, minmax;
 		boolean first;
 
@@ -678,6 +701,10 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			// Compute sum for this distribution
 			d = 0.0;
 			l2 = choiceStarts[j];
@@ -710,7 +737,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c = 0;
 		double d;
 		List<Integer> res;
 
@@ -720,6 +747,9 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			// Compute sum for this distribution
 			d = 0.0;
 			l2 = choiceStarts[j];
@@ -757,7 +787,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c = 0;
 		double diag, d, minmax;
 		boolean first;
 
@@ -766,6 +796,9 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = 0.0;
@@ -817,7 +850,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[])
 	{
-		int j, k, l1, h1, l2, h2, advCh = -1;
+		int j, k, l1, h1, l2, h2, advCh = -1, c = 0;
 		double d, minmax;
 		boolean first;
 
@@ -826,6 +859,9 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j - l1);
 			l2 = choiceStarts[j];
@@ -858,7 +894,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c = 0;
 		double diag, d, minmax;
 		boolean first;
 
@@ -867,6 +903,9 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j - l1);
@@ -896,7 +935,7 @@ public class MDPSparse extends MDPExplicit
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
 			double val)
 	{
-		int j, k, l1, h1, l2, h2;
+		int j, k, l1, h1, l2, h2, c = 0;
 		double d;
 		List<Integer> res;
 
@@ -906,6 +945,9 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 			l2 = choiceStarts[j];

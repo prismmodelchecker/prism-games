@@ -261,6 +261,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		trans.get(s).clear();
 		if (actions != null && actions.get(s) != null)
 			actions.get(s).clear();
+
+		// cleaning disabled choices map
+		if (someChoicesDisabled)
+			disabledChoices.remove(s);
 	}
 
 	@Override
@@ -456,7 +460,13 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
+		int c = 0;
 		for (Distribution distr : trans.get(s1)) {
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s1) && disabledChoices.get(s1).get(c++) == true)
+				continue;
+
 			if (distr.contains(s2))
 				return true;
 		}
@@ -466,7 +476,11 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public boolean allSuccessorsInSet(int s, BitSet set)
 	{
+		int c = 0;
 		for (Distribution distr : trans.get(s)) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			if (!distr.isSubsetOf(set))
 				return false;
 		}
@@ -485,7 +499,11 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
+		int c = 0;
 		for (Distribution distr : trans.get(s)) {
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
 			if (distr.containsOneOf(set))
 				return true;
 		}
@@ -568,12 +586,17 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
 	{
-		int i;
+		int i, j;
 		boolean b1, b2;
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				b1 = forall; // there exists or for all
+				j = 0;
 				for (Distribution distr : trans.get(i)) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(j++) == true)
+						continue;
 					b2 = distr.containsOneOf(u);
 					if (forall) {
 						if (!b2) {
@@ -595,12 +618,17 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
 	{
-		int i;
+		int i, j;
 		boolean b1, b2;
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				b1 = forall; // there exists or for all
+				j = 0;
 				for (Distribution distr : trans.get(i)) {
+					// ignoring the choice if it is disabled
+					if (someChoicesDisabled && disabledChoices.containsKey(i)
+							&& disabledChoices.get(i).get(j++) == true)
+						continue;
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
 						if (!b2) {
@@ -622,16 +650,22 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
 	{
-		int j, k, advCh = -1;
+		int j, k, advCh = -1, c;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		c = 0;
 		j = 0;
 		minmax = 0;
 		first = true;
 		step = trans.get(s);
 		for (Distribution distr : step) {
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -643,8 +677,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
 				// If adversary generation is enabled, remember optimal choice
-				if (adv != null)
-				{
+				if (adv != null) {
 					advCh = j;
 				}
 			}
@@ -667,7 +700,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
 	{
-		int j, k;
+		int j, k, c;
 		double d, prob;
 		List<Integer> res;
 		List<Distribution> step;
@@ -677,8 +710,14 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		// One row of matrix-vector operation
 		j = -1;
 		step = trans.get(s);
+		c = 0;
 		for (Distribution distr : step) {
 			j++;
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -718,15 +757,21 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
 	{
-		int k;
+		int k, c;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		c = 0;
 		minmax = 0;
 		first = true;
 		step = trans.get(s);
 		for (Distribution distr : step) {
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = 0.0;
@@ -778,17 +823,23 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[])
 	{
-		int j, k, advCh = -1;
+		int j, k, advCh = -1, c;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		c = 0;
 		minmax = 0;
 		first = true;
 		j = -1;
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -821,17 +872,23 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	@Override
 	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min)
 	{
-		int j, k;
+		int j, k, c;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		c = 0;
 		minmax = 0;
 		first = true;
 		j = -1;
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
@@ -861,7 +918,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
 			double val)
 	{
-		int j, k;
+		int j, k, c;
 		double d, prob;
 		List<Integer> res;
 		List<Distribution> step;
@@ -870,9 +927,15 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		res = new ArrayList<Integer>();
 		// One row of matrix-vector operation
 		j = -1;
+		c = 0;
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {

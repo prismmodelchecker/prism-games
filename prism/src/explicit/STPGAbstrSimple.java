@@ -1129,4 +1129,26 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 			System.out.println(e);
 		}
 	}
+
+	/**
+	 *
+	 * @param s
+	 * @param c
+	 */
+	@Override
+	public void disableChoice(int s, int c)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	/**
+	 *
+	 */
+	@Override
+	public void enableAllChoices()
+	{
+		// TODO Auto-generated method stub
+
+	}
 }

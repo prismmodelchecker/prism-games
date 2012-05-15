@@ -1521,7 +1521,9 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "P" keyword and attached symbols
 	(( begin = <P> (( r = LtGt() prob = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
-	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
+	       |( <EQ> ((<QMARK> { relOp = "="; isBool = false; } )
+	               |(prob = Expression(false, false) { relOp = "="; isBool = true; } )
+	       ))
 	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
 	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
 	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )

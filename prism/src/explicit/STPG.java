@@ -231,4 +231,18 @@ public interface STPG extends Model
 	 * @return true if all successors are, false otherwise
 	 */
 	public boolean allSuccessorsInSet(int s, int c, BitSet set);
+
+	/**
+	 * Disables the given choice in the state of the MDP
+	 *
+	 * @param s state
+	 * @param c choice to be disabled
+	 */
+	public void disableChoice(int s, int c);
+
+	/**
+	 * Enables all choices that have been disabled previously
+	 */
+	public void enableAllChoices();
+
 }

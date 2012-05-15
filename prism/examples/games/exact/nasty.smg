@@ -3,8 +3,8 @@ smg
 const double p = 0.5;
 const double q = 0.5;
 
-const double r = 0.125;
-const double t = 0.125;
+const double r = 0.25;
+const double t = 0.25;
 
 player p1
 	foo, [p1a], [p1b], [p1c]
