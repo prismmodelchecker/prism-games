@@ -40,6 +40,8 @@ import parser.ast.Expression;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionTemporal;
 import prism.PrismException;
+import strat.ExactValueStrategy;
+import strat.Strategy;
 import explicit.rewards.SMGRewards;
 
 /**
@@ -219,11 +221,19 @@ public class SMGModelChecker extends STPGModelChecker
 		boolean repeat;
 		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
 		STPG stpg = ((STPG) model);
-		
+
+		Strategy minStrat = null;
+		Strategy maxStrat = null;
+
+		this.storeStrategyValues = generateStrategy;
 		do {
 			// computing minmax and maxmin
 			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
+			if (generateStrategy)
+				minStrat = strategy;
 			maxmin = this.checkProbPathFormula(model, expr, false).getDoubleArray();
+			if (generateStrategy)
+				maxStrat = strategy;
 
 			repeat = false;
 			// checking which states are marked for removal
@@ -252,6 +262,10 @@ public class SMGModelChecker extends STPGModelChecker
 
 		// enabling choices that have been disabled for model checking
 		stpg.enableAllChoices();
+
+		if (generateStrategy) {
+			strategy = new ExactValueStrategy(minStrat, maxStrat, p, (STPG) model);
+		}
 
 		return StateValues.createFromBitSet(ret, model);
 	}

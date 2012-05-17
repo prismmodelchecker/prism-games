@@ -456,10 +456,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			displayPathLoops = true;
 
-			// Create a new path in the simulator and add labels/properties 
-			engine.createNewPath(parsedModel);
-			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
-
 			// check if we need to initialise a strategy
 			if (strategyGenerated && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
@@ -485,8 +481,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				//					// TODO Auto-generated catch block
 				//					e.printStackTrace();
 				//				}
-				updateStrategyInfoPanel();
 			}
+
+			// Create a new path in the simulator and add labels/properties 
+			engine.createNewPath(parsedModel);
+			engine.initialisePath(initialState == null ? null : new parser.State(initialState, parsedModel));
 
 			// Update model/path/tables/lists
 			setPathActive(true);
@@ -500,6 +499,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			repaintLists();
 			updatePathInfoAll(uCon);
 			doEnables();
+			updateStrategyInfoPanel();
 
 			// store inital state for next time
 			lastInitialState = initialState;
@@ -1023,8 +1023,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			strategyGenerated = false;
 		showStrategyCheck.setEnabled(pathActive && parsedModel != null && strategyGenerated
 				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit"));
-		if(!strategyGenerated) getPrism().getSimulator().setStrategy(null);
-//		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
+		if (!strategyGenerated)
+			getPrism().getSimulator().setStrategy(null);
+		//		getPrism().getSimulator().setStrategy(strategyGenerated ? getPrism().getStrategy() : null);
 
 		//resetPathButton.setEnabled(pathActive && !computing);
 		//exportPathButton.setEnabled(pathActive && !computing);

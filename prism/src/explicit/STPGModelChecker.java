@@ -70,6 +70,11 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public static final int R_ZERO = 2;
 
+	/**
+	 * Flag indicating whether to store values for strategy
+	 */
+	protected boolean storeStrategyValues = false;
+
 	// Model checking functions
 
 	/**
@@ -161,7 +166,8 @@ public class STPGModelChecker extends ProbModelChecker
 		stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, adv);
 
 		if (generateStrategy)
-			strategy = new MemorylessDeterministicStrategy(adv);
+			strategy = storeStrategyValues ? new MemorylessDeterministicStrategy(adv, soln)
+					: new MemorylessDeterministicStrategy(adv);
 
 		// Return results
 		return StateValues.createFromDoubleArray(soln2, model);
@@ -1065,7 +1071,8 @@ public class STPGModelChecker extends ProbModelChecker
 
 		//
 		if (genAdv) {
-			strategy = new MemorylessDeterministicStrategy(adv);
+			strategy = storeStrategyValues ? new MemorylessDeterministicStrategy(adv, soln)
+					: new MemorylessDeterministicStrategy(adv);
 			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
 			// new File(exportAdvFilename + "_"));
 			// strategy.exportToFile(exportAdvFilename + "_adv");
@@ -1629,7 +1636,8 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(adv);
+			strategy = storeStrategyValues ? new MemorylessDeterministicStrategy(adv, soln)
+					: new MemorylessDeterministicStrategy(adv);
 		}
 
 		// Print adversary
