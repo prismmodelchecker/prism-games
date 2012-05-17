@@ -219,6 +219,7 @@ public class SMGModelChecker extends STPGModelChecker
 		boolean repeat;
 		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
 		STPG stpg = ((STPG) model);
+		
 		do {
 			// computing minmax and maxmin
 			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();

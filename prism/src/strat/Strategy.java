@@ -24,8 +24,7 @@ import explicit.Model;
  * @author aistis
  * 
  */
-public interface Strategy
-{
+public interface Strategy {
 
 	/**
 	 * Initialises memory based on a state
@@ -49,7 +48,8 @@ public interface Strategy
 	 *             if memory update function is not defined for the given
 	 *             action, state and the current strategy's memory state.
 	 */
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException;
+	public void updateMemory(int action, int state)
+			throws InvalidStrategyStateException;
 
 	/**
 	 * Next move function
@@ -62,7 +62,8 @@ public interface Strategy
 	 *             if next move function is undefined for the given state in
 	 *             current strategy's memory state.
 	 */
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
+	public Distribution getNextMove(int state)
+			throws InvalidStrategyStateException;
 
 	/**
 	 * Resets the strategy to uninitialised state
@@ -78,47 +79,51 @@ public interface Strategy
 	public void exportToFile(String file);
 
 	/**
-	 * Builds the product of the model and the strategy. The product is built
-	 * by adding extra integer variable to the state to represent the memory state of the strategy.
-	 * The initial states are the first N states of the product where N is the size
-	 * of the original model.
+	 * Builds the product of the model and the strategy. The product is built by
+	 * adding extra integer variable to the state to represent the memory state
+	 * of the strategy. The initial states are the first N states of the product
+	 * where N is the size of the original model.
 	 * 
 	 * @param model
 	 *            The model for which the strategy is defined.
-	 * @throws PrismException 
+	 * @throws PrismException
 	 * 
 	 */
 	public Model buildProduct(Model model) throws PrismException;
 
 	/**
 	 * Get textual description of the strategy
-	 *
+	 * 
 	 * @return the textual description of the strategy
 	 */
 	public String getInfo();
 
 	/**
 	 * Set textual description of the strategy
-	 *
-	 * @param info strategy information
+	 * 
+	 * @param info
+	 *            strategy information
 	 */
 	public void setInfo(String info);
 
 	/**
 	 * Returns the size of memory of the strategy.
+	 * 
 	 * @return size of memory
 	 */
 	public int getMemorySize();
 
 	/**
 	 * Returns strategy type
-	 *
+	 * 
 	 * @return type of the strategy
 	 */
 	public String getType();
 
 	/**
-	 * Returns the current memory element that fully describes state of the strategy
+	 * Returns the current memory element that fully describes state of the
+	 * strategy
+	 * 
 	 * @return
 	 */
 	public Object getCurrentMemoryElement();
@@ -126,28 +131,46 @@ public interface Strategy
 	/**
 	 * Updates the strategy's state to the one provided
 	 * 
-	 * @param memory memory element representing the state of the strategy
-	 * @throws InvalidStrategyStateException if the memory element is not recognised by the strategy
+	 * @param memory
+	 *            memory element representing the state of the strategy
+	 * @throws InvalidStrategyStateException
+	 *             if the memory element is not recognised by the strategy
 	 */
 	public void setMemory(Object memory) throws InvalidStrategyStateException;
 
 	/**
 	 * Returns the textual description of the current state of the strategy
-	 * (ideally, human readable) 
-	 *
+	 * (ideally, human readable)
+	 * 
 	 * @return textual description of the current state of the strategy
 	 */
 	public String getStateDescription();
-	
+
 	/**
-	 * Returns the initial memory state of the strategy for the state.
-	 * It is required by the model checker to determine which states can be 
-	 * treated as initial in the product.
+	 * Returns the initial memory state of the strategy for the state. It is
+	 * required by the model checker to determine which states can be treated as
+	 * initial in the product.
 	 * 
-	 * @param s the state for which to return initial memory element
+	 * @param s
+	 *            the state for which to return initial memory element
 	 * 
-	 * @return non negative integer or -1 if product does not contain extra variables 
+	 * @return non negative integer or -1 if product does not contain extra
+	 *         variables
 	 */
 	public int getInitialStateOfTheProduct(int s);
 
+	/**
+	 * Retrieve the expected value that this strategy will achieve from it's
+	 * current state
+	 * @return the expect value of the function, return -1 if exp values are not defined
+	 */
+	public double getExpectedValue();
+	
+	/**
+	 * Get expected value if a given action was taken and given state turned out to be a successor
+	 * @param action action
+	 * @param state state
+	 * @return expectation
+	 */
+	public double getExpectedValue(int action, int state);
 }

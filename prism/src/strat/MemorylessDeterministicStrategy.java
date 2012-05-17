@@ -20,6 +20,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 
 	private Distribution[] choices;
 	private String info = "No information available.";
+	private double[] expValues;
+	private int currentState;
 
 	public MemorylessDeterministicStrategy(int[] choices) {
 		this.choices = new Distribution[choices.length];
@@ -29,6 +31,18 @@ public class MemorylessDeterministicStrategy implements Strategy {
 			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
 			this.choices[i] = dist;
 		}
+		expValues = null;
+	}
+
+	public MemorylessDeterministicStrategy(int[] choices, double[] expValues) {
+		this.choices = new Distribution[choices.length];
+		Distribution dist;
+		for (int i = 0; i < choices.length; i++) {
+			dist = new Distribution();
+			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
+			this.choices[i] = dist;
+		}
+		this.expValues = expValues;
 	}
 
 	@Override
@@ -39,8 +53,7 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	@Override
 	public void updateMemory(int action, int state)
 			throws InvalidStrategyStateException {
-		// do nothing
-		// System.out.println("memory update initiated");
+		currentState = state;
 	}
 
 	@Override
@@ -281,6 +294,20 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	@Override
 	public int getInitialStateOfTheProduct(int s) {
 		return -1;
+	}
+
+	@Override
+	public double getExpectedValue() {
+		if (expValues == null)
+			return -1;
+		return expValues[currentState];
+	}
+	
+	@Override
+	public double getExpectedValue(int a, int s) {
+		if (expValues == null)
+			return -1;
+		return expValues[s];
 	}
 
 }

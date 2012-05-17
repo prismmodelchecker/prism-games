@@ -218,7 +218,7 @@ public class StepBoundedDeterministicStrategy implements Strategy {
 	 * 
 	 * @param model
 	 * @return
-	 * @throws PrismException 
+	 * @throws PrismException
 	 */
 	@Override
 	public Model buildProduct(Model model) throws PrismException {
@@ -242,12 +242,12 @@ public class StepBoundedDeterministicStrategy implements Strategy {
 
 	private Model buildProductSMG(SMG model) throws PrismException {
 		// construct a new SMG of size ModelSize * MemorySize
-		SMG smg = new SMG(model.getStatesList().size()
-				* bound);
-		smg.setPlayerMapping(new HashMap<String,Integer>(model.getPlayerMapping()));
+		SMG smg = new SMG(model.getStatesList().size() * bound);
+		smg.setPlayerMapping(new HashMap<String, Integer>(model
+				.getPlayerMapping()));
 		smg.setCoalitionInts(new HashSet<Integer>(model.getCoalition()));
 		int n = smg.getNumStates();
-		
+
 		List<Integer> stateLabels = new ArrayList<Integer>(n);
 
 		List<State> oldStates = model.getStatesList();
@@ -508,5 +508,17 @@ public class StepBoundedDeterministicStrategy implements Strategy {
 	@Override
 	public int getInitialStateOfTheProduct(int s) {
 		return bound;
+	}
+
+	@Override
+	public double getExpectedValue() {
+		throw new UnsupportedOperationException(
+				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
+	}
+	
+	@Override
+	public double getExpectedValue(int a, int s) {
+		throw new UnsupportedOperationException(
+				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
 	}
 }
