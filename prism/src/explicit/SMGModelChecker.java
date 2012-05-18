@@ -225,7 +225,6 @@ public class SMGModelChecker extends STPGModelChecker
 		Strategy minStrat = null;
 		Strategy maxStrat = null;
 
-		this.storeStrategyValues = generateStrategy;
 		do {
 			// computing minmax and maxmin
 			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
@@ -264,7 +263,7 @@ public class SMGModelChecker extends STPGModelChecker
 		stpg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, maxStrat, p, (STPG) model);
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
 		}
 
 		return StateValues.createFromBitSet(ret, model);

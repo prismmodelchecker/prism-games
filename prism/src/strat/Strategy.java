@@ -24,7 +24,8 @@ import explicit.Model;
  * @author aistis
  * 
  */
-public interface Strategy {
+public interface Strategy
+{
 
 	/**
 	 * Initialises memory based on a state
@@ -48,8 +49,7 @@ public interface Strategy {
 	 *             if memory update function is not defined for the given
 	 *             action, state and the current strategy's memory state.
 	 */
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException;
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException;
 
 	/**
 	 * Next move function
@@ -62,8 +62,7 @@ public interface Strategy {
 	 *             if next move function is undefined for the given state in
 	 *             current strategy's memory state.
 	 */
-	public Distribution getNextMove(int state)
-			throws InvalidStrategyStateException;
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	/**
 	 * Resets the strategy to uninitialised state
@@ -159,18 +158,18 @@ public interface Strategy {
 	 */
 	public int getInitialStateOfTheProduct(int s);
 
-	/**
-	 * Retrieve the expected value that this strategy will achieve from it's
-	 * current state
-	 * @return the expect value of the function, return -1 if exp values are not defined
-	 */
-	public double getExpectedValue();
-	
-	/**
-	 * Get expected value if a given action was taken and given state turned out to be a successor
-	 * @param action action
-	 * @param state state
-	 * @return expectation
-	 */
-	public double getExpectedValue(int action, int state);
+	//	/**
+	//	 * Retrieve the expected value that this strategy will achieve from it's
+	//	 * current state
+	//	 * @return the expect value of the function, return -1 if exp values are not defined
+	//	 */
+	//	public double getExpectedValue();
+	//	
+	//	/**
+	//	 * Get expected value if a given action was taken and given state turned out to be a successor
+	//	 * @param action action
+	//	 * @param state state
+	//	 * @return expectation
+	//	 */
+	//	public double getExpectedValue(int action, int state);
 }

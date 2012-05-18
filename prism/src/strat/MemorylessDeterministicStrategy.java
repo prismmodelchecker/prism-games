@@ -16,14 +16,17 @@ import explicit.STPGExplicit;
  * @author aistis
  * 
  */
-public class MemorylessDeterministicStrategy implements Strategy {
+public class MemorylessDeterministicStrategy implements Strategy
+{
 
 	private Distribution[] choices;
 	private String info = "No information available.";
-	private double[] expValues;
-	private int currentState;
 
-	public MemorylessDeterministicStrategy(int[] choices) {
+	//private double[] expValues;
+	//private int currentState;
+
+	public MemorylessDeterministicStrategy(int[] choices)
+	{
 		this.choices = new Distribution[choices.length];
 		Distribution dist;
 		for (int i = 0; i < choices.length; i++) {
@@ -31,49 +34,52 @@ public class MemorylessDeterministicStrategy implements Strategy {
 			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
 			this.choices[i] = dist;
 		}
-		expValues = null;
+		//expValues = null;
 	}
 
-	public MemorylessDeterministicStrategy(int[] choices, double[] expValues) {
-		this.choices = new Distribution[choices.length];
-		Distribution dist;
-		for (int i = 0; i < choices.length; i++) {
-			dist = new Distribution();
-			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
-			this.choices[i] = dist;
-		}
-		this.expValues = expValues;
-	}
+	//	public MemorylessDeterministicStrategy(int[] choices, double[] expValues)
+	//	{
+	//		this.choices = new Distribution[choices.length];
+	//		Distribution dist;
+	//		for (int i = 0; i < choices.length; i++) {
+	//			dist = new Distribution();
+	//			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
+	//			this.choices[i] = dist;
+	//		}
+	//		this.expValues = expValues;
+	//	}
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException {
+	public void init(int state) throws InvalidStrategyStateException
+	{
 		// do nothing
 	}
 
 	@Override
-	public void updateMemory(int action, int state)
-			throws InvalidStrategyStateException {
-		currentState = state;
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	{
+		//currentState = state;
 	}
 
 	@Override
-	public Distribution getNextMove(int state)
-			throws InvalidStrategyStateException {
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	{
 
 		if (choices == null || state >= choices.length || state < 0)
-			throw new InvalidStrategyStateException(
-					"Strategy not defined for state " + state + ".");
+			throw new InvalidStrategyStateException("Strategy not defined for state " + state + ".");
 
 		return choices[state];
 	}
 
 	@Override
-	public void reset() {
+	public void reset()
+	{
 		// do nothing
 	}
 
 	@Override
-	public Model buildProduct(Model model) {
+	public Model buildProduct(Model model)
+	{
 
 		// checking for supported model types
 		if (model.getClass().equals(MDPSimple.class)) {
@@ -89,13 +95,13 @@ public class MemorylessDeterministicStrategy implements Strategy {
 			return this.buildProductSMG((SMG) model);
 		}
 
-		throw new UnsupportedOperationException(
-				"The product building is not supported for this class of models");
+		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 
 	}
 
 	@Override
-	public void exportToFile(String file) {
+	public void exportToFile(String file)
+	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
 		out.print("Adv:");
@@ -106,7 +112,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	}
 
 	@Override
-	public String toString() {
+	public String toString()
+	{
 		return Arrays.toString(choices);
 	}
 
@@ -116,7 +123,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @param model
 	 *            model
 	 */
-	public MDPSimple buildProductMDPSimple(MDPSimple model) {
+	public MDPSimple buildProductMDPSimple(MDPSimple model)
+	{
 		MDPSimple mdp = new MDPSimple(model);
 		int n = mdp.getNumStates();
 		int c;
@@ -152,7 +160,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @param model
 	 *            model
 	 */
-	public MDPSparse buildProductMDPSparse(MDPSparse model) {
+	public MDPSparse buildProductMDPSparse(MDPSparse model)
+	{
 		return new MDPSparse(buildProductMDPSimple(new MDPSimple(model)));
 	}
 
@@ -164,7 +173,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 *            the model
 	 * @return strategy
 	 */
-	private Model buildProductSTPGExplicit(STPGExplicit model) {
+	private Model buildProductSTPGExplicit(STPGExplicit model)
+	{
 		STPGExplicit stpg = new STPGExplicit(model);
 		int n = stpg.getNumStates();
 		int c;
@@ -203,7 +213,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @param model
 	 * @return
 	 */
-	private Model buildProductSMG(SMG model) {
+	private Model buildProductSMG(SMG model)
+	{
 		SMG smg = new SMG(model);
 		int n = smg.getNumStates();
 		int c;
@@ -241,39 +252,46 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public String getInfo() {
+	public String getInfo()
+	{
 		return info;
 	}
 
 	@Override
-	public void setInfo(String info) {
+	public void setInfo(String info)
+	{
 		this.info = info;
 	}
 
 	@Override
-	public int getMemorySize() {
+	public int getMemorySize()
+	{
 		return 0;
 	}
 
 	@Override
-	public String getType() {
+	public String getType()
+	{
 		return "Memoryless deterministic";
 	}
 
 	@Override
-	public Object getCurrentMemoryElement() {
+	public Object getCurrentMemoryElement()
+	{
 		// System.out.println("Memory element requested");
 		return null;
 	}
 
 	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException {
+	public void setMemory(Object memory) throws InvalidStrategyStateException
+	{
 		// do nothing
 		// System.out.println("Set memory element");
 	}
@@ -283,7 +301,8 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	 * @return
 	 */
 	@Override
-	public String getStateDescription() {
+	public String getStateDescription()
+	{
 		String desc = "";
 		desc += "Memoryless deterministic strategy\n";
 		desc += "Size of memory: 0\n";
@@ -292,22 +311,23 @@ public class MemorylessDeterministicStrategy implements Strategy {
 	}
 
 	@Override
-	public int getInitialStateOfTheProduct(int s) {
+	public int getInitialStateOfTheProduct(int s)
+	{
 		return -1;
 	}
 
-	@Override
-	public double getExpectedValue() {
-		if (expValues == null)
-			return -1;
-		return expValues[currentState];
-	}
-	
-	@Override
-	public double getExpectedValue(int a, int s) {
-		if (expValues == null)
-			return -1;
-		return expValues[s];
-	}
+	//	@Override
+	//	public double getExpectedValue() {
+	//		if (expValues == null)
+	//			return -1;
+	//		return expValues[currentState];
+	//	}
+	//	
+	//	@Override
+	//	public double getExpectedValue(int a, int s) {
+	//		if (expValues == null)
+	//			return -1;
+	//		return expValues[s];
+	//	}
 
 }
