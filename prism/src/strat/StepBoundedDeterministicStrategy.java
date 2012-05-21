@@ -362,10 +362,10 @@ public class StepBoundedDeterministicStrategy implements Strategy
 				stpg.setPlayer(newStates.size() - 1, model.getPlayer(i));
 			}
 
-		// setting the states list to MDP
+		// setting the states list to STPG
 		stpg.setStatesList(newStates);
 
-		// adding choices for the product MDP
+		// adding choices for the product STPG
 
 		// adding transitions to the state with the next memory element
 		Distribution distr, newDistr;

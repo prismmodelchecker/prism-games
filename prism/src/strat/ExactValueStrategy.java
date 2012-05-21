@@ -2,15 +2,19 @@ package strat;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
+import parser.State;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
+import explicit.SMG;
 import explicit.STPG;
 import explicit.STPGExplicit;
 
@@ -211,8 +215,298 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public Model buildProduct(Model model) throws PrismException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		// checking for supported model types
+		if (model.getClass().equals(STPGExplicit.class)) {
+			return this.buildProductSTPGExplicit((STPGExplicit) model);
+		}
+		if (model.getClass().equals(SMG.class)) {
+			return this.buildProductSMG((SMG) model);
+		}
+
+		throw new UnsupportedOperationException("The product building is not supported for this class of models");
+
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 * @throws PrismException 
+	 */
+	private Model buildProductSMG(SMG model) throws PrismException
+	{
+		// construct a new STPG of size three times the original model
+		SMG smg = new SMG(3 * model.getNumStates());
+		smg.setPlayerMapping(new HashMap<String, Integer>(model.getPlayerMapping()));
+		smg.setCoalitionInts(new HashSet<Integer>(model.getCoalition()));
+		int n = smg.getNumStates();
+
+		List<Integer> stateLabels = new ArrayList<Integer>(n);
+
+		List<State> oldStates = model.getStatesList();
+
+		// creating helper states
+		State stateInit = new State(1), stateMin = new State(1), stateMax = new State(1);
+		stateInit.setValue(0, 0); // state where memory is not yet initialised
+		stateMin.setValue(0, 1); // state where target is minimum elem
+		stateMax.setValue(0, 2); // state where target is maximum element
+
+		// creating product state list
+		List<State> newStates = new ArrayList<State>(n);
+		for (int i = 0; i < oldStates.size(); i++) {
+			newStates.add(new State(oldStates.get(i), stateInit));
+			newStates.add(new State(oldStates.get(i), stateMin));
+			newStates.add(new State(oldStates.get(i), stateMax));
+			stateLabels.add(model.getPlayer(i));
+			stateLabels.add(model.getPlayer(i));
+			stateLabels.add(model.getPlayer(i));
+		}
+
+		// setting the states list to STPG
+		smg.setStatesList(newStates);
+		smg.setStateLabels(stateLabels);
+
+		// adding choices for the product STPG
+		// initial distributions
+		int indx, minIndx, maxIndx;
+		Distribution distr, newDistr;
+		double p;
+		for (int i = 0; i < oldStates.size(); i++) {
+			indx = 3 * i;
+			// build only for states from which the value is achievable
+			if (minValues[i] <= initTargetValue && initTargetValue <= maxValues[i]) {
+				p = (maxValues[i] - initTargetValue) / (maxValues[i] - minValues[i]);
+				distr = new Distribution();
+				if (p != 0)
+					distr.add(indx + 1, p);
+				if (p != 1)
+					distr.add(indx + 2, 1 - p);
+				smg.addChoice(indx, distr);
+			}
+			//
+			else {
+				//Add self-loop only
+				distr = new Distribution();
+				distr.add(indx, 1.0);
+				smg.addChoice(indx, distr);
+			}
+		}
+
+		// all other states
+		double pmin, pmax;
+		Distribution distrMin, distrMax;
+		for (int i = 0; i < oldStates.size(); i++) {
+			minIndx = 3 * i + 1;
+			maxIndx = 3 * i + 2;
+
+			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
+				// for player 1 state just leaving max or min choice
+				try {
+					// constructing transition for min element
+					newDistr = new Distribution();
+					distr = model.getChoice(i, minStrat.getNextMove(i).keySet().iterator().next());
+					// create a new distribution for the product
+					newDistr = new Distribution();
+					for (Integer succ : distr.keySet())
+						// adding transition to the state with the memory min memory element
+						newDistr.add(succ * 3 + 1, distr.get(succ));
+					// adding the choice
+					smg.addChoice(minIndx, newDistr);
+
+					// constructing transition for max element
+					newDistr = new Distribution();
+					distr = model.getChoice(i, maxStrat.getNextMove(i).keySet().iterator().next());
+					// create a new distribution for the product
+					newDistr = new Distribution();
+					for (Integer succ : distr.keySet())
+						// adding transition to the state with the memory min memory element
+						newDistr.add(succ * 3 + 2, distr.get(succ));
+					// adding the choice
+					smg.addChoice(maxIndx, newDistr);
+
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+
+			} else {
+				// for player 2 state transforming every distribution#
+				// computing the probability to choose min strategy
+
+				for (int action = 0; action < model.getNumChoices(i); action++) {
+					// computing min and max expectations for the action
+					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(i, action);
+					double max = 0, min = 0;
+					Entry<Integer, Double> en;
+					while (it.hasNext()) {
+						en = it.next();
+						min += minValues[en.getKey()] * en.getValue();
+						max += maxValues[en.getKey()] * en.getValue();
+					}
+
+					// computing the randomisation coefficient for min and max values
+					pmin = (max - minValues[i]) / (max - min);
+					pmax = (max - maxValues[i]) / (max - min);
+
+					// constructing distributions
+					distrMin = new Distribution();
+					distrMax = new Distribution();
+					distr = model.getChoice(i, action);
+					for (Integer succ : distr.keySet()) {
+						distrMin.add(succ * 3 + 1, distr.get(succ) * pmin);
+						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - pmin));
+
+						distrMax.add(succ * 3 + 1, distr.get(succ) * pmax);
+						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - pmax));
+					}
+
+					smg.addChoice(minIndx, distrMin);
+					smg.addChoice(maxIndx, distrMax);
+				}
+			}
+		}
+
+		// setting initial state for the game
+		smg.addInitialState(0);
+
+		return smg;
+	}
+
+	/**
+	 *
+	 * @param model
+	 * @return
+	 */
+	private Model buildProductSTPGExplicit(STPGExplicit model)
+	{
+
+		// construct a new STPG of size three times the original model
+		STPGExplicit stpg = new STPGExplicit(3 * model.getNumStates());
+		int n = stpg.getNumStates();
+
+		List<State> oldStates = model.getStatesList();
+
+		// creating helper states
+		State stateInit = new State(1), stateMin = new State(1), stateMax = new State(1);
+		stateInit.setValue(0, 0); // state where memory is not yet initialised
+		stateMin.setValue(0, 1); // state where target is minimum elem
+		stateMax.setValue(0, 2); // state where target is maximum element
+
+		// creating product state list
+		List<State> newStates = new ArrayList<State>(n);
+		for (int i = 0; i < oldStates.size(); i++) {
+			newStates.add(new State(oldStates.get(i), stateInit));
+			newStates.add(new State(oldStates.get(i), stateMin));
+			newStates.add(new State(oldStates.get(i), stateMax));
+		}
+
+		// setting the states list to STPG
+		stpg.setStatesList(newStates);
+
+		// adding choices for the product STPG
+		// initial distributions
+		int indx, minIndx, maxIndx;
+		Distribution distr, newDistr;
+		double p;
+		for (int i = 0; i < oldStates.size(); i++) {
+			indx = 3 * i;
+			// build only for states from which the value is achievable
+			if (minValues[i] <= initTargetValue && initTargetValue <= maxValues[i]) {
+				p = (maxValues[i] - initTargetValue) / (maxValues[i] - minValues[i]);
+				distr = new Distribution();
+				if (p != 0)
+					distr.add(indx + 1, p);
+				if (p != 1)
+					distr.add(indx + 2, 1 - p);
+				stpg.addChoice(indx, distr);
+			}
+			//
+			else {
+				//Add self-loop only
+				distr = new Distribution();
+				distr.add(indx, 1.0);
+				stpg.addChoice(indx, distr);
+			}
+		}
+
+		// all other states
+		double pmin, pmax;
+		Distribution distrMin, distrMax;
+		for (int i = 0; i < oldStates.size(); i++) {
+			minIndx = 3 * i + 1;
+			maxIndx = 3 * i + 2;
+
+			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
+				// for player 1 state just leaving max or min choice
+				try {
+					// constructing transition for min element
+					newDistr = new Distribution();
+					distr = model.getChoice(i, minStrat.getNextMove(i).keySet().iterator().next());
+					// create a new distribution for the product
+					newDistr = new Distribution();
+					for (Integer succ : distr.keySet())
+						// adding transition to the state with the memory min memory element
+						newDistr.add(succ * 3 + 1, distr.get(succ));
+					// adding the choice
+					stpg.addChoice(minIndx, newDistr);
+
+					// constructing transition for max element
+					newDistr = new Distribution();
+					distr = model.getChoice(i, maxStrat.getNextMove(i).keySet().iterator().next());
+					// create a new distribution for the product
+					newDistr = new Distribution();
+					for (Integer succ : distr.keySet())
+						// adding transition to the state with the memory min memory element
+						newDistr.add(succ * 3 + 2, distr.get(succ));
+					// adding the choice
+					stpg.addChoice(maxIndx, newDistr);
+
+				} catch (InvalidStrategyStateException error) {
+					// TODO Auto-generated catch block
+					error.printStackTrace();
+				}
+
+			} else {
+				// for player 2 state transforming every distribution#
+				// computing the probability to choose min strategy
+
+				for (int action = 0; action < model.getNumChoices(i); action++) {
+					// computing min and max expectations for the action
+					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(i, action);
+					double max = 0, min = 0;
+					Entry<Integer, Double> en;
+					while (it.hasNext()) {
+						en = it.next();
+						min += minValues[en.getKey()] * en.getValue();
+						max += maxValues[en.getKey()] * en.getValue();
+					}
+
+					// computing the randomisation coefficient for min and max values
+					pmin = (max - minValues[i]) / (max - min);
+					pmax = (max - maxValues[i]) / (max - min);
+
+					// constructing distributions
+					distrMin = new Distribution();
+					distrMax = new Distribution();
+					distr = model.getChoice(i, action);
+					for (Integer succ : distr.keySet()) {
+						distrMin.add(succ * 3 + 1, distr.get(succ) * pmin);
+						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - pmin));
+
+						distrMax.add(succ * 3 + 1, distr.get(succ) * pmax);
+						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - pmax));
+					}
+
+					stpg.addChoice(minIndx, distrMin);
+					stpg.addChoice(maxIndx, distrMax);
+				}
+			}
+		}
+
+		// setting initial state for the game
+		stpg.addInitialState(0);
+
+		return stpg;
 	}
 
 	@Override
