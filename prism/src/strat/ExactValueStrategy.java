@@ -572,8 +572,7 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public int getInitialStateOfTheProduct(int s)
 	{
-		// TODO Auto-generated method stub
-		return -1;
+		return 0;
 	}
 
 	//	@Override

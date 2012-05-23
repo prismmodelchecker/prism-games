@@ -33,3 +33,7 @@ module foo
 endmodule
 
 label "T" = s=3;
+
+rewards
+	s=2 : 1;
+endrewards

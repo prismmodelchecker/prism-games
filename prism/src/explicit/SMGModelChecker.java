@@ -47,14 +47,13 @@ import explicit.rewards.SMGRewards;
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
  */
-public class SMGModelChecker extends STPGModelChecker
-{
+public class SMGModelChecker extends STPGModelChecker {
 
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
-	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
-	{
+	protected StateValues checkProbPathFormula(Model model,
+			ExpressionPATL exprPATL, boolean min) throws PrismException {
 		// setting coalition parameter
 		((SMG) model).setCoalition(exprPATL.getCoalition());
 
@@ -155,16 +154,17 @@ public class SMGModelChecker extends STPGModelChecker
 		 */
 
 		// in other case
-		throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
+		throw new PrismException(
+				"Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
 
 	}
 
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
-	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min)
-			throws PrismException
-	{
+	protected StateValues checkRewardFormula(Model model,
+			SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min)
+			throws PrismException {
 		// setting coalition parameter
 		((SMG) model).setCoalition(exprPATL.getCoalition());
 
@@ -175,17 +175,22 @@ public class SMGModelChecker extends STPGModelChecker
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_INFINITY);
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min,
+						!min, STPGModelChecker.R_INFINITY);
 				break;
 			case ExpressionTemporal.R_Fc:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_CUMULATIVE);
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min,
+						!min, STPGModelChecker.R_CUMULATIVE);
 				break;
 			case ExpressionTemporal.R_F0:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_ZERO);
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min,
+						!min, STPGModelChecker.R_ZERO);
 				break;
 			default:
-				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol()
-						+ " operator in the R operator");
+				throw new PrismException(
+						"Explicit engine does not yet handle the "
+								+ exprTemp.getOperatorSymbol()
+								+ " operator in the R operator");
 			}
 		}
 
@@ -195,15 +200,16 @@ public class SMGModelChecker extends STPGModelChecker
 		return rewards;
 	}
 
-	protected StateValues checkExactProbabilityFormula(Model model, ExpressionPATL expr, double p)
-			throws PrismException
-	{
+	protected StateValues checkExactProbabilityFormula(Model model,
+			ExpressionPATL expr, double p) throws PrismException {
+		((SMG) model).setCoalition(expr.getCoalition());
 		// 1) check whether the game is stopping, if not - terminate
 		// 1.1) find states which have self loops only
 		BitSet terminal = findTerminalStates(model);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
+		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model,
+				null, terminal, true, true, 1.0).soln;
 
 		// System.out.println("Terminal states: " + terminal);
 		// System.out.println(Arrays.toString(res));
@@ -216,7 +222,7 @@ public class SMGModelChecker extends STPGModelChecker
 		double[] minmax = null, maxmin = null; // see the do loop below
 
 		// 3) removing states from the game which have minmax>maxmin
-		//model.
+		// model.
 		int n = model.getNumStates();
 		boolean repeat;
 		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
@@ -227,10 +233,12 @@ public class SMGModelChecker extends STPGModelChecker
 
 		do {
 			// computing minmax and maxmin
-			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
+			minmax = this.checkProbPathFormula(model, expr, true)
+					.getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
-			maxmin = this.checkProbPathFormula(model, expr, false).getDoubleArray();
+			maxmin = this.checkProbPathFormula(model, expr, false)
+					.getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 
@@ -263,7 +271,112 @@ public class SMGModelChecker extends STPGModelChecker
 		stpg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat,
+					maxmin, p, (STPG) model);
+		}
+
+		return StateValues.createFromBitSet(ret, model);
+	}
+
+	protected StateValues checkExactRewardFormula(Model model,
+			SMGRewards modelRewards, 
+			ExpressionPATL expr, double p) throws PrismException {
+		((SMG) model).setCoalition(expr.getCoalition());
+		// check if the reward is Fc
+		ExpressionTemporal exprTemp = null;
+		if (expr.getExpressionRew().getExpression() instanceof ExpressionTemporal) {
+			exprTemp = (ExpressionTemporal) expr
+					.getExpressionRew().getExpression();
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_Fc:
+				break;
+			case ExpressionTemporal.R_F:
+				throw new PrismException(
+						"Only cumulative reward type is supported for exact values.");
+			case ExpressionTemporal.R_F0:
+				throw new PrismException(
+						"Only cumulative reward type is supported for exact values.");
+			default:
+				throw new PrismException(
+						"Only cumulative reward type is supported for exact values.");
+			}
+		}
+		else
+		{
+			throw new PrismException(
+					"Only temporal expression are supported at the moment");
+		}
+
+		// 1) check whether the game is stopping, if not - terminate
+		// 1.1) find states which have self loops only
+		BitSet terminal = findTerminalStates(model);
+		// 1.2) check whether the minmin prob to reach those states is
+		// 1, if not - terminate, if yes continue to 2)
+		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model,
+				null, terminal, true, true, 1.0).soln;
+
+		// System.out.println("Terminal states: " + terminal);
+		// System.out.println(Arrays.toString(res));
+		for (int i = 0; i < res.length; i++)
+			if (res[i] < 1.0 - 1e-6)
+				throw new PrismException(
+						"The game is not stopping. The exact probability queries only work for stopping games");
+
+		// 2) computing minmax and maxmin values for all states
+		double[] minmax = null, maxmin = null; // see the do loop below
+
+		// 3) removing states from the game which have minmax>maxmin
+		// model.
+		int n = model.getNumStates();
+		boolean repeat;
+		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
+		STPG stpg = ((STPG) model);
+
+		Strategy minStrat = null;
+		Strategy maxStrat = null;
+
+		do {
+			// computing minmax and maxmin
+			minmax = this.checkRewardReach(model, modelRewards, exprTemp, true,
+					false, STPGModelChecker.R_CUMULATIVE).valuesD;
+			if (generateStrategy)
+				minStrat = strategy;
+			maxmin = this.checkRewardReach(model, modelRewards, exprTemp, false,
+					true, STPGModelChecker.R_CUMULATIVE).valuesD;
+			if (generateStrategy)
+				maxStrat = strategy;
+
+			repeat = false;
+			// checking which states are marked for removal
+			for (int i = 0; i < n; i++)
+				if (!removed.get(i) && minmax[i] > maxmin[i]) {
+					removed.set(i);
+					removedNew.set(i);
+					repeat = true;
+				}
+
+			// disabling choices that have transitions to those states
+			removedNew.flip(0, n);
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < model.getNumChoices(i); j++)
+					if (!stpg.allSuccessorsInSet(i, j, removedNew))
+						stpg.disableChoice(i, j);
+			removedNew.clear();
+			// 4) repeat 2-3 while the set of states from 3 is empty
+		} while (repeat);
+
+		// 5) if bound is null, return the interval, otherwise check
+		// whether bound is in the interval.
+		BitSet ret = new BitSet(n);
+		for (int i = 0; i < n; i++)
+			ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
+
+		// enabling choices that have been disabled for model checking
+		stpg.enableAllChoices();
+
+		if (generateStrategy) {
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat,
+					maxmin, p, (STPG) model);
 		}
 
 		return StateValues.createFromBitSet(ret, model);
@@ -283,9 +396,9 @@ public class SMGModelChecker extends STPGModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public List<Set<ReachTuple>> computeReachabilityTuples(boolean min1, boolean min2, STPG stpg, List<BitSet> targets)
-			throws PrismException
-	{
+	public List<Set<ReachTuple>> computeReachabilityTuples(boolean min1,
+			boolean min2, STPG stpg, List<BitSet> targets)
+			throws PrismException {
 
 		int gameSize = stpg.getStatesList().size();
 
@@ -315,7 +428,8 @@ public class SMGModelChecker extends STPGModelChecker
 
 		for (int t = 0; t < targets.size(); t++) {
 
-			maxmin = computeUntilProbs(stpg, ones, targets.get(t), false, true, 0).soln;
+			maxmin = computeUntilProbs(stpg, ones, targets.get(t), false, true,
+					0).soln;
 			// System.out.println(Arrays.toString(maxmin));
 			for (int s = gameSize - targets.size(); s < gameSize; s++) {
 				// if(maxmin[s] == 0) continue;
@@ -355,30 +469,29 @@ public class SMGModelChecker extends STPGModelChecker
 			System.out.println("--------------");
 
 			result = ((SMG) stpg).mvMultiObjective(min1, min2, result);
-			//			 try {
-			//			 in.readLine();
-			//			 } catch (IOException e) {
-			//			 // TODO Auto-generated catch block
-			//			 e.printStackTrace();
-			//			 }
+			// try {
+			// in.readLine();
+			// } catch (IOException e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
 
 			// perform upward perturbation when half way
-			//			if (maxIter == 10)
-			//				for (Set<ReachTuple> ts : result)
-			//					for (ReachTuple t : ts)
-			//						if (initValues == 0)
-			//							t.perturbateUp();
-			//						else
-			//							t.perturbateDown();
+			// if (maxIter == 10)
+			// for (Set<ReachTuple> ts : result)
+			// for (ReachTuple t : ts)
+			// if (initValues == 0)
+			// t.perturbateUp();
+			// else
+			// t.perturbateDown();
 
 		}
 
 		return result;
 	}
 
-	public void computeIntervalSet(boolean min1, boolean min2, STPG stpg, BitSet target, BitSet zero)
-			throws PrismException
-	{
+	public void computeIntervalSet(boolean min1, boolean min2, STPG stpg,
+			BitSet target, BitSet zero) throws PrismException {
 		System.out.println(stpg);
 		System.out.println(target);
 		System.out.println(zero);
