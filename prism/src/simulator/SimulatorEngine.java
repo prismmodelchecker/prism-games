@@ -244,7 +244,7 @@ public class SimulatorEngine
 
 		// Initialise stored path
 		path.initialise(currentState, tmpStateRewards);
-		if (strategy!= null && path instanceof PathFull) {
+		if (strategy != null && path instanceof PathFull) {
 			// initialising the strategy
 			try {
 				strategy.init(stateIds.get(currentState));

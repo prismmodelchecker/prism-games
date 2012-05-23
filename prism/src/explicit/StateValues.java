@@ -416,7 +416,7 @@ public class StateValues
 		valuesB.xor(sv.valuesB);
 		valuesB.flip(0, size);
 	}
-	
+
 	/**
 	 * Modify the vector by applying 'or' with operand {@code sv}.
 	 */
@@ -427,7 +427,7 @@ public class StateValues
 		}
 		valuesB.or(sv.valuesB);
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'and' with operand {@code sv}.
 	 */
@@ -438,7 +438,7 @@ public class StateValues
 		}
 		valuesB.and(sv.valuesB);
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'equals' with operand {@code sv}.
 	 */
@@ -476,7 +476,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'not-equals' with operand {@code sv}.
 	 */
@@ -513,7 +513,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-	
+
 	/**
 	 * Modify the vector by applying '>' with operand {@code sv}.
 	 */
@@ -542,8 +542,7 @@ public class StateValues
 				for (int i = 0; i < size; i++) {
 					valuesB.set(i, valuesD[i] > sv.valuesD[i]);
 				}
-			}
-			else {
+			} else {
 				throw new PrismException("Operator > can not be applied to Boolean vectors");
 			}
 		} else {
@@ -553,7 +552,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-	
+
 	/**
 	 * Modify the vector by applying '>=' with operand {@code sv}.
 	 */
@@ -582,8 +581,7 @@ public class StateValues
 				for (int i = 0; i < size; i++) {
 					valuesB.set(i, valuesD[i] >= sv.valuesD[i]);
 				}
-			}
-			else {
+			} else {
 				throw new PrismException("Operator >= can not be applied to Boolean vectors");
 			}
 		} else {
@@ -593,7 +591,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-	
+
 	/**
 	 * Modify the vector by applying '<' with operand {@code sv}.
 	 */
@@ -622,8 +620,7 @@ public class StateValues
 				for (int i = 0; i < size; i++) {
 					valuesB.set(i, valuesD[i] < sv.valuesD[i]);
 				}
-			}
-			else {
+			} else {
 				throw new PrismException("Operator < can not be applied to Boolean vectors");
 			}
 		} else {
@@ -633,7 +630,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-	
+
 	/**
 	 * Modify the vector by applying '<=' with operand {@code sv}.
 	 */
@@ -662,8 +659,7 @@ public class StateValues
 				for (int i = 0; i < size; i++) {
 					valuesB.set(i, valuesD[i] <= sv.valuesD[i]);
 				}
-			}
-			else {
+			} else {
 				throw new PrismException("Operator <= can not be applied to Boolean vectors");
 			}
 		} else {
@@ -673,7 +669,7 @@ public class StateValues
 		valuesI = null;
 		valuesD = null;
 	}
-	
+
 	/**
 	 * Modify the vector by applying 'plus' with operand {@code sv}.
 	 */
@@ -710,7 +706,7 @@ public class StateValues
 			throw new PrismException("Operator + can not be applied to Boolean vectors");
 		}
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'minus' with operand {@code sv}.
 	 */
@@ -747,7 +743,7 @@ public class StateValues
 			throw new PrismException("Operator - can not be applied to Boolean vectors");
 		}
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'times' with operand {@code sv}.
 	 */
@@ -784,7 +780,7 @@ public class StateValues
 			throw new PrismException("Operator * can not be applied to Boolean vectors");
 		}
 	}
-		
+
 	/**
 	 * Modify the vector by applying 'divide' with operand {@code sv}.
 	 */
@@ -821,7 +817,7 @@ public class StateValues
 			throw new PrismException("Operator / can not be applied to Boolean vectors");
 		}
 	}
-		
+
 	/**
 	 * Modify the vector by applying unary operator {@code op},
 	 * where {@code op} refers to the codes in {@link ExpressionUnaryOp}.
@@ -1450,7 +1446,8 @@ public class StateValues
 	 * @param printStates Print states (variable values) for each element? 
 	 * @param printIndices Print state indices for each element? 
 	 */
-	public void printFiltered(PrismLog log, BitSet filter, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
+	public void printFiltered(PrismLog log, BitSet filter, boolean printSparse, boolean printMatlab,
+			boolean printStates, boolean printIndices)
 	{
 		doPrinting(log, -1, filter, printSparse, printMatlab, printStates, printIndices);
 	}
@@ -1465,7 +1462,8 @@ public class StateValues
 	 * @param printStates Print states (variable values) for each element? 
 	 * @param printIndices Print state indices for each element? 
 	 */
-	private void doPrinting(PrismLog log, int limit, BitSet filter, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
+	private void doPrinting(PrismLog log, int limit, BitSet filter, boolean printSparse, boolean printMatlab,
+			boolean printStates, boolean printIndices)
 	{
 		int i, count = 0;
 
@@ -1500,7 +1498,8 @@ public class StateValues
 			log.println("];");
 	}
 
-	private boolean printLine(PrismLog log, int n, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
+	private boolean printLine(PrismLog log, int n, boolean printSparse, boolean printMatlab, boolean printStates,
+			boolean printIndices)
 	{
 		if (!printSparse || isNonZero(n)) {
 			if (printMatlab) {

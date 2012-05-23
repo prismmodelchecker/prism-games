@@ -2441,8 +2441,6 @@ public class STPGModelChecker extends ProbModelChecker
 		return res;
 	}
 
-	
-	
 	/**
 	 * Simple test program.
 	 */

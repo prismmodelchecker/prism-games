@@ -47,7 +47,8 @@ import explicit.rewards.STPGRewards;
 /**
  * Super class for explicit-state probabilistic model checkers
  */
-public class ProbModelChecker extends StateModelChecker {
+public class ProbModelChecker extends StateModelChecker
+{
 	// Flags/settings
 	// (NB: defaults do not necessarily coincide with PRISM)
 
@@ -78,7 +79,8 @@ public class ProbModelChecker extends StateModelChecker {
 	// Method used for numerical solution
 	public enum LinEqMethod {
 		POWER, JACOBI, GAUSS_SEIDEL, BACKWARDS_GAUSS_SEIDEL, JOR, SOR, BACKWARDS_SOR;
-		public String fullName() {
+		public String fullName()
+		{
 			switch (this) {
 			case POWER:
 				return "Power method";
@@ -103,7 +105,8 @@ public class ProbModelChecker extends StateModelChecker {
 	// Method used for solving MDPs
 	public enum MDPSolnMethod {
 		VALUE_ITERATION, GAUSS_SEIDEL, POLICY_ITERATION, MODIFIED_POLICY_ITERATION, LINEAR_PROGRAMMING;
-		public String fullName() {
+		public String fullName()
+		{
 			switch (this) {
 			case VALUE_ITERATION:
 				return "Value iteration";
@@ -142,7 +145,8 @@ public class ProbModelChecker extends StateModelChecker {
 	 * Set settings from a PRISMSettings object.
 	 */
 	@Override
-	public void setSettings(PrismSettings settings) throws PrismException {
+	public void setSettings(PrismSettings settings) throws PrismException
+	{
 		if (settings == null)
 			return;
 
@@ -164,9 +168,7 @@ public class ProbModelChecker extends StateModelChecker {
 		} else if (s.equals("Backwards SOR")) {
 			setLinEqMethod(LinEqMethod.BACKWARDS_SOR);
 		} else {
-			throw new PrismException(
-					"Explicit engine does not support linear equation solution method \""
-							+ s + "\"");
+			throw new PrismException("Explicit engine does not support linear equation solution method \"" + s + "\"");
 		}
 		// PRISM_MDP_SOLN_METHOD
 		s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
@@ -181,9 +183,7 @@ public class ProbModelChecker extends StateModelChecker {
 		} else if (s.equals("Linear programming")) {
 			setMDPSolnMethod(MDPSolnMethod.LINEAR_PROGRAMMING);
 		} else {
-			throw new PrismException(
-					"Explicit engine does not support MDP solution method \""
-							+ s + "\"");
+			throw new PrismException("Explicit engine does not support MDP solution method \"" + s + "\"");
 		}
 		// PRISM_TERM_CRIT
 		s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
@@ -192,12 +192,10 @@ public class ProbModelChecker extends StateModelChecker {
 		} else if (s.equals("Relative")) {
 			setTermCrit(TermCrit.RELATIVE);
 		} else {
-			throw new PrismException("Unknown termination criterion \"" + s
-					+ "\"");
+			throw new PrismException("Unknown termination criterion \"" + s + "\"");
 		}
 		// PRISM_TERM_CRIT_PARAM
-		setTermCritParam(settings
-				.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
+		setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
 		// PRISM_MAX_ITERS
 		setMaxIters(settings.getInteger(PrismSettings.PRISM_MAX_ITERS));
 		// PRISM_PRECOMPUTATION
@@ -208,8 +206,7 @@ public class ProbModelChecker extends StateModelChecker {
 		setProb1(settings.getBoolean(PrismSettings.PRISM_PROB1));
 		// PRISM_FAIRNESS
 		if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
-			throw new PrismException(
-					"The explicit engine does not support model checking MDPs under fairness");
+			throw new PrismException("The explicit engine does not support model checking MDPs under fairness");
 		}
 
 		// PRISM_EXPORT_ADV
@@ -217,20 +214,18 @@ public class ProbModelChecker extends StateModelChecker {
 		// if (!(s.equals("None")))
 		// setExportAdv(true);
 		// PRISM_EXPORT_ADV_FILENAME
-		setExportAdvFilename(settings
-				.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
+		setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
 
 		// Strategy stuff
-		setGenerateStrategy(settings
-				.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY));
-		setImplementStrategy(settings
-				.getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY));
+		setGenerateStrategy(settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY));
+		setImplementStrategy(settings.getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY));
 	}
 
 	/**
 	 * Inherit settings (and other info) from another model checker object.
 	 */
-	public void inheritSettings(ProbModelChecker other) {
+	public void inheritSettings(ProbModelChecker other)
+	{
 		super.inheritSettings(other);
 		setTermCrit(other.getTermCrit());
 		setTermCritParam(other.getTermCritParam());
@@ -245,7 +240,8 @@ public class ProbModelChecker extends StateModelChecker {
 	/**
 	 * Print summary of current settings.
 	 */
-	public void printSettings() {
+	public void printSettings()
+	{
 		super.printSettings();
 		mainLog.print("linEqMethod = " + linEqMethod + " ");
 		mainLog.print("mdpSolnMethod = " + mdpSolnMethod + " ");
@@ -264,28 +260,32 @@ public class ProbModelChecker extends StateModelChecker {
 	/**
 	 * Set verbosity level, i.e. amount of output produced.
 	 */
-	public void setVerbosity(int verbosity) {
+	public void setVerbosity(int verbosity)
+	{
 		this.verbosity = verbosity;
 	}
 
 	/**
 	 * Set method used to solve linear equation systems.
 	 */
-	public void setLinEqMethod(LinEqMethod linEqMethod) {
+	public void setLinEqMethod(LinEqMethod linEqMethod)
+	{
 		this.linEqMethod = linEqMethod;
 	}
 
 	/**
 	 * Set method used to solve MDPs.
 	 */
-	public void setMDPSolnMethod(MDPSolnMethod mdpSolnMethod) {
+	public void setMDPSolnMethod(MDPSolnMethod mdpSolnMethod)
+	{
 		this.mdpSolnMethod = mdpSolnMethod;
 	}
 
 	/**
 	 * Set termination criteria type for numerical iterative methods.
 	 */
-	public void setTermCrit(TermCrit termCrit) {
+	public void setTermCrit(TermCrit termCrit)
+	{
 		this.termCrit = termCrit;
 	}
 
@@ -293,49 +293,56 @@ public class ProbModelChecker extends StateModelChecker {
 	 * Set termination criteria parameter (epsilon) for numerical iterative
 	 * methods.
 	 */
-	public void setTermCritParam(double termCritParam) {
+	public void setTermCritParam(double termCritParam)
+	{
 		this.termCritParam = termCritParam;
 	}
 
 	/**
 	 * Set maximum number of iterations for numerical iterative methods.
 	 */
-	public void setMaxIters(int maxIters) {
+	public void setMaxIters(int maxIters)
+	{
 		this.maxIters = maxIters;
 	}
 
 	/**
 	 * Set whether or not to use precomputation (Prob0, Prob1, etc.).
 	 */
-	public void setPrecomp(boolean precomp) {
+	public void setPrecomp(boolean precomp)
+	{
 		this.precomp = precomp;
 	}
 
 	/**
 	 * Set whether or not to use Prob0 precomputation
 	 */
-	public void setProb0(boolean prob0) {
+	public void setProb0(boolean prob0)
+	{
 		this.prob0 = prob0;
 	}
 
 	/**
 	 * Set whether or not to use Prob1 precomputation
 	 */
-	public void setProb1(boolean prob1) {
+	public void setProb1(boolean prob1)
+	{
 		this.prob1 = prob1;
 	}
 
 	/**
 	 * Set direction of convergence for value iteration (lfp/gfp).
 	 */
-	public void setValIterDir(ValIterDir valIterDir) {
+	public void setValIterDir(ValIterDir valIterDir)
+	{
 		this.valIterDir = valIterDir;
 	}
 
 	/**
 	 * Set method used for numerical solution.
 	 */
-	public void setSolnMethod(SolnMethod solnMethod) {
+	public void setSolnMethod(SolnMethod solnMethod)
+	{
 		this.solnMethod = solnMethod;
 	}
 
@@ -344,61 +351,73 @@ public class ProbModelChecker extends StateModelChecker {
 	// this.exportAdv = exportAdv;
 	// }
 
-	public void setExportAdvFilename(String exportAdvFilename) {
+	public void setExportAdvFilename(String exportAdvFilename)
+	{
 		this.exportAdvFilename = exportAdvFilename;
 	}
 
 	// Get methods for flags/settings
 
-	public int getVerbosity() {
+	public int getVerbosity()
+	{
 		return verbosity;
 	}
 
-	public LinEqMethod getLinEqMethod() {
+	public LinEqMethod getLinEqMethod()
+	{
 		return linEqMethod;
 	}
 
-	public MDPSolnMethod getMDPSolnMethod() {
+	public MDPSolnMethod getMDPSolnMethod()
+	{
 		return mdpSolnMethod;
 	}
 
-	public TermCrit getTermCrit() {
+	public TermCrit getTermCrit()
+	{
 		return termCrit;
 	}
 
-	public double getTermCritParam() {
+	public double getTermCritParam()
+	{
 		return termCritParam;
 	}
 
-	public int getMaxIters() {
+	public int getMaxIters()
+	{
 		return maxIters;
 	}
 
-	public boolean getPrecomp() {
+	public boolean getPrecomp()
+	{
 		return precomp;
 	}
 
-	public boolean getProb0() {
+	public boolean getProb0()
+	{
 		return prob0;
 	}
 
-	public boolean getProb1() {
+	public boolean getProb1()
+	{
 		return prob1;
 	}
 
-	public ValIterDir getValIterDir() {
+	public ValIterDir getValIterDir()
+	{
 		return valIterDir;
 	}
 
-	public SolnMethod getSolnMethod() {
+	public SolnMethod getSolnMethod()
+	{
 		return solnMethod;
 	}
 
 	// Model checking functions
 
 	@Override
-	public StateValues checkExpression(Model model, Expression expr)
-			throws PrismException {
+	public StateValues checkExpression(Model model, Expression expr) throws PrismException
+	{
 		StateValues res;
 
 		// P operator
@@ -411,8 +430,7 @@ public class ProbModelChecker extends StateModelChecker {
 		}
 		// S operator
 		else if (expr instanceof ExpressionSS) {
-			throw new PrismException(
-					"Explicit engine does not yet handle the S operator");
+			throw new PrismException("Explicit engine does not yet handle the S operator");
 		}
 		// PATL coalition operator
 		else if (expr instanceof ExpressionPATL) {
@@ -426,8 +444,8 @@ public class ProbModelChecker extends StateModelChecker {
 		return res;
 	}
 
-	private StateValues checkExpressionPATL(Model model, ExpressionPATL expr)
-			throws PrismException {
+	private StateValues checkExpressionPATL(Model model, ExpressionPATL expr) throws PrismException
+	{
 		int type = expr.getExpressionType();
 		ExpressionProb exprProb = expr.getExpressionProb();
 		ExpressionReward exprRew = expr.getExpressionRew();
@@ -457,8 +475,7 @@ public class ProbModelChecker extends StateModelChecker {
 		if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("min=")) {
 			// min
 			min = true;
-		} else if (relOp.equals(">") || relOp.equals(">=")
-				|| relOp.equals("max=")) {
+		} else if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("max=")) {
 			// max
 			min = false;
 		} else if (relOp.equals("=")) {
@@ -474,18 +491,14 @@ public class ProbModelChecker extends StateModelChecker {
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 				if (p < 0 || p > 1)
-					throw new PrismException("Invalid probability bound " + p
-							+ " in P operator");
+					throw new PrismException("Invalid probability bound " + p + " in P operator");
 			}
 
 			if (!(this instanceof SMGModelChecker))
-				throw new PrismException(
-						"PATL model checking is not supported for model type "
-								+ model.getModelType());
+				throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
 			if (!exact) {
-				probs = ((SMGModelChecker) this).checkProbPathFormula(model,
-						expr, min);
+				probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min);
 
 				// Print out probabilities
 				if (getVerbosity() > 5) {
@@ -509,13 +522,11 @@ public class ProbModelChecker extends StateModelChecker {
 				if (pb != null) {
 					p = pb.evaluateDouble(constantValues);
 					if (p < 0 || p > 1)
-						throw new PrismException("Invalid probability bound "
-								+ p + " in P operator");
+						throw new PrismException("Invalid probability bound " + p + " in P operator");
 				} else
 					throw new PrismException(
 							"=? queries for exact probabilities are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactProbabilityFormula(
-						model, expr, p);
+				return ((SMGModelChecker) this).checkExactProbabilityFormula(model, expr, p);
 			}
 		} else if (type == ExpressionPATL.REW) {
 			Object rs; // Reward struct index
@@ -534,14 +545,12 @@ public class ProbModelChecker extends StateModelChecker {
 			if (rb != null) {
 				r = rb.evaluateDouble(constantValues);
 				if (r < 0)
-					throw new PrismException("Invalid reward bound " + r
-							+ " in R[] formula");
+					throw new PrismException("Invalid reward bound " + r + " in R[] formula");
 			}
 
 			// Get reward info
 			if (modulesFile == null)
-				throw new PrismException(
-						"No model file to obtain reward structures");
+				throw new PrismException("No model file to obtain reward structures");
 			if (modulesFile.getNumRewardStructs() == 0)
 				throw new PrismException("Model has no rewards specified");
 			if (rs == null) {
@@ -554,20 +563,17 @@ public class ProbModelChecker extends StateModelChecker {
 				rewStruct = modulesFile.getRewardStructByName((String) rs);
 			}
 			if (rewStruct == null)
-				throw new PrismException("Invalid reward structure index \""
-						+ rs + "\"");
+				throw new PrismException("Invalid reward structure index \"" + rs + "\"");
 
 			// Build rewards
 			mainLog.println("Building reward structure...");
 			ConstructRewards constructRewards = new ConstructRewards(mainLog);
-			smgRewards = constructRewards.buildSMGRewardStructure((SMG) model,
-					rewStruct, constantValues);
+			smgRewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
 			// Compute rewards
 			mainLog.println("Computing rewards..." + verbosity);
 
 			if (!exact) {
-				rews = ((SMGModelChecker) this).checkRewardFormula(model,
-						smgRewards, expr, min);
+				rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, expr, min);
 
 				// Print out probabilities
 				if (getVerbosity() > 5) {
@@ -587,17 +593,14 @@ public class ProbModelChecker extends StateModelChecker {
 					return StateValues.createFromBitSet(sol, model);
 				}
 			} else {
-				
+
 				if (rb != null) {
 					p = rb.evaluateDouble(constantValues);
 					if (p < 0)
-						throw new PrismException("Invalid probability bound "
-								+ p + " in R operator");
+						throw new PrismException("Invalid probability bound " + p + " in R operator");
 				} else
-					throw new PrismException(
-							"=? queries for exact rewards are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactRewardFormula(
-						model,smgRewards, expr, p);
+					throw new PrismException("=? queries for exact rewards are not supported, please provide a value");
+				return ((SMGModelChecker) this).checkExactRewardFormula(model, smgRewards, expr, p);
 			}
 		} else {
 			throw new PrismException("Expression type unknown.");
@@ -607,8 +610,8 @@ public class ProbModelChecker extends StateModelChecker {
 	/**
 	 * Model check a P operator expression and return the values for all states.
 	 */
-	protected StateValues checkExpressionProb(Model model, ExpressionProb expr)
-			throws PrismException {
+	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
+	{
 		// Probability bound
 		Expression pb; // (expression)
 		double p = -1; // (actual value, -1 means undefined)
@@ -628,21 +631,17 @@ public class ProbModelChecker extends StateModelChecker {
 		if (pb != null) {
 			p = pb.evaluateDouble(constantValues);
 			if (p < 0 || p > 1)
-				throw new PrismException("Invalid probability bound " + p
-						+ " in P operator");
+				throw new PrismException("Invalid probability bound " + p + " in P operator");
 		}
 
 		// For nondeterministic models, determine whether min or max
 		// probabilities needed
 		if (modelType.nondeterministic()) {
-			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP
-					|| modelType == ModelType.SMG) {
-				if (relOp.equals(">") || relOp.equals(">=")
-						|| relOp.equals("min=")) {
+			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
+				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
 					// min
 					min1 = true;
-				} else if (relOp.equals("<") || relOp.equals("<=")
-						|| relOp.equals("max=")) {
+				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
 					// max
 					min1 = false;
 				} else {
@@ -663,45 +662,36 @@ public class ProbModelChecker extends StateModelChecker {
 					min1 = false;
 					min2 = false;
 				} else {
-					throw new PrismException(
-							"Use e.g. \"Pminmax=?\" for stochastic games");
+					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check "
-						+ expr.getTypeOfPOperator() + " properties for "
-						+ modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator()
+						+ " properties for " + modelType + "s");
 			}
 		}
 
 		// Compute probabilities
 		switch (modelType) {
 		case CTMC:
-			probs = ((CTMCModelChecker) this).checkProbPathFormula(model,
-					expr.getExpression());
+			probs = ((CTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case CTMDP:
-			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model,
-					expr.getExpression(), min1);
+			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
 			break;
 		case DTMC:
-			probs = ((DTMCModelChecker) this).checkProbPathFormula(model,
-					expr.getExpression());
+			probs = ((DTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case MDP:
-			probs = ((MDPModelChecker) this).checkProbPathFormula(model,
-					expr.getExpression(), min1);
+			probs = ((MDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
 			break;
 		case STPG:
-			probs = ((STPGModelChecker) this).checkProbPathFormula(model,
-					expr.getExpression(), min1, min2, p);
+			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2, p);
 			break;
 		case SMG:
-			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr,
-					min1, !min1, p);
+			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min1, !min1, p);
 			break;
 		default:
-			throw new PrismException("Cannot model check " + expr + " for a "
-					+ modelType);
+			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
 		}
 
 		// Print out probabilities
@@ -726,8 +716,8 @@ public class ProbModelChecker extends StateModelChecker {
 	 * Model check an R operator expression and return the values for all
 	 * states.
 	 */
-	protected StateValues checkExpressionReward(Model model,
-			ExpressionReward expr) throws PrismException {
+	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
+	{
 		Object rs; // Reward struct index
 		RewardStruct rewStruct = null; // Reward struct object
 		Expression rb; // Reward bound (expression)
@@ -749,20 +739,17 @@ public class ProbModelChecker extends StateModelChecker {
 		if (rb != null) {
 			r = rb.evaluateDouble(constantValues);
 			if (r < 0)
-				throw new PrismException("Invalid reward bound " + r
-						+ " in R[] formula");
+				throw new PrismException("Invalid reward bound " + r + " in R[] formula");
 		}
 
 		// For nondeterministic models, determine whether min or max
 		// probabilities needed
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
-				if (relOp.equals(">") || relOp.equals(">=")
-						|| relOp.equals("min=")) {
+				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
 					// min
 					min1 = true;
-				} else if (relOp.equals("<") || relOp.equals("<=")
-						|| relOp.equals("max=")) {
+				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
 					// max
 					min1 = false;
 				} else {
@@ -783,20 +770,17 @@ public class ProbModelChecker extends StateModelChecker {
 					min1 = false;
 					min2 = false;
 				} else {
-					throw new PrismException(
-							"Use e.g. \"Pminmax=?\" for stochastic games");
+					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check "
-						+ expr.getTypeOfROperator() + " properties for "
-						+ modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator()
+						+ " properties for " + modelType + "s");
 			}
 		}
 
 		// Get reward info
 		if (modulesFile == null)
-			throw new PrismException(
-					"No model file to obtain reward structures");
+			throw new PrismException("No model file to obtain reward structures");
 		if (modulesFile.getNumRewardStructs() == 0)
 			throw new PrismException("Model has no rewards specified");
 		if (rs == null) {
@@ -809,52 +793,42 @@ public class ProbModelChecker extends StateModelChecker {
 			rewStruct = modulesFile.getRewardStructByName((String) rs);
 		}
 		if (rewStruct == null)
-			throw new PrismException("Invalid reward structure index \"" + rs
-					+ "\"");
+			throw new PrismException("Invalid reward structure index \"" + rs + "\"");
 
 		// Build rewards
 		ConstructRewards constructRewards = new ConstructRewards(mainLog);
 		switch (modelType) {
 		case CTMC:
 		case DTMC:
-			mcRewards = constructRewards.buildMCRewardStructure((DTMC) model,
-					rewStruct, constantValues);
+			mcRewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, constantValues);
 			break;
 		case MDP:
-			mdpRewards = constructRewards.buildMDPRewardStructure((MDP) model,
-					rewStruct, constantValues);
+			mdpRewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
 			break;
 		case STPG:
-			stpgRewards = constructRewards.buildSTPGRewardStructure(
-					(STPG) model, rewStruct, constantValues);
+			stpgRewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
 			break;
 		default:
-			throw new PrismException("Cannot build rewards for " + modelType
-					+ "s");
+			throw new PrismException("Cannot build rewards for " + modelType + "s");
 		}
 
 		// Compute rewards
 		mainLog.println("Building reward structure...");
 		switch (modelType) {
 		case CTMC:
-			rews = ((CTMCModelChecker) this).checkRewardFormula(model,
-					mcRewards, expr.getExpression());
+			rews = ((CTMCModelChecker) this).checkRewardFormula(model, mcRewards, expr.getExpression());
 			break;
 		case DTMC:
-			rews = ((DTMCModelChecker) this).checkRewardFormula(model,
-					mcRewards, expr.getExpression());
+			rews = ((DTMCModelChecker) this).checkRewardFormula(model, mcRewards, expr.getExpression());
 			break;
 		case MDP:
-			rews = ((MDPModelChecker) this).checkRewardFormula(model,
-					mdpRewards, expr.getExpression(), min1);
+			rews = ((MDPModelChecker) this).checkRewardFormula(model, mdpRewards, expr.getExpression(), min1);
 			break;
 		case STPG:
-			rews = ((STPGModelChecker) this).checkRewardFormula(model,
-					stpgRewards, expr.getExpression(), min1, min2);
+			rews = ((STPGModelChecker) this).checkRewardFormula(model, stpgRewards, expr.getExpression(), min1, min2);
 			break;
 		default:
-			throw new PrismException("Cannot model check " + expr + " for "
-					+ modelType + "s");
+			throw new PrismException("Cannot model check " + expr + " for " + modelType + "s");
 		}
 
 		// Print out probabilities
@@ -882,7 +856,8 @@ public class ProbModelChecker extends StateModelChecker {
 	 *            model
 	 * @return the bitset indicating which states are terminal
 	 */
-	protected BitSet findTerminalStates(Model model) {
+	protected BitSet findTerminalStates(Model model)
+	{
 		int n = model.getStatesList().size();
 		BitSet ret = new BitSet(n), bs = new BitSet(n);
 		for (int i = 0; i < n; i++) {

@@ -83,7 +83,7 @@ public class Prism implements PrismSettingsListener
 	private static String version = "4.0.3";
 	// prism version suffix
 	// private static String versionSuffix = "";
-	private static String versionSuffix = ".games"; // ".rXXXX";;
+	private static String versionSuffix = ".games"; // ".rXXXX";; 
 
 	// ------------------------------------------------------------------------------
 	// Constants

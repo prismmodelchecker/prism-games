@@ -7,9 +7,11 @@ package strat;
  * @author aistis
  * 
  */
-public class InvalidStrategyStateException extends Exception {
+public class InvalidStrategyStateException extends Exception
+{
 
-	public InvalidStrategyStateException(String string) {
+	public InvalidStrategyStateException(String string)
+	{
 		super(string);
 	}
 

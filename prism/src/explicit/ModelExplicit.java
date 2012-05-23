@@ -27,7 +27,10 @@
 package explicit;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.TreeSet;
 
 import parser.State;
 import parser.Values;
@@ -35,8 +38,8 @@ import parser.VarList;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismException;
-import prism.PrismLog;
 import prism.PrismFileLog;
+import prism.PrismLog;
 
 /**
  * Base class for explicit-state model representations.
@@ -138,7 +141,7 @@ public abstract class ModelExplicit implements Model
 	{
 		this.statesList = statesList;
 	}
-	
+
 	/**
 	 * Set the associated (read-only) constant values.
 	 */
@@ -187,7 +190,7 @@ public abstract class ModelExplicit implements Model
 	{
 		return deadlocks.size();
 	}
-	
+
 	@Override
 	public Iterable<Integer> getDeadlockStates()
 	{
@@ -201,7 +204,7 @@ public abstract class ModelExplicit implements Model
 		for (int dl : deadlocks) {
 			bs.set(dl);
 		}
-		
+
 		return StateValues.createFromBitSet(bs, this);
 	}
 
@@ -216,7 +219,7 @@ public abstract class ModelExplicit implements Model
 	{
 		return deadlocks.contains(i);
 	}
-	
+
 	@Override
 	public List<State> getStatesList()
 	{
@@ -287,7 +290,7 @@ public abstract class ModelExplicit implements Model
 	{
 		if (statesList == null)
 			return;
-		
+
 		// Print header: list of model vars
 		if (exportType == Prism.EXPORT_MATLAB)
 			log.print("% ");
@@ -315,7 +318,7 @@ public abstract class ModelExplicit implements Model
 		if (exportType == Prism.EXPORT_MATLAB)
 			log.println("];");
 	}
-	
+
 	@Override
 	public abstract String infoString();
 
