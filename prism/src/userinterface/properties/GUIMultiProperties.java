@@ -1853,8 +1853,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		JMenu stratExportMenu = new JMenu("Export strategy");
 		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
-		stratExportMenu.add(exportStratProduct);
 		stratExportMenu.add(exportStratPlain);
+		stratExportMenu.add(exportStratProduct);
 		strategiesMenu.add(stratExportMenu);
 
 		propertiesPopup.add(strategiesMenu);
@@ -2220,6 +2220,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		};
 		strategyInfo.putValue(Action.NAME, "Strategy info");
+		strategyInfo.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallInfo.png"));
 
 		generateStrategy = new AbstractAction()
 		{
@@ -2236,6 +2237,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		};
 		generateStrategy.putValue(Action.LONG_DESCRIPTION, "Generate the strategy for the property.");
 		generateStrategy.putValue(Action.NAME, "Generate strategy");
+		generateStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallConstruct.png"));
 
 		implementStrategy = new AbstractAction()
 		{
@@ -2252,6 +2254,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		};
 		implementStrategy.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
 		implementStrategy.putValue(Action.NAME, "Verify under strategy");
+		implementStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallImplement.png"));
 
 		exportStratProduct = new AbstractAction()
 		{
@@ -2262,7 +2265,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		};
 		exportStratProduct.putValue(Action.LONG_DESCRIPTION,
 				"Export the product of the model and strategy to .tra file");
-		exportStratProduct.putValue(Action.NAME, "Export product .tra");
+		exportStratProduct.putValue(Action.NAME, "Product");
 
 		exportStratPlain = new AbstractAction()
 		{
@@ -2271,8 +2274,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				a_exportStratPlain();
 			}
 		};
-		exportStratPlain.putValue(Action.LONG_DESCRIPTION, "Export the strategy in default format");
-		exportStratPlain.putValue(Action.NAME, "Export strategy");
+		exportStratPlain.putValue(Action.LONG_DESCRIPTION, "Export the strategy to .adv file");
+		exportStratPlain.putValue(Action.NAME, "Strategy");
 
 	}
 
