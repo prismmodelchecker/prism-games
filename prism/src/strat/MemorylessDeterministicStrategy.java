@@ -1,5 +1,9 @@
 package strat;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Scanner;
+
 import prism.PrismFileLog;
 import prism.PrismLog;
 import cern.colt.Arrays;
@@ -48,6 +52,28 @@ public class MemorylessDeterministicStrategy implements Strategy
 	//		}
 	//		this.expValues = expValues;
 	//	}
+
+	/**
+	 * Creates a MemorylessDeterministicStrategy from the input stream provided by the scanner.
+	 *
+	 * @param scan
+	 */
+	public MemorylessDeterministicStrategy(Scanner scan)
+	{
+		// ignoring "Adv:" line
+		scan.nextLine();
+		List<Distribution> dists = new LinkedList<Distribution>();
+		Distribution dist;
+		int s, c;
+		while (scan.hasNext()) {
+			s = scan.nextInt();
+			c = scan.nextInt();
+			dist = new Distribution();
+			dist.add(c, 1);
+			dists.add(dist);
+		}
+		this.choices = dists.toArray(new Distribution[] {});
+	}
 
 	@Override
 	public void init(int state) throws InvalidStrategyStateException
@@ -104,11 +130,12 @@ public class MemorylessDeterministicStrategy implements Strategy
 	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
-		out.print("Adv:");
+		out.println(Strategies.FORMAT_STRING_MD_STRAT);
+		out.println("Adv:");
 		for (int i = 0; i < choices.length; i++) {
-			out.print(" " + i + ":" + choices[i]);
+			out.println(i + " " + choices[i]);
 		}
-		out.println();
+		out.flush();
 	}
 
 	@Override

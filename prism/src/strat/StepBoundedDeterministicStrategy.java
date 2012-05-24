@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
@@ -81,6 +82,17 @@ public class StepBoundedDeterministicStrategy implements Strategy
 						prev = choices[i][j];
 			}
 		}
+	}
+
+	/**
+	 * Creates a StepBoundedDeterministicStrategy.
+	 *
+	 * @param scan
+	 */
+	public StepBoundedDeterministicStrategy(Scanner scan)
+	{
+		// TODO Auto-generated constructor stub
+
 	}
 
 	@Override
@@ -162,6 +174,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
+		out.println(Strategies.FORMAT_STRING_STEP_BOUNDED_STRAT);
 		out.print("// Strategy for step-bounded properties\n");
 		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 		out.print("// (b1>b2>...>bn)\n");

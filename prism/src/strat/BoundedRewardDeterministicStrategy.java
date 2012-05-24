@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
@@ -23,7 +24,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 {
 
 	// rewards
-	private STPGRewards rewards;
+	private double[] rewards;
 
 	// number of states in the game for which the strategy is defined
 	private int nStates;
@@ -31,20 +32,34 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	public BoundedRewardDeterministicStrategy(int[][] choices, int bound, STPGRewards rewards)
 	{
 		super(choices, bound);
-		this.rewards = rewards;
 		nStates = choices.length;
+		this.rewards = new double[nStates];
+		for (int i = 0; i < nStates; i++)
+			this.rewards[i] = rewards.getStateReward(i);
+	}
+
+	/**
+	 * Creates a BoundedRewardDeterministicStrategy.
+	 *
+	 * @param scan
+	 */
+	public BoundedRewardDeterministicStrategy(Scanner scan)
+	{
+		super(scan);
+		// parse state rewards
+		// TODO
 	}
 
 	@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
-		memory = bound - (int) rewards.getStateReward(state);
+		memory = bound - (int) rewards[state];
 	}
 
 	@Override
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
-		memory -= rewards.getStateReward(state);
+		memory -= rewards[state];
 		if (memory < 0)
 			memory = 0;
 	}
@@ -54,6 +69,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
+		out.println(Strategies.FORMAT_STRING_BOUNDED_REW_STRAT);
 		out.print("// Strategy for F0 reward properties\n");
 		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 		out.print("// (b1>b2>...>bn)\n");
@@ -68,6 +84,9 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 			}
 			out.println();
 		}
+		out.print("Rewards:\n");
+		for (int i = 0; i < nStates; i++)
+			out.println(rewards[i]);
 		out.flush();
 	}
 
@@ -127,7 +146,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 			// setting memory
 			this.memory = j;
 			for (int i = 0; i < oldStates.size(); i++) {
-				if (i == 0 && j == bound - rewards.getStateReward(i))
+				if (i == 0 && j == bound - rewards[i])
 					initial = (bound - j) * oldStates.size() + i;
 				// if the state belongs to player 1 retrieving choice chosen by
 				// the optimal strategy
@@ -143,9 +162,8 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(oldStates.size()
-									* (bound - j + (j == 1 ? 0 : (int) rewards.getStateReward(succ))) + succ, distr
-									.get(succ));
+							newDistr.add(oldStates.size() * (bound - j + (j == 1 ? 0 : (int) rewards[succ])) + succ,
+									distr.get(succ));
 
 						// adding the choice
 						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
@@ -167,9 +185,8 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(oldStates.size()
-									* (bound - j + j == 1 ? 0 : (int) rewards.getStateReward(succ)) + succ, distr
-									.get(succ));
+							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : (int) rewards[succ]) + succ,
+									distr.get(succ));
 
 						// adding the choice
 						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
@@ -188,6 +205,6 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	@Override
 	public int getInitialStateOfTheProduct(int s)
 	{
-		return bound - (int) rewards.getStateReward(s % nStates);
+		return bound - (int) rewards[s % nStates];
 	}
 }

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Map.Entry;
 
 import parser.State;
@@ -143,6 +144,17 @@ public class ExactValueStrategy implements Strategy
 		}
 	}
 
+	/**
+	 * Creates a ExactValueStrategy.
+	 *
+	 * @param scan
+	 */
+	public ExactValueStrategy(Scanner scan)
+	{
+		// TODO Auto-generated constructor stub
+
+	}
+
 	@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
@@ -176,6 +188,7 @@ public class ExactValueStrategy implements Strategy
 	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
+		out.println(Strategies.FORMAT_STRING_EXACT_VALUE_MD_STRAT);
 		out.print("// Stochastic update strategy to achieve exact value in the game\n");
 		out.print("// Format (memory update function): \n");
 		out.print("Strategy:\n");
