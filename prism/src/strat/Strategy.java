@@ -158,6 +158,7 @@ public interface Strategy
 	 */
 	public int getInitialStateOfTheProduct(int s);
 
+	
 	//	/**
 	//	 * Retrieve the expected value that this strategy will achieve from it's
 	//	 * current state

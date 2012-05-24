@@ -317,6 +317,7 @@ public class SimulatorEngine
 		switch (modelType) {
 		case DTMC:
 		case MDP:
+		case SMG:
 			// Pick a random choice
 			i = rng.randomUnifInt(numChoices);
 			choice = transitions.getChoice(i);
