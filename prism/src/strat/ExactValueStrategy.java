@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import parser.State;
@@ -20,25 +21,38 @@ import explicit.STPGExplicit;
 
 public class ExactValueStrategy implements Strategy
 {
-
-	// strategies to achieve optimal values
-	protected Strategy minStrat, maxStrat;
-	protected double[] minValues, maxValues;
-
-	// indicator which strategy to play next
-	protected boolean playMin;
-
 	// strategy info
 	protected String info = "No information available.";
+	protected double[] minValues;
+	protected double[] maxValues;
 
 	// target values
-	protected double initTargetValue, currentTargetValue, probMin;
+	protected double initTargetValue;
 
 	// storing last state
 	protected int lastState;
+	// storing the choice indicator
+	protected boolean min;
+	// last randomisation probability
+	protected double probMin;
 
-	// game model
-	protected STPG game;
+	// number of states
+	protected int n;
+
+	// initial distribution function [probMin_1, probMin_0,...]
+	protected double[] initialDistributionFunction;
+
+	// strategy memory update function [state -> [action,min -> [state -> probMin], action,max -> [state -> probMin]]]
+	protected Map<Integer, Double>[][] memoryUpdateFunction;
+
+	// strategy next move function [choiceMin_1,choiceMax_1, choiceMin_2,...]
+	protected Distribution[] nextMoveFunction;
+
+	// stats
+	protected int memorySize;
+	protected int initSize;
+	protected int updateSize;
+	protected int nextSize;
 
 	/**
 	 * 
@@ -54,80 +68,107 @@ public class ExactValueStrategy implements Strategy
 	public ExactValueStrategy(Strategy minStrat, double[] minValues, Strategy maxStrat, double[] maxValues,
 			double targetValue, STPG model)
 	{
-		this.minStrat = minStrat;
 		this.minValues = minValues;
-		this.maxStrat = maxStrat;
 		this.maxValues = maxValues;
-		playMin = false;
 		this.initTargetValue = targetValue;
 		lastState = -1;
-		game = model;
+		n = model.getNumStates();
+		memorySize = 2 * n;
+		initSize = n;
+		updateSize = 0;
+		nextSize = 2 * n;
+
+		// create strategy 
+		// computing initial distribution function
+		initialDistributionFunction = new double[n];
+		for (int s = 0; s < n; s++)
+			initialDistributionFunction[s] = (maxValues[s] - initTargetValue) / (maxValues[s] - minValues[s]);
+
+		// computing memory update function
+		memoryUpdateFunction = new Map[n][];
+		for (int s = 0; s < n; s++) {
+			memoryUpdateFunction[s] = new Map[2 * model.getNumChoices(s)];
+			for (int c = 0; c < model.getNumChoices(s); c++) {
+				memoryUpdateFunction[s][2 * c] = new HashMap<Integer, Double>();
+				memoryUpdateFunction[s][2 * c + 1] = new HashMap<Integer, Double>();
+
+				// for player 2 state adjusting the exptectation
+				if (model.getPlayer(s) == STPGExplicit.PLAYER_2) {
+					// computing min and max expectations for the action
+					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(s, c);
+					double max = 0, min = 0;
+					Entry<Integer, Double> en;
+					List<Integer> succs = new ArrayList<Integer>(model.getNumTransitions(s, c));
+					while (it.hasNext()) {
+						en = it.next();
+						succs.add(en.getKey());
+						min += minValues[en.getKey()] * en.getValue();
+						max += maxValues[en.getKey()] * en.getValue();
+					}
+					// computing the randomisation coefficient
+					double pMin = (max - minValues[s]) / (max - min);
+					double pMax = (max - maxValues[s]) / (max - min);
+					// filling in the map
+					for (int succ : succs) {
+						memoryUpdateFunction[s][2 * c].put(succ, pMin);
+						memoryUpdateFunction[s][2 * c + 1].put(succ, pMax);
+						updateSize += 2;
+					}
+				}
+				// for player 1 just updating to max
+				else {
+					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(s, c);
+					Entry<Integer, Double> en;
+					while (it.hasNext()) {
+						en = it.next();
+						memoryUpdateFunction[s][2 * c].put(en.getKey(), 1.0);
+						memoryUpdateFunction[s][2 * c + 1].put(en.getKey(), 0.0);
+						updateSize += 2;
+					}
+
+				}
+			}
+		}
+
+		// computing next move function
+		nextMoveFunction = new Distribution[2 * n];
+		for (int s = 0; s < n; s++) {
+			try {
+				nextMoveFunction[2 * s] = minStrat.getNextMove(s);
+				nextMoveFunction[2 * s + 1] = maxStrat.getNextMove(s);
+			} catch (InvalidStrategyStateException error) {
+				error.printStackTrace();
+			}
+
+		}
 	}
 
 	@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
-
-		minStrat.init(state);
-		maxStrat.init(state);
-
-		double minVal = minValues[state];
-		double maxVal = maxValues[state];
-
-		probMin = (maxVal - initTargetValue) / (maxVal - minVal);
-		currentTargetValue = Math.random() < probMin ? minVal : maxVal;
-
-		playMin = currentTargetValue == minVal;
-
+		min = Math.random() < initialDistributionFunction[state];
 		lastState = state;
+		probMin = initialDistributionFunction[state];
 	}
 
 	@Override
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
-
-		// computing the probability to choose min strategy
-		probMin = 0;
-		if (game.getPlayer(lastState) == STPGExplicit.PLAYER_1)
-			probMin = playMin ? 1 : 0;
-		else {
-			// computing min and max expectations for the action
-			Iterator<Entry<Integer, Double>> it = game.getTransitionsIterator(lastState, action);
-			double max = 0, min = 0;
-			Entry<Integer, Double> en;
-			while (it.hasNext()) {
-				en = it.next();
-				min += minValues[en.getKey()] * en.getValue();
-				max += maxValues[en.getKey()] * en.getValue();
-			}
-			// computing the randomisation coefficient
-			probMin = (max - currentTargetValue) / (max - min);
-		}
-
-		minStrat.updateMemory(action, state);
-		maxStrat.updateMemory(action, state);
-
-		double minVal = minValues[state];
-		double maxVal = maxValues[state];
-
-		// determining the new current value
-		currentTargetValue = Math.random() < probMin ? minVal : maxVal;
-		playMin = currentTargetValue == minVal;
+		min = Math.random() < memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
 		lastState = state;
+		probMin = memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
 	}
 
 	@Override
 	public Distribution getNextMove(int state) throws InvalidStrategyStateException
 	{
-		return playMin ? minStrat.getNextMove(state) : maxStrat.getNextMove(state);
+		return nextMoveFunction[2 * state + (min ? 0 : 1)];
 	}
 
 	@Override
 	public void reset()
 	{
-		minStrat.reset();
-		maxStrat.reset();
-		this.currentTargetValue = initTargetValue;
+		lastState = -1;
 	}
 
 	@Override
@@ -140,73 +181,32 @@ public class ExactValueStrategy implements Strategy
 		out.print("Strategy:\n");
 		out.print("targetValue=" + initTargetValue + "\n");
 		out.print("Initial distribution (stateId, minProb, minValue, maxProb, maxValue):\n");
-		for (int s = 0; s < game.getNumStates(); s++) {
-			double minVal = minValues[s];
-			double maxVal = maxValues[s];
-			double probMin = (maxVal - initTargetValue) / (maxVal - minVal);
-			if (maxVal == minVal)
-				out.println(s + ", " + 1 + ", " + minVal + ", " + 0 + ", " + maxVal);
-			else
-				out.println(s + ", " + probMin + ", " + minVal + ", " + (1 - probMin) + ", " + maxVal);
+		for (int s = 0; s < n; s++) {
+			out.println(s + ", " + initialDistributionFunction[s] + ", " + minValues[s] + ", "
+					+ (1 - initialDistributionFunction[s]) + ", " + maxValues[s]);
 		}
 
 		out
 				.print("Memory update function (stateId, choiceId, successorId, memoryValue, probability, newMemoryValue):\n");
-		for (int s = 0; s < game.getNumStates(); s++) {
-			for (int c = 0; c < game.getNumChoices(s); c++) {
-				if (game.getPlayer(s) == STPGExplicit.PLAYER_2) {
-					// computing min and max expectations for the action
-					Iterator<Entry<Integer, Double>> it = game.getTransitionsIterator(s, c);
-					double max = 0, min = 0;
-					Entry<Integer, Double> en;
-					List<Integer> succs = new ArrayList<Integer>(10);
-					while (it.hasNext()) {
-						en = it.next();
-						succs.add(en.getKey());
-						min += minValues[en.getKey()] * en.getValue();
-						max += maxValues[en.getKey()] * en.getValue();
-					}
-
-					// computing the randomisation coefficient
-					double probMin = (max - minValues[s]) / (max - min);
-					double probMax = (max - maxValues[s]) / (max - min);
-
-					for (int succ : succs) {
-						out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", " + probMin + ", "
-								+ minValues[succ]);
-						out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", " + (1 - probMin) + ", "
-								+ maxValues[succ]);
-						out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", " + probMax + ", "
-								+ minValues[succ]);
-						out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", " + (1 - probMax) + ", "
-								+ maxValues[succ]);
-					}
-				} else {
-					Iterator<Entry<Integer, Double>> it = game.getTransitionsIterator(s, c);
-					Entry<Integer, Double> en;
-					while (it.hasNext()) {
-						en = it.next();
-						out.println(s + ", " + c + ", " + en.getKey() + ", " + minValues[s] + ", " + 1 + ", "
-								+ minValues[en.getKey()]);
-						out.println(s + ", " + c + ", " + en.getKey() + ", " + maxValues[s] + ", " + 1 + ", "
-								+ minValues[en.getKey()]);
-					}
-
+		for (int s = 0; s < n; s++) {
+			for (int c = 0; c < memoryUpdateFunction[s].length / 2; c++) {
+				for (int succ : memoryUpdateFunction[s][2 * c].keySet()) {
+					out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", "
+							+ memoryUpdateFunction[s][2 * c].get(succ) + ", " + minValues[succ]);
+					out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", "
+							+ (1 - memoryUpdateFunction[s][2 * c].get(succ)) + ", " + maxValues[succ]);
+					out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", "
+							+ memoryUpdateFunction[s][2 * c + 1].get(succ) + ", " + minValues[succ]);
+					out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", "
+							+ (1 - memoryUpdateFunction[s][2 * c + 1].get(succ)) + ", " + maxValues[succ]);
 				}
 			}
 		}
 
 		out.print("Next move function (stateId, memoryElement, choiceId):\n");
-		for (int s = 0; s < game.getNumStates(); s++) {
-			if (game.getPlayer(s) == STPGExplicit.PLAYER_1)
-				try {
-					out.println(s + ", " + minValues[s] + ", " + minStrat.getNextMove(s).keySet().iterator().next());
-					out.println(s + ", " + maxValues[s] + ", " + maxStrat.getNextMove(s).keySet().iterator().next());
-				} catch (InvalidStrategyStateException error) {
-					error.printStackTrace();
-				}
-			else
-				out.println(s + " n/a");
+		for (int s = 0; s < n; s++) {
+			out.println(s + ", " + minValues[s] + ", " + nextMoveFunction[2 * s].keySet().iterator().next());
+			out.println(s + ", " + maxValues[s] + ", " + nextMoveFunction[2 * s + 1].keySet().iterator().next());
 		}
 
 		out.flush();
@@ -275,7 +275,7 @@ public class ExactValueStrategy implements Strategy
 			indx = 3 * i;
 			// build only for states from which the value is achievable
 			if (minValues[i] <= initTargetValue && initTargetValue <= maxValues[i]) {
-				p = (maxValues[i] - initTargetValue) / (maxValues[i] - minValues[i]);
+				p = initialDistributionFunction[i];
 				distr = new Distribution();
 				if (p != 0)
 					distr.add(indx + 1, p);
@@ -293,7 +293,6 @@ public class ExactValueStrategy implements Strategy
 		}
 
 		// all other states
-		double pmin, pmax;
 		Distribution distrMin, distrMax;
 		for (int i = 0; i < oldStates.size(); i++) {
 			minIndx = 3 * i + 1;
@@ -301,63 +300,44 @@ public class ExactValueStrategy implements Strategy
 
 			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
 				// for player 1 state just leaving max or min choice
-				try {
-					// constructing transition for min element
-					newDistr = new Distribution();
-					distr = model.getChoice(i, minStrat.getNextMove(i).keySet().iterator().next());
-					// create a new distribution for the product
-					newDistr = new Distribution();
-					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory min memory element
-						newDistr.add(succ * 3 + 1, distr.get(succ));
-					// adding the choice
-					smg.addChoice(minIndx, newDistr);
+				// constructing transition for min element
+				newDistr = new Distribution();
+				distr = model.getChoice(i, nextMoveFunction[2 * i].keySet().iterator().next());
+				// create a new distribution for the product
+				newDistr = new Distribution();
+				for (Integer succ : distr.keySet())
+					// adding transition to the state with the memory min memory element
+					newDistr.add(succ * 3 + 1, distr.get(succ));
+				// adding the choice
+				smg.addChoice(minIndx, newDistr);
 
-					// constructing transition for max element
-					newDistr = new Distribution();
-					distr = model.getChoice(i, maxStrat.getNextMove(i).keySet().iterator().next());
-					// create a new distribution for the product
-					newDistr = new Distribution();
-					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory min memory element
-						newDistr.add(succ * 3 + 2, distr.get(succ));
-					// adding the choice
-					smg.addChoice(maxIndx, newDistr);
-
-				} catch (InvalidStrategyStateException error) {
-					// TODO Auto-generated catch block
-					error.printStackTrace();
-				}
+				// constructing transition for max element
+				newDistr = new Distribution();
+				distr = model.getChoice(i, nextMoveFunction[2 * i + 1].keySet().iterator().next());
+				// create a new distribution for the product
+				newDistr = new Distribution();
+				for (Integer succ : distr.keySet())
+					// adding transition to the state with the memory min memory element
+					newDistr.add(succ * 3 + 2, distr.get(succ));
+				// adding the choice
+				smg.addChoice(maxIndx, newDistr);
 
 			} else {
 				// for player 2 state transforming every distribution#
 				// computing the probability to choose min strategy
-
 				for (int action = 0; action < model.getNumChoices(i); action++) {
-					// computing min and max expectations for the action
-					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(i, action);
-					double max = 0, min = 0;
-					Entry<Integer, Double> en;
-					while (it.hasNext()) {
-						en = it.next();
-						min += minValues[en.getKey()] * en.getValue();
-						max += maxValues[en.getKey()] * en.getValue();
-					}
-
-					// computing the randomisation coefficient for min and max values
-					pmin = (max - minValues[i]) / (max - min);
-					pmax = (max - maxValues[i]) / (max - min);
-
 					// constructing distributions
 					distrMin = new Distribution();
 					distrMax = new Distribution();
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
-						distrMin.add(succ * 3 + 1, distr.get(succ) * pmin);
-						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - pmin));
+						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
+						distrMin.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
-						distrMax.add(succ * 3 + 1, distr.get(succ) * pmax);
-						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - pmax));
+						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
+						distrMax.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					smg.addChoice(minIndx, distrMin);
@@ -412,7 +392,7 @@ public class ExactValueStrategy implements Strategy
 			indx = 3 * i;
 			// build only for states from which the value is achievable
 			if (minValues[i] <= initTargetValue && initTargetValue <= maxValues[i]) {
-				p = (maxValues[i] - initTargetValue) / (maxValues[i] - minValues[i]);
+				p = initialDistributionFunction[i];
 				distr = new Distribution();
 				if (p != 0)
 					distr.add(indx + 1, p);
@@ -438,68 +418,51 @@ public class ExactValueStrategy implements Strategy
 
 			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
 				// for player 1 state just leaving max or min choice
-				try {
-					// constructing transition for min element
-					newDistr = new Distribution();
-					distr = model.getChoice(i, minStrat.getNextMove(i).keySet().iterator().next());
-					// create a new distribution for the product
-					newDistr = new Distribution();
-					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory min memory element
-						newDistr.add(succ * 3 + 1, distr.get(succ));
-					// adding the choice
-					stpg.addChoice(minIndx, newDistr);
+				// constructing transition for min element
+				newDistr = new Distribution();
+				distr = model.getChoice(i, nextMoveFunction[2 * i].keySet().iterator().next());
+				// create a new distribution for the product
+				newDistr = new Distribution();
+				for (Integer succ : distr.keySet())
+					// adding transition to the state with the memory min memory element
+					newDistr.add(succ * 3 + 1, distr.get(succ));
+				// adding the choice
+				stpg.addChoice(minIndx, newDistr);
 
-					// constructing transition for max element
-					newDistr = new Distribution();
-					distr = model.getChoice(i, maxStrat.getNextMove(i).keySet().iterator().next());
-					// create a new distribution for the product
-					newDistr = new Distribution();
-					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory min memory element
-						newDistr.add(succ * 3 + 2, distr.get(succ));
-					// adding the choice
-					stpg.addChoice(maxIndx, newDistr);
-
-				} catch (InvalidStrategyStateException error) {
-					// TODO Auto-generated catch block
-					error.printStackTrace();
-				}
+				// constructing transition for max element
+				newDistr = new Distribution();
+				distr = model.getChoice(i, nextMoveFunction[2 * i + 1].keySet().iterator().next());
+				// create a new distribution for the product
+				newDistr = new Distribution();
+				for (Integer succ : distr.keySet())
+					// adding transition to the state with the memory min memory element
+					newDistr.add(succ * 3 + 2, distr.get(succ));
+				// adding the choice
+				stpg.addChoice(maxIndx, newDistr);
 
 			} else {
 				// for player 2 state transforming every distribution#
 				// computing the probability to choose min strategy
 
 				for (int action = 0; action < model.getNumChoices(i); action++) {
-					// computing min and max expectations for the action
-					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(i, action);
-					double max = 0, min = 0;
-					Entry<Integer, Double> en;
-					while (it.hasNext()) {
-						en = it.next();
-						min += minValues[en.getKey()] * en.getValue();
-						max += maxValues[en.getKey()] * en.getValue();
-					}
-
-					// computing the randomisation coefficient for min and max values
-					pmin = (max - minValues[i]) / (max - min);
-					pmax = (max - maxValues[i]) / (max - min);
-
 					// constructing distributions
 					distrMin = new Distribution();
 					distrMax = new Distribution();
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
-						distrMin.add(succ * 3 + 1, distr.get(succ) * pmin);
-						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - pmin));
+						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
+						distrMin.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
-						distrMax.add(succ * 3 + 1, distr.get(succ) * pmax);
-						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - pmax));
+						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
+						distrMax.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					stpg.addChoice(minIndx, distrMin);
 					stpg.addChoice(maxIndx, distrMax);
 				}
+
 			}
 		}
 
@@ -524,7 +487,7 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public int getMemorySize()
 	{
-		return minValues.length + maxValues.length;
+		return memorySize;
 	}
 
 	@Override
@@ -536,17 +499,16 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public Object getCurrentMemoryElement()
 	{
-		return new Object[] { currentTargetValue, minStrat.getCurrentMemoryElement(),
-				maxStrat.getCurrentMemoryElement() };
+		return new Object[] { lastState, min };
 	}
 
 	@Override
 	public void setMemory(Object memory) throws InvalidStrategyStateException
 	{
-		if (memory instanceof Object[] && ((Object[]) memory).length == 3 && ((Object[]) memory)[0] instanceof Double) {
-			this.currentTargetValue = (Double) ((Object[]) memory)[0];
-			this.minStrat.setMemory(((Object[]) memory)[1]);
-			this.maxStrat.setMemory(((Object[]) memory)[2]);
+		if (memory instanceof Object[] && ((Object[]) memory).length == 2 && ((Object[]) memory)[0] instanceof Integer
+				&& ((Object[]) memory)[1] instanceof Boolean) {
+			lastState = (Integer) ((Object[]) memory)[0];
+			min = (Boolean) ((Object[]) memory)[1];
 		} else
 			throw new InvalidStrategyStateException("Memory element has to be Object array of length 2.");
 
@@ -561,10 +523,17 @@ public class ExactValueStrategy implements Strategy
 		desc += "Stochastic update strategy\n";
 		desc += "Target expectation: " + initTargetValue + "\n";
 		desc += "Size of memory: " + getMemorySize() + "\n";
-		desc += "Size of next move function: " + getMemorySize() + "\n";
-		desc += "Current target expectation: " + df.format(currentTargetValue) + "\n";
-		desc += "Last memory update: " + df.format(minValues[lastState]) + "->" + df.format(probMin) + ", "
-				+ df.format(maxValues[lastState]) + "->" + df.format((1 - probMin)) + "\n";
+		desc += "Size of initial dist. function: " + initSize + "\n";
+		desc += "Size of memory update function: " + updateSize + "\n";
+		desc += "Size of next move function: " + nextSize + "\n";
+		desc += "Current target expectation: "
+				+ (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState]))
+				+ "\n";
+		desc += "Last memory update: "
+				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->"
+				+ df.format(probMin) + ", "
+				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->"
+				+ df.format((1 - probMin)) + "\n";
 
 		return desc;
 	}
