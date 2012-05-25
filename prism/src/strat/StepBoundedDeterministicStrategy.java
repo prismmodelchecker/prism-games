@@ -1,15 +1,17 @@
 package strat;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
@@ -91,10 +93,33 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	 */
 	public StepBoundedDeterministicStrategy(Scanner scan)
 	{
-		for(int i=0; i<6; i++)
-			scan.next();
-		
-		
+		for (int i = 0; i < 6; i++)
+			scan.nextLine();
+		chSize = 0;
+		Scanner local;
+		List<int[]> choices = new LinkedList<int[]>();
+		List<Integer> single;
+		int[] singleA;
+		String nextLine;
+		while (scan.hasNext()) {
+			nextLine = scan.nextLine();
+			if (nextLine.startsWith("Rewards:"))
+				break;
+			local = new Scanner(nextLine);
+			local.nextInt();
+			bound = local.nextInt();
+			single = new LinkedList<Integer>();
+			single.add(bound);
+			while (local.hasNext()) {
+				chSize++;
+				single.add(local.nextInt());
+			}
+			singleA = new int[single.size()];
+			for (int i = 0; i < single.size(); i++)
+				singleA[i] = single.get(i);
+			choices.add(singleA);
+		}
+		this.choices = choices.toArray(new int[][] {});
 	}
 
 	@Override
@@ -175,23 +200,39 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	public void exportToFile(String file)
 	{
 		// Print adversary
-		PrismLog out = new PrismFileLog(file);
-		out.print(Strategies.FORMAT_STRING_STEP_BOUNDED_STRAT + "\n");
-		out.print("// Strategy for step-bounded properties\n");
-		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
-		out.print("// (b1>b2>...>bn)\n");
-		out
-				.print("// where: ci  (1<=i<n )is the choice taken when the number of steps remaining before the bound is exceeded is >=bi and <bi+1\n");
-		out.print("// cn is the choice taken after bn or less steps remain until bound is exceeded.\n");
-		out.print("Strategy:\n");
-		for (int i = 0; i < choices.length; i++) {
-			out.print(i);
-			for (int j = 0; j < choices[i].length; j++) {
-				out.print(", " + choices[i][j]);
+		FileWriter out = null;
+		try {
+			out = new FileWriter(new File(file));
+
+			out.write(Strategies.FORMAT_STRING_STEP_BOUNDED_STRAT + "\n");
+			out.write("// Strategy for step-bounded properties\n");
+			out.write("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
+			out.write("// (b1>b2>...>bn)\n");
+			out
+					.write("// where: ci  (1<=i<n )is the choice taken when the number of steps remaining before the bound is exceeded is >=bi and <bi+1\n");
+			out.write("// cn is the choice taken after bn or less steps remain until bound is exceeded.\n");
+			out.write("Strategy:\n");
+			for (int i = 0; i < choices.length; i++) {
+				out.write("" + i);
+				for (int j = 0; j < choices[i].length; j++) {
+					out.write(" " + choices[i][j]);
+				}
+				out.write("\n");
 			}
-			out.println();
+			out.flush();
+		} catch (IOException error) {
+			// TODO Auto-generated catch block
+			error.printStackTrace();
+		} finally {
+			if (out != null)
+				try {
+					out.close();
+				} catch (IOException error) {
+					// nothing we can do
+				}
+
 		}
-		out.flush();
+
 	}
 
 	public static void main(String[] args) throws InvalidStrategyStateException

@@ -51,15 +51,26 @@ public class Strategies
 			throw new IllegalArgumentException("File not found.");
 		}
 	}
-	
+
 	public static void main(String[] args)
 	{
-		String fn = "/home/aistis/Oxford/prism/prism-games/prism/md.adv";
-		String fn2 = "/home/aistis/Oxford/prism/prism-games/prism/md2.adv";
-		Strategy mdstrat = new MemorylessDeterministicStrategy(new int[]{1,2,4,6,2});
+		String fn = "/users/aissim/prism-games/prism-games/prism/md.adv";
+		String fn2 = "/users/aissim/prism-games/prism-games/prism/md2.adv";
+		Strategy mdstrat = new MemorylessDeterministicStrategy(new int[] { 1, 2, 4, 6, 2 });
 		mdstrat.exportToFile(fn);
 		Strategy mdstrat2 = Strategies.loadStrategyFromFile(fn);
 		mdstrat2.exportToFile(fn2);
+		mdstrat = mdstrat2 = null;
+
+		int[][] choices = { { 30, 1, 28, 2 }, { 25, 1, 24, 2 } };
+		int bound = 25;
+
+		String sbfn = "/users/aissim/prism-games/prism-games/prism/sb.adv";
+		String sbfn2 = "/users/aissim/prism-games/prism-games/prism/sb2.adv";
+		StepBoundedDeterministicStrategy sbstrat = new StepBoundedDeterministicStrategy(choices, bound);
+		sbstrat.exportToFile(sbfn);
+		Strategy sbstrat2 = Strategies.loadStrategyFromFile(sbfn);
+		sbstrat2.exportToFile(sbfn2);
 	}
-	
+
 }

@@ -1,5 +1,8 @@
 package strat;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,8 +11,6 @@ import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.SMG;
@@ -46,8 +47,12 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	public BoundedRewardDeterministicStrategy(Scanner scan)
 	{
 		super(scan);
+		nStates = choices.length;
 		// parse state rewards
-		// TODO
+		rewards = new double[nStates];
+		int i = 0;
+		while (scan.hasNext())
+			rewards[i++] = scan.nextDouble();
 	}
 
 	@Override
@@ -68,26 +73,40 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	public void exportToFile(String file)
 	{
 		// Print adversary
-		PrismLog out = new PrismFileLog(file);
-		out.println(Strategies.FORMAT_STRING_BOUNDED_REW_STRAT);
-		out.print("// Strategy for F0 reward properties\n");
-		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
-		out.print("// (b1>b2>...>bn)\n");
-		out
-				.print("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
-		out.print("// cn is the choice taken after bn or less remain to accummulate until bound is reached.\n");
-		out.print("Strategy:\n");
-		for (int i = 0; i < choices.length; i++) {
-			out.print(i);
-			for (int j = 0; j < choices[i].length; j++) {
-				out.print(", " + choices[i][j]);
+		FileWriter out = null;
+		try {
+			out = new FileWriter(new File(file));
+
+			out.write(Strategies.FORMAT_STRING_BOUNDED_REW_STRAT + "\n");
+			out.write("// Strategy for F0 reward properties\n");
+			out.write("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
+			out.write("// (b1>b2>...>bn)\n");
+			out
+					.write("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
+			out.write("// cn is the choice taken after bn or less remain to accummulate until bound is reached.\n");
+			out.write("Strategy:\n");
+			for (int i = 0; i < choices.length; i++) {
+				out.write(i);
+				for (int j = 0; j < choices[i].length; j++) {
+					out.write(", " + choices[i][j]);
+				}
+				out.write("\n");
 			}
-			out.println();
+			out.write("Rewards:\n");
+			for (int i = 0; i < nStates; i++)
+				out.write("" + rewards[i]);
+			out.flush();
+		} catch (IOException error) {
+			// TODO Auto-generated catch block
+			error.printStackTrace();
+		} finally {
+			if (out != null)
+				try {
+					out.close();
+				} catch (IOException error) {
+					// do nothings
+				}
 		}
-		out.print("Rewards:\n");
-		for (int i = 0; i < nStates; i++)
-			out.println(rewards[i]);
-		out.flush();
 	}
 
 	/**
