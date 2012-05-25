@@ -1,5 +1,8 @@
 package strat;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -129,13 +132,32 @@ public class MemorylessDeterministicStrategy implements Strategy
 	public void exportToFile(String file)
 	{
 		// Print adversary
-		PrismLog out = new PrismFileLog(file);
-		out.println(Strategies.FORMAT_STRING_MD_STRAT);
-		out.println("Adv:");
+		//PrismLog out = new PrismFileLog(file);
+		FileWriter out=null;
+		try {
+			out = new FileWriter(new File(file));
+		out.write(Strategies.FORMAT_STRING_MD_STRAT);
+		out.write("\n");
+		out.write("Adv:");
+		out.write("\n");
 		for (int i = 0; i < choices.length; i++) {
-			out.println(i + " " + choices[i]);
+			out.write(i + " " + choices[i].keySet().iterator().next());
+			out.write("\n");
 		}
 		out.flush();
+		
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally{
+			try {
+				if(out!=null)
+				out.close();
+			} catch (IOException e) {
+				// nothing we can do
+			}
+		}
 	}
 
 	@Override

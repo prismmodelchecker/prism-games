@@ -91,8 +91,10 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	 */
 	public StepBoundedDeterministicStrategy(Scanner scan)
 	{
-		// TODO Auto-generated constructor stub
-
+		for(int i=0; i<6; i++)
+			scan.next();
+		
+		
 	}
 
 	@Override
@@ -174,7 +176,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	{
 		// Print adversary
 		PrismLog out = new PrismFileLog(file);
-		out.println(Strategies.FORMAT_STRING_STEP_BOUNDED_STRAT);
+		out.print(Strategies.FORMAT_STRING_STEP_BOUNDED_STRAT + "\n");
 		out.print("// Strategy for step-bounded properties\n");
 		out.print("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 		out.print("// (b1>b2>...>bn)\n");

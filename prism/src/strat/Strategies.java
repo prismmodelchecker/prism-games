@@ -51,4 +51,15 @@ public class Strategies
 			throw new IllegalArgumentException("File not found.");
 		}
 	}
+	
+	public static void main(String[] args)
+	{
+		String fn = "/home/aistis/Oxford/prism/prism-games/prism/md.adv";
+		String fn2 = "/home/aistis/Oxford/prism/prism-games/prism/md2.adv";
+		Strategy mdstrat = new MemorylessDeterministicStrategy(new int[]{1,2,4,6,2});
+		mdstrat.exportToFile(fn);
+		Strategy mdstrat2 = Strategies.loadStrategyFromFile(fn);
+		mdstrat2.exportToFile(fn2);
+	}
+	
 }
