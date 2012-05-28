@@ -81,20 +81,19 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 			out.write("// Strategy for F0 reward properties\n");
 			out.write("// format: stateId, b1, c1, b2, c2,..., bn, cn\n");
 			out.write("// (b1>b2>...>bn)\n");
-			out
-					.write("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
+			out.write("// where: ci  (1<=i<n )is the choice taken when the reward left to accumulate before the bound is reached is >=bi and <bi+1\n");
 			out.write("// cn is the choice taken after bn or less remain to accummulate until bound is reached.\n");
 			out.write("Strategy:\n");
 			for (int i = 0; i < choices.length; i++) {
-				out.write(i);
+				out.write("" + i);
 				for (int j = 0; j < choices[i].length; j++) {
-					out.write(", " + choices[i][j]);
+					out.write(" " + choices[i][j]);
 				}
 				out.write("\n");
 			}
 			out.write("Rewards:\n");
 			for (int i = 0; i < nStates; i++)
-				out.write("" + rewards[i]);
+				out.write(" " + rewards[i]);
 			out.flush();
 		} catch (IOException error) {
 			// TODO Auto-generated catch block
@@ -181,8 +180,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + (j == 1 ? 0 : (int) rewards[succ])) + succ,
-									distr.get(succ));
+							newDistr.add(oldStates.size() * (bound - j + (j == 1 ? 0 : (int) rewards[succ])) + succ, distr.get(succ));
 
 						// adding the choice
 						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
@@ -204,8 +202,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 							// (j)
 							// except for the case where j==1, when we add
 							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : (int) rewards[succ]) + succ,
-									distr.get(succ));
+							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : (int) rewards[succ]) + succ, distr.get(succ));
 
 						// adding the choice
 						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);

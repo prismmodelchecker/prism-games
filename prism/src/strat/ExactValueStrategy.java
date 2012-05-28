@@ -1,10 +1,14 @@
 package strat;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -66,8 +70,7 @@ public class ExactValueStrategy implements Strategy
 	 * @param targetValue value to be achieved by the strategy
 	 * @param model the model to provide info about players and transitions
 	 */
-	public ExactValueStrategy(Strategy minStrat, double[] minValues, Strategy maxStrat, double[] maxValues,
-			double targetValue, STPG model)
+	public ExactValueStrategy(Strategy minStrat, double[] minValues, Strategy maxStrat, double[] maxValues, double targetValue, STPG model)
 	{
 		this.minValues = minValues;
 		this.maxValues = maxValues;
@@ -152,7 +155,137 @@ public class ExactValueStrategy implements Strategy
 	public ExactValueStrategy(Scanner scan)
 	{
 		// TODO Auto-generated constructor stub
+		for (int i = 0; i < 3; i++)
+			scan.nextLine();
+		scan.next();
+		// parsing target value
+		initTargetValue = scan.nextDouble();
+		while (scan.nextLine().startsWith("Initial"))
+			;
+		List<Double> minValuesL = new LinkedList<Double>();
+		List<Double> maxValuesL = new LinkedList<Double>();
+		List<Double> initL = new LinkedList<Double>();
+		n = 0;
+		String line;
+		Scanner local;
 
+		// parsing initial distribution function
+		while (!(line = scan.nextLine()).startsWith("Memory")) {
+			n++;
+			local = new Scanner(line);
+			local.next();
+			initL.add(local.nextDouble());
+			minValuesL.add(local.nextDouble());
+			local.next();
+			maxValuesL.add(local.nextDouble());
+		}
+		initialDistributionFunction = new double[n];
+		for (int i = 0; i < n; i++)
+			initialDistributionFunction[i] = initL.get(i);
+		initSize = n;
+		initL = null;
+
+		updateSize = 0;
+		// parsing memory update function
+		int s1;
+		int a;
+		int s2;
+		double minVal, minValSucc;
+		double probMinMin;
+		double maxVal, maxValSucc;
+		double probMaxMin;
+		Map<Integer, double[]> minMaxValues = new HashMap<Integer, double[]>();
+		List<List<Map<Integer, Double>>> memUp = new LinkedList<List<Map<Integer, Double>>>();
+		while (!(line = scan.nextLine()).startsWith("Next")) {
+			// parsing the information in located in 4 lines
+			local = new Scanner(line);
+			s1 = local.nextInt();
+			a = local.nextInt();
+			s2 = local.nextInt();
+			minVal = local.nextDouble();
+			probMinMin = local.nextDouble();
+			minValSucc = local.nextDouble();
+			local.close();
+			local = new Scanner(scan.nextLine());
+			local.nextInt();
+			local.nextInt();
+			local.nextInt();
+			local.nextDouble();
+			local.nextDouble();
+			maxValSucc = local.nextDouble();
+			local.close();
+			local = new Scanner(scan.nextLine());
+			local.nextInt();
+			local.nextInt();
+			local.nextInt();
+			maxVal = local.nextDouble();
+			probMaxMin = local.nextDouble();
+			local.close();
+			scan.nextLine();
+
+			// ------------ storing the data
+			if (!minMaxValues.containsKey(s1))
+				minMaxValues.put(s1, new double[] { minVal, maxVal });
+			if (!minMaxValues.containsKey(s2))
+				minMaxValues.put(s2, new double[] { minValSucc, maxValSucc });
+
+			if (memUp.size() <= s1) // if this is the first time, adding new list for choices
+				memUp.add(new LinkedList<Map<Integer, Double>>());
+			if (memUp.get(s1).size() <= 2 * a) // if this is the first choice adding new map for choices
+			{
+				memUp.get(s1).add(new HashMap<Integer, Double>());
+				memUp.get(s1).add(new HashMap<Integer, Double>());
+			}
+			// adding memory updates
+			memUp.get(s1).get(2 * a).put(s2, probMinMin);
+			memUp.get(s1).get(2 * a + 1).put(s2, probMaxMin);
+			updateSize += 2;
+		}
+		// storing min-max values
+		this.minValues = new double[minMaxValues.size()];
+		this.maxValues = new double[minMaxValues.size()];
+		for (Integer v : minMaxValues.keySet()) {
+			this.minValues[v] = minMaxValues.get(v)[0];
+			this.maxValues[v] = minMaxValues.get(v)[1];
+		}
+		n= minValues.length;
+		memorySize = 2 * n;
+		// storing the function
+		this.memoryUpdateFunction = new Map[memUp.size()][];
+		for (int i = 0; i < memUp.size(); i++) {
+			this.memoryUpdateFunction[i] = new Map[memUp.get(i).size()];
+			for (int j = 0; j < memUp.get(i).size(); j++)
+				this.memoryUpdateFunction[i][j] = memUp.get(i).get(j);
+		}
+
+		// parsing nextmove function
+		nextSize = 0;
+		nextMoveFunction = new Distribution[2*n];
+		Distribution dist;
+		while(scan.hasNext())
+		{
+			local = new Scanner(scan.nextLine());
+			s1 = local.nextInt();
+			local.nextDouble();
+			s2 = local.nextInt();
+			dist = new Distribution();
+			dist.add(s2, 1.0);
+			nextMoveFunction[2*s1] = dist;
+			local.close();
+			local = new Scanner(scan.nextLine());
+			local.nextInt();
+			local.nextDouble();
+			s2 = local.nextInt();
+			dist = new Distribution();
+			dist.add(s2, 1.0);
+			nextMoveFunction[2*s1+1] = dist;
+			local.close();
+			nextSize +=2;
+		}
+		
+		lastState = -1;
+		min = false;
+		probMin = 0;
 	}
 
 	@Override
@@ -187,42 +320,54 @@ public class ExactValueStrategy implements Strategy
 	public void exportToFile(String file)
 	{
 		// Print adversary
-		PrismLog out = new PrismFileLog(file);
-		out.println(Strategies.FORMAT_STRING_EXACT_VALUE_MD_STRAT);
-		out.print("// Stochastic update strategy to achieve exact value in the game\n");
-		out.print("// Format (memory update function): \n");
-		out.print("Strategy:\n");
-		out.print("targetValue=" + initTargetValue + "\n");
-		out.print("Initial distribution (stateId, minProb, minValue, maxProb, maxValue):\n");
-		for (int s = 0; s < n; s++) {
-			out.println(s + ", " + initialDistributionFunction[s] + ", " + minValues[s] + ", "
-					+ (1 - initialDistributionFunction[s]) + ", " + maxValues[s]);
-		}
+		FileWriter out = null;
+		try {
+			out = new FileWriter(new File(file));
 
-		out
-				.print("Memory update function (stateId, choiceId, successorId, memoryValue, probability, newMemoryValue):\n");
-		for (int s = 0; s < n; s++) {
-			for (int c = 0; c < memoryUpdateFunction[s].length / 2; c++) {
-				for (int succ : memoryUpdateFunction[s][2 * c].keySet()) {
-					out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", "
-							+ memoryUpdateFunction[s][2 * c].get(succ) + ", " + minValues[succ]);
-					out.println(s + ", " + c + ", " + succ + ", " + minValues[s] + ", "
-							+ (1 - memoryUpdateFunction[s][2 * c].get(succ)) + ", " + maxValues[succ]);
-					out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", "
-							+ memoryUpdateFunction[s][2 * c + 1].get(succ) + ", " + minValues[succ]);
-					out.println(s + ", " + c + ", " + succ + ", " + maxValues[s] + ", "
-							+ (1 - memoryUpdateFunction[s][2 * c + 1].get(succ)) + ", " + maxValues[succ]);
+			out.write(Strategies.FORMAT_STRING_EXACT_VALUE_MD_STRAT + "\n");
+			out.write("// Stochastic update strategy to achieve exact value in the game\n");
+			out.write("// Format (memory update function): \n");
+			out.write("Strategy:\n");
+			out.write("targetValue " + initTargetValue + "\n");
+			out.write("Initial distribution (stateId, minProb, minValue, maxProb, maxValue):\n");
+			for (int s = 0; s < n; s++) {
+				out.write(s + " " + initialDistributionFunction[s] + " " + minValues[s] + " " + (1 - initialDistributionFunction[s]) + " " + maxValues[s]
+						+ "\n");
+			}
+
+			out.write("Memory update function (stateId, choiceId, successorId, memoryValue, probability, newMemoryValue):\n");
+			for (int s = 0; s < n; s++) {
+				for (int c = 0; c < memoryUpdateFunction[s].length / 2; c++) {
+					for (int succ : memoryUpdateFunction[s][2 * c].keySet()) {
+						out.write(s + " " + c + " " + succ + " " + minValues[s] + " " + memoryUpdateFunction[s][2 * c].get(succ) + " " + minValues[succ] + "\n");
+						out.write(s + " " + c + " " + succ + " " + minValues[s] + " " + (1 - memoryUpdateFunction[s][2 * c].get(succ)) + " " + maxValues[succ]
+								+ "\n");
+						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " " + memoryUpdateFunction[s][2 * c + 1].get(succ) + " " + minValues[succ]
+								+ "\n");
+						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " " + (1 - memoryUpdateFunction[s][2 * c + 1].get(succ)) + " "
+								+ maxValues[succ] + "\n");
+					}
 				}
 			}
-		}
 
-		out.print("Next move function (stateId, memoryElement, choiceId):\n");
-		for (int s = 0; s < n; s++) {
-			out.println(s + ", " + minValues[s] + ", " + nextMoveFunction[2 * s].keySet().iterator().next());
-			out.println(s + ", " + maxValues[s] + ", " + nextMoveFunction[2 * s + 1].keySet().iterator().next());
-		}
+			out.write("Next move function (stateId, memoryElement, choiceId):\n");
+			for (int s = 0; s < n; s++) {
+				out.write(s + " " + minValues[s] + " " + nextMoveFunction[2 * s].keySet().iterator().next() + "\n");
+				out.write(s + " " + maxValues[s] + " " + nextMoveFunction[2 * s + 1].keySet().iterator().next() + "\n");
+			}
 
-		out.flush();
+			out.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (out != null)
+				try {
+					out.close();
+				} catch (IOException e) {
+					// do nothing
+				}
+		}
 	}
 
 	@Override
@@ -345,12 +490,10 @@ public class ExactValueStrategy implements Strategy
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
 						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
-						distrMin.add(succ * 3 + 2, distr.get(succ)
-								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
+						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
 						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
-						distrMax.add(succ * 3 + 2, distr.get(succ)
-								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
+						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					smg.addChoice(minIndx, distrMin);
@@ -464,12 +607,10 @@ public class ExactValueStrategy implements Strategy
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
 						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
-						distrMin.add(succ * 3 + 2, distr.get(succ)
-								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
+						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
 						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
-						distrMax.add(succ * 3 + 2, distr.get(succ)
-								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
+						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					stpg.addChoice(minIndx, distrMin);
@@ -539,14 +680,9 @@ public class ExactValueStrategy implements Strategy
 		desc += "Size of initial dist. function: " + initSize + "\n";
 		desc += "Size of memory update function: " + updateSize + "\n";
 		desc += "Size of next move function: " + nextSize + "\n";
-		desc += "Current target expectation: "
-				+ (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState]))
-				+ "\n";
-		desc += "Last memory update: "
-				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->"
-				+ df.format(probMin) + ", "
-				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->"
-				+ df.format((1 - probMin)) + "\n";
+		desc += "Current target expectation: " + (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState])) + "\n";
+		desc += "Last memory update: " + (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->" + df.format(probMin) + ", "
+				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->" + df.format((1 - probMin)) + "\n";
 
 		return desc;
 	}
