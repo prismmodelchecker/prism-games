@@ -781,8 +781,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
-			Date d1, d2, d3;
-			d1 = new Date();
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
 
@@ -790,16 +788,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			int width = (int) pathTable.getPreferredSize().getWidth();
 			pathTable.scrollRectToVisible(new Rectangle(0, height - 10, width, height));
 			updateTableModel.updateUpdatesTable();
-			d2 = new Date();
 
 			// Update display
 			repaintLists();
 			updatePathInfo();
 			setComputing(false);
-			d3 = new Date();
-
-			System.out.println((d2.getTime() - d1.getTime()) + " " + (d3.getTime() - d2.getTime()));
-
 		} catch (NumberFormatException e) {
 			this.error("The Auto update \'no. steps\' parameter is invalid.\nIt must be a positive integer representing a step in the path table");
 			setComputing(false);

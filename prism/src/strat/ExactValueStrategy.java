@@ -160,7 +160,7 @@ public class ExactValueStrategy implements Strategy
 		scan.next();
 		// parsing target value
 		initTargetValue = scan.nextDouble();
-		while (scan.nextLine().startsWith("Initial"))
+		while (!scan.nextLine().startsWith("Initial"))
 			;
 		List<Double> minValuesL = new LinkedList<Double>();
 		List<Double> maxValuesL = new LinkedList<Double>();
@@ -248,7 +248,7 @@ public class ExactValueStrategy implements Strategy
 			this.minValues[v] = minMaxValues.get(v)[0];
 			this.maxValues[v] = minMaxValues.get(v)[1];
 		}
-		n= minValues.length;
+		n = minValues.length;
 		memorySize = 2 * n;
 		// storing the function
 		this.memoryUpdateFunction = new Map[memUp.size()][];
@@ -260,17 +260,16 @@ public class ExactValueStrategy implements Strategy
 
 		// parsing nextmove function
 		nextSize = 0;
-		nextMoveFunction = new Distribution[2*n];
+		nextMoveFunction = new Distribution[2 * n];
 		Distribution dist;
-		while(scan.hasNext())
-		{
+		while (scan.hasNext()) {
 			local = new Scanner(scan.nextLine());
 			s1 = local.nextInt();
 			local.nextDouble();
 			s2 = local.nextInt();
 			dist = new Distribution();
 			dist.add(s2, 1.0);
-			nextMoveFunction[2*s1] = dist;
+			nextMoveFunction[2 * s1] = dist;
 			local.close();
 			local = new Scanner(scan.nextLine());
 			local.nextInt();
@@ -278,11 +277,11 @@ public class ExactValueStrategy implements Strategy
 			s2 = local.nextInt();
 			dist = new Distribution();
 			dist.add(s2, 1.0);
-			nextMoveFunction[2*s1+1] = dist;
+			nextMoveFunction[2 * s1 + 1] = dist;
 			local.close();
-			nextSize +=2;
+			nextSize += 2;
 		}
-		
+
 		lastState = -1;
 		min = false;
 		probMin = 0;
@@ -300,8 +299,8 @@ public class ExactValueStrategy implements Strategy
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
 		min = Math.random() < memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
-		lastState = state;
 		probMin = memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
+		lastState = state;
 	}
 
 	@Override
@@ -653,18 +652,19 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public Object getCurrentMemoryElement()
 	{
-		return new Object[] { lastState, min };
+		return new Object[] { lastState, min, probMin };
 	}
 
 	@Override
 	public void setMemory(Object memory) throws InvalidStrategyStateException
 	{
-		if (memory instanceof Object[] && ((Object[]) memory).length == 2 && ((Object[]) memory)[0] instanceof Integer
-				&& ((Object[]) memory)[1] instanceof Boolean) {
+		if (memory instanceof Object[] && ((Object[]) memory).length == 3 && ((Object[]) memory)[0] instanceof Integer
+				&& ((Object[]) memory)[1] instanceof Boolean && ((Object[]) memory)[2] instanceof Double) {
 			lastState = (Integer) ((Object[]) memory)[0];
 			min = (Boolean) ((Object[]) memory)[1];
+			probMin = (Double) ((Object[]) memory)[2];
 		} else
-			throw new InvalidStrategyStateException("Memory element has to be Object array of length 2.");
+			throw new InvalidStrategyStateException("Memory element has to be Object array of length 3.");
 
 	}
 

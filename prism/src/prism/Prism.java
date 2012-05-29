@@ -3682,6 +3682,15 @@ public class Prism implements PrismSettingsListener
 		loadBuiltModel(model);
 		doTransient(time, exportType, file, fileIn);
 	}
+	
+	/**
+	 *  Sets the strategy that will be available for this prism session
+	 * @param strat the strategy
+	 */
+	public void setStrategy(strat.Strategy strat)
+	{
+		this.strategy = strat;
+	}
 }
 
 // ------------------------------------------------------------------------------

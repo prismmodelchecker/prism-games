@@ -247,6 +247,8 @@ public class SimulatorEngine
 		if (strategy != null && path instanceof PathFull) {
 			// initialising the strategy
 			try {
+				if(stateIds== null || stateIds.isEmpty())
+					this.setStrategy(strategy);
 				strategy.init(stateIds.get(currentState));
 			} catch (InvalidStrategyStateException error) {
 				// TODO Auto-generated catch block

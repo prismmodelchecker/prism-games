@@ -12,10 +12,10 @@ import java.util.Scanner;
  */
 public class Strategies
 {
-	public static final String FORMAT_STRING_MD_STRAT = "$MD.strat4355t4fre#";
-	public static final String FORMAT_STRING_STEP_BOUNDED_STRAT = "$SB.strat12sdd3";
-	public static final String FORMAT_STRING_BOUNDED_REW_STRAT = "$RB.strat453dfs";
-	public static final String FORMAT_STRING_EXACT_VALUE_MD_STRAT = "$EVMD.strat679csxc";
+	public static final String FORMAT_STRING_MD_STRAT = "$MD.strat-v0.1";
+	public static final String FORMAT_STRING_STEP_BOUNDED_STRAT = "$SB.strat-v0.1";
+	public static final String FORMAT_STRING_BOUNDED_REW_STRAT = "$RB.strat-v0.1";
+	public static final String FORMAT_STRING_EXACT_VALUE_MD_STRAT = "$EVMD.strat-v0.1";
 
 	private Strategies()
 	{
