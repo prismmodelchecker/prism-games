@@ -16,8 +16,6 @@ import java.util.Map.Entry;
 
 import parser.State;
 import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.SMG;
@@ -70,7 +68,8 @@ public class ExactValueStrategy implements Strategy
 	 * @param targetValue value to be achieved by the strategy
 	 * @param model the model to provide info about players and transitions
 	 */
-	public ExactValueStrategy(Strategy minStrat, double[] minValues, Strategy maxStrat, double[] maxValues, double targetValue, STPG model)
+	public ExactValueStrategy(Strategy minStrat, double[] minValues, Strategy maxStrat, double[] maxValues,
+			double targetValue, STPG model)
 	{
 		this.minValues = minValues;
 		this.maxValues = maxValues;
@@ -298,8 +297,8 @@ public class ExactValueStrategy implements Strategy
 	@Override
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
-		min = Math.random() < memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
 		probMin = memoryUpdateFunction[lastState][2 * action + (min ? 0 : 1)].get(state);
+		min = Math.random() < probMin;
 		lastState = state;
 	}
 
@@ -330,21 +329,23 @@ public class ExactValueStrategy implements Strategy
 			out.write("targetValue " + initTargetValue + "\n");
 			out.write("Initial distribution (stateId, minProb, minValue, maxProb, maxValue):\n");
 			for (int s = 0; s < n; s++) {
-				out.write(s + " " + initialDistributionFunction[s] + " " + minValues[s] + " " + (1 - initialDistributionFunction[s]) + " " + maxValues[s]
-						+ "\n");
+				out.write(s + " " + initialDistributionFunction[s] + " " + minValues[s] + " "
+						+ (1 - initialDistributionFunction[s]) + " " + maxValues[s] + "\n");
 			}
 
-			out.write("Memory update function (stateId, choiceId, successorId, memoryValue, probability, newMemoryValue):\n");
+			out
+					.write("Memory update function (stateId, choiceId, successorId, memoryValue, probability, newMemoryValue):\n");
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < memoryUpdateFunction[s].length / 2; c++) {
 					for (int succ : memoryUpdateFunction[s][2 * c].keySet()) {
-						out.write(s + " " + c + " " + succ + " " + minValues[s] + " " + memoryUpdateFunction[s][2 * c].get(succ) + " " + minValues[succ] + "\n");
-						out.write(s + " " + c + " " + succ + " " + minValues[s] + " " + (1 - memoryUpdateFunction[s][2 * c].get(succ)) + " " + maxValues[succ]
-								+ "\n");
-						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " " + memoryUpdateFunction[s][2 * c + 1].get(succ) + " " + minValues[succ]
-								+ "\n");
-						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " " + (1 - memoryUpdateFunction[s][2 * c + 1].get(succ)) + " "
-								+ maxValues[succ] + "\n");
+						out.write(s + " " + c + " " + succ + " " + minValues[s] + " "
+								+ memoryUpdateFunction[s][2 * c].get(succ) + " " + minValues[succ] + "\n");
+						out.write(s + " " + c + " " + succ + " " + minValues[s] + " "
+								+ (1 - memoryUpdateFunction[s][2 * c].get(succ)) + " " + maxValues[succ] + "\n");
+						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " "
+								+ memoryUpdateFunction[s][2 * c + 1].get(succ) + " " + minValues[succ] + "\n");
+						out.write(s + " " + c + " " + succ + " " + maxValues[s] + " "
+								+ (1 - memoryUpdateFunction[s][2 * c + 1].get(succ)) + " " + maxValues[succ] + "\n");
 					}
 				}
 			}
@@ -489,10 +490,12 @@ public class ExactValueStrategy implements Strategy
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
 						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
-						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action].get(succ)));
+						distrMin.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
 						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
-						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
+						distrMax.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					smg.addChoice(minIndx, distrMin);
@@ -606,10 +609,12 @@ public class ExactValueStrategy implements Strategy
 					distr = model.getChoice(i, action);
 					for (Integer succ : distr.keySet()) {
 						distrMin.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action].get(succ));
-						distrMin.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action].get(succ)));
+						distrMin.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action].get(succ)));
 
 						distrMax.add(succ * 3 + 1, distr.get(succ) * memoryUpdateFunction[i][2 * action + 1].get(succ));
-						distrMax.add(succ * 3 + 2, distr.get(succ) * (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
+						distrMax.add(succ * 3 + 2, distr.get(succ)
+								* (1 - memoryUpdateFunction[i][2 * action + 1].get(succ)));
 					}
 
 					stpg.addChoice(minIndx, distrMin);
@@ -680,9 +685,14 @@ public class ExactValueStrategy implements Strategy
 		desc += "Size of initial dist. function: " + initSize + "\n";
 		desc += "Size of memory update function: " + updateSize + "\n";
 		desc += "Size of next move function: " + nextSize + "\n";
-		desc += "Current target expectation: " + (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState])) + "\n";
-		desc += "Last memory update: " + (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->" + df.format(probMin) + ", "
-				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->" + df.format((1 - probMin)) + "\n";
+		desc += "Current target expectation: "
+				+ (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState]))
+				+ "\n";
+		desc += "Last memory update: "
+				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->"
+				+ df.format(probMin) + ", "
+				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->"
+				+ df.format((1 - probMin)) + "\n";
 
 		return desc;
 	}
