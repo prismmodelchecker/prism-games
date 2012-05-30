@@ -484,6 +484,9 @@ public class ProbModelChecker extends StateModelChecker
 			throw new PrismException("Unknown relational operator.");
 		}
 
+		if (!(this instanceof SMGModelChecker))
+			throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
+
 		if (type == ExpressionPATL.PRB) {
 			// Get info from prob operator
 			relOp = expr.getExpressionProb().getRelOp();
@@ -493,9 +496,6 @@ public class ProbModelChecker extends StateModelChecker
 				if (p < 0 || p > 1)
 					throw new PrismException("Invalid probability bound " + p + " in P operator");
 			}
-
-			if (!(this instanceof SMGModelChecker))
-				throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
 			if (!exact) {
 				probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min);
