@@ -89,6 +89,14 @@ public class CheckValid extends ASTTraverse
 		}
 	}
 
+	public void visitPost(ExpressionPATL e) throws PrismLangException
+	{
+		// Coalition operator only works for game models (i.e. SMG)
+		if (modelType != ModelType.SMG) {
+			throw new PrismLangException("The coalition operator can only be used for game models (i.e. SMGs)");
+		}
+	}
+
 	public void visitPost(ExpressionSS e) throws PrismLangException
 	{
 		// S operator only works for some models
