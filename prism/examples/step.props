@@ -1,0 +1,12 @@
+Pmax=? [ F<=1 t=1 ]
+
+Pmax=? [ F<=2 t=1 ]
+
+Pmax=? [ F t=1 {s=0} ]
+
+Pmin=? [ F t=1 ]
+
+Pmax=? [ F<=4 t=1 ]
+
+Rmax=? [F t>0]
+
