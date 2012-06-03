@@ -99,7 +99,7 @@ jdouble time		// time bound
 	// misc
 	bool done;
 	long i, iters, num_iters;
-	double max_diag, weight, kb, kbt, term_crit_param_unif;
+	double x, sup_norm, max_diag, weight, kb, kbt, term_crit_param_unif;
 	
 	// exception handling around whole function
 	try {
@@ -231,6 +231,7 @@ jdouble time		// time bound
 	stop = util_cpu_time();
 	time_for_setup = (double)(stop - start2)/1000;
 	start2 = stop;
+	start3 = stop;
 	
 	// start transient analysis
 	done = false;
@@ -247,9 +248,6 @@ jdouble time		// time bound
 	// note that we ignore max_iters as we know how any iterations _should_ be performed
 	for (iters = 1; (iters <= fgw.right) && !done; iters++) {
 		
-//		PH_PrintToMainLog(env, "Iteration %d: ", iters);
-//		start3 = util_cpu_time();
-		
 		// initialise vector
 		if (!compact_d) {
 			for (i = 0; i < n; i++) soln2[i] = diags[i] * soln[i];
@@ -261,26 +259,18 @@ jdouble time		// time bound
 		mult_rec(hdd, 0, 0, 0);
 		
 		// check for steady state convergence
-		// (note: doing outside loop means may not need to check all elements)
-		if (do_ss_detect) switch (term_crit) {
-		case TERM_CRIT_ABSOLUTE:
-			done = true;
+		if (do_ss_detect) {
+			sup_norm = 0.0;
 			for (i = 0; i < n; i++) {
-				if (fabs(soln2[i] - soln[i]) > term_crit_param_unif) {
-					done = false;
-					break;
+				x = fabs(soln2[i] - soln[i]);
+				if (term_crit == TERM_CRIT_RELATIVE) {
+					x /= soln2[i];
 				}
+				if (x > sup_norm) sup_norm = x;
 			}
-			break;
-		case TERM_CRIT_RELATIVE:
-			done = true;
-			for (i = 0; i < n; i++) {
-				if (fabs((soln2[i] - soln[i])/soln2[i]) > term_crit_param_unif) {
-					done = false;
-					break;
-				}
+			if (sup_norm < term_crit_param_unif) {
+				done = true;
 			}
-			break;
 		}
 		
 		// special case when finished early (steady-state detected)
@@ -302,6 +292,14 @@ jdouble time		// time bound
 			break;
 		}
 		
+		// print occasional status update
+		if ((util_cpu_time() - start3) > UPDATE_DELAY) {
+			PH_PrintToMainLog(env, "Iteration %d (of %d): ", iters, fgw.right);
+			if (do_ss_detect) PH_PrintToMainLog(env, "max %sdiff=%f, ", (term_crit == TERM_CRIT_RELATIVE)?"relative ":"", sup_norm);
+			PH_PrintToMainLog(env, "%.2f sec so far\n", ((double)(util_cpu_time() - start2)/1000));
+			start3 = util_cpu_time();
+		}
+		
 		// prepare for next iteration
 		tmpsoln = soln;
 		soln = soln2;
@@ -313,8 +311,6 @@ jdouble time		// time bound
 		} else {
 			for (i = 0; i < n; i++) sum[i] += fgw.weights[iters-fgw.left] * soln[i];
 		}
-		
-//		PH_PrintToMainLog(env, "%.2f %.2f sec\n", ((double)(util_cpu_time() - start3)/1000), ((double)(util_cpu_time() - start2)/1000)/iters);
 	}
 	
 	// stop clocks
