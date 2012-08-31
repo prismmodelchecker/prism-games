@@ -488,9 +488,19 @@ public class StateModelChecker
 	 */
 	protected StateValues checkExpressionUnaryOp(Model model, ExpressionUnaryOp expr) throws PrismException
 	{
-		// (just parentheses for now - more to come later)
+		StateValues res1 = null;
+		int op = expr.getOperator();
+		
+		// Check operand recursively
+		res1 = checkExpression(model, expr.getOperand());
+		
 		// Parentheses are easy - nothing to do:
-		StateValues res1 = checkExpression(model, expr.getOperand());
+		if (op == ExpressionUnaryOp.PARENTH)
+			return res1;
+
+		// Apply operation
+		res1.applyUnaryOp(op);
+		
 		return res1;
 	}
 
