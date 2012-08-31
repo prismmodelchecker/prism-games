@@ -107,7 +107,7 @@ public class STPGModelChecker extends ProbModelChecker
 			// Negation
 			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
 				// Compute, then subtract from 1 
-				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), !min1, !min2, 1.0 - bound);
+				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), !min1, !min2, bound == -1 ? -1 : 1.0 - bound);
 				probs.timesConstant(-1.0);
 				probs.plusConstant(1.0);
 			}
