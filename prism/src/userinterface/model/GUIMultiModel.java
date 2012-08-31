@@ -46,6 +46,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 
@@ -77,7 +78,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	public static final int FILTER_GRAPHIC_MODEL = 2;
 
 	//GUI
-	private JLabel fileLabel;
+	private JTextField fileTextField;
 	private JMenu modelMenu, newMenu, viewMenu, exportMenu, computeMenu;
 	private JMenu exportStatesMenu, exportTransMenu, exportStateRewardsMenu, exportTransRewardsMenu;
 	private AbstractAction viewStates, viewTrans, viewStateRewards, viewTransRewards, viewPrismCode, computeSS, computeTr, newPRISMModel, newGraphicModel,
@@ -156,7 +157,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		s += handler.getActiveFileName();
 		if (handler.modified())
 			s += "*";
-		fileLabel.setText(s);
+		fileTextField.setText(s);
 		// model menu
 		newPRISMModel.setEnabled(!computing);
 		newGraphicModel.setEnabled(!computing);
@@ -299,6 +300,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 					error("No file selected");
 					return;
 				}
+				getPrism().getMainLog().resetNumberOfWarnings();
 				handler.loadModel(file);
 			}
 		}
@@ -307,8 +309,10 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	protected void a_reloadModel()
 	{
 		int cont = doModificationCheck();
-		if (cont == CONTINUE)
+		if (cont == CONTINUE) {
+			getPrism().getMainLog().resetNumberOfWarnings();
 			handler.reloadActiveFile();
+		}
 	}
 
 	protected int a_saveModel()
@@ -316,6 +320,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		if (!handler.hasActiveFile()) {
 			return a_saveModelAs();
 		} else {
+			getPrism().getMainLog().resetNumberOfWarnings();
 			return handler.saveToActiveFile();
 		}
 	}
@@ -1010,18 +1015,20 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 
 		JPanel topPanel = new JPanel();
 		{
-			fileLabel = new JLabel();
+			fileTextField = new JTextField();
 			{
-				fileLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-				fileLabel.setBorder(new javax.swing.border.EtchedBorder());
-				fileLabel.setMinimumSize(new java.awt.Dimension(40, 25));
+				fileTextField.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+				fileTextField.setBorder(new javax.swing.border.EtchedBorder());
+				fileTextField.setMinimumSize(new java.awt.Dimension(40, 25));
+				fileTextField.setEditable(false);
+				fileTextField.setBackground(null);
 			}
 
 			//progress = new JProgressBar(0, 100);
 			topPanel.setLayout(new BorderLayout());
 			handler = new GUIMultiModelHandler(this);
 			//topPanel.add(progress, BorderLayout.WEST);
-			topPanel.add(fileLabel, BorderLayout.NORTH);
+			topPanel.add(fileTextField, BorderLayout.NORTH);
 			topPanel.add(handler, BorderLayout.CENTER);
 		}
 

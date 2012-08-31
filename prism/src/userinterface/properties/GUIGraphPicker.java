@@ -242,9 +242,14 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			this.selectAxisConstantCombo.addItem(dc.getName());
 		}
 
-		// select the first constant for the x axis
-		if (selectAxisConstantCombo.getItemCount() > 0)
-			selectAxisConstantCombo.setSelectedIndex(0);
+		// select the default constant for the x axis
+		// (first property if there is one, if not first model one)
+		if (selectAxisConstantCombo.getItemCount() > 0) {
+			if (resultsCollection.getNumPropertyRangingConstants() > 0)
+				selectAxisConstantCombo.setSelectedIndex(resultsCollection.getNumModelRangingConstants());
+			else
+				selectAxisConstantCombo.setSelectedIndex(0);
+		}
 		// and disable it in the picker list
 		pickerList.disableLine(0);
 
@@ -264,8 +269,12 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		for (int i = 0; i < graphHandler.getNumModels(); i++) {
 			existingGraphCombo.addItem(graphHandler.getGraphName(i));
 		}
+		// default to latest one
+		if (existingGraphCombo.getItemCount() > 0) {
+			existingGraphCombo.setSelectedIndex(existingGraphCombo.getItemCount() - 1);
+		}
 		// if there are no graphs, disable control
-		if (graphHandler.getNumModels() == 0) {
+		else {
 			existingGraphCombo.setEnabled(false);
 			this.existingGraphRadio.setEnabled(false);
 		}

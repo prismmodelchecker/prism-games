@@ -2561,7 +2561,7 @@ public class Prism implements PrismSettingsListener
 
 		// Build model, if necessary
 		buildModelIfRequired();
-
+		
 		// Create new model checker object and do model checking
 		if (!getExplicit()) {
 			ModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
@@ -2625,6 +2625,8 @@ public class Prism implements PrismSettingsListener
 				currentModulesFile = dc.getNewModulesFile();
 				currentModulesFile.setUndefinedConstants(oldModulesFile.getConstantValues());
 				currentModelType = ModelType.MDP;
+				currentModel = null;
+				currentModelExpl = null;
 				// If required, export generated PRISM model
 				if (exportDigital) {
 					try {
@@ -2643,6 +2645,8 @@ public class Prism implements PrismSettingsListener
 				digital = false;
 				currentModulesFile = oldModulesFile;
 				currentModelType = ModelType.PTA;
+				currentModel = null;
+				currentModelExpl = null;
 			}
 		}
 		// Other methods
@@ -2854,15 +2858,16 @@ public class Prism implements PrismSettingsListener
 	 */
 	public void doSteadyState() throws PrismException
 	{
-		doSteadyState(EXPORT_PLAIN, null);
+		doSteadyState(EXPORT_PLAIN, null, null);
 	}
 
 	/**
-	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs
-	 * only). Output probability distribution to a file (or, if file is null, to
-	 * log). The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log). 
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
 	 */
-	public void doSteadyState(int exportType, File file) throws PrismException
+	public void doSteadyState(int exportType, File fileOut, File fileIn) throws PrismException
 	{
 		long l = 0; // timer
 		ModelChecker mc = null;
@@ -2873,7 +2878,7 @@ public class Prism implements PrismSettingsListener
 		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
 
-		if (file != null && getEngine() == MTBDD)
+		if (fileOut != null && getEngine() == MTBDD)
 			throw new PrismException("Steady-state probability export not supported for MTBDD engine");
 		// TODO: auto-switch?
 
@@ -2895,10 +2900,10 @@ public class Prism implements PrismSettingsListener
 		if (!getExplicit()) {
 			if (currentModel.getModelType() == ModelType.DTMC) {
 				mc = new ProbModelChecker(this, currentModel, null);
-				probs = ((ProbModelChecker) mc).doSteadyState();
+				probs = ((ProbModelChecker) mc).doSteadyState(fileIn);
 			} else if (currentModel.getModelType() == ModelType.CTMC) {
 				mc = new StochModelChecker(this, currentModel, null);
-				probs = ((StochModelChecker) mc).doSteadyState();
+				probs = ((StochModelChecker) mc).doSteadyState(fileIn);
 			} else {
 				throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
 			}
@@ -2907,7 +2912,8 @@ public class Prism implements PrismSettingsListener
 				DTMCModelChecker mcDTMC = new DTMCModelChecker();
 				mcDTMC.setLog(mainLog);
 				mcDTMC.setSettings(settings);
-				probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, null);
+				probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, (File) null);
+				//TODO: probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, fileIn);
 			} else if (currentModelType == ModelType.CTMC) {
 				throw new PrismException("Not implemented yet");
 			} else {
@@ -2920,16 +2926,16 @@ public class Prism implements PrismSettingsListener
 		// print message
 		mainLog.print("\nPrinting steady-state probabilities ");
 		mainLog.print(getStringForExportType(exportType) + " ");
-		mainLog.println(getDestinationStringForFile(file));
+		mainLog.println(getDestinationStringForFile(fileOut));
 
 		// create new file log or use main log
-		tmpLog = getPrismLogForFile(file);
+		tmpLog = getPrismLogForFile(fileOut);
 
 		// print out or export probabilities
 		if (!getExplicit())
-			probs.print(tmpLog, file == null, exportType == EXPORT_MATLAB, file == null);
+			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
 		else
-			probsExpl.print(tmpLog, file == null, exportType == EXPORT_MATLAB, file == null, true);
+			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
 
 		// print out computation time
 		mainLog.println("\nTime for steady-state probability computation: " + l / 1000.0 + " seconds.");
@@ -2939,7 +2945,7 @@ public class Prism implements PrismSettingsListener
 			probs.clear();
 		else
 			probsExpl.clear();
-		if (file != null)
+		if (fileOut != null)
 			tmpLog.close();
 	}
 
@@ -2954,12 +2960,11 @@ public class Prism implements PrismSettingsListener
 	}
 
 	/**
-	 * Compute transient probabilities (forwards) for the current model
-	 * (DTMCs/CTMCs only). Output probability distribution to a file (or, if
-	 * file is null, to log). For a discrete-time model, {@code time} will be
-	 * cast to an integer. The exportType should be EXPORT_PLAIN or
-	 * EXPORT_MATLAB. Optionally (if non-null), read in the initial probability
-	 * distribution from a file.
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log). 
+	 * For a discrete-time model, {@code time} will be cast to an integer.
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
 	 */
 	public void doTransient(double time, int exportType, File fileOut, File fileIn) throws PrismException
 	{
@@ -3030,9 +3035,9 @@ public class Prism implements PrismSettingsListener
 
 		// print out or export probabilities
 		if (!getExplicit())
-			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
+			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
 		else
-			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, true);
+			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
 
 		// print out computation time
 		mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
@@ -3623,7 +3628,7 @@ public class Prism implements PrismSettingsListener
 	public void doSteadyState(Model model, int exportType, File file) throws PrismException
 	{
 		loadBuiltModel(model);
-		doSteadyState(exportType, file);
+		doSteadyState(exportType, file, null);
 	}
 
 	/**

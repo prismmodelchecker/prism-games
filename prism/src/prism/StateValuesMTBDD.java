@@ -206,6 +206,20 @@ public class StateValuesMTBDD implements StateValues
 		values = JDD.Apply(JDD.TIMES, values, JDD.Constant(d));
 	}
 	
+	// compute dot (inner) product of this and another vector
+	
+	public double dotProduct(StateValues sp) 
+	{
+		StateValuesMTBDD spm = (StateValuesMTBDD) sp;
+		JDD.Ref(values);
+		JDD.Ref(spm.values);
+		JDDNode tmp = JDD.Apply(JDD.TIMES, values, spm.values);
+		tmp = JDD.SumAbstract(tmp, vars);
+		double d = JDD.FindMax(tmp);
+		JDD.Deref(tmp);
+		return d;
+	}
+	
 	// filter vector using a bdd (set elements not in filter to 0)
 	
 	public void filter(JDDNode filter)
@@ -514,10 +528,23 @@ public class StateValuesMTBDD implements StateValues
 	 */
 	public void print(PrismLog log, boolean printSparse, boolean printMatlab, boolean printStates) throws PrismException
 	{
+		print(log, printSparse, printMatlab, printStates, true);
+	}
+
+	/**
+	 * Print vector to a log/file.
+	 * @param log The log
+	 * @param printSparse Print non-zero elements only? 
+	 * @param printMatlab Print in Matlab format?
+	 * @param printStates Print states (variable values) for each element? 
+	 * @param printIndices Print state indices for each element? 
+	 */
+	public void print(PrismLog log, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices) throws PrismException
+	{
 		// Because non-sparse output from MTBDD requires a bit more effort...
 		if (printSparse) print(log);
 		else throw new PrismException("Not supported");
-		// Note we also ignore printMatlab/printStates due to laziness
+		// Note we also ignore printMatlab/printStates/printIndices due to laziness
 	}
 	
 	/**

@@ -33,6 +33,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -457,6 +458,18 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		return numTransitions;
 	}
 
+	@Override
+	public Iterator<Integer> getSuccessorsIterator(final int s)
+	{
+		// Need to build set to avoid duplicates
+		// So not necessarily the fastest method to access successors
+		HashSet<Integer> succs = new HashSet<Integer>();
+		for (Distribution distr : trans.get(s)) {
+			succs.addAll(distr.getSupport());
+		}
+		return succs.iterator();
+	}
+	
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{

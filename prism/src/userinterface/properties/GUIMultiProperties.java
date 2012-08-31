@@ -53,6 +53,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -67,6 +68,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.border.TitledBorder;
@@ -95,6 +97,7 @@ import userinterface.GUISimulationPicker;
 import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.model.GUIModelEvent;
+import userinterface.model.GUIMultiModel;
 import userinterface.properties.computation.ExportResultsThread;
 import userinterface.properties.computation.LoadPropertiesThread;
 import userinterface.properties.computation.ModelCheckThread;
@@ -133,6 +136,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private ArrayList<GUIProperty> propertiesToBeVerified;
 	private File activeFile;
 	private Values pfConstants;
+	private String argsPropertiesFile;
 
 	// GUI
 	private GUIPrismFileFilter propsFilter[];
@@ -142,7 +146,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private GUIExperimentTable experiments;
 	private GUIGraphHandler graphHandler;
 	private JScrollPane expScroller;
-	private JLabel fileLabel;
+	private JTextField fileTextField;
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
 			exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportStratProduct, exportStratPlain, strategyInfo, generateStrategy,
@@ -178,14 +182,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void takeCLArgs(String args[])
 	{
-		// disabled for now - need to sort out so this doesn't happen until
-		// model is fully parsed
-		// if (args.length > 1) {
-		// Thread t = new LoadPropertiesThread(this, parsedModel, new
-		// File(args[1]));
-		// t.setPriority(Thread.NORM_PRIORITY);
-		// t.start();
-		// }
+		if(args.length > 1) {
+			argsPropertiesFile = args[1];
+		}
 	}
 
 	// ACCESS METHODS
@@ -236,6 +235,11 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// correction
 	}
 
+	public GUIGraphHandler getGraphHandler()
+	{
+		return graphHandler;
+	}
+	
 	/* UPDATE METHODS */
 
 	public void repaintList()
@@ -587,7 +591,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	protected void setActiveFileLabel()
 	{
-		fileLabel.setText("Properties list: " + ((activeFile == null) ? "<Untitled>" : activeFile.getPath()) + (modified ? "*" : ""));
+		fileTextField.setText("Properties list: " + ((activeFile == null) ? "<Untitled>" : activeFile.getPath()) + (modified ? "*" : ""));
 	}
 
 	protected void setParsedModel(ModulesFile m)
@@ -1332,6 +1336,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				doEnables();
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSED) {
 				setParsedModel(me.getModulesFile());
+				checkForPropertiesToLoad();
 				if (verifyAfterReceiveParseNotification)
 					verifyAfterParse();
 				if (experimentAfterReceiveParseNotification)
@@ -1339,6 +1344,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				if (simulateAfterReceiveParseNotification)
 					simulateAfterParse();
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSE_FAILED) {
+				argsPropertiesFile = null;
 				verifyAfterReceiveParseNotification = false;
 				experimentAfterReceiveParseNotification = false;
 				simulateAfterReceiveParseNotification = false;
@@ -1392,6 +1398,16 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		}
 		return false;
+	}
+	
+	private void checkForPropertiesToLoad() {
+		if(argsPropertiesFile != null) {
+			Thread t = new LoadPropertiesThread(this, parsedModel, new File(argsPropertiesFile));
+			t.setPriority(Thread.NORM_PRIORITY);
+			t.start();
+			//we clear the variable to avoid loading property file every time a model is parsed.
+			argsPropertiesFile = null;
+		}
 	}
 
 	// METHODS TO IMPLEMENT MouseListner INTERFACE
@@ -1774,17 +1790,19 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		JPanel topPanel = new JPanel();
 		{
-			fileLabel = new JLabel();
+			fileTextField = new JTextField();
 			{
-				fileLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-				fileLabel.setBorder(new javax.swing.border.EtchedBorder());
-				fileLabel.setMinimumSize(new java.awt.Dimension(40, 25));
+				fileTextField.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+				fileTextField.setBorder(new javax.swing.border.EtchedBorder());
+				fileTextField.setMinimumSize(new java.awt.Dimension(40, 25));
+				fileTextField.setEditable(false);
+				fileTextField.setBackground(null);
 			}
 
 			// progress = new JProgressBar(0, 100);
 			topPanel.setLayout(new BorderLayout());
 			// topPanel.add(progress, BorderLayout.WEST);
-			topPanel.add(fileLabel, BorderLayout.CENTER);
+			topPanel.add(fileTextField, BorderLayout.CENTER);
 		}
 		setLayout(new BorderLayout());
 		add(mainSplit, BorderLayout.CENTER);

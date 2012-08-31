@@ -33,11 +33,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import parser.State;
 import prism.PrismException;
@@ -402,6 +403,20 @@ public class MDPSparse extends MDPExplicit
 		return numTransitions;
 	}
 
+	@Override
+	public Iterator<Integer> getSuccessorsIterator(final int s)
+	{
+		// Need to build set to avoid duplicates
+		// So not necessarily the fastest method to access successors
+		int start = choiceStarts[rowStarts[s]];
+		int end = choiceStarts[rowStarts[s + 1]];
+		HashSet<Integer> succs = new HashSet<Integer>();
+		for (int i = start; i < end; i++) {
+			succs.add(cols[i]);
+		}
+		return succs.iterator();
+	}
+	
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{

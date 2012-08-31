@@ -131,18 +131,18 @@ public class StateValues
 		// Create/initialise array of appropriate type
 		if (type instanceof TypeInt) {
 			valuesI = new int[size];
-			Integer objI = (Integer) type.castValueTo(init);
+			Integer objI = ((TypeInt) type).castValueTo(init);
 			int initI = objI.intValue();
 			for (i = 0; i < size; i++)
 				valuesI[i] = initI;
 		} else if (type instanceof TypeDouble) {
 			valuesD = new double[size];
-			Double objD = (Double) type.castValueTo(init);
+			Double objD = ((TypeDouble) type).castValueTo(init);
 			double initD = objD.doubleValue();
 			for (i = 0; i < size; i++)
 				valuesD[i] = initD;
 		} else if (type instanceof TypeBool) {
-			Boolean objB = (Boolean) type.castValueTo(init);
+			Boolean objB = ((TypeBool) type).castValueTo(init);
 			boolean initB = objB.booleanValue();
 			if (initB) {
 				valuesB = new BitSet(size);
@@ -530,7 +530,7 @@ public class StateValues
 					valuesB.set(i, valuesI[i] > sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator > can not be applied to Boolean vectors");
+				throw new PrismException("Operator > cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			valuesB = new BitSet();
@@ -543,10 +543,10 @@ public class StateValues
 					valuesB.set(i, valuesD[i] > sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator > can not be applied to Boolean vectors");
+				throw new PrismException("Operator > cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator > can not be applied to Boolean vectors");
+			throw new PrismException("Operator > cannot be applied to Boolean vectors");
 		}
 		type = TypeBool.getInstance();
 		valuesI = null;
@@ -569,7 +569,7 @@ public class StateValues
 					valuesB.set(i, valuesI[i] >= sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator >= can not be applied to Boolean vectors");
+				throw new PrismException("Operator >= cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			valuesB = new BitSet();
@@ -582,10 +582,10 @@ public class StateValues
 					valuesB.set(i, valuesD[i] >= sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator >= can not be applied to Boolean vectors");
+				throw new PrismException("Operator >= cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator >= can not be applied to Boolean vectors");
+			throw new PrismException("Operator >= cannot be applied to Boolean vectors");
 		}
 		type = TypeBool.getInstance();
 		valuesI = null;
@@ -608,7 +608,7 @@ public class StateValues
 					valuesB.set(i, valuesI[i] < sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator < can not be applied to Boolean vectors");
+				throw new PrismException("Operator < cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			valuesB = new BitSet();
@@ -621,10 +621,10 @@ public class StateValues
 					valuesB.set(i, valuesD[i] < sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator < can not be applied to Boolean vectors");
+				throw new PrismException("Operator < cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator < can not be applied to Boolean vectors");
+			throw new PrismException("Operator < cannot be applied to Boolean vectors");
 		}
 		type = TypeBool.getInstance();
 		valuesI = null;
@@ -647,7 +647,7 @@ public class StateValues
 					valuesB.set(i, valuesI[i] <= sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator <= can not be applied to Boolean vectors");
+				throw new PrismException("Operator <= cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			valuesB = new BitSet();
@@ -660,10 +660,10 @@ public class StateValues
 					valuesB.set(i, valuesD[i] <= sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Operator <= can not be applied to Boolean vectors");
+				throw new PrismException("Operator <= cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator <= can not be applied to Boolean vectors");
+			throw new PrismException("Operator <= cannot be applied to Boolean vectors");
 		}
 		type = TypeBool.getInstance();
 		valuesI = null;
@@ -688,7 +688,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Operator + can not be applied to Boolean vectors");
+				throw new PrismException("Operator + cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -700,10 +700,50 @@ public class StateValues
 					valuesD[i] += sv.valuesD[i];
 				}
 			} else {
-				throw new PrismException("Operator + can not be applied to Boolean vectors");
+				throw new PrismException("Operator + cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator + can not be applied to Boolean vectors");
+			throw new PrismException("Operator + cannot be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'plus' with a constant.
+	 */
+	public void plusConstant(int val) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			for (int i = 0; i < size; i++) {
+				valuesI[i] += val;
+			}
+		} else if (type instanceof TypeDouble) {
+			for (int i = 0; i < size; i++) {
+				valuesD[i] += val;
+			}
+		} else {
+			throw new PrismException("Operator + cannot be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'plus' with a constant.
+	 */
+	public void plusConstant(double val) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			// Change type
+			valuesD = new double[size];
+			type = TypeDouble.getInstance();
+			for (int i = 0; i < size; i++) {
+				valuesD[i] = valuesI[i] + val;
+			}
+			valuesI = null;
+		} else if (type instanceof TypeDouble) {
+			for (int i = 0; i < size; i++) {
+				valuesD[i] += val;
+			}
+		} else {
+			throw new PrismException("Operator + cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -725,7 +765,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Operator - can not be applied to Boolean vectors");
+				throw new PrismException("Operator - cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -737,10 +777,10 @@ public class StateValues
 					valuesD[i] -= sv.valuesD[i];
 				}
 			} else {
-				throw new PrismException("Operator - can not be applied to Boolean vectors");
+				throw new PrismException("Operator - cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator - can not be applied to Boolean vectors");
+			throw new PrismException("Operator - cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -762,7 +802,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Operator * can not be applied to Boolean vectors");
+				throw new PrismException("Operator * cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -774,10 +814,50 @@ public class StateValues
 					valuesD[i] *= sv.valuesD[i];
 				}
 			} else {
-				throw new PrismException("Operator * can not be applied to Boolean vectors");
+				throw new PrismException("Operator * cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator * can not be applied to Boolean vectors");
+			throw new PrismException("Operator * cannot be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'times' with a constant.
+	 */
+	public void timesConstant(int val) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			for (int i = 0; i < size; i++) {
+				valuesI[i] *= val;
+			}
+		} else if (type instanceof TypeDouble) {
+			for (int i = 0; i < size; i++) {
+				valuesD[i] *= val;
+			}
+		} else {
+			throw new PrismException("Operator + cannot be applied to Boolean vectors");
+		}
+	}
+
+	/**
+	 * Modify the vector by applying 'times' with a constant.
+	 */
+	public void timesConstant(double val) throws PrismException
+	{
+		if (type instanceof TypeInt) {
+			// Change type
+			valuesD = new double[size];
+			type = TypeDouble.getInstance();
+			for (int i = 0; i < size; i++) {
+				valuesD[i] = valuesI[i] * val;
+			}
+			valuesI = null;
+		} else if (type instanceof TypeDouble) {
+			for (int i = 0; i < size; i++) {
+				valuesD[i] *= val;
+			}
+		} else {
+			throw new PrismException("Operator + cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -798,7 +878,7 @@ public class StateValues
 					valuesD[i] = valuesI[i] / sv.valuesD[i];
 				}
 			} else {
-				throw new PrismException("Operator / can not be applied to Boolean vectors");
+				throw new PrismException("Operator / cannot be applied to Boolean vectors");
 			}
 			valuesI = null;
 		} else if (type instanceof TypeDouble) {
@@ -811,10 +891,10 @@ public class StateValues
 					valuesD[i] /= sv.valuesD[i];
 				}
 			} else {
-				throw new PrismException("Operator / can not be applied to Boolean vectors");
+				throw new PrismException("Operator / cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Operator / can not be applied to Boolean vectors");
+			throw new PrismException("Operator / cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -861,7 +941,7 @@ public class StateValues
 				valuesD[i] = -valuesD[i];
 			}
 		} else {
-			throw new PrismException("Operator - can not be applied to Boolean vectors");
+			throw new PrismException("Operator - cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -898,7 +978,7 @@ public class StateValues
 			}
 			valuesD = null;
 		} else {
-			throw new PrismException("Function floor can not be applied to Boolean vectors");
+			throw new PrismException("Function floor cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -917,7 +997,7 @@ public class StateValues
 			}
 			valuesD = null;
 		} else {
-			throw new PrismException("Function ceil can not be applied to Boolean vectors");
+			throw new PrismException("Function ceil cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -966,7 +1046,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Function pow() can not be applied to Boolean vectors");
+				throw new PrismException("Function pow() cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -978,10 +1058,10 @@ public class StateValues
 					valuesD[i] = ExpressionFunc.evaluatePowDouble(valuesD[i], sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Function pow() can not be applied to Boolean vectors");
+				throw new PrismException("Function pow() cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Function pow() can not be applied to Boolean vectors");
+			throw new PrismException("Function pow() cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -1015,7 +1095,7 @@ public class StateValues
 					valuesD[i] = ExpressionFunc.evaluateLog(valuesI[i], sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Function log() can not be applied to Boolean vectors");
+				throw new PrismException("Function log() cannot be applied to Boolean vectors");
 			}
 			valuesI = null;
 		} else if (type instanceof TypeDouble) {
@@ -1028,10 +1108,10 @@ public class StateValues
 					valuesD[i] = ExpressionFunc.evaluateLog(valuesD[i], sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Function log() can not be applied to Boolean vectors");
+				throw new PrismException("Function log() cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Function log() can not be applied to Boolean vectors");
+			throw new PrismException("Function log() cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -1053,7 +1133,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Function min() can not be applied to Boolean vectors");
+				throw new PrismException("Function min() cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -1065,10 +1145,10 @@ public class StateValues
 					valuesD[i] = Math.min(valuesD[i], sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Function min() can not be applied to Boolean vectors");
+				throw new PrismException("Function min() cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Function min() can not be applied to Boolean vectors");
+			throw new PrismException("Function min() cannot be applied to Boolean vectors");
 		}
 	}
 
@@ -1090,7 +1170,7 @@ public class StateValues
 				}
 				valuesI = null;
 			} else {
-				throw new PrismException("Function max() can not be applied to Boolean vectors");
+				throw new PrismException("Function max() cannot be applied to Boolean vectors");
 			}
 		} else if (type instanceof TypeDouble) {
 			if (sv.type instanceof TypeInt) {
@@ -1102,10 +1182,10 @@ public class StateValues
 					valuesD[i] = Math.max(valuesD[i], sv.valuesD[i]);
 				}
 			} else {
-				throw new PrismException("Function max() can not be applied to Boolean vectors");
+				throw new PrismException("Function max() cannot be applied to Boolean vectors");
 			}
 		} else {
-			throw new PrismException("Function max() can not be applied to Boolean vectors");
+			throw new PrismException("Function max() cannot be applied to Boolean vectors");
 		}
 	}
 

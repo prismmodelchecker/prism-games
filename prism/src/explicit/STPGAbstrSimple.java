@@ -34,11 +34,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import prism.ModelType;
 import prism.PrismException;
@@ -289,6 +290,20 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		return numTransitions;
 	}
 
+	@Override
+	public Iterator<Integer> getSuccessorsIterator(final int s)
+	{
+		// Need to build set to avoid duplicates
+		// So not necessarily the fastest method to access successors
+		HashSet<Integer> succs = new HashSet<Integer>();
+		for (DistributionSet distrs : trans.get(s)) {
+			for (Distribution distr : distrs) {
+				succs.addAll(distr.getSupport());
+			}
+		}
+		return succs.iterator();
+	}
+	
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{

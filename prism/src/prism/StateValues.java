@@ -42,6 +42,7 @@ public interface StateValues
 	void subtractFromOne();
 	void add(StateValues sp);
 	void timesConstant(double d);
+	double dotProduct(StateValues sp);
 	void filter(JDDNode filter);
 	public void maxMTBDD(JDDNode vec2);
 	void clear();
@@ -60,6 +61,7 @@ public interface StateValues
 	JDDNode getBDDFromCloseValueRel(double val, double epsilon);
 	void print(PrismLog log) throws PrismException;
 	void print(PrismLog log, boolean printSparse, boolean printMatlab, boolean printStates) throws PrismException;
+	void print(PrismLog log, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices) throws PrismException;
 	void printFiltered(PrismLog log, JDDNode filter) throws PrismException;
 	void printFiltered(PrismLog log, JDDNode filter, boolean printSparse, boolean printMatlab, boolean printStates) throws PrismException;
 	StateValues deepCopy() throws PrismException; 

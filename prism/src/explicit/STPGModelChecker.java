@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
 import prism.PrismException;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
@@ -95,15 +96,29 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		StateValues probs = null;
 
+		// Negation/parentheses
+		if (expr instanceof ExpressionUnaryOp) {
+			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
+			// Parentheses
+			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
+				// Recurse
+				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), min1, min2, bound);
+			}
+			// Negation
+			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
+				// Compute, then subtract from 1 
+				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), !min1, !min2, 1.0 - bound);
+				probs.timesConstant(-1.0);
+				probs.plusConstant(1.0);
+			}
+		}
 		// Temporal operators
-		if (expr instanceof ExpressionTemporal) {
+		else if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-
 			// Next
 			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
 				probs = checkProbNext(model, exprTemp, min1, min2);
 			}
-
 			// Until
 			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
 				if (exprTemp.hasBounds()) {

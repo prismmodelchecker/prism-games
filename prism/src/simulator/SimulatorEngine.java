@@ -56,6 +56,7 @@ import simulator.method.SimulationMethod;
 import simulator.sampler.Sampler;
 import strat.InvalidStrategyStateException;
 import strat.Strategy;
+import userinterface.graph.Graph;
 
 /**
  * A discrete event simulation engine for PRISM models.
@@ -194,6 +195,22 @@ public class SimulatorEngine
 	// Path creation and modification
 	// ------------------------------------------------------------------------------
 
+	/**
+	 * Check whether a model is suitable for exploration/analysis using the simulator.
+	 * If not, an explanatory error message is thrown as an exception.
+	 */
+	public void checkModelForSimulation(ModulesFile modulesFile) throws PrismException
+	{
+		// No support for PTAs yet
+		if (modulesFile.getModelType() == ModelType.PTA) {
+			throw new PrismException("Sorry - the simulator does not currently support PTAs");
+		}
+		// No support for system...endsystem yet
+		if (modulesFile.getSystemDefn() != null) {
+			throw new PrismException("Sorry - the simulator does not currently handle the system...endsystem construct");
+		}
+	}
+	
 	/**
 	 * Create a new path for a model.
 	 * Note: All constants in the model must have already been defined.
@@ -577,6 +594,7 @@ public class SimulatorEngine
 	 * The resulting index of the property is returned: this is used for later queries about the property.
 	 * Any constants/formulas etc. appearing in the property must have been defined in the current model
 	 * or be supplied in the (optional) passed in PropertiesFile.
+	 * In case of error, the property is not added an exception is thrown.
 	 */
 	public int addProperty(Expression prop, PropertiesFile pf) throws PrismException
 	{
@@ -591,9 +609,12 @@ public class SimulatorEngine
 			propNew = (Expression) propNew.replaceConstants(pf.getConstantValues());
 		}
 		propNew = (Expression) propNew.simplify();
-		// Create sampler, update lists and return index
+		// Create sampler
+		Sampler sampler = Sampler.createSampler(propNew, modulesFile);
+		// Update lists and return index
+		// (do this right at the end so that lists only get updated if there are no errors)
 		properties.add(propNew);
-		propertySamplers.add(Sampler.createSampler(propNew, modulesFile));
+		propertySamplers.add(sampler);
 		return properties.size() - 1;
 	}
 
@@ -684,15 +705,8 @@ public class SimulatorEngine
 		modelType = modulesFile.getModelType();
 		this.mfConstants = modulesFile.getConstantValues();
 
-		// Check for PTAs
-		if (modulesFile.getModelType() == ModelType.PTA) {
-			throw new PrismException("Sorry - the simulator does not currently support PTAs");
-		}
-
-		// Check for presence of system...endsystem
-		if (modulesFile.getSystemDefn() != null) {
-			throw new PrismException("Sorry - the simulator does not currently handle the system...endsystem construct");
-		}
+		// Check model is simulate-able
+		checkModelForSimulation(modulesFile);
 
 		// Get variable list (symbol table) for model 
 		varList = modulesFile.createVarList();
@@ -1073,6 +1087,15 @@ public class SimulatorEngine
 	// ------------------------------------------------------------------------------
 
 	/**
+	 * Get access to the {@code Path} object storing the current path.
+	 * This object is only valid until the next time {@link #createNewPath} is called. 
+	 */
+	public Path getPath()
+	{
+		return (Path) path;
+	}
+	
+	/**
 	 * Get the size of the current path (number of steps; or number of states - 1).
 	 */
 	public int getPathSize()
@@ -1089,9 +1112,16 @@ public class SimulatorEngine
 	}
 
 	/**
-	 * For paths with continuous-time info, get the total time elapsed so far
-	 * (where zero time has been spent in the current (final) state).
-	 * For discrete-time models, just returns 0.0.
+	 * Returns the previous state of the current path in the simulator.
+	 */
+	public State getPreviousState()
+	{
+		return path.getPreviousState();
+	}
+
+	/**
+	 * Get the total time elapsed so far (where zero time has been spent in the current (final) state).
+	 * For discrete-time models, this is just the number of steps (but returned as a double).
 	 */
 	public double getTotalTimeForPath()
 	{
@@ -1286,6 +1316,15 @@ public class SimulatorEngine
 			log.println();
 		}
 		((PathFull) path).exportToLog(log, timeCumul, colSep, vars);
+	}
+	
+	/**
+	 * Plot the current path on a Graph.
+	 * @param graphModel Graph on which to plot path
+	 */
+	public void plotPath(Graph graphModel) throws PrismException
+	{
+		((PathFull) path).plotOnGraph(graphModel);
 	}
 
 	// ------------------------------------------------------------------------------
