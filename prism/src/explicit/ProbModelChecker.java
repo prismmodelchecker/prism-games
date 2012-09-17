@@ -572,7 +572,7 @@ public class ProbModelChecker extends StateModelChecker
 			ConstructRewards constructRewards = new ConstructRewards(mainLog);
 			smgRewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
 			// Compute rewards
-			mainLog.println("Computing rewards..." + verbosity);
+			mainLog.println("Computing rewards...");
 
 			if (!exact) {
 				rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, expr, min);
