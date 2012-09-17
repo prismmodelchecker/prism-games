@@ -883,7 +883,7 @@ public class MDPModelChecker extends ProbModelChecker
 			throws PrismException
 	{
 		ModelCheckerResult res;
-		int i, n, iters, totalIters, diff;
+		int i, n, iters, totalIters;
 		double soln[], soln2[];
 		boolean done;
 		long timer;
@@ -932,16 +932,15 @@ public class MDPModelChecker extends ProbModelChecker
 			// Check if optimal, improve non-optimal choices
 			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
 			done = true;
-			diff = 0;
 			for (i = 0; i < n; i++) {
-				// NB: We must not check 'no' states (may look non-optimal)
+				// Don't look at no/yes states - we don't store adversary info for them,
+				// so they might appear non-optimal
 				if (no.get(i) || yes.get(i))
 					continue;
 				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 					done = false;
-					diff++;
 					List<Integer> opt = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln2[i]);
-					// If update adversary if strictly better
+					// Only update adversary if strictly better
 					if (!opt.contains(adv[i]))
 						adv[i] = opt.get(0);
 				}
@@ -982,11 +981,11 @@ public class MDPModelChecker extends ProbModelChecker
 			throws PrismException
 	{
 		ModelCheckerResult res;
-		int i, n, iters, totalIters, diff;
+		int i, n, iters, totalIters;
 		double soln[], soln2[];
 		boolean done;
 		long timer;
-		int policy[];
+		int adv[];
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
 
@@ -1014,34 +1013,33 @@ public class MDPModelChecker extends ProbModelChecker
 		for (i = 0; i < n; i++)
 			soln[i] = soln2[i] = yes.get(i) ? 1.0 : 0.0;
 
-		// Generate initial policy
-		policy = new int[n];
+		// Generate initial adversary
+		adv = new int[n];
 		for (i = 0; i < n; i++)
-			policy[i] = 0;
+			adv[i] = 0;
 
 		// Start iterations
 		iters = totalIters = 0;
 		done = false;
 		while (!done) {
 			iters++;
-			// Solve policy
-			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, policy);
+			// Solve induced DTMC for adversary
+			dtmc = new DTMCFromMDPMemorylessAdversary(mdp, adv);
 			res = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, yes, soln, null);
 			soln = res.soln;
 			totalIters += res.numIters;
 			// Check if optimal, improve non-optimal choices
 			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
 			done = true;
-			diff = 0;
 			for (i = 0; i < n; i++) {
-				// NB: We must not check 'no' states (may look non-optimal)
+				// Don't look at no/yes states - we don't store adversary info for them,
+				// so they might appear non-optimal
 				if (no.get(i) || yes.get(i))
 					continue;
 				if (!PrismUtils.doublesAreClose(soln[i], soln2[i], termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 					done = false;
-					diff++;
 					List<Integer> opt = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln2[i]);
-					policy[i] = opt.get(0);
+					adv[i] = opt.get(0);
 				}
 			}
 		}
@@ -1152,9 +1150,8 @@ public class MDPModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeBoundedReachProbs(MDP mdp, BitSet remain, BitSet target, int k, boolean min,
 			double init[], double results[]) throws PrismException
 	{
-		// TODO: implement until
-
 		ModelCheckerResult res = null;
+		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
@@ -1194,6 +1191,13 @@ public class MDPModelChecker extends ProbModelChecker
 			results[0] = Utils.minMaxOverArraySubset(soln2, mdp.getInitialStates(), true);
 		}
 
+		// Determine set of states actually need to perform computation for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(target);
+		if (remain != null)
+			unknown.and(remain);
+		
 		// Start iterations
 		iters = 0;
 		while (iters < k) {
@@ -1203,7 +1207,7 @@ public class MDPModelChecker extends ProbModelChecker
 				adv = new int[n];
 
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultMinMax(soln, min, soln2, target, true, generateStrategy ? adv : null);
+			mdp.mvMultMinMax(soln, min, soln2, unknown, false, generateStrategy ? adv : null);
 			// Store intermediate results if required
 			// (compute min/max value over initial states for this step)
 			if (results != null) {
