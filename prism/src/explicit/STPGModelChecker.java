@@ -40,8 +40,6 @@ import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
@@ -1103,23 +1101,14 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Print adversary
-		if (genAdv) {
-		PrismLog out = new PrismFileLog(exportAdvFilename);
-		for (i = 0; i < n; i++) {
-		out.println(i +":"+stpg.getStatesList().get(i)+ " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) :
-		"-"));
-		if (adv[i] != -1) {
-			Iterator<Entry<Integer, Double>> it = stpg.getTransitionsIterator(i, adv[i]);
-			while (it != null && it.hasNext()) {
-				Entry<Integer, Double> e = it.next();
-					out.print(" " + e.getKey() + ":" + e.getValue());
-
-				}
-				out.println();
-				}
-		}
-		out.println();
-		}
+		// if (genAdv) {
+		// PrismLog out = new PrismFileLog(exportAdvFilename);
+		// for (i = 0; i < n; i++) {
+		// out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) :
+		// "-"));
+		// }
+		// out.println();
+		// }
 
 		// Return results
 		res = new ModelCheckerResult();
