@@ -1051,7 +1051,7 @@ public class MDPModelChecker extends ProbModelChecker
 				+ " seconds.");
 
 		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(policy);
+			strategy = new MemorylessDeterministicStrategy(adv);
 		}
 
 		// Return results
