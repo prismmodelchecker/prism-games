@@ -1,0 +1,10 @@
+<<investor1>> R{"profit1"}max=? [Fc "finished1"]
+
+<<investor1,investor2>> R{"profit12"}max=? [Fc "finished"]
+
+<<investor1,env>> R{"profit1"}max=? [Fc "finished1"]
+
+<<investor1,investor2>> R{"profit12"}=5 [Fc "finished"]
+
+<<investor1>> Pmax=? [F i1=1&b2=0&m2=0&v>5]
+

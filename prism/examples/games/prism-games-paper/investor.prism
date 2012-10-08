@@ -12,16 +12,18 @@ player investor2 [invest2], [noinvest2], [cashin2] endplayer
 player env sched, [bar1], [nobar], [bar2], [month], [done] endplayer
 
 // Scheduler use to synchronise system transitions
+const double pterm = 0.01; 
 module sched
 	
+	term: [0..1];
 	t: [0..3];
 	m1 : [0..2];
 	m2 : [0..2];
 
 	// scheduling investors
-	[] t=0 & m1=0 & i1!=2 -> (t'=1);
-	[] t=0 & m2=0 & i2!=2-> (t'=2);
-	[] t=0 & (m1!=0 | i1=2) & (m2!=0 | i2=2) -> (t'=3);
+	[] t=0 & m1=0 & i1!=2 & term=0 -> (1-pterm):(t'=1) + pterm:(term'=1);
+	[] t=0 & m2=0 & i2!=2 & term=0 -> (1-pterm):(t'=2) + pterm:(term'=1);
+	[] t=0 & (m1!=0 | i1=2) & (m2!=0 | i2=2) & term=0 -> (t'=3);
 
 	// At the start of the month, investor makes decision
 	[noinvest1] (m1=0) & t=1 -> (m1'=1) & (t'=0); 
@@ -44,7 +46,7 @@ module sched
 	[cashin1] m1=0 & t=1 -> (m1'=0) & (t'=0);
 	[cashin2] m2=0 & t=2 -> (m2'=0) & (t'=0);
 
-	[done] m1=0 & m2=0 & t=3-> true;
+	[done] (m1=0 & m2=0 & t=3) | term=1-> true;
 
 endmodule
 
@@ -61,7 +63,7 @@ module investor1
 	// Cash in shares (if not barred)
 	[cashin1] i1=1 & b1=0 -> (i1'=2);
 	// Finished
-	[done] (i1=2) -> true;
+	[done] (i1=2) | term=1-> true;
 
 endmodule
 
@@ -129,24 +131,28 @@ module cap
 endmodule
 
 // Labels
-label "finished" = i1=2;
+label "finished" = i1=2 & i2=2;
+label "finished1" = i1=2;
+label "finished2" = i2=2;
 
 // Reward: one-off collection of shares value at the end
 // for the first investor
 rewards "profit1"
-	i1=1 & b1=0 & m1=0 : v;
+	//i1=1 & b1=0 & m1=0  : v;
+	[cashin1] i1=1 : v;
 endrewards
 
 
 // Reward: one-off collection of shares value at the end
 // for the second investor
 rewards "profit2"
-	i2=1 & b2=0 & m2=0 : v;
+	//i2=1 & b2=0 & m2=0 : v;
+	[cashin2] i2=1 : v;
 endrewards
 
 // Reward: one-off collection of shares value at the end
 // for both investors
 rewards "profit12"
-	i1=1 & b1=0 & m1=0 : v;
-	i2=1 & b2=0 & m2=0 : v;
+	[cashin1] i1=1 : v;
+	[cashin2] i2=1 : v;
 endrewards
