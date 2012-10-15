@@ -150,7 +150,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
 			exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportStratProduct, exportStratPlain, strategyInfo, generateStrategy,
-			implementStrategy, importStrategy;
+			implementStrategy, importStrategy, strategyExperiment;
 	private JMenu strategiesMenu;
 
 	// Current properties
@@ -470,7 +470,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// else
 		// experiments.removeExperiment(i);
 	}
-
+	
 	public void propertyLoadSuccessful(PropertiesFile pf, File f)
 	{
 		// note: add constants/labels first to stop property parse errors
@@ -1277,6 +1277,19 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
+	public void a_strategyExperimentSelected()
+	{
+		try {
+			getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
+		} catch (PrismException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		getPrism().getMainLog().resetNumberOfWarnings();
+		experimentAfterReceiveParseNotification = true;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	}
+	
 	// METHODS TO IMPLEMENT GUIPlugin INTERFACE
 
 	public boolean displaysTab()
@@ -1863,6 +1876,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// a group of radio button menu items
 		strategiesMenu.add(generateStrategy);
 		strategiesMenu.add(implementStrategy);
+		strategiesMenu.add(strategyExperiment);
 
 		// adding import menu
 		strategiesMenu.add(new JSeparator());
@@ -2267,6 +2281,19 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		implementStrategy.putValue(Action.NAME, "Verify under strategy");
 		implementStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallImplement.png"));
 
+		strategyExperiment = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				
+				a_strategyExperimentSelected();
+			}
+		};
+		strategyExperiment.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
+		strategyExperiment.putValue(Action.NAME, "Perform experiment under strategy");
+		strategyExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExperiment.png"));
+
+		
 		exportStratProduct = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)

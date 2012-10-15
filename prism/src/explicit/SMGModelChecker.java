@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,7 +40,11 @@ import java.util.Set;
 import parser.ast.Expression;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
+import parser.ast.ExpressionBinaryOp;
+import parser.visitor.ASTTraverse;
 import prism.PrismException;
+import prism.PrismLangException;
 import strat.ExactValueStrategy;
 import strat.Strategy;
 import explicit.rewards.SMGRewards;
@@ -68,63 +73,66 @@ public class SMGModelChecker extends STPGModelChecker
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 
-				// the case with arbitrary objectives
-				// Expression exp = ((ExpressionTemporal) expr).getOperand1();
-				// final List<Expression> exps = new ArrayList<Expression>(5);
-				// ((ExpressionUnaryOp) exp).getOperand().accept(
-				// new ASTTraverse() {
-				// @Override
-				// public Object visit(ExpressionBinaryOp e)
-				// throws PrismLangException {
-				// visitPre(e);
-				// // System.out.println(e);
-				// // if(!exps.contains(e.getOperand1()))
-				//
-				// // if(!exps.contains(e.getOperand2()))
-				// if (e.getOperand2() instanceof ExpressionUnaryOp
-				// && !e.getOperand2().toString()
-				// .startsWith("((")) {
-				// // System.out.println("Adding " +
-				// // e.getOperand2());
-				// exps.add(e.getOperand2());
-				//
-				// }
-				// if (e.getOperand1() instanceof ExpressionUnaryOp
-				// && !e.getOperand1().toString()
-				// .startsWith("((")) {
-				// // System.out.println("Adding " +
-				// // e.getOperand1());
-				// exps.add(e.getOperand1());
-				// }
-				// e.getOperand1().accept(this);
-				// e.getOperand2().accept(this);
-				// visitPost(e);
-				// return null;
-				// }
-				// });
-				//
-				// Collections.reverse(exps);
-				//
-				// // just the case with 2 objectives
-				// // BitSet t1 = checkExpression(model,
-				// // ((ExpressionTemporal) expr).getOperand1()).getBitSet();
-				// // BitSet t2 = checkExpression(model,
-				// // ((ExpressionTemporal) expr).getOperand2()).getBitSet();
-				//
-				// List<BitSet> targets = new ArrayList<BitSet>(2);
-				// for (Expression e : exps) {
-				// targets.add(checkExpression(model, e).getBitSet());
-				// }
-				//
-				// List<Set<ReachTuple>> result =
-				// this.computeReachabilityTuples(
-				// min, !min, (STPG) model, targets);
-				//
-				// System.out.println("Printing results..");
-				// for (int i = 0; i < result.size(); i++) {
-				// System.out.println(i + " " + result.get(i));
-				// }
-				// System.out.println("------------------");
+				 //the case with arbitrary objectives
+//				 Expression exp = ((ExpressionTemporal) expr).getOperand1();
+//				 final List<Expression> exps = new ArrayList<Expression>(5);
+//				 ((ExpressionUnaryOp) exp).getOperand().accept(
+//				 new ASTTraverse() {
+//				 @Override
+//				 public Object visit(ExpressionBinaryOp e)
+//				 throws PrismLangException {
+//				 visitPre(e);
+//				 // System.out.println(e);
+//				 // if(!exps.contains(e.getOperand1()))
+//				
+//				 // if(!exps.contains(e.getOperand2()))
+//				 if (e.getOperand2() instanceof ExpressionUnaryOp
+//				 && !e.getOperand2().toString()
+//				 .startsWith("((")) {
+//				 // System.out.println("Adding " +
+//				 // e.getOperand2());
+//				 exps.add(e.getOperand2());
+//				
+//				 }
+//				 if (e.getOperand1() instanceof ExpressionUnaryOp
+//				 && !e.getOperand1().toString()
+//				 .startsWith("((")) {
+//				 // System.out.println("Adding " +
+//				 // e.getOperand1());
+//				 exps.add(e.getOperand1());
+//				 }
+//				 e.getOperand1().accept(this);
+//				 e.getOperand2().accept(this);
+//				 visitPost(e);
+//				 return null;
+//				 }
+//				 });
+				
+//				 Collections.reverse(exps);
+				
+				 // just the case with 2 objectives
+//				  BitSet t1 = checkExpression(model,
+//				  ((ExpressionTemporal) expr).getOperand1()).getBitSet();
+//				  BitSet t2 = checkExpression(model,
+//				  ((ExpressionTemporal) expr).getOperand2()).getBitSet();
+//				
+//				 List<BitSet> targets = new ArrayList<BitSet>(2);
+//				 targets.add(t1);
+//				 targets.add(t2);
+//				 
+//				 //for (Expression e : exps) {
+//				 //targets.add(checkExpression(model, e).getBitSet());
+//				 //}
+//				
+//				 List<Set<ReachTuple>> result =
+//				 this.computeReachabilityTuples(
+//				 min, !min, (STPG) model, targets);
+//				
+//				 System.out.println("Printing results..");
+//				 for (int i = 0; i < result.size(); i++) {
+//				 System.out.println(i + " " + result.get(i));
+//				 }
+//				 System.out.println("------------------");
 
 				// this.computeIntervalSet(min, !min, (STPG) model, t1, t2);
 
