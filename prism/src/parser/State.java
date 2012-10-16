@@ -26,6 +26,7 @@
 
 package parser;
 
+import java.util.Arrays;
 import java.util.List;
 
 import parser.ast.ModulesFile;
@@ -136,10 +137,9 @@ public class State implements Comparable<State>
 
 	@Override
 	public int hashCode()
-	{
-		// Simple hash code
-		return varValues.length > 0 ? varValues[0].hashCode() : 0;
-	}
+    {
+            return Arrays.hashCode(varValues);
+    }
 
 	@Override
 	public boolean equals(Object o)

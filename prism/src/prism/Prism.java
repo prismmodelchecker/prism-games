@@ -80,10 +80,10 @@ import explicit.STPGModelChecker;
 public class Prism implements PrismSettingsListener
 {
 	// prism version
-	private static String version = "4.0.3";
+	private static String version = "- games";
 	// prism version suffix
 	// private static String versionSuffix = "";
-	private static String versionSuffix = ".games"; // ".rXXXX";; 
+	private static String versionSuffix = ""; // ".rXXXX";; 
 
 	// ------------------------------------------------------------------------------
 	// Constants

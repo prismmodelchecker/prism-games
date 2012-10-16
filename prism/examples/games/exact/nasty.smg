@@ -6,16 +6,16 @@ const double q = 0.5;
 const double r = 0.25;
 const double t = 0.25;
 
-player p1
-	foo, [p1a], [p1b], [p1c]
+player investor1
+	investor1, [p1a], [p1b], [p1c]
 endplayer
 
 
-player p2
+player investor2
 	[p2a], [p2b]
 endplayer
 
-module foo
+module investor1
 
 
 	s : [1..4] init 1;
@@ -34,6 +34,6 @@ endmodule
 
 label "T" = s=3;
 
-rewards
+rewards "profit12"
 	s=2 : 1;
 endrewards

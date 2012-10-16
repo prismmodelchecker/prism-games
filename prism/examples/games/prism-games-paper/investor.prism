@@ -94,7 +94,7 @@ endmodule
 
 // Value of the shares
 const vmax=10;
-const vinit;
+const vinit=5;
 module value
 	
 	v : [0..vmax] init vinit;

@@ -1795,9 +1795,16 @@ public class SimulatorEngine
 		if (strategy != null && getPrism().getBuiltModelExplicit() != null) {
 			stateIds = new HashMap<State, Integer>();
 			java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
-			for (int i = 0; i < stateslist.size(); i++) {
-				stateIds.put(stateslist.get(i), i);
+			int i=0;
+			for(State s: stateslist)
+			{
+				stateIds.put(s, i++);
+				if(i%1000==0) System.out.println(i);
 			}
+			//for (int i = 0; i < stateslist.size(); i++) {
+			//	System.out.println(i);
+			//	stateIds.put(stateslist.get(i), i);
+			//}
 		}
 	}
 }
