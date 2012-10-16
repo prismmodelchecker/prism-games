@@ -437,7 +437,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			// check if we need to initialise a strategy
 			if (strategyGenerated && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
-					&& getPrism().getBuiltModelExplicit() != null) {
+					&& getPrism().getBuiltModelExplicit() != null ) {
 				// get reference to the strategy
 				strategy = getPrism().getStrategy();
 

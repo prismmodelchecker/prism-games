@@ -206,6 +206,12 @@ public class SMGModelChecker extends STPGModelChecker
 	protected StateValues checkExactProbabilityFormula(Model model, ExpressionPATL expr, double p)
 			throws PrismException
 	{
+		if(expr.getExpressionProb().getExpression() instanceof ExpressionTemporal && ((ExpressionTemporal)expr.getExpressionProb().getExpression()).hasBounds())
+		{
+			throw new PrismException(
+			"The exact probability queries are not supported for step-bounded properties");
+		}
+		
 		((SMG) model).setCoalition(expr.getCoalition());
 		// 1) check whether the game is stopping, if not - terminate
 		// 1.1) find states which have self loops only
