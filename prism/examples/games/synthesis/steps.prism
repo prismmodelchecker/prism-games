@@ -1,0 +1,24 @@
+smg
+
+global s : [0..5];
+global t : [0..1];
+
+module player1
+
+	[] p1state & t=0 -> (s'=nextState);
+	[] p1state & t=0 -> 0.5 : (s'=nextState) + 0.5 : (s'=0) & (t'=1);
+
+endmodule
+
+module player2
+
+	[] p2state & t=0 -> (s'=nextState);
+	[] p2state & t=0 -> 0.5 : (s'=nextState) + 0.5 : (s'=0) & (t'=1);
+
+endmodule
+
+formula p1state = mod(s,2)=0;
+formula p2state = mod(s,2)=1;
+formula nextState = s=5?5:s+1;
+
+label "T" = t=1 & s=0;

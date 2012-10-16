@@ -261,6 +261,7 @@ public class SimulatorEngine
 
 		// Initialise stored path
 		path.initialise(currentState, tmpStateRewards);
+		strategy = prism.getStrategy();
 		if (strategy != null && path instanceof PathFull) {
 			// initialising the strategy
 			try {
@@ -1797,14 +1798,8 @@ public class SimulatorEngine
 			java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
 			int i=0;
 			for(State s: stateslist)
-			{
 				stateIds.put(s, i++);
-				if(i%1000==0) System.out.println(i);
-			}
-			//for (int i = 0; i < stateslist.size(); i++) {
-			//	System.out.println(i);
-			//	stateIds.put(stateslist.get(i), i);
-			//}
+
 		}
 	}
 }

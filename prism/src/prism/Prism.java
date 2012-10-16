@@ -3216,10 +3216,8 @@ public class Prism implements PrismSettingsListener
 		if (currentModel != null)
 			currentModel.clear();
 
-		// nullify the strategy if it exists
-		if (getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
-			strategy = null;
-		}
+		// nullify the strategy
+		strategy = null;
 
 		/*
 		 * if (currentModelExpl != null) currentModelExpl.clear();

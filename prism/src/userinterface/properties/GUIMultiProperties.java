@@ -932,11 +932,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// if strategy generation was enabled notifying the simulator
 		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && getPrism().getStrategy() != null
 				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) {
-			System.out.println("here1");
 			simulator.setStrategyGenerated(true);
-			System.out.println("here2");
 			simulator.setStrategy(getPrism().getStrategy());
-			System.out.println("here3");
 			// disabling strategy generation
 			try {
 				getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
@@ -944,7 +941,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			System.out.println("here4");
 		}
 		// if strategy implementation was enables - disabling this too
 		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY)) {
@@ -955,13 +951,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				e.printStackTrace();
 			}
 		}
-
-		// } else {
-		// simulator.setStrategyGenerated(false);
-		// simulator.setStrategy(null);
-		// }
-
-		System.out.println("here5");
 		
 		// For a single property with a displayable counterexample, offer to do
 		// show it
@@ -976,7 +965,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				}
 			}
 		}
-		System.out.println("here6");
 	}
 
 	public void a_cut()
@@ -2274,6 +2262,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			public void actionPerformed(ActionEvent e)
 			{
+				if (getPrism().getStrategy() == null) {
+					JOptionPane.showMessageDialog(GUIMultiProperties.this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
 				try {
 					getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
 				} catch (PrismException e1) {
