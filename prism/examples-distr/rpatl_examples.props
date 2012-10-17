@@ -1,0 +1,31 @@
+// Players 1, 2 and 3 can guarantee that the probability
+// of reaching a "b"-state, whilst passing only through "a"-states, is > 0.5
+<<1,2,3>> P>0.5 [ "a" U "b" ]
+
+// The maximum probability with which players p1 and p2
+// can guarantee that an "end"-state is reached
+<<p1,p3>> Pmax=? [ F "end"]
+
+// Players 4 and 5 can ensure that the probability
+// of reaching an "end"-state within 100 time-steps is < 0.95
+<<4,5>> P<0.95 [ F<=100 "end" ]
+
+// The maximum expected value of reward "r" accumulated before
+// reaching "success" that can be guaranteed by player p1
+<<p1>> R{"r"}max=? [ F "success" ]
+
+// Under any possible strategy (for all players),
+// the expected reward accumulated before reaching "finished" is > 100
+<<>> R>100 [ F0 "finished" ]
+
+// The minimum expected reward accumulated before reaching "fail"
+// that can be guaranteed by players p2 and p5
+<<p2,p5>> Rmin=? [ Fc "fail" ]
+
+// Players agent1 and scheduler have a strategy to ensure
+// that the probability of reaching "end" is exactly 0.35
+<<agent1,scheduler>> P=0.35 [ F "end" ]
+
+// Players p2 and p5 have a strategy to ensure that the
+// expected reward accumulated before reaching "success" is exactly 100
+<<p2,p5>> R=100 [ Fc "success" ]
