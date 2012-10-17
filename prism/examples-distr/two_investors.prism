@@ -1,0 +1,137 @@
+// Futures market investor (McIver and Morgan 2007)
+// Extended to two investors
+// gxn/dxp/aissim
+
+smg
+
+// Player definitions
+player investor1 [invest1], [noinvest1], [cashin1] endplayer
+player investor2 [invest2], [noinvest2], [cashin2] endplayer
+player market [nobar], [bar1],  [bar2], sched, [month], [done] endplayer
+
+// Scheduler used to synchronise system transitions
+const double pterm = 0.01; 
+module sched
+	
+	term: [0..1];
+	t: [0..3];
+	m1 : [0..2];
+	m2 : [0..2];
+
+	// Schedule investors
+	[] t=0 & m1=0 & i1!=2 & term=0 -> (1-pterm):(t'=1) + pterm:(term'=1);
+	[] t=0 & m2=0 & i2!=2 & term=0 -> (1-pterm):(t'=2) + pterm:(term'=1);
+	[] t=0 & (m1!=0 | i1=2) & (m2!=0 | i2=2) & term=0 -> (t'=3);
+
+	// At the start of the month, investors makes decisions
+	[noinvest1] m1=0 & t=1 -> (m1'=1) & (t'=0); 
+	[invest1] m1=0 & t=1 -> (m1'=1) & (t'=0);
+	[noinvest2] m2=0 & t=2 -> (m2'=1) & (t'=0); 
+	[invest2] m2=0 & t=2 -> (m2'=1) & (t'=0);
+
+	// Then, decision is made whether to bar or not
+	[nobar] (m1=1 | i1=2) & (m2=1 | i2=2) & t=3 & !(i1=2 & i2=2) -> (m1'=2) & (m2'=2);
+	[bar1] m1=1 & t=3 -> (m1'=2) & (m2'=2);
+	[bar2] m2=1 & t=3 -> (m1'=2) & (m2'=2);
+
+	// Then, market changes
+	[month] m1=2 & m2=2 -> (m1'=0) & (m2'=0) & (t'=0);
+
+	// Once investors have cashed in shares, nothing changes
+	[cashin1] m1=0 & t=1 -> (m1'=0) & (t'=0);
+	[cashin2] m2=0 & t=2 -> (m2'=0) & (t'=0);
+	[done] m1=0 & m2=0 & t=3 | term=1 -> true;
+
+endmodule
+
+// Investor 1
+module investor1
+
+	// State: 0 = no reservation
+	// 1 = made reservation
+	// 2 = finished
+	i1 : [0..2];
+
+	// Decide whether to do nothing or make reservation
+	[noinvest1] i1=0 | i1=1 & b1=1 -> (i1'=0);
+	[invest1] i1=0 | i1=1 & b1=1 -> (i1'=1);
+	// Cash in shares (if not barred)
+	[cashin1] i1=1 & b1=0 -> (i1'=2);
+	// Finished
+	[done] i1=2 | term=1-> true;
+
+endmodule
+
+// Investor 2
+module investor2 = investor1 [
+	i1=i2, 
+	b1=b2,
+	noinvest1=noinvest2,
+	invest1=invest2,
+	cashin1=cashin2
+] 
+endmodule
+
+// Market
+const vmax=10;
+const vinit=5;
+module market
+	// State: 0 = !barred, 1 = barred
+	b1 : [0..1] init 1;
+	b2 : [0..1] init 1;
+	// share value
+	v : [0..vmax] init vinit;
+	// Bar one or none of the investors
+	[nobar] true -> (b1'=0) & (b2'=0);
+	[bar1] b1=0 -> (b1'=1) & (b2'=0);
+	[bar2] b2=0 -> (b2'=1) & (b1'=0);
+	[month] true -> p/10 : (v'=up) 
+                      + (1-p/10) : (v'=down);
+endmodule
+
+// Probability of shares going up/down
+const int pmax = 10;
+module probability
+	
+	// Probability is p/pmax and initially the probability is approx 1/2
+	p : [0..pmax] init floor(pmax/2);
+
+	[month] (v<5) -> 2/3 : (p'=min(p+1,pmax)) + 1/3 : (p'=max(p-1,0));
+	[month] (v=5) -> 1/2 : (p'=min(p+1,pmax)) + 1/2 : (p'=max(p-1,0));
+	[month] (v>5) -> 1/3 : (p'=min(p+1,pmax)) + 2/3 : (p'=max(p-1,0));
+
+endmodule
+
+// Cap on the value of the shares
+const int cmax = vmax;
+module cap
+	
+	c : [0..cmax] init cmax;
+
+	[month] true -> 1/2 : (c'=max(c-1,0)) + 1/2 : (c'=c); // probability 1/2 the cap decreases
+
+endmodule
+
+// Labels
+label "done" = i1=2 & i2=2;
+label "done1" = i1=2;
+label "done2" = i2=2;
+
+formula up = min(v+1,c,vmax);
+formula down = min(max(v-1,0),c);
+
+// Reward: collection shares value
+// For investor1 and investor2
+rewards "profit1"
+	[cashin1] i1=1 : v;
+endrewards
+rewards "profit2"
+	[cashin2] i2=1 : v;
+endrewards
+
+// Reward: one-off collection of shares value at the end
+// for both investors
+rewards "profit12"
+	[cashin1] i1=1 : v;
+	[cashin2] i2=1 : v;
+endrewards

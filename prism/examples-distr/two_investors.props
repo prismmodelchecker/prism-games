@@ -1,0 +1,18 @@
+// Maximum expected profit that the two investors
+// can guarantee, working collaboratively
+<<investor1,investor2>> R{"profit12"}max=? [ Fc "done" ]
+
+// Maximum expected profit that investor 1 can ensure it achieves?”
+<<investor1>> R{"profit1"}max=? [ Fc ("done1"&"done2") ]
+
+// Maximum expected profit that investor 1
+// can achieve with the help of the market
+<<investor1,market>> R{"profit1"}max=? [ Fc "done1" ]
+
+// Can both investors collaborate to
+// achieve an expected profit of precisely 5?
+<<investor1,investor2>> R{"profit12"}=5 [ Fc "done" ]
+
+// Maximum probability with which investor 1
+// can guarantee a share value greater than 5
+<<investor1>> Pmax=? [ F ("done1"&v>5) ]
