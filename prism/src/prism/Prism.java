@@ -80,7 +80,7 @@ import explicit.STPGModelChecker;
 public class Prism implements PrismSettingsListener
 {
 	// prism version
-	private static String version = "- games";
+	private static String version = "beta";
 	// prism version suffix
 	// private static String versionSuffix = "";
 	private static String versionSuffix = ""; // ".rXXXX";; 
@@ -1166,7 +1166,7 @@ public class Prism implements PrismSettingsListener
 	{
 		boolean verbose = this.getSettings().getBoolean("PRISM_VERBOSE");
 		mainLog.setVerbosityLevel(verbose ? PrismLog.VL_ALL : PrismLog.VL_DEFAULT);
-		mainLog.print("PRISM\n=====\n");
+		mainLog.print("PRISM-games\n=====\n");
 		mainLog.print("\nVersion: " + getVersion() + "\n");
 		mainLog.print("Date: " + new java.util.Date() + "\n");
 		try {
