@@ -1,0 +1,10 @@
+<<investor1>> R{"profit1"}max=? [ Fc ("done1"&"done2") ]
+
+<<investor1,investor2>> R{"profit12"}max=? [ Fc "done" ]
+
+<<investor1,market>> R{"profit1"}max=? [ Fc "done1" ]
+
+<<investor1,investor2>> R{"profit12"}=5 [ Fc "done" ]
+
+<<investor1>> Pmax=? [ F ("done1"&v>5) ]
+
