@@ -1,13 +1,15 @@
 // Futures market investor (McIver and Morgan 2007)
-//
-// Example with two investors
-//
-// gxn/dxp
+// Extended to two investors
+// gxn/dxp/aissim
 
 smg
 
+// Player definitions
+player investor1 [invest1], [noinvest1], [cashin1] endplayer
+player investor2 [invest2], [noinvest2], [cashin2] endplayer
+player market [nobar], [bar1],  [bar2], sched, [month], [done] endplayer
 
-// Scheduler use to synchronise system transitions
+// Scheduler used to synchronise system transitions
 const double pterm = 0.01; 
 module sched
 	
@@ -16,15 +18,14 @@ module sched
 	m1 : [0..2];
 	m2 : [0..2];
 
-	// scheduling investors
+	// Schedule investors
 	[] t=0 & m1=0 & i1!=2 & term=0 -> (1-pterm):(t'=1) + pterm:(term'=1);
 	[] t=0 & m2=0 & i2!=2 & term=0 -> (1-pterm):(t'=2) + pterm:(term'=1);
 	[] t=0 & (m1!=0 | i1=2) & (m2!=0 | i2=2) & term=0 -> (t'=3);
 
-	// At the start of the month, investor makes decision
+	// At the start of the month, investors makes decisions
 	[noinvest1] m1=0 & t=1 -> (m1'=1) & (t'=0); 
 	[invest1] m1=0 & t=1 -> (m1'=1) & (t'=0);
-
 	[noinvest2] m2=0 & t=2 -> (m2'=1) & (t'=0); 
 	[invest2] m2=0 & t=2 -> (m2'=1) & (t'=0);
 
@@ -33,26 +34,19 @@ module sched
 	[bar1] m1=1 & t=3 -> (m1'=2) & (m2'=2);
 	[bar2] m2=1 & t=3 -> (m1'=2) & (m2'=2);
 
-
 	// Then, market changes
 	[month] m1=2 & m2=2 -> (m1'=0) & (m2'=0) & (t'=0);
 
-
-	// Once investor has cashed in shares nothing changes
+	// Once investors have cashed in shares, nothing changes
 	[cashin1] m1=0 & t=1 -> (m1'=0) & (t'=0);
 	[cashin2] m2=0 & t=2 -> (m2'=0) & (t'=0);
-
 	[done] m1=0 & m2=0 & t=3 | term=1 -> true;
 
 endmodule
 
-// Player definitions
-player investor1 [invest1], [noinvest1], [cashin1] endplayer
-player investor2 [invest2], [noinvest2], [cashin2] endplayer
-player market [nobar], [bar1],  [bar2], sched, [month], [done] endplayer
-
 // Investor 1
 module investor1
+
 	// State: 0 = no reservation
 	// 1 = made reservation
 	// 2 = finished
@@ -65,6 +59,7 @@ module investor1
 	[cashin1] i1=1 & b1=0 -> (i1'=2);
 	// Finished
 	[done] i1=2 | term=1-> true;
+
 endmodule
 
 // Investor 2

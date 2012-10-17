@@ -1,7 +1,6 @@
 // Futures market investor (McIver and Morgan 2007)
 // gxn/dxp
 
-//stpg
 smg
 
 // Player info
@@ -98,6 +97,9 @@ module cap
 	[month] true -> 1/2 : (c'=max(c-1,0)) + 1/2 : (c'=c); // probability 1/2 the cap decreases
 
 endmodule
+
+// Labels
+label "finished" = i=2;
 
 // Reward: one-off collection of shares value at the end
 rewards "profit"

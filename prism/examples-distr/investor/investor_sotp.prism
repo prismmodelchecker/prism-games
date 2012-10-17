@@ -1,8 +1,9 @@
 // Futures market investor (McIver and Morgan 2007)
 // gxn/dxp
 
-//stpg
-smg
+// Hard-coded "seat of the pants" strategy
+
+mdp
 
 // Player info
 player investor [invest], [noinvest], [cashin], [done] endplayer
@@ -37,10 +38,8 @@ module investor
 	// (if currently not reserving or was barred last time)
 	// Note: We force investor to give up if shares hit zero
 	// (for simplicity of modelling rewards when looping forever)
-	[noinvest] (i=0 | i=1 & b=1) -> (i'=0);
-	[invest] (i=0 | i=1 & b=1) -> (i'=1);
-	//[noinvest] (i=0 | i=1 & b=1) & v<c -> (i'=0);
-	//[invest] (i=0 | i=1 & b=1) & v>=c -> (i'=1);
+	[noinvest] (i=0 | i=1 & b=1) & v<c -> (i'=0);
+	[invest] (i=0 | i=1 & b=1) & v>=c -> (i'=1);
 	// Cash in shares (if not barred)
 	[cashin] i=1 & b=0 -> (i'=2);
 	// Finished
@@ -99,7 +98,16 @@ module cap
 
 endmodule
 
+// Labels
+label "finished" = i=2;
+
 // Reward: one-off collection of shares value at the end
 rewards "profit"
-	[cashin] i=1 : vmax-v;
+	
+	// Use state rewards:
+	i=1 & b=0 & m=0 : v;
+	
+	// Could also use transition rewards
+	// [cashin] i=1 : v;
+	
 endrewards
