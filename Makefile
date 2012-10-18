@@ -17,7 +17,11 @@ dist_src: dist_check_version
 	@if [ -e prism/tests ]; then \
 	  echo "mv prism/tests dontcopy"; mv prism/tests dontcopy; \
 	fi
-	mv prism-examples prism/examples
+	@if [ -e prism/examples-disr ]; then \
+	  echo "mv prism/examples-distr prism/examples"; mv prism/examples-distr prism/examples; \
+	else \
+	  echo "mv prism-examples prism/examples"; mv prism-examples prism/examples; \
+	fi
 	mv cudd prism
 	mv prism "prism-$(VERSION)-src"
 	(cd "prism-$(VERSION)-src"; $(MAKE) dist_src )
