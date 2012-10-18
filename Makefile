@@ -17,7 +17,7 @@ dist_src: dist_check_version
 	@if [ -e prism/tests ]; then \
 	  echo "mv prism/tests dontcopy"; mv prism/tests dontcopy; \
 	fi
-	@if [ -e prism/examples-disr ]; then \
+	@if [ -e prism/examples-distr ]; then \
 	  echo "mv prism/examples-distr prism/examples"; mv prism/examples-distr prism/examples; \
 	else \
 	  echo "mv prism-examples prism/examples"; mv prism-examples prism/examples; \
