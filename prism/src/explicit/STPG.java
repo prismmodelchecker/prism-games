@@ -211,6 +211,20 @@ public interface STPG extends Model
 	 */
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
 			int adv[]);
+	
+	/**
+	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
+	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param s Row index
+	 * @param vect Vector to multiply by
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc discounting factor
+	 */
+	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1,
+			boolean min2, double[] result, BitSet subset, boolean complement,
+			int[] adv, double disc);
 
 	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.
@@ -244,5 +258,6 @@ public interface STPG extends Model
 	 * Enables all choices that have been disabled previously
 	 */
 	public void enableAllChoices();
+
 
 }

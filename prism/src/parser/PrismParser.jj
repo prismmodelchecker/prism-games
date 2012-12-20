@@ -378,6 +378,7 @@ TOKEN :
 |	< CTMC:				"ctmc" >
 |	< CTMDP:			"ctmdp" >
 |	< C:				"C" >
+|	< DISCOUNT:			"disc" >
 |	< DOUBLE:			"double" >
 |	< DTMC:				"dtmc" >
 |	< E:				"E" >
@@ -1677,7 +1678,7 @@ Expression ExpressionSS(boolean prop, boolean pathprop) :
 Expression ExpressionReward(boolean prop, boolean pathprop) :
 {
 	int r;
-	Object index = null;
+	Object[] index = null;
 	String relOp = null;
 	Expression rew = null;
 	Expression expr;
@@ -1718,12 +1719,13 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// Path formula, optional filter
 	<LBRACKET> expr = ExpressionRewardContents(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
-		ret.setRewardStructIndex(index);
+		ret.setRewardStructIndex(index == null ? null : index[0]);
 		ret.setRelOp(relOp);
 		ret.setReward(rew);
 		ret.setExpression(expr);
 		ret.setFilter(filter);
 		ret.setPosition(begin, getToken(0));
+		ret.setDiscount(index == null ? null : index[1]);
 		// Filter is actually dealt with by wrapping this expression in
 		// an (invisible) ExpressionFilter expression
 		if (filter != null) {
@@ -1738,14 +1740,20 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 
 // Reward struct index for R operator
 
-Object RewardIndex() :
+Object[] RewardIndex() :
 {
-	Object index;
+	Object index=null;
+	Object discount=null;
 }
 {
 	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
-	( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | index = Expression(false, false) ) <RBRACE> )
-	{ return index; }
+	(<LBRACE> (
+	( 
+	 LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | <DISCOUNT><EQ>discount=Expression(false, false) | index = Expression(false, false)  )
+	) 
+	(<COMMA><DISCOUNT><EQ> discount=Expression(false,false))?
+	<RBRACE>)
+	{ return new Object[] {index, discount}; }
 }
 
 // Contents of an R operator

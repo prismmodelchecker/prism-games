@@ -36,6 +36,7 @@ public class ExpressionReward extends Expression
 	String relOp = null;
 	Expression reward = null;
 	Expression expression = null;
+	Object discount = null;
 	// Note: this "old-style" filter is just for display purposes
 	// The parser creates an (invisible) new-style filter around this expression
 	Filter filter = null;
@@ -79,6 +80,13 @@ public class ExpressionReward extends Expression
 	{
 		filter = f;
 	}
+	
+	public void setDiscount(Object o)
+	{
+		discount = o;
+	}
+	
+	
 
 	// Get methods
 	
@@ -105,6 +113,11 @@ public class ExpressionReward extends Expression
 	public Filter getFilter()
 	{
 		return filter;
+	}
+	
+	public Object getDiscount()
+	{
+		return discount;
 	}
 
 	/**

@@ -70,7 +70,9 @@ public class STPGModelChecker extends ProbModelChecker
 	 * runs which don't reach the target get reward zero.
 	 */
 	public static final int R_ZERO = 2;
-
+	
+	
+	
 	// Model checking functions
 
 	/**
@@ -1641,7 +1643,9 @@ public class STPGModelChecker extends ProbModelChecker
 			// mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null);
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null, useDiscounting ? discountFactor : 1.0);
+			
+			
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter

@@ -1166,4 +1166,15 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		// TODO Auto-generated method stub
 
 	}
+
+	/**
+	 * Calls default method without discount
+	 */
+	@Override
+	public void mvMultRewMinMax(double[] vect, STPGRewards rewards,
+			boolean min1, boolean min2, double[] result, BitSet subset,
+			boolean complement, int[] adv, double disc) {
+		mvMultRewMinMax(vect,rewards,min1,min2,result,subset,complement,adv);
+		
+	}
 }

@@ -74,6 +74,9 @@ public class ProbModelChecker extends StateModelChecker
 	// protected boolean exportAdv = false;
 	protected String exportAdvFilename;
 
+	protected boolean useDiscounting = false;
+	protected double discountFactor = 1.0;
+	
 	// Enums for flags/settings
 
 	// Method used for numerical solution
@@ -544,6 +547,11 @@ public class ProbModelChecker extends StateModelChecker
 			// Get info from reward operator
 			rs = expr.getExpressionRew().getRewardStructIndex();
 			rb = expr.getExpressionRew().getReward();
+			if(expr.getExpressionRew().getDiscount() != null)
+			{
+				useDiscounting = true;
+				discountFactor = ((Expression)expr.getExpressionRew().getDiscount()).evaluateDouble();
+			}
 			if (rb != null) {
 				r = rb.evaluateDouble(constantValues);
 				if (r < 0)

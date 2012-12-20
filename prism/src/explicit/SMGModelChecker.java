@@ -111,30 +111,30 @@ public class SMGModelChecker extends STPGModelChecker
 //				 Collections.reverse(exps);
 				
 				 // just the case with 2 objectives
-//				  BitSet t1 = checkExpression(model,
-//				  ((ExpressionTemporal) expr).getOperand1()).getBitSet();
-//				  BitSet t2 = checkExpression(model,
-//				  ((ExpressionTemporal) expr).getOperand2()).getBitSet();
-//				
-//				 List<BitSet> targets = new ArrayList<BitSet>(2);
-//				 targets.add(t1);
-//				 targets.add(t2);
-//				 
-//				 //for (Expression e : exps) {
-//				 //targets.add(checkExpression(model, e).getBitSet());
-//				 //}
-//				
-//				 List<Set<ReachTuple>> result =
-//				 this.computeReachabilityTuples(
-//				 min, !min, (STPG) model, targets);
-//				
-//				 System.out.println("Printing results..");
-//				 for (int i = 0; i < result.size(); i++) {
-//				 System.out.println(i + " " + result.get(i));
-//				 }
-//				 System.out.println("------------------");
+				  BitSet t1 = checkExpression(model,
+				  ((ExpressionTemporal) expr).getOperand1()).getBitSet();
+				  BitSet t2 = checkExpression(model,
+				  ((ExpressionTemporal) expr).getOperand2()).getBitSet();
+				
+				 List<BitSet> targets = new ArrayList<BitSet>(2);
+				 targets.add(t1);
+				 targets.add(t2);
+				 
+				 //for (Expression e : exps) {
+				 //targets.add(checkExpression(model, e).getBitSet());
+				 //}
+				
+				 List<Set<ReachTuple>> result =
+				 this.computeReachabilityTuples(
+				 min, !min, (STPG) model, targets);
+				
+				 System.out.println("Printing results..");
+				 for (int i = 0; i < result.size(); i++) {
+				 System.out.println(i + " " + result.get(i));
+				 }
+				 System.out.println("------------------");
 
-				// this.computeIntervalSet(min, !min, (STPG) model, t1, t2);
+				 this.computeIntervalSet(min, !min, (STPG) model, t1, t2);
 
 			}
 
@@ -524,18 +524,20 @@ public class SMGModelChecker extends STPGModelChecker
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
 		// set number of iterations
-		it = 15;
+		it = 1000;
 		System.out.println(intervals);
+		int i=0;
 		while (true) {
 			intervals_ = ((SMG) stpg).mvMultIntervals(min1, min2, intervals);
 
-			try {
-				in.readLine();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
+//			try {
+//				in.readLine();
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+			
+if(i++ > it) break;
 			// do some checks...
 			System.out.println(intervals_);
 

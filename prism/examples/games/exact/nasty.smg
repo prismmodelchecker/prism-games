@@ -4,7 +4,7 @@ const double p = 0.5;
 const double q = 0.5;
 
 const double r = 0.25;
-const double t = 0.25;
+const double t = 0.125;
 
 player p1
 	investor1, [p1a], [p1b], [p1c]

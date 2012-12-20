@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import prism.ModelType;
@@ -410,7 +411,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, 1.0);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
@@ -418,7 +419,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, 1.0);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
@@ -426,7 +427,42 @@ public class STPGExplicit extends MDPSimple implements STPG
 					min = min1;
 				else if (getPlayer(s) == PLAYER_2)
 					min = min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, 1.0);
+			}
+		}
+	}
+	
+	@Override
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
+			BitSet subset, boolean complement, int adv[], double disc)
+	{
+		int s;
+		boolean min = false;
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				if (getPlayer(s) == PLAYER_1)
+					min = min1;
+				else if (getPlayer(s) == PLAYER_2)
+					min = min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				if (getPlayer(s) == PLAYER_1)
+					min = min1;
+				else if (getPlayer(s) == PLAYER_2)
+					min = min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				if (getPlayer(s) == PLAYER_1)
+					min = min1;
+				else if (getPlayer(s) == PLAYER_2)
+					min = min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
 			}
 		}
 	}
@@ -502,6 +538,69 @@ public class STPGExplicit extends MDPSimple implements STPG
 		return s;
 	}
 
+	/**
+	 * Allows discounting
+	 * @param s
+	 * @param vect
+	 * @param mdpRewards
+	 * @param min
+	 * @param adv
+	 * @param disc
+	 * @return
+	 */
+	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[], double disc)
+	{
+		int j, k, advCh = -1, c;
+		double d, prob, minmax;
+		boolean first;
+		List<Distribution> step;
+
+		c = 0;
+		minmax = 0;
+		first = true;
+		j = -1;
+		step = trans.get(s);
+		for (Distribution distr : step) {
+			j++;
+
+			// ignoring the choice if it is disabled
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+				continue;
+
+			// Compute sum for this distribution
+			d = mdpRewards.getTransitionReward(s, j);
+			
+			for (Map.Entry<Integer, Double> e : distr) {
+				k = (Integer) e.getKey();
+				prob = (Double) e.getValue();
+				d += prob * vect[k] * disc;
+			}
+			
+			// Check whether we have exceeded min/max so far
+			if (first || (min && d < minmax) || (!min && d > minmax)) {
+				minmax = d;
+				// If adversary generation is enabled, remember optimal choice
+				if (adv != null)
+				{
+					advCh = j;
+				}
+			}
+			first = false;
+		}
+		// If adversary generation is enabled, store optimal choice
+		if (adv != null & !first) {
+			// Only remember strictly better choices (required for max)
+			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s]) || this instanceof STPG) {
+				adv[s] = advCh;
+			}
+		}
+		
+		// Add state reward (doesn't affect min/max)
+		minmax += mdpRewards.getStateReward(s);
+
+		return minmax;
+	}
+	
 	public static void main(String[] args)
 	{
 		STPGModelChecker mc;
