@@ -197,8 +197,9 @@ public class ExpressionReward extends Expression
 		
 		s += "R";
 		if (rewardStructIndex != null) {
-			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+"}";
-			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\"}";
+			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+(discount==null?"":",disc="+discount)+"}";
+			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\""+(discount==null?"":",disc="+discount) + "}";
+			else if (discount != null) s += "{disc="+discount+"}";
 		}
 		s += relOp;
 		s += (reward==null) ? "?" : reward.toString();

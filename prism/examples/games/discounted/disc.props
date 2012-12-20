@@ -2,5 +2,13 @@
 
 <<1>> R{"all"}max=? [ F s=3 ]
 
-<<1>> R{"all",disc=0.3}max=? [ F s=3 ]
+<<1>> R{"all"}max=? [ F s=3 ]
+
+<<1>> R{"all"}max=? [ Fc s=3 ]
+
+<<1>> R{"all"}max=? [ Fc s=3 ]
+
+<<1>> R{"all"}max=? [ F0 s=3 ]
+
+<<1>> R{"all",disc=0.9}max=? [ F0 s=3 ]
 

@@ -2285,6 +2285,7 @@ public class STPGModelChecker extends ProbModelChecker
 				R_CUMULATIVE);
 		System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 
+		
 		// TODO generate rich man strategy.
 
 		// compute B from the values for the rich man's strategy
