@@ -1,0 +1,6 @@
+<<1>> Rmax=? [ F s=3 ]
+
+<<1>> R{"all"}max=? [ F s=3 ]
+
+<<1>> R{"all",disc=0.3}max=? [ F s=3 ]
+

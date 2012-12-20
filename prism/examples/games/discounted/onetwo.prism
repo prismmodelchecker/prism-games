@@ -1,0 +1,25 @@
+smg
+
+player p1
+ game
+endplayer
+
+module game
+
+	s : [0..5] init 0;
+
+	[] s=0 -> (s'=1);
+	[] s=0 -> (s'=2);
+
+	[] s=1 -> 0.5 : (s'=3) + 0.5 : (s'=0);
+	[] s=2 -> 0.5 : (s'=3) + 0.5 : (s'=0);
+ 
+
+	[] s=3 -> true;
+endmodule
+
+
+rewards "all"
+	s=1 : 1;
+	s=2 : 2;
+endrewards
