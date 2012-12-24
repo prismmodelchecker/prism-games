@@ -1910,38 +1910,40 @@ public class STPGModelChecker extends ProbModelChecker
 
 		timerProb1 = System.currentTimeMillis();
 		// identify infinite values
-
 		BitSet aRew = new BitSet();
+		
+		if(!useDiscounting){
 
-		for (i = 0; i < n; i++) {
-			// skipping target states
-			if (target.get(i))
-				continue;
 
-			// check for state reward
-			if (rewards.getStateReward(i) > 0.0)
-				aRew.set(i);
-
-			// check for transition rewards
-			int nonZeroRewards = 0;
-			int inftyRewards = 0;
-			double trp;
-			for (int k = 0; k < stpg.getNumChoices(i); k++) {
-				trp = rewards.getTransitionReward(i, k);
-				// ignoring infinite rewards as these transitions will neven be
-				// taken
-				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
-					nonZeroRewards++;
+			for (i = 0; i < n; i++) {
+				// skipping target states
+				if (target.get(i))
+					continue;
+	
+				// check for state reward
+				if (rewards.getStateReward(i) > 0.0)
 					aRew.set(i);
-				} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
-					inftyRewards++;
+	
+				// check for transition rewards
+				int nonZeroRewards = 0;
+				int inftyRewards = 0;
+				double trp;
+				for (int k = 0; k < stpg.getNumChoices(i); k++) {
+					trp = rewards.getTransitionReward(i, k);
+					// ignoring infinite rewards as these transitions will neven be
+					// taken
+					if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
+						nonZeroRewards++;
+						aRew.set(i);
+					} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
+						inftyRewards++;
+				}
+	
+				if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
+					throw new PrismException(
+							"If transition reward is nonzero, all transitions going from the state must be.");
 			}
-
-			if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
-				throw new PrismException(
-						"If transition reward is nonzero, all transitions going from the state must be.");
 		}
-
 		BitSet b1 = aRew;
 		BitSet b2 = new BitSet();
 
