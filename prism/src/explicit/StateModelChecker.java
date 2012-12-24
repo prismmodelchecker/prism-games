@@ -740,9 +740,10 @@ public class StateModelChecker
 			for (int i = 0; i < model.getNumStates(); i++) {
 				// if state does not contain initial memory element - remove it
 				// from the filter
-				if (bsFilter.get(i)
-						&& ((Integer) model.getStatesList().get(i).varValues[model.getStatesList().get(i).varValues.length - 1]) != strategy
-								.getInitialStateOfTheProduct(i) && strategy.getInitialStateOfTheProduct(i) != -1) {
+				if ((bsFilter.get(i)
+						 && strategy.getInitialStateOfTheProduct(i) != -1
+						  && ((Integer) model.getStatesList().get(i).varValues[model.getStatesList().get(i).varValues.length - 1]) != strategy
+							.getInitialStateOfTheProduct(i)) || (model.getStatesList().get(i).varValues[model.getStatesList().get(i).varValues.length - 1] instanceof Boolean)) {
 					bsFilter.set(i, false);
 				}
 			}
