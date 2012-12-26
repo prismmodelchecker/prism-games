@@ -1951,6 +1951,7 @@ public class STPGModelChecker extends ProbModelChecker
 		all.flip(0, n);
 		// BitSet none = new BitSet();
 
+		if(false)
 		while (true) {
 			b2 = prob1(stpg, null, b1, min1, min2);
 
