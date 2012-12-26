@@ -1973,6 +1973,10 @@ public class STPGModelChecker extends ProbModelChecker
 			b3 = b1;
 			b1 = tmp;
 		}
+		else
+		{
+			b1 = new BitSet();
+		}
 
 		inf = prob0(stpg, null, b1, min1, min2);
 		inf.flip(0, n);
