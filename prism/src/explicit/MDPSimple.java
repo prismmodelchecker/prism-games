@@ -676,9 +676,11 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		for (Distribution distr : step) {
 
 			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
+			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true) {
+				j++;
 				continue;
-
+			}
+				
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
