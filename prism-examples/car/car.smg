@@ -1,0 +1,102 @@
+smg
+
+player p1 [move_slow], [move_fast], [honk], [brake], [ignore] endplayer
+player p2 [adult], [kid], [none], [stay], [retreat], [dash], [a0] endplayer
+
+const int SIDEWALK = 0;
+const int STREET = 1;
+
+const int HONKED = 1;
+const int BRAKED = 2;
+const int STOPPED = 3;
+const int IGNORED = 4;
+const int NONE = 0;
+
+module main
+
+	p : [1..2] init 1;
+	car_position : [0..4] init 0;
+	car_slow : bool init false;
+	pedestrian_position : [0..1] init 0;
+	
+	reaction : [0..4] init 0;
+	accident : bool init false;
+	stall : bool init false;
+
+	[move_slow] p=1 & car_position=0 & accident=false & stall=false -> (car_position'=1) & (car_slow'=true) & (p'=2);
+	[move_fast] p=1 & car_position=0 & accident=false & stall=false -> (car_position'=1) & (car_slow'=false) & (p'=2);
+
+
+
+	[adult] p=2 & car_position=1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.05 : (pedestrian_position'=STREET) & (p'=1) + 0.95 : (p'=1);
+	[kid] p=2 & car_position=1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.2 : (pedestrian_position'=STREET) & (p'=1) + 0.8 : (p'=1);
+	[none] p=2 & car_position=1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (p'=1);
+
+	[honk] p=1 & car_position=1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=HONKED) & (p'=2);
+	[brake] p=1 & car_position=1 & pedestrian_position=STREET & car_slow=false & accident=false & stall=false -> (reaction'=BRAKED) & (car_slow'=true) & (p'=2);
+	[brake] p=1 & car_position=1 & pedestrian_position=STREET & car_slow=true & accident=false & stall=false -> (reaction'=STOPPED) & (p'=2);
+	[ignore] p=1 & car_position=1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=IGNORED) & (p'=2);
+
+	//[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.3 : (accident'=true) + 0.7 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.2 : (accident'=true) + 0.8 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.1 : (accident'=true) + 0.9 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.05 : (accident'=true) + 0.95 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (stall'=true);
+	[retreat] p=2 & car_position=1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.95 : (accident'=true) + 0.05 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.9 : (accident'=true) + 0.1 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[move_slow] p=1 & car_position=1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=2) & (car_slow'=true) & (p'=2);
+	[move_fast] p=1 & car_position=1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=2) & (car_slow'=false) & (p'=2);
+
+
+
+	[adult] p=2 & car_position=2 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.05 : (pedestrian_position'=STREET) & (p'=1) + 0.95 : (p'=1);
+	[kid] p=2 & car_position=2 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.2 : (pedestrian_position'=STREET) & (p'=1) + 0.8 : (p'=1);
+	[none] p=2 & car_position=2 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (p'=1);
+
+	[honk] p=1 & car_position=2 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=HONKED) & (p'=2);
+	[brake] p=1 & car_position=2 & pedestrian_position=STREET & car_slow=false & accident=false & stall=false -> (reaction'=BRAKED) & (car_slow'=true) & (p'=2);
+	[brake] p=1 & car_position=2 & pedestrian_position=STREET & car_slow=true & accident=false & stall=false -> (reaction'=STOPPED) & (p'=2);
+	[ignore] p=1 & car_position=2 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=IGNORED) & (p'=2);
+
+	//[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=2 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.3 : (accident'=true) + 0.7 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=2 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.2 : (accident'=true) + 0.8 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=2 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=2 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.1 : (accident'=true) + 0.9 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=2 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.05 : (accident'=true) + 0.95 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=2 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (stall'=true);
+	[retreat] p=2 & car_position=2 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=2 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay] p=2 & car_position=2 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> (accident'=true);
+	[retreat] p=2 & car_position=2 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.95 : (accident'=true) + 0.05 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash] p=2 & car_position=2 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.9 : (accident'=true) + 0.1 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[move_slow] p=1 & car_position=2 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=3) & (car_slow'=true) & (p'=2);
+	[move_fast] p=1 & car_position=2 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=3) & (car_slow'=false) & (p'=2);
+
+
+
+	// terminals
+	[a0] accident=true -> (accident'=true);
+	[a0] stall=true -> (stall'=true);
+	[a0] car_position=3 -> (car_position'=3);
+
+endmodule
+
+// liveness
+formula goal1 = (car_position=3);
+// safety
+formula goal2 = (accident=true);
+formula goal3 = (stall=true);

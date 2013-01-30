@@ -34,9 +34,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.math.BigInteger;
 
 import prism.ModelType;
 import prism.PrismException;
+
+import org.apache.commons.math3.fraction.BigFraction;
+import parma_polyhedra_library.*;
 
 /**
  * Simple explicit-state representation of a stochastic multi-player game (SMG).
@@ -265,31 +269,365 @@ public class SMG extends STPGExplicit implements STPG
 		return this.players;
 	}
 
-	public void setPlayerMapping(Map<String, Integer> pl)
+        public void setPlayerMapping(Map<String, Integer> pl)
 	{
 		this.players = pl;
 	}
 
-	public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2, List<Set<ReachTuple>> init)
-	{
+
+    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets) throws PrismException
+        {
+	    // can remove this if Gauss-Seidel is desired
+	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
+
+	    boolean min = false;
+	    
+	    for(int s = 0; s < numStates; s++){
+		if (getPlayer(s) == 1)
+		    min = min1;
+		else
+		    min = min2;
+		// for Gauss-Seidel do the following:
+		// init.set(s, pMultiObjectiveSingle(s, init, min, targets));
+		result.add(pMultiObjectiveSingle(s, init, min, targets));
+	    }
+
+	    return result;
+        }
+
+    public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2, List<Set<ReachTuple>> init)
+        {
 		int s;
 		boolean min = false;
 		List<Set<ReachTuple>> tuples = new ArrayList<Set<ReachTuple>>(init.size());
+		// go through all states
 		for (s = 0; s < numStates; s++) {
+		    // @clemens: min == True if it is a bad guy state, and False otherwise (or the other way round)
 			if (getPlayer(s) == 1)
 				min = min1;
 			else
-				min = min2;
-			// System.out.println("Checking state " + s);
+			        min = min2;
+			//System.out.println("Checking state " + s);
+			// implement F(X)(s) for the particular state
 			tuples.add(mvMultiObjectiveSingle(s, init, min));
 		}
 		return tuples;
 	}
 
+
+    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets) throws PrismException
+        {
+
+	    // TODO: put in proper location for tweaking
+	    double accuracy = 10000000.0;
+
+	    
+	    List<Distribution> dists = trans.get(s);
+
+	    List<Polyhedron> distPolys = new ArrayList<Polyhedron>(dists.size());
+	    Distribution distr;
+	    List<Integer> states;
+	    Polyhedron statePoly;
+
+	    for(int d = 0; d < dists.size(); d++){
+		// consider each distribution as a stochastic state
+		// hence get a polyhedron for each distribution
+		
+		
+		// first, get a specific distribution
+		distr = dists.get(d);
+		states = new ArrayList<Integer>(distr.keySet());
+		
+		if(states.size() >=1){ // if the distribution is "interesting" -- need Minkowski sum business
+
+		    // polyhedra of the successors of the stochastic state d
+		    List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
+		    
+		    // define a temporary variable for each successor
+		    Map<Integer,Variable> temp_vars = new HashMap<Integer,Variable>(states.size());
+		    int supdim = targets.size();
+		    for(Integer t : states){
+			temp_vars.put(t, new Variable(supdim));
+			supdim++;
+		    }
+
+		    // first find probabilities that sum to one
+		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
+		    BigFraction residual = BigFraction.ONE;
+		    //		    System.out.println("----------");
+		    for(Integer t : states){
+			BigFraction prob = new BigFraction(distr.get(t), 1.0/accuracy, Integer.MAX_VALUE);
+			//	System.out.printf("%f, %s\n", distr.get(t), prob.toString());
+			probs.put(t, prob);
+			residual = residual.subtract(prob);
+		    }
+
+		    // NOTE: use this for more accurate computation
+		    /*
+		    residual = residual.divide(states.size());
+		    System.out.println(residual);
+		    for(Integer t : states){
+			BigFraction prob = probs.get(t);
+			prob = prob.add(residual);
+			probs.put(t, prob);
+			System.out.println(prob);
+		    }
+		    */
+		    // NOTE: this is rather ad-hoc
+		    probs.put(states.get(0), probs.get(states.get(0)).add(residual));
+		    
+		    // multiply the polyhedron for each nonzero successor of the distribution:
+		    for(Integer t : states){
+			// NOTE: can specify epsilon accuracy here
+			//BigFraction f = new BigFraction(distr.get(t), 0.0001, Integer.MAX_VALUE);
+			BigFraction f = probs.get(t);
+			f.reduce();
+			/*			if(s==4661) System.out.println(f.toString());
+			
+			if(s==4661){
+			    System.out.println("State 4661:");
+			    System.out.println(init.get(t).ascii_dump());
+			} else if(s==4662){
+			    System.out.println("State 4662:");
+			    System.out.println(init.get(t).ascii_dump());
+			} else if(s==4663){
+			    System.out.println("State 4663:");
+			    System.out.println(init.get(t).ascii_dump());
+			} else if(s==4747){
+			    System.out.println("State 4747:");
+			    System.out.println(init.get(t).ascii_dump());
+			    }*/
+			    
+
+			// do the scaling by f
+			Generator_System gsn = new Generator_System();
+			for (Generator g : init.get(t).minimized_generators()){
+			    // TODO: deal with different generator types
+			    if(g.type()==Generator_Type.POINT){
+				BigInteger fac = BigInteger.valueOf(states.size());
+				// multiply by numerator of probability
+				Linear_Expression le = g.linear_expression().times(new Coefficient(f.getNumerator().multiply(fac)));
+			    
+				//System.out.println(le.ascii_dump());
+			    
+				// add the auxiliary dimension
+				Linear_Expression les = le.sum(new Linear_Expression_Times(new Coefficient(f.getDenominator().multiply(fac).multiply(g.divisor().getBigInteger())), temp_vars.get(t)));
+			    
+				//System.out.println(les.ascii_dump());
+			    
+				// divide by denominator of probability
+				Coefficient c = new Coefficient(g.divisor().getBigInteger().multiply(f.getDenominator()));
+			    
+				Generator ng = Generator.point(les, c);
+				//System.out.println(ng.ascii_dump());
+			    
+				gsn.add(ng);
+			    } else {
+				throw new PrismException("Only point generators supported at this point. Where did the line or ray come from?");
+			    }
+			}
+			// add the scaled generators
+			distGs.add(gsn); // corresponding to state t
+
+			// print status:
+			/*			if(s==4661){
+			System.out.println("--------------\n");
+			System.out.printf("(%d) ---%f---> (%d)\n", s, distr.get(t), t);
+			C_Polyhedron cp = new C_Polyhedron(gsn);
+			System.out.println(cp.ascii_dump());
+			System.out.println("--------------\n");
+						}
+		    */
+		    }
+		    
+		    // then form the Minkowski sum between polyhedra in distGs and add the result to distPolys
+		    // do this by stacking all generators together
+		    // and then constraining the temporary dimensions to one (1)
+		    
+		    Generator_System gs = new Generator_System();
+		    for(Generator_System g : distGs){
+			gs.addAll(g);
+		    }
+		    
+		    C_Polyhedron cp = new C_Polyhedron(gs);
+		    // "visualize"
+		    //System.out.println(cp.ascii_dump());
+		    
+		    // add the constraints
+		    for (Integer t : states){
+			//System.out.printf("Add state %d\n", t);
+			Linear_Expression lhs = new Linear_Expression_Variable(temp_vars.get(t));
+			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+			Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
+			cp.add_constraint(c);
+		    }
+		    
+		    // "visualize" again
+		    //System.out.println(cp.ascii_dump());
+		    
+		    // project away the unneccessary dimensions
+		    cp.remove_higher_space_dimensions(targets.size());
+		    
+		    
+		    // now in cp have the minkowski sum for that particular distribution d
+		    distPolys.add(cp);
+		    
+		    // and again
+		    //if(s==4661) System.out.println(cp.ascii_dump());
+		}
+		else if (states.size()==0) { // distribution just assigns 1 to one successor
+		    distPolys.add(init.get(states.get(0)));
+		}
+		
+		    
+	    }
+
+
+	    // now do the good guy or bad guy operations on the polyhedra in distPolys
+
+	    //	    System.out.println(distPolys);
+	    // System.out.println(distPolys.size());
+
+	    statePoly = distPolys.remove(0);
+	    if (!min) {
+		// good guy
+		for (Polyhedron cp : distPolys){
+		    statePoly.upper_bound_assign(cp);
+		}
+	    }
+	    else {
+		// bad guy
+		for (Polyhedron cp : distPolys){
+		    statePoly.intersection_assign(cp);
+		}
+	    }
+	    
+
+	    boolean minimize = true;
+	    if(minimize){
+
+		Generator_System newmgs = new Generator_System();
+
+		Generator_System mgs = statePoly.minimized_generators();
+		for(Generator mg : mgs){
+
+		    
+		    Coefficient c = mg.divisor();
+		    Linear_Expression le = mg.linear_expression();
+		    
+		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
+		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
+
+		    //		    System.out.println("----");
+		    
+		    //System.out.println(le);
+		    //System.out.println(map);
+		    
+		    // find gcd
+		    BigInteger gcd = c.getBigInteger();
+		    //System.out.printf("denom: %s\n", gcd.toString());
+		    for(BigInteger v : map.values()){
+			gcd = gcd.gcd(v);
+			//System.out.printf("gcd(%s) -> %s\n", v.toString(), gcd.toString());
+		    }
+
+		    // limit the size of the denominator by the accuracy
+		    if(c.getBigInteger().divide(gcd).compareTo(BigInteger.valueOf((long)accuracy)) > 0){
+			//			System.out.printf("gcd %s too large ...", gcd.toString());
+			gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
+			//			System.out.printf(" substitute by %s\n", gcd.toString());
+		    }
+		 
+
+		    // now divide all by the gcd and build a new linear expression
+		    
+		    Linear_Expression nle;
+		    if(map.containsKey(null)){ // there is a coefficient without variable
+			nle = new Linear_Expression_Coefficient(new Coefficient(map.get(null)));
+		    } else {
+			nle = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
+		    }
+		    for(Variable k : map.keySet()){
+			//System.out.println(nle);
+			if(k != null){
+			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
+				nle = nle.subtract(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd).negate()), k));
+			    } else { // positive or zero
+				//System.out.printf("%s / %s\n", map.get(k).toString(), gcd.toString());
+				nle = nle.sum(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd)), k));
+			    }
+			}
+		    }
+		    
+		    //System.out.println(nle);
+		    //System.out.println("---");
+
+		    
+		    Coefficient nc = new Coefficient(c.getBigInteger().divide(gcd));
+
+		    newmgs.add(Generator.point(nle, nc));
+		}
+		
+		//for(Generator g : newmgs){
+		//    System.out.println(g.toString());
+		//}
+
+		statePoly = new C_Polyhedron(newmgs);
+		// add zero dimensions
+		if(statePoly.space_dimension()!=targets.size()) {
+		    statePoly.add_space_dimensions_and_project(targets.size() - statePoly.space_dimension());
+		}
+
+	    }
+
+
+	    // it could be possible that in this state a target is satisfied, so add the appropriate points
+	    // TODO: adapt this for safety
+
+	    boolean include_non_terminal_targets = true;
+
+	    if(include_non_terminal_targets){
+		Variable dims = new Variable(targets.size()-1);
+		for(int i = 0; i < targets.size(); i++){
+		    if(targets.get(i).get(s)){
+			// first expand in the appropriate direction
+			Variable dir = new Variable(i);
+			Generator g1 = Generator.point(new Linear_Expression_Variable(dir), new Coefficient(1));
+			// add variable in highest dimension to make dimensions agree
+			Generator g2 = Generator.point(new Linear_Expression_Times(new Coefficient(0), dims), new Coefficient(1));
+			Generator_System gs = new Generator_System();
+			gs.add(g1);
+			gs.add(g2);
+			//System.out.println(statePoly.ascii_dump());
+			statePoly.time_elapse_assign(new C_Polyhedron(gs));
+			// then restrict to one (<= 1)
+			Linear_Expression lhs = new Linear_Expression_Variable(dir); // TODO: does this work?
+			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+			statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
+		    }
+		}
+	    }
+
+
+	    //	    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>");
+	    //	    System.out.printf("State index: %d\n", s);
+	    //	    System.out.println(statePoly.ascii_dump());
+	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
+	       
+
+	    return statePoly;
+	    
+
+
+	}
+
+
+
 	private Set<ReachTuple> mvMultiObjectiveSingle(int s, List<Set<ReachTuple>> tuples, boolean min)
 	{
 
 		// retrieving choices for state
+	    //@clemens: no stochastic states, so need to nest here - get distributions already
 		List<Distribution> dists = trans.get(s);
 
 		// System.out.println("Computing tuples for distributions for state " +
@@ -300,6 +638,7 @@ public class SMG extends STPGExplicit implements STPG
 		Distribution distr;
 		List<Integer> states;
 		Set<ReachTuple> stateTuples;
+		//@for each distribution, that is, for all stochastic states compute X^k
 		for (int d = 0; d < dists.size(); d++) {
 
 			distr = dists.get(d);
@@ -309,11 +648,12 @@ public class SMG extends STPGExplicit implements STPG
 			// System.out.println("Computing tuple for distribution " + d);
 
 			// computing the tuples
+			//@clemens here will be the computation of stochastic states
 			computeDistTuples(distr, tuples, stateTuples, states, 0, null);
 			// System.out.println("Done.");
 			// System.out.println(stateTuples);
 			// System.out.println("Filtering tuples");
-			filterTuples(stateTuples);
+			filterTuples(stateTuples); ///@aistis: crazy!
 			// System.out.println("Done.");
 			// System.out.println(stateTuples);
 			distTuples.add(stateTuples);
@@ -325,6 +665,7 @@ public class SMG extends STPGExplicit implements STPG
 		Set<ReachTuple> ret = new HashSet<ReachTuple>();
 
 		// if player's maximising, take the union
+		// @clemens: good guy
 		if (!min) {
 			// System.out.println("Computing union..");
 			// joining all the lists
@@ -333,6 +674,7 @@ public class SMG extends STPGExplicit implements STPG
 			// System.out.println(ret);
 		}
 		// if player is minimising, take the intersection
+		// @clemens: bad guy
 		else {
 			//
 			// System.out.println("Computing intersection..");
