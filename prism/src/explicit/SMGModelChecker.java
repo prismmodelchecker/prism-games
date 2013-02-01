@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Arrays;
 import java.math.BigInteger;
+import java.util.Map;
+import java.util.HashMap;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionPATL;
@@ -51,6 +53,11 @@ import prism.PrismLangException;
 import strat.ExactValueStrategy;
 import strat.Strategy;
 import explicit.rewards.SMGRewards;
+
+import parser.ast.RewardStruct;
+import explicit.rewards.ConstructRewards;
+import explicit.rewards.STPGRewards;
+import explicit.PPLSupport;
 
 import org.apache.commons.math3.fraction.BigFraction;
 import parma_polyhedra_library.*;
@@ -74,10 +81,10 @@ public class SMGModelChecker extends STPGModelChecker
 	    Parma_Polyhedra_Library.initialize_library();
 
 	    //@clemens : don't change this - this works out the player coalition
-		// setting coalition parameter
-		((SMG) model).setCoalition(exprPATL.getCoalition());
-
-		Expression expr = exprPATL.getExpressionProb().getExpression();
+	    // setting coalition parameter
+	    ((SMG) model).setCoalition(exprPATL.getCoalition());
+	    
+	    Expression expr = exprPATL.getExpressionProb().getExpression();
 
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method.
@@ -163,24 +170,37 @@ public class SMGModelChecker extends STPGModelChecker
 				 long tuplesTime = System.nanoTime();
 
 				 //start the value iteration --- result will be X^{maxk}
-				 List<Set<ReachTuple>> result =	 this.computeReachabilityTuples(min, !min, (STPG) model, targets);
+				 List<Set<ReachTuple>> result = new ArrayList<Set<ReachTuple>>();
+				 try{
+				     result = this.computeReachabilityTuples(min, !min, (STPG) model, targets);
+				 } catch (PrismException e) {
+				     System.out.println("Exception in tuple computations.");
+				 }
 				 tuplesTime = System.nanoTime() - tuplesTime;
+
+
+
+				 // rewards
+				 // TODO: properly get reward structure
+				 // TODO: need ALL reward structures, and pass them all to the function
+				 RewardStruct rewStruct = modulesFile.getRewardStruct(0);
+				 ConstructRewards constructRewards = new ConstructRewards(mainLog);
+				 STPGRewards stpgRewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
 
 
 				 long polyTime = System.nanoTime();
 
 				 // polyhedra-based method:
-				 List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, targets);
+				 List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets);
 
 				 polyTime = System.nanoTime() - polyTime;
 
 				
-				 /*        			 System.out.println("Printing results..");
+        			 System.out.println("Printing results..");
 				 for (int i = 0; i < result.size(); i++) {
 				 System.out.println(i + " " + result.get(i));
 				 }
 				 System.out.println("------------------");
-				 */
 
 				 System.out.printf("\nTuples computation: %.4f ms\n", ((double)tuplesTime)/1000000.0);
 				 System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
@@ -443,7 +463,7 @@ public class SMGModelChecker extends STPGModelChecker
 	  * @throws PrismException
 	  */
 
-    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<BitSet> targets) throws PrismException
+    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, STPGRewards stpgRewards, List<BitSet> targets) throws PrismException
      {
 	 int gameSize = stpg.getStatesList().size();
 
@@ -469,64 +489,87 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 // TODO: ad hoc - get from parser
-	 List<Integer> target_dir = new ArrayList<Integer>();
+	 BitSet target_dirs = new BitSet(targets.size());
 
-	 target_dir.add(0); // maximize
-	 target_dir.add(0); // minimize
-	 target_dir.add(0); // minimize
-	 target_dir.add(0); // maximize
-
+	 //target_dir.set(0); // maximize
+	 //target_dirs.set(1); // minimize
+	 //target_dirs.set(2); // minimize
+	 
+	 // NOTE: ensure reward is maximized (liveness)
+	 target_dirs.clear(targets.size()-1);
 
 	 // TODO: implement more efficiently - don't need to always evaluate for all states
 	 for (int s = 0; s < gameSize; s++){
 
 	     // base point - zero if all goals are maximized
-	     // but if there are some goals to be minimized, set this dimension to one
-	     Linear_Expression base = new Linear_Expression_Times(new Coefficient(target_dir.get(0)), dimensions.get(0));
-	     for(int i = 0; i < targets.size(); i++){
-		 base = new Linear_Expression_Sum(base, new Linear_Expression_Times(new Coefficient(target_dir.get(i)), dimensions.get(i)));
+	     // but if there are some goals to be minimized, set the respective dimension to one
+	     Linear_Expression base = new Linear_Expression_Times(new Coefficient(target_dirs.get(0)?1:0), dimensions.get(0));
+	     for(int i = 0; i < targets.size()-1; i++){
+		 base = new Linear_Expression_Sum(base, new Linear_Expression_Times(new Coefficient(target_dirs.get(i)?1:0), dimensions.get(i)));
 	     }
+	     // reward
+	     BigFraction r = new BigFraction(stpgRewards.getStateReward(s), 1.0/10000.0, Integer.MAX_VALUE);
+	     BigInteger num = r.getNumerator();
+	     BigInteger den = r.getDenominator();
+	     
+	     base = new Linear_Expression_Sum(base, new Linear_Expression_Times(new Coefficient(BigInteger.ZERO), dimensions.get(targets.size()-1)));
 	     gss.get(s).add(Generator.point(base, new Coefficient(1)));
 
 	     for(int i = 0; i < targets.size(); i++){
 		 // target satisfied?
-		 int coeff = (targets.get(i).get(s)?1:0) - target_dir.get(i);
+		 den = BigInteger.ONE;
+		 if(i==targets.size()-1){
+		     if(!target_dirs.get(i)){ // maximize
+			 num = r.getNumerator();
+		     } else { // minimize
+			 // TODO
+		     }
+		     den = r.getDenominator(); // TODO: careful with dividing the whole linexp later!
+		 } else {
+		     num = BigInteger.valueOf((targets.get(i).get(s)?1:0) - (target_dirs.get(i)?1:0));
+		 }
 		 //		     System.out.printf("Add one: state %d, target %d\n", s, i);
-		 Linear_Expression es = new Linear_Expression_Times(new Coefficient(coeff), dimensions.get(i));
+		 Linear_Expression es = new Linear_Expression_Times(new Coefficient(num), dimensions.get(i));
 
 		 List<Generator> to_add = new ArrayList<Generator>();
 		 for(Generator g : gss.get(s)){
 		     // TODO: don't add but saturate - don't want to get things like 1 + 1
-		     Linear_Expression sum = new Linear_Expression_Sum(es, g.linear_expression());
-		     to_add.add(Generator.point(sum, new Coefficient(1)));			 
+		     Linear_Expression sum;
+		     if(den.compareTo(BigInteger.ONE)==0){
+			 sum = new Linear_Expression_Sum(es, g.linear_expression());
+		     } else {
+			 sum = new Linear_Expression_Sum(es, g.linear_expression().times(new Coefficient(den)));
+		     }
+		     
+		     to_add.add(Generator.point(sum, new Coefficient(den)));
 		 }
 		 gss.get(s).addAll(to_add);
-
 	     }
 
 	     // see how poly looks like
 	     //System.out.printf("State: %d\n", s);
 	     C_Polyhedron cp = new C_Polyhedron(gss.get(s));
+	     //System.out.println(cp.ascii_dump());
 
 	     result.add(cp);
 
 
-	     //System.out.println(cp.ascii_dump());
+	     
 
 	 }
 
 
 	 // iterate functional application
-	 int maxIter = 5;
+	 int maxIter = 15;
 	 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 	 while (maxIter-- > 0) {
 	     
 	     //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	     System.out.printf("Iteration: %d\n", 5-maxIter);
+	     System.out.printf("Iteration: %d\n", 15-maxIter);
 	     //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets);
+	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, target_dirs, stpgRewards);
 
-	     //	     System.out.printf("Results of iteration %d\n", 5-maxIter);
+	     //	     System.out.printf("Results of iteration %d\n", 15-maxIter);
 	     //for(int i = 0; i < result.size(); i++){
 	     //	 System.out.printf("P(%d): %s\n", i, result.get(i).minimized_generators().toString());
 	     //	     }
@@ -538,9 +581,41 @@ public class SMGModelChecker extends STPGModelChecker
 	 System.out.println("Final Results:");
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-	 for(int i = 0; i < result.size(); i++){
-	     System.out.printf("P(%d): %s\n", i, result.get(i).minimized_generators().toString());
+	 //for(int i = 0; i < result.size(); i++){
+	 //    System.out.printf("P(%d): %s\n", i, result.get(i).minimized_generators().toString());
+	 //}
+
+	 for(int s = 0; s < result.size(); s++){
+	     System.out.printf("%d: [", s);
+	     for(Generator g : result.get(s).minimized_generators()){
+		 System.out.printf("[");
+		 BigInteger den = g.divisor().getBigInteger();
+		 Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
+		 PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
+		 boolean init = true;
+		 for(Variable i : dimensions){
+		     if(!init){
+			 System.out.printf(", ");
+		     }
+		     init = false;
+		     boolean foundvalue = false;
+		     for(Variable j : num.keySet()){
+			 if(j!=null && i.id()==j.id()){
+			     BigFraction val = new BigFraction(num.get(j), den);
+			     System.out.printf("%.4f", val.doubleValue());
+			     foundvalue = true;
+			     break;
+			 }
+		     }
+		     if(!foundvalue){
+			 System.out.printf("%.4f", 0.0);
+		     }
+		 }
+		 System.out.printf("]");
+	     }
+	     System.out.printf("]\n");
 	 }
+
 
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
@@ -611,7 +686,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 		 // System.out.println(result.toString());
 		 // starting value iterationinit
-		 int maxIter = 0;
+		 int maxIter = 15;
 		 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		 Set<ReachTuple> sample;
 		 while (maxIter-- > 0) {
@@ -644,11 +719,11 @@ public class SMGModelChecker extends STPGModelChecker
 			 // t.perturbateDown();
 
 
-			 System.out.printf("Printing results of iteration %d\n", 5-maxIter);
+			 /*			 System.out.printf("Printing results of iteration %d\n", 5-maxIter);
 			 for (int i = 0; i < result.size(); i++) {
 			     System.out.println(i + " " + result.get(i));
 			 }
-			 System.out.println("------------------");
+			 System.out.println("------------------");*/
 				 
 		 }
 

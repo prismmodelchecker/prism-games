@@ -38,6 +38,7 @@ import java.math.BigInteger;
 
 import prism.ModelType;
 import prism.PrismException;
+import explicit.rewards.STPGRewards;
 
 import org.apache.commons.math3.fraction.BigFraction;
 import parma_polyhedra_library.*;
@@ -275,9 +276,8 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets) throws PrismException
+    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards) throws PrismException
         {
-	    // can remove this if Gauss-Seidel is desired
 	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
 
 	    boolean min = false;
@@ -287,13 +287,12 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min1;
 		else
 		    min = min2;
-		// for Gauss-Seidel do the following:
-		// init.set(s, pMultiObjectiveSingle(s, init, min, targets));
-		result.add(pMultiObjectiveSingle(s, init, min, targets));
+		result.add(pMultiObjectiveSingle(s, init, min, targets, target_dirs, stpgRewards));
 	    }
 
 	    return result;
         }
+
 
     public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2, List<Set<ReachTuple>> init)
         {
@@ -315,7 +314,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards) throws PrismException
         {
 
 	    // TODO: put in proper location for tweaking
@@ -325,7 +324,6 @@ public class SMG extends STPGExplicit implements STPG
 	    List<Distribution> dists = trans.get(s);
 
 	    List<Polyhedron> distPolys = new ArrayList<Polyhedron>(dists.size());
-	    Distribution distr;
 	    List<Integer> states;
 	    Polyhedron statePoly;
 
@@ -335,10 +333,10 @@ public class SMG extends STPGExplicit implements STPG
 		
 		
 		// first, get a specific distribution
-		distr = dists.get(d);
+		Distribution distr = dists.get(d);
 		states = new ArrayList<Integer>(distr.keySet());
 		
-		if(states.size() >=1){ // if the distribution is "interesting" -- need Minkowski sum business
+		if(states.size() >=1){ // if the distribution is "interesting" -- need to compute Minkowski sum
 
 		    // polyhedra of the successors of the stochastic state d
 		    List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
@@ -354,14 +352,13 @@ public class SMG extends STPGExplicit implements STPG
 		    // first find probabilities that sum to one
 		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
 		    BigFraction residual = BigFraction.ONE;
-		    //		    System.out.println("----------");
 		    for(Integer t : states){
 			BigFraction prob = new BigFraction(distr.get(t), 1.0/accuracy, Integer.MAX_VALUE);
-			//	System.out.printf("%f, %s\n", distr.get(t), prob.toString());
 			probs.put(t, prob);
 			residual = residual.subtract(prob);
 		    }
 
+		    // make sure probabilities sum to one
 		    // NOTE: use this for more accurate computation
 		    /*
 		    residual = residual.divide(states.size());
@@ -373,31 +370,12 @@ public class SMG extends STPGExplicit implements STPG
 			System.out.println(prob);
 		    }
 		    */
-		    // NOTE: this is rather ad-hoc
+		    // NOTE: use this for a faster ad-hoc version
 		    probs.put(states.get(0), probs.get(states.get(0)).add(residual));
 		    
 		    // multiply the polyhedron for each nonzero successor of the distribution:
 		    for(Integer t : states){
-			// NOTE: can specify epsilon accuracy here
-			//BigFraction f = new BigFraction(distr.get(t), 0.0001, Integer.MAX_VALUE);
-			BigFraction f = probs.get(t);
-			f.reduce();
-			/*			if(s==4661) System.out.println(f.toString());
-			
-			if(s==4661){
-			    System.out.println("State 4661:");
-			    System.out.println(init.get(t).ascii_dump());
-			} else if(s==4662){
-			    System.out.println("State 4662:");
-			    System.out.println(init.get(t).ascii_dump());
-			} else if(s==4663){
-			    System.out.println("State 4663:");
-			    System.out.println(init.get(t).ascii_dump());
-			} else if(s==4747){
-			    System.out.println("State 4747:");
-			    System.out.println(init.get(t).ascii_dump());
-			    }*/
-			    
+			BigFraction f = probs.get(t).reduce();
 
 			// do the scaling by f
 			Generator_System gsn = new Generator_System();
@@ -407,20 +385,11 @@ public class SMG extends STPGExplicit implements STPG
 				BigInteger fac = BigInteger.valueOf(states.size());
 				// multiply by numerator of probability
 				Linear_Expression le = g.linear_expression().times(new Coefficient(f.getNumerator().multiply(fac)));
-			    
-				//System.out.println(le.ascii_dump());
-			    
 				// add the auxiliary dimension
 				Linear_Expression les = le.sum(new Linear_Expression_Times(new Coefficient(f.getDenominator().multiply(fac).multiply(g.divisor().getBigInteger())), temp_vars.get(t)));
-			    
-				//System.out.println(les.ascii_dump());
-			    
 				// divide by denominator of probability
 				Coefficient c = new Coefficient(g.divisor().getBigInteger().multiply(f.getDenominator()));
-			    
 				Generator ng = Generator.point(les, c);
-				//System.out.println(ng.ascii_dump());
-			    
 				gsn.add(ng);
 			    } else {
 				throw new PrismException("Only point generators supported at this point. Where did the line or ray come from?");
@@ -428,16 +397,6 @@ public class SMG extends STPGExplicit implements STPG
 			}
 			// add the scaled generators
 			distGs.add(gsn); // corresponding to state t
-
-			// print status:
-			/*			if(s==4661){
-			System.out.println("--------------\n");
-			System.out.printf("(%d) ---%f---> (%d)\n", s, distr.get(t), t);
-			C_Polyhedron cp = new C_Polyhedron(gsn);
-			System.out.println(cp.ascii_dump());
-			System.out.println("--------------\n");
-						}
-		    */
 		    }
 		    
 		    // then form the Minkowski sum between polyhedra in distGs and add the result to distPolys
@@ -450,44 +409,28 @@ public class SMG extends STPGExplicit implements STPG
 		    }
 		    
 		    C_Polyhedron cp = new C_Polyhedron(gs);
-		    // "visualize"
-		    //System.out.println(cp.ascii_dump());
-		    
+
 		    // add the constraints
 		    for (Integer t : states){
-			//System.out.printf("Add state %d\n", t);
 			Linear_Expression lhs = new Linear_Expression_Variable(temp_vars.get(t));
 			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
 			Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
 			cp.add_constraint(c);
 		    }
-		    
-		    // "visualize" again
-		    //System.out.println(cp.ascii_dump());
-		    
+
 		    // project away the unneccessary dimensions
 		    cp.remove_higher_space_dimensions(targets.size());
 		    
-		    
 		    // now in cp have the minkowski sum for that particular distribution d
 		    distPolys.add(cp);
-		    
-		    // and again
-		    //if(s==4661) System.out.println(cp.ascii_dump());
 		}
 		else if (states.size()==0) { // distribution just assigns 1 to one successor
 		    distPolys.add(init.get(states.get(0)));
 		}
-		
 		    
 	    }
 
-
 	    // now do the good guy or bad guy operations on the polyhedra in distPolys
-
-	    //	    System.out.println(distPolys);
-	    // System.out.println(distPolys.size());
-
 	    statePoly = distPolys.remove(0);
 	    if (!min) {
 		// good guy
@@ -502,7 +445,8 @@ public class SMG extends STPGExplicit implements STPG
 		}
 	    }
 	    
-
+	    // minimize the fractions
+	    // limit accuracy as well
 	    boolean minimize = true;
 	    if(minimize){
 
@@ -517,30 +461,18 @@ public class SMG extends STPGExplicit implements STPG
 		    
 		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
 		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
-
-		    //		    System.out.println("----");
-		    
-		    //System.out.println(le);
-		    //System.out.println(map);
-		    
 		    // find gcd
 		    BigInteger gcd = c.getBigInteger();
-		    //System.out.printf("denom: %s\n", gcd.toString());
 		    for(BigInteger v : map.values()){
 			gcd = gcd.gcd(v);
-			//System.out.printf("gcd(%s) -> %s\n", v.toString(), gcd.toString());
 		    }
 
 		    // limit the size of the denominator by the accuracy
 		    if(c.getBigInteger().divide(gcd).compareTo(BigInteger.valueOf((long)accuracy)) > 0){
-			//			System.out.printf("gcd %s too large ...", gcd.toString());
 			gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
-			//			System.out.printf(" substitute by %s\n", gcd.toString());
 		    }
-		 
 
 		    // now divide all by the gcd and build a new linear expression
-		    
 		    Linear_Expression nle;
 		    if(map.containsKey(null)){ // there is a coefficient without variable
 			nle = new Linear_Expression_Coefficient(new Coefficient(map.get(null)));
@@ -548,29 +480,18 @@ public class SMG extends STPGExplicit implements STPG
 			nle = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
 		    }
 		    for(Variable k : map.keySet()){
-			//System.out.println(nle);
 			if(k != null){
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
 				nle = nle.subtract(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd).negate()), k));
 			    } else { // positive or zero
-				//System.out.printf("%s / %s\n", map.get(k).toString(), gcd.toString());
 				nle = nle.sum(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd)), k));
 			    }
 			}
 		    }
-		    
-		    //System.out.println(nle);
-		    //System.out.println("---");
-
-		    
 		    Coefficient nc = new Coefficient(c.getBigInteger().divide(gcd));
 
 		    newmgs.add(Generator.point(nle, nc));
 		}
-		
-		//for(Generator g : newmgs){
-		//    System.out.println(g.toString());
-		//}
 
 		statePoly = new C_Polyhedron(newmgs);
 		// add zero dimensions
@@ -580,45 +501,76 @@ public class SMG extends STPGExplicit implements STPG
 
 	    }
 
-
 	    // it could be possible that in this state a target is satisfied, so add the appropriate points
-	    // TODO: adapt this for safety
+	    // TODO: test for safety
 
 	    boolean include_non_terminal_targets = true;
-
 	    if(include_non_terminal_targets){
 		Variable dims = new Variable(targets.size()-1);
-		for(int i = 0; i < targets.size(); i++){
+		for(int i = 0; i < targets.size()-1; i++){ // need something else for rewards
 		    if(targets.get(i).get(s)){
 			// first expand in the appropriate direction
 			Variable dir = new Variable(i);
-			Generator g1 = Generator.point(new Linear_Expression_Variable(dir), new Coefficient(1));
+			Linear_Expression l_dir = new Linear_Expression_Variable(dir);
+			if(target_dirs.get(i)){ // minimize
+			    l_dir = new Linear_Expression_Unary_Minus(l_dir);
+			}
+			Generator g1 = Generator.point(l_dir, new Coefficient(1));
 			// add variable in highest dimension to make dimensions agree
 			Generator g2 = Generator.point(new Linear_Expression_Times(new Coefficient(0), dims), new Coefficient(1));
 			Generator_System gs = new Generator_System();
 			gs.add(g1);
 			gs.add(g2);
-			//System.out.println(statePoly.ascii_dump());
 			statePoly.time_elapse_assign(new C_Polyhedron(gs));
-			// then restrict to one (<= 1)
-			Linear_Expression lhs = new Linear_Expression_Variable(dir); // TODO: does this work?
-			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
-			statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
+			// then restrict
+			Linear_Expression lhs = new Linear_Expression_Variable(dir);
+			if(target_dirs.get(i)){ // minimize: restrict to zero (>= 0)
+			    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(0));
+			    statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.GREATER_OR_EQUAL,rhs));
+			} else { // maximize: restrict to one (<= 1)
+			    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+			    statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
+			}
 		    }
 		}
-	    }
 
+		// here comes the reward part
+		// NOTE: with the proper restrictions, can do the same thing for probabilities
+		//       to stay uniform.
+		// ignore terminals
+		boolean terminal = true;
+		for(Distribution distr : dists){
+		    if(distr.keySet().size()!=1 || !distr.keySet().contains(s)){ // not a terminal
+			terminal = false;
+			break;
+		    }
+		}
+		//if(terminal) System.out.printf("Terminal: %d\n", s);
+		if(!terminal){
+		    BigFraction r = new BigFraction(stpgRewards.getStateReward(s));
+		    BigInteger num = r.getNumerator();
+		    BigInteger den = r.getDenominator();
+		    // add the reward to each generator
+		    Generator_System to_add = new Generator_System();
+		    for(Generator g : statePoly.minimized_generators()){
+			Linear_Expression le = g.linear_expression();
+			Coefficient div = g.divisor();
+			le = le.times(new Coefficient(den));
+			div = new Coefficient(div.getBigInteger().multiply(den));
+			le = le.sum(new Linear_Expression_Times(new Coefficient(num), new Variable(targets.size()-1)));
+			to_add.add(Generator.point(le, div));
+		    }
+		    statePoly.add_generators(to_add);
+		}
+	    
+	    }
 
 	    //	    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>");
 	    //	    System.out.printf("State index: %d\n", s);
 	    //	    System.out.println(statePoly.ascii_dump());
 	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
-	       
 
 	    return statePoly;
-	    
-
-
 	}
 
 
