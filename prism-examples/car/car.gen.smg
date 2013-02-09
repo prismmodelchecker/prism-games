@@ -1,0 +1,440 @@
+// PRISM model for case study of car driving
+// - The game consists of two players and will have three goals.
+//
+// This is a machine-generated file
+// Author: Clemens Wiltsche
+// Last modified: 25/01/2013
+
+
+smg
+
+player p1
+	[move_slow_1_init], [move_fast_1_init], [move_slow_2_init], [move_fast_2_init],
+	[move_slow_1_1], [move_fast_1_1], [move_slow_2_1], [move_fast_2_1], [honk_1], [brake_1], [ignore_1],
+	[move_slow_1_2], [move_fast_1_2], [move_slow_2_2], [move_fast_2_2], [honk_2], [brake_2], [ignore_2],
+	[move_slow_1_3], [move_fast_1_3], [move_slow_2_3], [move_fast_2_3], [honk_3], [brake_3], [ignore_3],
+	[move_slow_1_4], [move_fast_1_4], [move_slow_2_4], [move_fast_2_4], [honk_4], [brake_4], [ignore_4],
+	[move_slow_1_5], [move_fast_1_5], [move_slow_2_5], [move_fast_2_5], [honk_5], [brake_5], [ignore_5],
+	[move_slow_1_6], [move_fast_1_6], [move_slow_2_6], [move_fast_2_6], [honk_6], [brake_6], [ignore_6],
+	[move_slow_1_7], [move_fast_1_7], [move_slow_2_7], [move_fast_2_7], [honk_7], [brake_7], [ignore_7],
+	[move_slow_1_8], [move_fast_1_8], [move_slow_2_8], [move_fast_2_8], [honk_8], [brake_8], [ignore_8],
+	[move_slow_1_9], [move_fast_1_9], [move_slow_2_9], [move_fast_2_9], [honk_9], [brake_9], [ignore_9],
+	[move_slow_1_10], [move_fast_1_10], [move_slow_2_10], [move_fast_2_10], [honk_10], [brake_10], [ignore_10],
+	[move_slow_1_11], [move_fast_1_11], [move_slow_2_11], [move_fast_2_11], [honk_11], [brake_11], [ignore_11],
+	[move_slow_1_12], [move_fast_1_12], [move_slow_2_12], [move_fast_2_12], [honk_12], [brake_12], [ignore_12],
+	[move_slow_1_13], [move_fast_1_13], [move_slow_2_13], [move_fast_2_13], [honk_13], [brake_13], [ignore_13],
+	[move_slow_1_14], [move_fast_1_14], [move_slow_2_14], [move_fast_2_14], [honk_14], [brake_14], [ignore_14],
+	[move_slow_1_15], [move_fast_1_15], [move_slow_2_15], [move_fast_2_15], [honk_15], [brake_15], [ignore_15],
+	[move_slow_1_16], [move_fast_1_16], [move_slow_2_16], [move_fast_2_16], [honk_16], [brake_16], [ignore_16],
+	[move_slow_1_17], [move_fast_1_17], [move_slow_2_17], [move_fast_2_17], [honk_17], [brake_17], [ignore_17],
+	[move_slow_1_18], [move_fast_1_18], [move_slow_2_18], [move_fast_2_18], [honk_18], [brake_18], [ignore_18],
+	[move_slow_1_19], [move_fast_1_19], [move_slow_2_19], [move_fast_2_19], [honk_19], [brake_19], [ignore_19],
+	[move_slow_1_20], [move_fast_1_20], [move_slow_2_20], [move_fast_2_20], [honk_20], [brake_20], [ignore_20],
+	[move_slow_1_21], [move_fast_1_21], [move_slow_2_21], [move_fast_2_21], [honk_21], [brake_21], [ignore_21],
+	[move_slow_1_22], [move_fast_1_22], [move_slow_2_22], [move_fast_2_22], [honk_22], [brake_22], [ignore_22],
+	[move_slow_1_23], [move_fast_1_23], [move_slow_2_23], [move_fast_2_23], [honk_23], [brake_23], [ignore_23],
+	[move_slow_1_24], [move_fast_1_24], [move_slow_2_24], [move_fast_2_24], [honk_24], [brake_24], [ignore_24],
+	[move_slow_1_25], [move_fast_1_25], [move_slow_2_25], [move_fast_2_25], [honk_25], [brake_25], [ignore_25],
+	[move_slow_1_26], [move_fast_1_26], [move_slow_2_26], [move_fast_2_26], [honk_26], [brake_26], [ignore_26],
+	[move_slow_1_27], [move_fast_1_27], [move_slow_2_27], [move_fast_2_27], [honk_27], [brake_27], [ignore_27],
+	[move_slow_1_28], [move_fast_1_28], [move_slow_2_28], [move_fast_2_28], [honk_28], [brake_28], [ignore_28],
+	[move_slow_1_29], [move_fast_1_29], [move_slow_2_29], [move_fast_2_29], [honk_29], [brake_29], [ignore_29],
+	[move_slow_1_30], [move_fast_1_30], [move_slow_2_30], [move_fast_2_30], [honk_30], [brake_30], [ignore_30],
+	[move_slow_1_31], [move_fast_1_31], [move_slow_2_31], [move_fast_2_31], [honk_31], [brake_31], [ignore_31],
+	[move_slow_1_32], [move_fast_1_32], [move_slow_2_32], [move_fast_2_32], [honk_32], [brake_32], [ignore_32],
+	[move_slow_1_33], [move_fast_1_33], [move_slow_2_33], [move_fast_2_33], [honk_33], [brake_33], [ignore_33],
+	[move_slow_1_34], [move_fast_1_34], [move_slow_2_34], [move_fast_2_34], [honk_34], [brake_34], [ignore_34],
+	[move_slow_1_35], [move_fast_1_35], [move_slow_2_35], [move_fast_2_35], [honk_35], [brake_35], [ignore_35],
+	[move_slow_1_36], [move_fast_1_36], [move_slow_2_36], [move_fast_2_36], [honk_36], [brake_36], [ignore_36],
+	[move_slow_1_37], [move_fast_1_37], [move_slow_2_37], [move_fast_2_37], [honk_37], [brake_37], [ignore_37],
+	[move_slow_1_38], [move_fast_1_38], [move_slow_2_38], [move_fast_2_38], [honk_38], [brake_38], [ignore_38],
+	[move_slow_1_39], [move_fast_1_39], [move_slow_2_39], [move_fast_2_39], [honk_39], [brake_39], [ignore_39],
+	[move_slow_1_40], [move_fast_1_40], [move_slow_2_40], [move_fast_2_40], [honk_40], [brake_40], [ignore_40],
+	[move_slow_1_41], [move_fast_1_41], [move_slow_2_41], [move_fast_2_41], [honk_41], [brake_41], [ignore_41],
+	[move_slow_1_42], [move_fast_1_42], [move_slow_2_42], [move_fast_2_42], [honk_42], [brake_42], [ignore_42],
+	[move_slow_1_43], [move_fast_1_43], [move_slow_2_43], [move_fast_2_43], [honk_43], [brake_43], [ignore_43],
+	[move_slow_1_44], [move_fast_1_44], [move_slow_2_44], [move_fast_2_44], [honk_44], [brake_44], [ignore_44],
+	[move_slow_1_45], [move_fast_1_45], [move_slow_2_45], [move_fast_2_45], [honk_45], [brake_45], [ignore_45],
+	[move_slow_1_46], [move_fast_1_46], [move_slow_2_46], [move_fast_2_46], [honk_46], [brake_46], [ignore_46],
+	[move_slow_1_47], [move_fast_1_47], [move_slow_2_47], [move_fast_2_47], [honk_47], [brake_47], [ignore_47],
+	[move_slow_1_48], [move_fast_1_48], [move_slow_2_48], [move_fast_2_48], [honk_48], [brake_48], [ignore_48],
+	[move_slow_1_49], [move_fast_1_49], [move_slow_2_49], [move_fast_2_49], [honk_49], [brake_49], [ignore_49]
+endplayer
+
+player p2
+	[adult_1], [kid_1], [none_1], [stay_1], [retreat_1], [dash_1],
+	[adult_2], [kid_2], [none_2], [stay_2], [retreat_2], [dash_2],
+	[adult_3], [kid_3], [none_3], [stay_3], [retreat_3], [dash_3],
+	[adult_4], [kid_4], [none_4], [stay_4], [retreat_4], [dash_4],
+	[adult_5], [kid_5], [none_5], [stay_5], [retreat_5], [dash_5],
+	[adult_6], [kid_6], [none_6], [stay_6], [retreat_6], [dash_6],
+	[adult_7], [kid_7], [none_7], [stay_7], [retreat_7], [dash_7],
+	[adult_8], [kid_8], [none_8], [stay_8], [retreat_8], [dash_8],
+	[adult_9], [kid_9], [none_9], [stay_9], [retreat_9], [dash_9],
+	[adult_10], [kid_10], [none_10], [stay_10], [retreat_10], [dash_10],
+	[adult_11], [kid_11], [none_11], [stay_11], [retreat_11], [dash_11],
+	[adult_12], [kid_12], [none_12], [stay_12], [retreat_12], [dash_12],
+	[adult_13], [kid_13], [none_13], [stay_13], [retreat_13], [dash_13],
+	[adult_14], [kid_14], [none_14], [stay_14], [retreat_14], [dash_14],
+	[adult_15], [kid_15], [none_15], [stay_15], [retreat_15], [dash_15],
+	[adult_16], [kid_16], [none_16], [stay_16], [retreat_16], [dash_16],
+	[adult_17], [kid_17], [none_17], [stay_17], [retreat_17], [dash_17],
+	[adult_18], [kid_18], [none_18], [stay_18], [retreat_18], [dash_18],
+	[adult_19], [kid_19], [none_19], [stay_19], [retreat_19], [dash_19],
+	[adult_20], [kid_20], [none_20], [stay_20], [retreat_20], [dash_20],
+	[adult_21], [kid_21], [none_21], [stay_21], [retreat_21], [dash_21],
+	[adult_22], [kid_22], [none_22], [stay_22], [retreat_22], [dash_22],
+	[adult_23], [kid_23], [none_23], [stay_23], [retreat_23], [dash_23],
+	[adult_24], [kid_24], [none_24], [stay_24], [retreat_24], [dash_24],
+	[adult_25], [kid_25], [none_25], [stay_25], [retreat_25], [dash_25],
+	[adult_26], [kid_26], [none_26], [stay_26], [retreat_26], [dash_26],
+	[adult_27], [kid_27], [none_27], [stay_27], [retreat_27], [dash_27],
+	[adult_28], [kid_28], [none_28], [stay_28], [retreat_28], [dash_28],
+	[adult_29], [kid_29], [none_29], [stay_29], [retreat_29], [dash_29],
+	[adult_30], [kid_30], [none_30], [stay_30], [retreat_30], [dash_30],
+	[adult_31], [kid_31], [none_31], [stay_31], [retreat_31], [dash_31],
+	[adult_32], [kid_32], [none_32], [stay_32], [retreat_32], [dash_32],
+	[adult_33], [kid_33], [none_33], [stay_33], [retreat_33], [dash_33],
+	[adult_34], [kid_34], [none_34], [stay_34], [retreat_34], [dash_34],
+	[adult_35], [kid_35], [none_35], [stay_35], [retreat_35], [dash_35],
+	[adult_36], [kid_36], [none_36], [stay_36], [retreat_36], [dash_36],
+	[adult_37], [kid_37], [none_37], [stay_37], [retreat_37], [dash_37],
+	[adult_38], [kid_38], [none_38], [stay_38], [retreat_38], [dash_38],
+	[adult_39], [kid_39], [none_39], [stay_39], [retreat_39], [dash_39],
+	[adult_40], [kid_40], [none_40], [stay_40], [retreat_40], [dash_40],
+	[adult_41], [kid_41], [none_41], [stay_41], [retreat_41], [dash_41],
+	[adult_42], [kid_42], [none_42], [stay_42], [retreat_42], [dash_42],
+	[adult_43], [kid_43], [none_43], [stay_43], [retreat_43], [dash_43],
+	[adult_44], [kid_44], [none_44], [stay_44], [retreat_44], [dash_44],
+	[adult_45], [kid_45], [none_45], [stay_45], [retreat_45], [dash_45],
+	[adult_46], [kid_46], [none_46], [stay_46], [retreat_46], [dash_46],
+	[adult_47], [kid_47], [none_47], [stay_47], [retreat_47], [dash_47],
+	[adult_48], [kid_48], [none_48], [stay_48], [retreat_48], [dash_48],
+	[adult_49], [kid_49], [none_49], [stay_49], [retreat_49], [dash_49],
+	[term]
+endplayer
+
+const int SIDEWALK = 0;
+const int STREET = 1;
+
+const int HONKED = 1;
+const int BRAKED = 2;
+const int STOPPED = 3;
+const int IGNORED = 4;
+const int NONE = 0;
+
+const int POS_0 = 0;
+const int POS_1 = 1;
+const int POS_2 = 2;
+const int POS_3 = 3;
+const int POS_4 = 4;
+const int POS_5 = 5;
+const int POS_6 = 6;
+const int POS_7 = 7;
+const int POS_8 = 8;
+const int POS_9 = 9;
+const int POS_10 = 10;
+const int POS_11 = 11;
+const int POS_12 = 12;
+const int POS_13 = 13;
+const int POS_14 = 14;
+const int POS_15 = 15;
+const int POS_16 = 16;
+const int POS_17 = 17;
+const int POS_18 = 18;
+const int POS_19 = 19;
+const int POS_20 = 20;
+const int POS_21 = 21;
+const int POS_22 = 22;
+const int POS_23 = 23;
+const int POS_24 = 24;
+const int POS_25 = 25;
+const int POS_26 = 26;
+const int POS_27 = 27;
+const int POS_28 = 28;
+const int POS_29 = 29;
+const int POS_30 = 30;
+const int POS_31 = 31;
+const int POS_32 = 32;
+const int POS_33 = 33;
+const int POS_34 = 34;
+const int POS_35 = 35;
+const int POS_36 = 36;
+const int POS_37 = 37;
+const int POS_38 = 38;
+const int POS_39 = 39;
+const int POS_40 = 40;
+const int POS_41 = 41;
+const int POS_42 = 42;
+const int POS_43 = 43;
+const int POS_44 = 44;
+const int POS_45 = 45;
+const int POS_46 = 46;
+const int POS_47 = 47;
+const int POS_48 = 48;
+const int POS_49 = 49;
+const int POS_50 = 50;
+
+const int DEST_1_0 = POS_1;
+const int DEST_2_0 = POS_1;
+
+const int DEST_1_1 = POS_2;
+const int DEST_2_1 = POS_2;
+
+const int DEST_1_2 = POS_3;
+const int DEST_2_2 = POS_3;
+
+const int DEST_1_3 = POS_4;
+const int DEST_2_3 = POS_4;
+
+const int DEST_1_4 = POS_5;
+const int DEST_2_4 = POS_5;
+
+const int DEST_1_5 = POS_6;
+const int DEST_2_5 = POS_6;
+
+const int DEST_1_6 = POS_7;
+const int DEST_2_6 = POS_7;
+
+const int DEST_1_7 = POS_8;
+const int DEST_2_7 = POS_8;
+
+const int DEST_1_8 = POS_9;
+const int DEST_2_8 = POS_9;
+
+const int DEST_1_9 = POS_10;
+const int DEST_2_9 = POS_10;
+
+const int DEST_1_10 = POS_11;
+const int DEST_2_10 = POS_11;
+
+const int DEST_1_11 = POS_12;
+const int DEST_2_11 = POS_12;
+
+const int DEST_1_12 = POS_13;
+const int DEST_2_12 = POS_13;
+
+const int DEST_1_13 = POS_14;
+const int DEST_2_13 = POS_14;
+
+const int DEST_1_14 = POS_15;
+const int DEST_2_14 = POS_15;
+
+const int DEST_1_15 = POS_16;
+const int DEST_2_15 = POS_16;
+
+const int DEST_1_16 = POS_17;
+const int DEST_2_16 = POS_17;
+
+const int DEST_1_17 = POS_18;
+const int DEST_2_17 = POS_18;
+
+const int DEST_1_18 = POS_19;
+const int DEST_2_18 = POS_19;
+
+const int DEST_1_19 = POS_20;
+const int DEST_2_19 = POS_20;
+
+const int DEST_1_20 = POS_21;
+const int DEST_2_20 = POS_21;
+
+const int DEST_1_21 = POS_22;
+const int DEST_2_21 = POS_22;
+
+const int DEST_1_22 = POS_23;
+const int DEST_2_22 = POS_23;
+
+const int DEST_1_23 = POS_24;
+const int DEST_2_23 = POS_24;
+
+const int DEST_1_24 = POS_25;
+const int DEST_2_24 = POS_25;
+
+const int DEST_1_25 = POS_26;
+const int DEST_2_25 = POS_26;
+
+const int DEST_1_26 = POS_27;
+const int DEST_2_26 = POS_27;
+
+const int DEST_1_27 = POS_28;
+const int DEST_2_27 = POS_28;
+
+const int DEST_1_28 = POS_29;
+const int DEST_2_28 = POS_29;
+
+const int DEST_1_29 = POS_30;
+const int DEST_2_29 = POS_30;
+
+const int DEST_1_30 = POS_31;
+const int DEST_2_30 = POS_31;
+
+const int DEST_1_31 = POS_32;
+const int DEST_2_31 = POS_32;
+
+const int DEST_1_32 = POS_33;
+const int DEST_2_32 = POS_33;
+
+const int DEST_1_33 = POS_34;
+const int DEST_2_33 = POS_34;
+
+const int DEST_1_34 = POS_35;
+const int DEST_2_34 = POS_35;
+
+const int DEST_1_35 = POS_36;
+const int DEST_2_35 = POS_36;
+
+const int DEST_1_36 = POS_37;
+const int DEST_2_36 = POS_37;
+
+const int DEST_1_37 = POS_38;
+const int DEST_2_37 = POS_38;
+
+const int DEST_1_38 = POS_39;
+const int DEST_2_38 = POS_39;
+
+const int DEST_1_39 = POS_40;
+const int DEST_2_39 = POS_40;
+
+const int DEST_1_40 = POS_41;
+const int DEST_2_40 = POS_41;
+
+const int DEST_1_41 = POS_42;
+const int DEST_2_41 = POS_42;
+
+const int DEST_1_42 = POS_43;
+const int DEST_2_42 = POS_43;
+
+const int DEST_1_43 = POS_44;
+const int DEST_2_43 = POS_44;
+
+const int DEST_1_44 = POS_45;
+const int DEST_2_44 = POS_45;
+
+const int DEST_1_45 = POS_46;
+const int DEST_2_45 = POS_46;
+
+const int DEST_1_46 = POS_47;
+const int DEST_2_46 = POS_47;
+
+const int DEST_1_47 = POS_48;
+const int DEST_2_47 = POS_48;
+
+const int DEST_1_48 = POS_49;
+const int DEST_2_48 = POS_49;
+
+const int DEST_1_49 = POS_50;
+const int DEST_2_49 = POS_50;
+
+global p : [1..2] init 1;
+global car_position : [0..50] init 0;
+global car_slow : bool init false;
+global accident : bool init false;
+global stall : bool init false;
+global pedestrian_position : [0..1] init 0;
+global reaction : [0..4] init 0;
+
+module field_init
+	[move_slow_1_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=DEST_1_0) & (car_slow'=true) & (p'=2);
+	[move_fast_1_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=DEST_1_0) & (car_slow'=false) & (p'=2);
+	[move_slow_2_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=DEST_2_0) & (car_slow'=true) & (p'=2);
+	[move_fast_2_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=DEST_2_0) & (car_slow'=false) & (p'=2);
+endmodule
+
+module field_1
+
+	[adult_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.05 : (pedestrian_position'=STREET) & (p'=1) + 0.95 : (p'=1);
+	[kid_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.2 : (pedestrian_position'=STREET) & (p'=1) + 0.8 : (p'=1);
+	[none_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (p'=1);
+
+	[honk_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=HONKED) & (p'=2);
+	[brake_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & car_slow=false & accident=false & stall=false -> (reaction'=BRAKED) & (car_slow'=true) & (p'=2);
+	[brake_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & car_slow=true & accident=false & stall=false -> (reaction'=STOPPED) & (p'=2);
+	[ignore_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=IGNORED) & (p'=2);
+
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.3 : (accident'=true) + 0.7 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.2 : (accident'=true) + 0.8 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> (accident'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.1 : (accident'=true) + 0.9 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.05 : (accident'=true) + 0.95 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (stall'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> (accident'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.95 : (accident'=true) + 0.05 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.9 : (accident'=true) + 0.1 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[move_slow_1_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_1_1) & (car_slow'=true) & (p'=2);
+	[move_fast_1_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_1_1) & (car_slow'=false) & (p'=2);
+	[move_slow_2_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_2_1) & (car_slow'=true) & (p'=2);
+	[move_fast_2_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_2_1) & (car_slow'=false) & (p'=2);
+
+endmodule
+
+module field_2 = field_1 [POS_1=POS_2, DEST_1_1=DEST_1_2, DEST_2_1=DEST_2_2, adult_1=adult_2, kid_1=kid_2, none_1=none_2, honk_1=honk_2, brake_1=brake_2, ignore_1=ignore_2, retreat_1=retreat_2, dash_1=dash_2, stay_1=stay_2, move_slow_1_1=move_slow_1_2, move_fast_1_1=move_fast_1_2, move_slow_2_1=move_slow_2_2, move_fast_2_1=move_fast_2_2] endmodule
+module field_3 = field_1 [POS_1=POS_3, DEST_1_1=DEST_1_3, DEST_2_1=DEST_2_3, adult_1=adult_3, kid_1=kid_3, none_1=none_3, honk_1=honk_3, brake_1=brake_3, ignore_1=ignore_3, retreat_1=retreat_3, dash_1=dash_3, stay_1=stay_3, move_slow_1_1=move_slow_1_3, move_fast_1_1=move_fast_1_3, move_slow_2_1=move_slow_2_3, move_fast_2_1=move_fast_2_3] endmodule
+module field_4 = field_1 [POS_1=POS_4, DEST_1_1=DEST_1_4, DEST_2_1=DEST_2_4, adult_1=adult_4, kid_1=kid_4, none_1=none_4, honk_1=honk_4, brake_1=brake_4, ignore_1=ignore_4, retreat_1=retreat_4, dash_1=dash_4, stay_1=stay_4, move_slow_1_1=move_slow_1_4, move_fast_1_1=move_fast_1_4, move_slow_2_1=move_slow_2_4, move_fast_2_1=move_fast_2_4] endmodule
+module field_5 = field_1 [POS_1=POS_5, DEST_1_1=DEST_1_5, DEST_2_1=DEST_2_5, adult_1=adult_5, kid_1=kid_5, none_1=none_5, honk_1=honk_5, brake_1=brake_5, ignore_1=ignore_5, retreat_1=retreat_5, dash_1=dash_5, stay_1=stay_5, move_slow_1_1=move_slow_1_5, move_fast_1_1=move_fast_1_5, move_slow_2_1=move_slow_2_5, move_fast_2_1=move_fast_2_5] endmodule
+module field_6 = field_1 [POS_1=POS_6, DEST_1_1=DEST_1_6, DEST_2_1=DEST_2_6, adult_1=adult_6, kid_1=kid_6, none_1=none_6, honk_1=honk_6, brake_1=brake_6, ignore_1=ignore_6, retreat_1=retreat_6, dash_1=dash_6, stay_1=stay_6, move_slow_1_1=move_slow_1_6, move_fast_1_1=move_fast_1_6, move_slow_2_1=move_slow_2_6, move_fast_2_1=move_fast_2_6] endmodule
+module field_7 = field_1 [POS_1=POS_7, DEST_1_1=DEST_1_7, DEST_2_1=DEST_2_7, adult_1=adult_7, kid_1=kid_7, none_1=none_7, honk_1=honk_7, brake_1=brake_7, ignore_1=ignore_7, retreat_1=retreat_7, dash_1=dash_7, stay_1=stay_7, move_slow_1_1=move_slow_1_7, move_fast_1_1=move_fast_1_7, move_slow_2_1=move_slow_2_7, move_fast_2_1=move_fast_2_7] endmodule
+module field_8 = field_1 [POS_1=POS_8, DEST_1_1=DEST_1_8, DEST_2_1=DEST_2_8, adult_1=adult_8, kid_1=kid_8, none_1=none_8, honk_1=honk_8, brake_1=brake_8, ignore_1=ignore_8, retreat_1=retreat_8, dash_1=dash_8, stay_1=stay_8, move_slow_1_1=move_slow_1_8, move_fast_1_1=move_fast_1_8, move_slow_2_1=move_slow_2_8, move_fast_2_1=move_fast_2_8] endmodule
+module field_9 = field_1 [POS_1=POS_9, DEST_1_1=DEST_1_9, DEST_2_1=DEST_2_9, adult_1=adult_9, kid_1=kid_9, none_1=none_9, honk_1=honk_9, brake_1=brake_9, ignore_1=ignore_9, retreat_1=retreat_9, dash_1=dash_9, stay_1=stay_9, move_slow_1_1=move_slow_1_9, move_fast_1_1=move_fast_1_9, move_slow_2_1=move_slow_2_9, move_fast_2_1=move_fast_2_9] endmodule
+module field_10 = field_1 [POS_1=POS_10, DEST_1_1=DEST_1_10, DEST_2_1=DEST_2_10, adult_1=adult_10, kid_1=kid_10, none_1=none_10, honk_1=honk_10, brake_1=brake_10, ignore_1=ignore_10, retreat_1=retreat_10, dash_1=dash_10, stay_1=stay_10, move_slow_1_1=move_slow_1_10, move_fast_1_1=move_fast_1_10, move_slow_2_1=move_slow_2_10, move_fast_2_1=move_fast_2_10] endmodule
+module field_11 = field_1 [POS_1=POS_11, DEST_1_1=DEST_1_11, DEST_2_1=DEST_2_11, adult_1=adult_11, kid_1=kid_11, none_1=none_11, honk_1=honk_11, brake_1=brake_11, ignore_1=ignore_11, retreat_1=retreat_11, dash_1=dash_11, stay_1=stay_11, move_slow_1_1=move_slow_1_11, move_fast_1_1=move_fast_1_11, move_slow_2_1=move_slow_2_11, move_fast_2_1=move_fast_2_11] endmodule
+module field_12 = field_1 [POS_1=POS_12, DEST_1_1=DEST_1_12, DEST_2_1=DEST_2_12, adult_1=adult_12, kid_1=kid_12, none_1=none_12, honk_1=honk_12, brake_1=brake_12, ignore_1=ignore_12, retreat_1=retreat_12, dash_1=dash_12, stay_1=stay_12, move_slow_1_1=move_slow_1_12, move_fast_1_1=move_fast_1_12, move_slow_2_1=move_slow_2_12, move_fast_2_1=move_fast_2_12] endmodule
+module field_13 = field_1 [POS_1=POS_13, DEST_1_1=DEST_1_13, DEST_2_1=DEST_2_13, adult_1=adult_13, kid_1=kid_13, none_1=none_13, honk_1=honk_13, brake_1=brake_13, ignore_1=ignore_13, retreat_1=retreat_13, dash_1=dash_13, stay_1=stay_13, move_slow_1_1=move_slow_1_13, move_fast_1_1=move_fast_1_13, move_slow_2_1=move_slow_2_13, move_fast_2_1=move_fast_2_13] endmodule
+module field_14 = field_1 [POS_1=POS_14, DEST_1_1=DEST_1_14, DEST_2_1=DEST_2_14, adult_1=adult_14, kid_1=kid_14, none_1=none_14, honk_1=honk_14, brake_1=brake_14, ignore_1=ignore_14, retreat_1=retreat_14, dash_1=dash_14, stay_1=stay_14, move_slow_1_1=move_slow_1_14, move_fast_1_1=move_fast_1_14, move_slow_2_1=move_slow_2_14, move_fast_2_1=move_fast_2_14] endmodule
+module field_15 = field_1 [POS_1=POS_15, DEST_1_1=DEST_1_15, DEST_2_1=DEST_2_15, adult_1=adult_15, kid_1=kid_15, none_1=none_15, honk_1=honk_15, brake_1=brake_15, ignore_1=ignore_15, retreat_1=retreat_15, dash_1=dash_15, stay_1=stay_15, move_slow_1_1=move_slow_1_15, move_fast_1_1=move_fast_1_15, move_slow_2_1=move_slow_2_15, move_fast_2_1=move_fast_2_15] endmodule
+module field_16 = field_1 [POS_1=POS_16, DEST_1_1=DEST_1_16, DEST_2_1=DEST_2_16, adult_1=adult_16, kid_1=kid_16, none_1=none_16, honk_1=honk_16, brake_1=brake_16, ignore_1=ignore_16, retreat_1=retreat_16, dash_1=dash_16, stay_1=stay_16, move_slow_1_1=move_slow_1_16, move_fast_1_1=move_fast_1_16, move_slow_2_1=move_slow_2_16, move_fast_2_1=move_fast_2_16] endmodule
+module field_17 = field_1 [POS_1=POS_17, DEST_1_1=DEST_1_17, DEST_2_1=DEST_2_17, adult_1=adult_17, kid_1=kid_17, none_1=none_17, honk_1=honk_17, brake_1=brake_17, ignore_1=ignore_17, retreat_1=retreat_17, dash_1=dash_17, stay_1=stay_17, move_slow_1_1=move_slow_1_17, move_fast_1_1=move_fast_1_17, move_slow_2_1=move_slow_2_17, move_fast_2_1=move_fast_2_17] endmodule
+module field_18 = field_1 [POS_1=POS_18, DEST_1_1=DEST_1_18, DEST_2_1=DEST_2_18, adult_1=adult_18, kid_1=kid_18, none_1=none_18, honk_1=honk_18, brake_1=brake_18, ignore_1=ignore_18, retreat_1=retreat_18, dash_1=dash_18, stay_1=stay_18, move_slow_1_1=move_slow_1_18, move_fast_1_1=move_fast_1_18, move_slow_2_1=move_slow_2_18, move_fast_2_1=move_fast_2_18] endmodule
+module field_19 = field_1 [POS_1=POS_19, DEST_1_1=DEST_1_19, DEST_2_1=DEST_2_19, adult_1=adult_19, kid_1=kid_19, none_1=none_19, honk_1=honk_19, brake_1=brake_19, ignore_1=ignore_19, retreat_1=retreat_19, dash_1=dash_19, stay_1=stay_19, move_slow_1_1=move_slow_1_19, move_fast_1_1=move_fast_1_19, move_slow_2_1=move_slow_2_19, move_fast_2_1=move_fast_2_19] endmodule
+module field_20 = field_1 [POS_1=POS_20, DEST_1_1=DEST_1_20, DEST_2_1=DEST_2_20, adult_1=adult_20, kid_1=kid_20, none_1=none_20, honk_1=honk_20, brake_1=brake_20, ignore_1=ignore_20, retreat_1=retreat_20, dash_1=dash_20, stay_1=stay_20, move_slow_1_1=move_slow_1_20, move_fast_1_1=move_fast_1_20, move_slow_2_1=move_slow_2_20, move_fast_2_1=move_fast_2_20] endmodule
+module field_21 = field_1 [POS_1=POS_21, DEST_1_1=DEST_1_21, DEST_2_1=DEST_2_21, adult_1=adult_21, kid_1=kid_21, none_1=none_21, honk_1=honk_21, brake_1=brake_21, ignore_1=ignore_21, retreat_1=retreat_21, dash_1=dash_21, stay_1=stay_21, move_slow_1_1=move_slow_1_21, move_fast_1_1=move_fast_1_21, move_slow_2_1=move_slow_2_21, move_fast_2_1=move_fast_2_21] endmodule
+module field_22 = field_1 [POS_1=POS_22, DEST_1_1=DEST_1_22, DEST_2_1=DEST_2_22, adult_1=adult_22, kid_1=kid_22, none_1=none_22, honk_1=honk_22, brake_1=brake_22, ignore_1=ignore_22, retreat_1=retreat_22, dash_1=dash_22, stay_1=stay_22, move_slow_1_1=move_slow_1_22, move_fast_1_1=move_fast_1_22, move_slow_2_1=move_slow_2_22, move_fast_2_1=move_fast_2_22] endmodule
+module field_23 = field_1 [POS_1=POS_23, DEST_1_1=DEST_1_23, DEST_2_1=DEST_2_23, adult_1=adult_23, kid_1=kid_23, none_1=none_23, honk_1=honk_23, brake_1=brake_23, ignore_1=ignore_23, retreat_1=retreat_23, dash_1=dash_23, stay_1=stay_23, move_slow_1_1=move_slow_1_23, move_fast_1_1=move_fast_1_23, move_slow_2_1=move_slow_2_23, move_fast_2_1=move_fast_2_23] endmodule
+module field_24 = field_1 [POS_1=POS_24, DEST_1_1=DEST_1_24, DEST_2_1=DEST_2_24, adult_1=adult_24, kid_1=kid_24, none_1=none_24, honk_1=honk_24, brake_1=brake_24, ignore_1=ignore_24, retreat_1=retreat_24, dash_1=dash_24, stay_1=stay_24, move_slow_1_1=move_slow_1_24, move_fast_1_1=move_fast_1_24, move_slow_2_1=move_slow_2_24, move_fast_2_1=move_fast_2_24] endmodule
+module field_25 = field_1 [POS_1=POS_25, DEST_1_1=DEST_1_25, DEST_2_1=DEST_2_25, adult_1=adult_25, kid_1=kid_25, none_1=none_25, honk_1=honk_25, brake_1=brake_25, ignore_1=ignore_25, retreat_1=retreat_25, dash_1=dash_25, stay_1=stay_25, move_slow_1_1=move_slow_1_25, move_fast_1_1=move_fast_1_25, move_slow_2_1=move_slow_2_25, move_fast_2_1=move_fast_2_25] endmodule
+module field_26 = field_1 [POS_1=POS_26, DEST_1_1=DEST_1_26, DEST_2_1=DEST_2_26, adult_1=adult_26, kid_1=kid_26, none_1=none_26, honk_1=honk_26, brake_1=brake_26, ignore_1=ignore_26, retreat_1=retreat_26, dash_1=dash_26, stay_1=stay_26, move_slow_1_1=move_slow_1_26, move_fast_1_1=move_fast_1_26, move_slow_2_1=move_slow_2_26, move_fast_2_1=move_fast_2_26] endmodule
+module field_27 = field_1 [POS_1=POS_27, DEST_1_1=DEST_1_27, DEST_2_1=DEST_2_27, adult_1=adult_27, kid_1=kid_27, none_1=none_27, honk_1=honk_27, brake_1=brake_27, ignore_1=ignore_27, retreat_1=retreat_27, dash_1=dash_27, stay_1=stay_27, move_slow_1_1=move_slow_1_27, move_fast_1_1=move_fast_1_27, move_slow_2_1=move_slow_2_27, move_fast_2_1=move_fast_2_27] endmodule
+module field_28 = field_1 [POS_1=POS_28, DEST_1_1=DEST_1_28, DEST_2_1=DEST_2_28, adult_1=adult_28, kid_1=kid_28, none_1=none_28, honk_1=honk_28, brake_1=brake_28, ignore_1=ignore_28, retreat_1=retreat_28, dash_1=dash_28, stay_1=stay_28, move_slow_1_1=move_slow_1_28, move_fast_1_1=move_fast_1_28, move_slow_2_1=move_slow_2_28, move_fast_2_1=move_fast_2_28] endmodule
+module field_29 = field_1 [POS_1=POS_29, DEST_1_1=DEST_1_29, DEST_2_1=DEST_2_29, adult_1=adult_29, kid_1=kid_29, none_1=none_29, honk_1=honk_29, brake_1=brake_29, ignore_1=ignore_29, retreat_1=retreat_29, dash_1=dash_29, stay_1=stay_29, move_slow_1_1=move_slow_1_29, move_fast_1_1=move_fast_1_29, move_slow_2_1=move_slow_2_29, move_fast_2_1=move_fast_2_29] endmodule
+module field_30 = field_1 [POS_1=POS_30, DEST_1_1=DEST_1_30, DEST_2_1=DEST_2_30, adult_1=adult_30, kid_1=kid_30, none_1=none_30, honk_1=honk_30, brake_1=brake_30, ignore_1=ignore_30, retreat_1=retreat_30, dash_1=dash_30, stay_1=stay_30, move_slow_1_1=move_slow_1_30, move_fast_1_1=move_fast_1_30, move_slow_2_1=move_slow_2_30, move_fast_2_1=move_fast_2_30] endmodule
+module field_31 = field_1 [POS_1=POS_31, DEST_1_1=DEST_1_31, DEST_2_1=DEST_2_31, adult_1=adult_31, kid_1=kid_31, none_1=none_31, honk_1=honk_31, brake_1=brake_31, ignore_1=ignore_31, retreat_1=retreat_31, dash_1=dash_31, stay_1=stay_31, move_slow_1_1=move_slow_1_31, move_fast_1_1=move_fast_1_31, move_slow_2_1=move_slow_2_31, move_fast_2_1=move_fast_2_31] endmodule
+module field_32 = field_1 [POS_1=POS_32, DEST_1_1=DEST_1_32, DEST_2_1=DEST_2_32, adult_1=adult_32, kid_1=kid_32, none_1=none_32, honk_1=honk_32, brake_1=brake_32, ignore_1=ignore_32, retreat_1=retreat_32, dash_1=dash_32, stay_1=stay_32, move_slow_1_1=move_slow_1_32, move_fast_1_1=move_fast_1_32, move_slow_2_1=move_slow_2_32, move_fast_2_1=move_fast_2_32] endmodule
+module field_33 = field_1 [POS_1=POS_33, DEST_1_1=DEST_1_33, DEST_2_1=DEST_2_33, adult_1=adult_33, kid_1=kid_33, none_1=none_33, honk_1=honk_33, brake_1=brake_33, ignore_1=ignore_33, retreat_1=retreat_33, dash_1=dash_33, stay_1=stay_33, move_slow_1_1=move_slow_1_33, move_fast_1_1=move_fast_1_33, move_slow_2_1=move_slow_2_33, move_fast_2_1=move_fast_2_33] endmodule
+module field_34 = field_1 [POS_1=POS_34, DEST_1_1=DEST_1_34, DEST_2_1=DEST_2_34, adult_1=adult_34, kid_1=kid_34, none_1=none_34, honk_1=honk_34, brake_1=brake_34, ignore_1=ignore_34, retreat_1=retreat_34, dash_1=dash_34, stay_1=stay_34, move_slow_1_1=move_slow_1_34, move_fast_1_1=move_fast_1_34, move_slow_2_1=move_slow_2_34, move_fast_2_1=move_fast_2_34] endmodule
+module field_35 = field_1 [POS_1=POS_35, DEST_1_1=DEST_1_35, DEST_2_1=DEST_2_35, adult_1=adult_35, kid_1=kid_35, none_1=none_35, honk_1=honk_35, brake_1=brake_35, ignore_1=ignore_35, retreat_1=retreat_35, dash_1=dash_35, stay_1=stay_35, move_slow_1_1=move_slow_1_35, move_fast_1_1=move_fast_1_35, move_slow_2_1=move_slow_2_35, move_fast_2_1=move_fast_2_35] endmodule
+module field_36 = field_1 [POS_1=POS_36, DEST_1_1=DEST_1_36, DEST_2_1=DEST_2_36, adult_1=adult_36, kid_1=kid_36, none_1=none_36, honk_1=honk_36, brake_1=brake_36, ignore_1=ignore_36, retreat_1=retreat_36, dash_1=dash_36, stay_1=stay_36, move_slow_1_1=move_slow_1_36, move_fast_1_1=move_fast_1_36, move_slow_2_1=move_slow_2_36, move_fast_2_1=move_fast_2_36] endmodule
+module field_37 = field_1 [POS_1=POS_37, DEST_1_1=DEST_1_37, DEST_2_1=DEST_2_37, adult_1=adult_37, kid_1=kid_37, none_1=none_37, honk_1=honk_37, brake_1=brake_37, ignore_1=ignore_37, retreat_1=retreat_37, dash_1=dash_37, stay_1=stay_37, move_slow_1_1=move_slow_1_37, move_fast_1_1=move_fast_1_37, move_slow_2_1=move_slow_2_37, move_fast_2_1=move_fast_2_37] endmodule
+module field_38 = field_1 [POS_1=POS_38, DEST_1_1=DEST_1_38, DEST_2_1=DEST_2_38, adult_1=adult_38, kid_1=kid_38, none_1=none_38, honk_1=honk_38, brake_1=brake_38, ignore_1=ignore_38, retreat_1=retreat_38, dash_1=dash_38, stay_1=stay_38, move_slow_1_1=move_slow_1_38, move_fast_1_1=move_fast_1_38, move_slow_2_1=move_slow_2_38, move_fast_2_1=move_fast_2_38] endmodule
+module field_39 = field_1 [POS_1=POS_39, DEST_1_1=DEST_1_39, DEST_2_1=DEST_2_39, adult_1=adult_39, kid_1=kid_39, none_1=none_39, honk_1=honk_39, brake_1=brake_39, ignore_1=ignore_39, retreat_1=retreat_39, dash_1=dash_39, stay_1=stay_39, move_slow_1_1=move_slow_1_39, move_fast_1_1=move_fast_1_39, move_slow_2_1=move_slow_2_39, move_fast_2_1=move_fast_2_39] endmodule
+module field_40 = field_1 [POS_1=POS_40, DEST_1_1=DEST_1_40, DEST_2_1=DEST_2_40, adult_1=adult_40, kid_1=kid_40, none_1=none_40, honk_1=honk_40, brake_1=brake_40, ignore_1=ignore_40, retreat_1=retreat_40, dash_1=dash_40, stay_1=stay_40, move_slow_1_1=move_slow_1_40, move_fast_1_1=move_fast_1_40, move_slow_2_1=move_slow_2_40, move_fast_2_1=move_fast_2_40] endmodule
+module field_41 = field_1 [POS_1=POS_41, DEST_1_1=DEST_1_41, DEST_2_1=DEST_2_41, adult_1=adult_41, kid_1=kid_41, none_1=none_41, honk_1=honk_41, brake_1=brake_41, ignore_1=ignore_41, retreat_1=retreat_41, dash_1=dash_41, stay_1=stay_41, move_slow_1_1=move_slow_1_41, move_fast_1_1=move_fast_1_41, move_slow_2_1=move_slow_2_41, move_fast_2_1=move_fast_2_41] endmodule
+module field_42 = field_1 [POS_1=POS_42, DEST_1_1=DEST_1_42, DEST_2_1=DEST_2_42, adult_1=adult_42, kid_1=kid_42, none_1=none_42, honk_1=honk_42, brake_1=brake_42, ignore_1=ignore_42, retreat_1=retreat_42, dash_1=dash_42, stay_1=stay_42, move_slow_1_1=move_slow_1_42, move_fast_1_1=move_fast_1_42, move_slow_2_1=move_slow_2_42, move_fast_2_1=move_fast_2_42] endmodule
+module field_43 = field_1 [POS_1=POS_43, DEST_1_1=DEST_1_43, DEST_2_1=DEST_2_43, adult_1=adult_43, kid_1=kid_43, none_1=none_43, honk_1=honk_43, brake_1=brake_43, ignore_1=ignore_43, retreat_1=retreat_43, dash_1=dash_43, stay_1=stay_43, move_slow_1_1=move_slow_1_43, move_fast_1_1=move_fast_1_43, move_slow_2_1=move_slow_2_43, move_fast_2_1=move_fast_2_43] endmodule
+module field_44 = field_1 [POS_1=POS_44, DEST_1_1=DEST_1_44, DEST_2_1=DEST_2_44, adult_1=adult_44, kid_1=kid_44, none_1=none_44, honk_1=honk_44, brake_1=brake_44, ignore_1=ignore_44, retreat_1=retreat_44, dash_1=dash_44, stay_1=stay_44, move_slow_1_1=move_slow_1_44, move_fast_1_1=move_fast_1_44, move_slow_2_1=move_slow_2_44, move_fast_2_1=move_fast_2_44] endmodule
+module field_45 = field_1 [POS_1=POS_45, DEST_1_1=DEST_1_45, DEST_2_1=DEST_2_45, adult_1=adult_45, kid_1=kid_45, none_1=none_45, honk_1=honk_45, brake_1=brake_45, ignore_1=ignore_45, retreat_1=retreat_45, dash_1=dash_45, stay_1=stay_45, move_slow_1_1=move_slow_1_45, move_fast_1_1=move_fast_1_45, move_slow_2_1=move_slow_2_45, move_fast_2_1=move_fast_2_45] endmodule
+module field_46 = field_1 [POS_1=POS_46, DEST_1_1=DEST_1_46, DEST_2_1=DEST_2_46, adult_1=adult_46, kid_1=kid_46, none_1=none_46, honk_1=honk_46, brake_1=brake_46, ignore_1=ignore_46, retreat_1=retreat_46, dash_1=dash_46, stay_1=stay_46, move_slow_1_1=move_slow_1_46, move_fast_1_1=move_fast_1_46, move_slow_2_1=move_slow_2_46, move_fast_2_1=move_fast_2_46] endmodule
+module field_47 = field_1 [POS_1=POS_47, DEST_1_1=DEST_1_47, DEST_2_1=DEST_2_47, adult_1=adult_47, kid_1=kid_47, none_1=none_47, honk_1=honk_47, brake_1=brake_47, ignore_1=ignore_47, retreat_1=retreat_47, dash_1=dash_47, stay_1=stay_47, move_slow_1_1=move_slow_1_47, move_fast_1_1=move_fast_1_47, move_slow_2_1=move_slow_2_47, move_fast_2_1=move_fast_2_47] endmodule
+module field_48 = field_1 [POS_1=POS_48, DEST_1_1=DEST_1_48, DEST_2_1=DEST_2_48, adult_1=adult_48, kid_1=kid_48, none_1=none_48, honk_1=honk_48, brake_1=brake_48, ignore_1=ignore_48, retreat_1=retreat_48, dash_1=dash_48, stay_1=stay_48, move_slow_1_1=move_slow_1_48, move_fast_1_1=move_fast_1_48, move_slow_2_1=move_slow_2_48, move_fast_2_1=move_fast_2_48] endmodule
+module field_49 = field_1 [POS_1=POS_49, DEST_1_1=DEST_1_49, DEST_2_1=DEST_2_49, adult_1=adult_49, kid_1=kid_49, none_1=none_49, honk_1=honk_49, brake_1=brake_49, ignore_1=ignore_49, retreat_1=retreat_49, dash_1=dash_49, stay_1=stay_49, move_slow_1_1=move_slow_1_49, move_fast_1_1=move_fast_1_49, move_slow_2_1=move_slow_2_49, move_fast_2_1=move_fast_2_49] endmodule
+
+module terminals
+	[term] accident=true -> (accident'=true);
+	[term] stall=true -> (stall'=true);
+	[term] car_position=POS_50 -> (car_position'=POS_50);
+endmodule
+
+formula goal1 = (car_position=POS_50);
+formula goal2 = (accident=false);
+formula goal3 = (stall=false);
+
+rewards
+	accident & !car_slow : 1000;
+	accident & car_slow : 50;
+	stall : 2;
+endrewards
+

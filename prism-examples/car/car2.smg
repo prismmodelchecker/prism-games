@@ -1,0 +1,118 @@
+smg
+
+player p1
+	[move_slow_init], [move_fast_init],
+	[move_slow_1], [move_fast_1], [honk_1], [brake_1], [ignore_1],
+	[move_slow_2], [move_fast_2], [honk_2], [brake_2], [ignore_2],
+	[move_slow_3], [move_fast_3], [honk_3], [brake_3], [ignore_3]
+endplayer
+
+player p2
+	[adult_1], [kid_1], [none_1], [stay_1], [retreat_1], [dash_1],
+	[adult_2], [kid_2], [none_2], [stay_2], [retreat_2], [dash_2],
+	[adult_3], [kid_3], [none_3], [stay_3], [retreat_3], [dash_3],
+	[term]
+endplayer
+
+
+// pedestrian positions
+const int SIDEWALK = 0;
+const int STREET = 1;
+
+// reaction of car to pedestrian
+const int HONKED = 1;
+const int BRAKED = 2;
+const int STOPPED = 3;
+const int IGNORED = 4;
+const int NONE = 0;
+
+// positions in topology
+const int POS_0 = 0;
+const int POS_1 = 1;
+const int POS_2 = 2;
+const int POS_3 = 3;
+const int POS_4 = 4;
+
+
+// the topology
+const int DEST_1_1 = POS_2;
+const int DEST_2_1 = POS_2;
+const int DEST_1_2 = POS_3;
+const int DEST_2_2 = POS_3;
+const int DEST_1_3 = POS_1;
+const int DEST_2_3 = POS_4;
+
+
+global p : [1..2] init 1; // indicates who's turn it is
+global car_position : [0..4] init 0;
+global car_slow : bool init false; // indicates velocity of car (if moving)
+global accident : bool init false;
+global stall : bool init false;
+global pedestrian_position : [0..1] init 0;
+global reaction : [0..4] init 0;
+
+module field_init
+
+	[move_slow_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=1) & (car_slow'=true) & (p'=2);
+	[move_fast_init] p=1 & car_position=POS_0 & accident=false & stall=false -> (car_position'=1) & (car_slow'=false) & (p'=2);
+
+endmodule
+
+
+module field_1
+
+	[adult_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.05 : (pedestrian_position'=STREET) & (p'=1) + 0.95 : (p'=1);
+	[kid_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> 0.2 : (pedestrian_position'=STREET) & (p'=1) + 0.8 : (p'=1);
+	[none_1] p=2 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (p'=1);
+
+	[honk_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=HONKED) & (p'=2);
+	[brake_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & car_slow=false & accident=false & stall=false -> (reaction'=BRAKED) & (car_slow'=true) & (p'=2);
+	[brake_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & car_slow=true & accident=false & stall=false -> (reaction'=STOPPED) & (p'=2);
+	[ignore_1] p=1 & car_position=POS_1 & pedestrian_position=STREET & accident=false & stall=false -> (reaction'=IGNORED) & (p'=2);
+
+	//[stay] p=2 & car_position=1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> (accident'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.3 : (accident'=true) + 0.7 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=HONKED & accident=false & stall=false -> 0.2 : (accident'=true) + 0.8 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> (accident'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.1 : (accident'=true) + 0.9 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=BRAKED & accident=false & stall=false -> 0.05 : (accident'=true) + 0.95 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (stall'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=STOPPED & accident=false & stall=false -> (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[stay_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> (accident'=true);
+	[retreat_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.95 : (accident'=true) + 0.05 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+	[dash_1] p=2 & car_position=POS_1 & pedestrian_position=STREET & reaction=IGNORED & accident=false & stall=false -> 0.9 : (accident'=true) + 0.1 : (pedestrian_position'=SIDEWALK) & (reaction'=NONE) & (p'=1);
+
+	[move_slow_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_1_1) & (car_slow'=true) & (p'=2);
+	[move_fast_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_1_1) & (car_slow'=false) & (p'=2);
+	[move_slow_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_2_1) & (car_slow'=true) & (p'=2);
+	[move_fast_1] p=1 & car_position=POS_1 & pedestrian_position=SIDEWALK & accident=false & stall=false -> (car_position'=DEST_2_1) & (car_slow'=false) & (p'=2);
+
+endmodule
+
+module field_2 = field_1 [POS_1=POS_2, DEST_1_1=DEST_1_2, DEST_2_1=DEST_2_2, adult_1=adult_2, kid_1=kid_2, none_1=none_2, honk_1=honk_2, brake_1=brake_2, ignore_1=ignore_2, retreat_1=retreat_2, dash_1=dash_2, stay_1=stay_2, move_slow_1=move_slow_2, move_fast_1=move_fast_2] endmodule
+module field_3 = field_1 [POS_1=POS_3, DEST_1_1=DEST_1_3, DEST_2_1=DEST_2_3, adult_1=adult_3, kid_1=kid_3, none_1=none_3, honk_1=honk_3, brake_1=brake_3, ignore_1=ignore_3, retreat_1=retreat_3, dash_1=dash_3, stay_1=stay_3, move_slow_1=move_slow_3, move_fast_1=move_fast_3] endmodule
+
+module terminals
+
+	[term] accident=true -> (accident'=true);
+	[term] stall=true -> (stall'=true);
+	[term] car_position=POS_4 -> (car_position'=POS_4);
+
+endmodule
+
+// liveness
+formula goal1 = (car_position=POS_4);
+// safety
+formula goal2 = (accident=false);
+formula goal3 = (stall=false);
+
+
+rewards
+	accident & !car_slow : 1000;
+	accident & car_slow : 50;
+	stall : 2;
+endrewards

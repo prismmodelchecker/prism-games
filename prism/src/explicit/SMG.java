@@ -276,7 +276,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards) throws PrismException
+    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards, double accuracy) throws PrismException
         {
 	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
 
@@ -287,7 +287,7 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min1;
 		else
 		    min = min2;
-		result.add(pMultiObjectiveSingle(s, init, min, targets, target_dirs, stpgRewards));
+		result.add(pMultiObjectiveSingle(s, init, min, targets, target_dirs, stpgRewards, accuracy));
 	    }
 
 	    return result;
@@ -314,13 +314,8 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards, double accuracy) throws PrismException
         {
-
-	    // TODO: put in proper location for tweaking
-	    double accuracy = 10000000.0;
-
-	    
 	    List<Distribution> dists = trans.get(s);
 
 	    List<Polyhedron> distPolys = new ArrayList<Polyhedron>(dists.size());
@@ -446,8 +441,9 @@ public class SMG extends STPGExplicit implements STPG
 	    }
 	    
 	    // minimize the fractions
-	    // limit accuracy as well
+	    // NOTE: limits accuracy as well! (optional)
 	    boolean minimize = true;
+	    boolean reduce_accuracy = true;
 	    if(minimize){
 
 		Generator_System newmgs = new Generator_System();
@@ -467,11 +463,13 @@ public class SMG extends STPGExplicit implements STPG
 			gcd = gcd.gcd(v);
 		    }
 
-		    // limit the size of the denominator by the accuracy
-		    if(c.getBigInteger().divide(gcd).compareTo(BigInteger.valueOf((long)accuracy)) > 0){
-			gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
+		    if(reduce_accuracy){
+			// limit the size of the denominator by the accuracy
+			if(c.getBigInteger().divide(gcd).compareTo(BigInteger.valueOf((long)accuracy)) > 0){
+			    gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
+			}
 		    }
-
+		    
 		    // now divide all by the gcd and build a new linear expression
 		    Linear_Expression nle;
 		    if(map.containsKey(null)){ // there is a coefficient without variable
@@ -504,7 +502,7 @@ public class SMG extends STPGExplicit implements STPG
 	    // it could be possible that in this state a target is satisfied, so add the appropriate points
 	    // TODO: test for safety
 
-	    boolean include_non_terminal_targets = true;
+	    boolean include_non_terminal_targets = false;
 	    if(include_non_terminal_targets){
 		Variable dims = new Variable(targets.size()-1);
 		for(int i = 0; i < targets.size()-1; i++){ // need something else for rewards
@@ -512,9 +510,6 @@ public class SMG extends STPGExplicit implements STPG
 			// first expand in the appropriate direction
 			Variable dir = new Variable(i);
 			Linear_Expression l_dir = new Linear_Expression_Variable(dir);
-			if(target_dirs.get(i)){ // minimize
-			    l_dir = new Linear_Expression_Unary_Minus(l_dir);
-			}
 			Generator g1 = Generator.point(l_dir, new Coefficient(1));
 			// add variable in highest dimension to make dimensions agree
 			Generator g2 = Generator.point(new Linear_Expression_Times(new Coefficient(0), dims), new Coefficient(1));
@@ -524,13 +519,10 @@ public class SMG extends STPGExplicit implements STPG
 			statePoly.time_elapse_assign(new C_Polyhedron(gs));
 			// then restrict
 			Linear_Expression lhs = new Linear_Expression_Variable(dir);
-			if(target_dirs.get(i)){ // minimize: restrict to zero (>= 0)
-			    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(0));
-			    statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.GREATER_OR_EQUAL,rhs));
-			} else { // maximize: restrict to one (<= 1)
-			    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
-			    statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
-			}
+			// maximize: restrict to one (<= 1)
+			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+			statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
+			
 		    }
 		}
 
