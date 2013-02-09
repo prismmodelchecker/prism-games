@@ -281,7 +281,7 @@ MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterfac
 
 default: all
 
-all: cuddpackage untarpppl pplpackage prism
+all: cuddpackage untarppl pplpackage prism
 
 cuddpackage: checks
 	@if [ "$(CUDD_DIR)" = "" ]; then echo "Error: Cannot find CUDD"; exit 1; fi
@@ -304,7 +304,8 @@ cuddpackageforce: checks
 
 untarppl:
 	cd .. && \
-	tar xzf ppl.tar.gz;
+	tar xzf ppl.tar.gz && \
+	rm ppl.tar.gz;
 
 pplpackage: checks
 	@if [ "$(PPL_DIR)" = "" ]; then echo "Error: Cannot find PPL"; exit 1; fi
@@ -312,16 +313,17 @@ pplpackage: checks
 	@(if [ ! -h $(PPL_DIR) ]; then \
 	  echo Configuring ppl ...; \
 	  cd $(PPL_DIR) && \
-	  bash configure --prefix=$(pwd -P); \
-	  echo Making ppl ...; \
-	  cd $(PPL_DIR) && \
-	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)"; \
-	  echo Installing ppl ...; \
+	  bash configure --prefix=`pwd` && \
+	  echo `pwd`; \
+#	  echo Making ppl ...; \
+#	  cd $(PPL_DIR) && \
+#	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)"; \
+#	  echo Installing ppl ...; \
 	  cd $(PPL_DIR) && \
 	  $(MAKE) install; \
 	  echo Linking ppl ...; \
-	  ln -s $(pwd -P)$(PPL_DIR)/lib/ppl/libppl_java.so $(LIB_DIR)/libppl_java.so; \
-	  ln -s $(pwd -P)$(PPL_DIR)/lib/ppl/ppl_java.jar $(LIB_DIR)/ppl_java.jar; \
+	  ln -s `pwd`$(PPL_DIR)/lib/ppl/libppl_java.so $(LIB_DIR)/libppl_java.so; \
+	  ln -s `pwd`$(PPL_DIR)/lib/ppl/ppl_java.jar $(LIB_DIR)/ppl_java.jar; \
 	else \
 	  echo Skipping ppl make since it is a symlink...; \
 	fi)
