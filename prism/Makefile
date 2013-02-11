@@ -257,6 +257,7 @@ CUDD_DIR =		$(shell if [ -d cudd ]; then echo cudd; else echo ../cudd; fi )
 # For PPL, we default either to ./ppl or, if that does not exist, ../ppl
 # To override, comment out the first line and use the second (or specify from the command-line)
 PPL_DIR =		$(shell if [ -d ppl ]; then echo ppl; else echo ../ppl; fi )
+PPL_REV_DIR =		$(shell if [ -d ppl ]; then echo .; else echo ..; fi )
 #PPL_DIR =		ppl
 
 SRC_DIR =		src
@@ -304,8 +305,7 @@ cuddpackageforce: checks
 
 untarppl:
 	cd .. && \
-	tar xzf ppl.tar.gz && \
-	rm ppl.tar.gz;
+	tar xzf ppl.tar.gz;
 
 pplpackage: checks
 	@if [ "$(PPL_DIR)" = "" ]; then echo "Error: Cannot find PPL"; exit 1; fi
@@ -322,8 +322,8 @@ pplpackage: checks
 	  cd $(PPL_DIR) && \
 	  $(MAKE) install; \
 	  echo Linking ppl ...; \
-	  ln -s `pwd`$(PPL_DIR)/lib/ppl/libppl_java.so $(LIB_DIR)/libppl_java.so; \
-	  ln -s `pwd`$(PPL_DIR)/lib/ppl/ppl_java.jar $(LIB_DIR)/ppl_java.jar; \
+	  ln -s `pwd`/$(PPL_DIR)/lib/ppl/libppl_java.so `pwd`/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
+	  ln -s `pwd`/$(PPL_DIR)/lib/ppl/ppl_java.jar `pwd`/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 	else \
 	  echo Skipping ppl make since it is a symlink...; \
 	fi)
