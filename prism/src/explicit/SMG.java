@@ -276,7 +276,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards, double accuracy) throws PrismException
+    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy) throws PrismException
         {
 	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
 
@@ -287,7 +287,7 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min1;
 		else
 		    min = min2;
-		result.add(pMultiObjectiveSingle(s, init, min, targets, target_dirs, stpgRewards, accuracy));
+		result.add(pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy));
 	    }
 
 	    return result;
@@ -314,7 +314,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, BitSet target_dirs, STPGRewards stpgRewards, double accuracy) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 
@@ -338,7 +338,7 @@ public class SMG extends STPGExplicit implements STPG
 		    
 		    // define a temporary variable for each successor
 		    Map<Integer,Variable> temp_vars = new HashMap<Integer,Variable>(states.size());
-		    int supdim = targets.size();
+		    int supdim = targets.size()+stpgRewards.size();
 		    for(Integer t : states){
 			temp_vars.put(t, new Variable(supdim));
 			supdim++;
@@ -414,7 +414,7 @@ public class SMG extends STPGExplicit implements STPG
 		    }
 
 		    // project away the unneccessary dimensions
-		    cp.remove_higher_space_dimensions(targets.size());
+		    cp.remove_higher_space_dimensions(targets.size()+stpgRewards.size());
 		    
 		    // now in cp have the minkowski sum for that particular distribution d
 		    distPolys.add(cp);
@@ -493,8 +493,8 @@ public class SMG extends STPGExplicit implements STPG
 
 		statePoly = new C_Polyhedron(newmgs);
 		// add zero dimensions
-		if(statePoly.space_dimension()!=targets.size()) {
-		    statePoly.add_space_dimensions_and_project(targets.size() - statePoly.space_dimension());
+		if(statePoly.space_dimension()!=targets.size()+stpgRewards.size()) {
+		    statePoly.add_space_dimensions_and_project(targets.size()+stpgRewards.size() - statePoly.space_dimension());
 		}
 
 	    }
@@ -502,10 +502,11 @@ public class SMG extends STPGExplicit implements STPG
 	    // it could be possible that in this state a target is satisfied, so add the appropriate points
 	    // TODO: test for safety
 
-	    boolean include_non_terminal_targets = false;
+	    boolean include_non_terminal_targets = true;
 	    if(include_non_terminal_targets){
-		Variable dims = new Variable(targets.size()-1);
-		for(int i = 0; i < targets.size()-1; i++){ // need something else for rewards
+		/*
+		Variable dims = new Variable(targets.size()+stpgRewards.size()-1);
+		for(int i = 0; i < targets.size(); i++){
 		    if(targets.get(i).get(s)){
 			// first expand in the appropriate direction
 			Variable dir = new Variable(i);
@@ -525,21 +526,25 @@ public class SMG extends STPGExplicit implements STPG
 			
 		    }
 		}
+		*/
 
-		// here comes the reward part
-		// NOTE: with the proper restrictions, can do the same thing for probabilities
-		//       to stay uniform.
-		// ignore terminals
-		boolean terminal = true;
-		for(Distribution distr : dists){
-		    if(distr.keySet().size()!=1 || !distr.keySet().contains(s)){ // not a terminal
-			terminal = false;
-			break;
-		    }
+	    }
+
+
+	    // here comes the reward part
+	    // ignore terminals
+	    boolean terminal = true;
+	    for(Distribution distr : dists){
+		if(distr.keySet().size()!=1 || !distr.keySet().contains(s)){ // not a terminal
+		    terminal = false;
+		    break;
 		}
-		//if(terminal) System.out.printf("Terminal: %d\n", s);
-		if(!terminal){
-		    BigFraction r = new BigFraction(stpgRewards.getStateReward(s));
+	    }
+
+	    if(!terminal){
+		for(int i = 0; i < stpgRewards.size(); i++){
+		    STPGRewards stpgr = stpgRewards.get(i);
+		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy, Integer.MAX_VALUE);
 		    BigInteger num = r.getNumerator();
 		    BigInteger den = r.getDenominator();
 		    // add the reward to each generator
@@ -549,12 +554,19 @@ public class SMG extends STPGExplicit implements STPG
 			Coefficient div = g.divisor();
 			le = le.times(new Coefficient(den));
 			div = new Coefficient(div.getBigInteger().multiply(den));
-			le = le.sum(new Linear_Expression_Times(new Coefficient(num), new Variable(targets.size()-1)));
-			to_add.add(Generator.point(le, div));
+			le = le.sum(new Linear_Expression_Times(new Coefficient(num.multiply(g.divisor().getBigInteger())), new Variable(targets.size()+i)));
+			Generator ng = Generator.point(le, div);
+			to_add.add(ng);
 		    }
 		    statePoly.add_generators(to_add);
 		}
-	    
+	    } else {
+		for(int i = 0; i < stpgRewards.size(); i++){
+		    STPGRewards stpgr = stpgRewards.get(i);
+		    if(stpgr.getStateReward(s)>= 1.0/accuracy){
+			System.out.printf("Warning: state %s is terminal but has nonzero reward (%f).\n", s, stpgr.getStateReward(s));
+		    }
+		}
 	    }
 
 	    //	    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -562,6 +574,8 @@ public class SMG extends STPGExplicit implements STPG
 	    //	    System.out.println(statePoly.ascii_dump());
 	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
 
+	    // minimize polyhedron
+	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
 	    return statePoly;
 	}
 

@@ -78,13 +78,17 @@ public class SMGModelChecker extends STPGModelChecker
 	Parma_Polyhedra_Library.initialize_library();
 
 	// set accuracy
-	double accuracy = 1000000.0;
+	double accuracy = 100000.0;
 
 	// print model
-	System.out.println(((STPG) model));
+	// System.out.println(((STPG) model));
 	// get who is playing against whom
 	((SMG) model).setCoalition(exprPATL.getCoalition());
 	Expression expr = exprPATL.getExpressionProb().getExpression();
+
+
+	Expression prob = exprPATL.getExpressionProb().getProb(); // hack to get some bound on maxIter
+	double maxIter = 1.0/prob.evaluateDouble(constantValues);
 
 	// Test whether this is a simple path formula (i.e. PCTL)
 	// and then pass control to appropriate method.
@@ -110,12 +114,26 @@ public class SMGModelChecker extends STPGModelChecker
 	    
 	    // rewards
 	    // TODO: properly get reward structure
-	    // TODO: need ALL reward structures, and pass them all to the function
-	    RewardStruct rewStruct = modulesFile.getRewardStruct(0);
-	    ConstructRewards constructRewards = new ConstructRewards(mainLog);
-	    STPGRewards stpgRewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
+	    List<STPGRewards> stpgRewards = new ArrayList<STPGRewards>();
+	    RewardStruct rewStruct;
+	    ConstructRewards constructRewards;
+	    for(int i = 0; i < modulesFile.getNumRewardStructs(); i++){
+
+		rewStruct = modulesFile.getRewardStruct(i);
+		constructRewards = new ConstructRewards(mainLog);
+		STPGRewards stpgr = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
+		stpgRewards.add(stpgr);
+	    }
+
+	    /*
+	    List<Set<ReachTuple>> result_t = computeReachabilityTuples(min, !min, (STPG) model, targets, maxIter);
+	    for(int i = 0; i < result_t.size(); i++){
+		System.out.printf("%d: %s\n", i, result_t.get(i));
+	    }
+	    */
+
 	    long polyTime = System.nanoTime();
-	    List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy);
+	    List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter);
 	    polyTime = System.nanoTime() - polyTime;
 
 	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
@@ -393,7 +411,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
 
 
-    private void printReachabilityPolyhedra(List<Polyhedron> polyhedra, int targets)
+    private void printReachabilityPolyhedra(List<Polyhedron> polyhedra, int dim)
     {
 	for(int s = 0; s < polyhedra.size(); s++){
 	     System.out.printf("%d: [", s);
@@ -403,7 +421,7 @@ public class SMGModelChecker extends STPGModelChecker
 		 Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
 		 PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
 		 boolean init = true;
-		 for(int i = 0; i<targets; i++){
+		 for(int i = 0; i<dim; i++){
 		     if(!init){
 			 System.out.printf(", ");
 		     }
@@ -427,6 +445,55 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
     }
 
+    private void printMatlab(List<Polyhedron> polyhedra, int dim, int iter)
+    {
+	int max_points = 0;
+	for(int s = 0; s < polyhedra.size(); s++){
+	    int points_s = polyhedra.get(s).minimized_generators().size();
+	    if(points_s > max_points){
+		max_points = points_s;
+	    }
+	    
+	}
+	System.out.printf("%% maxpoints: %d\n", max_points);
+	if(true){
+	    int s = 0;
+	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
+	     boolean init1 = true;
+	     for(Generator g : polyhedra.get(s).minimized_generators()){
+		 if(!init1){
+		     System.out.printf(" ; ");
+		 }
+		 init1 = false;
+		 BigInteger den = g.divisor().getBigInteger();
+		 Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
+		 PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
+		 boolean init2 = true;
+		 for(int i = 0; i<dim; i++){
+		     if(!init2){
+			 System.out.printf(", ");
+		     }
+		     init2 = false;
+		     boolean foundvalue = false;
+		     for(Variable j : num.keySet()){
+			 if(j!=null && i==j.id()){
+			     BigFraction val = new BigFraction(num.get(j), den);
+			     System.out.printf("%.4f", val.doubleValue());
+			     foundvalue = true;
+			     break;
+			 }
+		     }
+		     if(!foundvalue){
+			 System.out.printf("%.4f", 0.0);
+		     }
+		 }
+	     }
+	     System.out.printf("];\n");
+	 }
+    }
+
+
+    // #clemens: stale
     private double generatorDistance(Generator g1, Generator g2)
     {
 	Linear_Expression le = g1.linear_expression().times(g2.divisor()).subtract(g2.linear_expression().times(g1.divisor()));
@@ -444,8 +511,9 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-	 public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, STPGRewards stpgRewards, List<BitSet> targets, double accuracy) throws PrismException
+    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter) throws PrismException
      {
+
 	 int gameSize = stpg.getStatesList().size();
 	 List<Polyhedron> result = new ArrayList<Polyhedron>(gameSize);
 
@@ -456,64 +524,66 @@ public class SMGModelChecker extends STPGModelChecker
 	     gss.add(new Generator_System());
 
 	 // initialize coordinates
-	 List<Variable> dimensions = new ArrayList<Variable>(targets.size());
-	 for (int i = 0; i < targets.size(); i++){
+	 List<Variable> dimensions = new ArrayList<Variable>(targets.size()+stpgRewards.size());
+	 for (int i = 0; i < targets.size()+stpgRewards.size(); i++){
 	     dimensions.add(new Variable(i)); // variable is associated with target i
 	 }
 
 	 double[] maxmin;
-
-	 // indicates which targets are reachability and which ones are safety
-	 BitSet target_dirs = new BitSet(targets.size());
-	 // for now all are reachability
-	 for(int i = 0; i < targets.size()-1; i++){
-	     target_dirs.clear(i);
-	 }
 
 	 // initialize polyhedra
 	 // TODO: implement more efficiently - don't need to always evaluate for all states
 	 for (int s = 0; s < gameSize; s++){
 	     // base point
 	     Linear_Expression base = new Linear_Expression_Times(new Coefficient(0), dimensions.get(0));
-	     for(int i = 0; i < targets.size(); i++){
+	     for(int i = 0; i < targets.size()+stpgRewards.size(); i++){
 		 base = new Linear_Expression_Sum(base, new Linear_Expression_Times(new Coefficient(0), dimensions.get(i)));
 	     }
 	     // add base point to generator system
 	     gss.get(s).add(Generator.point(base, new Coefficient(1)));
 
+	     // TODO: do for all rewards:
+	     STPGRewards stpgr;
+
 	     // reward
-	     BigFraction r = new BigFraction(stpgRewards.getStateReward(s), 1.0/accuracy, Integer.MAX_VALUE);
-	     BigInteger num = r.getNumerator();
-	     BigInteger den = r.getDenominator();
+	     BigFraction r;
+	     BigInteger num;
+	     BigInteger den;
 
 	     // now see if targets are satisfied and if so add corresponding generator
-	     for(int i = 0; i < targets.size(); i++){
+	     for(int i = 0; i < targets.size()+stpgRewards.size(); i++){
 		 den = BigInteger.ONE;
-		 if(i==targets.size()-1){ // reward
+		 if(i>=targets.size()){ // rewards
+		     stpgr = stpgRewards.get(i-targets.size());
+		     r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy, Integer.MAX_VALUE);
 		     num = r.getNumerator();
-		     den = r.getDenominator(); // TODO: careful with dividing the whole linexp later!
+		     den = r.getDenominator();
 		 } else { // target
 		     num = BigInteger.valueOf(targets.get(i).get(s)?1:0);
 		 }
 		 // System.out.printf("Add one: state %d, target %d\n", s, i);
-		 Linear_Expression es = new Linear_Expression_Times(new Coefficient(num), dimensions.get(i));
+
 
 		 //System.out.println(num);
 		 //System.out.println(es.ascii_dump());
 
-		 List<Generator> to_add = new ArrayList<Generator>();
-		 for(Generator g : gss.get(s)){
-		     // TODO: don't add but saturate - don't want to get things like 1 + 1
-		     Linear_Expression sum;
-		     if(den.compareTo(BigInteger.ONE)==0){
-			 sum = new Linear_Expression_Sum(es, g.linear_expression());
-		     } else {
-			 sum = new Linear_Expression_Sum(es, g.linear_expression().times(new Coefficient(den)));
-		     }
+		 if(num.compareTo(BigInteger.ZERO)!=0){
+		     List<Generator> to_add = new ArrayList<Generator>();
+		     for(Generator g : gss.get(s)){
+			 // TODO: don't add but saturate - don't want to get things like 1 + 1
+			 Linear_Expression sum;
+
+			 Linear_Expression es = new Linear_Expression_Times(new Coefficient(g.divisor().getBigInteger().multiply(num)), dimensions.get(i));		     
+			 if(den.compareTo(BigInteger.ONE)==0){
+			     sum = new Linear_Expression_Sum(es, g.linear_expression());
+			 } else {
+			     sum = new Linear_Expression_Sum(es, g.linear_expression().times(new Coefficient(den)));
+			 }
 		     
-		     to_add.add(Generator.point(sum, new Coefficient(den)));
+			 to_add.add(Generator.point(sum, new Coefficient(g.divisor().getBigInteger().multiply(den))));
+		     }
+		     gss.get(s).addAll(to_add);
 		 }
-		 gss.get(s).addAll(to_add);
 	     }
 
 	     // see how poly looks like
@@ -525,6 +595,8 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 // iterate functional application
+
+	 /*
 	 // S' = gameSize
 	 // epsilon = 1.0/accuracy
 	 // M = max_s(stpgRewards.getStateReward(s))
@@ -533,7 +605,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 double epsilon = 0.1;//1.0/accuracy;
 	 double M = 0.0;
 	 for(int s = 0; s < gameSize; s++){
-	     double rew = stpgRewards.getStateReward(s);
+	     double rew = stpgr.getStateReward(s);
 	     if(rew > M) M = rew;
 	 }
 	 double delta = 1.0;
@@ -555,20 +627,27 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 double maxIter = 2.0*((double)gameSize)*Math.log(epsilon/M)/Math.log(1.0-Math.pow(delta, (double)gameSize));
-	 System.out.printf("size: %d, eps: %f, M: %f, delta: %f\n", gameSize, epsilon, M, delta);
-	 System.out.printf("maxIter: %f\n", maxIter);	 
+	 System.out.printf("%% size: %d, eps: %f, M: %f, delta: %f\n", gameSize, epsilon, M, delta);
+	 System.out.printf("%% maxIter: %f\n", maxIter);	 
 	 // way too pessimissic. Need a different stopping criterion
 
 
 
-
-	 maxIter = 15;
+	 */
 
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) { 
-	     System.out.printf("Iteration: %d\n", iter);
-	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, target_dirs, stpgRewards, accuracy);
-	     System.out.printf("Results of iteration %d\n", iter);
-	     printReachabilityPolyhedra(result, targets.size());
+	     System.out.printf("%% Iteration: %d\n", iter);
+	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy);
+	     /*
+	     if( (iter % 100) == 0){
+		 System.out.printf("Results of iteration %d\n", iter);
+		 printReachabilityPolyhedra(result, targets.size()+stpgRewards.size());
+	     }
+	     */
+
+	     // matlab plots
+	     System.out.printf("%% Results of iteration %d\n", iter);
+	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
 	     // TODO: stopping criterion
 	     // max_s(max_p in points(s)(min_q in points(s)(||p-q||_2))) < epsilon
@@ -576,7 +655,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	     // TODO: USE PREDECESSOR!!!
 	     // TODO: seems like the distance method is buggy - what's wrong???
-
+	     /*
 	     double dist = 0.0;
 	     for(int s = 0; s < result.size(); s++){
 		 double max_q = 0.0;
@@ -594,7 +673,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     }
 
 	     System.out.printf("Distance: %f", dist);
-
+	     */
 
 
 	 }
@@ -603,7 +682,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	 System.out.println("Final Results:");
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	 printReachabilityPolyhedra(result, targets.size());
+	 printReachabilityPolyhedra(result, targets.size()+stpgRewards.size());
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
 	 // return the set of polyhedra
@@ -627,7 +706,7 @@ public class SMGModelChecker extends STPGModelChecker
 	  * @throws PrismException
 	  */
 
-    public List<Set<ReachTuple>> computeReachabilityTuples(boolean min1, boolean min2, STPG stpg, List<BitSet> targets)
+    public List<Set<ReachTuple>> computeReachabilityTuples(boolean min1, boolean min2, STPG stpg, List<BitSet> targets, double maxIter)
 			 throws PrismException
     {
 
@@ -690,11 +769,10 @@ public class SMGModelChecker extends STPGModelChecker
 
 		 // System.out.println(result.toString());
 		 // starting value iterationinit
-		 int maxIter = 15;
 		 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		 Set<ReachTuple> sample;
-		 while (maxIter-- > 0) {
-		     System.out.printf("iteration %d\n", 5-maxIter);
+		 for(int i = 0; i < Math.ceil(maxIter); i++){
+		     System.out.printf("iteration %d\n", i);
 		     /*
 			 System.out.println(result.toString());
 			 System.out.println("--------------");
