@@ -1,7 +1,7 @@
 #!/usr/bin/python -O
 
-import sys
-import datetime
+from __future__ import division
+import datetime, math, sys
 import osm2graph
 
 smg = open("car2.gen.smg", "w");
@@ -64,27 +64,28 @@ for e in G.edges(data=True):
 # Hazards and Reactions                                                 #
 #########################################################################
 
-hazards = ['tree', 'person', 'debris', 'pothole', 'aliens']
+#hazards = ['tree', 'person', 'debris', 'pothole', 'aliens']
+hazards = ['tree', 'person']
+alphas = {'tree': 0.002, 'person': 0.05} # control ocurrence probability, one for each hazard, the larger, the more likely
 maxVelocity = 2;
-reactions = {'tree' : ['dodge', 'brake'], 'person' : ['brake', 'honk', 'dodge'], 'debris': ['dodge', 'brake'], 'pothole': ['dodge', 'brake'], 'aliens': ['honk', 'lazergun']}
+#reactions = {'tree' : ['dodge', 'brake'], 'person' : ['brake', 'honk', 'dodge'], 'debris': ['dodge', 'brake'], 'pothole': ['dodge', 'brake'], 'aliens': ['honk', 'lazergun']}
+reactions = {'tree' : ['dodge', 'brake'], 'person' : ['brake', 'honk', 'dodge']}
 # all possible reactions
 reacts = set([])
 for r in reactions.itervalues():
     reacts = reacts | set(r)
 reacts = list(reacts)
 
-def powerset(seq):
-    """
-    Returns all the subsets of this set. This is a generator.
-    """
-    if len(seq) <= 1:
-        yield seq
+def powerset(S):
+    if len(S) <= 1:
+        yield S
         yield []
     else:
-        for item in powerset(seq[1:]):
-            yield [seq[0]]+item
-            yield item
-
+        for s in powerset(S[1:]):
+            yield [S[0]]+s
+            yield s
+# all possible combinations of hazards
+haz = list(powerset(hazards))
 
 #########################################################################
 # Output PRISM Model                                                    #
@@ -93,12 +94,12 @@ def powerset(seq):
 # one field per edge
 N = len(G.edges())
 n = len(hazards)
-M = 1 + 2**n + n*2**(n-1) # TODO
+M = 1 + 2**n + n*2**(n-1)
 
 # TODO: properly identify goal
-goal = N-1
+goal = 104 # hilltop gardens for now
 
-# build a dictionary of edges and the ids i use
+# build a dictionary of edges and the associated ids
 edgeid = {}
 i = 0
 for e in G.edges():
@@ -204,10 +205,47 @@ for e in G.edges(data=True):
                 else:
                     smg.write("const int DEST_%i_%i = POS_%i;\n" % (j, ie, i_f))
             j = j + 1
+smg.write("\n")
+
+# returns a distribution of hazard probabilities given the length of a road
+def distr(length):
+    # how many hazard combinations are there?
+    numhaz = n*2**(n-1) # adding all cardinalities of elements in powerset of hazards
+    dist = {} # nothing in distribution yet
+    cumulative = 0.0
+    empty_i = 0
+    # fill distribution - one entry for each hazard combination
+    for i in xrange(0,len(haz)):
+        hs = haz[i]
+        if hs==[]:
+            empty_i = i
+        else:
+            Alpha = 1
+            for h in hs:
+                Alpha = Alpha*alphas[h]
+            dist[i] = math.tanh(Alpha*length)/numhaz
+            cumulative = cumulative + dist[i]
+    # probability of nothing happening
+    dist[empty_i] = 1 - cumulative
+    # return distribution
+    return dist
+
+# write hazard probabilities for each edge
+for e in G.edges(data=True):
+    ie = edgeid[(e[0],e[1])]
+    d = distr(e[2]["data"]["dist"])
+    for j in xrange(0, len(haz)):
+        smg.write("const double DISTR_%i_%i = %f;\n" % (j, ie, d[j]))
+
+smg.write("\n")
+
+
+
+
 
 # identify which edge has how many successors
 successors = {}
-for e in G.edges():
+for e in G.edges(data=True):
     succ = len(G.edges([e[1]]))
     if succ not in successors:
         successors[succ] = [e]
@@ -220,6 +258,7 @@ smg.write("\nglobal p : [1..2] init 1;\n") # players
 smg.write("global car_position : [0..%i] init POS_init;\n" % (N+2))
 smg.write("global s : [-2..%i] init 0;\n\n" % (M))
 smg.write("global car_velocity : [1..%i] init 1;\n" % (maxVelocity))
+
 
 def subhazard(from_s, to_s, subhaz, k):
     if len(subhaz)==0:
@@ -241,9 +280,10 @@ def carreact(from_s, hazz, k):
 
 # the base cases - one for each number of successors
 for i, succs in successors.iteritems():
+
     # k is the first edge with i successors
-    k = edgeid[succs[0]]
-    haz = list(powerset(hazards))
+    k = edgeid[(succs[0][0],succs[0][1])]
+    # the corresponding distribution
 
     smg.write("module field_%i\n\n" % (k))
 
@@ -258,7 +298,7 @@ for i, succs in successors.iteritems():
         if not init:
             smg.write(" + ")
         init = False
-        smg.write("1/%i : (s'=%i) & (p'=2)" % (len(haz), 1+j+1))
+        smg.write("DISTR_%i_%i : (s'=%i) & (p'=2)" % (j, k, 1+j+1))
     smg.write(";\n")
 
     # instantiate hazard - bad guy
@@ -279,9 +319,9 @@ for i, succs in successors.iteritems():
 for i, succs in successors.iteritems():
     # if just one edge with i successors, then have it covered already
     if len(succs) > 1:
-        l = edgeid[succs[0]]
+        l = edgeid[(succs[0][0],succs[0][1])]
         for e in succs[1:]: # start iterating at seccond edge
-            k = edgeid[e]
+            k = edgeid[(e[0],e[1])]
             # module and position
             smg.write("module field_%i = field_%i [POS_%i=POS_%i" % (k, l, l, k))
             # velocity
@@ -297,6 +337,9 @@ for i, succs in successors.iteritems():
             # steering
             for j in xrange(0,i):
                 smg.write(", move_%i_%i=move_%i_%i, DEST_%i_%i = DEST_%i_%i" % (j, l, j, k, j, l, j, k))
+            # hazard-set distribution
+            for j in xrange(0,len(haz)):
+                smg.write(", DISTR_%i_%i=DISTR_%i_%i" % (j, l, j, k))
             # alternatively, termination
             if i == 0:
                 smg.write(", term_%i=term_%i, DEST_%i=DEST_%i" % (l, k, l, k))
