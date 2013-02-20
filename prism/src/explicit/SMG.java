@@ -283,6 +283,7 @@ public class SMG extends STPGExplicit implements STPG
 	    boolean min = false;
 	    
 	    for(int s = 0; s < numStates; s++){
+		System.out.printf("%% State %d\n", s);
 		if (getPlayer(s) == 1)
 		    min = min1;
 		else
@@ -322,6 +323,8 @@ public class SMG extends STPGExplicit implements STPG
 	    List<Integer> states;
 	    Polyhedron statePoly;
 
+	    long t1 = System.nanoTime();
+
 	    for(int d = 0; d < dists.size(); d++){
 		// consider each distribution as a stochastic state
 		// hence get a polyhedron for each distribution
@@ -331,7 +334,7 @@ public class SMG extends STPGExplicit implements STPG
 		Distribution distr = dists.get(d);
 		states = new ArrayList<Integer>(distr.keySet());
 		
-		if(states.size() >=1){ // if the distribution is "interesting" -- need to compute Minkowski sum
+		if(states.size()>=1){ // if the distribution is "interesting" -- need to compute Minkowski sum
 
 		    // polyhedra of the successors of the stochastic state d
 		    List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
@@ -425,6 +428,8 @@ public class SMG extends STPGExplicit implements STPG
 		    
 	    }
 
+	    long t2 = System.nanoTime();
+
 	    // now do the good guy or bad guy operations on the polyhedra in distPolys
 	    statePoly = distPolys.remove(0);
 	    if (!min) {
@@ -440,6 +445,9 @@ public class SMG extends STPGExplicit implements STPG
 		}
 	    }
 	    
+
+	    long t3 = System.nanoTime();
+
 	    // minimize the fractions
 	    // NOTE: limits accuracy as well! (optional)
 	    boolean minimize = true;
@@ -498,6 +506,8 @@ public class SMG extends STPGExplicit implements STPG
 		}
 
 	    }
+
+	    long t4 = System.nanoTime();
 
 	    // it could be possible that in this state a target is satisfied, so add the appropriate points
 	    // TODO: test for safety
@@ -576,6 +586,12 @@ public class SMG extends STPGExplicit implements STPG
 
 	    // minimize polyhedron
 	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
+
+
+	    long t5 = System.nanoTime();
+
+	    System.out.printf("%% Minkowski: %f, GoodBad: %f, Minimize: %f, Rewards: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
+
 	    return statePoly;
 	}
 
