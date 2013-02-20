@@ -338,14 +338,6 @@ public class SMG extends STPGExplicit implements STPG
 
 		    // polyhedra of the successors of the stochastic state d
 		    List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
-		    
-		    // define a temporary variable for each successor
-		    Map<Integer,Variable> temp_vars = new HashMap<Integer,Variable>(states.size());
-		    int supdim = targets.size()+stpgRewards.size();
-		    for(Integer t : states){
-			temp_vars.put(t, new Variable(supdim));
-			supdim++;
-		    }
 
 		    // first find probabilities that sum to one
 		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
@@ -370,11 +362,10 @@ public class SMG extends STPGExplicit implements STPG
 		    */
 		    // NOTE: use this for a faster ad-hoc version
 		    probs.put(states.get(0), probs.get(states.get(0)).add(residual));
-		    
+
 		    // multiply the polyhedron for each nonzero successor of the distribution:
 		    for(Integer t : states){
 			BigFraction f = probs.get(t).reduce();
-
 			// do the scaling by f
 			Generator_System gsn = new Generator_System();
 			for (Generator g : init.get(t).minimized_generators()){
@@ -382,12 +373,10 @@ public class SMG extends STPGExplicit implements STPG
 			    if(g.type()==Generator_Type.POINT){
 				BigInteger fac = BigInteger.valueOf(states.size());
 				// multiply by numerator of probability
-				Linear_Expression le = g.linear_expression().times(new Coefficient(f.getNumerator().multiply(fac)));
-				// add the auxiliary dimension
-				Linear_Expression les = le.sum(new Linear_Expression_Times(new Coefficient(f.getDenominator().multiply(fac).multiply(g.divisor().getBigInteger())), temp_vars.get(t)));
+				Linear_Expression le = g.linear_expression().times(new Coefficient(f.getNumerator()));
 				// divide by denominator of probability
 				Coefficient c = new Coefficient(g.divisor().getBigInteger().multiply(f.getDenominator()));
-				Generator ng = Generator.point(les, c);
+				Generator ng = Generator.point(le, c);
 				gsn.add(ng);
 			    } else {
 				throw new PrismException("Only point generators supported at this point. Where did the line or ray come from?");
@@ -396,31 +385,41 @@ public class SMG extends STPGExplicit implements STPG
 			// add the scaled generators
 			distGs.add(gsn); // corresponding to state t
 		    }
+
 		    
 		    // then form the Minkowski sum between polyhedra in distGs and add the result to distPolys
-		    // do this by stacking all generators together
-		    // and then constraining the temporary dimensions to one (1)
 		    
 		    Generator_System gs = new Generator_System();
-		    for(Generator_System g : distGs){
-			gs.addAll(g);
-		    }
 		    
-		    C_Polyhedron cp = new C_Polyhedron(gs);
-
-		    // add the constraints
-		    for (Integer t : states){
-			Linear_Expression lhs = new Linear_Expression_Variable(temp_vars.get(t));
-			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
-			Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
-			cp.add_constraint(c);
+		    for(Generator_System g : distGs){
+			if(gs.size()==0){
+			    gs = g;
+			    continue;
+			}
+			Generator_System new_gs = new Generator_System();
+			for(Generator g1 : gs){
+			    for(Generator g2 : g){
+				Linear_Expression le1 = g1.linear_expression();
+				Linear_Expression le2 = g2.linear_expression();
+				Coefficient c1 = g1.divisor();
+				Coefficient c2 = g2.divisor();
+				
+				Linear_Expression le_new = le1.times(c2).sum(le2.times(c1));
+				Coefficient c_new = new Coefficient(c1.getBigInteger().multiply(c2.getBigInteger()));
+				new_gs.add(Generator.point(le_new, c_new));
+			    }
+			}
+			gs = new_gs;
 		    }
+	    
+		    C_Polyhedron cp = new C_Polyhedron(gs);
+		    // bring to consistent dimensions
+		    cp.add_space_dimensions_and_project(targets.size()+stpgRewards.size()-cp.space_dimension());
 
-		    // project away the unneccessary dimensions
-		    cp.remove_higher_space_dimensions(targets.size()+stpgRewards.size());
 		    
 		    // now in cp have the minkowski sum for that particular distribution d
 		    distPolys.add(cp);
+
 		}
 		else if (states.size()==0) { // distribution just assigns 1 to one successor
 		    distPolys.add(init.get(states.get(0)));
@@ -444,7 +443,6 @@ public class SMG extends STPGExplicit implements STPG
 		    statePoly.intersection_assign(cp);
 		}
 	    }
-	    
 
 	    long t3 = System.nanoTime();
 
