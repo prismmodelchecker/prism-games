@@ -409,7 +409,9 @@ public class SMG extends STPGExplicit implements STPG
 				new_gs.add(Generator.point(le_new, c_new));
 			    }
 			}
-			gs = new_gs;
+			C_Polyhedron temp_cp = new C_Polyhedron(new_gs);
+			gs = temp_cp.minimized_generators();
+			System.out.printf("Size: %d\n", gs.size());
 		    }
 	    
 		    C_Polyhedron cp = new C_Polyhedron(gs);
