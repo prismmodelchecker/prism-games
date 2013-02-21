@@ -136,9 +136,15 @@ for e in G.edges(data=True):
 #########################################################################
 
 hazards = ['pedestrian', 'obstacle', 'jam']
-alphas = {'roadblock': 0.002, 'pedestrian': 0.05, 'obstacle': 0.01, 'jam': 0.1} # control ocurrence probability, one for each hazard, the larger, the more likely
-maxVelocity = 2;
-reactions = {'pedestrian' : ['brake', 'honk', 'changelane'], 'obstacle': ['changelane', 'uturn'], 'jam': ['honk', 'uturn']}
+# control ocurrence probability, one for each hazard, the larger, the more likely
+alphas = {'roadblock': 0.002,
+          'pedestrian': 0.05,
+          'obstacle': 0.02,
+          'jam': 0.1} 
+reactions = {'roadblock': ['uturn'],
+             'pedestrian' : ['brake', 'honk', 'changelane'],
+             'obstacle': ['changelane', 'uturn'],
+             'jam': ['honk', 'uturn']}
 
 # all possible reactions
 reacts = set([])
@@ -155,7 +161,12 @@ def powerset(S):
             yield [S[0]]+s
             yield s
 # all possible combinations of hazards
-haz = list(powerset(hazards))
+haz = []
+for i1 in xrange(0,len(hazards)):
+    haz.append([hazards[i1]])
+    for i2 in xrange(i1+1, len(hazards)):
+        haz.append([hazards[i1],hazards[i2]])
+haz.append([])
 
 #########################################################################
 # Output PRISM Model                                                    #
@@ -163,8 +174,8 @@ haz = list(powerset(hazards))
 
 # one field per edge
 N = len(G.edges())
-n = len(hazards)
-M = 1 + 2**n + n*2**(n-1)
+#n = len(hazards)
+M = 3*(len(haz)-1) - 2*len(hazards)
 
 # TODO: properly identify goal
 goal = 93 # lower street for now
@@ -206,9 +217,6 @@ for e in G.edges():
         smg.write(",\n")
     first = False
     smg.write("\t")
-    # velocity
-    for v in xrange(1,maxVelocity+1):
-        smg.write("[velocity_%i_%i], " % (v, i))
     # reactions
     for r in reacts:
         smg.write("[%s_%i], " % (r, i))
@@ -241,13 +249,13 @@ for e in G.edges():
     # hazard
     for h in hazards:
         smg.write("[%s_%i], " % (h, i))
-    smg.write("[none_%i], [hazard_%i]" % (i, i))
+    smg.write("[hazard_%i]" % (i))
 smg.write(",\n\t[term]")
 smg.write("\nendplayer\n\n")
 
 
 # positions in topology
-smg.write("const int POS_init = %i;\n" % (0))
+smg.write("const int POS_init = %i;\n" % (1))
 smg.write("const int POS_goal = %i;\n" % (N))
 smg.write("const int POS_term = %i;\n" % (N+1))
 for e in G.edges(data=True):
@@ -272,16 +280,18 @@ for e in G.edges(data=True):
             smg.write("const int DEST_%i = POS_term;\n" % (ie))
     else:
         j = 0
-        onlyuturn = False
+        onlyone = False
         if len(G.edges([e[1]]))==1:
-            onlyuturn = True
+            onlyone = True
         for f in G.edges([e[1]], data=True):
-            if (f[1],f[0]) == (e[0],e[1]): # no uturn in intersection
-                if onlyuturn:
+            if ie != goal and (f[1],f[0]) == (e[0],e[1]): # no uturn in intersection
+                if onlyone:
                     smg.write("const int DEST_%i = POS_term;\n" % (ie))
                 continue
             i_f = edgeid[(f[0],f[1])]
-            if ie==goal:
+            if ie==goal and onlyone:
+                smg.write("const int DEST_%i = POS_goal;\n" % (ie))
+            elif ie==goal:
                 smg.write("const int DEST_%i_%i = POS_goal;\n" % (j, ie))
             else:
                 name_to = ''
@@ -304,8 +314,6 @@ smg.write("\n")
 # returns a distribution of hazard probabilities given the length of a road
 def distr(length):
     # how many hazard combinations are there?
-    #numhaz = n*2**(n-1) # adding all cardinalities of elements in powerset of hazards
-    numhaz = 2**n # number of sets in powerset
     dist = {} # nothing in distribution yet
     cumulative = 0.0
     empty_i = 0
@@ -318,7 +326,7 @@ def distr(length):
             Alpha = 1
             for h in hs:
                 Alpha = Alpha*alphas[h]
-            dist[i] = math.tanh(Alpha*length)/numhaz
+            dist[i] = math.tanh(Alpha*length)/len(haz)
             cumulative = cumulative + dist[i]
     # probability of nothing happening
     dist[empty_i] = 1 - cumulative
@@ -359,7 +367,7 @@ for e in G.edges(data=True):
 
 
 
-smg.write("\nglobal p : [1..2] init 1;\n") # players
+smg.write("\nglobal p : [1..2] init 2;\n") # players
 smg.write("global car_position : [0..%i] init POS_init;\n" % (N+2))
 # special states:
 # -1: accident (terminal)
@@ -368,38 +376,34 @@ smg.write("global car_position : [0..%i] init POS_init;\n" % (N+2))
 # -4: braking
 # -5: uturning
 smg.write("global s : [-5..%i] init 0;\n" % (M))
-smg.write("global car_velocity : [1..%i] init 1;\n\n\n" % (maxVelocity))
 
 
 def subhazard(from_s, to_s, subhaz, k):
-    if len(subhaz)==0:
-        smg.write("\t[none_%i] p=2 & s=%i & car_position=POS_%i -> (p'=1) & (s'=%i);\n" % (k, from_s, k, -2))
     new_s = to_s
-    for i in xrange(0, len(subhaz)):
-        smg.write("\t[%s_%i] p=2 & s=%i & car_position=POS_%i-> (p'=1) & (s'=%i);\n" % (subhaz[i], k, from_s, k, new_s))
-        carreact(new_s, subhaz[i], k, from_s)
-        new_s = new_s + 1
+    if len(subhaz)==1:
+        carreact(from_s, subhaz[0], k)
+    else:
+        for i in xrange(0, len(subhaz)):
+            smg.write("\t[%s_%i] p=2 & s=%i & car_position=POS_%i-> (p'=1) & (s'=%i);\n" % (subhaz[i], k, from_s, k, new_s))
+            carreact(new_s, subhaz[i], k)
+            new_s = new_s + 1
     return new_s
 
-def carreact(from_s, hazz, k, selection_s):
+def carreact(from_s, hazz, k):
     # TODO: actually insert probability here - possibly stored in reaction dict
     acc_prob_num = 1
     acc_prob_den = 10
     for i in xrange(0, len(reactions[hazz])):
         if (reactions[hazz][i]=='brake'): # brake action is special (need to insert state to let time pass)
-            # also set velocity to 1
-            smg.write("\t[brake_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=%i) + %i/%i : (p'=1) & (s'=%i);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, -1, acc_prob_den-acc_prob_num, acc_prob_den, -4)) 
-            smg.write("\t[] p=1 & s=-4 & car_position=POS_%i -> (s'=-2) & (car_velocity'=1);\n" % (k)) # only one option
-        elif(reactions[hazz][i]=='wait'): # wait action is special
-            # go back to lowest speed
-            smg.write("\t[wait_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=%i) + %i/%i : (p'=1) & (s'=%i) & (car_velocity'=1);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, -1, acc_prob_den-acc_prob_num, acc_prob_den, selection_s)) 
+            smg.write("\t[brake_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=-1) + %i/%i : (p'=1) & (s'=-4);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, acc_prob_den-acc_prob_num, acc_prob_den)) 
+            smg.write("\t[] p=1 & s=-4 & car_position=POS_%i -> (s'=-2);\n" % (k)) # only one option
         elif(reactions[hazz][i]=='uturn'): # uturn action is special
             smg.write("\t[uturn_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=UTURN_0_%i) + %i/%i : (p'=1) & (s'=UTURN_1_%i);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, k, acc_prob_den-acc_prob_num, acc_prob_den, k))
-            smg.write("\t[] p=1 & s=-5 & car_position=POS_%i -> (p'=1) & (s'=%i) & (car_position'=REVEDGE_%i);\n" % (k, 0, k))
+            smg.write("\t[] p=1 & s=-5 & car_position=POS_%i -> (p'=2) & (s'=0) & (car_position'=REVEDGE_%i);\n" % (k, k))
         elif(reactions[hazz][i]=='changelane'): # changelane action is special
             smg.write("\t[changelane_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=CHANGELANE_0_%i) + %i/%i : (p'=1) & (s'=CHANGELANE_1_%i);\n" % (k, from_s, k, 2*acc_prob_num, acc_prob_den, k, acc_prob_den-2*acc_prob_num, acc_prob_den, k)) 
         else: # standard actions
-            smg.write("\t[%s_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=%i) + %i/%i : (p'=1) & (s'=%i);\n" % (reactions[hazz][i], k, from_s, k, acc_prob_num, acc_prob_den, -1, acc_prob_den-acc_prob_num, acc_prob_den, -2)) 
+            smg.write("\t[%s_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=-1) + %i/%i : (p'=1) & (s'=-2);\n" % (reactions[hazz][i], k, from_s, k, acc_prob_num, acc_prob_den, acc_prob_den-acc_prob_num, acc_prob_den)) 
 
 
 # the base cases - one for each number of successors (taking no uturn at intersection into account)
@@ -409,30 +413,32 @@ for i, succs in successors.iteritems():
     k = edgeid[(succs[0][0],succs[0][1])]
     # the corresponding distribution
 
-    smg.write("module field_%i\n\n" % (k))
-
-    # pick speed - good guy
-    for v in xrange(1,maxVelocity+1):
-        smg.write("\t[velocity_%i_%i] p=1 & s=0 & car_position=POS_%i-> (car_velocity'=%i) & (s'=1) & (p'=2);\n" % (v, k, k, v))
+    smg.write("\n\nmodule field_%i\n\n" % (k))
 
     # pick available hazards - stochastic guy
-    smg.write("\t[hazard_%i] p=2 & s=1 & car_position=POS_%i-> " % (k, k))
+    smg.write("\t[hazard_%i] p=2 & s=0 & car_position=POS_%i-> " % (k, k))
     init = True
     for j in xrange(0,len(haz)):
         if not init:
             smg.write(" + ")
         init = False
-        smg.write("DISTR_%i_%i : (s'=%i) & (p'=2)" % (j, k, 1+j+1))
+        if len(haz[j])==0:
+            smg.write("DISTR_%i_%i : (s'=-2) & (p'=1)" % (j, k))
+        elif len(haz[j])==1:
+            smg.write("DISTR_%i_%i : (s'=%i) & (p'=1)" % (j, k, j+1))
+        else:
+            smg.write("DISTR_%i_%i : (s'=%i) & (p'=2)" % (j, k, j+1))
     smg.write(";\n")
 
     # instantiate hazard - bad guy
-    new_s = 1+len(haz)+1
-    for j in xrange(0, len(haz)):
-        new_s = subhazard(1+j+1, new_s, haz[j], k)
+    new_s = len(haz)
+    for j in xrange(0, len(haz)-1):
+        if len(haz[j]) != 0:
+            new_s = subhazard(j+1, new_s, haz[j], k)
 
     # pick destination - good guy
     for j in xrange(0,i):
-        smg.write("\t[move_%i_%i] p=1 & s=%i & car_position=POS_%i-> (car_position'=DEST_%i_%i) & (s'=0) & (p'=1);\n" % (j, k, -2, k, j, k))
+        smg.write("\t[move_%i_%i] p=1 & s=%i & car_position=POS_%i-> (car_position'=DEST_%i_%i) & (s'=0) & (p'=2);\n" % (j, k, -2, k, j, k))
 
     if i == 0:
         smg.write("\t[term_%i] p=1 & s=%i & car_position=POS_%i -> (car_position'=DEST_%i) & (s'=0) & (p'=2);\n" % (k, -2, k, k))
@@ -448,13 +454,10 @@ for i, succs in successors.iteritems():
             k = edgeid[(e[0],e[1])]
             # module and position
             smg.write("module field_%i = field_%i [POS_%i=POS_%i" % (k, l, l, k))
-            # velocity
-            for v in xrange(1,maxVelocity+1):
-                smg.write(", velocity_%i_%i=velocity_%i_%i" % (v, l, v, k))
             # hazard
             for h in hazards:
                 smg.write(", %s_%i=%s_%i" % (h, l, h, k))
-            smg.write(", none_%i=none_%i, hazard_%i=hazard_%i" % (l, k, l, k))
+            smg.write(", hazard_%i=hazard_%i" % (l, k))
             # reactions
             for r in reacts:
                 smg.write(", %s_%i=%s_%i" % (r, l, r, k))
@@ -502,20 +505,20 @@ smg.write("formula goal2 = (s!=-1);\n") # making an accident
 smg.write("rewards \"value\"\n")
 for e in G.edges(data=True):
     ie = edgeid[(e[0],e[1])]
-    smg.write("\tcar_position=%i & s=-2: %f;\n" % (ie, e[2]["data"]["value"]*e[2]["data"]["dist"]))
+    smg.write("\tcar_position=%i & s=-2: %f;\n" % (ie, e[2]["data"]["value"]*e[2]["data"]["dist"]/1000))
 smg.write("endrewards\n\n")
 
 
 # TIME
-smg.write("rewards \"time\"\n")
-# after velocity is selected, get 1/velocity time
-# hence, if wait action is invoked, also get 1/min_velocity time
-smg.write("\ts=1 : 1/car_velocity;\n")
+#smg.write("rewards \"time\"\n")
+# time passes by one in any case
+# TODO: make distance-depenent
+#smg.write("\ts=1 : 1;\n")
 # braking incurs a time delay of 1
-smg.write("\ts=-4 : 1;\n")
+#smg.write("\ts=-4 : 1;\n")
 # uturning incurs a time delay of 2
-smg.write("\ts=-5 : 2;\n")
-smg.write("endrewards\n\n")
+#smg.write("\ts=-5 : 2;\n")
+#smg.write("endrewards\n\n")
 
 
 

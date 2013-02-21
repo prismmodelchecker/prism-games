@@ -6,6 +6,7 @@ http://github.com/brianw/osmgeocode, which is based on osm.py from
 comes from Graphserver:
 http://github.com/bmander/graphserver/tree/master and is copyright (c)
 2007, Brandon Martin-Anderson under the BSD License
+2012, edits for PRISM by Clemen Wiltsche
 """
 
 import xml.sax
@@ -13,17 +14,29 @@ import copy
 import networkx
 import math
 
-# returns distance between nodes in meters using haversine
-def calculateDistance(node1, node2):
-    R = 6371009 # m
+# returns distance and bearing between nodes in meters using haversine
+# assume short roads, so initial and final bearings are the same
+def calculateDistanceAndBearing(node1, node2):
+    R = 6371009 # average radius of earth in m
+
+    # preliminaries
     dLat = (node2.lat-node1.lat)*math.pi/180
     dLon = (node2.lon-node1.lon)*math.pi/180
     lat1 = node1.lat*math.pi/180
     lat2 = node2.lat*math.pi/180
 
+    # distance
     a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    return R * c
+    distance = R*c
+
+    # bearing
+    y = math.sin(dLon)*math.cos(lat2)
+    x = math.cos(lat1)*math.sin(lat2) - math.sin(lat1)*math.cos(lat2)*math.cos(dLon)
+    bearing = math.atan2(y, x) * 180/math.pi
+
+    return (distance, bearing)
+
 
 def download_osm(left,bottom,right,top):
     """ Return a filehandle to the downloaded data."""
