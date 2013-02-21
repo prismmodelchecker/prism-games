@@ -80,7 +80,7 @@ public class SMGModelChecker extends STPGModelChecker
 	Parma_Polyhedra_Library.initialize_library();
 
 	// set accuracy
-	double accuracy = 100000.0;
+	double accuracy = 10000.0;
 
 	// print model
 	System.out.println(((STPG) model));
@@ -470,7 +470,7 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	if(true){
-	    int s = 0;
+	    int s = 1384; // happens to be initial state
 	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -771,6 +771,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 // ITERATE FUNCTIONAL APPLICATION
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) { 
 	     System.out.printf("%% Iteration: %d\n", iter);
+	     long itertime = System.nanoTime();
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy);
 	     /*
 	     if( (iter % 100) == 0){
@@ -781,6 +782,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	     // matlab plots
 	     System.out.printf("%% Results of iteration %d\n", iter);
+	     System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
 	     // STOPPING CRITERION
