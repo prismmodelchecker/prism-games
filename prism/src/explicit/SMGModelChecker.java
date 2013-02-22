@@ -53,6 +53,7 @@ import parser.visitor.ASTTraverse;
 import prism.PrismException;
 import prism.PrismLangException;
 import strat.ExactValueStrategy;
+import strat.MultiObjectiveStrategy;
 import strat.Strategy;
 import explicit.rewards.SMGRewards;
 
@@ -72,7 +73,7 @@ public class SMGModelChecker extends STPGModelChecker
 {
 
 
-    protected List<Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
+    protected List<Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
 	// dynamically load the Parma Polyhedra Library
 	System.loadLibrary("ppl_java");
@@ -139,7 +140,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    System.out.printf("maxIter: %e\n", maxIter);
 
 	    long polyTime = System.nanoTime();
-	    List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter);
+	    List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
 	    polyTime = System.nanoTime() - polyTime;
 
 	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
@@ -180,7 +181,10 @@ public class SMGModelChecker extends STPGModelChecker
 			    p = pb.evaluateDouble(constantValues);
 			}
 			// do the polyhedra computation
-			checkMultiObjectiveFormula(model, exprPATL, min);
+			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
+			List<Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
+			Strategy strategy = new MultiObjectiveStrategy((STPG) model, X, Y);
+			
 
 			// here do the standard method that I've basically overridden
 			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
@@ -470,7 +474,8 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	if(true){
-	    int s = 1384; // happens to be initial state
+	    //int s = 1384; // happens to be initial state
+	    int s = 0;
 	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -686,7 +691,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter) throws PrismException
+    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
      {
 
 	 int gameSize = stpg.getStatesList().size();
@@ -717,10 +722,8 @@ public class SMGModelChecker extends STPGModelChecker
 	     // add base point to generator system
 	     gss.get(s).add(Generator.point(base, new Coefficient(1)));
 
-	     // TODO: do for all rewards:
+	     // containers for rewards
 	     STPGRewards stpgr;
-
-	     // reward
 	     BigFraction r;
 	     BigInteger num;
 	     BigInteger den;
@@ -772,7 +775,8 @@ public class SMGModelChecker extends STPGModelChecker
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) { 
 	     System.out.printf("%% Iteration: %d\n", iter);
 	     long itertime = System.nanoTime();
-	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy);
+	     stochasticStates.clear();
+	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
 	     /*
 	     if( (iter % 100) == 0){
 		 System.out.printf("Results of iteration %d\n", iter);

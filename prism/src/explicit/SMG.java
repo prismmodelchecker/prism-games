@@ -276,7 +276,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy) throws PrismException
+    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
 	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
 
@@ -288,7 +288,10 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min1;
 		else
 		    min = min2;
-		result.add(pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy));
+
+		List<Polyhedron> distPolys = new ArrayList<Polyhedron>(trans.get(s).size());
+		result.add(pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy, distPolys));
+		stochasticStates.add(distPolys);
 	    }
 
 	    return result;
@@ -315,11 +318,11 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<Polyhedron> distPolys) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 
-	    List<Polyhedron> distPolys = new ArrayList<Polyhedron>(dists.size());
+	    // List<Polyhedron> distPolys = new ArrayList<Polyhedron>(dists.size());
 	    List<Integer> states;
 	    Polyhedron statePoly;
 
@@ -428,6 +431,7 @@ public class SMG extends STPGExplicit implements STPG
 		}
 		    
 	    }
+
 
 	    long t2 = System.nanoTime();
 
@@ -585,11 +589,10 @@ public class SMG extends STPGExplicit implements STPG
 	    //	    System.out.println(statePoly.ascii_dump());
 	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
 
+	    long t5 = System.nanoTime();
+
 	    // minimize polyhedron
 	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
-
-
-	    long t5 = System.nanoTime();
 
 	    System.out.printf("%% Minkowski: %f, GoodBad: %f, Minimize: %f, Rewards: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
 
