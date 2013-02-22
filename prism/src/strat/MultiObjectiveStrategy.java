@@ -129,8 +129,16 @@ public class MultiObjectiveStrategy implements Strategy
 		memoryUpdateFunction[t][u] = new HashMap<Integer,Map<Integer,Double>>();
 		Generator_System gsXu = X.get(u).minimized_generators();
 		// now for each corner point p for t, need to find a distribution
+		// that is, find l, and l coefficients beta_i summing to one such that
+		// for good and bad states: sum_i beta_i q_i^u >= p - rewards(t)
+		// and for stochastic states: ...
+		// for q^i_u in Y(t,u) - need to actually find these
 		for (int p = 0; p < gsXt.size(); p++) {
-		    
+		    memoryUpdateFunction[t][u].put(p, new HashMap<Integer,Double>());
+		    if(G.getPlayer(t) == STPGExplicit.PLAYER_1) {
+			// find q_i^u and beta_i in Y(t,u)
+			
+		    }
 		}
 		
 	    }
