@@ -278,7 +278,7 @@ public class SMG extends STPGExplicit implements STPG
 
     public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
-	    List<Polyhedron> result = new ArrayList<Polyhedron>(init.size());
+	    List<Polyhedron> result =  new ArrayList<Polyhedron>(init.size());
 
 	    boolean min = false;
 	    
