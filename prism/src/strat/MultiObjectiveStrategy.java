@@ -7,6 +7,7 @@ import java.util.ArrayList;
 
 import prism.PrismException;
 import explicit.STPG;
+import explicit.Distribution;
 import explicit.Model;
 import explicit.STPGExplicit;
 
@@ -42,8 +43,10 @@ public class MultiObjectiveStrategy implements Strategy
     {
     }
 
-    public void getNextMove(int state) throws InvalidStrategyStateException
+    @Override
+    public Distribution getNextMove(int state) throws InvalidStrategyStateException
     {
+	return null;
     }
 
     @Override
@@ -59,6 +62,7 @@ public class MultiObjectiveStrategy implements Strategy
     @Override
     public Model buildProduct(Model model) throws PrismException
     {
+	return null;
     }
 
     @Override
