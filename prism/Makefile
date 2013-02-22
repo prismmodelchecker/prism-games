@@ -282,7 +282,7 @@ MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterfac
 
 default: all
 
-all: cuddpackage untarppl pplpackage prism linkppl
+all: cuddpackage untarppl pplpackage linkppl prism
 
 cuddpackage: checks
 	@if [ "$(CUDD_DIR)" = "" ]; then echo "Error: Cannot find CUDD"; exit 1; fi
