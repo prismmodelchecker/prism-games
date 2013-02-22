@@ -428,39 +428,47 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
 
 
+
+
     private void printReachabilityPolyhedra(List<Polyhedron> polyhedra, int dim)
     {
 	for(int s = 0; s < polyhedra.size(); s++){
-	     System.out.printf("%d: [", s);
-	     for(Generator g : polyhedra.get(s).minimized_generators()){
-		 System.out.printf("[");
-		 BigInteger den = g.divisor().getBigInteger();
-		 Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
-		 PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
-		 boolean init = true;
-		 for(int i = 0; i<dim; i++){
-		     if(!init){
-			 System.out.printf(", ");
-		     }
-		     init = false;
-		     boolean foundvalue = false;
-		     for(Variable j : num.keySet()){
-			 if(j!=null && i==j.id()){
-			     BigFraction val = new BigFraction(num.get(j), den);
-			     System.out.printf("%.4f", val.doubleValue());
-			     foundvalue = true;
-			     break;
-			 }
-		     }
-		     if(!foundvalue){
-			 System.out.printf("%.4f", 0.0);
-		     }
-		 }
-		 System.out.printf("]");
-	     }
-	     System.out.printf("]\n");
-	 }
+	    printReachabilityPolyhedron(polyhedra.get(s), dim, s);
+	}
     }
+
+    public static void printReachabilityPolyhedron(Polyhedron polyhedron, int dim, int s)
+    {
+	System.out.printf("%d: [", s);
+	for(Generator g : polyhedron.minimized_generators()){
+	    System.out.printf("[");
+	    BigInteger den = g.divisor().getBigInteger();
+	    Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
+	    PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
+	    boolean init = true;
+	    for(int i = 0; i<dim; i++){
+		if(!init){
+		    System.out.printf(", ");
+		}
+		init = false;
+		boolean foundvalue = false;
+		for(Variable j : num.keySet()){
+		    if(j!=null && i==j.id()){
+			BigFraction val = new BigFraction(num.get(j), den);
+			System.out.printf("%.4f", val.doubleValue());
+			foundvalue = true;
+			break;
+		    }
+		}
+		if(!foundvalue){
+		    System.out.printf("%.4f", 0.0);
+		}
+	    }
+	    System.out.printf("]");
+	}
+	System.out.printf("]\n");
+    }
+
 
     private void printMatlab(List<Polyhedron> polyhedra, int dim, int iter)
     {

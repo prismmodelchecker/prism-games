@@ -429,24 +429,31 @@ public class SMG extends STPGExplicit implements STPG
 		else if (states.size()==0) { // distribution just assigns 1 to one successor
 		    distPolys.add(init.get(states.get(0)));
 		}
-		    
+
 	    }
 
+
+	    //for(int i = 0; i < distPolys.size(); i++) {
+	    //SMGModelChecker.printReachabilityPolyhedron(distPolys.get(i), ((int) distPolys.get(i).space_dimension()), i);
+	    //}
 
 	    long t2 = System.nanoTime();
 
 	    // now do the good guy or bad guy operations on the polyhedra in distPolys
-	    statePoly = distPolys.remove(0);
+	    // need deep copy here because want to retain Minkowski sums
+	    statePoly = new C_Polyhedron(distPolys.get(0).generators());
+	    // restore dimension
+	    statePoly.add_space_dimensions_and_project(distPolys.get(0).space_dimension() - statePoly.space_dimension());
 	    if (!min) {
 		// good guy
-		for (Polyhedron cp : distPolys){
-		    statePoly.upper_bound_assign(cp);
+		for (int cp_i = 1; cp_i < distPolys.size(); cp_i++) {
+		    statePoly.upper_bound_assign(distPolys.get(cp_i));
 		}
 	    }
 	    else {
 		// bad guy
-		for (Polyhedron cp : distPolys){
-		    statePoly.intersection_assign(cp);
+		for (int cp_i = 1; cp_i < distPolys.size(); cp_i++) {
+		    statePoly.intersection_assign(distPolys.get(cp_i));
 		}
 	    }
 	    

@@ -50,7 +50,7 @@ public class PPLSupport
     }
     */
 
-    static void getCoefficientsFromLinearExpression(Linear_Expression le, boolean minus, BigInteger coefficient, Map<Variable, BigInteger> result)
+    public static void getCoefficientsFromLinearExpression(Linear_Expression le, boolean minus, BigInteger coefficient, Map<Variable, BigInteger> result)
     {
 	
 	if(le instanceof Linear_Expression_Coefficient){
