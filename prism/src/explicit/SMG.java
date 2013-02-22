@@ -276,9 +276,9 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public List<Polyhedron> pMultiObjective(boolean min1, boolean min2, List<Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
-	    List<Polyhedron> result =  new ArrayList<Polyhedron>(init.size());
+	    Map<Integer,Polyhedron> result = init; // new ArrayList<Polyhedron>(init.size());
 
 	    boolean min = false;
 	    
@@ -290,7 +290,7 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min2;
 
 		List<Polyhedron> distPolys = new ArrayList<Polyhedron>(trans.get(s).size());
-		result.add(pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy, distPolys));
+		result.put(s, pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy, distPolys));
 		stochasticStates.add(distPolys);
 	    }
 
@@ -318,7 +318,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, List<Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<Polyhedron> distPolys) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<Polyhedron> distPolys) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 

@@ -167,7 +167,7 @@ public class MultiObjectiveStrategy implements Strategy
     // Y are the polyhedra of stochastic states:
     //     the first index is the good or bad state
     //     the second index is the action taken
-    public MultiObjectiveStrategy(STPG G, List<Polyhedron> X, List<List<Polyhedron>> Y)
+    public MultiObjectiveStrategy(STPG G, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y)
     {
 	// memory is the list of tuples (t, p), where p is in X(t)
 

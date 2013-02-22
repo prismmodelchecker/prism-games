@@ -73,7 +73,7 @@ public class SMGModelChecker extends STPGModelChecker
 {
 
 
-    protected List<Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
+    protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
 	// dynamically load the Parma Polyhedra Library
 	System.loadLibrary("ppl_java");
@@ -140,7 +140,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    System.out.printf("maxIter: %e\n", maxIter);
 
 	    long polyTime = System.nanoTime();
-	    List<Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
+	    Map<Integer,Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
 	    polyTime = System.nanoTime() - polyTime;
 
 	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
@@ -182,7 +182,7 @@ public class SMGModelChecker extends STPGModelChecker
 			}
 			// do the polyhedra computation
 			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
-			List<Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
+			Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
 			Strategy strategy = new MultiObjectiveStrategy((STPG) model, X, Y);
 			
 
@@ -430,7 +430,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 
-    private void printReachabilityPolyhedra(List<Polyhedron> polyhedra, int dim)
+    private void printReachabilityPolyhedra(Map<Integer,Polyhedron> polyhedra, int dim)
     {
 	for(int s = 0; s < polyhedra.size(); s++){
 	    printReachabilityPolyhedron(polyhedra.get(s), dim, s);
@@ -470,7 +470,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private void printMatlab(List<Polyhedron> polyhedra, int dim, int iter)
+    private void printMatlab(Map<Integer,Polyhedron> polyhedra, int dim, int iter)
     {
 	int max_points = 0;
 	for(int s = 0; s < polyhedra.size(); s++){
@@ -482,8 +482,8 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	if(true){
-	    //int s = 1384; // happens to be initial state
-	    int s = 0;
+	    int s = 1384; // happens to be initial state
+	    //int s = 0;
 	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -672,7 +672,7 @@ public class SMGModelChecker extends STPGModelChecker
 
     }
 
-    private boolean stop(List<Polyhedron> X, List<Polyhedron> prevX, double epsilon)
+    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, double epsilon)
     {
 	int gameSize = X.size();
 	
@@ -699,12 +699,12 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public List<Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
      {
 
 	 int gameSize = stpg.getStatesList().size();
-	 List<Polyhedron> result = new ArrayList<Polyhedron>(gameSize);
-	 List<Polyhedron> prev_result = new ArrayList<Polyhedron>(gameSize);
+	 Map<Integer,Polyhedron> result = new HashMap<Integer,Polyhedron>(gameSize);
+	 Map<Integer,Polyhedron> prev_result = new HashMap<Integer,Polyhedron>(gameSize);
 
 	 // a list of generator systems, one for each state
 	 // will be turned into polyhedra later
@@ -776,7 +776,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     C_Polyhedron cp = new C_Polyhedron(gss.get(s));
 	     //System.out.printf("State: %d\n", s);
 	     //System.out.println(cp.ascii_dump());
-	     result.add(cp);
+	     result.put(s,cp);
 	 }
 
 	 // ITERATE FUNCTIONAL APPLICATION
@@ -801,8 +801,9 @@ public class SMGModelChecker extends STPGModelChecker
 	     if(iter>0 && stop(result, prev_result, 1.0/accuracy)){
 		 break;
 	     }
-
-	     prev_result = result;
+	     for(int s = 0; s < gameSize; s++) {
+		 prev_result.put(s,result.get(s));
+	     }
 
 	 }
 
