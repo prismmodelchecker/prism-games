@@ -430,10 +430,14 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 
-    private void printReachabilityPolyhedra(Map<Integer,Polyhedron> polyhedra, int dim)
+    private void printReachabilityPolyhedra(Map<Integer,Polyhedron> polyhedra, List<List<Polyhedron>> stochasticStates, int dim)
     {
 	for(int s = 0; s < polyhedra.size(); s++){
 	    printReachabilityPolyhedron(polyhedra.get(s), dim, s);
+	    for(int t = 0; t < stochasticStates.get(s).size(); t++) {
+		System.out.printf("    ->");
+		printReachabilityPolyhedron(stochasticStates.get(s).get(t), dim, t);
+	    }
 	}
     }
 
@@ -483,7 +487,7 @@ public class SMGModelChecker extends STPGModelChecker
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	if(true){
 	    int s = 1384; // happens to be initial state
-	    //int s = 0;
+	    s = 0;
 	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -811,7 +815,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	 System.out.println("Final Results:");
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	 printReachabilityPolyhedra(result, targets.size()+stpgRewards.size());
+	 printReachabilityPolyhedra(result, stochasticStates, targets.size()+stpgRewards.size());
 	 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
 	 // return the set of polyhedra
