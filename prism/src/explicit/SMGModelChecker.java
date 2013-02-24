@@ -81,7 +81,7 @@ public class SMGModelChecker extends STPGModelChecker
 	Parma_Polyhedra_Library.initialize_library();
 
 	// set accuracy
-	double accuracy = 10000.0;
+	double accuracy = 1000.0;
 
 	// print model
 	System.out.println(((STPG) model));
@@ -184,6 +184,7 @@ public class SMGModelChecker extends STPGModelChecker
 			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
 			Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
 			Strategy strategy = new MultiObjectiveStrategy((STPG) model, X, Y);
+			strategy.buildProduct((SMG) model);
 			
 
 			// here do the standard method that I've basically overridden
