@@ -138,7 +138,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    double[] accuracy = new double[targets.size()+stpgRewards.size()];
 	    double baseline_accuracy = Double.parseDouble(System.getenv().get("PRISM_ACCURACY"));
-	    System.out.printf("Accuracy: %f", baseline_accuracy);
+	    System.err.printf("Accuracy: %f", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
 		    accuracy[i] = baseline_accuracy;
