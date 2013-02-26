@@ -503,7 +503,7 @@ public class SMGModelChecker extends STPGModelChecker
 	*/
 
 	for(int s = 0; s < polyhedra.size(); s++) {
-	    System.out.printf("points{%d} = %d;\n", iter+1, polyhedra.get(s).minimized_generators().size());
+	    System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -712,7 +712,7 @@ public class SMGModelChecker extends STPGModelChecker
 		}
 	    }
 	    if(max_dist >= 1.0/accuracy[0]){ // if any distance is large enough, continue
-		System.out.printf("%% Distance of %e >= %e between polyhedra found. Continuing...\n", max_dist, 1.0/accuracy[0]);
+		System.out.printf("%% Distance of %e >= %e in polyhedron %d found. Continuing...\n", max_dist, 1.0/accuracy[0], s);
 		return false;
 	    }
 	}
