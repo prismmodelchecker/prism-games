@@ -276,14 +276,14 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
 	    Map<Integer,Polyhedron> result = init; // new ArrayList<Polyhedron>(init.size());
 
 	    boolean min = false;
 	    
 	    for(int s = 0; s < numStates; s++){
-		System.out.printf("%% State %d\n", s);
+		//System.out.printf("%% State %d\n", s);
 		if (getPlayer(s) == 1)
 		    min = min1;
 		else
@@ -318,7 +318,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double accuracy, List<Polyhedron> distPolys) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double[] accuracy, List<Polyhedron> distPolys) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 
@@ -354,7 +354,7 @@ public class SMG extends STPGExplicit implements STPG
 		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
 		    BigFraction residual = BigFraction.ONE;
 		    for(Integer t : states){
-			BigFraction prob = new BigFraction(distr.get(t), 1.0/accuracy, Integer.MAX_VALUE);
+			BigFraction prob = new BigFraction(distr.get(t), 1.0/accuracy[0], Integer.MAX_VALUE);
 			probs.put(t, prob);
 			residual = residual.subtract(prob);
 		    }
@@ -461,9 +461,8 @@ public class SMG extends STPGExplicit implements STPG
 	    long t3 = System.nanoTime();
 
 	    // minimize the fractions
-	    // NOTE: limits accuracy as well! (optional)
+	    // NOTE: limits accuracy as well!
 	    boolean minimize = true;
-	    boolean reduce_accuracy = true;
 	    if(minimize){
 
 		Generator_System newmgs = new Generator_System();
@@ -477,6 +476,8 @@ public class SMG extends STPGExplicit implements STPG
 		    
 		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
 		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
+
+		    /*
 		    // find gcd
 		    BigInteger gcd = c.getBigInteger();
 		    for(BigInteger v : map.values()){
@@ -489,26 +490,37 @@ public class SMG extends STPGExplicit implements STPG
 			    gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
 			}
 		    }
+		    */
+
+		    Coefficient new_c = new Coefficient(BigInteger.valueOf(((int)accuracy[0])));
 		    
 		    // now divide all by the gcd and build a new linear expression
 		    Linear_Expression nle;
 		    if(map.containsKey(null)){ // there is a coefficient without variable
-			nle = new Linear_Expression_Coefficient(new Coefficient(map.get(null)));
+			nle = new Linear_Expression_Coefficient(new Coefficient(map.get(null))); // TODO: could be problematic - why is this even here?
 		    } else {
 			nle = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
 		    }
 		    for(Variable k : map.keySet()){
 			if(k != null){
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
-				nle = nle.subtract(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd).negate()), k));
+
+				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
+				double rounded = -((double)Math.ceil(round_test.doubleValue()*accuracy[k.id()]))/accuracy[k.id()]*accuracy[0];
+
+				nle = nle.subtract(new Linear_Expression_Times(new Coefficient((long)rounded), k));
 			    } else { // positive or zero
-				nle = nle.sum(new Linear_Expression_Times(new Coefficient(map.get(k).divide(gcd)), k));
+
+				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
+				
+				double rounded = ((double)Math.floor(round_test.doubleValue()*accuracy[k.id()]))/accuracy[k.id()]*accuracy[0];
+
+				nle = nle.sum(new Linear_Expression_Times(new Coefficient((long)rounded), k));
 			    }
 			}
 		    }
-		    Coefficient nc = new Coefficient(c.getBigInteger().divide(gcd));
 
-		    newmgs.add(Generator.point(nle, nc));
+		    newmgs.add(Generator.point(nle, new_c));
 		}
 
 		statePoly = new C_Polyhedron(newmgs);
@@ -566,7 +578,7 @@ public class SMG extends STPGExplicit implements STPG
 	    if(!terminal){
 		for(int i = 0; i < stpgRewards.size(); i++){
 		    STPGRewards stpgr = stpgRewards.get(i);
-		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy, Integer.MAX_VALUE);
+		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy[targets.size()+i], Integer.MAX_VALUE);
 		    BigInteger num = r.getNumerator();
 		    BigInteger den = r.getDenominator();
 		    // add the reward to each generator
@@ -585,7 +597,7 @@ public class SMG extends STPGExplicit implements STPG
 	    } else {
 		for(int i = 0; i < stpgRewards.size(); i++){
 		    STPGRewards stpgr = stpgRewards.get(i);
-		    if(stpgr.getStateReward(s)>= 1.0/accuracy){
+		    if(stpgr.getStateReward(s)>= 1.0/accuracy[targets.size()+i]){
 			System.out.printf("Warning: state %s is terminal but has nonzero reward (%f).\n", s, stpgr.getStateReward(s));
 		    }
 		}
@@ -601,7 +613,7 @@ public class SMG extends STPGExplicit implements STPG
 	    // minimize polyhedron
 	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
 
-	    System.out.printf("%% Minkowski: %f, GoodBad: %f, Minimize: %f, Rewards: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
+	    //System.out.printf("%% Minkowski: %f, GoodBad: %f, Minimize: %f, Rewards: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
 
 	    return statePoly;
 	}

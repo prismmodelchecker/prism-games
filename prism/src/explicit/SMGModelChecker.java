@@ -80,8 +80,6 @@ public class SMGModelChecker extends STPGModelChecker
 	// initializa ppl
 	Parma_Polyhedra_Library.initialize_library();
 
-	// set accuracy
-	double accuracy = 1000.0;
 
 	// print model
 	System.out.println(((STPG) model));
@@ -134,6 +132,21 @@ public class SMGModelChecker extends STPGModelChecker
 		System.out.printf("%d: %s\n", i, result_t.get(i));
 	    }
 	    */
+
+	    // set accuracy
+
+
+	    double[] accuracy = new double[targets.size()+stpgRewards.size()];
+	    double baseline_accuracy = Double.parseDouble(System.getenv().get("PRISM_ACCURACY"));
+	    System.out.printf("Accuracy: %f", baseline_accuracy);
+	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
+		if(i < targets.size()) { // probabilities
+		    accuracy[i] = baseline_accuracy;
+		} else { // rewards
+		    double maxReward = 10.0;
+		    accuracy[i] = baseline_accuracy/maxReward;
+		}
+	    }
 
 	    //maxIter = stoppingCriterion((STPG) model, 1, stpgRewards, accuracy);
 	    maxIter = Double.MAX_VALUE;
@@ -477,8 +490,9 @@ public class SMGModelChecker extends STPGModelChecker
 
     private void printMatlab(Map<Integer,Polyhedron> polyhedra, int dim, int iter)
     {
+	/*
 	int max_points = 0;
-	for(int s = 0; s < polyhedra.size(); s++){
+	for(int s = 0; s < polyhedra.size(); s++) {
 	    int points_s = polyhedra.get(s).minimized_generators().size();
 	    if(points_s > max_points){
 		max_points = points_s;
@@ -486,10 +500,11 @@ public class SMGModelChecker extends STPGModelChecker
 	    
 	}
 	System.out.printf("%% maxpoints: %d\n", max_points);
-	if(true){
-	    int s = 1384; // happens to be initial state
-	    s = 0;
-	    System.out.printf("m{%d, %s} = [", iter+1, s+1); // indices must be greater than zero
+	*/
+
+	for(int s = 0; s < polyhedra.size(); s++) {
+	    System.out.printf("points{%d} = %d;\n", iter+1, polyhedra.get(s).minimized_generators().size());
+	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
 		 if(!init1){
@@ -524,7 +539,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private double stoppingCriterion(STPG stpg, int s0, List<STPGRewards> stpgRewards, double accuracy)
+    private double stoppingCriterion(STPG stpg, int s0, List<STPGRewards> stpgRewards, double[] accuracy)
     {
 	int gameSize = stpg.getStatesList().size();
 
@@ -583,7 +598,7 @@ public class SMGModelChecker extends STPGModelChecker
 	
 	int L = length.get(s0);
 	double delta = distance.get(s0);
-	double epsilon = 1.0/accuracy;
+	double epsilon = 1.0/accuracy[0];
 	double M = 1.0; // start at one, because terminals incur reward of one - assume that terminals are reached
 	for(int s = 0; s < gameSize; s++){
 	    for(STPGRewards stpgr : stpgRewards){
@@ -627,7 +642,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private double generatorDistance(Generator g1, Generator g2)
+    private double generatorDistance(Generator g1, Generator g2, double[] accuracy)
     {
 	Linear_Expression le1 = g1.linear_expression();
 	Linear_Expression le2 = g2.linear_expression();
@@ -671,13 +686,14 @@ public class SMGModelChecker extends STPGModelChecker
 		a -= temp.doubleValue();
 	    }
 	    dist += (a*a);
+	    //dist += (a*a*(accuracy[0]/accuracy[v])*(accuracy[0]/accuracy[v]));
 	}
 
 	return Math.sqrt(dist);
 
     }
 
-    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, double epsilon)
+    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, double[] accuracy)
     {
 	int gameSize = X.size();
 	
@@ -686,7 +702,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    for(Generator g : X.get(s).minimized_generators()){
 		double min_dist = Double.MAX_VALUE;
 		for(Generator prevg : prevX.get(s).minimized_generators()){
-		    double dist = generatorDistance(g, prevg);
+		    double dist = generatorDistance(g, prevg, accuracy);
 		    if(min_dist > dist){
 			min_dist = dist;
 		    }
@@ -695,8 +711,8 @@ public class SMGModelChecker extends STPGModelChecker
 		    max_dist = min_dist;
 		}
 	    }
-	    if(max_dist >= epsilon){ // if any distance is large enough, continue
-		System.out.printf("%% Distance of %e >= %e between polyhedra found. Continuing...\n", max_dist, epsilon);
+	    if(max_dist >= 1.0/accuracy[0]){ // if any distance is large enough, continue
+		System.out.printf("%% Distance of %e >= %e between polyhedra found. Continuing...\n", max_dist, 1.0/accuracy[0]);
 		return false;
 	    }
 	}
@@ -704,7 +720,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
      {
 
 	 int gameSize = stpg.getStatesList().size();
@@ -746,7 +762,7 @@ public class SMGModelChecker extends STPGModelChecker
 		 den = BigInteger.ONE;
 		 if(i>=targets.size()){ // rewards
 		     stpgr = stpgRewards.get(i-targets.size());
-		     r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy, Integer.MAX_VALUE);
+		     r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy[i], Integer.MAX_VALUE);
 		     num = r.getNumerator();
 		     den = r.getDenominator();
 		 } else { // target
@@ -784,6 +800,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     result.put(s,cp);
 	 }
 
+
 	 // ITERATE FUNCTIONAL APPLICATION
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) { 
 	     System.out.printf("%% Iteration: %d\n", iter);
@@ -803,7 +820,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
 	     // STOPPING CRITERION
-	     if(iter>0 && stop(result, prev_result, 1.0/accuracy)){
+	     if(iter>0 && stop(result, prev_result, accuracy)){
 		 break;
 	     }
 	     for(int s = 0; s < gameSize; s++) {
