@@ -80,6 +80,8 @@ public class SMGModelChecker extends STPGModelChecker
 	// initializa ppl
 	Parma_Polyhedra_Library.initialize_library();
 
+	List<STPGRewards> stpgRewards = new ArrayList<STPGRewards>();
+
 
 	// print model
 	System.out.println(((STPG) model));
@@ -115,7 +117,6 @@ public class SMGModelChecker extends STPGModelChecker
 	    
 	    // rewards
 	    // TODO: properly get reward structure
-	    List<STPGRewards> stpgRewards = new ArrayList<STPGRewards>();
 	    RewardStruct rewStruct;
 	    ConstructRewards constructRewards;
 	    for(int i = 0; i < modulesFile.getNumRewardStructs(); i++){
@@ -137,7 +138,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 20;
+	    long baseline_accuracy = 10;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -158,7 +159,14 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
 
+	    Strategy strategy = new MultiObjectiveStrategy((STPG) model, result_p, stochasticStates, stpgRewards);
+	    strategy.buildProduct((SMG) model);
+
 	    return result_p;
+
+
+
+
 
 	    }
 
@@ -196,8 +204,6 @@ public class SMGModelChecker extends STPGModelChecker
 			// do the polyhedra computation
 			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
 			Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
-			Strategy strategy = new MultiObjectiveStrategy((STPG) model, X, Y);
-			strategy.buildProduct((SMG) model);
 			
 
 			// here do the standard method that I've basically overridden
@@ -502,7 +508,7 @@ public class SMGModelChecker extends STPGModelChecker
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	
 
-	for(int s = 0; s < polyhedra.size(); s++) {
+	for(int s = 0; s < 1/*polyhedra.size()*/; s++) {
 	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
@@ -809,14 +815,14 @@ public class SMGModelChecker extends STPGModelChecker
 
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
 	     
-	     
+	     /*
 	     if(iter % 5 == 4) { // increase accuracy by 10 every 20 iterations
 		 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		     accuracy[i] += 5;
 		 }
 		 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
 	     }
-	     
+	     */
 
 	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);

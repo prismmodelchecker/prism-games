@@ -19,6 +19,7 @@ import explicit.SMG;
 import explicit.MDPSimple;
 import explicit.SMGModelChecker;
 import explicit.PPLSupport;
+import explicit.rewards.STPGRewards;
 import parser.State;
 
 import org.apache.commons.math3.optim.linear.SimplexSolver;
@@ -363,12 +364,14 @@ public class MultiObjectiveStrategy implements Strategy
     // Y are the polyhedra of stochastic states:
     //     the first index is the good or bad state
     //     the second index is the action taken
-    public MultiObjectiveStrategy(STPG G, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y)
+    public MultiObjectiveStrategy(STPG G, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards)
     {
 	// memory is the list of tuples (t, p), where p is in X(t)
 
 	int N = G.getNumStates(); // number of states in game (excluding stochastic states)
 	int L = ((int) X.get(0).space_dimension()); // total number of goals
+	int M = L - stpgRewards.size(); // total number of probabilistic goals
+
 	SimplexSolver solver = new SimplexSolver(1.0e-2, 10);
 	List<List<Generator>> tuples;
 
@@ -479,9 +482,10 @@ public class MultiObjectiveStrategy implements Strategy
 
 
 	// compute memory update function
-	System.out.println("--------- MEMORY UPDATE -------------");
+	System.out.println("--------- MEMORY UPDATE AND NEXT MOVE -------------");
 
 	memoryUpdateFunction = new Map[N][]; // for N states
+	nextMoveFunction = new Map[N];
 
 	for(int t = 0; t < N; t++) { // for each state (good or bad)
 	    //System.out.printf("t: %d\n", t);
@@ -490,6 +494,9 @@ public class MultiObjectiveStrategy implements Strategy
 	    // compute memory size
 	    memorySize += gsX[t].size();
 
+	    if(G.getPlayer(t) == STPGExplicit.PLAYER_1) { // next move only defined for good guy
+		nextMoveFunction[t] = new HashMap<Integer,Integer>(gsX[t].size());
+	    }
 
 	    for (int u = 0; u < G.getNumChoices(t); u++) { // for each stochastic successor (i.e. action u)
 		//System.out.printf("u: %d\n", u);
@@ -567,7 +574,11 @@ public class MultiObjectiveStrategy implements Strategy
 		    for(Variable k : map_p.keySet()) {
 			if(k !=null) {
 			    BigFraction c_p = new BigFraction(map_p.get(k), d_p.getBigInteger());
-			    bounds[k.id()] = c_p.doubleValue();  // TODO: do p - reward
+			    if(k.id()-M >= 0) {
+				bounds[k.id()] = c_p.doubleValue() - stpgRewards.get(k.id()-M).getStateReward(t);  // TODO: do p - reward
+			    } else {
+				bounds[k.id()] = c_p.doubleValue();  // TODO: do p - reward
+			    }
 			}
 		    }
 		
@@ -721,7 +732,11 @@ public class MultiObjectiveStrategy implements Strategy
 		    for(Variable k : map_p.keySet()) {
 			if(k !=null) {
 			    BigFraction c = new BigFraction(map_p.get(k), d_p.getBigInteger());
-			    bounds[k.id()] = c.doubleValue();  // TODO: do p - reward
+			    if(k.id()-M >= 0) {
+				bounds[k.id()] = c.doubleValue() - stpgRewards.get(k.id()-M).getStateReward(t);  // TODO
+			    } else {
+				bounds[k.id()] = c.doubleValue();
+			    }
 			}
 		    }
 		    
@@ -817,7 +832,11 @@ public class MultiObjectiveStrategy implements Strategy
 				    }
 				}
 			    }
-			
+			    // moreover, if good guy state, know that now u can be picked in t for p
+			    if(G.getPlayer(t) == STPGExplicit.PLAYER_1) { // next move only defined for good guy
+				nextMoveFunction[t].put(p, u);
+			    }
+
 			    break search_for_distribution;
 			    
 			}
@@ -841,9 +860,9 @@ public class MultiObjectiveStrategy implements Strategy
 	}
 
 
-
+	/*
 	// compute next move function
-	System.out.println("--------- NEXT MOVE -------------");
+	
 
 	nextMoveFunction = new Map[N];
 	for (int t = 0; t < N; t++) { // for each state (good or bad, but want good only)
@@ -861,10 +880,20 @@ public class MultiObjectiveStrategy implements Strategy
 		nextMoveFunction[t] = new HashMap<Integer,Integer>(gsX[t].size());
 		for (int p = 0; p < gsX[t].size(); p++) { // for each corner point p in X(t)
 		    for (int u = 0; u < G.getNumChoices(t); u++) { // for each stochastic successor
+
+
 			// if Y(t,u) contains p - rewards(t) then
 			// construct auxiliary polyhedron containing only X(t)(p) to test containment
 			Generator_System test_gs = new Generator_System();
 			//System.out.printf("%d, %d -> %d\n", t, p, u);
+			Generator gp = gsX[t].get(p);
+			for(int i = 0; i < stpgRewards.size(); i++) {
+			    BigFraction r = new BigFraction(stpgRewards.get(i).getStateReward(t), 1.0/1000.0, Integer.MAX_VALUE);
+			    BigInteger num = r.getNumerator();
+			    BigInteger den = r.getDenominator();
+			    
+
+			}
 			test_gs.add(gsX[t].get(p)); // TODO: do p - reward
 			Polyhedron test_poly = new C_Polyhedron(test_gs);
 			// equate dimensions
@@ -880,8 +909,8 @@ public class MultiObjectiveStrategy implements Strategy
 
 	    }
 	}
-
-
+	*/
+	System.out.println("--------- NEXT MOVE -------------");
 	for(int t = 0; t < nextMoveFunction.length; t++){
 	    if(nextMoveFunction[t] != null) {
 		System.out.printf("State %d: %s\n", t, nextMoveFunction[t].toString());
