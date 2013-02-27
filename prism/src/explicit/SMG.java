@@ -504,7 +504,7 @@ public class SMG extends STPGExplicit implements STPG
 		    for(Variable k : map.keySet()){
 			if(k != null){
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
-
+				System.out.println("NEGATIVE");
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
 				double rounded = -((double)Math.ceil(round_test.doubleValue()*accuracy[k.id()]))/accuracy[k.id()]*accuracy[0];
 

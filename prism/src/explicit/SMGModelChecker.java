@@ -137,7 +137,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    double[] accuracy = new double[targets.size()+stpgRewards.size()];
-	    double baseline_accuracy = Double.parseDouble(System.getenv().get("PRISM_ACCURACY"));
+	    double baseline_accuracy = 20;
 	    System.err.printf("Accuracy: %f", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -490,7 +490,7 @@ public class SMGModelChecker extends STPGModelChecker
 
     private void printMatlab(Map<Integer,Polyhedron> polyhedra, int dim, int iter)
     {
-	/*
+	
 	int max_points = 0;
 	for(int s = 0; s < polyhedra.size(); s++) {
 	    int points_s = polyhedra.get(s).minimized_generators().size();
@@ -500,10 +500,10 @@ public class SMGModelChecker extends STPGModelChecker
 	    
 	}
 	System.out.printf("%% maxpoints: %d\n", max_points);
-	*/
+	
 
-	for(int s = 0; s < polyhedra.size(); s++) {
-	    System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
+	for(int s = 0; s < 1/*polyhedra.size()*/; s++) {
+	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
@@ -806,7 +806,15 @@ public class SMGModelChecker extends STPGModelChecker
 	     System.out.printf("%% Iteration: %d\n", iter);
 	     long itertime = System.nanoTime();
 	     stochasticStates.clear();
+
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
+	     if(iter % 20 == 19) { // increase accuracy by 10 every 20 iterations
+		 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
+		     System.out.printf("ACCURACY SET TO %f\n", accuracy[0]);
+		     accuracy[i] *= 10.0;
+		 }
+	     }
+
 	     /*
 	     if( (iter % 100) == 0){
 		 System.out.printf("Results of iteration %d\n", iter);
@@ -815,8 +823,8 @@ public class SMGModelChecker extends STPGModelChecker
 	     */
 
 	     // matlab plots
-	     System.out.printf("%% Results of iteration %d\n", iter);
-	     System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
+	     //System.out.printf("%% Results of iteration %d\n", iter);
+	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
 	     // STOPPING CRITERION
