@@ -278,7 +278,7 @@ public class SMG extends STPGExplicit implements STPG
 
     public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
-	    Map<Integer,Polyhedron> result = init; // new ArrayList<Polyhedron>(init.size());
+	    Map<Integer,Polyhedron> result = init; //new HashMap<Integer,Polyhedron>(init.size());
 
 	    boolean min = false;
 	    
@@ -482,9 +482,9 @@ public class SMG extends STPGExplicit implements STPG
 		    for(Generator g : statePoly.generators()){
 			Linear_Expression le = g.linear_expression();
 			Coefficient div = g.divisor();
-			le = le.times(new Coefficient(den));
+			le = new Linear_Expression_Times(le, new Coefficient(den));
 			div = new Coefficient(div.getBigInteger().multiply(den));
-			le = le.sum(new Linear_Expression_Times(new Coefficient(num.multiply(g.divisor().getBigInteger())), new Variable(targets.size()+i)));
+			le = new Linear_Expression_Sum(le, new Linear_Expression_Times(new Coefficient(num.multiply(g.divisor().getBigInteger())), new Variable(targets.size()+i)));
 			Generator ng = Generator.point(le, div);
 			to_add.add(ng);
 		    }
@@ -551,16 +551,21 @@ public class SMG extends STPGExplicit implements STPG
 		    for(Variable k : map.keySet()){
 			if(k != null){
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
+				/*
 				System.out.println("NEGATIVE");
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
 				long rounded = -((long)	Math.ceil(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
 
-				nle = nle.subtract(new Linear_Expression_Times(new Coefficient((long)rounded), k));
+				nle = nle.subtract(new Linear_Expression_Times(new Coefficient((long)rounded), k));*/
 			    } else { // positive or zero
 
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
-				
-				long rounded = ((long)Math.floor(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
+				//long rounded = ((long)(Math.floor(round_test.doubleValue()*accuracy[k.id()])*((double)accuracy[0])/((double)accuracy[k.id()])));
+
+				long rounded = (long)((round_test.doubleValue()-(round_test.doubleValue()%(1.0/((double)accuracy[k.id()]))))*((double)accuracy[0]));
+
+				//System.out.printf("unrounded: %s (%f), rounded: %d/%d, acc: %d\n", round_test, round_test.doubleValue(), rounded, accuracy[0], accuracy[k.id()]);
+
 
 				nle = nle.sum(new Linear_Expression_Times(new Coefficient(rounded), k));
 			    }

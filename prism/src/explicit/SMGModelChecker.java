@@ -143,7 +143,7 @@ public class SMGModelChecker extends STPGModelChecker
 		if(i < targets.size()) { // probabilities
 		    accuracy[i] = baseline_accuracy;
 		} else { // rewards
-		    long maxReward = 10;
+		    long maxReward = 1;
 		    accuracy[i] = baseline_accuracy/maxReward;
 		}
 	    }
@@ -810,9 +810,9 @@ public class SMGModelChecker extends STPGModelChecker
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
 	     
 	     
-	     if(iter % 20 == 19) { // increase accuracy by 10 every 20 iterations
+	     if(iter % 5 == 4) { // increase accuracy by 10 every 20 iterations
 		 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
-		     accuracy[i] *= 5;
+		     accuracy[i] += 5;
 		 }
 		 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
 	     }
