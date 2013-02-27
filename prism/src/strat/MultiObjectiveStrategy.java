@@ -376,8 +376,9 @@ public class MultiObjectiveStrategy implements Strategy
 
 	gsX = new Generator_System[N];
 	for(int t = 0; t < N; t++) {
-	    gsX[t] = X.get(t).minimized_generators(); 
+	    gsX[t] = X.get(t).minimized_generators();
 	    Polyhedron gsXpoly = new C_Polyhedron(gsX[t]);
+	    gsXpoly.add_space_dimensions_and_project(L-gsXpoly.space_dimension());
 	    SMGModelChecker.printReachabilityPolyhedron(gsXpoly, ((int)gsXpoly.space_dimension()), t);
 	}
 	
@@ -493,6 +494,7 @@ public class MultiObjectiveStrategy implements Strategy
 		//System.out.printf("u: %d\n", u);
 		Generator_System gsYtu = Y.get(t).get(u).minimized_generators();
 		Polyhedron gsYpoly = new C_Polyhedron(gsYtu);
+		gsYpoly.add_space_dimensions_and_project(L-gsYpoly.space_dimension());
 		System.out.printf("%d-%d->: ", t, u);
 		SMGModelChecker.printReachabilityPolyhedron(gsYpoly, ((int)gsYpoly.space_dimension()), t);
 		int ntu = G.getNumTransitions(t,u);
@@ -560,7 +562,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    coeffs_beta[w*L+i] = 1;
 			}
 		    }
-
+		    boolean nothingfound = true;
 		    iteration_through_multi_tuples:
 		    for(List<List<Generator>> multiTuple : multiTuples) { // for each combination of tuples
 			// formulate an LP that contains the following constraints
@@ -633,6 +635,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    // tuple not feasible, try a different one
 			    continue iteration_through_multi_tuples;
 			}
+			nothingfound = false;
 			
 			//System.out.printf("t:%d, u:%d, bounds:%s\n", t, u, Arrays.toString(bounds));
 			//System.out.printf("t:%d, u:%d, coeffs_q:%s\n", t, u, Arrays.deepToString(coeffs_q));
@@ -660,14 +663,17 @@ public class MultiObjectiveStrategy implements Strategy
 			}
 			break iteration_through_multi_tuples;
 		    }
+
+		    System.out.printf("p:%d: %s\n", p, nothingfound);
 		}
 		
 
 
-		//System.out.printf("STOCHASTIC t:%d, u:%d\n", t,u);
-		//for(int w = 0; w < ntu; w++) {
-		//    System.out.printf("w:%d: %s\n", w, stochastic[w]);
-		//}
+
+		System.out.printf("STOCHASTIC t:%d, u:%d\n", t,u);
+		for(int w = 0; w < ntu; w++) {
+	            System.out.printf("w:%d: %s\n", w, stochastic[w]);
+		}
 
 		///// STOCHASTIC END ////
 
@@ -776,8 +782,8 @@ public class MultiObjectiveStrategy implements Strategy
 				    Integer q_index = gsYtu.indexOf(tuple.get(i));
 				    Map<Integer,Double> action = stochastic[w].get(q_index);
 				    //System.out.printf("PLAYER %d at state %d, action %d, target %d(%dth)\n", G.getPlayer(t), t, u, key_w, w);
-				    //System.out.println(action);
-				    //System.out.println(q_index);
+				    System.out.printf("action: %s\n", action);
+				    System.out.printf("q_index: %d\n", q_index);
 				    if(G.getPlayer(t) != STPGExplicit.PLAYER_1 || action != null) {
 					double beta = solution.getPoint()[i]; // beta^u_i
 					for(Integer j : action.keySet()) {

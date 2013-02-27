@@ -136,14 +136,14 @@ public class SMGModelChecker extends STPGModelChecker
 	    // set accuracy
 
 
-	    double[] accuracy = new double[targets.size()+stpgRewards.size()];
-	    double baseline_accuracy = 20;
-	    System.err.printf("Accuracy: %f", baseline_accuracy);
+	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
+	    long baseline_accuracy = 20;
+	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
 		    accuracy[i] = baseline_accuracy;
 		} else { // rewards
-		    double maxReward = 10.0;
+		    long maxReward = 10;
 		    accuracy[i] = baseline_accuracy/maxReward;
 		}
 	    }
@@ -539,7 +539,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private double stoppingCriterion(STPG stpg, int s0, List<STPGRewards> stpgRewards, double[] accuracy)
+    private double stoppingCriterion(STPG stpg, int s0, List<STPGRewards> stpgRewards, long[] accuracy)
     {
 	int gameSize = stpg.getStatesList().size();
 
@@ -598,7 +598,7 @@ public class SMGModelChecker extends STPGModelChecker
 	
 	int L = length.get(s0);
 	double delta = distance.get(s0);
-	double epsilon = 1.0/accuracy[0];
+	double epsilon = 1.0/((double)accuracy[0]);
 	double M = 1.0; // start at one, because terminals incur reward of one - assume that terminals are reached
 	for(int s = 0; s < gameSize; s++){
 	    for(STPGRewards stpgr : stpgRewards){
@@ -642,7 +642,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private double generatorDistance(Generator g1, Generator g2, double[] accuracy)
+    private double generatorDistance(Generator g1, Generator g2, long[] accuracy)
     {
 	Linear_Expression le1 = g1.linear_expression();
 	Linear_Expression le2 = g2.linear_expression();
@@ -685,15 +685,15 @@ public class SMGModelChecker extends STPGModelChecker
 		BigFraction temp = new BigFraction(ic2.get(v), d2);
 		a -= temp.doubleValue();
 	    }
-	    dist += (a*a);
-	    //dist += (a*a*(accuracy[0]/accuracy[v])*(accuracy[0]/accuracy[v]));
+	    //dist += (a*a);
+	    dist += (a*a*(((double)accuracy[0])/((double)accuracy[v]))*(((double)accuracy[0])/((double)accuracy[v])));
 	}
 
 	return Math.sqrt(dist);
 
     }
 
-    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, double[] accuracy)
+    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, long[] accuracy)
     {
 	int gameSize = X.size();
 	
@@ -711,8 +711,8 @@ public class SMGModelChecker extends STPGModelChecker
 		    max_dist = min_dist;
 		}
 	    }
-	    if(max_dist >= 1.0/accuracy[0]){ // if any distance is large enough, continue
-		System.out.printf("%% Distance of %e >= %e in polyhedron %d found. Continuing...\n", max_dist, 1.0/accuracy[0], s);
+	    if(max_dist >= 1.0/((double)accuracy[0])){ // if any distance is large enough, continue
+		System.out.printf("%% Distance of %e >= %e in polyhedron %d found. Continuing...\n", max_dist, 1.0/((double)accuracy[0]), s);
 		return false;
 	    }
 	}
@@ -720,7 +720,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, double[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
      {
 
 	 int gameSize = stpg.getStatesList().size();
@@ -762,7 +762,7 @@ public class SMGModelChecker extends STPGModelChecker
 		 den = BigInteger.ONE;
 		 if(i>=targets.size()){ // rewards
 		     stpgr = stpgRewards.get(i-targets.size());
-		     r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy[i], Integer.MAX_VALUE);
+		     r = new BigFraction(stpgr.getStateReward(s), 1.0/((double)accuracy[i]), Integer.MAX_VALUE);
 		     num = r.getNumerator();
 		     den = r.getDenominator();
 		 } else { // target
@@ -808,22 +808,16 @@ public class SMGModelChecker extends STPGModelChecker
 	     stochasticStates.clear();
 
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
+	     
+	     
 	     if(iter % 20 == 19) { // increase accuracy by 10 every 20 iterations
 		 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
-		     System.out.printf("ACCURACY SET TO %f\n", accuracy[0]);
-		     accuracy[i] *= 10.0;
+		     accuracy[i] *= 5;
 		 }
+		 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
 	     }
+	     
 
-	     /*
-	     if( (iter % 100) == 0){
-		 System.out.printf("Results of iteration %d\n", iter);
-		 printReachabilityPolyhedra(result, targets.size()+stpgRewards.size());
-	     }
-	     */
-
-	     // matlab plots
-	     //System.out.printf("%% Results of iteration %d\n", iter);
 	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 

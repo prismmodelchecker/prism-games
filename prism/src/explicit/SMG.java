@@ -276,7 +276,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, double[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
         {
 	    Map<Integer,Polyhedron> result = init; // new ArrayList<Polyhedron>(init.size());
 
@@ -318,7 +318,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, double[] accuracy, List<Polyhedron> distPolys) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<Polyhedron> distPolys) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 
@@ -354,7 +354,7 @@ public class SMG extends STPGExplicit implements STPG
 		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
 		    BigFraction residual = BigFraction.ONE;
 		    for(Integer t : states){
-			BigFraction prob = new BigFraction(distr.get(t), 1.0/accuracy[0], Integer.MAX_VALUE);
+			BigFraction prob = new BigFraction(distr.get(t), 1.0/((double)accuracy[0]), Integer.MAX_VALUE);
 			probs.put(t, prob);
 			residual = residual.subtract(prob);
 		    }
@@ -460,6 +460,53 @@ public class SMG extends STPGExplicit implements STPG
 
 	    long t3 = System.nanoTime();
 
+
+	    // REWARDS
+	    // ignore terminals
+	    boolean terminal = true;
+	    for(Distribution distr : dists){
+		if(distr.keySet().size()!=1 || !distr.keySet().contains(s)){ // not a terminal
+		    terminal = false;
+		    break;
+		}
+	    }
+
+	    if(!terminal){
+		for(int i = 0; i < stpgRewards.size(); i++){
+		    STPGRewards stpgr = stpgRewards.get(i);
+		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/((double)accuracy[targets.size()+i]), Integer.MAX_VALUE);
+		    BigInteger num = r.getNumerator();
+		    BigInteger den = r.getDenominator();
+		    // add the reward to each generator
+		    Generator_System to_add = new Generator_System();
+		    for(Generator g : statePoly.generators()){
+			Linear_Expression le = g.linear_expression();
+			Coefficient div = g.divisor();
+			le = le.times(new Coefficient(den));
+			div = new Coefficient(div.getBigInteger().multiply(den));
+			le = le.sum(new Linear_Expression_Times(new Coefficient(num.multiply(g.divisor().getBigInteger())), new Variable(targets.size()+i)));
+			Generator ng = Generator.point(le, div);
+			to_add.add(ng);
+		    }
+		    statePoly.add_generators(to_add);
+		}
+	    } else {
+		for(int i = 0; i < stpgRewards.size(); i++){
+		    STPGRewards stpgr = stpgRewards.get(i);
+		    if(stpgr.getStateReward(s)>= 1.0/((double)accuracy[targets.size()+i])){
+			System.out.printf("Warning: state %s is terminal but has nonzero reward (%f).\n", s, stpgr.getStateReward(s));
+		    }
+		}
+	    }
+
+
+
+
+	    long t4 = System.nanoTime();
+
+
+
+
 	    // minimize the fractions
 	    // NOTE: limits accuracy as well!
 	    boolean minimize = true;
@@ -492,7 +539,7 @@ public class SMG extends STPGExplicit implements STPG
 		    }
 		    */
 
-		    Coefficient new_c = new Coefficient(BigInteger.valueOf(((int)accuracy[0])));
+		    Coefficient new_c = new Coefficient(BigInteger.valueOf(accuracy[0]));
 		    
 		    // now divide all by the gcd and build a new linear expression
 		    Linear_Expression nle;
@@ -506,16 +553,16 @@ public class SMG extends STPGExplicit implements STPG
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
 				System.out.println("NEGATIVE");
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
-				double rounded = -((double)Math.ceil(round_test.doubleValue()*accuracy[k.id()]))/accuracy[k.id()]*accuracy[0];
+				long rounded = -((long)	Math.ceil(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
 
 				nle = nle.subtract(new Linear_Expression_Times(new Coefficient((long)rounded), k));
 			    } else { // positive or zero
 
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
 				
-				double rounded = ((double)Math.floor(round_test.doubleValue()*accuracy[k.id()]))/accuracy[k.id()]*accuracy[0];
+				long rounded = ((long)Math.floor(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
 
-				nle = nle.sum(new Linear_Expression_Times(new Coefficient((long)rounded), k));
+				nle = nle.sum(new Linear_Expression_Times(new Coefficient(rounded), k));
 			    }
 			}
 		    }
@@ -531,92 +578,27 @@ public class SMG extends STPGExplicit implements STPG
 
 	    }
 
-	    long t4 = System.nanoTime();
-
-	    // it could be possible that in this state a target is satisfied, so add the appropriate points
-	    // TODO: test for safety
-
-	    boolean include_non_terminal_targets = true;
-	    if(include_non_terminal_targets){
-		/*
-		Variable dims = new Variable(targets.size()+stpgRewards.size()-1);
-		for(int i = 0; i < targets.size(); i++){
-		    if(targets.get(i).get(s)){
-			// first expand in the appropriate direction
-			Variable dir = new Variable(i);
-			Linear_Expression l_dir = new Linear_Expression_Variable(dir);
-			Generator g1 = Generator.point(l_dir, new Coefficient(1));
-			// add variable in highest dimension to make dimensions agree
-			Generator g2 = Generator.point(new Linear_Expression_Times(new Coefficient(0), dims), new Coefficient(1));
-			Generator_System gs = new Generator_System();
-			gs.add(g1);
-			gs.add(g2);
-			statePoly.time_elapse_assign(new C_Polyhedron(gs));
-			// then restrict
-			Linear_Expression lhs = new Linear_Expression_Variable(dir);
-			// maximize: restrict to one (<= 1)
-			Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
-			statePoly.add_constraint(new Constraint(lhs, Relation_Symbol.LESS_OR_EQUAL,rhs));
-			
-		    }
-		}
-		*/
-
-	    }
 
 
-	    // here comes the reward part
-	    // ignore terminals
-	    boolean terminal = true;
-	    for(Distribution distr : dists){
-		if(distr.keySet().size()!=1 || !distr.keySet().contains(s)){ // not a terminal
-		    terminal = false;
-		    break;
-		}
-	    }
-
-	    if(!terminal){
-		for(int i = 0; i < stpgRewards.size(); i++){
-		    STPGRewards stpgr = stpgRewards.get(i);
-		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/accuracy[targets.size()+i], Integer.MAX_VALUE);
-		    BigInteger num = r.getNumerator();
-		    BigInteger den = r.getDenominator();
-		    // add the reward to each generator
-		    Generator_System to_add = new Generator_System();
-		    for(Generator g : statePoly.generators()){
-			Linear_Expression le = g.linear_expression();
-			Coefficient div = g.divisor();
-			le = le.times(new Coefficient(den));
-			div = new Coefficient(div.getBigInteger().multiply(den));
-			le = le.sum(new Linear_Expression_Times(new Coefficient(num.multiply(g.divisor().getBigInteger())), new Variable(targets.size()+i)));
-			Generator ng = Generator.point(le, div);
-			to_add.add(ng);
-		    }
-		    statePoly.add_generators(to_add);
-		}
-	    } else {
-		for(int i = 0; i < stpgRewards.size(); i++){
-		    STPGRewards stpgr = stpgRewards.get(i);
-		    if(stpgr.getStateReward(s)>= 1.0/accuracy[targets.size()+i]){
-			System.out.printf("Warning: state %s is terminal but has nonzero reward (%f).\n", s, stpgr.getStateReward(s));
-		    }
-		}
-	    }
 
 	    //	    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>");
 	    //	    System.out.printf("State index: %d\n", s);
 	    //	    System.out.println(statePoly.ascii_dump());
 	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
 
+
+
+
 	    long t5 = System.nanoTime();
 
 	    // minimize polyhedron
 	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
 
-	    //System.out.printf("%% Minkowski: %f, GoodBad: %f, Minimize: %f, Rewards: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
+	    //System.out.printf("%% Minkowski: %f, GoodBad: %f, Rewards: %f, Minimize/Round: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
 
 	    return statePoly;
 	}
+
 
 
 
