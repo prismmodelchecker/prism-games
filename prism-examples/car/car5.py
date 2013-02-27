@@ -517,7 +517,7 @@ smg.write("endmodule\n\n")
 
 # properties
 smg.write("formula goal1 = (car_position=POS_goal);\n") # reaching the goal
-smg.write("formula goal2 = (s!=-1);\n") # making an accident
+smg.write("formula goal2 = (s=-1);\n") # making an accident
 
 
 
