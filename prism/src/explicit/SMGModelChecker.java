@@ -502,7 +502,7 @@ public class SMGModelChecker extends STPGModelChecker
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	
 
-	for(int s = 0; s < 1/*polyhedra.size()*/; s++) {
+	for(int s = 0; s < polyhedra.size(); s++) {
 	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
