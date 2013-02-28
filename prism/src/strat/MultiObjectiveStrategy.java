@@ -185,7 +185,7 @@ public class MultiObjectiveStrategy implements Strategy
 	    // for each action need to build a new distribution
 	    if(G.getPlayer(s) == STPGExplicit.PLAYER_1) { // Player 1 states become stochastic states
 		for(int p = 0; p < gsX[s].size(); p++) {
-		    System.out.printf("getting p %d from s %d\n", p, s);
+		    //System.out.printf("getting p %d from s %d\n", p, s);
 		    int u = nextMoveFunction[s].get(p); // u is a stochastic state
 		    State origin = oldSandCornerToNewS.get(s).get(p);
 		    Distribution d = new Distribution();
@@ -364,7 +364,7 @@ public class MultiObjectiveStrategy implements Strategy
     // Y are the polyhedra of stochastic states:
     //     the first index is the good or bad state
     //     the second index is the action taken
-    public MultiObjectiveStrategy(STPG G, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards)
+    public MultiObjectiveStrategy(STPG G, int initial_state, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards)
     {
 	// memory is the list of tuples (t, p), where p is in X(t)
 
@@ -391,92 +391,88 @@ public class MultiObjectiveStrategy implements Strategy
 
 	initialDistributionFunction = new Map[N];
 	
-	for(int t = 0; t < N; t++) { // for each state (good or bad)
-	    initialDistributionFunction[t] = new HashMap<Integer,Double>();
-	    //Generator_System gsXt = gsX[t];
-	    // find q_i^u and beta_i in X(t)
-	    search_for_distribution:
-	    for(int l = 1; l < L+1; l++) { // first find l
-		// compute all possible combinations of q_i^u
-		tuples = selectGenerators(gsX[t], null, l, null);
+	initialDistributionFunction[initial_state] = new HashMap<Integer,Double>();
+	//Generator_System gsXt = gsX[t];
+	// find q_i^u and beta_i in X(t)
+	search_for_distribution:
+	for(int l = 1; l < L+1; l++) { // first find l
+	    // compute all possible combinations of q_i^u
+	    tuples = selectGenerators(gsX[initial_state], null, l, null);
+	    
+	    // preparation for LP
+	    double[] coeffs_beta = new double[l];
+	    for(int i = 0; i < l; i++) {
+		coeffs_beta[i] = 1;
+	    }
+	    // check for each such tuple
+	    iteration_through_tuples:
+	    for(List<Generator> tuple : tuples) {
+		// now formulate an LP for beta_i
 		
-		// preparation for LP
-		double[] coeffs_beta = new double[l];
+		// max_{beta_i} sum_i beta
+		// s.t. sum_i beta_i q_i^u >= v - rewards(t)
+		//      sum_i beta_i <= 1
+		
+		// describe the optimization problem
+		// optimization function - maximize betas
+		LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
+		
+		// constraints
+		List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+		double[][] coeffs_q = new double[L][l];
 		for(int i = 0; i < l; i++) {
-		    coeffs_beta[i] = 1;
-		}
-		// check for each such tuple
-		iteration_through_tuples:
-		for(List<Generator> tuple : tuples) {
-		    // now formulate an LP for beta_i
-		    
-		    // max_{beta_i} sum_i beta
-		    // s.t. sum_i beta_i q_i^u >= v - rewards(t)
-		    //      sum_i beta_i <= 1
-		    
-		    // describe the optimization problem
-		    // optimization function - maximize betas
-		    LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
-		    
-		    // constraints
-		    List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
-		    double[][] coeffs_q = new double[L][l];
-		    for(int i = 0; i < l; i++) {
-			// get coefficients from tuple.get(i)
-			Linear_Expression le = tuple.get(i).linear_expression();
-			Coefficient d = tuple.get(i).divisor();
-			Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
-			PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
-			for(Variable k : map.keySet()) {
-			    if(k != null) {
-				BigFraction c = new BigFraction(map.get(k), d.getBigInteger());
-				coeffs_q[k.id()][i] = c.doubleValue();
-			    }
+		    // get coefficients from tuple.get(i)
+		    Linear_Expression le = tuple.get(i).linear_expression();
+		    Coefficient d = tuple.get(i).divisor();
+		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
+		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
+		    for(Variable k : map.keySet()) {
+			if(k != null) {
+			    BigFraction c = new BigFraction(map.get(k), d.getBigInteger());
+			    coeffs_q[k.id()][i] = c.doubleValue();
 			}
 		    }
-		    
-		    // TODO: put value of v - reward(t) into x
-		    double[] bounds = new double[L];
-		    bounds[0] = 0.3;
-		    bounds[1] = 0.5;
-		    for(int i = 0; i < L; i++) {
-			// lower bound on sum of betas
-			constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
-		    }
-		    for(int i = 0; i < l; i++) {
-			// lower bound on beta_i
-			double[] onlyone = new double[l];
-			onlyone[i] = 1.0;
-			constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
-		    }
-		    // upper bound on sum of beta
-		    constraints.add(new LinearConstraint(coeffs_beta, Relationship.LEQ, 1));
-		    
-		    PointValuePair solution;
-		    try{
-			solution = solver.optimize(f,
-						   new LinearConstraintSet(constraints),
-						   GoalType.MAXIMIZE,
-						   new MaxIter(10000));
-		    } catch ( NoFeasibleSolutionException e) {
-			// tuple not feasible, try a different one
-			continue iteration_through_tuples;
-		    }
-		    
-		    // there has been no exception, so the problem was fasible
-		    // can extract the distribution now from the solution
-		    for(int i = 0; i < l; i++) {
-			initialDistributionFunction[t].put(gsX[0].indexOf(tuple.get(i)),solution.getPoint()[i]);
-			//System.out.printf("dim%d: %.6f\n", i, solution.getPoint()[i]);
-		    }
-		    break search_for_distribution;
 		}
+		
+		// TODO: put value of v - reward(t) into x
+		double[] bounds = new double[L];
+		bounds[0] = 0.3;
+		bounds[1] = 0.5;
+		for(int i = 0; i < L; i++) {
+		    // lower bound on sum of betas
+		    constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
+		}
+		for(int i = 0; i < l; i++) {
+		    // lower bound on beta_i
+		    double[] onlyone = new double[l];
+		    onlyone[i] = 1.0;
+		    constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+		}
+		// upper bound on sum of beta
+		constraints.add(new LinearConstraint(coeffs_beta, Relationship.LEQ, 1));
+		
+		PointValuePair solution;
+		try{
+		    solution = solver.optimize(f,
+					       new LinearConstraintSet(constraints),
+					       GoalType.MAXIMIZE,
+					       new MaxIter(10000));
+		} catch ( NoFeasibleSolutionException e) {
+		    // tuple not feasible, try a different one
+		    continue iteration_through_tuples;
+		}
+		
+		// there has been no exception, so the problem was fasible
+		// can extract the distribution now from the solution
+		for(int i = 0; i < l; i++) {
+		    initialDistributionFunction[initial_state].put(gsX[0].indexOf(tuple.get(i)),solution.getPoint()[i]);
+		    //System.out.printf("dim%d: %.6f\n", i, solution.getPoint()[i]);
+		}
+		break search_for_distribution;
 	    }
 	}
-	
-	for(int t = 0; t < N; t++) {
-	    System.out.printf("State %d: %s\n", t, initialDistributionFunction[t].toString());
-	}
+    
+	System.out.printf("State %d: %s\n", initial_state, initialDistributionFunction[initial_state].toString());
 	
 
 
@@ -574,13 +570,14 @@ public class MultiObjectiveStrategy implements Strategy
 		    for(Variable k : map_p.keySet()) {
 			if(k !=null) {
 			    BigFraction c_p = new BigFraction(map_p.get(k), d_p.getBigInteger());
-			    if(k.id()-M >= 0) {
-				bounds[k.id()] = c_p.doubleValue() - stpgRewards.get(k.id()-M).getStateReward(t);  // TODO: do p - reward
-			    } else {
-				bounds[k.id()] = c_p.doubleValue();  // TODO: do p - reward
-			    }
+			    bounds[k.id()] = c_p.doubleValue();
 			}
 		    }
+		    // do p - reward
+		    for(int k = M; k < L; k++) {
+			bounds[k] -= stpgRewards.get(k-M).getStateReward(t);
+		    }
+		    //System.out.printf("t:%d, u:%d, p:%d, bounds: %s\n", t, u, p, Arrays.toString(bounds));
 		
 
 		    //System.out.printf("%d multituples for %s\n", multiTuples.size(), gsYtu.get(p));
@@ -731,14 +728,16 @@ public class MultiObjectiveStrategy implements Strategy
 		    PPLSupport.getCoefficientsFromLinearExpression(le_p, false, BigInteger.ONE, map_p);
 		    for(Variable k : map_p.keySet()) {
 			if(k !=null) {
-			    BigFraction c = new BigFraction(map_p.get(k), d_p.getBigInteger());
-			    if(k.id()-M >= 0) {
-				bounds[k.id()] = c.doubleValue() - stpgRewards.get(k.id()-M).getStateReward(t);  // TODO
-			    } else {
-				bounds[k.id()] = c.doubleValue();
-			    }
+			    BigFraction c_p = new BigFraction(map_p.get(k), d_p.getBigInteger());
+			    bounds[k.id()] = c_p.doubleValue();
 			}
 		    }
+		    // do p - reward
+		    for(int k = M; k < L; k++) {
+			bounds[k] -= stpgRewards.get(k-M).getStateReward(t);
+		    }
+		    //System.out.printf("t:%d, u:%d, p:%d, bounds: %s\n", t, u, p, Arrays.toString(bounds));
+
 		    
 		    // find q_i^u and beta_i in Y(t,u)
 		    search_for_distribution:

@@ -138,7 +138,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 10;
+	    long baseline_accuracy = 50;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -159,7 +159,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
 
-	    Strategy strategy = new MultiObjectiveStrategy((STPG) model, result_p, stochasticStates, stpgRewards);
+	    Strategy strategy = new MultiObjectiveStrategy((STPG) model, 0, result_p, stochasticStates, stpgRewards);
 	    strategy.buildProduct((SMG) model);
 
 	    return result_p;
@@ -768,7 +768,7 @@ public class SMGModelChecker extends STPGModelChecker
 		 den = BigInteger.ONE;
 		 if(i>=targets.size()){ // rewards
 		     stpgr = stpgRewards.get(i-targets.size());
-		     r = new BigFraction(stpgr.getStateReward(s), 1.0/((double)accuracy[i]), Integer.MAX_VALUE);
+		     r = new BigFraction(stpgr.getStateReward(s), 1.0/1000000000.0, Integer.MAX_VALUE);
 		     num = r.getNumerator();
 		     den = r.getDenominator();
 		 } else { // target
@@ -807,6 +807,9 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
 
 
+	 long step_increase = 20;
+         long increase_factor = 2;
+
 	 // ITERATE FUNCTIONAL APPLICATION
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) { 
 	     System.out.printf("%% Iteration: %d\n", iter);
@@ -814,15 +817,15 @@ public class SMGModelChecker extends STPGModelChecker
 	     stochasticStates.clear();
 
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates);
-	     
-	     /*
-	     if(iter % 5 == 4) { // increase accuracy by 10 every 20 iterations
-		 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
-		     accuracy[i] += 5;
-		 }
-		 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
-	     }
-	     */
+
+	     if(iter % step_increase == (step_increase-1)) { // increase accuracy by incrase_factor every step_increase iterations
+                 for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
+                     accuracy[i] *= increase_factor;
+                 }
+                 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
+		 step_increase *= increase_factor;
+             }
+
 
 	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);

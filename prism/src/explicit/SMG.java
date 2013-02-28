@@ -354,7 +354,7 @@ public class SMG extends STPGExplicit implements STPG
 		    Map<Integer,BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
 		    BigFraction residual = BigFraction.ONE;
 		    for(Integer t : states){
-			BigFraction prob = new BigFraction(distr.get(t), 1.0/((double)accuracy[0]), Integer.MAX_VALUE);
+			BigFraction prob = new BigFraction(distr.get(t), 1.0/1000000000.0, Integer.MAX_VALUE);
 			probs.put(t, prob);
 			residual = residual.subtract(prob);
 		    }
@@ -474,7 +474,7 @@ public class SMG extends STPGExplicit implements STPG
 	    if(!terminal){
 		for(int i = 0; i < stpgRewards.size(); i++){
 		    STPGRewards stpgr = stpgRewards.get(i);
-		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/((double)accuracy[targets.size()+i]), Integer.MAX_VALUE);
+		    BigFraction r = new BigFraction(stpgr.getStateReward(s), 1.0/1000000000.0, Integer.MAX_VALUE);
 		    BigInteger num = r.getNumerator();
 		    BigInteger den = r.getDenominator();
 		    // add the reward to each generator
