@@ -276,8 +276,9 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates, Map<Integer, Polyhedron> prev_results, boolean round) throws PrismException
         {
+	    // Gauss-Seidel
 	    Map<Integer,Polyhedron> result = init; //new HashMap<Integer,Polyhedron>(init.size());
 
 	    boolean min = false;
@@ -290,7 +291,7 @@ public class SMG extends STPGExplicit implements STPG
 		    min = min2;
 
 		List<Polyhedron> distPolys = new ArrayList<Polyhedron>(trans.get(s).size());
-		result.put(s, pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy, distPolys));
+		result.put(s, pMultiObjectiveSingle(s, init, min, targets, stpgRewards, accuracy, distPolys, prev_results.get(s), round));
 		stochasticStates.add(distPolys);
 	    }
 
@@ -318,7 +319,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
-    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<Polyhedron> distPolys) throws PrismException
+    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<Polyhedron> distPolys, Polyhedron prev_result, boolean round) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
 
@@ -376,13 +377,13 @@ public class SMG extends STPGExplicit implements STPG
 		    
 		    // multiply the polyhedron for each nonzero successor of the distribution:
 		    for(Integer t : states){
-			BigFraction f = probs.get(t).reduce();
+			BigFraction f = probs.get(t);//.reduce();
 
 			// do the scaling by f
 			Generator_System gsn = new Generator_System();
 			for (Generator g : init.get(t).generators()){
 			    // TODO: deal with different generator types
-			    if(g.type()==Generator_Type.POINT){
+			    if(g.type()==Generator_Type.POINT) {
 				BigInteger fac = BigInteger.valueOf(states.size());
 				// multiply by numerator of probability
 				Linear_Expression le = g.linear_expression().times(new Coefficient(f.getNumerator().multiply(fac)));
@@ -500,50 +501,27 @@ public class SMG extends STPGExplicit implements STPG
 	    }
 
 
-
-
 	    long t4 = System.nanoTime();
 
 
-
-
-	    // minimize the fractions
-	    // NOTE: limits accuracy as well!
-	    boolean minimize = true;
-	    if(minimize){
-
+	    // ROUNDING - LIMITS ACCURACY
+	    if(round){
 		Generator_System newmgs = new Generator_System();
-
-		Generator_System mgs = statePoly.generators();
+		Generator_System mgs = statePoly.minimized_generators();
 		for(Generator mg : mgs){
-
-		    
 		    Coefficient c = mg.divisor();
 		    Linear_Expression le = mg.linear_expression();
-		    
 		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
 		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
 
-		    /*
-		    // find gcd
-		    BigInteger gcd = c.getBigInteger();
-		    for(BigInteger v : map.values()){
-			gcd = gcd.gcd(v);
-		    }
-
-		    if(reduce_accuracy){
-			// limit the size of the denominator by the accuracy
-			if(c.getBigInteger().divide(gcd).compareTo(BigInteger.valueOf((long)accuracy)) > 0){
-			    gcd = c.getBigInteger().divide(BigInteger.valueOf((long)accuracy));
-			}
-		    }
-		    */
-
+		    // new denominator
 		    Coefficient new_c = new Coefficient(BigInteger.valueOf(accuracy[0]));
-		    
-		    // now divide all by the gcd and build a new linear expression
+
+		    // new linear expression
 		    Linear_Expression nle;
 		    if(map.containsKey(null)){ // there is a coefficient without variable
+			if(map.get(null).compareTo(BigInteger.ZERO) != 0)
+			    System.out.printf("STRANGE: %d\n", map.get(null));
 			nle = new Linear_Expression_Coefficient(new Coefficient(map.get(null))); // TODO: could be problematic - why is this even here?
 		    } else {
 			nle = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
@@ -551,8 +529,9 @@ public class SMG extends STPGExplicit implements STPG
 		    for(Variable k : map.keySet()){
 			if(k != null){
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
-				/*
+				
 				System.out.println("NEGATIVE");
+				/*
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
 				long rounded = -((long)	Math.ceil(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
 
@@ -563,9 +542,6 @@ public class SMG extends STPGExplicit implements STPG
 				//long rounded = ((long)(Math.floor(round_test.doubleValue()*accuracy[k.id()])*((double)accuracy[0])/((double)accuracy[k.id()])));
 
 				long rounded = (long)((round_test.doubleValue()-(round_test.doubleValue()%(1.0/((double)accuracy[k.id()]))))*((double)accuracy[0]));
-
-				//System.out.printf("unrounded: %s (%f), rounded: %d/%d, acc: %d\n", round_test, round_test.doubleValue(), rounded, accuracy[0], accuracy[k.id()]);
-
 
 				nle = nle.sum(new Linear_Expression_Times(new Coefficient(rounded), k));
 			    }
@@ -596,8 +572,13 @@ public class SMG extends STPGExplicit implements STPG
 
 	    long t5 = System.nanoTime();
 
+	    // union with previous result
+	    if(prev_result != null) {
+		statePoly.upper_bound_assign(prev_result);
+	    }
+
 	    // minimize polyhedron
-	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
+	    //statePoly = new C_Polyhedron(statePoly.minimized_generators());
 
 	    //System.out.printf("%% Minkowski: %f, GoodBad: %f, Rewards: %f, Minimize/Round: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
 

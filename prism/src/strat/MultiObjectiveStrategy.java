@@ -71,7 +71,7 @@ public class MultiObjectiveStrategy implements Strategy
     protected Map<Integer,Integer>[] nextMoveFunction;
 
 
-    protected Generator_System[] gsX;
+    protected List<double[]>[] LIST_gsX;
 
 
     protected Integer sample(Map<Integer,Double> distribution) throws PrismException
@@ -166,7 +166,7 @@ public class MultiObjectiveStrategy implements Strategy
 
 	// the initial distribution
 	Distribution d_init = new Distribution();
-	for(int p = 0; p < gsX[0].size(); p++) {
+	for(int p = 0; p < LIST_gsX[0].size(); p++) {
 	    State new_s_init = oldSandCornerToNewS.get(0).get(p);
 	    if(initialDistributionFunction[0].containsKey(p)) { // otherwise is zero anyway
 		d_init.add(newS.indexOf(new_s_init), initialDistributionFunction[0].get(p));
@@ -184,7 +184,7 @@ public class MultiObjectiveStrategy implements Strategy
 	for (int s = 0; s < S.size(); s++) { // go through all states in S
 	    // for each action need to build a new distribution
 	    if(G.getPlayer(s) == STPGExplicit.PLAYER_1) { // Player 1 states become stochastic states
-		for(int p = 0; p < gsX[s].size(); p++) {
+		for(int p = 0; p < LIST_gsX[s].size(); p++) {
 		    //System.out.printf("getting p %d from s %d\n", p, s);
 		    int u = nextMoveFunction[s].get(p); // u is a stochastic state
 		    State origin = oldSandCornerToNewS.get(s).get(p);
@@ -212,7 +212,7 @@ public class MultiObjectiveStrategy implements Strategy
 		}
 	    } else if (G.getPlayer(s) == STPGExplicit.PLAYER_2) { // Player 2 retains decisions
 		for(int u = 0; u < G.getNumChoices(s); u++) { // for each action (i.e. stochastic state)
-		    for(int p = 0; p < gsX[s].size(); p++) {
+		    for(int p = 0; p < LIST_gsX[s].size(); p++) {
 			State origin = oldSandCornerToNewS.get(s).get(p);
 			Distribution d = new Distribution();
 			
@@ -297,34 +297,34 @@ public class MultiObjectiveStrategy implements Strategy
     }
 
 
-    private List<List<Generator>> selectGenerators(Generator_System gs, List<Generator> tuple, int l, List<Generator> not)
+    private <T> List<List<T>> selectGenerators(List<T> gs, List<T> tuple, int l, List<T> not)
     {
 	if(not == null) {
-	    not = new ArrayList<Generator>();
+	    not = new ArrayList<T>();
 	}
 
-	List<List<Generator>> output = new ArrayList<List<Generator>>();
+	List<List<T>> output = new ArrayList<List<T>>();
 	if(l==0){
 	    if(tuple != null) {
 		output.add(tuple);
 	    }
 	} else {
 	    outer:
-	    for(Generator g : gs) {
+	    for(T g : gs) {
 		if(not != null) {
-		    for(Generator n : not) {
+		    for(T n : not) {
 			if(g == n) { // ref comparison should be fine here
 			    continue outer;
 			}
 		    }
 		}
-		List<Generator> new_tuple = new ArrayList<Generator>();
+		List<T> new_tuple = new ArrayList<T>();
 		if(tuple != null) {
 		    new_tuple.addAll(tuple);
 		}
 		new_tuple.add(g);
 		not.add(g);
-		List<Generator> new_not = new ArrayList<Generator>();
+		List<T> new_not = new ArrayList<T>();
 		new_not.addAll(not);
 		output.addAll(selectGenerators(gs, new_tuple, l-1, new_not));
 	    }
@@ -333,10 +333,13 @@ public class MultiObjectiveStrategy implements Strategy
 	return output;
     }
 
+
+
+
     // select all combinations of q^u_i from a list of length l of tuples
-    private List<List<List<Generator>>> selectMultiGenerators(List<List<List<Generator>>> tuples, int successor_number, List<List<Generator>> multiTuple)
+    private <T> List<List<List<T>>> selectMultiGenerators(List<List<List<T>>> tuples, int successor_number, List<List<T>> multiTuple)
     {
-	List<List<List<Generator>>> output = new ArrayList<List<List<Generator>>>();
+	List<List<List<T>>> output = new ArrayList<List<List<T>>>();
 
 	if(successor_number >= tuples.size()) { // base case
 	    // generate new list of multituples
@@ -346,7 +349,7 @@ public class MultiObjectiveStrategy implements Strategy
 	    }
 	} else {
 	    for(int i = 0; i < tuples.get(successor_number).size(); i++) {
-		List<List<Generator>> new_multiTuple = new ArrayList<List<Generator>>();
+		List<List<T>> new_multiTuple = new ArrayList<List<T>>();
 		if(multiTuple != null) {
 		    new_multiTuple.addAll(multiTuple);
 		}
@@ -359,12 +362,33 @@ public class MultiObjectiveStrategy implements Strategy
 
     }
 
+
+    private List<double[]> gsToList(Generator_System gs, int dim)
+    {
+	List<double[]> result = new ArrayList<double[]>(gs.size());
+	for(Generator g : gs) {
+	    double[] p = new double[dim];
+	    Linear_Expression le = g.linear_expression();
+	    BigInteger d = g.divisor().getBigInteger();
+	    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
+	    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
+	    for(Variable k : map.keySet()) {
+		if(k!=null) {
+		    BigFraction value = new BigFraction(map.get(k), d);
+		    p[k.id()] = value.doubleValue();
+		}
+	    }
+	    result.add(p);
+	}
+	return result;
+    }
+
     // G is the stochastic game
     // X is a polyhedron for each good or bad state
     // Y are the polyhedra of stochastic states:
     //     the first index is the good or bad state
     //     the second index is the action taken
-    public MultiObjectiveStrategy(STPG G, int initial_state, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards)
+    public MultiObjectiveStrategy(STPG G, int initial_state, double[] v, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards)
     {
 	// memory is the list of tuples (t, p), where p is in X(t)
 
@@ -373,11 +397,12 @@ public class MultiObjectiveStrategy implements Strategy
 	int M = L - stpgRewards.size(); // total number of probabilistic goals
 
 	SimplexSolver solver = new SimplexSolver(1.0e-2, 10);
-	List<List<Generator>> tuples;
+	List<List<double[]>> LIST_tuples;
 
 	System.out.println("-------- CANONICAL ORDER -------------");
 	// establish canonical order of corners
 
+	/*
 	gsX = new Generator_System[N];
 	for(int t = 0; t < N; t++) {
 	    gsX[t] = X.get(t).minimized_generators();
@@ -385,6 +410,12 @@ public class MultiObjectiveStrategy implements Strategy
 	    gsXpoly.add_space_dimensions_and_project(L-gsXpoly.space_dimension());
 	    SMGModelChecker.printReachabilityPolyhedron(gsXpoly, ((int)gsXpoly.space_dimension()), t);
 	}
+	*/
+	LIST_gsX = new List[N];
+	for(int t = 0; t < N; t++) {
+	    LIST_gsX[t] = gsToList(X.get(t).minimized_generators(), L);
+	}
+
 	
 
 	System.out.println("--------- INITIAL DISTRIBUTION -------------");
@@ -392,12 +423,11 @@ public class MultiObjectiveStrategy implements Strategy
 	initialDistributionFunction = new Map[N];
 	
 	initialDistributionFunction[initial_state] = new HashMap<Integer,Double>();
-	//Generator_System gsXt = gsX[t];
 	// find q_i^u and beta_i in X(t)
 	search_for_distribution:
 	for(int l = 1; l < L+1; l++) { // first find l
 	    // compute all possible combinations of q_i^u
-	    tuples = selectGenerators(gsX[initial_state], null, l, null);
+	    LIST_tuples = selectGenerators(LIST_gsX[initial_state], null, l, null);
 	    
 	    // preparation for LP
 	    double[] coeffs_beta = new double[l];
@@ -406,7 +436,8 @@ public class MultiObjectiveStrategy implements Strategy
 	    }
 	    // check for each such tuple
 	    iteration_through_tuples:
-	    for(List<Generator> tuple : tuples) {
+	    //for(List<Generator> tuple : tuples) {
+	    for(List<double[]> tuple : LIST_tuples) {
 		// now formulate an LP for beta_i
 		
 		// max_{beta_i} sum_i beta
@@ -422,24 +453,17 @@ public class MultiObjectiveStrategy implements Strategy
 		double[][] coeffs_q = new double[L][l];
 		for(int i = 0; i < l; i++) {
 		    // get coefficients from tuple.get(i)
-		    Linear_Expression le = tuple.get(i).linear_expression();
-		    Coefficient d = tuple.get(i).divisor();
-		    Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
-		    PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
-		    for(Variable k : map.keySet()) {
-			if(k != null) {
-			    BigFraction c = new BigFraction(map.get(k), d.getBigInteger());
-			    coeffs_q[k.id()][i] = c.doubleValue();
-			}
+		    for(int k = 0; k < L; k++) {
+			coeffs_q[k][i] = tuple.get(i)[k];
 		    }
+		    
 		}
 		
 		// TODO: put value of v - reward(t) into x
 		double[] bounds = new double[L];
-		bounds[0] = 0.3;
-		bounds[1] = 0.5;
 		for(int i = 0; i < L; i++) {
 		    // lower bound on sum of betas
+		    bounds[i] = v[i];
 		    constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
 		}
 		for(int i = 0; i < l; i++) {
@@ -465,7 +489,7 @@ public class MultiObjectiveStrategy implements Strategy
 		// there has been no exception, so the problem was fasible
 		// can extract the distribution now from the solution
 		for(int i = 0; i < l; i++) {
-		    initialDistributionFunction[initial_state].put(gsX[0].indexOf(tuple.get(i)),solution.getPoint()[i]);
+		    initialDistributionFunction[initial_state].put(LIST_gsX[initial_state].indexOf(tuple.get(i)),solution.getPoint()[i]);
 		    //System.out.printf("dim%d: %.6f\n", i, solution.getPoint()[i]);
 		}
 		break search_for_distribution;
@@ -475,8 +499,6 @@ public class MultiObjectiveStrategy implements Strategy
 	System.out.printf("State %d: %s\n", initial_state, initialDistributionFunction[initial_state].toString());
 	
 
-
-
 	// compute memory update function
 	System.out.println("--------- MEMORY UPDATE AND NEXT MOVE -------------");
 
@@ -484,23 +506,26 @@ public class MultiObjectiveStrategy implements Strategy
 	nextMoveFunction = new Map[N];
 
 	for(int t = 0; t < N; t++) { // for each state (good or bad)
+	    // do some garbage collection of the previous iteration
+	    System.gc();
+
 	    //System.out.printf("t: %d\n", t);
 	    memoryUpdateFunction[t] = new Map[G.getNumChoices(t)];
-	    //Generator_System gsXt = gsX[t];
 	    // compute memory size
-	    memorySize += gsX[t].size();
+	    memorySize += LIST_gsX[t].size();
 
 	    if(G.getPlayer(t) == STPGExplicit.PLAYER_1) { // next move only defined for good guy
-		nextMoveFunction[t] = new HashMap<Integer,Integer>(gsX[t].size());
+		nextMoveFunction[t] = new HashMap<Integer,Integer>(LIST_gsX[t].size());
 	    }
 
 	    for (int u = 0; u < G.getNumChoices(t); u++) { // for each stochastic successor (i.e. action u)
 		//System.out.printf("u: %d\n", u);
-		Generator_System gsYtu = Y.get(t).get(u).minimized_generators();
-		Polyhedron gsYpoly = new C_Polyhedron(gsYtu);
-		gsYpoly.add_space_dimensions_and_project(L-gsYpoly.space_dimension());
+		//tuGenerator_System gsYtu = Y.get(t).get(u).minimized_generators();
+		List<double[]> gsYtu = gsToList(Y.get(t).get(u).minimized_generators(), L);
+		//Polyhedron gsYpoly = new C_Polyhedron(gsYtu);
+		//gsYpoly.add_space_dimensions_and_project(L-gsYpoly.space_dimension());
 		//System.out.printf("%d-%d->: ", t, u);
-		SMGModelChecker.printReachabilityPolyhedron(gsYpoly, ((int)gsYpoly.space_dimension()), t);
+		//SMGModelChecker.printReachabilityPolyhedron(gsYpoly, ((int)gsYpoly.space_dimension()), t);
 		int ntu = G.getNumTransitions(t,u);
 		Iterator<Entry<Integer,Double>> dtu = G.getTransitionsIterator(t,u);
 		memoryUpdateFunction[t][u] = new HashMap<Integer,Map<Integer,Map<Integer,Double>>>();
@@ -521,22 +546,20 @@ public class MultiObjectiveStrategy implements Strategy
 
 		//System.out.printf("Stochastic %d,%d corners: %d\n", t, u, gsYtu.size());
 
-		List<List<List<Generator>>> succ_tuples = new ArrayList<List<List<Generator>>>();
-		//Generator_System[] gsXws = new Generator_System[ntu];
+		List<List<List<double[]>>> LIST_succ_tuples = new ArrayList<List<List<double[]>>>();
 		dtu = G.getTransitionsIterator(t,u);
 		for(int w = 0; w < ntu; w++) {
 		    int key_w = dtu.next().getKey();
-		    //gsXws[w] = X.get(key_w).minimized_generators();
 		    stochastic[w] = new HashMap<Integer, Map<Integer,Double>>(); // initialize for each successor w of u
 		    //System.out.printf("Generate tuples out of %s\n", gsXws[w].toString());
-		    List<List<Generator>> succ_tuple;
+		    List<List<double[]>> LIST_succ_tuple;
 		    look_for_nonempty_tuple:
 		    for(int l = L; l >= 1; l--) {
-			succ_tuple = selectGenerators(gsX[key_w], null, l, null);
-			//System.out.printf("l: %d, selected st: %s\n", l, succ_tuple);
-			if(succ_tuple.size()!=0) {
+			LIST_succ_tuple = selectGenerators(LIST_gsX[key_w], null, l, null);
+			//System.out.printf("l: %d, selected st: %s\n", l, LIST_succ_tuple);
+			if(LIST_succ_tuple.size()!=0) {
 			    if(l < L) {
-				for(List<Generator> point : succ_tuple) {
+				for(List<double[]> point : LIST_succ_tuple) {
 				    for(int ll = point.size(); ll < L; ll++) {
 					point.add(point.get(0));
 				    }
@@ -544,25 +567,23 @@ public class MultiObjectiveStrategy implements Strategy
 			    }
 			    
 			    //System.out.printf("L:%d, succ_tuple: %s\n", L, succ_tuple);
-			    succ_tuples.add(succ_tuple);
-			    
+			    LIST_succ_tuples.add(LIST_succ_tuple);
 			    break look_for_nonempty_tuple;
 			}
+
+			
 		    }
 		}
 
 		//System.out.printf("SUCCTUPLES: %s\n", succ_tuples.toString());
 
-		List<List<List<Generator>>> multiTuples = selectMultiGenerators(succ_tuples, 0, null);
-
-
+		List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
 
 		// here choose the distributions of the stochastic states
 		for (int p = 0; p < gsYtu.size(); p++) { // for each corner point in u
-	
-		    
 	    
 		    double[] bounds = new double[L];
+		    /*
 		    Linear_Expression le_p = gsYtu.get(p).linear_expression();
 		    Coefficient d_p = gsYtu.get(p).divisor();
 		    Map<Variable, BigInteger> map_p = new HashMap<Variable, BigInteger>();
@@ -573,13 +594,16 @@ public class MultiObjectiveStrategy implements Strategy
 			    bounds[k.id()] = c_p.doubleValue();
 			}
 		    }
+		    */
+		    for(int k = 0; k < L; k++) {
+			bounds[k] = gsYtu.get(p)[k];
+		    }
+
 		    // do p - reward
 		    for(int k = M; k < L; k++) {
 			bounds[k] -= stpgRewards.get(k-M).getStateReward(t);
 		    }
 		    //System.out.printf("t:%d, u:%d, p:%d, bounds: %s\n", t, u, p, Arrays.toString(bounds));
-		
-
 		    //System.out.printf("%d multituples for %s\n", multiTuples.size(), gsYtu.get(p));
 
 		    double[] coeffs_beta = new double[ntu*L];
@@ -590,9 +614,11 @@ public class MultiObjectiveStrategy implements Strategy
 			    coeffs_beta[w*L+i] = 1;
 			}
 		    }
+		    List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+
 		    boolean nothingfound = true;
 		    iteration_through_multi_tuples:
-		    for(List<List<Generator>> multiTuple : multiTuples) { // for each combination of tuples
+		    for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
 			// formulate an LP that contains the following constraints
 			// sum_{w} /\(u,w) sum_i beta^w_i q^w_i
 			
@@ -607,10 +633,9 @@ public class MultiObjectiveStrategy implements Strategy
 			//       smallest number of points necessary.
 
 			LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
-
 		    
 			// constraints
-			List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+			constraints.clear();
 			// now that all combinations of tuples are computed, can build the constraints
 			// first dimension is constraint
 			// second dimension is beta^w_i index
@@ -621,22 +646,17 @@ public class MultiObjectiveStrategy implements Strategy
 			    for(int i = 0; i < L; i++) { // for each component
 				// get coefficients from tuple.get(i)
 				//System.out.printf("w: %d, i: %d, mt: %s\n", w, i, multiTuple);
-				Linear_Expression le = multiTuple.get(w).get(i).linear_expression();
-				Coefficient d = multiTuple.get(w).get(i).divisor();
-				Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
-				PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
-				for(Variable k : map.keySet()) {
-				    if(k != null) {
-					BigFraction c = new BigFraction(map.get(k), d.getBigInteger());
-					coeffs_q[k.id()][w*L+i] = delta_uw * c.doubleValue();
-				    }
+				for(int k = 0; k < L; k++) {
+				    coeffs_q[k][w*L+i] = delta_uw * LIST_multiTuple.get(w).get(i)[k];
 				}
 			    }
 			}
-			
-			//System.out.printf("t: %d, u:%d, p:%d ... coefficients\n", t, u, p);
-			//System.out.println(Arrays.deepToString(coeffs_q));
-			//System.out.println("...");
+
+			/*
+			System.out.printf("t: %d, u:%d, p:%d, m-tuple: %d ... coefficients\n", t, u, p, LIST_multiTuples.indexOf(LIST_multiTuple));
+			System.out.println(Arrays.deepToString(coeffs_q));
+			System.out.println("...");
+			*/
 
 			for(int i = 0; i < L; i++) {
 			    // lower bound on sum of betas
@@ -652,7 +672,7 @@ public class MultiObjectiveStrategy implements Strategy
 			for(int w = 0; w < ntu; w++) { // for each successor w
 			    constraints.add(new LinearConstraint(coeffs_beta_indiv[w], Relationship.LEQ, 1));
 			}
-
+			
 
 			PointValuePair solution;
 			try{
@@ -668,7 +688,7 @@ public class MultiObjectiveStrategy implements Strategy
 			
 			//System.out.printf("t:%d, u:%d, bounds:%s\n",t, u, Arrays.toString(bounds));
 			//System.out.printf("t:%d, u:%d, coeffs_q:%s\n", t, u, Arrays.deepToString(coeffs_q));
-			//System.out.printf("multituple: %s\n", multiTuple);
+			//System.out.printf("multituple: %s\n", LIST_multiTuple);
 
 			
 			//System.out.printf("state: %d, L: %d, ntu: %d, solnsize: %d\n", t, L, ntu, solution.getPoint().length);
@@ -680,10 +700,11 @@ public class MultiObjectiveStrategy implements Strategy
 			    stochastic[w].put(p, new HashMap<Integer, Double>()); // initialize for each corner p of u
 			    int key_w = dtu.next().getKey();
 			    for(int i = 0; i < L; i++) { // for each dimension
-				Integer index = gsX[key_w].indexOf(multiTuple.get(w).get(i));
+				Integer index = LIST_gsX[key_w].indexOf(LIST_multiTuple.get(w).get(i));
 				//System.out.printf("key_w: %d, w: %d, i:%d: ", key_w, w, i);
-				//System.out.println(multiTuple.get(w).get(i));
-				//System.out.println(multiTuple.get(w));
+				//System.out.println(LIST_multiTuple.get(w).get(i));
+				//System.out.println(LIST_multiTuple.get(w));
+				//System.out.println(LIST_gsX[key_w]);
 				double prob = solution.getPoint()[L*w+i];
 				prob = prob > 1.0 ? 1.0 : prob;
 				stochastic[w].get(p).put(index, prob);
@@ -698,11 +719,12 @@ public class MultiObjectiveStrategy implements Strategy
 		
 
 
-
-		//System.out.printf("STOCHASTIC t:%d, u:%d\n", t,u);
-		//for(int w = 0; w < ntu; w++) {
-	        //    System.out.printf("w:%d: %s\n", w, stochastic[w]);
-		//}
+		/*
+		System.out.printf("STOCHASTIC t:%d, u:%d\n", t,u);
+		for(int w = 0; w < ntu; w++) {
+	            System.out.printf("w:%d: %s\n", w, stochastic[w]);
+		}
+		*/
 
 		///// STOCHASTIC END ////
 
@@ -712,7 +734,7 @@ public class MultiObjectiveStrategy implements Strategy
 		// for good and bad states: sum_i beta_i q_i^u >= p - rewards(t)
 		// and for stochastic states: ...
 		// for q^i_u in Y(t,u) - need to actually find these
-		for (int p = 0; p < gsX[t].size(); p++) { // for each corner point in t
+		for (int p = 0; p < LIST_gsX[t].size(); p++) { // for each corner point in t
 		    //System.out.printf("p: %d\n", p);
 		    dtu = G.getTransitionsIterator(t,u);
 		    for(int w = 0; w < ntu; w++) {
@@ -722,15 +744,8 @@ public class MultiObjectiveStrategy implements Strategy
 
 		    // put value of p - reward(t) into bounds
 		    double[] bounds = new double[L];
-		    Linear_Expression le_p = gsX[t].get(p).linear_expression();
-		    Coefficient d_p = gsX[t].get(p).divisor();
-		    Map<Variable, BigInteger> map_p = new HashMap<Variable, BigInteger>();
-		    PPLSupport.getCoefficientsFromLinearExpression(le_p, false, BigInteger.ONE, map_p);
-		    for(Variable k : map_p.keySet()) {
-			if(k !=null) {
-			    BigFraction c_p = new BigFraction(map_p.get(k), d_p.getBigInteger());
-			    bounds[k.id()] = c_p.doubleValue();
-			}
+		    for(int k = 0; k < L; k++) {
+			bounds[k] = LIST_gsX[t].get(p)[k];
 		    }
 		    // do p - reward
 		    for(int k = M; k < L; k++) {
@@ -744,7 +759,7 @@ public class MultiObjectiveStrategy implements Strategy
 		    for(int l = 1; l < L+1; l++) { // first find l
 			//System.out.printf("l: %d\tout of %d\n", l, L);
 			// compute all possible combinations of q_i^u
-			tuples = selectGenerators(gsYtu, null, l, null);
+			LIST_tuples = selectGenerators(gsYtu, null, l, null);
 			
 			// preparation for LP
 			double[] coeffs_beta = new double[l];
@@ -753,7 +768,7 @@ public class MultiObjectiveStrategy implements Strategy
 			}
 			// check for each such tuple
 			iteration_through_tuples:
-			for(List<Generator> tuple : tuples) {
+			for(List<double[]> LIST_tuple : LIST_tuples) {
 			    //System.out.printf("tuple: %s\n", tuple.toString());
 			    // now formulate an LP for beta_i
 			    
@@ -770,19 +785,11 @@ public class MultiObjectiveStrategy implements Strategy
 			    double[][] coeffs_q = new double[L][l];
 			    for(int i = 0; i < l; i++) {
 				// get coefficients from tuple.get(i)
-				Linear_Expression le = tuple.get(i).linear_expression();
-				Coefficient d = tuple.get(i).divisor();
-				Map<Variable, BigInteger> map = new HashMap<Variable, BigInteger>();
-				PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
-				for(Variable k : map.keySet()) {
-				    if(k != null) {
-					BigFraction c = new BigFraction(map.get(k), d.getBigInteger());
-					coeffs_q[k.id()][i] = c.doubleValue();
-				    }
+				for(int k = 0; k < L; k++) {
+				    coeffs_q[k][i] = LIST_tuple.get(i)[k];
 				}
 			    }
 			    //System.out.println(Arrays.deepToString(coeffs_q));
-			    
 			    
 			    for(int i = 0; i < L; i++) {
 				// lower bound on sum of betas
@@ -814,7 +821,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    for(int w = 0; w < ntu; w++) {
 				int key_w = dtu.next().getKey();
 				for(int i = 0; i < l; i++) {
-				    Integer q_index = gsYtu.indexOf(tuple.get(i));
+				    Integer q_index = gsYtu.indexOf(LIST_tuple.get(i));
 				    Map<Integer,Double> action = stochastic[w].get(q_index);
 				    //System.out.printf("PLAYER %d at state %d, action %d, target %d(%dth)\n", G.getPlayer(t), t, u, key_w, w);
 				    //System.out.printf("action: %s\n", action);
@@ -858,57 +865,6 @@ public class MultiObjectiveStrategy implements Strategy
 	    }
 	}
 
-
-	/*
-	// compute next move function
-	
-
-	nextMoveFunction = new Map[N];
-	for (int t = 0; t < N; t++) { // for each state (good or bad, but want good only)
-	    //System.out.printf("Player %d: %d =?= %d\n", t, G.getPlayer(t), STPGExplicit.PLAYER_1);
-	    if(G.getPlayer(t) == STPGExplicit.PLAYER_1) { // only defined for good guy
-		// need to find l, and l coefficients beta_i summing to one such that
-		// sum_i beta_i q_i^u >= p - rewards(t)
-		// where q^i_u must be in Y(t,u), but only require existence here, no need to store
-		
-		// do this by iterating through all corner points p,
-		// and for each of them iterate through all successors,
-		// and try to find whether p - rewards(t) lies in the polygon Y(t,u)
-		// if so, the condition is fulfilled (but don't know which beta_i and q^u_i)
-		//Generator_System gsXt = X.get(t).minimized_generators();
-		nextMoveFunction[t] = new HashMap<Integer,Integer>(gsX[t].size());
-		for (int p = 0; p < gsX[t].size(); p++) { // for each corner point p in X(t)
-		    for (int u = 0; u < G.getNumChoices(t); u++) { // for each stochastic successor
-
-
-			// if Y(t,u) contains p - rewards(t) then
-			// construct auxiliary polyhedron containing only X(t)(p) to test containment
-			Generator_System test_gs = new Generator_System();
-			//System.out.printf("%d, %d -> %d\n", t, p, u);
-			Generator gp = gsX[t].get(p);
-			for(int i = 0; i < stpgRewards.size(); i++) {
-			    BigFraction r = new BigFraction(stpgRewards.get(i).getStateReward(t), 1.0/1000.0, Integer.MAX_VALUE);
-			    BigInteger num = r.getNumerator();
-			    BigInteger den = r.getDenominator();
-			    
-
-			}
-			test_gs.add(gsX[t].get(p)); // TODO: do p - reward
-			Polyhedron test_poly = new C_Polyhedron(test_gs);
-			// equate dimensions
-			test_poly.add_space_dimensions_and_project(Y.get(t).get(u).space_dimension() - test_poly.space_dimension());
-			//SMGModelChecker.printReachabilityPolyhedron(test_poly, ((int)test_poly.space_dimension()), t);
-			//SMGModelChecker.printReachabilityPolyhedron(Y.get(t).get(u), ((int) Y.get(t).get(u).space_dimension()), u);
-			if(Y.get(t).get(u).contains(test_poly)) {
-			    nextMoveFunction[t].put(p, u);
-			    break;
-			}
-		    }
-		}
-
-	    }
-	}
-	*/
 	System.out.println("--------- NEXT MOVE -------------");
 	for(int t = 0; t < nextMoveFunction.length; t++){
 	    if(nextMoveFunction[t] != null) {
