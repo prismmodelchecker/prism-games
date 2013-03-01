@@ -338,7 +338,7 @@ public class SMG extends STPGExplicit implements STPG
 		Distribution distr = dists.get(d);
 		states = new ArrayList<Integer>(distr.keySet());
 		
-		if(states.size()>=1){ // if the distribution is "interesting" -- need to compute Minkowski sum
+		if(states.size() > 1){ // if the distribution is "interesting" -- need to compute Minkowski sum
 
 		    // polyhedra of the successors of the stochastic state d
 		    List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
@@ -427,7 +427,7 @@ public class SMG extends STPGExplicit implements STPG
 		    // now in cp have the minkowski sum for that particular distribution d
 		    distPolys.add(cp);
 		}
-		else if (states.size()==0) { // distribution just assigns 1 to one successor
+		else if (states.size()==1) { // distribution just assigns 1 to one successor
 		    distPolys.add(init.get(states.get(0)));
 		}
 

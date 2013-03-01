@@ -163,10 +163,11 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    
 
-	    double[] goal = { 0.2, 0.2, 0.2 };
+	    double[] goal = { 0.1, 0.1, 0.1 };
 
-	    Strategy strategy = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
-	    strategy.buildProduct((SMG) model);
+	    //Strategy strategy = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
+	    Strategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
+	    //strategy.buildProduct((SMG) model);
 
 	    return result_p;
 
@@ -514,7 +515,7 @@ public class SMGModelChecker extends STPGModelChecker
 	System.out.printf("%% maxpoints: %d\n", max_points);
 	
 
-	for(int s = 7; s < 9/*polyhedra.size()*/; s++) {
+	for(int s = 0; s < polyhedra.size(); s++) {
 	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
@@ -817,7 +818,7 @@ public class SMGModelChecker extends STPGModelChecker
          long increase_factor = 1;
 	 boolean round = true; // round in all but the last iteration
 
-	 maxIter = 50;
+	 maxIter = 30;
 
 	 // ITERATE FUNCTIONAL APPLICATION
 	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) {
