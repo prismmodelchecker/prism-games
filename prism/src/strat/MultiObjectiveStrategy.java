@@ -185,7 +185,7 @@ public class MultiObjectiveStrategy implements Strategy
 
 
     // select all combinations of q^u_i from a list of length l of tuples
-    private List<List<List<double[]>>> selectMultiGenerators(List<List<List<double[]>>> tuples, int successor_number, List<List<double[]>> multiTuple, double[] bounds)
+    private List<List<List<double[]>>> selectMultiGenerators(List<List<List<double[]>>> tuples, int successor_number, List<List<double[]>> multiTuple)
     {
 	List<List<List<double[]>>> output = new ArrayList<List<List<double[]>>>();
 
@@ -193,28 +193,7 @@ public class MultiObjectiveStrategy implements Strategy
 	    // generate new list of multituples
 	    // put in currently computed tuple - if it exists
 	    if(multiTuple != null) {
-		/*
-		// first check whether the multituple is feasible at all:
-		boolean do_not_add = false;
-		search_through_dimensions:
-		for(int i = 0; i < bounds.length; i++) { // for each dimension need to be larger
-		    for(int w = 0; w < multiTuple.size(); w++) { // for each successor
-			for(int l = 0; l < multiTuple.get(w).size(); l++) { // for each tuple
-			    if(multiTuple.get(w).get(l)[i] >= bounds[i]) { // in dimension i, some value is larger than goal
-				continue search_through_dimensions;
-			    }
-			}
-		    }
-		    // fall through - happens only if in dimension i no value is larger than goal
-		    do_not_add = true;
-		    break search_through_dimensions;
-		}
-		if(!do_not_add) {
-		*/
 		output.add(multiTuple);
-		/*
-		}
-		*/
 	    }
 	} else {
 	    for(int i = 0; i < tuples.get(successor_number).size(); i++) {
@@ -223,7 +202,7 @@ public class MultiObjectiveStrategy implements Strategy
 		    new_multiTuple.addAll(multiTuple);
 		}
 		new_multiTuple.add(tuples.get(successor_number).get(i));
-		output.addAll(selectMultiGenerators(tuples, successor_number+1, new_multiTuple, bounds));
+		output.addAll(selectMultiGenerators(tuples, successor_number+1, new_multiTuple));
 	    }
 	}
 
@@ -295,9 +274,18 @@ public class MultiObjectiveStrategy implements Strategy
 	return result;
     }
 
-    public void simulateMDP()
+    public List<List<State>> simulateMDP(int samples) // returns a list of paths through the original game
     {
-	mdp.getFirstInitialState();
+	List<List<State>> paths = new ArrayList<List<State>>(samples);
+
+	// get initial state
+	int initial_state = mdp.getFirstInitialState();
+
+	// sample paths
+	for(int sample = 0; sample < samples; sample++) {
+	}
+
+	return paths;
     }
 
     // directly construct MDP
@@ -492,14 +480,38 @@ public class MultiObjectiveStrategy implements Strategy
 
 		if(ntu >= 1) { // if the distribution is "interesting"
 		    // interpret u as a stochastic state, and look at all its successors w
-
-		    // initialize temporary distributions
+		    // first get tuples for each successor
+		    List<List<List<double[]>>> LIST_succ_tuples = new ArrayList<List<List<double[]>>>();
+		    dtu = G.getTransitionsIterator(t,u);
 		    for(int w = 0; w < ntu; w++) {
+			int key_w = dtu.next().getKey();
 			stochastic[w] = new HashMap<Integer, Map<Integer,Double>>(); // initialize for each successor w of u
+			List<List<double[]>> LIST_succ_tuple;
+			look_for_nonempty_tuple:
+			for(int l = L; l >= 1; l--) { // look for a tuple of sufficient size
+			    LIST_succ_tuple = selectGenerators(LIST_gsX[key_w], null, l, null);
+			    if(LIST_succ_tuple.size()!=0) {
+				if(l < L) {
+				    for(List<double[]> point : LIST_succ_tuple) {
+					for(int ll = point.size(); ll < L; ll++) {
+					    point.add(point.get(0));
+					}
+				    }
+				}
+				System.out.printf("LIST_succ_tuple length: %d\n", LIST_succ_tuple.size());
+				LIST_succ_tuples.add(LIST_succ_tuple);
+				break look_for_nonempty_tuple;
+			    }
+			}
+			
 		    }
+		    
+		    List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
+		    System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
 
 		    // here choose the distributions of the stochastic states
 		    for (int p = 0; p < gsYtu.size(); p++) { // for each corner point in u
+			System.out.printf("Corner (p): %d\n", p);
 			// bounds are p - reward
 			bounds = new double[L];
 			for(int k = 0; k < L; k++) {
@@ -509,33 +521,7 @@ public class MultiObjectiveStrategy implements Strategy
 				bounds[k] = gsYtu.get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
 			    }
 			}
-			// first get tuples for each successor
-			List<List<List<double[]>>> LIST_succ_tuples = new ArrayList<List<List<double[]>>>();
-			dtu = G.getTransitionsIterator(t,u);
-			for(int w = 0; w < ntu; w++) {
-			    int key_w = dtu.next().getKey();
-			    List<List<double[]>> LIST_succ_tuple;
-			    look_for_nonempty_tuple:
-			    for(int l = L; l >= 1; l--) { // look for a tuple of sufficient size
-				LIST_succ_tuple = selectGenerators(LIST_gsX[key_w], null, l, null);
-				if(LIST_succ_tuple.size()!=0) {
-				    if(l < L) {
-					for(List<double[]> point : LIST_succ_tuple) {
-					    for(int ll = point.size(); ll < L; ll++) {
-						point.add(point.get(0));
-					    }
-					}
-				    }
-				    System.out.printf("LIST_succ_tuple length: %d\n", LIST_succ_tuple.size());
-				    LIST_succ_tuples.add(LIST_succ_tuple);
-				    break look_for_nonempty_tuple;
-				}
-			    }
 
-			}
-			
-			List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null, bounds);
-			System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
 			double[] coeffs_beta = new double[ntu*L];
 			double[][] coeffs_beta_indiv = new double[ntu][L*ntu];
 			for(int i = 0; i < L; i++) {
@@ -546,9 +532,34 @@ public class MultiObjectiveStrategy implements Strategy
 			}
 			List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
 			
+			boolean multituples_left = true;
+			Map<Integer,Integer> tuple_counters = new HashMap<Integer,Integer>();
+			for(int i = 0; i < ntu; i++) {
+			    tuple_counters.put(i, 0); // initialize all tuple_counters to zero
+			}
+
 			nothingfound = true;
 			iteration_through_multi_tuples:
-			for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
+			while(multituples_left) {
+			    //for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
+
+			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
+			    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
+			    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
+				List<List<double[]>> LIST_succ_tuple = LIST_succ_tuples.get(i);
+				if(tuple_counters.get(i) == LIST_succ_tuple.size()) { // tuple counter reached bound
+				    tuple_counters.put(i, 0); // reset tuple_counter
+				    if(i+1 < LIST_succ_tuples.size()) {
+					tuple_counters.put(i+1, tuple_counters.get(i+1)+1); // increase next tuplecounter
+				    } else { // the last tuple counter reached the bound
+					multituples_left = false;
+				    }
+				}
+				LIST_multiTuple.add(LIST_succ_tuple.get(tuple_counters.get(i)));
+			    }
+			    // increase the first tuple counter
+			    tuple_counters.put(0, tuple_counters.get(0)+1);
+			    
 			    // formulate an LP that contains the following constraints
 			    // sum_{w} /\(u,w) sum_i beta^w_i q^w_i
 			    
@@ -591,7 +602,7 @@ public class MultiObjectiveStrategy implements Strategy
 				// lower bound on beta^w_i
 				double[] onlyone = new double[L*ntu];
 				onlyone[i] = 1.0;
-				//constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+				constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
 			    }
 			    // upper bound on sums of betas
 			    for(int w = 0; w < ntu; w++) { // for each successor w
