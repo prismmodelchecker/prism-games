@@ -538,9 +538,12 @@ public class MultiObjectiveStrategy implements Strategy
 			    tuple_counters.put(i, 0); // initialize all tuple_counters to zero
 			}
 
+			int multi_counter = 0;
+
 			nothingfound = true;
 			iteration_through_multi_tuples:
 			while(multituples_left) {
+			    multicounter += 1;
 			    //for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
 
 			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
