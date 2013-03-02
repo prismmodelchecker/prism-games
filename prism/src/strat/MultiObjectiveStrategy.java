@@ -543,7 +543,8 @@ public class MultiObjectiveStrategy implements Strategy
 			nothingfound = true;
 			iteration_through_multi_tuples:
 			while(multituples_left) {
-			    multicounter += 1;
+			    multi_counter += 1;
+			    System.out.printf("Working on multi tuple %d\n", multi_counter);
 			    //for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
 
 			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
