@@ -140,7 +140,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 20;
+	    long baseline_accuracy = 50;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -814,17 +814,15 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
 
 
-	 long step_increase = 200;
-         long increase_factor = 1;
-	 boolean round = true; // round in all but the last iteration
+	 double step_increase = 5.0;
+         double increase_factor = 1.2;
+	 boolean round = true; // round in all iterations
 
-	 maxIter = 30;
+	 maxIter = 50;
+	 int last_iter = 0;
 
 	 // ITERATE FUNCTIONAL APPLICATION
-	 for(int iter = 0; iter < Math.ceil(maxIter); iter++) {
-	     if(iter == Math.ceil(maxIter)-1) {
-		 round = false; // don't round in last iteration
-	     }
+	 for(int iter = 0; iter < Math.ceil(maxIter); ) {
 
 	     System.out.printf("%% Starting iteration %d, rounding %s\n", iter, round ? "on" : "off");
 
@@ -844,12 +842,16 @@ public class SMGModelChecker extends STPGModelChecker
 		 prev_result.put(s,result.get(s));
 	     }
 
-	     if(iter % step_increase == (step_increase-1)) { // increase accuracy by incrase_factor every step_increase iterations
+	     iter++;
+
+	     if((double)(iter-last_iter) % step_increase < 1.0 ) { // increase accuracy by incrase_factor every step_increase iterations
                  for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
                      accuracy[i] *= increase_factor;
                  }
-                 System.out.printf("%% ACCURACY SET TO %d\n", accuracy[0]);
 		 step_increase *= increase_factor;
+		 last_iter = iter;
+                 System.out.printf("%% ACCURACY SET TO %d, increase again after: %f\n", accuracy[0], step_increase);
+
              }
 
 	 }

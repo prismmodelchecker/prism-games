@@ -295,6 +295,11 @@ public class MultiObjectiveStrategy implements Strategy
 	return result;
     }
 
+    public void simulateMDP()
+    {
+	mdp.getFirstInitialState();
+    }
+
     // directly construct MDP
     public MultiObjectiveStrategy(STPG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards) throws PrismException
     {
@@ -304,7 +309,7 @@ public class MultiObjectiveStrategy implements Strategy
 	int M = L - stpgRewards.size(); // total number of probabilistic goals
 	
 	// need LP solver to get convex combinations
-	SimplexSolver solver = new SimplexSolver(1.0e-2, 10);
+	SimplexSolver solver = new SimplexSolver(1.0e-5, 10);
 	
 	// store sets of points for successors
 	List<List<double[]>> LIST_tuples;
@@ -577,7 +582,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    }
 			    
 
-			    System.out.printf("bounds: %s, coeffs: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q));
+			    //System.out.printf("bounds: %s\n, coeffs: %s\n bounds_indiv: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q), Arrays.deepToString(coeffs_beta_indiv));
 			    for(int i = 0; i < L; i++) {
 				// lower bound on sum of betas
 				constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
@@ -586,7 +591,7 @@ public class MultiObjectiveStrategy implements Strategy
 				// lower bound on beta^w_i
 				double[] onlyone = new double[L*ntu];
 				onlyone[i] = 1.0;
-				constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+				//constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
 			    }
 			    // upper bound on sums of betas
 			    for(int w = 0; w < ntu; w++) { // for each successor w
@@ -601,6 +606,7 @@ public class MultiObjectiveStrategy implements Strategy
 							   new MaxIter(10000));
 			    } catch ( NoFeasibleSolutionException e) {
 				// tuple not feasible, try a different one
+				//System.out.println("infeasible.");
 				continue iteration_through_multi_tuples;
 			    }
 			    nothingfound = false;
@@ -620,7 +626,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    }
 			    break iteration_through_multi_tuples;
 			}
-			System.out.println(nothingfound);
+			//System.out.println(nothingfound);
 		    } 
 		} else if (ntu==1) { // distribution assigns only 1 to one successor
 		    System.out.println("Simple Successors.");
@@ -653,7 +659,7 @@ public class MultiObjectiveStrategy implements Strategy
 		    }
 		}
 
-		System.out.println(Arrays.deepToString(stochastic));
+		//System.out.println(Arrays.deepToString(stochastic));
 
 		///// STOCHASTIC END ////
 		
@@ -782,6 +788,8 @@ public class MultiObjectiveStrategy implements Strategy
 	System.out.println(mdp.toString());
 
     }
+
+
 
     @Override
     public void updateMemory(int action, int state) throws InvalidStrategyStateException

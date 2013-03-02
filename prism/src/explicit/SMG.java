@@ -507,7 +507,7 @@ public class SMG extends STPGExplicit implements STPG
 	    // ROUNDING - LIMITS ACCURACY
 	    if(round){
 		Generator_System newmgs = new Generator_System();
-		Generator_System mgs = statePoly.minimized_generators();
+		Generator_System mgs = statePoly.generators();
 		for(Generator mg : mgs){
 		    Coefficient c = mg.divisor();
 		    Linear_Expression le = mg.linear_expression();
@@ -560,15 +560,10 @@ public class SMG extends STPGExplicit implements STPG
 	    }
 
 
-
-
 	    //	    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>");
 	    //	    System.out.printf("State index: %d\n", s);
 	    //	    System.out.println(statePoly.ascii_dump());
 	    //	    System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
-
-
-
 
 	    long t5 = System.nanoTime();
 
@@ -578,7 +573,11 @@ public class SMG extends STPGExplicit implements STPG
 	    }
 
 	    // minimize polyhedron
-	    //statePoly = new C_Polyhedron(statePoly.minimized_generators());
+	    statePoly = new C_Polyhedron(statePoly.minimized_generators());
+	    // add zero dimensions
+	    if(statePoly.space_dimension()!=targets.size()+stpgRewards.size()) {
+		statePoly.add_space_dimensions_and_project(targets.size()+stpgRewards.size() - statePoly.space_dimension());
+	    }
 
 	    //System.out.printf("%% Minkowski: %f, GoodBad: %f, Rewards: %f, Minimize/Round: %f\n", ((double)t2 - t1)/1000000.0, ((double)t3 - t2)/1000000.0, ((double)t4 - t3)/1000000.0, ((double)t5 - t4)/1000000.0);
 
