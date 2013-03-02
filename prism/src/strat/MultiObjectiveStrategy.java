@@ -542,11 +542,11 @@ public class MultiObjectiveStrategy implements Strategy
 
 			nothingfound = true;
 			iteration_through_multi_tuples:
-			while(multituples_left) {
+			//while(multituples_left) {
 			    multi_counter += 1;
 			    System.out.printf("Working on multi tuple %d\n", multi_counter);
-			    //for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
-
+			for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
+			    /*
 			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
 			    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
 			    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
@@ -563,7 +563,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    }
 			    // increase the first tuple counter
 			    tuple_counters.put(0, tuple_counters.get(0)+1);
-			    
+			    */
 			    // formulate an LP that contains the following constraints
 			    // sum_{w} /\(u,w) sum_i beta^w_i q^w_i
 			    
