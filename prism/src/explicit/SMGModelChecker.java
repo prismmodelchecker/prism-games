@@ -140,7 +140,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 50;
+	    long baseline_accuracy = 40;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities

@@ -455,9 +455,6 @@ public class MultiObjectiveStrategy implements Strategy
 
 	System.out.println("------------- BUILDING TRANSITIONS ----------------");
 
-
-
-
 	for (int t = 0; t < S.size(); t++) { // go through all states in S
 	    // for each action need to build a new distribution
 
@@ -498,7 +495,7 @@ public class MultiObjectiveStrategy implements Strategy
 					}
 				    }
 				}
-				System.out.printf("LIST_succ_tuple length: %d\n", LIST_succ_tuple.size());
+				System.out.printf("LIST_succ_tuple %d length: %d\n", l, LIST_succ_tuple.size());
 				LIST_succ_tuples.add(LIST_succ_tuple);
 				break look_for_nonempty_tuple;
 			    }
@@ -506,12 +503,12 @@ public class MultiObjectiveStrategy implements Strategy
 			
 		    }
 		    
-		    List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
-		    System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
+		    //List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
+		    //System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
 
 		    // here choose the distributions of the stochastic states
 		    for (int p = 0; p < gsYtu.size(); p++) { // for each corner point in u
-			System.out.printf("Corner (p): %d\n", p);
+			//System.out.printf("Corner (p): %d\n", p);
 			// bounds are p - reward
 			bounds = new double[L];
 			for(int k = 0; k < L; k++) {
@@ -542,11 +539,11 @@ public class MultiObjectiveStrategy implements Strategy
 
 			nothingfound = true;
 			iteration_through_multi_tuples:
-			//while(multituples_left) {
+			while(multituples_left) {
 			    multi_counter += 1;
-			    System.out.printf("Working on multi tuple %d\n", multi_counter);
-			for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
-			    /*
+			    //System.out.printf("Working on multi tuple %d\n", multi_counter);
+			//for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
+			    
 			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
 			    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
 			    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
@@ -557,13 +554,21 @@ public class MultiObjectiveStrategy implements Strategy
 					tuple_counters.put(i+1, tuple_counters.get(i+1)+1); // increase next tuplecounter
 				    } else { // the last tuple counter reached the bound
 					multituples_left = false;
+		                        break iteration_through_multi_tuples;
 				    }
 				}
 				LIST_multiTuple.add(LIST_succ_tuple.get(tuple_counters.get(i)));
 			    }
+			    //System.out.printf("MultiCounters: ");
+	                    //for(int i = 0; i < LIST_succ_tuples.size(); i++) {
+	                    //    System.out.printf("%d, ", tuple_counters.get(i));
+                            //}
+	                    //System.out.printf("\nMultituple size: %d\n", LIST_multiTuple.size());
+                            
+
 			    // increase the first tuple counter
 			    tuple_counters.put(0, tuple_counters.get(0)+1);
-			    */
+			    
 			    // formulate an LP that contains the following constraints
 			    // sum_{w} /\(u,w) sum_i beta^w_i q^w_i
 			    
@@ -634,9 +639,16 @@ public class MultiObjectiveStrategy implements Strategy
 				int key_w = dtu.next().getKey();
 				for(int i = 0; i < L; i++) { // for each dimension
 				    Integer index = LIST_gsX[key_w].indexOf(LIST_multiTuple.get(w).get(i));
+			            //System.out.printf("%s\n", LIST_gsX[key_w].toString());
+	                            //System.out.printf("%s\n", Arrays.toString(LIST_multiTuple.get(w).get(i)));
 				    double prob = solution.getPoint()[L*w+i];
 				    prob = prob > 1.0 ? 1.0 : prob;
-				    stochastic[w].get(p).put(index, prob);
+				    //System.out.printf("put in %f to w%d, p%d, index%d, i%d\n", prob, w, p, index, i);
+			            if(!stochastic[w].get(p).containsKey(index)) { // if no multiple, just put in what probability is
+				        stochastic[w].get(p).put(index, prob);
+                                    } else { // if multiple, add probabilities, because don't know which one the LP-solver has assigned the probability mass to
+                                        stochastic[w].get(p).put(index, prob + stochastic[w].get(p).get(index));
+                                    }
 				}
 			    }
 			    break iteration_through_multi_tuples;
@@ -770,7 +782,7 @@ public class MultiObjectiveStrategy implements Strategy
 				    Map<Integer,Double> action = stochastic[w].get(q_index);
 				    if(G.getPlayer(t) != STPGExplicit.PLAYER_1 || action != null) {
 					double beta = solution.getPoint()[i]; // beta^u_i
-					System.out.printf("t:%d, p:%d, u:%d, w:%d, q_index:%d\n", t, p, u, w, q_index);
+					//System.out.printf("t:%d, p:%d, u:%d, w:%d, q_index:%d\n", t, p, u, w, q_index);
 					for(Integer j : action.keySet()) {
 					    double prob = beta*action.get(j);
 					    prob = prob > 1.0 ? 1.0 : prob;
