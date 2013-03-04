@@ -531,209 +531,13 @@ public class MultiObjectiveStrategy implements Strategy
 		///// STOCHASTIC //////		
 		// temporarily store results for stochastic states
 		// specific to u
-		Map<Integer,Map<Integer, Double>>[] stochastic = new Map[ntu];
+		//Map<Integer,Map<Integer, Double>>[] stochastic = new Map[ntu];
 
-		if(ntu >= 1) { // if the distribution is "interesting"
-		    // interpret u as a stochastic state, and look at all its successors w
-		    // first get tuples for each successor
-		    List<List<List<double[]>>> LIST_succ_tuples = new ArrayList<List<List<double[]>>>();
-		    dtu = G.getTransitionsIterator(t,u);
-		    for(int w = 0; w < ntu; w++) {
-			int key_w = dtu.next().getKey();
-			stochastic[w] = new HashMap<Integer, Map<Integer,Double>>(); // initialize for each successor w of u
-			List<List<double[]>> LIST_succ_tuple;
-			look_for_nonempty_tuple:
-			for(int l = L; l >= 1; l--) { // look for a tuple of sufficient size
-			    LIST_succ_tuple = selectGenerators(LIST_gsX[key_w], null, l, null);
-			    if(LIST_succ_tuple.size()!=0) {
-				if(l < L) {
-				    for(List<double[]> point : LIST_succ_tuple) {
-					for(int ll = point.size(); ll < L; ll++) {
-					    point.add(point.get(0));
-					}
-				    }
-				}
-				System.out.printf("LIST_succ_tuple %d length: %d\n", l, LIST_succ_tuple.size());
-				LIST_succ_tuples.add(LIST_succ_tuple);
-				break look_for_nonempty_tuple;
-			    }
-			}
-			
-		    }
-		    
-		    //List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
-		    //System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
-
-		    // here choose the distributions of the stochastic states
-		    for (int p = 0; p < gsYtu.size(); p++) { // for each corner point in u
-			//System.out.printf("Corner (p): %d\n", p);
-			// bounds are p - reward
-			bounds = new double[L];
-			for(int k = 0; k < L; k++) {
-			    if(k < M) { // probabilities
-				bounds[k] = gsYtu.get(p)[k];
-			    } else {
-				bounds[k] = gsYtu.get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
-			    }
-			}
-
-			double[] coeffs_beta = new double[ntu*L];
-			double[][] coeffs_beta_indiv = new double[ntu][L*ntu];
-			for(int i = 0; i < L; i++) {
-			    for(int w = 0; w < ntu; w++){
-				coeffs_beta_indiv[w][w*L+i] = 1;
-				coeffs_beta[w*L+i] = 1;
-			    }
-			}
-			List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
-			
-			boolean multituples_left = true;
-			Map<Integer,Integer> tuple_counters = new HashMap<Integer,Integer>();
-			for(int i = 0; i < ntu; i++) {
-			    tuple_counters.put(i, 0); // initialize all tuple_counters to zero
-			}
-
-			int multi_counter = 0;
-
-			nothingfound = true;
-			iteration_through_multi_tuples:
-			while(multituples_left) {
-			    multi_counter += 1;
-			    if(multi_counter % 1000 == 0) {
-				System.out.printf("Working on u:%d, p:%d with multi tuple %d\n", u, p, multi_counter);
-			    }
-			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
-			    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
-			    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
-				List<List<double[]>> LIST_succ_tuple = LIST_succ_tuples.get(i);
-				if(tuple_counters.get(i) == LIST_succ_tuple.size()) { // tuple counter reached bound
-				    tuple_counters.put(i, 0); // reset tuple_counter
-				    if(i+1 < LIST_succ_tuples.size()) {
-					tuple_counters.put(i+1, tuple_counters.get(i+1)+1); // increase next tuplecounter
-				    } else { // the last tuple counter reached the bound
-					multituples_left = false;
-		                        break iteration_through_multi_tuples;
-				    }
-				}
-				LIST_multiTuple.add(LIST_succ_tuple.get(tuple_counters.get(i)));
-			    }
-			    // increase the first tuple counter
-			    tuple_counters.put(0, tuple_counters.get(0)+1);
-			    
-			    // formulate an LP that contains the following constraints
-			    // sum_{w} /\(u,w) sum_i beta^w_i q^w_i
-			    
-			    // the objective function is sum_w sum_i beta^w_i
-			    
-			    // The LP then optimizes for all successors simultaneously,
-			    // so get q^w_i and beta^w_i for each successor w
-			    
-			    // build objective function
-			    // note: For now take L points in successor and don't try to optimize yet.
-			    //       Would get a lot of optimization problems to actually calculate the
-			    //       smallest number of points necessary.
-			    
-			    LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
-			    
-			    // constraints
-			    constraints.clear();
-			    // now that all combinations of tuples are computed, can build the constraints
-			    // first dimension is constraint
-			    // second dimension is beta^w_i index
-			    double[][] coeffs_q = new double[L][ntu*L];
-			    dtu = G.getTransitionsIterator(t,u);
-			    for(int w = 0; w < ntu; w++) { // for each successor w
-				double delta_uw = dtu.next().getValue();
-				for(int i = 0; i < L; i++) { // for each component
-				    // get coefficients from tuple.get(i)
-				    for(int k = 0; k < L; k++) {
-					coeffs_q[k][w*L+i] = delta_uw * LIST_multiTuple.get(w).get(i)[k];
-				    }
-				}
-			    }
-
-			    //System.out.printf("bounds: %s\n, coeffs: %s\n bounds_indiv: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q), Arrays.deepToString(coeffs_beta_indiv));
-			    for(int i = 0; i < L; i++) {
-				// lower bound on sum of betas
-				constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
-			    }
-			    for(int i = 0; i < L*ntu; i++) {
-				// lower bound on beta^w_i
-				double[] onlyone = new double[L*ntu];
-				onlyone[i] = 1.0;
-				constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
-			    }
-			    // upper bound on sums of betas
-			    for(int w = 0; w < ntu; w++) { // for each successor w
-				constraints.add(new LinearConstraint(coeffs_beta_indiv[w], Relationship.LEQ, 1.0));
-			    }
-			    
-			    PointValuePair solution;
-			    try{
-				solution = solver.optimize(f,
-							   new LinearConstraintSet(constraints),
-							   GoalType.MAXIMIZE,
-							   new MaxIter(10000));
-			    } catch ( NoFeasibleSolutionException e) {
-				// tuple not feasible, try a different one
-				//System.out.println("infeasible.");
-				continue iteration_through_multi_tuples;
-			    }
-			    nothingfound = false;
-			    
-			    // there has been no exception, so the problem was feasible
-			    // can extract the distribution now from the solution
-			    dtu = G.getTransitionsIterator(t,u);
-			    for(int w = 0; w < ntu; w++) { // for each successor
-				stochastic[w].put(p, new HashMap<Integer, Double>()); // initialize for each corner p of u
-				int key_w = dtu.next().getKey();
-				for(int i = 0; i < L; i++) { // for each dimension
-				    Integer index = LIST_gsX[key_w].indexOf(LIST_multiTuple.get(w).get(i));
-				    double prob = solution.getPoint()[L*w+i];
-				    prob = prob > 1.0 ? 1.0 : prob;
-			            if(!stochastic[w].get(p).containsKey(index)) { // if no multiple, just put in what probability is
-				        stochastic[w].get(p).put(index, prob);
-                                    } else { // if multiple, add probabilities, because don't know which one the LP-solver has assigned the probability mass to
-                                        stochastic[w].get(p).put(index, prob + stochastic[w].get(p).get(index));
-                                    }
-				}
-			    }
-			    break iteration_through_multi_tuples;
-			}
-			//System.out.println(nothingfound);
-		    } 
-		} else if (ntu==1) { // distribution assigns only 1 to one successor
-		    System.out.println("Simple Successors.");
-		    stochastic[0] = new HashMap<Integer, Map<Integer,Double>>(); // initialize for each successor w of u
-		    dtu = G.getTransitionsIterator(t,u);
-		    int key_w = dtu.next().getKey(); // only one anyway
-		    for (int p = 0; p < gsYtu.size(); p++) { // for each corner point in u
-			stochastic[0].put(p, new HashMap<Integer, Double>()); // initialize for each corner p of u
-			bounds = new double[L];
-			for(int k = 0; k < L; k++) {
-			    if(k < M) { // probabilities
-				bounds[k] = gsYtu.get(p)[k];
-			    } else {
-				bounds[k] = gsYtu.get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
-			    }
-			}
-			
-			search_for_point:
-			for(double[] point : LIST_gsX[key_w]) {
-			    for(int i = 0; i < L; i++) {
-				if(point[i] < bounds[i]){
-				    continue search_for_point;
-				}
-			    }
-			    // here a point was found that is large enough - pick it w.p. 1.
-			    stochastic[0].get(p).put(LIST_gsX[key_w].indexOf(point), 1.0);
-			    // point found - no more necessary
-			    break search_for_point;
-			}
-		    }
-		}
-
-		//System.out.println(Arrays.deepToString(stochastic));
+		Map<Integer,Map<Integer,Double>[]> stochastic = new HashMap<Integer,Map<Integer,Double>[]>();
+		
+		//List<List<List<double[]>>> LIST_multiTuples = selectMultiGenerators(LIST_succ_tuples, 0, null);
+		//System.out.printf("number of multituples: %d\n", LIST_multiTuples.size());
+		
 
 		///// STOCHASTIC END ////
 		
@@ -819,6 +623,7 @@ public class MultiObjectiveStrategy implements Strategy
 			    
 			    // there has been no exception, so the problem was fasible
 			    // can extract the distribution now from the solution
+
 			    dtu = G.getTransitionsIterator(t,u);
 			    for(int w = 0; w < ntu; w++) {
 				Entry<Integer,Double> e_w = dtu.next();
@@ -826,7 +631,26 @@ public class MultiObjectiveStrategy implements Strategy
 				double val_w = e_w.getValue();
 				for(int i = 0; i < l; i++) {
 				    Integer q_index = gsYtu.indexOf(LIST_tuple.get(i));
-				    Map<Integer,Double> action = stochastic[w].get(q_index);
+
+				    if(!stochastic.containsKey(q_index)) {
+					search_for_stochastic_corners:
+					for(int ll = l; ll < L+1; ll++) {
+					    try {
+						stochastic.put(q_index, getActions(ntu, u, t, q_index, ll, M, dtu, stpgRewards, G, solver, gsYtu, LIST_gsX));
+					    } catch (PrismException e) {
+						System.out.printf("nothing found for ll=%d at l=%d and L=%d\n", ll, l, L);
+						continue search_for_stochastic_corners;
+					    }
+					}
+				    }
+				    Map<Integer,Double> action = stochastic.get(q_index)[w];
+
+				    //Map<Integer,Double> action = stochastic[w].get(q_index);
+
+
+				    
+
+
 				    if(G.getPlayer(t) != STPGExplicit.PLAYER_1 || action != null) {
 					double beta = solution.getPoint()[i]; // beta^u_i
 					//System.out.printf("t:%d, p:%d, u:%d, w:%d, q_index:%d\n", t, p, u, w, q_index);
@@ -860,9 +684,189 @@ public class MultiObjectiveStrategy implements Strategy
 	System.out.println("------------- RESULTING MDP ----------------");
 
 	System.out.println(mdp.toString());
-
+	
     }
 
+
+
+    protected Map<Integer,Double>[] getActions(int ntu, int u, int t, int p, int L, int M, Iterator<Entry<Integer,Double>> dtu, List<STPGRewards> stpgRewards, STPG G, SimplexSolver solver, List<double[]> gsYtu, List<double[]>[] LIST_gsX) throws PrismException
+    {
+	// the result:
+	Map<Integer,Double>[] stochastic = new Map[ntu];
+
+	// interpret u as a stochastic state, and look at all its successors w
+	// first get tuples for each successor
+	List<List<List<double[]>>> LIST_succ_tuples = new ArrayList<List<List<double[]>>>();
+	dtu = G.getTransitionsIterator(t,u);
+	for(int w = 0; w < ntu; w++) {
+	    int key_w = dtu.next().getKey();
+	    List<List<double[]>> LIST_succ_tuple;
+	    look_for_nonempty_tuple:
+	    for(int l = L; l >= 1; l--) { // look for a tuple of sufficient size
+		LIST_succ_tuple = selectGenerators(LIST_gsX[key_w], null, l, null);
+		if(LIST_succ_tuple.size()!=0) {
+		    if(l < L) {
+			for(List<double[]> point : LIST_succ_tuple) {
+			    for(int ll = point.size(); ll < L; ll++) {
+				point.add(point.get(0));
+			    }
+			}
+		    }
+		    System.out.printf("LIST_succ_tuple %d length: %d\n", l, LIST_succ_tuple.size());
+		    LIST_succ_tuples.add(LIST_succ_tuple);
+		    break look_for_nonempty_tuple;
+		}
+	    }
+	}
+	
+	
+	//System.out.printf("Corner (p): %d\n", p);
+	// bounds are p - reward
+	double[] bounds = new double[L];
+	for(int k = 0; k < L; k++) {
+	    if(k < M) { // probabilities
+		bounds[k] = gsYtu.get(p)[k];
+	    } else {
+		bounds[k] = gsYtu.get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
+	    }
+	}
+	
+	double[] coeffs_beta = new double[ntu*L];
+	double[][] coeffs_beta_indiv = new double[ntu][L*ntu];
+	for(int i = 0; i < L; i++) {
+	    for(int w = 0; w < ntu; w++){
+		coeffs_beta_indiv[w][w*L+i] = 1;
+		coeffs_beta[w*L+i] = 1;
+	    }
+	}
+	List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+	
+	boolean multituples_left = true;
+	Map<Integer,Integer> tuple_counters = new HashMap<Integer,Integer>();
+	for(int i = 0; i < ntu; i++) {
+	    tuple_counters.put(i, 0); // initialize all tuple_counters to zero
+	}
+	
+	int multi_counter = 0;
+	
+	boolean nothingfound = true;
+	iteration_through_multi_tuples:
+	while(multituples_left) {
+	    multi_counter += 1;
+	    if(multi_counter % 10000 == 0) {
+		System.out.printf("Working on u:%d, p:%d with multi tuple %d\n", u, p, multi_counter);
+	    }
+	    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
+	    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
+	    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
+		List<List<double[]>> LIST_succ_tuple = LIST_succ_tuples.get(i);
+		if(tuple_counters.get(i) == LIST_succ_tuple.size()) { // tuple counter reached bound
+		    tuple_counters.put(i, 0); // reset tuple_counter
+		    if(i+1 < LIST_succ_tuples.size()) {
+			tuple_counters.put(i+1, tuple_counters.get(i+1)+1); // increase next tuplecounter
+		    } else { // the last tuple counter reached the bound
+			multituples_left = false;
+			break iteration_through_multi_tuples;
+		    }
+		}
+		LIST_multiTuple.add(LIST_succ_tuple.get(tuple_counters.get(i)));
+	    }
+	    // increase the first tuple counter
+	    tuple_counters.put(0, tuple_counters.get(0)+1);
+	    
+	    // formulate an LP that contains the following constraints
+	    // sum_{w} /\(u,w) sum_i beta^w_i q^w_i
+	    
+	    // the objective function is sum_w sum_i beta^w_i
+	    
+	    // The LP then optimizes for all successors simultaneously,
+	    // so get q^w_i and beta^w_i for each successor w
+	    
+	    // build objective function
+	    // note: For now take L points in successor and don't try to optimize yet.
+	    //       Would get a lot of optimization problems to actually calculate the
+	    //       smallest number of points necessary.
+	    
+	    LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
+	    
+	    // constraints
+	    constraints.clear();
+	    // now that all combinations of tuples are computed, can build the constraints
+	    // first dimension is constraint
+	    // second dimension is beta^w_i index
+	    double[][] coeffs_q = new double[L][ntu*L];
+	    dtu = G.getTransitionsIterator(t,u);
+	    for(int w = 0; w < ntu; w++) { // for each successor w
+		double delta_uw = dtu.next().getValue();
+		for(int i = 0; i < L; i++) { // for each component
+		    // get coefficients from tuple.get(i)
+		    for(int k = 0; k < L; k++) {
+			coeffs_q[k][w*L+i] = delta_uw * LIST_multiTuple.get(w).get(i)[k];
+		    }
+		}
+	    }
+	    
+	    //System.out.printf("bounds: %s\n, coeffs: %s\n bounds_indiv: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q), Arrays.deepToString(coeffs_beta_indiv));
+	    for(int i = 0; i < L; i++) {
+		// lower bound on sum of betas
+		constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
+	    }
+	    for(int i = 0; i < L*ntu; i++) {
+		// lower bound on beta^w_i
+		double[] onlyone = new double[L*ntu];
+		onlyone[i] = 1.0;
+		constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+	    }
+	    // upper bound on sums of betas
+	    for(int w = 0; w < ntu; w++) { // for each successor w
+		constraints.add(new LinearConstraint(coeffs_beta_indiv[w], Relationship.LEQ, 1.0));
+	    }
+	    
+	    PointValuePair solution;
+	    try{
+		solution = solver.optimize(f,
+					   new LinearConstraintSet(constraints),
+					   GoalType.MAXIMIZE,
+					   new MaxIter(10000));
+	    } catch ( NoFeasibleSolutionException e) {
+		// tuple not feasible, try a different one
+		//System.out.println("infeasible.");
+		continue iteration_through_multi_tuples;
+	    }
+	    nothingfound = false;
+	    
+	    // there has been no exception, so the problem was feasible
+	    // can extract the distribution now from the solution
+	    dtu = G.getTransitionsIterator(t,u);
+	    for(int w = 0; w < ntu; w++) { // for each successor
+		
+		
+		stochastic[w] = new HashMap<Integer, Double>(); // initialize for corner p of u
+		
+		
+		int key_w = dtu.next().getKey();
+		for(int i = 0; i < L; i++) { // for each dimension
+		    Integer index = LIST_gsX[key_w].indexOf(LIST_multiTuple.get(w).get(i));
+		    double prob = solution.getPoint()[L*w+i];
+		    prob = prob > 1.0 ? 1.0 : prob;
+		    if(!stochastic[w].containsKey(index)) { // if no multiple, just put in what probability is
+			stochastic[w].put(index, prob);
+		    } else { // if multiple, add probabilities, because don't know which one the LP-solver has assigned the probability mass to
+			stochastic[w].put(index, prob + stochastic[w].get(index));
+		    }
+		}
+	    }
+	    break iteration_through_multi_tuples;
+	}
+	System.out.println(nothingfound);
+	if(nothingfound) {
+	    throw new PrismException("Nothing found for L");
+	}
+    
+	//System.out.println(Arrays.deepToString(stochastic));
+	
+	return stochastic;
+    }
 
 
     @Override
@@ -870,5 +874,8 @@ public class MultiObjectiveStrategy implements Strategy
     {
 	// TODO
     }
+
+
+
 
 }

@@ -163,7 +163,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    
 
-	    double[] goal = { 0.1, 0.1, 0.1 };
+	    double[] goal = { 0.318, 0.477, 6.38 };
 
 	    MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 
@@ -885,7 +885,8 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 double step_increase = 5.0;
-         double increase_factor = 1.05;
+         double increase_factor = 1.1;
+	 int stop_increasing_after = 200;
 	 boolean round = true; // round in all iterations
 
 	 maxIter = 30;
@@ -914,7 +915,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	     iter++;
 
-	     if((double)(iter-last_iter) % step_increase < 1.0 ) { // increase accuracy by incrase_factor every step_increase iterations
+	     if(iter < stop_increasing_after && (double)(iter-last_iter) % step_increase < 1.0 ) { // increase accuracy by incrase_factor every step_increase iterations
                  for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
                      accuracy[i] *= increase_factor;
                  }
