@@ -8,7 +8,7 @@ import osm2graph
 smg = open("car2.gen.smg", "w");
 prop = open("car2.gen.props", "w");
 
-mapfile = "map(4).osm"
+mapfile = "map(7).osm"
 if(len(sys.argv)>=2):
     mapfile = sys.argv[1];
 
@@ -178,7 +178,7 @@ N = len(G.edges())
 M = 3*(len(haz)-1) - 2*len(hazards)
 
 # TODO: properly identify goal
-goal = 93 # lower street for now
+goal = 34 # lower street for now
 
 # build a dictionary of edges and the associated ids
 # do the same in reverse as well
@@ -255,7 +255,7 @@ smg.write("\nendplayer\n\n")
 
 
 # positions in topology
-smg.write("const int POS_init = %i;\n" % (1))
+smg.write("const int POS_init = %i;\n" % (0))
 smg.write("const int POS_goal = %i;\n" % (N))
 smg.write("const int POS_term = %i;\n" % (N+1))
 for e in G.edges(data=True):
@@ -517,7 +517,7 @@ smg.write("endmodule\n\n")
 
 # properties
 smg.write("formula goal1 = (car_position=POS_goal);\n") # reaching the goal
-smg.write("formula goal2 = (s=-1);\n") # making an accident
+smg.write("formula goal2 = (s=-3) | (car_position=POS_goal) | (car_position=POS_term);\n") # avoiding an accident, i.e. maximize the probability of reaching a terminal that is not an accident
 
 
 
@@ -533,7 +533,7 @@ smg.write("formula goal2 = (s=-1);\n") # making an accident
 
 
 # ROAD VALUE
-smg.write("rewards \"value\"\n")
+smg.write("\nrewards \"value\"\n")
 for e in G.edges(data=True):
     ie = edgeid[(e[0],e[1])]
     smg.write("\tcar_position=%i & s=-2: %f;\n" % (ie, e[2]["data"]["value"]*e[2]["data"]["dist"]/1000))
