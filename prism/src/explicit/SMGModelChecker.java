@@ -141,7 +141,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 40;
+	    long baseline_accuracy = 50;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -167,7 +167,7 @@ public class SMGModelChecker extends STPGModelChecker
 		
 		
 		
-		double[] goal = { 0.318, 0.477, 6.38 };
+		double[] goal = { 0.218, 0.077, 0.68 };
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 		
@@ -830,7 +830,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 int stop_increasing_after = 200;
 	 boolean round = true; // round in all iterations
 
-	 maxIter = 30;
+	 maxIter = 40;
 	 int last_iter = 0;
 
 	 // ITERATE FUNCTIONAL APPLICATION

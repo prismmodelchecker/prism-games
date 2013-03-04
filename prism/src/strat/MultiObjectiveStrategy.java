@@ -427,6 +427,9 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	    }
 	}
 
+	System.out.printf("Computing strategy for initial %s\n", Arrays.toString(bounds));
+
+
 	boolean nothingfound = true;
 	
 	search_for_distribution:

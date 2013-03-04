@@ -109,9 +109,23 @@ public class MapMDPSimulator
 	}
 	
 	System.out.println("COLLATED TERMINALS:");
+	double cumulative = 0.0;
 	Map<State,Double> c_terminals = collateTerminals(samples);
 	for(State c_sample : c_terminals.keySet()) {
+	    cumulative += c_terminals.get(c_sample);
 	    System.out.printf("%.4f: %s\n", c_terminals.get(c_sample), c_sample.toString());
+	}
+	System.out.printf("%.4f cumulative\n", cumulative);
+	
+	System.out.println("COLLATED CAR POSITIONS:");
+	int count = 1;
+	Map<Integer,Double> c_positions = collateCarPositions(samples);
+	for(Integer car_position : c_positions.keySet()) {
+	    System.out.printf("%d: %.4f\t", car_position, c_positions.get(car_position));
+	    if(count % 5 == 0) {
+		System.out.printf("\n");
+	    }
+	    count++;
 	}
 
     }
@@ -127,6 +141,30 @@ public class MapMDPSimulator
 	    }
 	}
 	return reward;
+    }
+
+
+    private Map<Integer,Double> collateCarPositions(List<List<State>> samples) {
+	Map<Integer,Double> result = new HashMap<Integer,Double>();
+	for(List<State> sample : samples) {
+	    for(State s : sample) {
+	        int car_position = (Integer) s.varValues[1];
+		if(result.containsKey(car_position)) {
+		    result.put(car_position, result.get(car_position) + 1.0);
+		} else {
+		    result.put(car_position, 1.0);
+		}
+	    }
+	}
+	double total = 0.0;
+	for(Integer car_position : result.keySet()) {
+	    total += result.get(car_position);
+	}
+	for(Integer car_position : result.keySet()) {
+	    result.put(car_position, result.get(car_position) / total);
+	}
+
+	return result;
     }
 
 
