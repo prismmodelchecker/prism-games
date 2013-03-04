@@ -637,6 +637,7 @@ public class MultiObjectiveStrategy implements Strategy
 					for(int ll = l; ll < L+1; ll++) {
 					    try {
 						stochastic.put(q_index, getActions(ntu, u, t, q_index, ll, M, dtu, stpgRewards, G, solver, gsYtu, LIST_gsX));
+						break search_for_stochastic_corners;
 					    } catch (PrismException e) {
 						System.out.printf("nothing found for ll=%d at l=%d and L=%d\n", ll, l, L);
 						continue search_for_stochastic_corners;

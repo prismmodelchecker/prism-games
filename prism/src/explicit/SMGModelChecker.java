@@ -62,6 +62,7 @@ import parser.State;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.STPGRewards;
 import explicit.PPLSupport;
+import explicit.MapMDPSimulator;
 
 import org.apache.commons.math3.fraction.BigFraction;
 import parma_polyhedra_library.*;
@@ -156,99 +157,39 @@ public class SMGModelChecker extends STPGModelChecker
 	    System.out.printf("maxIter: %e\n", maxIter);
 
 	    long polyTime = System.nanoTime();
-	    Map<Integer,Polyhedron> result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
-	    polyTime = System.nanoTime() - polyTime;
-
-	    System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
-
+	    Map<Integer,Polyhedron> result_p = null;
+	    boolean compute = true;
+	    if(compute) {
+		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
+		polyTime = System.nanoTime() - polyTime;
+		
+		System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
+		
+		
+		
+		double[] goal = {0.1, 0.1, 0.1};//{ 0.318, 0.477, 6.38 };
+		
+		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
+		
+		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
+		
+		mmdps.writeStrategy(strategy_mdp, "mmdps");
+	    } else {
+		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
+		mmdps.readStrategy("mmdps");
+		mmdps.evaluateStrategy();
+	    }
 	    
 
-	    double[] goal = { 0.318, 0.477, 6.38 };
-
-	    MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
-
-	    System.out.println("---- SAMPLES: ----");
-	    List<List<State>> samples = strategy_mdp.simulateMDP(10000);
-	    //for(int sample = 0; sample < samples.size(); sample++) {
-	    //	System.out.printf("%d: %s\n", sample, samples.get(sample).toString());
-	    //}
-
-	    System.out.println("COLLATED PATHS:");
-	    Map<List<State>,Double> c_samples = collateSamples(samples);
-	    for(List<State> c_sample : c_samples.keySet()) {
-		System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
-	    }
-
-	    System.out.println("COLLATED TERMINALS:");
-	    Map<State,Double> c_terminals = collateTerminals(samples);
-	    for(State c_sample : c_terminals.keySet()) {
-		System.out.printf("%.4f: %s\n", c_terminals.get(c_sample), c_sample.toString());
-	    }
-
+	    
 	    return result_p;
-
-	    }
+	    
+	}
 
 	throw new PrismException("Explicit engine does not yet handle LTL-style path formulas.");
 	
     }
 
-    private Map<List<State>,Double> collateSamples(List<List<State>> samples) {
-	Map<List<State>,Double> result = new HashMap<List<State>,Double>();
-	go_through_samples:
-	for(List<State> sample : samples) {
-	    // first, check if sample is alrady assigned a probability in the results
-	    check_if_already_assigned:
-	    for(List<State> c_sample : result.keySet()) {
-		if(c_sample.size() != sample.size()) {
-		    // definitely not equal
-		    continue check_if_already_assigned;
-		} else { // go through all states and check
-		    for(int s = 0; s < c_sample.size() ; s++) {
-			if(c_sample.get(s) != sample.get(s)) {
-			    // definitely not equal
-			    continue check_if_already_assigned;
-			}
-		    }
-		    // fall through only if equal
-		    result.put(c_sample, result.get(c_sample) + 1.0);
-		    continue go_through_samples;
-		}
-	    }
-	    // if not already assigned
-	    result.put(sample, 1.0);
-	}
-	// divide by total number of samples
-	double num_samples = samples.size();
-	for(List<State> c_sample : result.keySet()) {
-	    result.put(c_sample, result.get(c_sample) / num_samples);
-	}
-	return result;
-    }
-
-    private Map<State,Double> collateTerminals(List<List<State>> samples) {
-	Map<State,Double> result = new HashMap<State,Double>();
-	go_through_samples:
-	for(List<State> sample : samples) {
-	    check_if_already_assigned:
-	    for(State c_sample : result.keySet()) {
-		if(c_sample != sample.get(sample.size()-1)) {
-		    continue check_if_already_assigned;
-		} else {
-		    result.put(c_sample, result.get(c_sample) + 1.0);
-		    continue go_through_samples;
-		}
-	    }
-	    // if not already assigned
-	    result.put(sample.get(sample.size()-1), 1.0);
-	}
-	// divide by total number of samples
-	double num_samples = samples.size();
-	for(State c_sample : result.keySet()) {
-	    result.put(c_sample, result.get(c_sample) / num_samples);
-	}
-	return result;
-    }
 
 
 
