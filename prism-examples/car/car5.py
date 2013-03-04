@@ -5,10 +5,12 @@ import datetime, math, sys
 import copy
 import osm2graph
 
-smg = open("car2.gen.smg", "w");
-prop = open("car2.gen.props", "w");
+filename = "islip"
 
-mapfile = "map(7).osm"
+smg = open("car2.%s.smg" % (filename), "w");
+prop = open("car2.%s.props" % (filename), "w");
+
+mapfile = "%s.osm" % (filename)
 if(len(sys.argv)>=2):
     mapfile = sys.argv[1];
 
