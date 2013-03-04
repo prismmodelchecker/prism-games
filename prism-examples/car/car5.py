@@ -146,6 +146,7 @@ reactions = {'roadblock': ['uturn'],
              'obstacle': ['changelane', 'uturn'],
              'jam': ['honk', 'uturn']}
 
+
 # all possible reactions
 reacts = set([])
 for r in reactions.itervalues():
@@ -358,11 +359,13 @@ for e in G.edges(data=True):
     if (e[1],e[0]) in edgeid: # uturn possible if not one-way (this also means highways)
         revedgeid = edgeid[(e[1],e[0])]
         smg.write("const int UTURN_0_%i = -1;\n" % (ie)) # accident first option
-        smg.write("const int UTURN_1_%i = -5;\n" % (ie)) # turning is second option
+        smg.write("const int UTURN_1_%i = -2;\n" % (ie)) # turning is second option
+        smg.write("const int UTURNPLAYER_%i = 1;\n" % (ie)) # if in -2, need player 1
         smg.write("const int REVEDGE_%i = %i;\n" % (ie, revedgeid)) # reverse edge exists
     else: # uturn illegal - go to violation state in any case
         smg.write("const int UTURN_0_%i = -3;\n" % (ie))
         smg.write("const int UTURN_1_%i = -3;\n" % (ie))
+        smg.write("const int UTURNPLAYER_%i = 2;\n" % (ie)) # if in -3, need player 2
         smg.write("const int REVEDGE_%i = %i;\n" % (ie, ie)) # reverse edge doesn't exist but is irrelevant
 
 
@@ -391,11 +394,11 @@ def carreact(from_s, hazz, k):
     acc_prob_den = 10
     for i in xrange(0, len(reactions[hazz])):
         if (reactions[hazz][i]=='brake'): # brake action is special (need to insert state to let time pass)
-            smg.write("\t[brake_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=-1) + %i/%i : (p'=1) & (s'=-4);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, acc_prob_den-acc_prob_num, acc_prob_den)) 
-            smg.write("\t[] p=1 & s=-4 & car_position=POS_%i -> (s'=-2);\n" % (k)) # only one option
+            smg.write("\t[brake_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=-1) + %i/%i : (p'=1) & (s'=-2);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, acc_prob_den-acc_prob_num, acc_prob_den)) 
+            #smg.write("\t[] p=1 & s=-4 & car_position=POS_%i -> (s'=-2);\n" % (k)) # only one option
         elif(reactions[hazz][i]=='uturn'): # uturn action is special
-            smg.write("\t[uturn_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=UTURN_0_%i) + %i/%i : (p'=1) & (s'=UTURN_1_%i);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, k, acc_prob_den-acc_prob_num, acc_prob_den, k))
-            smg.write("\t[] p=1 & s=-5 & car_position=POS_%i -> (p'=2) & (s'=0) & (car_position'=REVEDGE_%i);\n" % (k, k))
+            smg.write("\t[uturn_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=UTURN_0_%i) + %i/%i : (p'=UTURNPLAYER_%i) & (s'=UTURN_1_%i) & (car_position'=REVEDGE_%i);\n" % (k, from_s, k, acc_prob_num, acc_prob_den, k, acc_prob_den-acc_prob_num, acc_prob_den, k, k, k))
+            #smg.write("\t[] p=1 & s=-5 & car_position=POS_%i -> (p'=2) & (s'=0) & (car_position'=REVEDGE_%i);\n" % (k, k))
         elif(reactions[hazz][i]=='changelane'): # changelane action is special
             smg.write("\t[changelane_%i] p=1 & s=%i & car_position=POS_%i -> %i/%i : (p'=2) & (s'=CHANGELANE_0_%i) + %i/%i : (p'=1) & (s'=CHANGELANE_1_%i);\n" % (k, from_s, k, 2*acc_prob_num, acc_prob_den, k, acc_prob_den-2*acc_prob_num, acc_prob_den, k)) 
         else: # standard actions
@@ -499,7 +502,7 @@ for i, succs in successors.iteritems():
             for j in xrange(0,len(haz)):
                 smg.write(", DISTR_%i_%i=DISTR_%i_%i" % (j, l, j, k))
             # uturn reactions
-            smg.write(", UTURN_0_%i=UTURN_0_%i, UTURN_1_%i=UTURN_1_%i, REVEDGE_%i=REVEDGE_%i" % (l, k, l, k, l, k))
+            smg.write(", UTURN_0_%i=UTURN_0_%i, UTURN_1_%i=UTURN_1_%i, REVEDGE_%i=REVEDGE_%i, UTURNPLAYER_%i=UTURNPLAYER_%i" % (l, k, l, k, l, k, l, k))
             # changelane reactions
             smg.write(", CHANGELANE_0_%i=CHANGELANE_0_%i, CHANGELANE_1_%i=CHANGELANE_1_%i" % (l, k, l, k))
             # alternatively, termination
@@ -515,42 +518,19 @@ smg.write("\t[term] car_position=POS_goal -> (car_position'=POS_goal);\n")
 smg.write("\t[term] car_position=POS_term -> (car_position'=POS_term);\n")
 smg.write("endmodule\n\n")
 
+
 # properties
 smg.write("formula goal1 = (car_position=POS_goal);\n") # reaching the goal
 smg.write("formula goal2 = (s=-3) | (car_position=POS_goal) | (car_position=POS_term);\n") # avoiding an accident, i.e. maximize the probability of reaching a terminal that is not an accident
 
 
-
 # rewards
-#smg.write("rewards \"energy\"\n")
-#smg.write("\taccident & !car_slow : 1000;\n")
-#smg.write("\taccident & car_slow : 50;\n")
-#smg.write("\tstall : 2;\n")
-#smg.write("endrewards\n\n")
-
-#smg.write("rewards \"violations\"\n")
-#smg.write("endrewards\n\n")
-
-
 # ROAD VALUE
 smg.write("\nrewards \"value\"\n")
 for e in G.edges(data=True):
     ie = edgeid[(e[0],e[1])]
     smg.write("\tcar_position=%i & s=-2: %f;\n" % (ie, e[2]["data"]["value"]*e[2]["data"]["dist"]/1000))
 smg.write("endrewards\n\n")
-
-
-# TIME
-#smg.write("rewards \"time\"\n")
-# time passes by one in any case
-# TODO: make distance-depenent
-#smg.write("\ts=1 : 1;\n")
-# braking incurs a time delay of 1
-#smg.write("\ts=-4 : 1;\n")
-# uturning incurs a time delay of 2
-#smg.write("\ts=-5 : 2;\n")
-#smg.write("endrewards\n\n")
-
 
 
 #########################################################################

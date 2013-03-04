@@ -158,7 +158,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    long polyTime = System.nanoTime();
 	    Map<Integer,Polyhedron> result_p = null;
-	    boolean compute = true;
+	    boolean compute = Boolean.valueOf(System.getenv().get("PCOMP"));
 	    if(compute) {
 		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
 		polyTime = System.nanoTime() - polyTime;
@@ -167,7 +167,7 @@ public class SMGModelChecker extends STPGModelChecker
 		
 		
 		
-		double[] goal = {0.1, 0.1, 0.1};//{ 0.318, 0.477, 6.38 };
+		double[] goal = { 0.318, 0.477, 6.38 };
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 		

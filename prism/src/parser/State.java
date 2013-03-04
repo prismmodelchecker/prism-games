@@ -28,6 +28,8 @@ package parser;
 
 import java.util.Arrays;
 import java.util.List;
+import java.io.Serializable;
+
 
 import parser.ast.ModulesFile;
 import prism.PrismLangException;
@@ -36,7 +38,7 @@ import prism.PrismLangException;
  * Class to store a model state, i.e. a mapping from variables to values.
  * Stores as an array of Objects, where indexing is defined by the ModulesFile. 
  */
-public class State implements Comparable<State>
+public class State implements Comparable<State>, Serializable
 {
 	public Object varValues[];
 

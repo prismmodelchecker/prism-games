@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Collections;
 import java.util.Comparator;
+import java.io.Serializable;
 
 import prism.PrismException;
 import explicit.STPG;
@@ -36,7 +37,7 @@ import org.apache.commons.math3.fraction.BigFraction;
 import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
 import parma_polyhedra_library.*;
 
-public class MultiObjectiveStrategy implements Strategy
+public class MultiObjectiveStrategy implements Strategy, Serializable
 {
 
     // number of states

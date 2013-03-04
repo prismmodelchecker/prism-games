@@ -93,10 +93,15 @@ public class MapMDPSimulator
 	System.out.println("COLLATED PATHS:");
 	Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(stpgRewards.size());
 	Map<List<State>,Double> c_samples = collateSamples(samples);
+
 	for(List<State> c_sample : c_samples.keySet()) {
 	    System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
 	    for(int r = 0; r < stpgRewards.size(); r++) {
-		expected_reward.put(r, expected_reward.get(r) + getPathReward((STPG) model, c_sample, stpgRewards.get(r)));
+		if(expected_reward.containsKey(r)) {
+		    expected_reward.put(r, expected_reward.get(r) + getPathReward((STPG) model, c_sample, stpgRewards.get(r))*c_samples.get(c_sample));
+		} else {
+		    expected_reward.put(r, getPathReward((STPG) model, c_sample, stpgRewards.get(r))*c_samples.get(c_sample));	    
+		}
 	    }
 	}
 	for(int r = 0; r < stpgRewards.size(); r++) {

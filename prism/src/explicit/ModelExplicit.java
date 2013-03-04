@@ -27,6 +27,8 @@
 package explicit;
 
 import java.io.File;
+import java.io.Serializable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -44,7 +46,7 @@ import prism.PrismLog;
 /**
  * Base class for explicit-state model representations.
  */
-public abstract class ModelExplicit implements Model
+public abstract class ModelExplicit implements Model, Serializable
 {
 	// Number of states
 	protected int numStates;
