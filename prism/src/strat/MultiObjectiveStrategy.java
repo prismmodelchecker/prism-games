@@ -52,13 +52,19 @@ public class MultiObjectiveStrategy implements Strategy
     // the MDP obtained from applying the strategy
     MDPSimple mdp;
 
+    // map to go back from new states to old states when sampling from the MDP
+    Map<Integer,State> newStoOldS = new HashMap<Integer,State>();
+
+
     // memory size
     int memorySize = 0;
 
-    protected Integer sample(Map<Integer,Double> distribution) throws PrismException
+    protected Integer sampleFromDistribution(Distribution distribution) throws PrismException
     {
 	double r = Math.random();
-	for(Map.Entry<Integer,Double> kv : distribution.entrySet()) {
+	Iterator<Entry<Integer, Double>> d = distribution.iterator();
+	while(d.hasNext()) {
+	    Entry<Integer,Double> kv = d.next();
 	    r -= kv.getValue();
 	    if(r <= 0)
 		return kv.getKey();
@@ -274,15 +280,65 @@ public class MultiObjectiveStrategy implements Strategy
 	return result;
     }
 
-    public List<List<State>> simulateMDP(int samples) // returns a list of paths through the original game
+    // returns a list of paths through the original game
+    public List<List<State>> simulateMDP(int samples) throws PrismException
     {
 	List<List<State>> paths = new ArrayList<List<State>>(samples);
+
+	int maxlength = 1000;
 
 	// get initial state
 	int initial_state = mdp.getFirstInitialState();
 
 	// sample paths
 	for(int sample = 0; sample < samples; sample++) {
+	    List<State> path = new ArrayList<State>();
+	    int current_state = initial_state;
+	    // don't add the initial state, as it is does not correspond to anything in the original game
+	    extending_path:
+	    while(path.size() < maxlength) {
+		// get number of actions
+		int actions = mdp.getNumChoices(current_state);
+		
+		// MAKE CHOICE
+		// uniformly assign between actions
+		double r = Math.random();
+		int action = 0;
+		get_action:
+		for(int a = 0; a < actions; a++) {
+		    r -= 1.0/(double)actions;
+		    if(r <= 0) {
+			action = a;
+			break get_action;
+		    }
+		}
+		
+		// sample next states
+	        Distribution d_iter = mdp.getChoice(current_state, action);
+		int next_state = sampleFromDistribution(d_iter);
+		// add next state to path
+		path.add(newStoOldS.get(next_state));
+		// evaluate termination conditions
+		// 1. does next state have any choice?
+		if(mdp.getChoices(next_state).size()==0) {
+		    break extending_path;
+		}
+		// 2. is next state terminal?
+		boolean terminal = true;
+		search_for_terminal:
+		for(Distribution distr : mdp.getChoices(next_state)) {
+		    if(distr.keySet().size()!=1 || !distr.keySet().contains(next_state)){ // not a terminal
+			terminal = false;
+			break search_for_terminal;
+		    }
+		}
+		if(terminal) {
+		    break extending_path;
+		}
+		// advance current_state
+		current_state = next_state;
+	    }
+	    paths.add(path);
 	}
 
 	return paths;
@@ -333,6 +389,7 @@ public class MultiObjectiveStrategy implements Strategy
 	newS.add(s_init);
 
 	Map<Integer,Map<Integer,State>> oldSandCornerToNewS = new HashMap<Integer,Map<Integer,State>>();
+	newStoOldS.clear();
 	// create new states
 	// need to precompute, as the indices are later needed
 	for(int s = 0; s < S.size(); s++) {
@@ -344,6 +401,7 @@ public class MultiObjectiveStrategy implements Strategy
 		new_state.setValue(1, corner);
 		newS.add(new_state);
 		oldSandCornerToNewS.get(s).put(corner, new_state);
+		newStoOldS.put(newS.indexOf(new_state), state);
 	    }
 	}
 	// printing state space
@@ -541,9 +599,9 @@ public class MultiObjectiveStrategy implements Strategy
 			iteration_through_multi_tuples:
 			while(multituples_left) {
 			    multi_counter += 1;
-			    //System.out.printf("Working on multi tuple %d\n", multi_counter);
-			//for(List<List<double[]>> LIST_multiTuple : LIST_multiTuples) { // for each combination of tuples
-			    
+			    if(multi_counter % 1000 == 0) {
+				System.out.printf("Working on u:%d, p:%d with multi tuple %d\n", u, p, multi_counter);
+			    }
 			    List<List<double[]>> LIST_multiTuple = new ArrayList<List<double[]>>();
 			    // from each list of succ_tuple pick one succ_tuple and put it in the multi tuple
 			    for(int i = 0; i < LIST_succ_tuples.size(); i++) { // for each successor
@@ -559,13 +617,6 @@ public class MultiObjectiveStrategy implements Strategy
 				}
 				LIST_multiTuple.add(LIST_succ_tuple.get(tuple_counters.get(i)));
 			    }
-			    //System.out.printf("MultiCounters: ");
-	                    //for(int i = 0; i < LIST_succ_tuples.size(); i++) {
-	                    //    System.out.printf("%d, ", tuple_counters.get(i));
-                            //}
-	                    //System.out.printf("\nMultituple size: %d\n", LIST_multiTuple.size());
-                            
-
 			    // increase the first tuple counter
 			    tuple_counters.put(0, tuple_counters.get(0)+1);
 			    
@@ -600,7 +651,6 @@ public class MultiObjectiveStrategy implements Strategy
 				    }
 				}
 			    }
-			    
 
 			    //System.out.printf("bounds: %s\n, coeffs: %s\n bounds_indiv: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q), Arrays.deepToString(coeffs_beta_indiv));
 			    for(int i = 0; i < L; i++) {
@@ -639,11 +689,8 @@ public class MultiObjectiveStrategy implements Strategy
 				int key_w = dtu.next().getKey();
 				for(int i = 0; i < L; i++) { // for each dimension
 				    Integer index = LIST_gsX[key_w].indexOf(LIST_multiTuple.get(w).get(i));
-			            //System.out.printf("%s\n", LIST_gsX[key_w].toString());
-	                            //System.out.printf("%s\n", Arrays.toString(LIST_multiTuple.get(w).get(i)));
 				    double prob = solution.getPoint()[L*w+i];
 				    prob = prob > 1.0 ? 1.0 : prob;
-				    //System.out.printf("put in %f to w%d, p%d, index%d, i%d\n", prob, w, p, index, i);
 			            if(!stochastic[w].get(p).containsKey(index)) { // if no multiple, just put in what probability is
 				        stochastic[w].get(p).put(index, prob);
                                     } else { // if multiple, add probabilities, because don't know which one the LP-solver has assigned the probability mass to

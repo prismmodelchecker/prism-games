@@ -165,21 +165,91 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    double[] goal = { 0.1, 0.1, 0.1 };
 
-	    //Strategy strategy = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
-	    Strategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
-	    //strategy.buildProduct((SMG) model);
+	    MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
+
+	    System.out.println("---- SAMPLES: ----");
+	    List<List<State>> samples = strategy_mdp.simulateMDP(10000);
+	    //for(int sample = 0; sample < samples.size(); sample++) {
+	    //	System.out.printf("%d: %s\n", sample, samples.get(sample).toString());
+	    //}
+
+	    System.out.println("COLLATED PATHS:");
+	    Map<List<State>,Double> c_samples = collateSamples(samples);
+	    for(List<State> c_sample : c_samples.keySet()) {
+		System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
+	    }
+
+	    System.out.println("COLLATED TERMINALS:");
+	    Map<State,Double> c_terminals = collateTerminals(samples);
+	    for(State c_sample : c_terminals.keySet()) {
+		System.out.printf("%.4f: %s\n", c_terminals.get(c_sample), c_sample.toString());
+	    }
 
 	    return result_p;
-
-
-
-
 
 	    }
 
 	throw new PrismException("Explicit engine does not yet handle LTL-style path formulas.");
 	
     }
+
+    private Map<List<State>,Double> collateSamples(List<List<State>> samples) {
+	Map<List<State>,Double> result = new HashMap<List<State>,Double>();
+	go_through_samples:
+	for(List<State> sample : samples) {
+	    // first, check if sample is alrady assigned a probability in the results
+	    check_if_already_assigned:
+	    for(List<State> c_sample : result.keySet()) {
+		if(c_sample.size() != sample.size()) {
+		    // definitely not equal
+		    continue check_if_already_assigned;
+		} else { // go through all states and check
+		    for(int s = 0; s < c_sample.size() ; s++) {
+			if(c_sample.get(s) != sample.get(s)) {
+			    // definitely not equal
+			    continue check_if_already_assigned;
+			}
+		    }
+		    // fall through only if equal
+		    result.put(c_sample, result.get(c_sample) + 1.0);
+		    continue go_through_samples;
+		}
+	    }
+	    // if not already assigned
+	    result.put(sample, 1.0);
+	}
+	// divide by total number of samples
+	double num_samples = samples.size();
+	for(List<State> c_sample : result.keySet()) {
+	    result.put(c_sample, result.get(c_sample) / num_samples);
+	}
+	return result;
+    }
+
+    private Map<State,Double> collateTerminals(List<List<State>> samples) {
+	Map<State,Double> result = new HashMap<State,Double>();
+	go_through_samples:
+	for(List<State> sample : samples) {
+	    check_if_already_assigned:
+	    for(State c_sample : result.keySet()) {
+		if(c_sample != sample.get(sample.size()-1)) {
+		    continue check_if_already_assigned;
+		} else {
+		    result.put(c_sample, result.get(c_sample) + 1.0);
+		    continue go_through_samples;
+		}
+	    }
+	    // if not already assigned
+	    result.put(sample.get(sample.size()-1), 1.0);
+	}
+	// divide by total number of samples
+	double num_samples = samples.size();
+	for(State c_sample : result.keySet()) {
+	    result.put(c_sample, result.get(c_sample) / num_samples);
+	}
+	return result;
+    }
+
 
 
     protected Strategy constructMultiStrategy(Model G, List<Polyhedron> X)
@@ -815,10 +885,10 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 double step_increase = 5.0;
-         double increase_factor = 1.2;
+         double increase_factor = 1.05;
 	 boolean round = true; // round in all iterations
 
-	 maxIter = 50;
+	 maxIter = 30;
 	 int last_iter = 0;
 
 	 // ITERATE FUNCTIONAL APPLICATION
