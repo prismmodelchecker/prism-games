@@ -165,7 +165,7 @@ public class SMGModelChecker extends STPGModelChecker
 		
 		System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
 		
-		double[] goal = { 0.76, 0.76, 11.0 };
+		double[] goal = { 0.6, 0.7, 10.0 };
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 		
