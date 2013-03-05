@@ -35,6 +35,7 @@ import org.apache.commons.math3.optim.MaxIter;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
+import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import parma_polyhedra_library.*;
 
 public class MultiObjectiveStrategy implements Strategy, Serializable
@@ -837,6 +838,9 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 		// tuple not feasible, try a different one
 		//System.out.println("infeasible.");
 		continue iteration_through_multi_tuples;
+	    } catch (UnboundedSolutionException e) {
+		System.out.printf("bounds: %s\n, coeffs: %s\n bounds_indiv: %s", Arrays.toString(bounds), Arrays.deepToString(coeffs_q), Arrays.deepToString(coeffs_beta_indiv));
+		throw e;
 	    }
 	    nothingfound = false;
 	    

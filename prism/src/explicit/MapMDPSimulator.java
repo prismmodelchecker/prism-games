@@ -93,9 +93,14 @@ public class MapMDPSimulator
 	System.out.println("COLLATED PATHS:");
 	Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(stpgRewards.size());
 	Map<List<State>,Double> c_samples = collateSamples(samples);
-
+	List<State> max_sample = samples.get(0);
+	double max_sample_prob = 0.0;
 	for(List<State> c_sample : c_samples.keySet()) {
-	    System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
+	    if(c_samples.get(c_sample) > max_sample_prob) {
+		max_sample_prob = c_samples.get(c_sample);
+		max_sample = c_sample;
+	    }
+	    //System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
 	    for(int r = 0; r < stpgRewards.size(); r++) {
 		if(expected_reward.containsKey(r)) {
 		    expected_reward.put(r, expected_reward.get(r) + getPathReward((STPG) model, c_sample, stpgRewards.get(r))*c_samples.get(c_sample));
@@ -104,6 +109,10 @@ public class MapMDPSimulator
 		}
 	    }
 	}
+	System.out.println("MOST LIKELY PATH:");
+	System.out.printf("%.4f: %s\n", c_samples.get(max_sample), max_sample.toString());
+
+	System.out.println("REWARDS:");
 	for(int r = 0; r < stpgRewards.size(); r++) {
 	    System.out.printf("E_%d = %f\n", r, expected_reward.get(r));
 	}
