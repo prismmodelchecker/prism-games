@@ -71,9 +71,10 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	while(d.hasNext()) {
 	    Entry<Integer,Double> kv = d.next();
 	    r -= kv.getValue();
-	    if(r <= 0)
+	    if(r <= 0.0001) // only sample to within a certain accuracy
 		return kv.getKey();
 	}
+	System.out.printf("Distribution: %s\n", distribution.toString());
 	throw new PrismException("Distribution invalid.");
     }
 

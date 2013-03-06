@@ -176,7 +176,9 @@ public class SMGModelChecker extends STPGModelChecker
 		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
 		mmdps.readStrategy("mmdps");
 
-		double[] goal = { 0.285, 0.476, 0.47 };
+	        //double[] goal = { 0.019, 0.903, 2.884 };
+                //double[] goal = { 0.769, 0.75,  11.69 };
+	        double[] goal = { 0.0, 0.576, 17.21 };
 
 		mmdps.recomputeInitial(goal);
 		mmdps.writeStrategy("mmdps");
@@ -835,8 +837,8 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 double step_increase = 4.0;
-         double increase_factor = 1.05;
-	 int stop_increasing_after = 200;
+         double increase_factor = 1.1;
+	 int stop_increasing_after = 60;
 	 boolean round = true; // round in all iterations
 
 	 maxIter = 20;

@@ -96,7 +96,7 @@ public class MapMDPSimulator
     {
 	
 	System.out.println("---- SAMPLES: ----");
-	List<List<State>> samples = strat.simulateMDP(10000);
+	List<List<State>> samples = strat.simulateMDP(100000);
 	//for(int sample = 0; sample < samples.size(); sample++) {
 	//	System.out.printf("%d: %s\n", sample, samples.get(sample).toString());
 	//}
