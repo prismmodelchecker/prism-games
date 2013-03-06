@@ -41,6 +41,8 @@ import parma_polyhedra_library.*;
 public class MultiObjectiveStrategy implements Strategy, Serializable
 {
 
+    private static final long serialVersionUID = 2684587301720699216L;
+
     // number of states
     //protected int n;
 
