@@ -41,11 +41,6 @@ import parma_polyhedra_library.*;
 public class MultiObjectiveStrategy implements Strategy, Serializable
 {
 
-    private static final long serialVersionUID = 2684587301720699216L;
-
-    // number of states
-    //protected int n;
-
     String info = "No information available.";
 
     // last state in history
@@ -58,7 +53,13 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 
     // map to go back from new states to old states when sampling from the MDP
     Map<Integer,State> newStoOldS = new HashMap<Integer,State>();
+    List<State> newS = new ArrayList<State>();
 
+    // fields specific to being able to recompute just the initial distribution
+    int initial_state;
+    double[] initial_rewards; // store rewards in initial sate
+    List<double[]> initial_LIST_gsX; // corners in canonical order for initial state
+    Map<Integer,State> initial_oldCornerToNewS; // maps corners to new states for initial state
 
     // memory size
     int memorySize = 0;
@@ -348,15 +349,137 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	return paths;
     }
 
-    
-    public void recomputeInitial()
+
+    public void recomputeInitial(double[] v) throws PrismException
     {
+
+	//int N = G.getNumStates(); // number of states in game (excluding stochastic states)
+	int L = v.length; // total number of goals
+	int M = L - initial_rewards.length; // total number of probabilistic goals
+
+	// need LP solver to get convex combinations
+	SimplexSolver solver = new SimplexSolver(1.0e-5, 10);
+	
+	// store sets of points for successors
+	List<List<double[]>> LIST_tuples;
+
+
+	System.out.println("-------------- RECOMPUTING INITIAL DISTRIBUTION ----------------");
+	Distribution d_init = new Distribution();
+
+	// put value of v - reward(t) into bounds
+	double[] bounds = new double[L];
+	for(int i = 0; i < L; i++) {
+	    // lower bound on sum of betas
+	    if(i < M) { // probability
+		bounds[i] = v[i];
+	    } else { // reward
+		bounds[i] = v[i] - initial_rewards[i-M];
+	    }
+	}
+
+	System.out.printf("Computing strategy for initial %s\n", Arrays.toString(bounds));
+
+
+	boolean nothingfound = true;
+	
+	search_for_distribution:
+	for(int l = 1; l < L+1; l++) { // first find l
+	    // compute all possible combinations of q_i^u
+	    LIST_tuples = selectGenerators(initial_LIST_gsX, null, l, null);
+	    
+	    // preparation for LP
+	    double[] coeffs_beta = new double[l];
+	    for(int i = 0; i < l; i++) {
+		coeffs_beta[i] = 1;
+	    }
+	    // check for each such tuple
+	    nothingfound = true;
+	    iteration_through_tuples:
+	    for(List<double[]> tuple : LIST_tuples) {
+		// now formulate an LP for beta_i
+		
+		// max_{beta_i} sum_i beta
+		// s.t. sum_i beta_i q_i^u >= v - rewards(t)
+		//      sum_i beta_i <= 1
+		
+		// optimization function - maximize betas
+		LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
+		
+		// constraints
+		List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+		double[][] coeffs_q = new double[L][l];
+		for(int i = 0; i < l; i++) {
+		    // get coefficients from tuple.get(i)
+		    for(int k = 0; k < L; k++) {
+			coeffs_q[k][i] = tuple.get(i)[k];
+		    }
+		}
+		
+		// put value of v - reward(t) into bounds
+		for(int i = 0; i < L; i++) {
+		    constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
+		}
+		for(int i = 0; i < l; i++) {
+		    // lower bound on beta_i
+		    double[] onlyone = new double[l];
+		    onlyone[i] = 1.0;
+		    constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+		}
+		// upper bound on sum of beta
+		constraints.add(new LinearConstraint(coeffs_beta, Relationship.LEQ, 1));
+		
+		PointValuePair solution;
+		try{
+		    solution = solver.optimize(f,
+					       new LinearConstraintSet(constraints),
+					       GoalType.MAXIMIZE,
+					       new MaxIter(10000));
+		} catch ( NoFeasibleSolutionException e) {
+		    // tuple not feasible, try a different one
+		    continue iteration_through_tuples;
+		}
+		nothingfound = false;
+		
+		// there has been no exception, so the problem was fasible
+		// can extract the distribution now from the solution
+		for(int i = 0; i < l; i++) {
+		    State new_s_init = initial_oldCornerToNewS.get(initial_LIST_gsX.indexOf(tuple.get(i)));
+		    d_init.add(newS.indexOf(new_s_init), solution.getPoint()[i]);
+		}
+		break search_for_distribution;
+	    }
+	}
+
+	if(nothingfound) {
+	    System.out.printf("Warning: Goal %s not realizable.\n", Arrays.toString(v));
+	}
+
+	// print initial distribution
+	System.out.printf("initial distribution (at %d): %s\n", initial_state, d_init.toString());
+
+	// now modify the mdp by copying d_init as new initial distribution
+	// have to do so in a roundabout way, as the MDP doesn't have straightforward setter methods
+	Distribution old_d_init = mdp.getChoice(0, 0);
+	old_d_init.clear();
+	for(Integer supp : d_init.getSupport()) {
+	    old_d_init.add(supp, d_init.get(supp));
+	}
+
+	System.out.println("------------- RESULTING MDP ----------------");
+
+	System.out.println(mdp.toString());
+
+
     }
 
 
     // directly construct MDP
     public MultiObjectiveStrategy(STPG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards) throws PrismException
     {
+	// make initial state specific to strategy
+	this.initial_state = initial_state;
+
 	// store size of game and goal
 	int N = G.getNumStates(); // number of states in game (excluding stochastic states)
 	int L = ((int) X.get(0).space_dimension()); // total number of goals
@@ -384,11 +507,11 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	    }
 	    System.out.printf("]");
 	}
+	initial_LIST_gsX = LIST_gsX[initial_state];
 
 
 	System.out.println("-------------- BUILDING STATE SPACE ----------------");
 	List<State> S = G.getStatesList();
-	List<State> newS = new ArrayList<State>();
 
 	// initial state - has two fields
 	// 0: state in original game
@@ -414,6 +537,8 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 		newStoOldS.put(newS.indexOf(new_state), state);
 	    }
 	}
+	initial_oldCornerToNewS = oldSandCornerToNewS.get(initial_state);
+
 	// printing state space
 	for(int s = 0; s < newS.size(); s++) {
 	    if(s!=0) System.out.printf(", ");
@@ -426,12 +551,14 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 
 
 	// put value of v - reward(t) into bounds
+	initial_rewards = new double[stpgRewards.size()];
 	double[] bounds = new double[L];
 	for(int i = 0; i < L; i++) {
 	    // lower bound on sum of betas
 	    if(i < M) { // probability
 		bounds[i] = v[i];
 	    } else { // reward
+		initial_rewards[i-M] = stpgRewards.get(i-M).getStateReward(initial_state);
 		bounds[i] = v[i] - stpgRewards.get(i-M).getStateReward(initial_state);
 	    }
 	}
@@ -510,8 +637,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	}
 
 	if(nothingfound) {
-	    System.out.printf("Goal %s not realizable.\n", v);
-	    throw new PrismException("Goal not realizable.\n");
+	    System.out.printf("Warning: Goal %s not realizable.\n", Arrays.toString(v));
 	}
 
 	// print initial distribution

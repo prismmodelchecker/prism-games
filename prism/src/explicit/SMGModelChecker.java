@@ -158,13 +158,13 @@ public class SMGModelChecker extends STPGModelChecker
 
 	    long polyTime = System.nanoTime();
 	    Map<Integer,Polyhedron> result_p = null;
-	    boolean compute = Boolean.valueOf(System.getenv().get("PCOMP"));
-	    if(compute) {
+	    String compute = System.getenv().get("PCOMP");
+	    if(compute.equals("compute")) {
 		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
 		polyTime = System.nanoTime() - polyTime;
 		
 		System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
-		
+
 		double[] goal = { 0.6, 0.7, 10.0 };
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
@@ -172,10 +172,21 @@ public class SMGModelChecker extends STPGModelChecker
 		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
 		
 		mmdps.writeStrategy(strategy_mdp, "mmdps");
-	    } else {
+	    } else if (compute.equals("recompute")) {
+		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
+		mmdps.readStrategy("mmdps");
+
+		double[] goal = { 0.285, 0.476, 0.47 };
+
+		mmdps.recomputeInitial(goal);
+		mmdps.writeStrategy("mmdps");
+
+	    } else if (compute.equals("simulate")) {
 		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
 		mmdps.readStrategy("mmdps");
 		mmdps.evaluateStrategy();
+	    } else {
+		System.out.println("Invalid command in environment variable PCOMP.");
 	    }
 	    
 

@@ -21,19 +21,24 @@ import explicit.STPG;
 public class MapMDPSimulator
 {
 
-    FileInputStream fi;
-    FileOutputStream fo;
-    ObjectOutputStream oo;
-    ObjectInputStream oi;
+    private FileInputStream fi;
+    private FileOutputStream fo;
+    private ObjectOutputStream oo;
+    private ObjectInputStream oi;
 
-    MultiObjectiveStrategy strat = null;
-    List<STPGRewards> stpgRewards;
-    STPG model;
+    private MultiObjectiveStrategy strat = null;
+    private List<STPGRewards> stpgRewards;
+    private STPG model;
 
     public MapMDPSimulator(STPG model, List<STPGRewards> stpgRewards)
     {
 	this.stpgRewards = stpgRewards;
 	this.model = model;
+    }
+
+    public void recomputeInitial(double[] v) throws PrismException
+    {
+	strat.recomputeInitial(v);
     }
 
     @Override
@@ -61,6 +66,12 @@ public class MapMDPSimulator
 	    ie.printStackTrace();
 	}
     }
+
+    public void writeStrategy(String filename)
+    {
+	writeStrategy(this.strat, filename);
+    }
+
 
     public boolean readStrategy(String filename)
     {
