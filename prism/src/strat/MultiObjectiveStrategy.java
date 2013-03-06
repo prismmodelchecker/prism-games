@@ -346,6 +346,12 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	return paths;
     }
 
+    
+    public void recomputeInitial()
+    {
+    }
+
+
     // directly construct MDP
     public MultiObjectiveStrategy(STPG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards) throws PrismException
     {
