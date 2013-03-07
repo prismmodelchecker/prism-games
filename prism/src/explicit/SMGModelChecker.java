@@ -542,7 +542,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    }
 	    
 	}
-	System.out.printf("%% maxpoints: %d\n", max_points);
+	System.out.printf("maxpoints{%d} = %d;\n", iter+1, max_points);
 	
 
 	for(int s = 0; s < polyhedra.size(); s++) {
