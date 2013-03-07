@@ -5,12 +5,12 @@ import datetime, math, sys
 import copy
 import osm2graph
 
-filename = "charlton"
+filename = "islip"
 # TODO: properly identify goal
 # goal = 43 # road right top
-goal = 33 # mill lane
+goal = 46 # Middle Street (right)
 # TODO: properly identify initial road
-init = 43 # high street
+init = 124 # Kidlington Road (top left)
 
 
 smg = open("car2.%s.smg" % (filename), "w");
@@ -25,6 +25,8 @@ if(len(sys.argv)>=2):
 #########################################################################
 
 G = osm2graph.read_osm(mapfile)
+
+usedvalues = {}
 
 # calculate distances and assign to links
 #edges_to_add = []
@@ -63,9 +65,10 @@ for e in G.edges(data=True):
     if "highway" in e[2]["data"].tags:
         if e[2]["data"].tags["highway"] in values:
             value = values[e[2]["data"].tags["highway"]]
-
+            usedvalues[e[2]["data"].tags["highway"]] = True
+    
     e[2]["data"] = {"dist": db[0], "init_bearing": db[1], "final_bearing": db[1], "oneway": oneway, "value": value, "name": name}
-
+    
 # first, remove zero-value edges (they are never used, e.g. train tracks)
 to_remove = []
 for e in G.edges(data=True):
