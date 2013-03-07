@@ -7,9 +7,10 @@ import osm2graph
 
 filename = "charlton"
 # TODO: properly identify goal
-goal = 7
+# goal = 43 # road right top
+goal = 33 # mill lane
 # TODO: properly identify initial road
-init = 43
+init = 43 # high street
 
 
 smg = open("car2.%s.smg" % (filename), "w");
