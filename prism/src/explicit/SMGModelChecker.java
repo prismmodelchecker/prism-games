@@ -161,7 +161,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    String compute = System.getenv().get("PCOMP");
 	    if(compute.equals("compute")) {
 
-		double[] goal = { 0.8, 0.8, 3.09 };
+		double[] goal = { 0.75, 0.78, 6.6 };
 
 		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates, goal);
 		polyTime = System.nanoTime() - polyTime;
@@ -865,14 +865,15 @@ public class SMGModelChecker extends STPGModelChecker
 
 	 double step_increase = 4.0;
          double increase_factor = 1.2;
-	 double stop_increasing_after = 100.0;
+	 double stop_increasing_after = 100000.0;
 	 boolean round = true; // round in all iterations
 
-	 maxIter = 2000;
+	 maxIter = 1000;
 	 int last_iter = 0;
 
 	 // ITERATE FUNCTIONAL APPLICATION
 	 for(int iter = 0; iter < Math.ceil(maxIter); ) {
+
 
 	     System.out.printf("%% Starting iteration %d, rounding %s\n", iter, round ? "on" : "off");
 
@@ -881,19 +882,20 @@ public class SMGModelChecker extends STPGModelChecker
 
 	     result = ((SMG) stpg).pMultiObjective(min1, min2, result, targets, stpgRewards, accuracy, stochasticStates, prev_result, round);
 
-	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
+	     System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
+	     System.out.printf("accuracy{%d} = %.8f;\n", iter+1, 1.0/((double)accuracy[0]));
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
 	     // CHECK IF TARGET HIT
-	     if(hit_target(result.get(stpg.getFirstInitialState()), goal)) {
-		 System.out.printf("Target hit");
-		 break;
-	     }
+	     //if(hit_target(result.get(stpg.getFirstInitialState()), goal)) {
+	     //		 System.out.printf("Target hit");
+	     //	 break;
+	     //}
 
 	     // STOPPING CRITERION
-	     if(iter>0 && stop(result, prev_result, accuracy)){
-		 break;
-	     }
+	     //if(iter>0 && stop(result, prev_result, accuracy)){
+	     //	 break;
+	     //}
 	     for(int s = 0; s < gameSize; s++) {
 		 prev_result.put(s,result.get(s));
 	     }
