@@ -172,7 +172,7 @@ public class SMGModelChecker extends STPGModelChecker
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 		
-		polyTime = State.nanoTime() - polyTime;
+		polyTime = System.nanoTime() - polyTime;
 
 		System.out.printf("Polyhedra computation: %4f ms\n", ((double)polyTime)/1000000.0);
 
