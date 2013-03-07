@@ -160,15 +160,22 @@ public class SMGModelChecker extends STPGModelChecker
 	    Map<Integer,Polyhedron> result_p = null;
 	    String compute = System.getenv().get("PCOMP");
 	    if(compute.equals("compute")) {
-		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates);
+
+		double[] goal = { 0.8, 0.8, 3.09 };
+
+		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates, goal);
 		polyTime = System.nanoTime() - polyTime;
 		
 		System.out.printf("Polyhedra computation: %.4f ms\n", ((double)polyTime)/1000000.0);
 
-		double[] goal = { 0.6, 0.7, 10.0 };
+		polyTime = System.nanoTime();
 		
 		MultiObjectiveStrategy strategy_mdp = new MultiObjectiveStrategy((STPG) model, initial_state, goal, result_p, stochasticStates, stpgRewards);
 		
+		polyTime = State.nanoTime() - polyTime;
+
+		System.out.printf("Polyhedra computation: %4f ms\n", ((double)polyTime)/1000000.0);
+
 		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
 		
 		mmdps.writeStrategy(strategy_mdp, "mmdps");
@@ -756,7 +763,26 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    private boolean hit_target(Polyhedron X_init, double[] goal)
+    {
+	Linear_Expression le = null;
+	for(int i = 0; i < goal.length; i++) {
+	    if(le==null) {
+		le = new Linear_Expression_Times(new Coefficient(Math.round(goal[i]*100000.0)), new Variable(i));
+	    } else {
+		le = le.sum(new Linear_Expression_Times(new Coefficient(Math.round(goal[i]*100000.0)), new Variable(i)));
+	    }
+	}
+
+	Generator_System gs = new Generator_System();
+	gs.add(Generator.point(le, new Coefficient(100000)));
+	Polyhedron p = new C_Polyhedron(gs);
+
+	return X_init.contains(p);	
+    }
+
+
+    public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates, double[] goal) throws PrismException
      {
 
 	 int gameSize = stpg.getStatesList().size();
@@ -858,6 +884,12 @@ public class SMGModelChecker extends STPGModelChecker
 	     //System.out.printf("time{%d} = %.4f; // ms\n", iter+1, ((double)System.nanoTime()-itertime)/1000000.0);
 	     printMatlab(result, targets.size()+stpgRewards.size(), iter);
 
+	     // CHECK IF TARGET HIT
+	     if(hit_target(result.get(stpg.getFirstInitialState()), goal)) {
+		 System.out.printf("Target hit");
+		 break;
+	     }
+
 	     // STOPPING CRITERION
 	     if(iter>0 && stop(result, prev_result, accuracy)){
 		 break;
@@ -873,8 +905,8 @@ public class SMGModelChecker extends STPGModelChecker
                  }
 		 step_increase *= increase_factor;
 		 last_iter = iter;
+		 System.out.printf("%% ACCURACY SET TO %d, increase again after: %f\n", accuracy[0], step_increase);
              }
-	     System.out.printf("%% ACCURACY SET TO %d, increase again after: %f\n", accuracy[0], step_increase);
 
 	 }
 
