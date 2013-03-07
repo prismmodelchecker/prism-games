@@ -174,7 +174,7 @@ public class SMGModelChecker extends STPGModelChecker
 		
 		polyTime = System.nanoTime() - polyTime;
 
-		System.out.printf("Polyhedra computation: %4f ms\n", ((double)polyTime)/1000000.0);
+		System.out.printf("Strategy computation: %4f ms\n", ((double)polyTime)/1000000.0);
 
 		MapMDPSimulator mmdps = new MapMDPSimulator((STPG) model, stpgRewards);
 		
