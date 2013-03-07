@@ -96,7 +96,7 @@ public class MapMDPSimulator
     {
 	
 	System.out.println("---- SAMPLES: ----");
-	List<List<State>> samples = strat.simulateMDP(100000);
+	List<List<State>> samples = strat.simulateMDP(10000);
 	//for(int sample = 0; sample < samples.size(); sample++) {
 	//	System.out.printf("%d: %s\n", sample, samples.get(sample).toString());
 	//}
@@ -168,6 +168,8 @@ public class MapMDPSimulator
 	Map<Integer,Double> result = new HashMap<Integer,Double>();
 	for(List<State> sample : samples) {
 	    for(State s : sample) {
+		if((Integer) s.varValues[2] != 0) 
+		    continue; // only take roads into account once
 	        int car_position = (Integer) s.varValues[1];
 		if(result.containsKey(car_position)) {
 		    result.put(car_position, result.get(car_position) + 1.0);

@@ -141,7 +141,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	    long[] accuracy = new long[targets.size()+stpgRewards.size()];
-	    long baseline_accuracy = 40;
+	    long baseline_accuracy = 50;
 	    System.err.printf("Accuracy: %d", baseline_accuracy);
 	    for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
 		if(i < targets.size()) { // probabilities
@@ -178,7 +178,8 @@ public class SMGModelChecker extends STPGModelChecker
 
 	        //double[] goal = { 0.019, 0.903, 2.884 };
                 //double[] goal = { 0.769, 0.75,  11.69 };
-	        double[] goal = { 0.0, 0.576, 17.21 };
+	        //double[] goal = { 0.0, 0.576, 17.21 };
+	        double[] goal = { 0.6346, 0.7692, 13.2692 };
 
 		mmdps.recomputeInitial(goal);
 		mmdps.writeStrategy("mmdps");
@@ -837,11 +838,11 @@ public class SMGModelChecker extends STPGModelChecker
 
 
 	 double step_increase = 4.0;
-         double increase_factor = 1.1;
-	 int stop_increasing_after = 60;
+         double increase_factor = 1.2;
+	 double stop_increasing_after = 100.0;
 	 boolean round = true; // round in all iterations
 
-	 maxIter = 20;
+	 maxIter = 2000;
 	 int last_iter = 0;
 
 	 // ITERATE FUNCTIONAL APPLICATION
@@ -866,15 +867,14 @@ public class SMGModelChecker extends STPGModelChecker
 	     }
 
 	     iter++;
-	     if(iter < stop_increasing_after && (double)(iter-last_iter) % step_increase < 1.0 ) { // increase accuracy by incrase_factor every step_increase iterations
+	     if(accuracy[0] < stop_increasing_after && (double)(iter-last_iter) % step_increase < 1.0 ) { // increase accuracy by incrase_factor every step_increase iterations
                  for(int i = 0; i < targets.size()+stpgRewards.size(); i++) {
                      accuracy[i] *= increase_factor;
                  }
 		 step_increase *= increase_factor;
 		 last_iter = iter;
-                 System.out.printf("%% ACCURACY SET TO %d, increase again after: %f\n", accuracy[0], step_increase);
-
              }
+	     System.out.printf("%% ACCURACY SET TO %d, increase again after: %f\n", accuracy[0], step_increase);
 
 	 }
 
