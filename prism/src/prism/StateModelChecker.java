@@ -1326,17 +1326,30 @@ public class StateModelChecker implements ModelChecker
 				s += " (but \"" + filter + "\" is true in " + statesFilter.size() + " states)";
 				throw new PrismException(s);
 			}
-			// Find first (only) value
-			d = vals.firstFromBDD(ddFilter);
-			// Store as object/vector
-			if (expr.getType() instanceof TypeInt) {
-				resObj = new Integer((int) d);
-			} else if (expr.getType() instanceof TypeDouble) {
-				resObj = new Double(d);
-			} else {
-				resObj = new Boolean(d > 0);
+			// Results of type void are handled differently
+			if (expr.getType() instanceof TypeVoid) {
+				// Extract result from StateValuesVoid object 
+				resObj = ((StateValuesVoid) vals).getValue();
+				// Leave result vector unchanged: for a range, result is only available from Result object
+				resVals = vals;
+				// Set vals to null to stop it being cleared below
+				vals = null;
 			}
-			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			else {
+				// Find first (only) value
+				d = vals.firstFromBDD(ddFilter);
+				// Store as object/vector
+				if (expr.getType() instanceof TypeInt) {
+					resObj = new Integer((int) d);
+				} else if (expr.getType() instanceof TypeDouble) {
+					resObj = new Double(d);
+				} else if (expr.getType() instanceof TypeBool) {
+					resObj = new Boolean(d > 0);
+				} else {
+					throw new PrismException("Don't know how to handle result of type " + expr.getType());
+				}
+				resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+			}
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";
 			if (filterInit) {

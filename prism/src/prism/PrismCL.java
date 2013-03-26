@@ -29,11 +29,8 @@ package prism;
 import java.io.*;
 import java.util.*;
 
-import cex.CexPathStates;
-
 import parser.*;
 import parser.ast.*;
-import simulator.SimulatorEngine;
 import simulator.method.*;
 
 // prism - command line version
@@ -1701,7 +1698,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-exporttransient <file> ........ Export transient probabilities to a file");
 		mainLog.println("-exportprism <file> ............ Export final PRISM model to a file");
 		mainLog.println("-exportprismconst <file> ....... Export final PRISM model with expanded constants to a file");
-
+		
 		prism.getSettings().printHelp(mainLog);
 
 		mainLog.println();

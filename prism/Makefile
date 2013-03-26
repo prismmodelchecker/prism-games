@@ -69,10 +69,10 @@ endif
 # whether java is 32/64-bit (since these need to match)
 ifeq ($(OSTYPE),darwin)
     JAVA_VERSION_STRING = $(shell java -version 2>&1)
-    ifneq (,$(findstring 64-bit, $(JAVA_VERSION_STRING)) )
+    ifneq (,$(findstring 64-bit, $(JAVA_VERSION_STRING)))
         ARCH = x86_64
     endif
-    ifneq (,$(findstring 64-Bit, $(JAVA_VERSION_STRING)) )
+    ifneq (,$(findstring 64-Bit, $(JAVA_VERSION_STRING)))
         ARCH = x86_64
     endif
 endif
@@ -277,11 +277,13 @@ JAVA_INCLUDES = -I $(JAVA_JNI_H_DIR) -I $(JAVA_JNI_MD_H_DIR)
 
 MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterface pepa/compiler simulator jltl2ba jltl2dstar explicit pta strat
 
+EXT_PACKAGES = lpsolve55 lp_solve_5.5_java
+
 .PHONY: clean javadoc tests
 
 default: all
 
-all: cuddpackage untarppl pplpackage linkppl prism
+all: cuddpackage untarppl pplpackage linkppl extpackages prism
 
 cuddpackage: checks
 	@if [ "$(CUDD_DIR)" = "" ]; then echo "Error: Cannot find CUDD"; exit 1; fi
@@ -301,7 +303,6 @@ cuddpackageforce: checks
 	  cd $(CUDD_DIR) && \
 	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)" \
 	  XCFLAGS="$(CUDD_XCFLAGS)";
-
 
 untarppl:
 	cd .. && \
@@ -326,12 +327,31 @@ pplpackage: checks
 	  echo Skipping ppl make since it is a symlink...; \
 	fi)
 
-
 linkppl:
 	echo Linking ppl ...; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.so $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/ppl_java.jar $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 
+extpackages: checks
+	@for ext in $(EXT_PACKAGES); do \
+	  echo Making $$ext ...; \
+	  (cd ext/$$ext && \
+	  $(MAKE) \
+	  OSTYPE="$(OSTYPE)" \
+	  ARCH="$(ARCH)" \
+	  C="$(C)" \
+	  CPP="$(CPP)" \
+	  LD="$(LD)" \
+	  CFLAGS="$(CFLAGS)" \
+	  CPPFLAGS="$(CPPFLAGS)" \
+	  LDFLAGS="$(LDFLAGS)" \
+	  SHARED="$(SHARED)" \
+	  LIBPREFIX="$(LIBPREFIX)" \
+	  LIBSUFFIX="$(LIBSUFFIX)" \
+	  LIBMATH="$(LIBMATH)" \
+	  JAVA_DIR="$(JAVA_DIR)" \
+	  ) || exit 1; \
+	done
 
 prism: checks make_dirs bin_scripts
 
@@ -508,6 +528,14 @@ clean_cudd:
 
 clean_ppl:
 	@(cd $(PPL_DIR) && $(MAKE) distclean)
+
+clean_ext:
+	@(for ext in $(EXT_PACKAGES); do \
+	  echo Cleaning $$ext ...; \
+	  (cd ext/$$ext && \
+	  $(MAKE) -s LIBPREFIX="$(LIBPREFIX)" LIBSUFFIX="$(LIBSUFFIX)" clean) \
+	  || exit 1; \
+	done )
 
 clean_dd: checks
 	@(cd src/dd && $(MAKE) -s SRC_DIR="$(SRC_DIR)" CLASSES_DIR="$(CLASSES_DIR)" OBJ_DIR="$(OBJ_DIR)" LIB_DIR="$(LIB_DIR)" EXE="$(EXE)" LIBPREFIX="$(LIBPREFIX)" LIBSUFFIX="$(LIBSUFFIX)" clean)
