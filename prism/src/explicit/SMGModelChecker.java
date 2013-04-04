@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 import parser.ast.Expression;
+import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionTemporal;
@@ -72,7 +73,11 @@ import parma_polyhedra_library.*;
  */
 public class SMGModelChecker extends STPGModelChecker
 {
-
+	protected StateValues checkExpressionMulti(Model model, ExpressionFunc expr) throws PrismException
+	{
+		// code goes here...
+		return null;
+	}
 
     protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
     {

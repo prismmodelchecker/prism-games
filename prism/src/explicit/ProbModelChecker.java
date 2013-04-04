@@ -30,6 +30,7 @@ import java.util.BitSet;
 import java.util.Set;
 
 import parser.ast.Expression;
+import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
@@ -440,6 +441,10 @@ public class ProbModelChecker extends StateModelChecker
 		// PATL coalition operator
 		else if (expr instanceof ExpressionPATL) {
 			res = checkExpressionPATL(model, (ExpressionPATL) expr);
+		}
+		// Functions (for multi-objective)
+		else if (expr instanceof ExpressionFunc) {
+			res = checkExpressionFunc(model, (ExpressionFunc) expr);
 		}
 		// Otherwise, use the superclass
 		else {
@@ -914,6 +919,18 @@ public class ProbModelChecker extends StateModelChecker
 		}
 	}
 
+	/**
+	 * Model check a function.
+	 */
+	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr) throws PrismException
+	{
+		if (expr.getNameCode() == ExpressionFunc.MULTI && model.getModelType() == ModelType.SMG) {
+			return ((SMGModelChecker) this).checkExpressionMulti(model, expr);
+		} else {
+			return super.checkExpressionFunc(model, expr);
+		}
+	}
+	
 	/**
 	 * Finds states of the model which only have self-loops
 	 * 
