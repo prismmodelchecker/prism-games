@@ -161,7 +161,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    String compute = System.getenv().get("PCOMP");
 	    if(compute.equals("compute")) {
 
-		double[] goal = { 0.75, 0.78, 6.6 };
+		double[] goal = { 0.75, 0.78 };
 
 		result_p = this.computeReachabilityPolyhedra(min, !min, (STPG) model, stpgRewards, targets, accuracy, maxIter, stochasticStates, goal);
 		polyTime = System.nanoTime() - polyTime;

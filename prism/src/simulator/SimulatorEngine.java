@@ -39,6 +39,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionFilter;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
+import parser.ast.ExpressionTemporal;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
