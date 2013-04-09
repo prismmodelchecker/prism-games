@@ -85,7 +85,7 @@ public class Prism implements PrismSettingsListener
 	/** Optional PRISM version suffix (e.g. "dev", "beta"). Read from prism.Version. */
 	private static String versionSuffix = prism.Version.versionSuffixString;
 	
-	/** Build number (e.g. "r6667"). Defaults to "" (undefined), read from prism.Revision class if present. */
+	/** Build number (e.g. "6667"). Defaults to "" (undefined), read from prism.Revision class if present. */
 	private static String buildNumber = "";
 	static {
 	    try {
@@ -626,7 +626,7 @@ public class Prism implements PrismSettingsListener
 			v += "." + versionSuffix;
 			// In this case, also append any build number
 			if (buildNumber.length() > 0)
-				v += "." + buildNumber;
+				v += ".r" + buildNumber;
 		}
 		return v;
 	}
