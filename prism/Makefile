@@ -332,8 +332,13 @@ pplpackage: checks
 
 linkppl:
 	echo Linking ppl ...; \
+	  if [ "$(OSTYPE)" = "darwin" ]; then \
+	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.dylib; \
+	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.jnilib $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.dylib; \
+	  else \
 	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.so $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
+	  fi && \
 	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/ppl_java.jar $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 
