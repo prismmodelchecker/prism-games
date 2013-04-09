@@ -328,7 +328,9 @@ pplpackage: checks
 
 linkppl:
 	echo Linking ppl ...; \
+	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.so $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
+	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/ppl_java.jar $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 
 extpackages: checks
