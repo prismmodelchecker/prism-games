@@ -314,7 +314,11 @@ pplpackage: checks
 	@(if [ ! -h $(PPL_DIR) ]; then \
 	  echo Configuring ppl ...; \
 	  cd $(PPL_DIR) && \
-	  bash configure --prefix=`pwd` && \
+	  if [ "$(OSTYPE)" = "darwin" ]; then \
+	    bash configure --prefix=`pwd` --with-gmp=/opt/local --with-java="$(JAVA_DIR)"; \
+	  else \
+	    bash configure --prefix=`pwd` --with-java="$(JAVA_DIR)"; \
+	  fi && \
 	  echo `pwd`; \
 	  echo Making ppl ...; \
 	  cd $(PPL_DIR) && \
