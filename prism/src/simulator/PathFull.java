@@ -121,10 +121,9 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	// Overloaded version with strategy state
-	public void addStep(int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
-			double[] newStateRewards, TransitionList transitionList, Object stratState)
+	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList, Object stratState)
 	{
-		addStep(0.0, choice, moduleOrActionIndex, transitionRewards, newState, newStateRewards, transitionList,
+		addStep(0.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList,
 				stratState);
 	}
 
@@ -163,10 +162,10 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	// Overloaded version including strategy state
-	public void addStep(double time, int choice, int moduleOrActionIndex, double[] transitionRewards, State newState,
+	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState,
 			double[] newStateRewards, TransitionList transitionList, Object stratState)
 	{
-		addStep(time, choice, moduleOrActionIndex, transitionRewards, newState, newStateRewards, transitionList);
+		addStep(time, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
 		steps.get(steps.size() - 1).stratState = stratState;
 	}
 
