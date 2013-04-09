@@ -421,7 +421,17 @@ bin_scripts:
 	done;
 	@./install.sh silent
 
-VERSION=# default value for VERSION is blank to force provision at command-line 
+# Unless VERSION has been passed in (as VERSION=xxx),
+# extract version number from Java code using printversion
+VERSION = $(shell SRC_DIR=$(SRC_DIR) $(SRC_DIR)/scripts/printversion.sh 2> /dev/null)
+
+# Grab svn revision number from svnversion, if possible
+REVISION = $(shell svnversion 2> /dev/null)
+
+# Add Revision.java with current svn revision
+add_rev:
+	@echo "Creating $(SRC_DIR)/prism/Revision.java (REVISION = $(REVISION))"
+	echo 'package prism;\npublic class Revision\n{\n\tpublic static String svnRevision = "$(REVISION)";\n}' > $(SRC_DIR)/prism/Revision.java
 
 dist_src: dist_check_version dist_copy clean_all dist_tidy
 
