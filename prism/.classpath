@@ -8,5 +8,7 @@
 	<classpathentry kind="lib" path="lib/colt.jar" sourcepath="/Users/dxp/colt/src"/>
 	<classpathentry kind="lib" path="lib/pepa.zip"/>
 	<classpathentry kind="lib" path="lib/lpsolve55j.jar"/>
+	<classpathentry kind="lib" path="lib/commons-math3-3.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/ppl_java.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
