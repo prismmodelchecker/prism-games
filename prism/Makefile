@@ -170,7 +170,6 @@ ifeq ($(OSTYPE),linux)
 	LIBPREFIX = lib
 	LIBSUFFIX = .so
 	LIBMATH = -lm
-	OSTYPE_INCLUDE = include
 	CLASSPATHSEP = :
 endif
 # Solaris
@@ -187,7 +186,6 @@ ifeq ($(OSTYPE),solaris)
 	LIBPREFIX = lib
 	LIBSUFFIX = .so
 	LIBMATH = -lm
-	OSTYPE_INCLUDE = include
 	CLASSPATHSEP = :
 endif
 # Cygwin
@@ -206,7 +204,6 @@ ifeq ($(OSTYPE),cygwin)
 	LIBPREFIX =
 	LIBSUFFIX = .dll
 	LIBMATH = 
-	OSTYPE_INCLUDE = include
 	CLASSPATHSEP = ;
 	# Also override default compilers
 	# (because -mno-cygwin flag no longer in new versions of gcc)
@@ -236,7 +233,6 @@ ifeq ($(OSTYPE),darwin)
 	LIBPREFIX = lib
 	LIBSUFFIX = .dylib
 	LIBMATH = -lm
-	OSTYPE_INCLUDE = Headers
 	CLASSPATHSEP = :
 endif
 
@@ -267,8 +263,11 @@ INCLUDE_DIR =	include
 
 # Now we locate the JNI header files jni.h and jni_md.h
 # (in fact this is the only reason we need JAVA_DIR)
-JAVA_JNI_H_DIR = $(shell (ls "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/jni.h | sed 's/\/jni.h//') 2>/dev/null)
-JAVA_JNI_MD_H_DIR = $(shell (ls "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/jni_md.h "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/*/jni_md.h | sed 's/\/jni_md.h//') 2>/dev/null)
+JAVA_JNI_H_DIR = $(shell \
+	if [ -f "$(JAVA_DIR)"/include/jni.h ]; then echo "$(JAVA_DIR)"/include; \
+	elif [ -f "$(JAVA_DIR)"/Headers/jni.h ]; then echo "$(JAVA_DIR)"/Headers; \
+	else echo ""; fi )
+JAVA_JNI_MD_H_DIR = $(shell (ls "$(JAVA_JNI_H_DIR)"/jni_md.h "$(JAVA_JNI_H_DIR)"/*/jni_md.h | sed 's/\/jni_md.h//') 2>/dev/null)
 JAVA_INCLUDES = -I $(JAVA_JNI_H_DIR) -I $(JAVA_JNI_MD_H_DIR)
 
 #########################
@@ -602,13 +601,13 @@ checks:
 	  echo "Java directory \"$(JAVA_DIR)\" does not exist."; \
 	  exit 1; \
 	fi; \
-	if [ ! -f "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/jni.h ]; then \
-	  echo "Could not locate JNI header jni.h in \"$(JAVA_DIR)/$(OSTYPE_INCLUDE)\"."; \
+	if [ ! -f "$(JAVA_JNI_H_DIR)"/jni.h ]; then \
+	  echo "Could not locate JNI header jni.h within \"$(JAVA_DIR)\"."; \
 	  echo "You may need to set JAVA_DIR by hand. See the PRISM manual for details."; \
 	  exit 1; \
 	fi; \
-	if [ ! -f "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/jni_md.h -a ! -f "$(JAVA_DIR)"/$(OSTYPE_INCLUDE)/*/jni_md.h ]; then \
-	  echo "Could not locate JNI header jni_md.h in \"$(JAVA_DIR)/$(OSTYPE_INCLUDE)\" or ...."; \
+	if [ ! -f "$(JAVA_JNI_MD_H_DIR)"/jni_md.h ]; then \
+	  echo "Could not locate JNI header jni_md.h within \"$(JAVA_DIR)\"."; \
 	  echo "You may need to set JAVA_DIR by hand. See the PRISM manual for details."; \
 	  exit 1; \
 	fi; \
