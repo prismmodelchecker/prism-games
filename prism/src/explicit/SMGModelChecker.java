@@ -47,12 +47,14 @@ import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
+import parser.ast.ExpressionReward;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.ExpressionBinaryOp;
 import parser.visitor.ASTTraverse;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.ModelType;
 import strat.ExactValueStrategy;
 import strat.MultiObjectiveStrategy;
 import strat.Strategy;
@@ -62,6 +64,7 @@ import parser.ast.RewardStruct;
 import parser.State;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.STPGRewards;
+import explicit.rewards.STPGRewardsSimple;
 import explicit.PPLSupport;
 import explicit.MapMDPSimulator;
 
@@ -73,14 +76,128 @@ import parma_polyhedra_library.*;
  */
 public class SMGModelChecker extends STPGModelChecker
 {
-	protected StateValues checkExpressionMulti(Model model, ExpressionFunc expr) throws PrismException
-	{
-		// code goes here...
-		return null;
+    protected StateValues checkExpressionMulti(Model model, ExpressionFunc expr) throws PrismException
+    {
+
+	// TODO: load from PRISM-properties
+	// parameters
+	long baseline_accuracy = 50;
+	double maxIter = 100.0;
+
+
+	// load the Parma Polyhedra Library (PPL) - used for polyhedra operations
+	try {
+	    System.loadLibrary("ppl_java");
+	    // initialise PPL
+	    Parma_Polyhedra_Library.initialize_library();
+	} catch (Exception e) {
+	    throw new PrismException("Error loading Parma Polyhedra Library. Library properly compiled and linked?");
 	}
+
+	// check stopping assumption and model type
+	if(model.getModelType() == ModelType.SMG) {
+	    // TODO: check stopping assumption
+	    // game is non-stopping if for every strategy pair a terminal state is reached with probability 1
+	    // can do single-objective min-min reachability problem for terminals and check if > 0
+
+	} else {
+	    throw new PrismException("Only SMGs supported by multi-objective engine.");
+	}
+
+	// get the initial state of the model, which is an SMG
+	int initial_state;
+	if(model.getNumInitialStates() != 1) {
+	    throw new PrismException("Multi-objective engine supports only models with a single initial state.");
+	} else {
+	    initial_state = model.getFirstInitialState();
+	}
+
+	// get multi-objective goal
+	int n = expr.getNumOperands();
+	long[] accuracy = new long[n];
+	List<STPGRewards> stpgRewards = new ArrayList<STPGRewards>(n); // the reward structures
+	List<Double> bounds = new ArrayList<Double>(n); // the required bounds
+	for(int i = 1; i < n; i++) {
+	    Expression expr_i = expr.getOperand(i);
+	    // TODO: check reward assumption
+	    // TODO: do also for reward opeartor
+	    if (expr_i instanceof ExpressionProb) {
+		String relOp = ((ExpressionProb)expr_i).getRelOp(); // strict or not
+		if(relOp.equals("<") || relOp.equals(">")) {
+		    //TODO: properly output log
+		    System.out.println("Strict inequalities ignored");
+		} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
+		    throw new PrismException("Only minimization or maximization supported.");
+		}
+
+		Expression pb = ((ExpressionProb)expr_i).getProb(); // probability bound expression
+		double p = -1; // probability bound
+		if (pb != null) {
+		    p = pb.evaluateDouble(constantValues);
+		    if (p < 0 || p > 1)
+			throw new PrismException("Invalid probability bound " + p + " in P operator");
+		} else {
+		    throw new PrismException("Probability bound required");
+		}
+		bounds.add(p); // add probability to vector
+
+		Expression e = ((ExpressionProb)expr_i).getExpression();
+		if(e instanceof ExpressionTemporal) {
+		    if(((ExpressionTemporal)e).getOperator() == ExpressionTemporal.P_F) {
+			BitSet t = checkExpression(model, ((ExpressionTemporal)e).getOperand2()).getBitSet(); // evaluate which states satisfy the property
+			// convert target set to reward structure
+			STPGRewardsSimple stpgr = new STPGRewardsSimple(((SMG)model).numStates);
+			for(int s = 0; i < ((SMG)model).numStates; i++) {
+			    stpgr.setStateReward(s, 1.0);
+			}
+			stpgRewards.add(stpgr);
+		    } else {
+			// TODO: reduction from LTL to rewards goes here
+			throw new PrismException("Invalid property: property " + i + " must be a reachability property.");
+		    }
+		} else {
+		    throw new PrismException("Invalid property: property " + i + " must be an LTL formula.");
+		}
+
+	    } else if (expr_i instanceof ExpressionReward) {
+		// TODO: standard reward goals here
+		throw new PrismException("Only the P operator is supported so far.");
+	    } else {
+		throw new PrismException("Only the P operator is supported so far.");
+	    }
+	}
+
+	// model is SMG
+	// ExpressionFunc has getOperand(i) to get ExpressionProb
+	// ProbModelChecker - shared between all modelcheckers
+	//       .checkExpressionProb -- to model this function against
+	
+	// in ExpressionProb get ExpressionTemporal - and then getOperator = P_F = 3 for reachability
+	// then for the unary P_F, getOperand2 gives me the target states
+	// i.e. b2 = checkExpression(model, expr.getOperand2()).getBitSet(); --- do this for each target
+	
+	// do reachability only for now
+	// Rabin construction has to be done - not in explicit yet - talk to Dave
+
+	// code goes here...
+
+	// need to create reward structures for LTL formulae - first reachability only
+
+	// store polyhedra of stochastic states for strategy construction
+	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(((SMG)model).numStates);
+
+	// compute polyhedra
+	Map<Integer,Polyhedron> result_p = computeParetoSetApproximations((SMG) model, stpgRewards, bounds, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+
+
+	return null;
+    }
 
     protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
+
+	System.out.println("multiobjcheck");
+
 	// dynamically load the Parma Polyhedra Library
 	System.loadLibrary("ppl_java");
 	// initializa ppl
@@ -209,7 +326,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    return result_p;
 	    
 	}
-
+	
 	throw new PrismException("Explicit engine does not yet handle LTL-style path formulas.");
 	
     }
@@ -228,6 +345,8 @@ public class SMGModelChecker extends STPGModelChecker
 	 */
 	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
 	{
+
+	    System.out.println("here");
 
 	    //@clemens : don't change this - this works out the player coalition
 	    // setting coalition parameter
@@ -784,6 +903,15 @@ public class SMGModelChecker extends STPGModelChecker
 	Polyhedron p = new C_Polyhedron(gs);
 
 	return X_init.contains(p);	
+    }
+
+
+    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<STPGRewards> stpgRewards, List<Double> bounds, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    {
+
+	int gameSize = smg.getNumStates();
+
+	return null;
     }
 
 
