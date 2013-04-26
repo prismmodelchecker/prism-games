@@ -51,6 +51,8 @@ import parser.ast.ExpressionReward;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.ExpressionBinaryOp;
+import parser.type.TypeBool;
+import parser.type.TypeDouble;
 import parser.visitor.ASTTraverse;
 import prism.PrismException;
 import prism.PrismLangException;
@@ -190,7 +192,8 @@ public class SMGModelChecker extends STPGModelChecker
 	Map<Integer,Polyhedron> result_p = computeParetoSetApproximations((SMG) model, stpgRewards, bounds, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
 
 
-	return null;
+	//return new StateValues(TypeDouble.getInstance(), new Double(3.141593), model);
+	return new StateValues(TypeBool.getInstance(), new Boolean(true), model);
     }
 
     protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
