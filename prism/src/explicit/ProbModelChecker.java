@@ -448,6 +448,7 @@ public class ProbModelChecker extends StateModelChecker
 		}
 		// Otherwise, use the superclass
 		else {
+		    System.out.println(expr.toString());
 			res = super.checkExpression(model, expr);
 		}
 

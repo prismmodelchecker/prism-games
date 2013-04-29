@@ -39,6 +39,7 @@ import java.math.BigInteger;
 import prism.ModelType;
 import prism.PrismException;
 import explicit.rewards.STPGRewards;
+import explicit.rewards.SMGRewards;
 
 import org.apache.commons.math3.fraction.BigFraction;
 import parma_polyhedra_library.*;
@@ -276,6 +277,37 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
+    /**
+     * take X^k and apply F(X^k)(s) for each state
+     */
+    public Map<Integer,Polyhedron> pMultiObjective(Map<Integer,Polyhedron> Xk, List<SMGRewards> rewards, BitSet terminals, long[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
+    {
+	// TODO: load from Prism properties
+	boolean gauss_seidel = true;
+
+	Map<Integer,Polyhedron> result;
+	if(gauss_seidel) {
+	    result = Xk;
+	} else {
+	    result = new HashMap<Integer, Polyhedron>(Xk.size());
+	}
+
+	// iterate for each state separate
+	for(int s = 0; s < numStates; s++) {
+	    // initialize the polyhedra for the stochastic states of s
+	    List<Polyhedron> distPolys = new ArrayList<Polyhedron>(trans.get(s).size());
+	    stochasticStates.add(distPolys);
+
+	    // apply F to (X^k)(s)
+	    result.put(s, pMultiObjectiveSingle(s, Xk, rewards, terminals, accuracy, distPolys));
+	}
+
+	// return X^{k+1}
+	return result;
+    }
+
+
+    // TODO: remove
     public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates, Map<Integer, Polyhedron> prev_results, boolean round) throws PrismException
         {
 	    // Gauss-Seidel
@@ -319,6 +351,238 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 
+    // distPolys will hold the polyhedra of the stochastic states
+    private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> Xk, List<SMGRewards> rewards, BitSet terminals, long[] accuracy, List<Polyhedron> distPolys) throws PrismException
+    {
+	double fract_acc = 1.0/10000000.0;
+	int fract_iter = Integer.MAX_VALUE;
+
+	int n = rewards.size();
+
+	// ------------------------------------------------------------------------------
+	// STOCHASTIC STATE OPERATIONS
+
+	// distributions of successor states
+	List<Distribution> dists = trans.get(s);
+
+	// step through all stochastic successors of s
+	for(int d = 0; d < dists.size(); d++) {
+	    // consider each distribution as a stochastic state
+	    // hence get a polyhedron for each distribution
+	    Distribution distr = dists.get(d);
+
+	    // the successors of the distribution d
+	    ArrayList<Integer> states = new ArrayList<Integer>(distr.keySet());
+	    if(states.size() == 0) {
+		throw new PrismException("State " + s + " has no successors.");
+	    } else if (states.size() == 1) {
+		// distribution assigns 1 to first successor
+		distPolys.add(Xk.get(states.get(0)));
+	    } else {
+		// need to compute Minkowski sum
+
+		// generators of polyhedra of the successors of the stochastic state d
+		List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
+
+		// first scale the generators of each successor
+		// for point generators also need to lift space
+		int supdim = -1; // highest dimension in space so far - need for lifting
+		for(Integer t : states) {
+		    supdim++; // one additional dimension per successor
+
+		    // get probability from distribution
+		    BigFraction prob = new BigFraction(distr.get(t), fract_acc, fract_iter);
+		    
+		    // scale polyhedron by prob
+		    Generator_System gs_new = new Generator_System();
+		    for(Generator g : Xk.get(t).generators()) {
+			if(g.type() == Generator_Type.POINT) {
+			    // scale and lift, i.e. compute:
+			    // num_prob/den_prob x arity x ( num_g/den_g + 1)
+			    // = (num_g x num_prob x arity + den_g x num_prob x arity) / (den_prob x den_g)
+			    BigInteger arity = BigInteger.valueOf(states.size());
+			    Linear_Expression le = g.linear_expression().times(new Coefficient(prob.getNumerator().multiply(arity)));
+			    Linear_Expression les = le.sum(new Linear_Expression_Times(new Coefficient(prob.getDenominator().multiply(arity).multiply(g.divisor().getBigInteger())), new Variable(n+supdim)));
+			    Coefficient c = new Coefficient(g.divisor().getBigInteger().multiply(prob.getDenominator()));
+			    Generator gen_new = Generator.point(les, c);
+			    gs_new.add(gen_new);
+			} else if (g.type() == Generator_Type.RAY) {
+			    // only need the rays for the first generator system,
+			    // as they will be the same for all states
+			    if(supdim==0) {
+				gs_new.add(g);
+			    }
+			} else {
+			    throw new PrismException("Only point and ray generators supported at this point. Where did the line come from?");
+			}
+		    }
+		    // add the scaled generators
+		    distGs.add(gs_new);
+		}
+
+		// then form the Minkowski sum between polyhedra in distGs and add the result to distPolys
+		// do this by stacking all generators together
+		// and then constraining the temporary dimensions to 1
+		Generator_System gs = new Generator_System();
+		for(Generator_System g : distGs) {
+		    gs.addAll(g);
+		}
+		C_Polyhedron cp = new C_Polyhedron(gs);
+		// add constraints
+		supdim = -1;
+		for(Integer t : states) {
+		    supdim++;
+		    Linear_Expression lhs = new Linear_Expression_Variable(new Variable(n+supdim));
+		    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+		    Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
+		    cp.add_constraint(c);
+		}
+		// project away the unneccessary dimensions
+		cp.remove_higher_space_dimensions(n);
+		// now in cp have the minkowski sum for that particular distribution d
+		distPolys.add(cp);
+	    }
+	}
+
+	// ------------------------------------------------------------------------------
+	// PLAYER ONE AND PLAYER TWO OPERATIONS
+	
+	// Xk1s holds the polyhedron of state s
+	// need deep copy here because want to retain Minkowski sums
+	Polyhedron Xk1s = new C_Polyhedron(distPolys.get(0).generators());
+	// restore dimension
+	Xk1s.add_space_dimensions_and_project(distPolys.get(0).space_dimension() - Xk1s.space_dimension());
+	if (stateLabels.get(s)==PLAYER_1) {
+	    // Player 1
+	    for (int cp_i = 1; cp_i < distPolys.size(); cp_i++) {
+		Xk1s.upper_bound_assign(distPolys.get(cp_i));
+	    }
+	}
+	else if (stateLabels.get(s)==PLAYER_2) {
+	    // Player 2
+	    for (int cp_i = 1; cp_i < distPolys.size(); cp_i++) {
+		Xk1s.intersection_assign(distPolys.get(cp_i));
+	    }
+	} else {
+	    throw new PrismException("Only two-player games supported yet.");
+	}
+
+	// ------------------------------------------------------------------------------
+	// ADD STATE REWARDS
+
+
+	Generator_System ngs = new Generator_System();
+	if(terminal.get(s)){
+	    ngs = Xk1s.generators();
+	} else {
+	    // first set up the reward vector that should be added to each point generator
+	    Linear_Expression le = null;
+	    Coefficient c = new Coefficient(BigInteger.ONE);
+	    for(int i = 0; i < n; i++) {
+		SMGRewards reward = rewards.get(i);
+		BigFraction r = new BigFraction(reward.getStateReward(s), fract_acc, fract_iter);
+		BigInteger num = r.getNumerator();
+		BigInteger den = r.getDenominator();
+		if(le == null) {
+		    le = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
+		    c = new Coefficient(den);
+		} else {
+		    le = new Linear_Expression_Sum(le.times(new Coefficient(den)), new Linear_Expression_Times(new Coefficient(num.multiply(c.getBigInteger())), new Variable(i)));
+		    c = new Coefficient(den.multiply(c.getBigInteger()));
+		}
+	    }
+	    // now add reward vector to each point generator
+	    
+	    for(Generator g : Xk1s.generators()) {
+		if(g.type()==Generator_Type.POINT) {
+		    Linear_Expression nle = new Linear_Expression_Sum(le.times(g.divisor()), g.linear_expression().times(c));
+		    Coefficient nc = new Coefficient(g.divisor().getBigInteger().multiply(c.getBigInteger()));
+		    ngs.add(Generator.point(nle, nc));
+		} else {
+		    ngs.add(g);
+		}
+	    }
+	}
+
+	// ------------------------------------------------------------------------------
+	// ROUNDING
+
+	// find baseline accuracy
+	long baseline_accuracy = 0;
+	for(int i = 0; i < n; i++) {
+	    if(accuracy[i] > baseline_accuracy) {
+		baseline_accuracy = accuracy[0];
+	    }
+	}
+
+	Generator_System new_ngs = new Generator_System();
+	for(Generator ng : ngs) {
+	    if(ng.type()==Generator_Type.POINT) {
+		Linear_Expression le = ng.linear_expression();
+		Coefficient c = ng.divisor();
+		Map<Variable,BigInteger> map = new HashMap<Variable,BigInteger>();
+		PPLSupport.getCoefficientsFromLinearExpression(le, false, BigInteger.ONE, map);
+		
+		// new denominator at baseline accuracy
+		Coefficient new_c = new Coefficient(BigInteger.valueOf(baseline_accuracy));
+		
+		// new linear expression
+		Linear_Expression new_le;
+		if(map.containsKey(null)) { // there is a coefficient without a variable
+		    if(map.get(null).compareTo(BigInteger.ZERO) != 0)
+			throw new PrismException("Exception in Polyhedron presentation.");
+		    new_le = new Linear_Expression_Coefficient(new Coefficient(map.get(null)));
+		} else {
+		    new_le = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
+		}
+		for(Variable k : map.keySet()) {
+		    if(k != null) {
+			if(map.get(k).compareTo(BigInteger.ZERO) < 0) { // negative
+			    BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
+			    long rounded = ((long)(Math.floor(round_test.doubleValue()*accuracy[k.id()])*baseline_accuracy/((double)accuracy[k.id()])));
+			    new_le = new_le.subtract(new Linear_Expression_Times(new Coefficient(-rounded), k));
+			} else { // positive
+			    BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
+			    long rounded = ((long)(Math.floor(round_test.doubleValue()*accuracy[k.id()])*baseline_accuracy/((double)accuracy[k.id()])));
+			    new_le = new_le.sum(new Linear_Expression_Times(new Coefficient(rounded), k));
+			}
+		    }
+		}
+		new_ngs.add(Generator.point(new_le, new_c));
+	    } else if (ng.type()==Generator_Type.RAY) {
+		new_ngs.add(ng);
+	    }
+	}
+
+	// ------------------------------------------------------------------------------
+	// CLEAN UP: DIMENSIONALITY, UNION WITH PREVIOUS RESULT, MINIMIZE REPRESENTATION
+
+	Xk1s = new C_Polyhedron(new_ngs);
+	
+	// add zero dimensions if rounding deleted them
+	if(Xk1s.space_dimension()!=n) {
+	    Xk1s.add_space_dimensions_and_project(n - Xk1s.space_dimension());
+	}
+
+	// union with previous result
+	// TODO: does this work with negative rewards?
+	//Xk1s.upper_bound_assign(Xk.get(s));
+
+	// minimize representation
+	Xk1s = new C_Polyhedron(Xk1s.minimized_generators());
+
+	// add zero dimensions if minimization deleted them
+	if(Xk1s.space_dimension()!=n) {
+	    Xk1s.add_space_dimensions_and_project(n - Xk1s.space_dimension());
+	}
+	
+	System.out.printf("Poly of state %s\n", s);
+	System.out.println(Xk1s.ascii_dump());
+	return Xk1s;
+    }
+    
+
+    // TODO: remove
     private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<Polyhedron> distPolys, Polyhedron prev_result, boolean round) throws PrismException
         {
 	    List<Distribution> dists = trans.get(s);
@@ -542,12 +806,12 @@ public class SMG extends STPGExplicit implements STPG
 				//long rounded = ((long)(Math.floor(round_test.doubleValue()*accuracy[k.id()])*((double)accuracy[0])/((double)accuracy[k.id()])));
 
 				long rounded = (long)((round_test.doubleValue()-(round_test.doubleValue()%(1.0/((double)accuracy[k.id()]))))*((double)accuracy[0]));
-
+						       
 				nle = nle.sum(new Linear_Expression_Times(new Coefficient(rounded), k));
 			    }
 			}
 		    }
-
+		    
 		    newmgs.add(Generator.point(nle, new_c));
 		}
 
