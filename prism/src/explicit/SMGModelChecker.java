@@ -102,17 +102,17 @@ public class SMGModelChecker extends STPGModelChecker
 	// need terminal states to check stopping assumption and reward assumptions
 	BitSet terminals = findTerminalStates(model);
 
-
 	// check stopping assumption and model type
 	if(model.getModelType() == ModelType.SMG) {
 	    // game is non-stopping if for every strategy pair a terminal state is reached with probability 1
 	    // can do single-objective min-min reachability problem for terminals and check if > 0
 	    double[] reach_term = computeUntilProbs((STPG)model, null, terminals, true, true, 1.0).soln;
 	    for(int i = 0; i < reach_term.length; i++) {
-		if(reach_term[i] < 1.0 /*1e-6*/) {
+		if(reach_term[i] < 1.0 - 1e-6/*-1e-6*/) {
 		    throw new PrismException("The game is not stopping.");
 		}
 	    }
+
 	} else {
 	    throw new PrismException("Only SMGs supported by multi-objective engine.");
 	}
@@ -278,7 +278,7 @@ public class SMGModelChecker extends STPGModelChecker
 	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(((SMG)model).numStates);
 
 	// compute polyhedra
-	Map<Integer,Polyhedron> result_p = computeParetoSetApproximations((SMG) model, rewards, bounds, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+	Map<Integer,Polyhedron> result_p = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
 
 
 	// TODO: Insert actual results here
@@ -287,7 +287,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-
+    /*
     // TODO: remove
     protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
@@ -348,12 +348,6 @@ public class SMGModelChecker extends STPGModelChecker
 		stpgRewards.add(stpgr);
 	    }
 
-	    /*
-	    List<Set<ReachTuple>> result_t = computeReachabilityTuples(min, !min, (STPG) model, targets, maxIter);
-	    for(int i = 0; i < result_t.size(); i++){
-		System.out.printf("%d: %s\n", i, result_t.get(i));
-	    }
-	    */
 
 	    // set accuracy
 
@@ -427,20 +421,20 @@ public class SMGModelChecker extends STPGModelChecker
 	
     }
 
+    */
+
 
     protected Strategy constructMultiStrategy(Model G, List<Polyhedron> X)
     {
 	return null;
     }
 
-
+    
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
 	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
 	{
-
-	    System.out.println("here");
 
 	    //@clemens : don't change this - this works out the player coalition
 	    // setting coalition parameter
@@ -458,7 +452,8 @@ public class SMGModelChecker extends STPGModelChecker
 			}
 			// do the polyhedra computation
 			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
-			Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
+			//TODO get this back
+			//Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
 			
 
 			// here do the standard method that I've basically overridden
@@ -489,6 +484,7 @@ public class SMGModelChecker extends STPGModelChecker
 		 // in other case
 		 throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
 	 }
+
 
 	 /**
 	  * Compute rewards for the contents of an R operator.
@@ -797,214 +793,8 @@ public class SMGModelChecker extends STPGModelChecker
 	 }
     }
 
-    /*
-    // TODO: remove
-    private double stoppingCriterion(STPG stpg, int s0, List<STPGRewards> stpgRewards, long[] accuracy)
-    {
-	int gameSize = stpg.getStatesList().size();
 
-	// first, sort the states topologically
-	// ignore cycles all together (justify!)
-	BitSet visited = new BitSet(gameSize); // grey
-	BitSet marked = new BitSet(gameSize); // black
-	Map<Integer,Set<Integer>> backEdges = new HashMap<Integer,Set<Integer>>();
-	List<Integer> top = new ArrayList<Integer>(gameSize); // reverse-topologically sorted states
-	DFS_visit(stpg, s0, visited, marked, backEdges, top);
-
-	System.out.println(top);
-	System.out.println(backEdges);
-	
-	// now, traverse trough the topological order, and compute stuff
-	Map<Integer, Double> distance = new HashMap<Integer, Double>(gameSize); // delta
-	Map<Integer, Integer> length = new HashMap<Integer, Integer>(gameSize); // length of path
-
-	for(Integer s : top){
-	    // check out all successors, but stop at back edges
-	    List<Distribution> dists = ((SMG) stpg).trans.get(s);
-	    double max_dis = 0.0;
-	    int max_len = 0;
-	    for(int d = 0; d < dists.size(); d++){
-		for(Integer t : dists.get(d).keySet()){
-		    // t is adjacent to s
-		    //if(backEdges.containsKey(s) && backEdges.get(s).contains(t)){ // s->t is a back edge
-			// do nothing (justify)
-		    //} else {
-
-		    // since now i don't disregard back edges, the field for t might not be available yet
-		    int next_len = length.containsKey(t) ? length.get(t) + 1 : 1;
-		    if(max_len < next_len){
-			max_len = next_len;
-		    }
-		    
-		    double next_dis = Math.log(1.0/dists.get(d).get(t)) + (distance.containsKey(t) ? distance.get(t) : 0); 
-		    if(max_dis < next_dis){
-			max_dis = next_dis;
-		    }
-		    //}
-		}
-	    }
-	    distance.put(s, max_dis);
-	    length.put(s, max_len);
-	}
-
-	System.out.println(distance);
-
-	// distances are log(1/dist), so need to take exponent and invert
-	for(int i = 0; i < gameSize; i++){
-	    distance.put(i, 1.0/Math.exp(distance.get(i)));
-	}
-
-	System.out.println(distance);
-	
-	int L = length.get(s0);
-	double delta = distance.get(s0);
-	double epsilon = 1.0/((double)accuracy[0]);
-	double M = 1.0; // start at one, because terminals incur reward of one - assume that terminals are reached
-	for(int s = 0; s < gameSize; s++){
-	    for(STPGRewards stpgr : stpgRewards){
-		double rew = stpgr.getStateReward(s);
-		if(rew > M) M = rew;
-	    }
-	}
-	M = ((double) L) * M / (1.0 - delta);
-
-
-	System.out.printf("L: %d, delta: %e, epsilon: %f, M: %f ", L, delta, epsilon, M);
-	
-	return Math.abs(((double) L) * Math.log(epsilon / M) / Math.log(1 - delta));
-
-    }
-
-
-    // TODO: remove
-    private void DFS_visit(STPG stpg, int s, BitSet visited, BitSet marked, Map<Integer, Set<Integer>> backEdges, List<Integer> L)
-    {
-	visited.set(s);
-
-	List<Distribution> dists = ((SMG) stpg).trans.get(s);
-	for(int d = 0; d < dists.size(); d++){
-	    for(Integer t : dists.get(d).keySet()){
-		// t is adjacent to s
-		if(!visited.get(t) && !marked.get(t)){
-		    DFS_visit(stpg, t, visited, marked, backEdges, L);
-		} else if (visited.get(t) && !marked.get(t)){ // back edge from t to s
-		    if(backEdges.containsKey(t)){ // back edge u->w already registered
-			backEdges.get(t).add(s);
-		    } else {
-			Set<Integer> edges = new HashSet<Integer>();
-			edges.add(s);
-			backEdges.put(t, edges);
-		    }
-		}
-	    }
-	}
-
-	marked.set(s);
-	L.add(s);
-    }
-
-
-    // TODO: remove
-    private double generatorDistance(Generator g1, Generator g2, long[] accuracy)
-    {
-	Linear_Expression le1 = g1.linear_expression();
-	Linear_Expression le2 = g2.linear_expression();
-	BigInteger d1 = g1.divisor().getBigInteger();
-	BigInteger d2 = g2.divisor().getBigInteger();
-	Map<Variable, BigInteger> c1 = new HashMap<Variable, BigInteger>();
-	Map<Variable, BigInteger> c2 = new HashMap<Variable, BigInteger>();
-
-	// get coefficients
-	PPLSupport.getCoefficientsFromLinearExpression(le1, false, BigInteger.ONE, c1);
-	PPLSupport.getCoefficientsFromLinearExpression(le2, false, BigInteger.ONE, c2);
-
-	// index by integers and not variables
-	Map<Integer, BigInteger> ic1 = new HashMap<Integer, BigInteger>();
-	for(Variable v : c1.keySet()){
-	    if(v != null){
-		ic1.put(v.id(), c1.get(v));
-	    }
-	}
-
-	Map<Integer, BigInteger> ic2 = new HashMap<Integer, BigInteger>();
-	for(Variable v : c2.keySet()){
-	    if(v != null){
-		ic2.put(v.id(), c2.get(v));
-	    }
-	}
-
-	//
-	double dist = 0.0;
-	Set<Integer> vars = new HashSet<Integer>();
-	vars.addAll(ic1.keySet());
-	vars.addAll(ic2.keySet());
-	for(Integer v : vars){
-	    double a = 0.0;
-	    if(ic1.containsKey(v)){
-		BigFraction temp = new BigFraction(ic1.get(v), d1);
-		a = temp.doubleValue();
-	    }
-	    if(ic2.containsKey(v)){
-		BigFraction temp = new BigFraction(ic2.get(v), d2);
-		a -= temp.doubleValue();
-	    }
-	    //dist += (a*a);
-	    dist += (a*a*(((double)accuracy[0])/((double)accuracy[v]))*(((double)accuracy[0])/((double)accuracy[v])));
-	}
-
-	return Math.sqrt(dist);
-
-    }
-
-    // TODO: remove
-    private boolean stop(Map<Integer,Polyhedron> X, Map<Integer,Polyhedron> prevX, long[] accuracy)
-    {
-	int gameSize = X.size();
-	
-	for(int s = 0; s < gameSize; s++){
-	    double max_dist = 0.0;
-	    for(Generator g : X.get(s).minimized_generators()){
-		double min_dist = Double.MAX_VALUE;
-		for(Generator prevg : prevX.get(s).minimized_generators()){
-		    double dist = generatorDistance(g, prevg, accuracy);
-		    if(min_dist > dist){
-			min_dist = dist;
-		    }
-		}
-		if(max_dist < min_dist){
-		    max_dist = min_dist;
-		}
-	    }
-	    if(max_dist >= 1.0/((double)accuracy[0])){ // if any distance is large enough, continue
-		System.out.printf("%% Distance of %e >= %e in polyhedron %d found. Continuing...\n", max_dist, 1.0/((double)accuracy[0]), s);
-		return false;
-	    }
-	}
-	return true; // if all distances are smaller, stop
-    }
-
-
-    // TODO: remove
-    private boolean hit_target(Polyhedron X_init, double[] goal)
-    {
-	Linear_Expression le = null;
-	for(int i = 0; i < goal.length; i++) {
-	    if(le==null) {
-		le = new Linear_Expression_Times(new Coefficient(Math.round(goal[i]*100000.0)), new Variable(i));
-	    } else {
-		le = le.sum(new Linear_Expression_Times(new Coefficient(Math.round(goal[i]*100000.0)), new Variable(i)));
-	    }
-	}
-
-	Generator_System gs = new Generator_System();
-	gs.add(Generator.point(le, new Coefficient(100000)));
-	Polyhedron p = new C_Polyhedron(gs);
-
-	return X_init.contains(p);	
-    }
-
-    */
-    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, BitSet terminals,long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
 	int gameSize = smg.getNumStates();
 	int n = rewards.size();
@@ -1026,8 +816,16 @@ public class SMGModelChecker extends STPGModelChecker
 	     for(int i = 0; i < n; i++) {
 		 SMGRewards reward = rewards.get(i);
 		 // TODO: What is a good accuracy here?
-		 // TODO: note that for negative rewards, need to explicitly code unary minus
-		 BigFraction ri = new BigFraction(reward.getStateReward(s), 1.0/1000000.0, Integer.MAX_VALUE);
+		 // TODO: get MIN(r)(s), rather than just the state reward
+
+		 BigFraction ri = null;
+		 if(reward.getStateReward(s)>=0) { // non-negative
+		     ri = new BigFraction(reward.getStateReward(s), 1.0/1000000.0, Integer.MAX_VALUE);
+		 } else { // negative
+		     //double MAX = 
+		     ri = new BigFraction(reward.getStateReward(s), 1.0/1000000.0, Integer.MAX_VALUE);
+		 }
+
 		 BigInteger num = ri.getNumerator();
 		 BigInteger den = ri.getDenominator();
 
@@ -1046,7 +844,7 @@ public class SMGModelChecker extends STPGModelChecker
 		     }
 		 }
 
-		 // generate ray for downard closure
+		 // generate ray for downward closure
 		 Linear_Expression ray = new Linear_Expression_Times(new Coefficient((BigInteger.ONE).negate()), new Variable(i));
 		 gs.add(Generator.ray(ray));
 	     }
@@ -1065,7 +863,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     // TODO: only store stochastic states at last iteration anyway
 	     stochasticStates.clear();
 	     
-	     result = smg.pMultiObjective(result, rewards, accuracy, stochasticStates);
+	     result = smg.pMultiObjective(result, rewards, terminals, accuracy, stochasticStates);
 
 	     k++;
 	     
@@ -1076,6 +874,7 @@ public class SMGModelChecker extends STPGModelChecker
 	return result;
     }
 
+    /*
     // TODO: remove
     public Map<Integer,Polyhedron> computeReachabilityPolyhedra(boolean min1, boolean min2, STPG stpg, List<STPGRewards> stpgRewards, List<BitSet> targets, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates, double[] goal) throws PrismException
      {
@@ -1217,7 +1016,7 @@ public class SMGModelChecker extends STPGModelChecker
 	 // return the set of polyhedra
 	 return result;
      }
-
+*/
 
 
 	 /**
@@ -1402,3 +1201,4 @@ public class SMGModelChecker extends STPGModelChecker
 		}
 	}
 }
+

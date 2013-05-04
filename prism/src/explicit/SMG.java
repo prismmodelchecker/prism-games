@@ -307,6 +307,7 @@ public class SMG extends STPGExplicit implements STPG
     }
 
 
+    /*
     // TODO: remove
     public Map<Integer,Polyhedron> pMultiObjective(boolean min1, boolean min2, Map<Integer,Polyhedron> init, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<List<Polyhedron>> stochasticStates, Map<Integer, Polyhedron> prev_results, boolean round) throws PrismException
         {
@@ -329,7 +330,7 @@ public class SMG extends STPGExplicit implements STPG
 
 	    return result;
         }
-
+    */
 
     public List<Set<ReachTuple>> mvMultiObjective(boolean min1, boolean min2, List<Set<ReachTuple>> init)
         {
@@ -472,7 +473,7 @@ public class SMG extends STPGExplicit implements STPG
 
 
 	Generator_System ngs = new Generator_System();
-	if(terminal.get(s)){
+	if(terminals.get(s)){
 	    ngs = Xk1s.generators();
 	} else {
 	    // first set up the reward vector that should be added to each point generator
@@ -581,7 +582,7 @@ public class SMG extends STPGExplicit implements STPG
 	return Xk1s;
     }
     
-
+    /*
     // TODO: remove
     private Polyhedron pMultiObjectiveSingle(int s, Map<Integer,Polyhedron> init, boolean min, List<BitSet> targets, List<STPGRewards> stpgRewards, long[] accuracy, List<Polyhedron> distPolys, Polyhedron prev_result, boolean round) throws PrismException
         {
@@ -626,16 +627,16 @@ public class SMG extends STPGExplicit implements STPG
 
 		    // make sure probabilities sum to one
 		    // NOTE: use this for more accurate computation
-		    /*
-		    residual = residual.divide(states.size());
-		    System.out.println(residual);
-		    for(Integer t : states){
-			BigFraction prob = probs.get(t);
-			prob = prob.add(residual);
-			probs.put(t, prob);
-			System.out.println(prob);
-		    }
-		    */
+		    //
+		    //residual = residual.divide(states.size());
+		    //System.out.println(residual);
+		    //for(Integer t : states){
+		    //  BigFraction prob = probs.get(t);
+		    //  prob = prob.add(residual);
+		    //  probs.put(t, prob);
+		    //  System.out.println(prob);
+		    //}
+		    //
 		    // NOTE: use this for a faster ad-hoc version
 		    probs.put(states.get(0), probs.get(states.get(0)).add(residual));
 		    
@@ -795,11 +796,6 @@ public class SMG extends STPGExplicit implements STPG
 			    if(map.get(k).compareTo(BigInteger.ZERO) < 0){ // negative
 				
 				System.out.println("NEGATIVE");
-				/*
-				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
-				long rounded = -((long)	Math.ceil(round_test.doubleValue()*accuracy[k.id()]))*accuracy[0]/accuracy[k.id()];
-
-				nle = nle.subtract(new Linear_Expression_Times(new Coefficient((long)rounded), k));*/
 			    } else { // positive or zero
 
 				BigFraction round_test = new BigFraction(map.get(k), c.getBigInteger());
@@ -850,7 +846,7 @@ public class SMG extends STPGExplicit implements STPG
 
 
 
-
+    */
 	private Set<ReachTuple> mvMultiObjectiveSingle(int s, List<Set<ReachTuple>> tuples, boolean min)
 	{
 
