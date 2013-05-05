@@ -119,6 +119,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 	// get the initial state of the model, which is an SMG
 	int initial_state;
+	int gameSize = ((SMG)model).numStates;
 	if(model.getNumInitialStates() != 1) {
 	    throw new PrismException("Multi-objective engine supports only models with a single initial state.");
 	} else {
@@ -132,6 +133,7 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	List<SMGRewards> rewards = new ArrayList<SMGRewards>(n); // the reward structures
 	List<Double> bounds = new ArrayList<Double>(n); // the required bounds
+	List<Integer> directions = new ArrayList<Integer>(n); // direction of inequality: 1 max, -1 min.
 
 	for(int i = 0; i < n; i++) {
 	    Expression expr_i = expr.getOperand(i);
@@ -146,6 +148,9 @@ public class SMGModelChecker extends STPGModelChecker
 		}
 		if(relOp.equals("<") || relOp.equals("<=")) {
 		    minimize = true;
+		    directions.add(-1);
+		} else {
+		    directions.add(1);
 		}
 
 		Expression pb = ((ExpressionProb)expr_i).getProb(); // probability bound expression
@@ -164,8 +169,8 @@ public class SMGModelChecker extends STPGModelChecker
 		    if(((ExpressionTemporal)e).getOperator() == ExpressionTemporal.P_F) {
 			BitSet t = checkExpression(model, ((ExpressionTemporal)e).getOperand2()).getBitSet(); // evaluate which states satisfy the property
 			// convert target set to reward structure
-			SMGRewardsSimple reward = new SMGRewardsSimple(((SMG)model).numStates);
-			for(int s = 0; s < ((SMG)model).numStates; s++) {
+			SMGRewardsSimple reward = new SMGRewardsSimple(gameSize);
+			for(int s = 0; s < gameSize; s++) {
 			    if(t.get(s)) { // attach reward 1.0 to states in target set
 				reward.setStateReward(s, minimize ? -1.0 : 1.0);
 			    }
@@ -190,6 +195,9 @@ public class SMGModelChecker extends STPGModelChecker
 		}
 		if(relOp.equals("<") || relOp.equals("<=")) {
 		    minimize = true;
+		    directions.add(-1);
+		} else {
+		    directions.add(1);
 		}
 
 		// evaluate reward bound
@@ -230,7 +238,7 @@ public class SMGModelChecker extends STPGModelChecker
 		SMGRewardsSimple reward = (SMGRewardsSimple)constructRewards.buildSMGRewardStructure((SMG)model, rewStruct, constantValues);
 		// check rewards assumptions
 		Boolean negative_rewards = null;
-		for(int s = 0; s < ((SMG)model).numStates; s++) {
+		for(int s = 0; s < gameSize; s++) {
 		    if(terminals.get(s) && reward.getStateReward(s)!=0.0) {
 			throw new PrismException("Terminal states must have zero rewards. Check state " + s + ".");
 		    }
@@ -256,7 +264,7 @@ public class SMGModelChecker extends STPGModelChecker
 
 		// for minimization need to revert sign:
 		if(minimize) {
-		    for(int s = 0; s < ((SMG)model).numStates; s++) {
+		    for(int s = 0; s < gameSize; s++) {
 			reward.setStateReward(s, reward.getStateReward(s));
 		    }
 		}
@@ -268,7 +276,8 @@ public class SMGModelChecker extends STPGModelChecker
 		throw new PrismException("Only the P and R operators are supported so far.");
 	    }
 	}
-	// TODO: set accuracy
+
+	// accuracy
 	long[] accuracy = new long[n];
 	for(int i = 0; i < n; i++) {
 	    SMGRewards reward = rewards.get(i);
@@ -287,15 +296,95 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 
 	// store polyhedra of stochastic states for strategy construction
-	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(((SMG)model).numStates);
+	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(gameSize);
 
 	// compute polyhedra
-	Map<Integer,Polyhedron> result_p = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+	Map<Integer,Polyhedron> result = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
 
+	// compute strategegy here
+	// TODO: remove call
+	MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, result, stochasticStates);
+	List<List<State>> samples = mdpmulti.simulateMDP(10000);
 
+	// TODO: turn around rewards
+
+	System.out.println("COLLATED SAMPLES:");
+	Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(rewards.size());
+	Map<List<State>,Double> c_samples = collateSamples(samples);
+	List<State> max_sample = samples.get(0);
+	double max_sample_prob = 0.0;
+	for(List<State> c_sample : c_samples.keySet()) {
+	    if(c_samples.get(c_sample) > max_sample_prob) {
+		max_sample_prob = c_samples.get(c_sample);
+		max_sample = c_sample;
+	    }
+	    //System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
+	    for(int r = 0; r < rewards.size(); r++) {
+		if(expected_reward.containsKey(r)) {
+		    expected_reward.put(r, expected_reward.get(r) + getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));
+		} else {
+		    expected_reward.put(r, getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));	    
+		}
+	    }
+	}
+	System.out.println("REWARDS:");
+	for(int r = 0; r < rewards.size(); r++) {
+	    System.out.printf("E_%d = %f\n", r, directions.get(r)*expected_reward.get(r));
+	}
+
+	
 	// TODO: Insert actual results here
 	//return new StateValues(TypeDouble.getInstance(), new Double(3.141593), model);
 	return new StateValues(TypeBool.getInstance(), new Boolean(true), model);
+    }
+
+
+
+    private Map<List<State>,Double> collateSamples(List<List<State>> samples) {
+	Map<List<State>,Double> result = new HashMap<List<State>,Double>();
+	go_through_samples:
+	for(List<State> sample : samples) {
+	    // first, check if sample is alrady assigned a probability in the results
+	    check_if_already_assigned:
+	    for(List<State> c_sample : result.keySet()) {
+		if(c_sample.size() != sample.size()) {
+		    // definitely not equal
+		    continue check_if_already_assigned;
+		} else { // go through all states and check
+		    for(int s = 0; s < c_sample.size() ; s++) {
+			if(c_sample.get(s) != sample.get(s)) {
+			    // definitely not equal
+			    continue check_if_already_assigned;
+			}
+		    }
+		    // fall through only if equal
+		    result.put(c_sample, result.get(c_sample) + 1.0);
+		    continue go_through_samples;
+		}
+	    }
+	    // if not already assigned
+	    result.put(sample, 1.0);
+	}
+	// divide by total number of samples
+	double num_samples = samples.size();
+	for(List<State> c_sample : result.keySet()) {
+	    result.put(c_sample, result.get(c_sample) / num_samples);
+	}
+	return result;
+    }
+
+
+
+    private double getPathReward(SMG G, List<State> path, SMGRewards smg_reward)
+    {
+	double reward = 0.0;
+	List<State> S = G.getStatesList();
+	for(State s : path) {
+	    if(s!=null) {
+		reward += smg_reward.getStateReward(S.indexOf(s));
+	    }
+	}
+	return reward;
     }
 
 
@@ -436,9 +525,13 @@ public class SMGModelChecker extends STPGModelChecker
     */
 
 
-    protected Strategy constructMultiStrategy(Model G, List<Polyhedron> X)
+    protected MDPMulti constructMDPMulti(Model G, List<SMGRewards> rewards, List<Double> bounds, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y) throws PrismException
     {
-	return null;
+	double[] v = new double[rewards.size()];
+	for(int i = 0; i < rewards.size(); i++) {
+	    v[i] = bounds.get(i);
+	}
+	return new MDPMulti((SMG)G, G.getFirstInitialState(), v, X, Y, rewards, mainLog);
     }
 
     

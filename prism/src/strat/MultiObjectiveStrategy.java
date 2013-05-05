@@ -13,16 +13,16 @@ import java.util.Comparator;
 import java.io.Serializable;
 
 import prism.PrismException;
-import explicit.STPG;
+import explicit.SMG;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.STPGExplicit;
 import explicit.MDP;
-import explicit.SMG;
 import explicit.MDPSimple;
 import explicit.SMGModelChecker;
 import explicit.PPLSupport;
 import explicit.rewards.STPGRewards;
+import explicit.rewards.SMGRewards;
 import parser.State;
 
 import org.apache.commons.math3.optim.linear.SimplexSolver;
@@ -60,6 +60,29 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
     double[] initial_rewards; // store rewards in initial sate
     List<double[]> initial_LIST_gsX; // corners in canonical order for initial state
     Map<Integer,State> initial_oldCornerToNewS; // maps corners to new states for initial state
+
+    
+
+    /**
+     * first index: corner
+     * second index: coordinate
+     **/
+    //List<double[]> initial_CnrX;
+
+    /**
+     * first index: current state
+     * second index: currend corner
+     * third index: next state
+     * returns: distribution over next corner
+     **/
+    //Map<Integer,Map<Integer, Distribution>>[] pi_u;
+
+    /**
+     * first index: current state
+     * second index: current corner
+     * returns: index of next state (next corner is determined by pi_u
+     **/
+    //Map<Integer, Integer>[] pi_n;
 
     // memory size
     int memorySize = 0;
@@ -474,9 +497,123 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 
     }
 
+    /*
+    public MultiObjectiveStrategy(SMG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<SMGRewards> rewards) throws PrismException
+    {
+	// make initial state specific to strategy
+	this.initial_state = initial_state;
+	
+	// store size of game and goal
+	int gameSize = G.getNumStates(); // game size
+	int n = rewards.size(); // number of rewards
+
+	// need LP solver to get convex combinations
+	SimplexSolver solver = new SimplexSolver(1.0e-5, 10);
+
+	//----------------------------------------------------------------------
+	// CANONICAL ORDER OF POINTS
+	List<double[]>[] CnrX = new List[gameSize];
+	for(int s = 0; s < gameSize; s++) {
+	    CnrX[s] = gsToList(X.get(s).minimized_generators(), n);
+	}
+	initial_CnrX = CnrX[initial_state];
+
+	//----------------------------------------------------------------------
+	// INITIAL DISTRIBUTION
+	Distribution d_init = new Distribution();
+	
+	// put value of v - reward(t) into bounds for LP
+	//initial_rewards = new double[rewards.size()];
+	double[] bounds = new double[n];
+	for(int i = 0; i < n; i++) {
+	    // lower bound on sum of betas
+	    //initial_rewards[i] = rewards.get(i).getStateReward(initial_state);
+	    bounds[i] = v[i] - rewards.get(i).getStateReward(initial_state);
+	}
+
+	List<List<double[]>> tuples;
+
+	boolean nothingfound = true;
+	search_for_distribution:
+	for(int l = 1; l < n+1; l++) { // first find l, the number of corners needed in the convex combination
+	    // compute all possible combinations of q_i^u
+	    tuples = selectGenerators(CnrX[initial_state], null, l, null);
+
+	    // preparation for LP
+	    double[] coeffs_beta = new double[l];
+	    for(int i = 0; i < l; i++) {
+		coeffs_beta[i] = 1;
+	    }
+	    // check for each such tuple
+	    nothingfound = true;
+	    iteration_through_tuples:
+	    for(List<double[]> tuple : tuples) {
+		// now formulate an LP for beta_i
+		
+		// max_{beta_i} sum_i beta
+		// s.t. sum_i beta_i q_i^u >= v - rewards(t)
+		//      sum_i beta_i <= 1
+		
+		// optimization function - maximize betas
+		LinearObjectiveFunction f = new LinearObjectiveFunction(coeffs_beta, 0);
+		
+		// constraints
+		List<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+		double[][] coeffs_q = new double[n][l];
+		for(int i = 0; i < l; i++) {
+		    // get coefficients from tuple.get(i)
+		    for(int k = 0; k < n; k++) {
+			coeffs_q[k][i] = tuple.get(i)[k];
+		    }
+		}
+		
+		// put value of v - reward(t) into bounds
+		for(int i = 0; i < n; i++) {
+		    constraints.add(new LinearConstraint(coeffs_q[i], Relationship.GEQ, bounds[i]));
+		}
+		for(int i = 0; i < l; i++) {
+		    // lower bound on beta_i
+		    double[] onlyone = new double[l];
+		    onlyone[i] = 1.0;
+		    constraints.add(new LinearConstraint(onlyone, Relationship.GEQ, 0.0));
+		}
+		// upper bound on sum of beta
+		constraints.add(new LinearConstraint(coeffs_beta, Relationship.LEQ, 1));
+		
+		PointValuePair solution;
+		try{
+		    solution = solver.optimize(f,
+					       new LinearConstraintSet(constraints),
+					       GoalType.MAXIMIZE,
+					       new MaxIter(10000));
+		} catch ( NoFeasibleSolutionException e) {
+		    // tuple not feasible, try a different one
+		    continue iteration_through_tuples;
+		}
+		nothingfound = false;
+		
+		// there has been no exception, so the problem was fasible
+		// can extract the distribution now from the solution
+		for(int i = 0; i < l; i++) {
+		    // TODO
+		    pi_u[initial_state].get(initial_state).get
+		    //State new_s_init = oldSandCornerToNewS.get(initial_state).get(LIST_gsX[initial_state].indexOf(tuple.get(i)));
+		    //d_init.add(newS.indexOf(new_s_init), solution.getPoint()[i]);
+		}
+		break search_for_distribution;
+	    }
+	}
+
+	if(nothingfound) {
+	    throw new PrismException("Goal not realizable");
+	}
+
+    }
+
+    */
 
     // directly construct MDP
-    public MultiObjectiveStrategy(STPG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<STPGRewards> stpgRewards) throws PrismException
+    public MultiObjectiveStrategy(SMG G, int initial_state, double[] v, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y, List<SMGRewards> rewards, double ignored) throws PrismException
     {
 	// make initial state specific to strategy
 	this.initial_state = initial_state;
@@ -484,7 +621,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	// store size of game and goal
 	int N = G.getNumStates(); // number of states in game (excluding stochastic states)
 	int L = ((int) X.get(0).space_dimension()); // total number of goals
-	int M = L - stpgRewards.size(); // total number of probabilistic goals
+	int M = L - rewards.size(); // total number of probabilistic goals
 	
 	// need LP solver to get convex combinations
 	SimplexSolver solver = new SimplexSolver(1.0e-5, 10);
@@ -552,15 +689,15 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 
 
 	// put value of v - reward(t) into bounds
-	initial_rewards = new double[stpgRewards.size()];
+	initial_rewards = new double[rewards.size()];
 	double[] bounds = new double[L];
 	for(int i = 0; i < L; i++) {
 	    // lower bound on sum of betas
 	    if(i < M) { // probability
 		bounds[i] = v[i];
 	    } else { // reward
-		initial_rewards[i-M] = stpgRewards.get(i-M).getStateReward(initial_state);
-		bounds[i] = v[i] - stpgRewards.get(i-M).getStateReward(initial_state);
+		initial_rewards[i-M] = rewards.get(i-M).getStateReward(initial_state);
+		bounds[i] = v[i] - rewards.get(i-M).getStateReward(initial_state);
 	    }
 	}
 
@@ -696,7 +833,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 			if(k < M) { // probabilities
 			    bounds[k] = LIST_gsX[t].get(p)[k];
 			} else { // rewards
-			    bounds[k] = LIST_gsX[t].get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
+			    bounds[k] = LIST_gsX[t].get(p)[k] - rewards.get(k-M).getStateReward(t);
 			}
 			
 		    }
@@ -776,7 +913,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 					search_for_stochastic_corners:
 					for(int ll = l; ll < L+1; ll++) {
 					    try {
-						stochastic.put(q_index, getActions(ntu, u, t, q_index, ll, M, dtu, stpgRewards, G, solver, gsYtu, LIST_gsX));
+						stochastic.put(q_index, getActions(ntu, u, t, q_index, ll, M, dtu, rewards, G, solver, gsYtu, LIST_gsX));
 						break search_for_stochastic_corners;
 					    } catch (PrismException e) {
 						System.out.printf("nothing found for ll=%d at l=%d and L=%d\n", ll, l, L);
@@ -830,7 +967,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 
 
 
-    protected Map<Integer,Double>[] getActions(int ntu, int u, int t, int p, int L, int M, Iterator<Entry<Integer,Double>> dtu, List<STPGRewards> stpgRewards, STPG G, SimplexSolver solver, List<double[]> gsYtu, List<double[]>[] LIST_gsX) throws PrismException
+    protected Map<Integer,Double>[] getActions(int ntu, int u, int t, int p, int L, int M, Iterator<Entry<Integer,Double>> dtu, List<SMGRewards> rewards, SMG G, SimplexSolver solver, List<double[]> gsYtu, List<double[]>[] LIST_gsX) throws PrismException
     {
 	// the result:
 	Map<Integer,Double>[] stochastic = new Map[ntu];
@@ -868,7 +1005,7 @@ public class MultiObjectiveStrategy implements Strategy, Serializable
 	    if(k < M) { // probabilities
 		bounds[k] = gsYtu.get(p)[k];
 	    } else {
-		bounds[k] = gsYtu.get(p)[k] - stpgRewards.get(k-M).getStateReward(t);
+		bounds[k] = gsYtu.get(p)[k] - rewards.get(k-M).getStateReward(t);
 	    }
 	}
 	
