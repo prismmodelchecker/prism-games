@@ -207,7 +207,7 @@ public class SMGModelChecker extends STPGModelChecker
 		if(e instanceof ExpressionTemporal) {
 		    // TODO: parse cumulative reward properly
 		    if(((ExpressionTemporal)e).getOperator() == ExpressionTemporal.R_S) { // cumulative reward
-			
+			// everything ok here
 		    } else {
 			throw new PrismException("Only cumulative rewards supported so far.");
 		    }
@@ -229,21 +229,21 @@ public class SMGModelChecker extends STPGModelChecker
 		ConstructRewards constructRewards = new ConstructRewards(mainLog);
 		SMGRewardsSimple reward = (SMGRewardsSimple)constructRewards.buildSMGRewardStructure((SMG)model, rewStruct, constantValues);
 		// check rewards assumptions
-		boolean negative_rewards = false;
+		Boolean negative_rewards = null;
 		for(int s = 0; s < ((SMG)model).numStates; s++) {
 		    if(terminals.get(s) && reward.getStateReward(s)!=0.0) {
 			throw new PrismException("Terminal states must have zero rewards. Check state " + s + ".");
 		    }
 		    if(reward.getStateReward(s)<0) {
-			if(s==0) {
+			if(negative_rewards==null) {
 			    negative_rewards = true;
 			} else {
 			    if(negative_rewards == false) {
 				throw new PrismException("Rewards must be either all negative or all non-positive in each structure.");
 			    }
 			}
-		    } else {
-			if(s==0) {
+		    } else if(reward.getStateReward(s)>0){
+			if(negative_rewards==null) {
 			    negative_rewards = false;
 			} else {
 			    if(negative_rewards == true) {
@@ -271,7 +271,19 @@ public class SMGModelChecker extends STPGModelChecker
 	// TODO: set accuracy
 	long[] accuracy = new long[n];
 	for(int i = 0; i < n; i++) {
-	    accuracy[i] = baseline_accuracy;
+	    SMGRewards reward = rewards.get(i);
+	    double[] maxmaxreward = (super.computeReachRewardsCumulative((STPG)model, reward, new BitSet(model.getNumStates()), false, false, null, null)).soln;
+	    double biggest_reward = 0;
+	    for(int s = 0; s < model.getNumStates(); s++) {
+		if(biggest_reward < Math.abs(maxmaxreward[s])) {
+		    biggest_reward = Math.abs(maxmaxreward[s]);
+		}		
+	    }
+	    if(biggest_reward > 0) {
+		accuracy[i] = baseline_accuracy/((long)biggest_reward);
+	    } else {
+		throw new PrismException("Reward " + i + " is all zeros, remove.");
+	    }
 	}
 
 	// store polyhedra of stochastic states for strategy construction
@@ -762,6 +774,10 @@ public class SMGModelChecker extends STPGModelChecker
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
 	     for(Generator g : polyhedra.get(s).minimized_generators()){
+		 // ignore rays
+		 if(g.type() == Generator_Type.RAY) {
+		     continue;
+		 }
 		 if(!init1){
 		     System.out.printf(" ; ");
 		 }
@@ -794,7 +810,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, BitSet terminals,long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, BitSet terminals, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
 	int gameSize = smg.getNumStates();
 	int n = rewards.size();
@@ -806,6 +822,24 @@ public class SMGModelChecker extends STPGModelChecker
 	 // VALUE ITERATION
 
 	 // initialisation: compute polyhedra X_s^0
+	 // first precompute MIN(r) for each reward
+	 double[][] MIN = new double[n][gameSize];
+	 for(int i = 0; i < n; i++) {
+	     SMGRewards reward = rewards.get(i);
+	     boolean positive_reward = false;
+	     for(int s = 0; s < gameSize; s++) {
+		 MIN[i][s] = reward.getStateReward(s);
+		 if(reward.getStateReward(s) > 0) {
+		     positive_reward = true;
+		 }
+	     }
+	     if(positive_reward) {
+		 continue;
+	     }
+	     MIN[i] = (super.computeReachRewardsCumulative((STPG)smg, reward, new BitSet(gameSize), true, true, null, null)).soln;
+	     
+	 }
+
 	 for(int s = 0; s < gameSize; s++) {
 	     Generator_System gs = new Generator_System();
 
@@ -816,15 +850,7 @@ public class SMGModelChecker extends STPGModelChecker
 	     for(int i = 0; i < n; i++) {
 		 SMGRewards reward = rewards.get(i);
 		 // TODO: What is a good accuracy here?
-		 // TODO: get MIN(r)(s), rather than just the state reward
-
-		 BigFraction ri = null;
-		 if(reward.getStateReward(s)>=0) { // non-negative
-		     ri = new BigFraction(reward.getStateReward(s), 1.0/1000000.0, Integer.MAX_VALUE);
-		 } else { // negative
-		     //double MAX = 
-		     ri = new BigFraction(reward.getStateReward(s), 1.0/1000000.0, Integer.MAX_VALUE);
-		 }
+		 BigFraction ri = new BigFraction(MIN[i][s], 1.0/1000000.0, Integer.MAX_VALUE);
 
 		 BigInteger num = ri.getNumerator();
 		 BigInteger den = ri.getDenominator();
@@ -858,17 +884,24 @@ public class SMGModelChecker extends STPGModelChecker
 	 // ITERATE FUNCTIONAL APPLICATION
 
 	 for(int k = 0; k < Math.ceil(maxIter); /* k increased later */ ) {
-	     System.out.printf("%% Starting iteration %d\n", k);
+	     System.out.printf("%% Starting iteration %d with accuracy[0] = %d\n", k, accuracy[0]);
 
 	     // TODO: only store stochastic states at last iteration anyway
 	     stochasticStates.clear();
 	     
 	     result = smg.pMultiObjective(result, rewards, terminals, accuracy, stochasticStates);
 
+	     // TODO: proper logging
+	     printMatlab(result, n, k);
+
 	     k++;
 	     
-	     // TODO: increase accuracy here
-	     
+	     // increase accuracy
+	     // TODO: get increase_factor from properties
+	     double increase_factor = 1.1;
+	     for(int i = 0; i < n; i++) {
+		 accuracy[i] *= increase_factor;
+	     }
 	 }
 
 	return result;
