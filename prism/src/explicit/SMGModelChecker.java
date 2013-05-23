@@ -141,8 +141,7 @@ public class SMGModelChecker extends STPGModelChecker
 		String relOp = ((ExpressionProb)expr_i).getRelOp(); // direction and strictness of operator
 		boolean minimize = false;
 		if(relOp.equals("<") || relOp.equals(">")) {
-		    //TODO: properly output log
-		    System.out.println("Strict inequalities ignored and turned into nonstrict inequalities.");
+		    mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
 		} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
 		    throw new PrismException("Only minimization or maximization supported.");
 		}
@@ -188,8 +187,7 @@ public class SMGModelChecker extends STPGModelChecker
 		String relOp = ((ExpressionReward)expr_i).getRelOp(); // direction and strictness of operator
 		boolean minimize = false;
 		if(relOp.equals("<") || relOp.equals(">")) {
-		    //TODO: properly output log
-		    System.out.println("Strict inequalities ignored and turned into nonstrict inequalities.");
+		    mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
 		} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
 		    throw new PrismException("Only minimization or maximization supported.");
 		}
@@ -283,7 +281,9 @@ public class SMGModelChecker extends STPGModelChecker
 	    SMGRewards reward = rewards.get(i);
 	    double[] maxmaxreward = (super.computeReachRewardsCumulative((STPG)model, reward, new BitSet(model.getNumStates()), false, false, null, null)).soln;
 	    double biggest_reward = 0;
+	    System.out.printf("i: %d\n", i);
 	    for(int s = 0; s < model.getNumStates(); s++) {
+		System.out.printf("s%d: %f\n", s, maxmaxreward[s]);
 		if(biggest_reward < Math.abs(maxmaxreward[s])) {
 		    biggest_reward = Math.abs(maxmaxreward[s]);
 		}		
@@ -299,14 +299,17 @@ public class SMGModelChecker extends STPGModelChecker
 	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(gameSize);
 
 	// compute polyhedra
-	Map<Integer,Polyhedron> result = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+	Map<Integer,Polyhedron> playerStates = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+
+	
 
 	// compute strategegy here
 	// TODO: remove call
-	MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, result, stochasticStates);
+	MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, playerStates, stochasticStates);
 	List<List<State>> samples = mdpmulti.simulateMDP(10000);
 
 	// TODO: turn around rewards
+	
 
 	System.out.println("COLLATED SAMPLES:");
 	Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(rewards.size());
@@ -332,10 +335,36 @@ public class SMGModelChecker extends STPGModelChecker
 	    System.out.printf("E_%d = %f\n", r, directions.get(r)*expected_reward.get(r));
 	}
 
-	
-	// TODO: Insert actual results here
-	//return new StateValues(TypeDouble.getInstance(), new Double(3.141593), model);
-	return new StateValues(TypeBool.getInstance(), new Boolean(true), model);
+	System.out.printf("Realizable at states: %s\n", checkBounds(playerStates, bounds));
+	return StateValues.createFromBitSet(checkBounds(playerStates, bounds), model);
+    }
+
+    private BitSet checkBounds(Map<Integer,Polyhedron> X, List<Double> bounds)
+    {
+	BitSet result = new BitSet(X.size());
+	for(int s = 0; s < X.size(); s++) {
+	    Polyhedron Xs = X.get(s);
+	    Generator_System gs = new Generator_System();
+	    Linear_Expression le = null;
+	    BigInteger d = null;
+	    for(int i = 0; i < bounds.size(); i++) {
+		// TODO: accuracy
+		BigFraction v_i = new BigFraction(bounds.get(i), 1.0/10000000.0, Integer.MAX_VALUE);
+		BigInteger num = v_i.getNumerator();
+		BigInteger den = v_i.getDenominator();
+		if(le==null) {
+		    le = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
+		    d = den;
+		} else {
+		    le = new Linear_Expression_Sum(le.times(new Coefficient(den)), new Linear_Expression_Times(new Coefficient(num.multiply(d)), new Variable(i)));
+		    d = den.multiply(d);
+		}
+	    }
+	    Generator v = Generator.point(le, new Coefficient(d));
+	    gs.add(v);
+	    result.set(s, Xs.contains(new C_Polyhedron(gs)));
+	}
+	return result;
     }
 
 
@@ -859,7 +888,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    }
 	    
 	}
-	System.out.printf("maxpoints{%d} = %d;\n", iter+1, max_points);
+	System.out.printf("maxpoints{%d} = %d;\n", iter+1, max_points-dim); // -dim because of rays
 	
 
 	for(int s = 0; s < polyhedra.size(); s++) {

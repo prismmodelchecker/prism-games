@@ -466,7 +466,7 @@ public class SMG extends STPGExplicit implements STPG
 	long baseline_accuracy = 0;
 	for(int i = 0; i < n; i++) {
 	    if(accuracy[i] > baseline_accuracy) {
-		baseline_accuracy = accuracy[0];
+		baseline_accuracy = accuracy[i];
 	    }
 	}
 
