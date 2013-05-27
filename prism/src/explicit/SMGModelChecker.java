@@ -84,8 +84,8 @@ public class SMGModelChecker extends STPGModelChecker
     {
 	// TODO: load from PRISM-properties
 	// parameters
-	long baseline_accuracy = 1000;
-	double maxIter = 100.0;
+	long baseline_accuracy = 100;
+	double maxIter = 20.0;
 
 	System.out.println(model);
 
@@ -298,13 +298,16 @@ public class SMGModelChecker extends STPGModelChecker
 	// store polyhedra of stochastic states for strategy construction
 	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(gameSize);
 
+	long startTime = System.nanoTime();
 	// compute polyhedra
 	Map<Integer,Polyhedron> playerStates = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+	System.out.printf("TIME ELAPSED: %f\n", ((double)(System.nanoTime() - startTime))/1e6);
 
 	
 
 	// compute strategegy here
 	// TODO: remove call
+	/*
 	MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, playerStates, stochasticStates);
 	List<List<State>> samples = mdpmulti.simulateMDP(10000);
 
@@ -334,7 +337,7 @@ public class SMGModelChecker extends STPGModelChecker
 	for(int r = 0; r < rewards.size(); r++) {
 	    System.out.printf("E_%d = %f\n", r, directions.get(r)*expected_reward.get(r));
 	}
-
+	*/
 	System.out.printf("Realizable at states: %s\n", checkBounds(playerStates, bounds));
 	return StateValues.createFromBitSet(checkBounds(playerStates, bounds), model);
     }
@@ -877,7 +880,7 @@ public class SMGModelChecker extends STPGModelChecker
     }
 
 
-    private void printMatlab(Map<Integer,Polyhedron> polyhedra, int dim, int iter)
+    public static void printMatlab(Map<Integer,Polyhedron> polyhedra, long dim, int iter)
     {
 	
 	int max_points = 0;
@@ -895,7 +898,7 @@ public class SMGModelChecker extends STPGModelChecker
 	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
 	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
 	     boolean init1 = true;
-	     for(Generator g : polyhedra.get(s).minimized_generators()){
+	     for(Generator g : polyhedra.get(s).generators()){
 		 // ignore rays
 		 if(g.type() == Generator_Type.RAY) {
 		     continue;

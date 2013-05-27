@@ -283,7 +283,7 @@ public class SMG extends STPGExplicit implements STPG
     public Map<Integer,Polyhedron> pMultiObjective(Map<Integer,Polyhedron> Xk, List<SMGRewards> rewards, BitSet terminals, long[] accuracy, List<List<Polyhedron>> stochasticStates) throws PrismException
     {
 	// TODO: load from Prism properties
-	boolean gauss_seidel = true;
+	boolean gauss_seidel = false;
 
 	Map<Integer,Polyhedron> result;
 	if(gauss_seidel) {
@@ -336,64 +336,66 @@ public class SMG extends STPGExplicit implements STPG
 	    } else {
 		// need to compute Minkowski sum
 
-		// generators of polyhedra of the successors of the stochastic state d
-		List<Generator_System> distGs = new ArrayList<Generator_System>(states.size());
+		C_Polyhedron cp = null;
+		Linear_Expression lhs, rhs;
 
-		// first scale the generators of each successor
-		// for point generators also need to lift space
-		int supdim = -1; // highest dimension in space so far - need for lifting
+		Map<Integer,Polyhedron> m = new HashMap<Integer,Polyhedron>(1);
+
+		// first need to make sure probabilities add to one
+		Map<Integer, BigFraction> probs = new HashMap<Integer,BigFraction>(states.size());
+		BigFraction residual = BigFraction.ONE;
 		for(Integer t : states) {
-		    supdim++; // one additional dimension per successor
-
-		    // get probability from distribution
 		    BigFraction prob = new BigFraction(distr.get(t), fract_acc, fract_iter);
-		    
-		    // scale polyhedron by prob
-		    Generator_System gs_new = new Generator_System();
-		    for(Generator g : Xk.get(t).generators()) {
-			if(g.type() == Generator_Type.POINT) {
-			    // scale and lift, i.e. compute:
-			    // num_prob/den_prob x arity x ( num_g/den_g + 1)
-			    // = (num_g x num_prob x arity + den_g x num_prob x arity) / (den_prob x den_g)
-			    BigInteger arity = BigInteger.valueOf(states.size());
-			    Linear_Expression le = g.linear_expression().times(new Coefficient(prob.getNumerator().multiply(arity)));
-			    Linear_Expression les = le.sum(new Linear_Expression_Times(new Coefficient(prob.getDenominator().multiply(arity).multiply(g.divisor().getBigInteger())), new Variable(n+supdim)));
-			    Coefficient c = new Coefficient(g.divisor().getBigInteger().multiply(prob.getDenominator()));
-			    Generator gen_new = Generator.point(les, c);
-			    gs_new.add(gen_new);
-			} else if (g.type() == Generator_Type.RAY) {
-			    // only need the rays for the first generator system,
-			    // as they will be the same for all states
-			    if(supdim==0) {
-				gs_new.add(g);
-			    }
-			} else {
-			    throw new PrismException("Only point and ray generators supported at this point. Where did the line come from?");
-			}
-		    }
-		    // add the scaled generators
-		    distGs.add(gs_new);
+		    probs.put(t, prob);
+		    residual = residual.subtract(prob);
 		}
+		//if(s==458) System.out.printf("458 residual: %s vs. %s", residual, probs.get(states.get(0)));
+		probs.put(states.get(0), probs.get(states.get(0)).add(residual));
 
-		// then form the Minkowski sum between polyhedra in distGs and add the result to distPolys
-		// do this by stacking all generators together
-		// and then constraining the temporary dimensions to 1
-		Generator_System gs = new Generator_System();
-		for(Generator_System g : distGs) {
-		    gs.addAll(g);
-		}
-		C_Polyhedron cp = new C_Polyhedron(gs);
-		// add constraints
-		supdim = -1;
+		int supdim = 0;
 		for(Integer t : states) {
+		    // deep copy!
+		    C_Polyhedron p = new C_Polyhedron(Xk.get(t).generators());
+		    //if(s==458) System.out.printf("458: %s", p.ascii_dump());
+		    p.add_space_dimensions_and_embed(states.size());
+		    //if(s==458) System.out.printf("458e: %s", p.ascii_dump());
+		    BigFraction prob = probs.get(t);
+		    for(int i = 0; i < states.size(); i++) {
+			if(i == supdim) {
+			    lhs = new Linear_Expression_Times(new Coefficient(prob.getNumerator()), new Variable(n+i));
+			    rhs = new Linear_Expression_Coefficient(new Coefficient(prob.getDenominator()));
+			} else {
+			    lhs = new Linear_Expression_Times(new Coefficient(BigInteger.ONE), new Variable(n+i));
+			    rhs = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ZERO));
+	
+			}
+			Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
+			p.add_constraint(c);
+		    }
+		    //if(s==458) System.out.printf("458c: %s", p.ascii_dump());
+		    if(cp == null) {
+		 	cp = p;
+		    } else {
+			cp.upper_bound_assign(p);
+		    }
 		    supdim++;
-		    Linear_Expression lhs = new Linear_Expression_Variable(new Variable(n+supdim));
-		    Linear_Expression rhs = new Linear_Expression_Coefficient(new Coefficient(1));
+ 		}
+		//if(s==458) System.out.printf("458cp: %s", cp.ascii_dump());
+		//if(s==458) {m.put(0,cp); SMGModelChecker.printMatlab(m,cp.space_dimension(),0); }
+		supdim = 0;
+		for(Integer t : states) {
+		    lhs = new Linear_Expression_Times(new Coefficient(BigInteger.ONE), new Variable(n+supdim));
+		    rhs = new Linear_Expression_Coefficient(new Coefficient(BigInteger.ONE));
 		    Constraint c = new Constraint(lhs, Relation_Symbol.EQUAL, rhs);
 		    cp.add_constraint(c);
+		    supdim++;
 		}
+		//if(s==458) System.out.printf("458cpc: %s\n", cp.ascii_dump());
+		//if(s==458) {m.put(0,cp); SMGModelChecker.printMatlab(m,cp.space_dimension(),0); }
 		// project away the unneccessary dimensions
 		cp.remove_higher_space_dimensions(n);
+		//if(s==458) System.out.printf("458cpp: %s\n", cp.ascii_dump());
+		//if(s==458) {m.put(0,cp); SMGModelChecker.printMatlab(m,cp.space_dimension(),0); }
 		// now in cp have the minkowski sum for that particular distribution d
 		distPolys.add(cp);
 	    }
@@ -413,14 +415,14 @@ public class SMG extends STPGExplicit implements STPG
 		Xk1s.upper_bound_assign(distPolys.get(cp_i));
 	    }
 	}
-	else if (stateLabels.get(s)==PLAYER_2) {
+	else { // if (stateLabels.get(s)==PLAYER_2) {
 	    // Player 2
 	    for (int cp_i = 1; cp_i < distPolys.size(); cp_i++) {
 		Xk1s.intersection_assign(distPolys.get(cp_i));
 	    }
-	} else {
-	    throw new PrismException("Only two-player games supported yet.");
-	}
+	} //else {
+	//    throw new PrismException("Only two-player games supported yet.");
+	//}
 
 	// ------------------------------------------------------------------------------
 	// ADD STATE REWARDS
