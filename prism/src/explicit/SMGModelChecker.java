@@ -27,403 +27,383 @@
 package explicit;
 
 // TODO: check dependencies
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
-import java.util.Arrays;
-import java.math.BigInteger;
-import java.lang.Math;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.math3.fraction.BigFraction;
+
+import parma_polyhedra_library.C_Polyhedron;
+import parma_polyhedra_library.Coefficient;
+import parma_polyhedra_library.Generator;
+import parma_polyhedra_library.Generator_System;
+import parma_polyhedra_library.Generator_Type;
+import parma_polyhedra_library.Linear_Expression;
+import parma_polyhedra_library.Linear_Expression_Sum;
+import parma_polyhedra_library.Linear_Expression_Times;
+import parma_polyhedra_library.Parma_Polyhedra_Library;
+import parma_polyhedra_library.Polyhedron;
+import parma_polyhedra_library.Variable;
+import parser.State;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionTemporal;
-import parser.ast.ExpressionUnaryOp;
-import parser.ast.ExpressionBinaryOp;
-import parser.type.TypeBool;
-import parser.type.TypeDouble;
-import parser.visitor.ASTTraverse;
-import prism.PrismException;
-import prism.PrismLangException;
-import prism.ModelType;
-import strat.ExactValueStrategy;
-import strat.MultiObjectiveStrategy;
-import strat.Strategy;
-import explicit.rewards.SMGRewards;
-
 import parser.ast.RewardStruct;
-import parser.State;
+import prism.ModelType;
+import prism.PrismException;
+import strat.ExactValueStrategy;
+import strat.Strategy;
 import explicit.rewards.ConstructRewards;
-import explicit.rewards.STPGRewards;
 import explicit.rewards.SMGRewards;
 import explicit.rewards.SMGRewardsSimple;
-import explicit.PPLSupport;
-import explicit.MapMDPSimulator;
-
-import org.apache.commons.math3.fraction.BigFraction;
-import parma_polyhedra_library.*;
 
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
  */
 public class SMGModelChecker extends STPGModelChecker
 {
-    protected StateValues checkExpressionMulti(Model model, ExpressionFunc expr) throws PrismException
-    {
-	// TODO: load from PRISM-properties
-	// parameters
-	long baseline_accuracy = 100;
-	double maxIter = 20.0;
+	protected StateValues checkExpressionMulti(Model model, ExpressionFunc expr) throws PrismException
+	{
+		// TODO: load from PRISM-properties
+		// parameters
+		long baseline_accuracy = 100;
+		double maxIter = 20.0;
 
-	System.out.println(model);
+		System.out.println(model);
 
-	// load the Parma Polyhedra Library (PPL) - used for polyhedra operations
-	try {
-	    System.loadLibrary("ppl_java");
-	    // initialise PPL
-	    Parma_Polyhedra_Library.initialize_library();
-	} catch (Exception e) {
-	    throw new PrismException("Error loading Parma Polyhedra Library. Library properly compiled and linked?");
-	}
-
-
-	// need terminal states to check stopping assumption and reward assumptions
-	BitSet terminals = findTerminalStates(model);
-
-	// check stopping assumption and model type
-	if(model.getModelType() == ModelType.SMG) {
-	    // game is non-stopping if for every strategy pair a terminal state is reached with probability 1
-	    // can do single-objective min-min reachability problem for terminals and check if > 0
-	    double[] reach_term = computeUntilProbs((STPG)model, null, terminals, true, true, 1.0).soln;
-	    for(int i = 0; i < reach_term.length; i++) {
-		if(reach_term[i] < 1.0 - 1e-6/*-1e-6*/) {
-		    throw new PrismException("The game is not stopping.");
-		}
-	    }
-
-	} else {
-	    throw new PrismException("Only SMGs supported by multi-objective engine.");
-	}
-
-	// get the initial state of the model, which is an SMG
-	int initial_state;
-	int gameSize = ((SMG)model).numStates;
-	if(model.getNumInitialStates() != 1) {
-	    throw new PrismException("Multi-objective engine supports only models with a single initial state.");
-	} else {
-	    initial_state = model.getFirstInitialState();
-	}
-
-	// get multi-objective goal
-	int n = expr.getNumOperands();
-	if(n<=1) {
-	    throw new PrismException("Need to have at least two goals for multi-objective engine.");
-	}
-	List<SMGRewards> rewards = new ArrayList<SMGRewards>(n); // the reward structures
-	List<Double> bounds = new ArrayList<Double>(n); // the required bounds
-	List<Integer> directions = new ArrayList<Integer>(n); // direction of inequality: 1 max, -1 min.
-
-	for(int i = 0; i < n; i++) {
-	    Expression expr_i = expr.getOperand(i);
-	    if (expr_i instanceof ExpressionProb) {
-		String relOp = ((ExpressionProb)expr_i).getRelOp(); // direction and strictness of operator
-		boolean minimize = false;
-		if(relOp.equals("<") || relOp.equals(">")) {
-		    mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
-		} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
-		    throw new PrismException("Only minimization or maximization supported.");
-		}
-		if(relOp.equals("<") || relOp.equals("<=")) {
-		    minimize = true;
-		    directions.add(-1);
-		} else {
-		    directions.add(1);
+		// load the Parma Polyhedra Library (PPL) - used for polyhedra operations
+		try {
+			System.loadLibrary("ppl_java");
+			// initialise PPL
+			Parma_Polyhedra_Library.initialize_library();
+		} catch (Exception e) {
+			throw new PrismException("Error loading Parma Polyhedra Library. Library properly compiled and linked?");
 		}
 
-		Expression pb = ((ExpressionProb)expr_i).getProb(); // probability bound expression
-		double p = -1; // probability bound
-		if (pb != null) {
-		    p = pb.evaluateDouble(constantValues);
-		    if (p < 0 || p > 1)
-			throw new PrismException("Invalid probability bound " + p + " in P operator");
-		} else {
-		    throw new PrismException("Probability bound required");
-		}
-		bounds.add(minimize ? -p : p); // add probability to vector
+		// need terminal states to check stopping assumption and reward assumptions
+		BitSet terminals = findTerminalStates(model);
 
-		Expression e = ((ExpressionProb)expr_i).getExpression();
-		if(e instanceof ExpressionTemporal) {
-		    if(((ExpressionTemporal)e).getOperator() == ExpressionTemporal.P_F) {
-			BitSet t = checkExpression(model, ((ExpressionTemporal)e).getOperand2()).getBitSet(); // evaluate which states satisfy the property
-			// convert target set to reward structure
-			SMGRewardsSimple reward = new SMGRewardsSimple(gameSize);
-			for(int s = 0; s < gameSize; s++) {
-			    if(t.get(s)) { // attach reward 1.0 to states in target set
-				reward.setStateReward(s, minimize ? -1.0 : 1.0);
-			    }
+		// check stopping assumption and model type
+		if (model.getModelType() == ModelType.SMG) {
+			// game is non-stopping if for every strategy pair a terminal state is reached with probability 1
+			// can do single-objective min-min reachability problem for terminals and check if > 0
+			double[] reach_term = computeUntilProbs((STPG) model, null, terminals, true, true, 1.0).soln;
+			for (int i = 0; i < reach_term.length; i++) {
+				if (reach_term[i] < 1.0 - 1e-6/*-1e-6*/) {
+					throw new PrismException("The game is not stopping.");
+				}
 			}
-			rewards.add(reward);
-		    } else {
-			// TODO: reduction from LTL to rewards goes here
-			throw new PrismException("Invalid property: property " + i + " must be a reachability property.");
-		    }
+
 		} else {
-		    throw new PrismException("Invalid property: property " + i + " must be an LTL formula.");
+			throw new PrismException("Only SMGs supported by multi-objective engine.");
 		}
 
-	    } else if (expr_i instanceof ExpressionReward) {
-		String relOp = ((ExpressionReward)expr_i).getRelOp(); // direction and strictness of operator
-		boolean minimize = false;
-		if(relOp.equals("<") || relOp.equals(">")) {
-		    mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
-		} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
-		    throw new PrismException("Only minimization or maximization supported.");
-		}
-		if(relOp.equals("<") || relOp.equals("<=")) {
-		    minimize = true;
-		    directions.add(-1);
+		// get the initial state of the model, which is an SMG
+		int initial_state;
+		int gameSize = ((SMG) model).numStates;
+		if (model.getNumInitialStates() != 1) {
+			throw new PrismException("Multi-objective engine supports only models with a single initial state.");
 		} else {
-		    directions.add(1);
+			initial_state = model.getFirstInitialState();
 		}
 
-		// evaluate reward bound
-		Expression rb = ((ExpressionReward)expr_i).getReward();
-		double r = 0.0; // reward bound
-		if (rb != null) {
-		    r = rb.evaluateDouble(constantValues);
-		} else {
-		    throw new PrismException("Reward bound required");
+		// get multi-objective goal
+		int n = expr.getNumOperands();
+		if (n <= 1) {
+			throw new PrismException("Need to have at least two goals for multi-objective engine.");
 		}
-		bounds.add(minimize ? -r : r); // add probability to vector
+		List<SMGRewards> rewards = new ArrayList<SMGRewards>(n); // the reward structures
+		List<Double> bounds = new ArrayList<Double>(n); // the required bounds
+		List<Integer> directions = new ArrayList<Integer>(n); // direction of inequality: 1 max, -1 min.
 
-		// check if cumulative reward
-		Expression e = ((ExpressionReward)expr_i).getExpression();
-		if(e instanceof ExpressionTemporal) {
-		    // TODO: parse cumulative reward properly
-		    if(((ExpressionTemporal)e).getOperator() == ExpressionTemporal.R_S) { // cumulative reward
-			// everything ok here
-		    } else {
-			throw new PrismException("Only cumulative rewards supported so far.");
-		    }
-		} else {
-		    throw new PrismException("Only temporal expressions supported so far.");
-		}
+		for (int i = 0; i < n; i++) {
+			Expression expr_i = expr.getOperand(i);
+			if (expr_i instanceof ExpressionProb) {
+				String relOp = ((ExpressionProb) expr_i).getRelOp(); // direction and strictness of operator
+				boolean minimize = false;
+				if (relOp.equals("<") || relOp.equals(">")) {
+					mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
+				} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
+					throw new PrismException("Only minimization or maximization supported.");
+				}
+				if (relOp.equals("<") || relOp.equals("<=")) {
+					minimize = true;
+					directions.add(-1);
+				} else {
+					directions.add(1);
+				}
 
-		// get index of reward structure from expression
-		Object r_index = ((ExpressionReward)expr_i).getRewardStructIndex();
-		// construct state rewards
-		RewardStruct rewStruct;
-		if(r_index instanceof Integer) {
-		    rewStruct = modulesFile.getRewardStruct((Integer)r_index);
-		} else if (r_index instanceof String) {
-		    rewStruct = modulesFile.getRewardStructByName((String)r_index);
-		} else {
-		    throw new PrismException("Cannot get reward structure for goal " + i + ".");
-		}
-		ConstructRewards constructRewards = new ConstructRewards(mainLog);
-		SMGRewardsSimple reward = (SMGRewardsSimple)constructRewards.buildSMGRewardStructure((SMG)model, rewStruct, constantValues);
-		// check rewards assumptions
-		Boolean negative_rewards = null;
-		for(int s = 0; s < gameSize; s++) {
-		    if(terminals.get(s) && reward.getStateReward(s)!=0.0) {
-			throw new PrismException("Terminal states must have zero rewards. Check state " + s + ".");
-		    }
-		    if(reward.getStateReward(s)<0) {
-			if(negative_rewards==null) {
-			    negative_rewards = true;
+				Expression pb = ((ExpressionProb) expr_i).getProb(); // probability bound expression
+				double p = -1; // probability bound
+				if (pb != null) {
+					p = pb.evaluateDouble(constantValues);
+					if (p < 0 || p > 1)
+						throw new PrismException("Invalid probability bound " + p + " in P operator");
+				} else {
+					throw new PrismException("Probability bound required");
+				}
+				bounds.add(minimize ? -p : p); // add probability to vector
+
+				Expression e = ((ExpressionProb) expr_i).getExpression();
+				if (e instanceof ExpressionTemporal) {
+					if (((ExpressionTemporal) e).getOperator() == ExpressionTemporal.P_F) {
+						BitSet t = checkExpression(model, ((ExpressionTemporal) e).getOperand2()).getBitSet(); // evaluate which states satisfy the property
+						// convert target set to reward structure
+						SMGRewardsSimple reward = new SMGRewardsSimple(gameSize);
+						for (int s = 0; s < gameSize; s++) {
+							if (t.get(s)) { // attach reward 1.0 to states in target set
+								reward.setStateReward(s, minimize ? -1.0 : 1.0);
+							}
+						}
+						rewards.add(reward);
+					} else {
+						// TODO: reduction from LTL to rewards goes here
+						throw new PrismException("Invalid property: property " + i + " must be a reachability property.");
+					}
+				} else {
+					throw new PrismException("Invalid property: property " + i + " must be an LTL formula.");
+				}
+
+			} else if (expr_i instanceof ExpressionReward) {
+				String relOp = ((ExpressionReward) expr_i).getRelOp(); // direction and strictness of operator
+				boolean minimize = false;
+				if (relOp.equals("<") || relOp.equals(">")) {
+					mainLog.println("Strict inequalities ignored and turned into nonstrict inequalities.");
+				} else if (!relOp.equals(">=") && !relOp.equals("<=")) {
+					throw new PrismException("Only minimization or maximization supported.");
+				}
+				if (relOp.equals("<") || relOp.equals("<=")) {
+					minimize = true;
+					directions.add(-1);
+				} else {
+					directions.add(1);
+				}
+
+				// evaluate reward bound
+				Expression rb = ((ExpressionReward) expr_i).getReward();
+				double r = 0.0; // reward bound
+				if (rb != null) {
+					r = rb.evaluateDouble(constantValues);
+				} else {
+					throw new PrismException("Reward bound required");
+				}
+				bounds.add(minimize ? -r : r); // add probability to vector
+
+				// check if cumulative reward
+				Expression e = ((ExpressionReward) expr_i).getExpression();
+				if (e instanceof ExpressionTemporal) {
+					// TODO: parse cumulative reward properly
+					if (((ExpressionTemporal) e).getOperator() == ExpressionTemporal.R_S) { // cumulative reward
+						// everything ok here
+					} else {
+						throw new PrismException("Only cumulative rewards supported so far.");
+					}
+				} else {
+					throw new PrismException("Only temporal expressions supported so far.");
+				}
+
+				// get index of reward structure from expression
+				Object r_index = ((ExpressionReward) expr_i).getRewardStructIndex();
+				// construct state rewards
+				RewardStruct rewStruct;
+				if (r_index instanceof Integer) {
+					rewStruct = modulesFile.getRewardStruct((Integer) r_index);
+				} else if (r_index instanceof String) {
+					rewStruct = modulesFile.getRewardStructByName((String) r_index);
+				} else {
+					throw new PrismException("Cannot get reward structure for goal " + i + ".");
+				}
+				ConstructRewards constructRewards = new ConstructRewards(mainLog);
+				SMGRewardsSimple reward = (SMGRewardsSimple) constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
+				// check rewards assumptions
+				Boolean negative_rewards = null;
+				for (int s = 0; s < gameSize; s++) {
+					if (terminals.get(s) && reward.getStateReward(s) != 0.0) {
+						throw new PrismException("Terminal states must have zero rewards. Check state " + s + ".");
+					}
+					if (reward.getStateReward(s) < 0) {
+						if (negative_rewards == null) {
+							negative_rewards = true;
+						} else {
+							if (negative_rewards == false) {
+								throw new PrismException("Rewards must be either all negative or all non-positive in each structure.");
+							}
+						}
+					} else if (reward.getStateReward(s) > 0) {
+						if (negative_rewards == null) {
+							negative_rewards = false;
+						} else {
+							if (negative_rewards == true) {
+								throw new PrismException("Rewards must be either all negative or all non-positive in each structure.");
+							}
+						}
+					}
+
+				}
+
+				// for minimization need to revert sign:
+				if (minimize) {
+					for (int s = 0; s < gameSize; s++) {
+						reward.setStateReward(s, reward.getStateReward(s));
+					}
+				}
+
+				// add reward
+				rewards.add(reward);
+
 			} else {
-			    if(negative_rewards == false) {
-				throw new PrismException("Rewards must be either all negative or all non-positive in each structure.");
-			    }
+				throw new PrismException("Only the P and R operators are supported so far.");
 			}
-		    } else if(reward.getStateReward(s)>0){
-			if(negative_rewards==null) {
-			    negative_rewards = false;
+		}
+
+		// accuracy
+		long[] accuracy = new long[n];
+		for (int i = 0; i < n; i++) {
+			SMGRewards reward = rewards.get(i);
+			double[] maxmaxreward = (super.computeReachRewardsCumulative((STPG) model, reward, new BitSet(model.getNumStates()), false, false, null, null)).soln;
+			double biggest_reward = 0;
+			System.out.printf("i: %d\n", i);
+			for (int s = 0; s < model.getNumStates(); s++) {
+				System.out.printf("s%d: %f\n", s, maxmaxreward[s]);
+				if (biggest_reward < Math.abs(maxmaxreward[s])) {
+					biggest_reward = Math.abs(maxmaxreward[s]);
+				}
+			}
+			if (biggest_reward > 0) {
+				accuracy[i] = baseline_accuracy / ((long) biggest_reward);
 			} else {
-			    if(negative_rewards == true) {
-				throw new PrismException("Rewards must be either all negative or all non-positive in each structure.");
-			    }
+				throw new PrismException("Reward " + i + " is all zeros, remove.");
+			}
+		}
+
+		// store polyhedra of stochastic states for strategy construction
+		List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(gameSize);
+
+		long startTime = System.nanoTime();
+		// compute polyhedra
+		Map<Integer, Polyhedron> playerStates = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
+		System.out.printf("TIME ELAPSED: %f\n", ((double) (System.nanoTime() - startTime)) / 1e6);
+
+		// compute strategegy here
+		// TODO: remove call
+		/*
+		MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, playerStates, stochasticStates);
+		List<List<State>> samples = mdpmulti.simulateMDP(10000);
+
+		// TODO: turn around rewards
+		
+
+		System.out.println("COLLATED SAMPLES:");
+		Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(rewards.size());
+		Map<List<State>,Double> c_samples = collateSamples(samples);
+		List<State> max_sample = samples.get(0);
+		double max_sample_prob = 0.0;
+		for(List<State> c_sample : c_samples.keySet()) {
+		    if(c_samples.get(c_sample) > max_sample_prob) {
+			max_sample_prob = c_samples.get(c_sample);
+			max_sample = c_sample;
+		    }
+		    //System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
+		    for(int r = 0; r < rewards.size(); r++) {
+			if(expected_reward.containsKey(r)) {
+			    expected_reward.put(r, expected_reward.get(r) + getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));
+			} else {
+			    expected_reward.put(r, getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));	    
 			}
 		    }
-
 		}
-
-		// for minimization need to revert sign:
-		if(minimize) {
-		    for(int s = 0; s < gameSize; s++) {
-			reward.setStateReward(s, reward.getStateReward(s));
-		    }
+		System.out.println("REWARDS:");
+		for(int r = 0; r < rewards.size(); r++) {
+		    System.out.printf("E_%d = %f\n", r, directions.get(r)*expected_reward.get(r));
 		}
-
-		// add reward
-		rewards.add(reward);
-
-	    } else {
-		throw new PrismException("Only the P and R operators are supported so far.");
-	    }
+		*/
+		System.out.printf("Realizable at states: %s\n", checkBounds(playerStates, bounds));
+		return StateValues.createFromBitSet(checkBounds(playerStates, bounds), model);
 	}
 
-	// accuracy
-	long[] accuracy = new long[n];
-	for(int i = 0; i < n; i++) {
-	    SMGRewards reward = rewards.get(i);
-	    double[] maxmaxreward = (super.computeReachRewardsCumulative((STPG)model, reward, new BitSet(model.getNumStates()), false, false, null, null)).soln;
-	    double biggest_reward = 0;
-	    System.out.printf("i: %d\n", i);
-	    for(int s = 0; s < model.getNumStates(); s++) {
-		System.out.printf("s%d: %f\n", s, maxmaxreward[s]);
-		if(biggest_reward < Math.abs(maxmaxreward[s])) {
-		    biggest_reward = Math.abs(maxmaxreward[s]);
-		}		
-	    }
-	    if(biggest_reward > 0) {
-		accuracy[i] = baseline_accuracy/((long)biggest_reward);
-	    } else {
-		throw new PrismException("Reward " + i + " is all zeros, remove.");
-	    }
+	private BitSet checkBounds(Map<Integer, Polyhedron> X, List<Double> bounds)
+	{
+		BitSet result = new BitSet(X.size());
+		for (int s = 0; s < X.size(); s++) {
+			Polyhedron Xs = X.get(s);
+			Generator_System gs = new Generator_System();
+			Linear_Expression le = null;
+			BigInteger d = null;
+			for (int i = 0; i < bounds.size(); i++) {
+				// TODO: accuracy
+				BigFraction v_i = new BigFraction(bounds.get(i), 1.0 / 10000000.0, Integer.MAX_VALUE);
+				BigInteger num = v_i.getNumerator();
+				BigInteger den = v_i.getDenominator();
+				if (le == null) {
+					le = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
+					d = den;
+				} else {
+					le = new Linear_Expression_Sum(le.times(new Coefficient(den)), new Linear_Expression_Times(new Coefficient(num.multiply(d)),
+							new Variable(i)));
+					d = den.multiply(d);
+				}
+			}
+			Generator v = Generator.point(le, new Coefficient(d));
+			gs.add(v);
+			result.set(s, Xs.contains(new C_Polyhedron(gs)));
+		}
+		return result;
 	}
 
-	// store polyhedra of stochastic states for strategy construction
-	List<List<Polyhedron>> stochasticStates = new ArrayList<List<Polyhedron>>(gameSize);
+	private Map<List<State>, Double> collateSamples(List<List<State>> samples)
+	{
+		Map<List<State>, Double> result = new HashMap<List<State>, Double>();
+		go_through_samples: for (List<State> sample : samples) {
+			// first, check if sample is alrady assigned a probability in the results
+			check_if_already_assigned: for (List<State> c_sample : result.keySet()) {
+				if (c_sample.size() != sample.size()) {
+					// definitely not equal
+					continue check_if_already_assigned;
+				} else { // go through all states and check
+					for (int s = 0; s < c_sample.size(); s++) {
+						if (c_sample.get(s) != sample.get(s)) {
+							// definitely not equal
+							continue check_if_already_assigned;
+						}
+					}
+					// fall through only if equal
+					result.put(c_sample, result.get(c_sample) + 1.0);
+					continue go_through_samples;
+				}
+			}
+			// if not already assigned
+			result.put(sample, 1.0);
+		}
+		// divide by total number of samples
+		double num_samples = samples.size();
+		for (List<State> c_sample : result.keySet()) {
+			result.put(c_sample, result.get(c_sample) / num_samples);
+		}
+		return result;
+	}
 
-	long startTime = System.nanoTime();
-	// compute polyhedra
-	Map<Integer,Polyhedron> playerStates = computeParetoSetApproximations((SMG) model, rewards, bounds, terminals, accuracy, maxIter, stochasticStates); // stores Pareto set approximations
-	System.out.printf("TIME ELAPSED: %f\n", ((double)(System.nanoTime() - startTime))/1e6);
+	private double getPathReward(SMG G, List<State> path, SMGRewards smg_reward)
+	{
+		double reward = 0.0;
+		List<State> S = G.getStatesList();
+		for (State s : path) {
+			if (s != null) {
+				reward += smg_reward.getStateReward(S.indexOf(s));
+			}
+		}
+		return reward;
+	}
 
-	
-
-	// compute strategegy here
-	// TODO: remove call
 	/*
-	MDPMulti mdpmulti = constructMDPMulti(model, rewards, bounds, playerStates, stochasticStates);
-	List<List<State>> samples = mdpmulti.simulateMDP(10000);
-
-	// TODO: turn around rewards
-	
-
-	System.out.println("COLLATED SAMPLES:");
-	Map<Integer,Double> expected_reward = new HashMap<Integer,Double>(rewards.size());
-	Map<List<State>,Double> c_samples = collateSamples(samples);
-	List<State> max_sample = samples.get(0);
-	double max_sample_prob = 0.0;
-	for(List<State> c_sample : c_samples.keySet()) {
-	    if(c_samples.get(c_sample) > max_sample_prob) {
-		max_sample_prob = c_samples.get(c_sample);
-		max_sample = c_sample;
-	    }
-	    //System.out.printf("%.4f: %s\n", c_samples.get(c_sample), c_sample.toString());
-	    for(int r = 0; r < rewards.size(); r++) {
-		if(expected_reward.containsKey(r)) {
-		    expected_reward.put(r, expected_reward.get(r) + getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));
-		} else {
-		    expected_reward.put(r, getPathReward((SMG) model, c_sample, rewards.get(r))*c_samples.get(c_sample));	    
-		}
-	    }
-	}
-	System.out.println("REWARDS:");
-	for(int r = 0; r < rewards.size(); r++) {
-	    System.out.printf("E_%d = %f\n", r, directions.get(r)*expected_reward.get(r));
-	}
-	*/
-	System.out.printf("Realizable at states: %s\n", checkBounds(playerStates, bounds));
-	return StateValues.createFromBitSet(checkBounds(playerStates, bounds), model);
-    }
-
-    private BitSet checkBounds(Map<Integer,Polyhedron> X, List<Double> bounds)
-    {
-	BitSet result = new BitSet(X.size());
-	for(int s = 0; s < X.size(); s++) {
-	    Polyhedron Xs = X.get(s);
-	    Generator_System gs = new Generator_System();
-	    Linear_Expression le = null;
-	    BigInteger d = null;
-	    for(int i = 0; i < bounds.size(); i++) {
-		// TODO: accuracy
-		BigFraction v_i = new BigFraction(bounds.get(i), 1.0/10000000.0, Integer.MAX_VALUE);
-		BigInteger num = v_i.getNumerator();
-		BigInteger den = v_i.getDenominator();
-		if(le==null) {
-		    le = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
-		    d = den;
-		} else {
-		    le = new Linear_Expression_Sum(le.times(new Coefficient(den)), new Linear_Expression_Times(new Coefficient(num.multiply(d)), new Variable(i)));
-		    d = den.multiply(d);
-		}
-	    }
-	    Generator v = Generator.point(le, new Coefficient(d));
-	    gs.add(v);
-	    result.set(s, Xs.contains(new C_Polyhedron(gs)));
-	}
-	return result;
-    }
-
-
-
-    private Map<List<State>,Double> collateSamples(List<List<State>> samples) {
-	Map<List<State>,Double> result = new HashMap<List<State>,Double>();
-	go_through_samples:
-	for(List<State> sample : samples) {
-	    // first, check if sample is alrady assigned a probability in the results
-	    check_if_already_assigned:
-	    for(List<State> c_sample : result.keySet()) {
-		if(c_sample.size() != sample.size()) {
-		    // definitely not equal
-		    continue check_if_already_assigned;
-		} else { // go through all states and check
-		    for(int s = 0; s < c_sample.size() ; s++) {
-			if(c_sample.get(s) != sample.get(s)) {
-			    // definitely not equal
-			    continue check_if_already_assigned;
-			}
-		    }
-		    // fall through only if equal
-		    result.put(c_sample, result.get(c_sample) + 1.0);
-		    continue go_through_samples;
-		}
-	    }
-	    // if not already assigned
-	    result.put(sample, 1.0);
-	}
-	// divide by total number of samples
-	double num_samples = samples.size();
-	for(List<State> c_sample : result.keySet()) {
-	    result.put(c_sample, result.get(c_sample) / num_samples);
-	}
-	return result;
-    }
-
-
-
-    private double getPathReward(SMG G, List<State> path, SMGRewards smg_reward)
-    {
-	double reward = 0.0;
-	List<State> S = G.getStatesList();
-	for(State s : path) {
-	    if(s!=null) {
-		reward += smg_reward.getStateReward(S.indexOf(s));
-	    }
-	}
-	return reward;
-    }
-
-
-    /*
-    // TODO: remove
-    protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
-    {
+	// TODO: remove
+	protected Map<Integer,Polyhedron> checkMultiObjectiveFormula(Model model, ExpressionPATL exprPATL, boolean min, List<List<Polyhedron>> stochasticStates) throws PrismException
+	{
 
 	System.out.println("multiobjcheck");
 
@@ -529,7 +509,7 @@ public class SMGModelChecker extends STPGModelChecker
 		mmdps.readStrategy("mmdps");
 
 	        //double[] goal = { 0.019, 0.903, 2.884 };
-                //double[] goal = { 0.769, 0.75,  11.69 };
+	            //double[] goal = { 0.769, 0.75,  11.69 };
 	        //double[] goal = { 0.0, 0.576, 17.21 };
 	        double[] goal = { 0.6346, 0.7692, 13.2692 };
 
@@ -552,32 +532,31 @@ public class SMGModelChecker extends STPGModelChecker
 	
 	throw new PrismException("Explicit engine does not yet handle LTL-style path formulas.");
 	
-    }
-
-    */
-
-
-    protected MDPMulti constructMDPMulti(Model G, List<SMGRewards> rewards, List<Double> bounds, Map<Integer,Polyhedron> X, List<List<Polyhedron>> Y) throws PrismException
-    {
-	double[] v = new double[rewards.size()];
-	for(int i = 0; i < rewards.size(); i++) {
-	    v[i] = bounds.get(i);
 	}
-	return new MDPMulti((SMG)G, G.getFirstInitialState(), v, X, Y, rewards, mainLog);
-    }
 
-    
+	*/
+
+	protected MDPMulti constructMDPMulti(Model G, List<SMGRewards> rewards, List<Double> bounds, Map<Integer, Polyhedron> X, List<List<Polyhedron>> Y)
+			throws PrismException
+	{
+		double[] v = new double[rewards.size()];
+		for (int i = 0; i < rewards.size(); i++) {
+			v[i] = bounds.get(i);
+		}
+		return new MDPMulti((SMG) G, G.getFirstInitialState(), v, X, Y, rewards, mainLog);
+	}
+
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
 	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
 	{
 
-	    //@clemens : don't change this - this works out the player coalition
-	    // setting coalition parameter
-	    ((SMG) model).setCoalition(exprPATL.getCoalition());
-	    
-	    Expression expr = exprPATL.getExpressionProb().getExpression();
+		//@clemens : don't change this - this works out the player coalition
+		// setting coalition parameter
+		((SMG) model).setCoalition(exprPATL.getCoalition());
+
+		Expression expr = exprPATL.getExpressionProb().getExpression();
 
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method.
@@ -585,452 +564,437 @@ public class SMGModelChecker extends STPGModelChecker
 			double p = -1;
 			Expression pb = exprPATL.getExpressionProb().getProb();
 			if (pb != null) {
-			    p = pb.evaluateDouble(constantValues);
+				p = pb.evaluateDouble(constantValues);
 			}
 			// do the polyhedra computation
 			List<List<Polyhedron>> Y = new ArrayList<List<Polyhedron>>(((STPG) model).getStatesList().size());
 			//TODO get this back
 			//Map<Integer,Polyhedron> X = checkMultiObjectiveFormula(model, exprPATL, min, Y);
-			
 
 			// here do the standard method that I've basically overridden
 			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
 		}
 
-		 /*
-		  * TODO implement FG and GF formulae //Test if this is FG if (expr
-		  * instanceof ExpressionTemporal) { ExpressionTemporal exprT =
-		  * (ExpressionTemporal) expr; if (exprT.getOperator() ==
-		  * ExpressionTemporal.P_F) { Expression expr2 = exprT.getOperand2(); if
-		  * (expr2 instanceof ExpressionTemporal) { ExpressionTemporal expr2T =
-		  * (ExpressionTemporal) expr2; if (expr2T.getOperator() ==
-		  * ExpressionTemporal.P_G) { Expression expr3 = expr2T.getOperand2(); if
-		  * (!(expr3 instanceof ExpressionTemporal)) { return
-		  * super.checkFG(model, expr, min, !min); } } } } }
-		  * 
-		  * //Test whether this is GF if (expr instanceof ExpressionTemporal) {
-		  * ExpressionTemporal exprT = (ExpressionTemporal) expr; if
-		  * (exprT.getOperator() == ExpressionTemporal.P_G) { Expression expr2 =
-		  * exprT.getOperand2(); if (expr2 instanceof ExpressionTemporal) {
-		  * ExpressionTemporal expr2T = (ExpressionTemporal) expr2; if
-		  * (expr2T.getOperator() == ExpressionTemporal.P_F) { Expression expr3 =
-		  * expr2T.getOperand2(); if (!(expr3 instanceof ExpressionTemporal)) {
-		  * return super.checkGF(model, expr, min, !min); } } } } }
-		  */
+		/*
+		 * TODO implement FG and GF formulae //Test if this is FG if (expr
+		 * instanceof ExpressionTemporal) { ExpressionTemporal exprT =
+		 * (ExpressionTemporal) expr; if (exprT.getOperator() ==
+		 * ExpressionTemporal.P_F) { Expression expr2 = exprT.getOperand2(); if
+		 * (expr2 instanceof ExpressionTemporal) { ExpressionTemporal expr2T =
+		 * (ExpressionTemporal) expr2; if (expr2T.getOperator() ==
+		 * ExpressionTemporal.P_G) { Expression expr3 = expr2T.getOperand2(); if
+		 * (!(expr3 instanceof ExpressionTemporal)) { return
+		 * super.checkFG(model, expr, min, !min); } } } } }
+		 * 
+		 * //Test whether this is GF if (expr instanceof ExpressionTemporal) {
+		 * ExpressionTemporal exprT = (ExpressionTemporal) expr; if
+		 * (exprT.getOperator() == ExpressionTemporal.P_G) { Expression expr2 =
+		 * exprT.getOperand2(); if (expr2 instanceof ExpressionTemporal) {
+		 * ExpressionTemporal expr2T = (ExpressionTemporal) expr2; if
+		 * (expr2T.getOperator() == ExpressionTemporal.P_F) { Expression expr3 =
+		 * expr2T.getOperand2(); if (!(expr3 instanceof ExpressionTemporal)) {
+		 * return super.checkGF(model, expr, min, !min); } } } } }
+		 */
 
-		 // in other case
-		 throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
-	 }
-
-
-	 /**
-	  * Compute rewards for the contents of an R operator.
-	  */
-	 protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min)
-			 throws PrismException
-	 {
-		 // setting coalition parameter
-		 ((SMG) model).setCoalition(exprPATL.getCoalition());
-
-		 StateValues rewards = null;
-		 Expression expr = exprPATL.getExpressionRew().getExpression();
-
-		 if (expr instanceof ExpressionTemporal) {
-			 ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			 switch (exprTemp.getOperator()) {
-			 case ExpressionTemporal.R_F:
-				 rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_INFINITY);
-				 break;
-			 case ExpressionTemporal.R_Fc:
-				 rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_CUMULATIVE);
-				 break;
-			 case ExpressionTemporal.R_F0:
-				 rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_ZERO);
-				 break;
-			 default:
-				 throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol()
-						 + " operator in the R operator");
-			 }
-		 }
-
-		 if (rewards == null)
-			 throw new PrismException("Unrecognised operator in R operator");
-
-		 return rewards;
-	 }
-
-	 protected StateValues checkExactProbabilityFormula(Model model, ExpressionPATL expr, double p)
-			 throws PrismException
-	 {
-		 if(expr.getExpressionProb().getExpression() instanceof ExpressionTemporal && ((ExpressionTemporal)expr.getExpressionProb().getExpression()).hasBounds())
-		 {
-			 throw new PrismException(
-			 "The exact probability queries are not supported for step-bounded properties");
-		 }
-
-		 ((SMG) model).setCoalition(expr.getCoalition());
-		 // 1) check whether the game is stopping, if not - terminate
-		 // 1.1) find states which have self loops only
-		 BitSet terminal = findTerminalStates(model);
-		 // 1.2) check whether the minmin prob to reach those states is
-		 // 1, if not - terminate, if yes continue to 2)
-		 double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
-
-		 // System.out.println("Terminal states: " + terminal);
-		 // System.out.println(Arrays.toString(res));
-		 for (int i = 0; i < res.length; i++)
-			 if (res[i] < 1.0 - 1e-6)
-				 throw new PrismException(
-						 "The game is not stopping. The exact probability queries only work for stopping games");
-
-		 // 2) computing minmax and maxmin values for all states
-		 double[] minmax = null, maxmin = null; // see the do loop below
-
-		 // 3) removing states from the game which have minmax>maxmin
-		 // model.
-		 int n = model.getNumStates();
-		 boolean repeat;
-		 BitSet removed = new BitSet(n), removedNew = new BitSet(n);
-		 STPG stpg = ((STPG) model);
-
-		 Strategy minStrat = null;
-		 Strategy maxStrat = null;
-
-		 do {
-			 // computing minmax and maxmin
-			 minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
-			 if (generateStrategy)
-				 minStrat = strategy;
-			 maxmin = this.checkProbPathFormula(model, expr, false).getDoubleArray();
-			 if (generateStrategy)
-				 maxStrat = strategy;
-
-			 repeat = false;
-			 // checking which states are marked for removal
-			 for (int i = 0; i < n; i++)
-				 if (!removed.get(i) && minmax[i] > maxmin[i]) {
-					 removed.set(i);
-					 removedNew.set(i);
-					 repeat = true;
-				 }
-
-			 // disabling choices that have transitions to those states
-			 removedNew.flip(0, n);
-			 for (int i = 0; i < n; i++)
-				 for (int j = 0; j < model.getNumChoices(i); j++)
-					 if (!stpg.allSuccessorsInSet(i, j, removedNew))
-						 stpg.disableChoice(i, j);
-			 removedNew.clear();
-			 // 4) repeat 2-3 while the set of states from 3 is empty
-		 } while (repeat);
-
-		 // 5) if bound is null, return the interval, otherwise check
-		 // whether bound is in the interval.
-		 BitSet ret = new BitSet(n);
-		 for (int i = 0; i < n; i++)
-			 ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
-
-		 // enabling choices that have been disabled for model checking
-		 stpg.enableAllChoices();
-
-		 if (generateStrategy) {
-			 strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
-		 }
-
-		 return StateValues.createFromBitSet(ret, model);
-	 }
-
-	 protected StateValues checkExactRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL expr, double p)
-			 throws PrismException
-	 {
-		 ((SMG) model).setCoalition(expr.getCoalition());
-		 // check if the reward is Fc
-		 ExpressionTemporal exprTemp = null;
-		 if (expr.getExpressionRew().getExpression() instanceof ExpressionTemporal) {
-			 exprTemp = (ExpressionTemporal) expr.getExpressionRew().getExpression();
-			 switch (exprTemp.getOperator()) {
-			 case ExpressionTemporal.R_Fc:
-				 break;
-			 case ExpressionTemporal.R_F:
-				 throw new PrismException("Only cumulative reward type is supported for exact values.");
-			 case ExpressionTemporal.R_F0:
-				 throw new PrismException("Only cumulative reward type is supported for exact values.");
-			 default:
-				 throw new PrismException("Only cumulative reward type is supported for exact values.");
-			 }
-		 } else {
-			 throw new PrismException("Only temporal expression are supported at the moment");
-		 }
-
-		 // 1) check whether the game is stopping, if not - terminate
-		 // 1.1) find states which have self loops only
-		 BitSet terminal = findTerminalStates(model);
-		 // 1.2) check whether the minmin prob to reach those states is
-		 // 1, if not - terminate, if yes continue to 2)
-		 double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
-
-		 // System.out.println("Terminal states: " + terminal);
-		 // System.out.println(Arrays.toString(res));
-		 for (int i = 0; i < res.length; i++)
-			 if (res[i] < 1.0 - 1e-6)
-				 throw new PrismException(
-						 "The game is not stopping. The exact probability queries only work for stopping games");
-
-		 // 2) computing minmax and maxmin values for all states
-		 double[] minmax = null, maxmin = null; // see the do loop below 
-
-		 // 3) removing states from the game which have minmax>maxmin
-		 // model.
-		 int n = model.getNumStates();
-		 boolean repeat;
-		 BitSet removed = new BitSet(n), removedNew = new BitSet(n);
-		 STPG stpg = ((STPG) model);
-
-		 Strategy minStrat = null;
-		 Strategy maxStrat = null;
-
-		 do {
-			 // computing minmax and maxmin
-			 minmax = this.checkRewardReach(model, modelRewards, exprTemp, true, false, STPGModelChecker.R_CUMULATIVE).valuesD;
-			 if (generateStrategy)
-				 minStrat = strategy;
-			 maxmin = this.checkRewardReach(model, modelRewards, exprTemp, false, true, STPGModelChecker.R_CUMULATIVE).valuesD;
-			 if (generateStrategy)
-				 maxStrat = strategy;
-
-			 repeat = false;
-			 // checking which states are marked for removal
-			 for (int i = 0; i < n; i++)
-				 if (!removed.get(i) && minmax[i] > maxmin[i]) {
-					 removed.set(i);
-					 removedNew.set(i);
-					 repeat = true;
-				 }
-
-			 // disabling choices that have transitions to those states
-			 removedNew.flip(0, n);
-			 for (int i = 0; i < n; i++)
-				 for (int j = 0; j < model.getNumChoices(i); j++)
-					 if (!stpg.allSuccessorsInSet(i, j, removedNew))
-						 stpg.disableChoice(i, j);
-			 removedNew.clear();
-			 // 4) repeat 2-3 while the set of states from 3 is empty
-		 } while (repeat);
-
-		 // 5) if bound is null, return the interval, otherwise check
-		 // whether bound is in the interval.
-		 BitSet ret = new BitSet(n);
-		 for (int i = 0; i < n; i++)
-			 ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
-
-		 // enabling choices that have been disabled for model checking
-		 stpg.enableAllChoices();
-
-		 if (generateStrategy) {
-			 strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
-		 }
-
-		 return StateValues.createFromBitSet(ret, model);
-	 }
-
-
-
-
-    private void printReachabilityPolyhedra(Map<Integer,Polyhedron> polyhedra, List<List<Polyhedron>> stochasticStates, int dim)
-    {
-	for(int s = 0; s < polyhedra.size(); s++){
-	    printReachabilityPolyhedron(polyhedra.get(s), dim, s);
-	    for(int t = 0; t < stochasticStates.get(s).size(); t++) {
-		System.out.printf("    ->");
-		printReachabilityPolyhedron(stochasticStates.get(s).get(t), dim, t);
-	    }
+		// in other case
+		throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
 	}
-    }
 
-    public static void printReachabilityPolyhedron(Polyhedron polyhedron, int dim, int s)
-    {
-	System.out.printf("%d: [", s);
-	for(Generator g : polyhedron.minimized_generators()){
-	    System.out.printf("[");
-	    BigInteger den = g.divisor().getBigInteger();
-	    Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
-	    PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
-	    boolean init = true;
-	    for(int i = 0; i<dim; i++){
-		if(!init){
-		    System.out.printf(", ");
+	/**
+	 * Compute rewards for the contents of an R operator.
+	 */
+	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min) throws PrismException
+	{
+		// setting coalition parameter
+		((SMG) model).setCoalition(exprPATL.getCoalition());
+
+		StateValues rewards = null;
+		Expression expr = exprPATL.getExpressionRew().getExpression();
+
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_F:
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_INFINITY);
+				break;
+			case ExpressionTemporal.R_Fc:
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_CUMULATIVE);
+				break;
+			case ExpressionTemporal.R_F0:
+				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_ZERO);
+				break;
+			default:
+				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " operator in the R operator");
+			}
 		}
-		init = false;
-		boolean foundvalue = false;
-		for(Variable j : num.keySet()){
-		    if(j!=null && i==j.id()){
-			BigFraction val = new BigFraction(num.get(j), den);
-			System.out.printf("%.4f", val.doubleValue());
-			foundvalue = true;
-			break;
-		    }
-		}
-		if(!foundvalue){
-		    System.out.printf("%.4f", 0.0);
-		}
-	    }
-	    System.out.printf("]");
+
+		if (rewards == null)
+			throw new PrismException("Unrecognised operator in R operator");
+
+		return rewards;
 	}
-	System.out.printf("]\n");
-    }
 
+	protected StateValues checkExactProbabilityFormula(Model model, ExpressionPATL expr, double p) throws PrismException
+	{
+		if (expr.getExpressionProb().getExpression() instanceof ExpressionTemporal
+				&& ((ExpressionTemporal) expr.getExpressionProb().getExpression()).hasBounds()) {
+			throw new PrismException("The exact probability queries are not supported for step-bounded properties");
+		}
 
-    public static void printMatlab(Map<Integer,Polyhedron> polyhedra, long dim, int iter)
-    {
-	
-	int max_points = 0;
-	for(int s = 0; s < polyhedra.size(); s++) {
-	    int points_s = polyhedra.get(s).minimized_generators().size();
-	    if(points_s > max_points){
-		max_points = points_s;
-	    }
-	    
+		((SMG) model).setCoalition(expr.getCoalition());
+		// 1) check whether the game is stopping, if not - terminate
+		// 1.1) find states which have self loops only
+		BitSet terminal = findTerminalStates(model);
+		// 1.2) check whether the minmin prob to reach those states is
+		// 1, if not - terminate, if yes continue to 2)
+		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
+
+		// System.out.println("Terminal states: " + terminal);
+		// System.out.println(Arrays.toString(res));
+		for (int i = 0; i < res.length; i++)
+			if (res[i] < 1.0 - 1e-6)
+				throw new PrismException("The game is not stopping. The exact probability queries only work for stopping games");
+
+		// 2) computing minmax and maxmin values for all states
+		double[] minmax = null, maxmin = null; // see the do loop below
+
+		// 3) removing states from the game which have minmax>maxmin
+		// model.
+		int n = model.getNumStates();
+		boolean repeat;
+		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
+		STPG stpg = ((STPG) model);
+
+		Strategy minStrat = null;
+		Strategy maxStrat = null;
+
+		do {
+			// computing minmax and maxmin
+			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
+			if (generateStrategy)
+				minStrat = strategy;
+			maxmin = this.checkProbPathFormula(model, expr, false).getDoubleArray();
+			if (generateStrategy)
+				maxStrat = strategy;
+
+			repeat = false;
+			// checking which states are marked for removal
+			for (int i = 0; i < n; i++)
+				if (!removed.get(i) && minmax[i] > maxmin[i]) {
+					removed.set(i);
+					removedNew.set(i);
+					repeat = true;
+				}
+
+			// disabling choices that have transitions to those states
+			removedNew.flip(0, n);
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < model.getNumChoices(i); j++)
+					if (!stpg.allSuccessorsInSet(i, j, removedNew))
+						stpg.disableChoice(i, j);
+			removedNew.clear();
+			// 4) repeat 2-3 while the set of states from 3 is empty
+		} while (repeat);
+
+		// 5) if bound is null, return the interval, otherwise check
+		// whether bound is in the interval.
+		BitSet ret = new BitSet(n);
+		for (int i = 0; i < n; i++)
+			ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
+
+		// enabling choices that have been disabled for model checking
+		stpg.enableAllChoices();
+
+		if (generateStrategy) {
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
+		}
+
+		return StateValues.createFromBitSet(ret, model);
 	}
-	System.out.printf("maxpoints{%d} = %d;\n", iter+1, max_points-dim); // -dim because of rays
-	
 
-	for(int s = 0; s < polyhedra.size(); s++) {
-	    //System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
-	    System.out.printf("m{%d, %d} = [", iter+1, s+1); // indices must be greater than zero
-	     boolean init1 = true;
-	     for(Generator g : polyhedra.get(s).generators()){
-		 // ignore rays
-		 if(g.type() == Generator_Type.RAY) {
-		     continue;
-		 }
-		 if(!init1){
-		     System.out.printf(" ; ");
-		 }
-		 init1 = false;
-		 BigInteger den = g.divisor().getBigInteger();
-		 Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
-		 PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
-		 boolean init2 = true;
-		 for(int i = 0; i<dim; i++){
-		     if(!init2){
-			 System.out.printf(", ");
-		     }
-		     init2 = false;
-		     boolean foundvalue = false;
-		     for(Variable j : num.keySet()){
-			 if(j!=null && i==j.id()){
-			     BigFraction val = new BigFraction(num.get(j), den);
-			     System.out.printf("%.4f", val.doubleValue());
-			     foundvalue = true;
-			     break;
-			 }
-		     }
-		     if(!foundvalue){
-			 System.out.printf("%.4f", 0.0);
-		     }
-		 }
-	     }
-	     System.out.printf("];\n");
-	 }
-    }
+	protected StateValues checkExactRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL expr, double p) throws PrismException
+	{
+		((SMG) model).setCoalition(expr.getCoalition());
+		// check if the reward is Fc
+		ExpressionTemporal exprTemp = null;
+		if (expr.getExpressionRew().getExpression() instanceof ExpressionTemporal) {
+			exprTemp = (ExpressionTemporal) expr.getExpressionRew().getExpression();
+			switch (exprTemp.getOperator()) {
+			case ExpressionTemporal.R_Fc:
+				break;
+			case ExpressionTemporal.R_F:
+				throw new PrismException("Only cumulative reward type is supported for exact values.");
+			case ExpressionTemporal.R_F0:
+				throw new PrismException("Only cumulative reward type is supported for exact values.");
+			default:
+				throw new PrismException("Only cumulative reward type is supported for exact values.");
+			}
+		} else {
+			throw new PrismException("Only temporal expression are supported at the moment");
+		}
 
+		// 1) check whether the game is stopping, if not - terminate
+		// 1.1) find states which have self loops only
+		BitSet terminal = findTerminalStates(model);
+		// 1.2) check whether the minmin prob to reach those states is
+		// 1, if not - terminate, if yes continue to 2)
+		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
 
-    public Map<Integer,Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, BitSet terminals, long[] accuracy, double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
-    {
-	int gameSize = smg.getNumStates();
-	int n = rewards.size();
-	Map<Integer,Polyhedron> result = new HashMap<Integer,Polyhedron>(gameSize);
+		// System.out.println("Terminal states: " + terminal);
+		// System.out.println(Arrays.toString(res));
+		for (int i = 0; i < res.length; i++)
+			if (res[i] < 1.0 - 1e-6)
+				throw new PrismException("The game is not stopping. The exact probability queries only work for stopping games");
 
-	 // a list of generator systems, one for each state - will be turned into polyhedra later
-	 List<Generator_System> gss = new ArrayList<Generator_System>(gameSize);
+		// 2) computing minmax and maxmin values for all states
+		double[] minmax = null, maxmin = null; // see the do loop below 
 
-	 // VALUE ITERATION
+		// 3) removing states from the game which have minmax>maxmin
+		// model.
+		int n = model.getNumStates();
+		boolean repeat;
+		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
+		STPG stpg = ((STPG) model);
 
-	 // initialisation: compute polyhedra X_s^0
-	 // first precompute MIN(r) for each reward
-	 double[][] MIN = new double[n][gameSize];
-	 for(int i = 0; i < n; i++) {
-	     SMGRewards reward = rewards.get(i);
-	     boolean positive_reward = false;
-	     for(int s = 0; s < gameSize; s++) {
-		 MIN[i][s] = reward.getStateReward(s);
-		 if(reward.getStateReward(s) > 0) {
-		     positive_reward = true;
-		 }
-	     }
-	     if(positive_reward) {
-		 continue;
-	     }
-	     MIN[i] = (super.computeReachRewardsCumulative((STPG)smg, reward, new BitSet(gameSize), true, true, null, null)).soln;
-	     
-	 }
+		Strategy minStrat = null;
+		Strategy maxStrat = null;
 
-	 for(int s = 0; s < gameSize; s++) {
-	     Generator_System gs = new Generator_System();
+		do {
+			// computing minmax and maxmin
+			minmax = this.checkRewardReach(model, modelRewards, exprTemp, true, false, STPGModelChecker.R_CUMULATIVE).valuesD;
+			if (generateStrategy)
+				minStrat = strategy;
+			maxmin = this.checkRewardReach(model, modelRewards, exprTemp, false, true, STPGModelChecker.R_CUMULATIVE).valuesD;
+			if (generateStrategy)
+				maxStrat = strategy;
 
-	     // generate corner point from state reward
-	     Linear_Expression r_num = null;
-	     BigInteger r_den = BigInteger.ONE;
-	     // step through rewards and add to r
-	     for(int i = 0; i < n; i++) {
-		 SMGRewards reward = rewards.get(i);
-		 // TODO: What is a good accuracy here?
-		 BigFraction ri = new BigFraction(MIN[i][s], 1.0/1000000.0, Integer.MAX_VALUE);
+			repeat = false;
+			// checking which states are marked for removal
+			for (int i = 0; i < n; i++)
+				if (!removed.get(i) && minmax[i] > maxmin[i]) {
+					removed.set(i);
+					removedNew.set(i);
+					repeat = true;
+				}
 
-		 BigInteger num = ri.getNumerator();
-		 BigInteger den = ri.getDenominator();
+			// disabling choices that have transitions to those states
+			removedNew.flip(0, n);
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < model.getNumChoices(i); j++)
+					if (!stpg.allSuccessorsInSet(i, j, removedNew))
+						stpg.disableChoice(i, j);
+			removedNew.clear();
+			// 4) repeat 2-3 while the set of states from 3 is empty
+		} while (repeat);
 
-		 // add r_num/r_den + num/den:
-		 if(r_num==null) {
-		     r_num = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
-		 } else {
-		     Linear_Expression r_num_to_add = new Linear_Expression_Times(new Coefficient(num.multiply(r_den)), new Variable(i));
-		     if(den.compareTo(BigInteger.ONE)==0) {
-			 // (r_num + num*r_den)/r_den
-			 r_num = new Linear_Expression_Sum(r_num, r_num_to_add);
-		     } else {
-			 // (r_num*den + num*r_den)/(r_den*den)
-			 r_num = new Linear_Expression_Sum(r_num.times(new Coefficient(den)), r_num_to_add);
-			 r_den = r_den.multiply(den);
-		     }
-		 }
+		// 5) if bound is null, return the interval, otherwise check
+		// whether bound is in the interval.
+		BitSet ret = new BitSet(n);
+		for (int i = 0; i < n; i++)
+			ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
 
-		 // generate ray for downward closure
-		 Linear_Expression ray = new Linear_Expression_Times(new Coefficient((BigInteger.ONE).negate()), new Variable(i));
-		 gs.add(Generator.ray(ray));
-	     }
-	     gs.add(Generator.point(r_num, new Coefficient(r_den)));
+		// enabling choices that have been disabled for model checking
+		stpg.enableAllChoices();
 
-	     // generate initial polyhedra: X^0_s
-	     C_Polyhedron cp = new C_Polyhedron(gs);
-	     result.put(s, cp);
-	 }
+		if (generateStrategy) {
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
+		}
 
-	 // ITERATE FUNCTIONAL APPLICATION
+		return StateValues.createFromBitSet(ret, model);
+	}
 
-	 for(int k = 0; k < Math.ceil(maxIter); /* k increased later */ ) {
-	     System.out.printf("%% Starting iteration %d with accuracy[0] = %d\n", k, accuracy[0]);
+	private void printReachabilityPolyhedra(Map<Integer, Polyhedron> polyhedra, List<List<Polyhedron>> stochasticStates, int dim)
+	{
+		for (int s = 0; s < polyhedra.size(); s++) {
+			printReachabilityPolyhedron(polyhedra.get(s), dim, s);
+			for (int t = 0; t < stochasticStates.get(s).size(); t++) {
+				System.out.printf("    ->");
+				printReachabilityPolyhedron(stochasticStates.get(s).get(t), dim, t);
+			}
+		}
+	}
 
-	     // TODO: only store stochastic states at last iteration anyway
-	     stochasticStates.clear();
-	     
-	     result = smg.pMultiObjective(result, rewards, terminals, accuracy, stochasticStates);
+	public static void printReachabilityPolyhedron(Polyhedron polyhedron, int dim, int s)
+	{
+		System.out.printf("%d: [", s);
+		for (Generator g : polyhedron.minimized_generators()) {
+			System.out.printf("[");
+			BigInteger den = g.divisor().getBigInteger();
+			Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
+			PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
+			boolean init = true;
+			for (int i = 0; i < dim; i++) {
+				if (!init) {
+					System.out.printf(", ");
+				}
+				init = false;
+				boolean foundvalue = false;
+				for (Variable j : num.keySet()) {
+					if (j != null && i == j.id()) {
+						BigFraction val = new BigFraction(num.get(j), den);
+						System.out.printf("%.4f", val.doubleValue());
+						foundvalue = true;
+						break;
+					}
+				}
+				if (!foundvalue) {
+					System.out.printf("%.4f", 0.0);
+				}
+			}
+			System.out.printf("]");
+		}
+		System.out.printf("]\n");
+	}
 
-	     // TODO: proper logging
-	     printMatlab(result, n, k);
+	public static void printMatlab(Map<Integer, Polyhedron> polyhedra, long dim, int iter)
+	{
 
-	     k++;
-	     
-	     // increase accuracy
-	     // TODO: get increase_factor from properties
-	     double increase_factor = 1.1;
-	     for(int i = 0; i < n; i++) {
-		 accuracy[i] *= increase_factor;
-	     }
-	 }
+		int max_points = 0;
+		for (int s = 0; s < polyhedra.size(); s++) {
+			int points_s = polyhedra.get(s).minimized_generators().size();
+			if (points_s > max_points) {
+				max_points = points_s;
+			}
 
-	return result;
-    }
+		}
+		System.out.printf("maxpoints{%d} = %d;\n", iter + 1, max_points - dim); // -dim because of rays
+
+		for (int s = 0; s < polyhedra.size(); s++) {
+			//System.out.printf("points{%d, %d} = %d;\n", iter+1, s+1, polyhedra.get(s).minimized_generators().size());
+			System.out.printf("m{%d, %d} = [", iter + 1, s + 1); // indices must be greater than zero
+			boolean init1 = true;
+			for (Generator g : polyhedra.get(s).generators()) {
+				// ignore rays
+				if (g.type() == Generator_Type.RAY) {
+					continue;
+				}
+				if (!init1) {
+					System.out.printf(" ; ");
+				}
+				init1 = false;
+				BigInteger den = g.divisor().getBigInteger();
+				Map<Variable, BigInteger> num = new HashMap<Variable, BigInteger>();
+				PPLSupport.getCoefficientsFromLinearExpression(g.linear_expression(), false, BigInteger.ONE, num);
+				boolean init2 = true;
+				for (int i = 0; i < dim; i++) {
+					if (!init2) {
+						System.out.printf(", ");
+					}
+					init2 = false;
+					boolean foundvalue = false;
+					for (Variable j : num.keySet()) {
+						if (j != null && i == j.id()) {
+							BigFraction val = new BigFraction(num.get(j), den);
+							System.out.printf("%.4f", val.doubleValue());
+							foundvalue = true;
+							break;
+						}
+					}
+					if (!foundvalue) {
+						System.out.printf("%.4f", 0.0);
+					}
+				}
+			}
+			System.out.printf("];\n");
+		}
+	}
+
+	public Map<Integer, Polyhedron> computeParetoSetApproximations(SMG smg, List<SMGRewards> rewards, List<Double> bounds, BitSet terminals, long[] accuracy,
+			double maxIter, List<List<Polyhedron>> stochasticStates) throws PrismException
+	{
+		int gameSize = smg.getNumStates();
+		int n = rewards.size();
+		Map<Integer, Polyhedron> result = new HashMap<Integer, Polyhedron>(gameSize);
+
+		// a list of generator systems, one for each state - will be turned into polyhedra later
+		List<Generator_System> gss = new ArrayList<Generator_System>(gameSize);
+
+		// VALUE ITERATION
+
+		// initialisation: compute polyhedra X_s^0
+		// first precompute MIN(r) for each reward
+		double[][] MIN = new double[n][gameSize];
+		for (int i = 0; i < n; i++) {
+			SMGRewards reward = rewards.get(i);
+			boolean positive_reward = false;
+			for (int s = 0; s < gameSize; s++) {
+				MIN[i][s] = reward.getStateReward(s);
+				if (reward.getStateReward(s) > 0) {
+					positive_reward = true;
+				}
+			}
+			if (positive_reward) {
+				continue;
+			}
+			MIN[i] = (super.computeReachRewardsCumulative((STPG) smg, reward, new BitSet(gameSize), true, true, null, null)).soln;
+
+		}
+
+		for (int s = 0; s < gameSize; s++) {
+			Generator_System gs = new Generator_System();
+
+			// generate corner point from state reward
+			Linear_Expression r_num = null;
+			BigInteger r_den = BigInteger.ONE;
+			// step through rewards and add to r
+			for (int i = 0; i < n; i++) {
+				SMGRewards reward = rewards.get(i);
+				// TODO: What is a good accuracy here?
+				BigFraction ri = new BigFraction(MIN[i][s], 1.0 / 1000000.0, Integer.MAX_VALUE);
+
+				BigInteger num = ri.getNumerator();
+				BigInteger den = ri.getDenominator();
+
+				// add r_num/r_den + num/den:
+				if (r_num == null) {
+					r_num = new Linear_Expression_Times(new Coefficient(num), new Variable(i));
+				} else {
+					Linear_Expression r_num_to_add = new Linear_Expression_Times(new Coefficient(num.multiply(r_den)), new Variable(i));
+					if (den.compareTo(BigInteger.ONE) == 0) {
+						// (r_num + num*r_den)/r_den
+						r_num = new Linear_Expression_Sum(r_num, r_num_to_add);
+					} else {
+						// (r_num*den + num*r_den)/(r_den*den)
+						r_num = new Linear_Expression_Sum(r_num.times(new Coefficient(den)), r_num_to_add);
+						r_den = r_den.multiply(den);
+					}
+				}
+
+				// generate ray for downward closure
+				Linear_Expression ray = new Linear_Expression_Times(new Coefficient((BigInteger.ONE).negate()), new Variable(i));
+				gs.add(Generator.ray(ray));
+			}
+			gs.add(Generator.point(r_num, new Coefficient(r_den)));
+
+			// generate initial polyhedra: X^0_s
+			C_Polyhedron cp = new C_Polyhedron(gs);
+			result.put(s, cp);
+		}
+
+		// ITERATE FUNCTIONAL APPLICATION
+
+		for (int k = 0; k < Math.ceil(maxIter); /* k increased later */) {
+			System.out.printf("%% Starting iteration %d with accuracy[0] = %d\n", k, accuracy[0]);
+
+			// TODO: only store stochastic states at last iteration anyway
+			stochasticStates.clear();
+
+			result = smg.pMultiObjective(result, rewards, terminals, accuracy, stochasticStates);
+
+			// TODO: proper logging
+			printMatlab(result, n, k);
+
+			k++;
+
+			// increase accuracy
+			// TODO: get increase_factor from properties
+			double increase_factor = 1.1;
+			for (int i = 0; i < n; i++) {
+				accuracy[i] *= increase_factor;
+			}
+		}
+
+		return result;
+	}
 
 }
-
