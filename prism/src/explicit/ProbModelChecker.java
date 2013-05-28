@@ -926,7 +926,7 @@ public class ProbModelChecker extends StateModelChecker
 	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr) throws PrismException
 	{
 		if (expr.getNameCode() == ExpressionFunc.MULTI && model.getModelType() == ModelType.SMG) {
-			return ((SMGModelChecker) this).checkExpressionMulti(model, expr);
+			throw new PrismException("Multi-objective model checking is not yet supported for SMGs");
 		} else {
 			return super.checkExpressionFunc(model, expr);
 		}
