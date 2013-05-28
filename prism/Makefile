@@ -249,12 +249,6 @@ endif
 CUDD_DIR =		$(shell if [ -d cudd ]; then echo cudd; else echo ../cudd; fi )
 #CUDD_DIR =		cudd
 
-# For PPL, we default either to ./ppl or, if that does not exist, ../ppl
-# To override, comment out the first line and use the second (or specify from the command-line)
-PPL_DIR =		$(shell if [ -d ppl ]; then echo ppl; else echo ../ppl; fi )
-PPL_REV_DIR =		$(shell if [ -d ppl ]; then echo .; else echo ..; fi )
-#PPL_DIR =		ppl
-
 SRC_DIR =		src
 CLASSES_DIR =	classes
 OBJ_DIR =		obj
@@ -282,7 +276,7 @@ EXT_PACKAGES = lpsolve55 lp_solve_5.5_java
 
 default: all
 
-all: cuddpackage untarppl pplpackage linkppl extpackages prism
+all: cuddpackage extpackages prism
 
 cuddpackage: checks
 	@if [ "$(CUDD_DIR)" = "" ]; then echo "Error: Cannot find CUDD"; exit 1; fi
@@ -302,45 +296,6 @@ cuddpackageforce: checks
 	  cd $(CUDD_DIR) && \
 	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)" \
 	  XCFLAGS="$(CUDD_XCFLAGS)";
-
-untarppl:
-	cd .. && \
-	tar xzf ppl.tar.gz;
-
-
-pplpackage: checks
-	@if [ "$(PPL_DIR)" = "" ]; then echo "Error: Cannot find PPL"; exit 1; fi
-	@if [ ! -d "$(PPL_DIR)" ]; then echo "Error: Cannot find PPL"; exit 1; fi
-	@(if [ ! -h $(PPL_DIR) ]; then \
-	  echo Configuring ppl ...; \
-	  cd $(PPL_DIR) && \
-	  if [ "$(OSTYPE)" = "darwin" ]; then \
-	    bash configure --prefix=`pwd` --with-gmp=/opt/local --with-java="$(JAVA_DIR)"; \
-	  else \
-	    bash configure --prefix=`pwd` --with-java="$(JAVA_DIR)"; \
-	  fi && \
-	  echo `pwd`; \
-	  echo Making ppl ...; \
-	  cd $(PPL_DIR) && \
-	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)"; \
-	  echo Installing ppl ...; \
-	  cd $(PPL_DIR) && \
-	  $(MAKE) install; \
-	else \
-	  echo Skipping ppl make since it is a symlink...; \
-	fi)
-
-linkppl:
-	echo Linking ppl ...; \
-	  if [ "$(OSTYPE)" = "darwin" ]; then \
-	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.dylib; \
-	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.jnilib $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.dylib; \
-	  else \
-	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
-	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/libppl_java.so $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/libppl_java.so; \
-	  fi && \
-	rm $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
-	ln -s $(PWD)/$(PPL_DIR)/lib/ppl/ppl_java.jar $(PWD)/$(PPL_REV_DIR)/prism/$(LIB_DIR)/ppl_java.jar; \
 
 extpackages: checks
 	for ext in $(EXT_PACKAGES); do \
@@ -372,7 +327,6 @@ make_dirs:
 	  (cd src/$$dir && \
 	  $(MAKE) \
 	  CUDD_DIR="$(CUDD_DIR)" \
-	  PPL_DIR="$(PPL_DIR)" \
 	  SRC_DIR="$(SRC_DIR)" \
 	  CLASSES_DIR="$(CLASSES_DIR)" \
 	  OBJ_DIR="$(OBJ_DIR)" \
@@ -541,13 +495,10 @@ clean: checks
 
 celan: clean
 
-clean_all: checks clean_cudd clean_ppl clean
+clean_all: checks clean_cudd clean
 
 clean_cudd:
 	@(cd $(CUDD_DIR) && $(MAKE) distclean)
-
-clean_ppl:
-	@(cd $(PPL_DIR) && $(MAKE) distclean)
 
 clean_ext:
 	@(for ext in $(EXT_PACKAGES); do \
