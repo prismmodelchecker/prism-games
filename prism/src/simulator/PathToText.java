@@ -50,8 +50,6 @@ public class PathToText extends PathDisplayer
 	private String colSep = " ";
 
 	// Displayer state
-	/** Step counter */
-	private int step;
 	/** Is the next column the first? */
 	private boolean firstCol;
 	/** Last state */
@@ -116,8 +114,8 @@ public class PathToText extends PathDisplayer
 			log.print(getColSep() + "action");
 			if (showProbs)
 				log.print(getColSep() + "probability");
-			log.print(getColSep() + "step");
 		}
+		log.print(getColSep() + "step");
 		if (contTime && showTimeCumul)
 			log.print(getColSep() + "time");
 		if (varsToShow == null)
@@ -147,14 +145,13 @@ public class PathToText extends PathDisplayer
 
 		// Display initial step
 		changed = true;
-		step = 0;
 		firstCol = true;
 		if (!getShowSnapshots()) {
 			log.print(getColSep() + "-");
 			if (showProbs)
 				log.print(getColSep() + "-");
-			log.print(getColSep() + "0");
 		}
+		log.print(getColSep() + "0");
 		if (contTime && showTimeCumul)
 			log.print(getColSep() + "0.0");
 		lastState = new State(initialState.varValues.length);
@@ -168,7 +165,7 @@ public class PathToText extends PathDisplayer
 	}
 
 	@Override
-	public void displayStep(double timeSpent, double timeCumul, Object action, double probability, double[] transitionRewards, State newState, double[] newStateRewards)
+	public void displayStep(double timeSpent, double timeCumul, Object action, double probability, double[] transitionRewards, int newStateIndex, State newState, double[] newStateRewards)
 	{
 		if (!showChangesOnly || changed) {
 			// display rewards for last state
@@ -191,7 +188,6 @@ public class PathToText extends PathDisplayer
 				return;
 		}
 
-		step++;
 		firstCol = true;
 
 		// display action
@@ -200,7 +196,7 @@ public class PathToText extends PathDisplayer
 		if (showProbs)
 			log.print(getColSep() + probability);
 		// display state index
-		log.print(getColSep() + step);
+		log.print(getColSep() + newStateIndex);
 		// display cumulative time
 		if (contTime && showTimeCumul)
 			log.print(getColSep() + timeCumul);
@@ -213,11 +209,12 @@ public class PathToText extends PathDisplayer
 	}
 
 	@Override
-	public void displaySnapshot(double timeCumul, State newState, double[] newStateRewards)
+	public void displaySnapshot(double timeCumul, int newStateIndex, State newState, double[] newStateRewards)
 	{
-		step++;
 		firstCol = true;
 
+		// display state index
+		log.print(getColSep() + newStateIndex);
 		// display cumulative time
 		if (contTime && showTimeCumul)
 			log.print(getColSep() + timeCumul);

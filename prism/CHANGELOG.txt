@@ -1,14 +1,23 @@
 This file contains details of the changes in each new version of PRISM.
 
+New since last release:
+
+* Some new '-help xxx' switches (const,simpath,exportresults,aroptions,exportmodel,importmodel)
+* New -exportmodel and -importmodel convenience switches
+* Allow command-line switches of form --sw (as well as -sw)
+* Parametric model checking
+* Fast adaptive uniformisation
+* Export labels from GUI
+
 -----------------------------------------------------------------------------
-Version 4.1 (beta released 20/12/2012)
+Version 4.1 (first released 20/12/2012)
 -----------------------------------------------------------------------------
 
 * Multi-objective model checking for MDPs
 
 * New explicit-state (pure Java) model checking engine
   - coverage of much, but not all, of PRISM's model checking functionality
-  - new methods for MDPs: policy iteration (-politer) and Gauss-Seidel (-gs)
+  - new methods for MDPs: policy iteration (-politer -modpoliter) and Gauss-Seidel (-gs)
   - accompanying significant changes to underlying PRISM (Java) API
 
 * GUI improvements
@@ -16,7 +25,8 @@ Version 4.1 (beta released 20/12/2012)
   - command-line GUI call (xprism)  takes both model and properties files as arguments
   - easier zoom-out (double click) for graphs in GUI
 
-* Non-probabilistic counterexample generation for CTL E[F ...] or A[G ...]
+* CTL model checking (most operators)
+  - and counterexample/witness generation for A[G ...] or E[F ...]
   
 * Changes to deadlock handling:
   - new option for "fix deadlocks" (defaults to *true*) (and new switch -nofixdl) 
@@ -32,6 +42,7 @@ Version 4.1 (beta released 20/12/2012)
 * Improvements to simulation path generation using -simpath switch
   - more efficient path generation (on-the-fly) where possible
   - new 'snapshot' option to only show states at certain time-points
+  - added 'probs' option to display transition probabilities/rates
   - rewards are not displayed by default; use 'rewards' option to show
   
 * Changes to usage of PRISM settings file

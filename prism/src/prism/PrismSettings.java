@@ -32,6 +32,9 @@ import java.util.*;
 import java.io.*;
 import java.awt.*;
 import javax.swing.*;
+
+import explicit.QuantAbstractRefine;
+
 import java.util.regex.*;
 
 import parser.ast.*;
@@ -80,6 +83,7 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_LIN_EQ_METHOD					= "prism.linEqMethod";//"prism.iterativeMethod";
 	public static final	String PRISM_LIN_EQ_METHOD_PARAM			= "prism.linEqMethodParam";//"prism.overRelaxation";
 	public static final	String PRISM_MDP_SOLN_METHOD				= "prism.mdpSolnMethod";
+	public static final	String PRISM_MDP_MULTI_SOLN_METHOD			= "prism.mdpMultiSolnMethod";
 	public static final	String PRISM_TERM_CRIT						= "prism.termCrit";//"prism.termination";
 	public static final	String PRISM_TERM_CRIT_PARAM				= "prism.termCritParam";//"prism.terminationEpsilon";
 	public static final	String PRISM_MAX_ITERS						= "prism.maxIters";//"prism.maxIterations";
@@ -96,6 +100,7 @@ public class PrismSettings implements Observer
 	public static final String PRISM_SCC_METHOD						= "prism.sccMethod";
 	public static final String PRISM_SYMM_RED_PARAMS					= "prism.symmRedParams";
 	public static final String PRISM_PTA_METHOD					= "prism.ptaMethod";
+	public static final String PRISM_TRANSIENT_METHOD				= "prism.transientMethod";
 	public static final String PRISM_AR_OPTIONS					= "prism.arOptions";
 	public static final String PRISM_GAME_OPTIONS					= "prism.gameOptions";
 	public static final String PRISM_EXPORT_ADV					= "prism.exportAdv";
@@ -158,6 +163,23 @@ public class PrismSettings implements Observer
 	public static final	String LOG_BG_COLOUR						= "log.bgColour";
 	public static final	String LOG_BUFFER_LENGTH					= "log.bufferLength";
 	
+	// PARAM
+	public static final	String PARAM								= "param";
+	public static final	String PARAM_PRECISION						= "param.precision";
+	public static final	String PARAM_SPLIT							= "param.split";
+	public static final	String PARAM_BISIM							= "param.bisim";
+	public static final	String PARAM_FUNCTION						= "param.function";
+	public static final	String PARAM_ELIM_ORDER						= "param.elimOrder";
+	public static final	String PARAM_RANDOM_POINTS					= "param.randomPoints";
+	public static final	String PARAM_SUBSUME_REGIONS				= "param.subsumeRegions";
+	public static final String PARAM_DAG_MAX_ERROR					= "param.functionDagMaxError";
+
+	//FAU
+	public static final String PRISM_FAU_DELTA						= "prism.faudelta";
+	public static final String PRISM_FAU_INTERVALS					= "prism.fauintervals";
+	public static final String PRISM_FAU_INITIVAL					= "prism.fauinitival";
+	public static final String PRISM_FAU_ARRAYTHRESHOLD				= "prism.fauarraythreshold";
+
 	
 	//Defaults, types and constaints
 	
@@ -167,7 +189,9 @@ public class PrismSettings implements Observer
 		"Simulator",
 		"Model",
 		"Properties",
-		"Log"
+		"Log",
+		"PARAM",
+		"FAU"
 	};
 	public static final int[] propertyOwnerIDs =
 	{
@@ -175,7 +199,9 @@ public class PrismSettings implements Observer
 		PropertyConstants.SIMULATOR,
 		PropertyConstants.MODEL,
 		PropertyConstants.PROPERTIES,
-		PropertyConstants.LOG
+		PropertyConstants.LOG,
+		PropertyConstants.PARAM,
+		PropertyConstants.FAU		
 	};
 	
 	
@@ -200,6 +226,8 @@ public class PrismSettings implements Observer
 																			"Which engine (hybrid, sparse, MTBDD, explicit) should be used for model checking." },
 			{ CHOICE_TYPE,		PRISM_PTA_METHOD,						"PTA model checking method",			"3.3",			"Stochastic games",																	"Digital clocks,Stochastic games",																
 																			"Which method to use for model checking of PTAs." },
+			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",																
+																			"Which method to use for computing transient probabilities in CTMCs." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
 																			"Which iterative method to use when solving linear equation systems." },
@@ -207,6 +235,8 @@ public class PrismSettings implements Observer
 																			"Over-relaxation parameter for iterative numerical methods such as JOR/SOR." },
 			{ CHOICE_TYPE,		PRISM_MDP_SOLN_METHOD,					"MDP solution method",				"4.0",			"Value iteration",																"Value iteration,Gauss-Seidel,Policy iteration,Modified policy iteration,Linear programming",
 																			"Which method to use when solving Markov decision processes." },
+			{ CHOICE_TYPE,		PRISM_MDP_MULTI_SOLN_METHOD,			"MDP multi-objective solution method",				"4.0.3",			"Value iteration",											"Value iteration,Gauss-Seidel,Linear programming",
+																			"Which method to use when solving multi-objective queries on Markov decision processes." },
 			{ CHOICE_TYPE,		PRISM_TERM_CRIT,						"Termination criteria",					"2.1",			"Relative",																	"Absolute,Relative",																		
 																			"Criteria to use for checking termination of iterative numerical methods." },
 			{ DOUBLE_TYPE,		PRISM_TERM_CRIT_PARAM,					"Termination epsilon",					"2.1",			new Double(1.0E-6),															"0.0,",																						
@@ -229,7 +259,7 @@ public class PrismSettings implements Observer
 			{ BOOLEAN_TYPE,		PRISM_DO_SS_DETECTION,					"Use steady-state detection",			"2.1",			new Boolean(true),															"0,",																						
 																			"Use steady-state detection during CTMC transient probability computation." },
 			{ CHOICE_TYPE,		PRISM_SCC_METHOD,						"SCC decomposition method",				"3.2",			"Lockstep",																	"Xie-Beerel,Lockstep,SCC-Find",																
-																			"Which algorithm to use for decomposing a graph into strongly connected components (SCCs)." },
+																			"Which algorithm to use for (symbolic) decomposition of a graph into strongly connected components (SCCs)." },
 			{ STRING_TYPE,		PRISM_SYMM_RED_PARAMS,					"Symmetry reduction parameters",		"3.2",			"",																	"",																
 																			"Parameters for symmetry reduction (format: \"i j\" where i and j are the number of modules before and after the symmetric ones; empty string means symmetry reduction disabled)." },
 			{ STRING_TYPE,		PRISM_AR_OPTIONS,						"Abstraction refinement options",		"3.3",			"",																	"",																
@@ -333,6 +363,23 @@ public class PrismSettings implements Observer
 			{ FONT_COLOUR_TYPE,	LOG_FONT,								"Display font",							"2.1",			new FontColorPair(new Font("monospaced", Font.PLAIN, 12), Color.black),		"",																							"Font used for the log display." },
 			{ COLOUR_TYPE,		LOG_BG_COLOUR,							"Background colour",					"2.1",			new Color(255,255,255),														"",																							"Background colour for the log display." },
 			{ INTEGER_TYPE,		LOG_BUFFER_LENGTH,						"Buffer length",						"2.1",			new Integer(10000),															"1,",																						"Length of the buffer for the log display." }
+		},
+		{
+			{ BOOLEAN_TYPE,		PARAM,									"Do parametric model checking",			"4.0.4",		new Boolean(false),															"",																							"Perform parametric model checking." },
+			{ STRING_TYPE,		PARAM_PRECISION,						"Precision",							"4.0.4",		"5/100",																	"",																							"Maximal volume of area to remain undecided in each model checking step." },
+			{ CHOICE_TYPE,		PARAM_SPLIT,							"Split method",							"4.0.4",		"longest",																	"longest,all",																				"Strategy to use when a region has to be split. Either split on longest side, or split on all sides." },
+			{ CHOICE_TYPE,		PARAM_BISIM,							"Bisimulation method",					"4.0.4",		"weak",																		"weak,strong,none",																			"Bisimulation type to use to reduce model size. For reward-based properties, weak bisimulation cannot be used." },
+			{ CHOICE_TYPE,		PARAM_FUNCTION,							"Function representation",				"4.0.4",		"jas-cached",																"jas-cached,jas,dag",																			"Type of representation of functions used during parametric analysis." },
+			{ CHOICE_TYPE,		PARAM_ELIM_ORDER,						"Order of state elimination",			"4.0.4",		"backward",																	"arbitrary,forward,forward-reversed,backward,backward-reversed,random",						"Order in which states are eliminated during parametric unbounded analysis." },
+			{ INTEGER_TYPE,		PARAM_RANDOM_POINTS,					"Random evaluations per region",		"4.0.4",		new Integer(5),																"",																							"Number of random points to evaluate per region to increase chance of correctness." },
+			{ BOOLEAN_TYPE,		PARAM_SUBSUME_REGIONS,					"Subsume adjacent regions",				"4.0.4",		new Boolean(true),															"",																							"Subsume regions during parameter synthesis." },
+			{ DOUBLE_TYPE,		PARAM_DAG_MAX_ERROR,					"Maximal error prob for dag functions",	"4.0.4",		new Double(1E-100),															"",																							"Maximal probability of a wrong result in DAG function representation." },
+		},
+		{
+			{ DOUBLE_TYPE,      PRISM_FAU_DELTA,					"Cut off delta", 						"4.0.1",   	 	new Double(10E-12),     													"",																							"States which get a probability below this number during the fast adaptive analysis will be removed." },
+			{ INTEGER_TYPE,     PRISM_FAU_ARRAYTHRESHOLD,			"Threshold to swap to array mode", 		"4.0.1",   	 	new Integer(100),    	 													"",																							"If this number of iterations happened during fast adaptive uniformisation without changes to the state space, assume that further changes are unlikely." },
+			{ INTEGER_TYPE,     PRISM_FAU_INTERVALS,				"Number of time intervals",				"4.0.1",   	 	new Integer(1),     														"",																							"Splits the time of a time-bounded property into the specified number of intervals." },
+			{ DOUBLE_TYPE,      PRISM_FAU_INITIVAL,					"Length of initial time interval",		"4.0.1",   	 	new Double(1.0),     														"",																							"Length of initial time interval in addition to regular time intervals." },
 		}
 	};
 	
@@ -752,7 +799,11 @@ public class PrismSettings implements Observer
 		int j;
 		double d;
 		
+		// Remove "-"
 		sw = args[i].substring(1);
+		// Remove optional second "-" (i.e. we allow switches of the form --sw too)
+		if (sw.charAt(0) == '-')
+			sw = sw.substring(1);
 
 		// Note: the order of these switches should match the -help output (just to help keep track of things).
 		
@@ -787,6 +838,20 @@ public class PrismSettings implements Observer
 				throw new PrismException("No parameter specified for -" + sw + " switch");
 			}
 		}
+		// Transient methods
+		else if (sw.equals("transientmethod")) {
+			if (i < args.length - 1) {
+				s = args[++i];
+				if (s.equals("unif"))
+					set(PRISM_TRANSIENT_METHOD, "Uniformisation");
+				else if (s.equals("fau"))
+					set(PRISM_TRANSIENT_METHOD, "Fast adaptive uniformisation");
+				else
+					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: unif, fau)");
+			} else {
+				throw new PrismException("No parameter specified for -" + sw + " switch");
+			}
+		}
 
 		// NUMERICAL SOLUTION OPTIONS:
 		
@@ -798,6 +863,7 @@ public class PrismSettings implements Observer
 		} else if (sw.equals("gaussseidel") || sw.equals("gs")) {
 			set(PRISM_LIN_EQ_METHOD, "Gauss-Seidel");
 			set(PRISM_MDP_SOLN_METHOD, "Gauss-Seidel");
+			set(PRISM_MDP_MULTI_SOLN_METHOD, "Gauss-Seidel");
 		} else if (sw.equals("bgaussseidel") || sw.equals("bgs")) {
 			set(PRISM_LIN_EQ_METHOD, "Backwards Gauss-Seidel");
 		} else if (sw.equals("pgaussseidel") || sw.equals("pgs")) {
@@ -816,10 +882,14 @@ public class PrismSettings implements Observer
 			set(PRISM_LIN_EQ_METHOD, "Backwards Pseudo-SOR");
 		} else if (sw.equals("valiter")) {
 			set(PRISM_MDP_SOLN_METHOD, "Value iteration");
+			set(PRISM_MDP_MULTI_SOLN_METHOD, "Value iteration");
 		} else if (sw.equals("politer")) {
 			set(PRISM_MDP_SOLN_METHOD, "Policy iteration");
+		} else if (sw.equals("modpoliter")) {
+			set(PRISM_MDP_SOLN_METHOD, "Modified policy iteration");
 		} else if (sw.equals("linprog") || sw.equals("lp")) {
 			set(PRISM_MDP_SOLN_METHOD, "Linear programming");
+			set(PRISM_MDP_MULTI_SOLN_METHOD, "Linear programming");
 		}
 		// Linear equation solver over-relaxation parameter
 		else if (sw.equals("omega")) {
@@ -1115,6 +1185,132 @@ public class PrismSettings implements Observer
 			}
 		}
 		
+		// parametric extension
+		else if (sw.equals("param")) {
+			set(PARAM, true);
+		}
+		else if (sw.equals("param-precision")) {
+			if (i < args.length - 1) {
+				set(PARAM_PRECISION, args[++i]);
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-split")) {
+			if (i < args.length - 1) {
+				set(PARAM_SPLIT, args[++i]);
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-bisim")) {
+			if (i < args.length - 1) {
+				set(PARAM_BISIM, args[++i]);
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-function")) {
+			if (i < args.length - 1) {
+				set(PARAM_FUNCTION, args[++i]);
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-elim-order")) {
+			if (i < args.length - 1) {
+				set(PARAM_ELIM_ORDER, args[++i]);
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-random-points")) {
+			try {
+				j = Integer.parseInt(args[++i]);
+				if (j < 0)
+					throw new NumberFormatException();
+				set(PARAM_RANDOM_POINTS, j);
+			} catch (NumberFormatException e) {
+				throw new PrismException("Invalid value for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("param-subsume-regions")) {
+			boolean b = Boolean.parseBoolean(args[++i]);
+			set(PARAM_SUBSUME_REGIONS, b);
+		}
+		else if (sw.equals("param-dag-max-error")) {
+			try {
+				d = Double.parseDouble(args[++i]);
+				if (d < 0)
+					throw new NumberFormatException();
+				set(PARAM_DAG_MAX_ERROR, d);
+			} catch (NumberFormatException e) {
+				throw new PrismException("Invalid value for -" + sw + " switch");
+			}
+		}
+		
+		// Fast Adaptive Uniformisation
+		
+		// Delta for fast adaptive uniformisation
+		else if (sw.equals("faudelta")) {
+			if (i < args.length - 1) {
+				try {
+					d = Double.parseDouble(args[++i]);
+					if (d < 0)
+						throw new NumberFormatException("");
+					set(PRISM_FAU_DELTA, d);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("fauarraythreshold")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_FAU_ARRAYTHRESHOLD, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}			
+		}
+
+		// number of intervals for fast adaptive uniformisation
+		else if (sw.equals("fauintervals")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_FAU_INTERVALS, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("fauinitival")) {
+			if (i < args.length - 1) {
+				try {
+					d = Double.parseDouble(args[++i]);
+					if (d < 0.0)
+						throw new NumberFormatException("");
+					set(PRISM_FAU_INITIVAL, d);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+
 		// unknown switch - error
 		else {
 			throw new PrismException("Invalid switch -" + sw + " (type \"prism -help\" for full list)");
@@ -1127,7 +1323,7 @@ public class PrismSettings implements Observer
 	 * Print a fragment of the -help message,
 	 * i.e. a list of the command-line switches handled by this class.
 	 */
-	public void printHelp(PrismLog mainLog)
+	public static void printHelp(PrismLog mainLog)
 	{
 		mainLog.println();
 		mainLog.println("ENGINES/METHODS:");
@@ -1136,8 +1332,9 @@ public class PrismSettings implements Observer
 		mainLog.println("-hybrid (or -h) ................ Use the Hybrid engine [default]");
 		mainLog.println("-explicit (or -ex) ............. Use the explicit engine");
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital) [default: games]");
+		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
 		mainLog.println();
-		mainLog.println("NUMERICAL SOLUTION OPTIONS:");
+		mainLog.println("SOLUTION METHODS (LINEAR EQUATIONS):");
 		mainLog.println("-power (or -pow, -pwr) ......... Use the Power method for numerical computation");
 		mainLog.println("-jacobi (or -jac) .............. Use Jacobi for numerical computation [default]");
 		mainLog.println("-gaussseidel (or -gs) .......... Use Gauss-Seidel for numerical computation");
@@ -1149,9 +1346,15 @@ public class PrismSettings implements Observer
 		mainLog.println("-bsor .......................... Use Backwards SOR for numerical computation");
 		mainLog.println("-psor .......................... Use Pseudo SOR for numerical computation");
 		mainLog.println("-bpsor ......................... Use Backwards Pseudo SOR for numerical computation");
-		mainLog.println("-valiter ....................... Use value iteration for solving MDPs [default]");
-		mainLog.println("-politer ....................... Use policy iteration for solving MDPs");
 		mainLog.println("-omega <x> ..................... Set over-relaxation parameter (for JOR/SOR/...) [default: 0.9]");
+		mainLog.println();
+		mainLog.println("SOLUTION METHODS (MDPS):");
+		mainLog.println("-valiter ....................... Use value iteration for solving MDPs [default]");
+		mainLog.println("-gaussseidel (or -gs) .......... Use Gauss-Seidel value iteration for solving MDPs");
+		mainLog.println("-politer ....................... Use policy iteration for solving MDPs");
+		mainLog.println("-modpoliter .................... Use modified policy iteration for solving MDPs");
+		mainLog.println();
+		mainLog.println("SOLUTION METHOD SETTINGS");
 		mainLog.println("-relative (or -rel) ............ Use relative error for detecting convergence [default]");
 		mainLog.println("-absolute (or -abs) ............ Use absolute error for detecting convergence");
 		mainLog.println("-epsilon <x> (or -e <x>) ....... Set value of epsilon (for convergence check) [default: 1e-6]");
@@ -1168,7 +1371,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-noprobchecks .................. Disable checks on model probabilities/rates");
 		mainLog.println("-zerorewardcheck ............... Check for absence of zero-reward loops");
 		mainLog.println("-nossdetect .................... Disable steady-state detection for CTMC transient computations");
-		mainLog.println("-sccmethod <name> .............. Specify SCC computation method (xiebeerel, lockstep, sccfind)");
+		mainLog.println("-sccmethod <name> .............. Specify (symbolic) SCC computation method (xiebeerel, lockstep, sccfind)");
 		mainLog.println("-symm <string> ................. Symmetry reduction options string");
 		mainLog.println("-aroptions <string> ............ Abstraction-refinement engine options string");
 		mainLog.println("-exportadv <file> .............. Export an adversary from MDP model checking (as a DTMC)");
@@ -1193,8 +1396,41 @@ public class PrismSettings implements Observer
 		mainLog.println("-gsmax <n> (or sormax <n>) ..... Set memory limit (KB) for hybrid GS/SOR [default: 1024]");
 		mainLog.println("-cuddmaxmem <n> ................ Set max memory for CUDD package (KB) [default: 200x1024]");
 		mainLog.println("-cuddepsilon <x> ............... Set epsilon value for CUDD package [default: 1e-15]");
+		mainLog.println();
+		mainLog.println("PARAMETRIC MODEL CHECKING OPTIONS:");
+		mainLog.println("-param <vals> .................. Define parameters and their ranges <vals>");
+		mainLog.println("-param-precision <x> ........... Set max undecided region for parameter synthesis [default: 5/100]");
+		mainLog.println("-param-split <name> ............ Set method to split parameter regions (longest,all) [default: longest]");
+		mainLog.println("-param-bisim <name> ............ Set bisimulation minimisation for parameter synthesis (weak,strong,none) [default: weak]");
+		mainLog.println("-param-function <name> ......... Set function representation for parameter synthesis (jas-cached,jas) [default: jas-cached]");
+		mainLog.println("-param-elim-order <name> ....... Set elimination order for parameter synthesis (arbitrary,forward,forward-reversed,backward,backward-reversed,random) [default: backward]");
+		mainLog.println("-param-random-points <n> ....... Set number of random points to evaluate per region [default: 5]");
+		mainLog.println("-param-subsume-regions <b> ..... Subsume adjacent regions during analysis [default: true]");
+		mainLog.println("-param-dag-max-error <b> ....... Maximal error probability allowed for DAG function representation [default: 1E-100]");
+		mainLog.println();
+		mainLog.println("FAST ADAPTIVE UNIFORMISATION OPTIONS:");
+		mainLog.println("-faudelta <x> .................. Set probability threshold for irrelevant states [default: 1e-12]");
+		mainLog.println("-fauarraythreshold <x> ......... Set threshold when to switch to sparse matrix [default: 100]");
+		mainLog.println("-fauintervals <x> .............. Set number of intervals to divide time intervals to [default: 1]");
+		mainLog.println("-fauinitival <x> ............... Set length of additional initial time interval [default: 1.0]");
 	}
 
+	/**
+	 * Print a -help xxx message, i.e. display help on a specific switch {@code sw}.
+	 * Return true iff help was available for this switch.
+	 */
+	public static boolean printHelpSwitch(PrismLog mainLog, String sw)
+	{
+		// -aroptions
+		if (sw.equals("aroptions")) {
+			mainLog.println("Switch: -aroptions <string>\n");
+			mainLog.println("<string> is a comma-separated list of options regarding abstraction-refinement:");
+			QuantAbstractRefine.printOptions(mainLog);
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Set the value for an option, with the option key given as a String,
 	 * and the value as an Object of appropriate type or a String to be parsed.

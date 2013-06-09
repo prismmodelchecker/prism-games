@@ -162,6 +162,8 @@ public class GenerateSimulationPath
 		String s, ss[];
 		int i, j, n;
 		boolean done;
+		boolean varsOptionGiven = false;
+		boolean changesFalseOptionGiven = false;
 
 		ss = details.split(",");
 		n = ss.length;
@@ -196,6 +198,7 @@ public class GenerateSimulationPath
 				}
 				throw new PrismException("Separator must be one of: \"space\", \"tab\", \"comma\"");
 			} else if (ss[i].indexOf("vars=") == 0) {
+				varsOptionGiven = true;
 				// Build list of indices of variables to display
 				VarList varList = modulesFile.createVarList();
 				simVars = new ArrayList<Integer>();
@@ -277,10 +280,12 @@ public class GenerateSimulationPath
 			} else if (ss[i].indexOf("changes=") == 0) {
 				// display changes only?
 				String bool = ss[i].substring(8).toLowerCase();
-				if (bool.equals("true"))
+				if (bool.equals("true")) {
 					simPathShowChangesOnly = true;
-				else if (bool.equals("false"))
+				} else if (bool.equals("false")) {
+					changesFalseOptionGiven = true;
 					simPathShowChangesOnly = false;
+				}
 				else
 					throw new PrismException("Value for \"changes\" option must \"true\" or \"false\"");
 			} else {
@@ -298,11 +303,35 @@ public class GenerateSimulationPath
 		if (simPathType == null)
 			throw new PrismException("Invalid path details \"" + details + "\"");
 
+		// Be default, set changes=true if vars=() was specified
+		if (varsOptionGiven && !changesFalseOptionGiven) {
+			simPathShowChangesOnly = true;
+		}
+		
 		// Display warning if attempt to use "repeat=" option and not "deadlock" option
 		if (simPathRepeat > 1 && simPathType != PathType.SIM_PATH_DEADLOCK) {
 			simPathRepeat = 1;
 			mainLog.printWarning("Ignoring \"repeat\" option - it is only valid when looking for deadlocks.");
 		}
+	}
+
+	/**
+	 * Print bulleted list of options to a log (used by -help switch). 
+	 */
+	public static void printOptions(PrismLog mainLog)
+	{
+		mainLog.println(" * <n> - generate a path of <n> steps");
+		mainLog.println(" * time=<x> - generate a path of at least <x> time units");
+		mainLog.println(" * deadlock - generate a path until a deadlock is reached");
+		mainLog.println(" * repeat=<n> - try <n> paths until a deadlock is found");
+		
+		mainLog.println(" * sep=<val> - use <val> as column separator (space, tab, comma)");
+		mainLog.println(" * vars=<x1,x2,...> - show values for variables x1,x2,.. only");
+		mainLog.println(" * loopcheck=<true|false> - whether to detect deterministic loops");
+		mainLog.println(" * snapshot=<x> - view states at fixed timepoints of interval <x>");
+		mainLog.println(" * probs=<true|false> - display probability (or rate) of transitions taken");
+		mainLog.println(" * rewards=<true|false> - display state/transition rewards");
+		mainLog.println(" * changes=<true|false> - only display states where displayed variables change");
 	}
 
 	/**
@@ -386,7 +415,7 @@ public class GenerateSimulationPath
 			i++;
 			if (simPathType != PathType.SIM_PATH_DEADLOCK) {
 				displayer.step(path.getTimeInPreviousState(), path.getTotalTime(), path.getPreviousModuleOrAction(), path.getPreviousProbability(),
-						path.getPreviousTransitionRewards(), path.getCurrentState(), path.getCurrentStateRewards());
+						path.getPreviousTransitionRewards(), path.size(), path.getCurrentState(), path.getCurrentStateRewards());
 			}
 			// Check for termination (depending on type)
 			switch (simPathType) {

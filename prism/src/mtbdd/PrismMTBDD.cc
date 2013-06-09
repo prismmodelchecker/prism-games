@@ -63,7 +63,7 @@ FILE *export_file;
 JNIEnv *export_env;
 
 // error message
-char error_message[MAX_ERR_STRING_LEN];
+static char error_message[MAX_ERR_STRING_LEN];
 
 //------------------------------------------------------------------------------
 // cudd manager
@@ -222,7 +222,7 @@ void PM_SetErrorMessage(const char *str, ...)
 	va_list argptr;
 	
 	va_start(argptr, str);
-	vsnprintf(error_message, MAX_LOG_STRING_LEN, str, argptr);
+	vsnprintf(error_message, MAX_ERR_STRING_LEN, str, argptr);
 	va_end(argptr);
 }
 

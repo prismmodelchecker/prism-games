@@ -93,7 +93,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		boolean advGenNeeded = (prism.getExportAdv() != Prism.EXPORT_ADV_NONE);
 		if (advGenNeeded) {
 			if (engine != Prism.SPARSE) {
-				mainLog.printWarning("Adversary generation is only implemented for the sparse engine");
+				mainLog.println("Switching engine since only sparse engine currently supports this computation...");
+				engine = Prism.SPARSE;
 			}
 			if (precomp && prob1) {
 				mainLog.printWarning("Disabling Prob1 since this is needed for adversary generation");
@@ -996,7 +997,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Add a dummy LTL formula to get generate target states when there is no LTL formula in the query
 		// TODO most probably this is not needed for non-LP solution methods
-		if (targetDDs.isEmpty() && prism.getMDPSolnMethod() == Prism.MDP_LP) {
+		if (targetDDs.isEmpty() && prism.getMDPSolnMethod() == Prism.MDP_MULTI_LP) {
 			addDummyFormula(modelProduct, mcLtl, targetDDs, opsAndBounds);
 		}
 
@@ -2096,13 +2097,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 		mainLog.println("Engine: " + Prism.getEngineString(engine));
 		
-		int method = prism.getMDPSolnMethod();
+		int method = prism.getMDPMultiSolnMethod();
 		
 		try {
 			if (engine != Prism.SPARSE)
 				throw new PrismException("Currently only sparse engine supports multi-objective properties");
 		
-			if (method == Prism.MDP_LP) {
+			if (method == Prism.MDP_MULTI_LP) {
 				//LP currently does not support Pareto
 				if (opsAndBounds.numberOfNumerical() > 1) {
 					throw new PrismException("Linear programming method currently does not support generating of Pareto curves.");
@@ -2129,7 +2130,7 @@ public class NondetModelChecker extends NonProbModelChecker
 								targets, opsAndBounds, maybe, st);
 					}
 				}
-			} else if (method == Prism.MDP_GAUSSSEIDEL || method == Prism.MDP_VALITER) {
+			} else if (method == Prism.MDP_MULTI_GAUSSSEIDEL || method == Prism.MDP_MULTI_VALITER) {
 				double timePre = System.currentTimeMillis();
 				value = weightedMultiReachProbs(modelProduct, yes, maybe, st, labels, rewards, opsAndBounds);
 				double timePost = System.currentTimeMillis();
@@ -2483,7 +2484,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			
 			double[] weights = new double[dimProb + dimReward];
 			weights[i] = 1.0;
-			/*if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			/*if (prism.getMDPMultiSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				//System.out.println("Doing GS");
 					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
 							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, new DoubleVector[] {probDoubleVectors[i]}, new int[] {probStepBounds[i]}, null,
@@ -2494,7 +2495,7 @@ public class NondetModelChecker extends NonProbModelChecker
 						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, new DoubleVector[] {probDoubleVectors[i]}, new int[] {probStepBounds[i]}, null,
 						new double[] { 1.0 }, null);
 			}*/
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
 						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
 						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
@@ -2522,7 +2523,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			double[] weights = new double[dimProb + dimReward];
 			weights[i] = 1.0;
 			/*System.out.println(prism.getMDPSolnMethod());
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				//System.out.println("Doing GS");
 					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
 							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[i] },
@@ -2533,7 +2534,7 @@ public class NondetModelChecker extends NonProbModelChecker
 							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[i] },
 							new double[] { 1.0 }, new int[] { rewardStepBounds[i] });
 			}*/
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
 						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
 						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
@@ -2577,7 +2578,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			}
 
 			double[] result;
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
 						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
 						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
@@ -2748,7 +2749,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			}
 
 			double[] result;
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				//System.out.println("Doing GS");
 					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
 							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
@@ -2789,7 +2790,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			}
 
 			double[] result;
-			if (prism.getMDPSolnMethod() == Prism.MDP_GAUSSSEIDEL) {
+			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
 						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
 						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);

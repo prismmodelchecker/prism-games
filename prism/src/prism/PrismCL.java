@@ -26,12 +26,30 @@
 
 package prism;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
-import parser.*;
-import parser.ast.*;
-import simulator.method.*;
+import param.ParamModelChecker;
+import parser.Values;
+import parser.ast.Expression;
+import parser.ast.ExpressionReward;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import parser.ast.Property;
+import simulator.GenerateSimulationPath;
+import simulator.method.ACIconfidence;
+import simulator.method.ACIiterations;
+import simulator.method.ACIwidth;
+import simulator.method.APMCapproximation;
+import simulator.method.APMCconfidence;
+import simulator.method.APMCiterations;
+import simulator.method.CIconfidence;
+import simulator.method.CIiterations;
+import simulator.method.CIwidth;
+import simulator.method.SPRTMethod;
+import simulator.method.SimulationMethod;
 
 // prism - command line version
 
@@ -60,10 +78,12 @@ public class PrismCL implements PrismModelListener
 	private boolean exportresultsmatrix = false;
 	private boolean exportresultscsv = false;
 	private boolean exportPlainDeprecated = false;
+	private boolean exportModelNoBasename = false;
 	private int exportType = Prism.EXPORT_PLAIN;
 	private boolean exportordered = true;
 	private boolean simulate = false;
 	private boolean simpath = false;
+	private boolean param = false;
 	private ModelType typeOverride = null;
 	private boolean orderingOverride = false;
 	private boolean explicitbuild = false;
@@ -84,6 +104,9 @@ public class PrismCL implements PrismModelListener
 
 	// argument to -importprismpp switch
 	private String prismppParams = null;
+
+	// argument to -param switch
+	private String paramSwitch = null;
 
 	// files/filenames
 	private String mainLogFilename = "stdout";
@@ -159,6 +182,11 @@ public class PrismCL implements PrismModelListener
 	private boolean simManual = false;
 	private SimulationMethod simMethod = null;
 
+	// parametric analysis info
+	private String[] paramLowerBounds = null;
+	private String[] paramUpperBounds = null;
+	private String[] paramNames = null;
+
 	// entry point - run method
 
 	public void run(String[] args)
@@ -177,16 +205,26 @@ public class PrismCL implements PrismModelListener
 
 		// process info about undefined constants
 		try {
-			// one set of info for model
+			// first, see which constants are undefined
+			// (one set of info for model, and one set of info for each property)
 			if (exportlabels)
 				undefinedMFConstants = new UndefinedConstants(modulesFile, propertiesFile, true);
 			else
 				undefinedMFConstants = new UndefinedConstants(modulesFile, null);
-			undefinedMFConstants.defineUsingConstSwitch(constSwitch);
-			// and one set of info for each property
 			undefinedConstants = new UndefinedConstants[numPropertiesToCheck];
 			for (i = 0; i < numPropertiesToCheck; i++) {
 				undefinedConstants[i] = new UndefinedConstants(modulesFile, propertiesFile, propertiesToCheck.get(i));
+			}
+			// may need to remove some constants if they are used for parametric methods
+			if (param) {
+				undefinedMFConstants.removeConstants(paramNames);
+				for (i = 0; i < numPropertiesToCheck; i++) {
+					undefinedConstants[i].removeConstants(paramNames);
+				}
+			}
+			// then set up value using const switch definitions
+			undefinedMFConstants.defineUsingConstSwitch(constSwitch);
+			for (i = 0; i < numPropertiesToCheck; i++) {
 				undefinedConstants[i].defineUsingConstSwitch(constSwitch);
 			}
 		} catch (PrismException e) {
@@ -282,15 +320,21 @@ public class PrismCL implements PrismModelListener
 								propertiesFile.setSomeUndefinedConstants(definedPFConstants);
 							}
 							// Normal model checking
-							if (!simulate) {
+							if (!simulate && !param) {
 								res = prism.modelCheck(propertiesFile, propertiesToCheck.get(j));
 							}
+							// Parametric model checking
+							else if (param) {
+								res = prism.modelCheckParametric(propertiesFile, propertiesToCheck.get(j), paramNames, paramLowerBounds, paramUpperBounds);
+							}
 							// Approximate (simulation-based) model checking
-							else {
+							else if (simulate) {
 								simMethod = processSimulationOptions(propertiesToCheck.get(j).getExpression());
 								res = prism.modelCheckSimulator(propertiesFile, propertiesToCheck.get(j).getExpression(), definedPFConstants, null, simMaxPath,
 										simMethod);
 								simMethod.reset();
+							} else {
+								throw new PrismException("Cannot use parametric model checking and simulation at the same time");
 							}
 						} catch (PrismException e) {
 							// in case of error, report it, store exception as the result and proceed
@@ -413,6 +457,7 @@ public class PrismCL implements PrismModelListener
 	private void initialise(String[] args)
 	{
 		try {
+			// prepare storage for parametric model checking
 			// default to logs going to stdout
 			// this means all errors etc. can be safely sent to the log
 			// even if a new log is created shortly
@@ -425,7 +470,7 @@ public class PrismCL implements PrismModelListener
 
 			// parse command line arguments
 			parseArguments(args);
-			
+
 			// load setting file if requested
 			if (settingsFilename != null)
 				prism.loadUserSettingsFile(new File(settingsFilename));
@@ -764,7 +809,7 @@ public class PrismCL implements PrismModelListener
 					else
 						errorAndExit("\"" + transientTime + "\" is not a valid time for a " + modelType);
 				}
-				
+
 				// Compute transient probabilities
 				prism.doTransient(ucTransient, exportType, exportTransientFile, importinitdist ? new File(importInitDistFilename) : null);
 			}
@@ -794,6 +839,7 @@ public class PrismCL implements PrismModelListener
 			mainLog.println(" during computation.");
 		}
 		mainLog.println();
+		ParamModelChecker.closeDown();
 	}
 
 	// PrismModelListener methods
@@ -820,21 +866,33 @@ public class PrismCL implements PrismModelListener
 		PrismLog log;
 
 		constSwitch = "";
+		paramSwitch = "";
 
 		for (i = 0; i < args.length; i++) {
 
 			// if is a switch...
 			if (args[i].length() > 0 && args[i].charAt(0) == '-') {
 
+				// Remove "-"
 				sw = args[i].substring(1);
+				// Remove optional second "-" (i.e. we allow switches of the form --sw too)
+				if (sw.charAt(0) == '-')
+					sw = sw.substring(1);
 
 				// Note: the order of these switches should match the -help output (just to help keep track of things).
 				// But: processing of "PRISM" options is done elsewhere in PrismSettings
 				// Any "hidden" options, i.e. not in -help text/manual, are indicated as such.
 
 				// print help
-				if (sw.equals("help") || sw.equals("-help") || sw.equals("?")) {
-					printHelp();
+				if (sw.equals("help") || sw.equals("?")) {
+					// see if userg requested help for a specific switch, e.g. -help simpath
+					// note: this is one of the few places where a second argument is optional,
+					// which is possible here because -help should usually be the only switch provided
+					if (i < args.length - 1) {
+						printHelpSwitch(args[++i]);
+					} else {
+						printHelp();
+					}
 					exit();
 				}
 				// print version
@@ -884,6 +942,20 @@ public class PrismCL implements PrismModelListener
 							constSwitch = args[++i].trim();
 						else
 							constSwitch += "," + args[++i].trim();
+					} else {
+						errorAndExit("Incomplete -" + sw + " switch");
+					}
+				}
+				// defining a parameter
+				else if (sw.equals("param")) {
+					param = true;
+					if (i < args.length - 1) {
+						// store argument for later use (append if already partially specified)
+						if ("".equals(paramSwitch)) {
+							paramSwitch = args[++i].trim();
+						} else {
+							paramSwitch += "," + args[++i].trim();
+						}
 					} else {
 						errorAndExit("Incomplete -" + sw + " switch");
 					}
@@ -941,7 +1013,15 @@ public class PrismCL implements PrismModelListener
 						errorAndExit("No parameters specified for -" + sw + " switch");
 					}
 				}
-				// import model from explicit format
+				// import model from explicit file(s)
+				else if (sw.equals("importmodel")) {
+					if (i < args.length - 1) {
+						processImportModelSwitch(args[++i]);
+					} else {
+						errorAndExit("No file/options specified for -" + sw + " switch");
+					}
+				}
+				// import transition matrix from explicit format
 				else if (sw.equals("importtrans")) {
 					importtrans = true;
 				}
@@ -993,16 +1073,34 @@ public class PrismCL implements PrismModelListener
 						exportresults = true;
 						// Parse filename/options
 						s = args[++i];
-						String ss[] = s.split(",");
-						exportResultsFilename = ss[0];
-						for (j = 1; j < ss.length; j++) {
-							if (ss[j].equals("csv"))
+						// Assume use of : to split filename/options but check for , if : not found
+						// (this was the old notation)
+						String halves[] = splitFilesAndOptions(s); 
+						if (halves[1].length() == 0 && halves[0].indexOf(',') > -1) {
+							int comma = halves[0].indexOf(',');
+							halves[1] = halves[0].substring(comma + 1); 
+							halves[0] = halves[0].substring(0, comma);
+						}
+						exportResultsFilename = halves[0];
+						String ss[] = halves[1].split(",");
+						for (j = 0; j < ss.length; j++) {
+							if (ss[j].equals("")) {
+							}
+							else if (ss[j].equals("csv"))
 								exportresultscsv = true;
 							else if (ss[j].equals("matrix"))
 								exportresultsmatrix = true;
 							else
 								errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");
 						}
+					} else {
+						errorAndExit("No file/options specified for -" + sw + " switch");
+					}
+				}
+				// export model to explicit file(s)
+				else if (sw.equals("exportmodel")) {
+					if (i < args.length - 1) {
+						processExportModelSwitch(args[++i]);
 					} else {
 						errorAndExit("No file/options specified for -" + sw + " switch");
 					}
@@ -1453,6 +1551,200 @@ public class PrismCL implements PrismModelListener
 		}
 	}
 
+	/**
+	 * Process the arguments (files, options) to the -importmodel switch
+	 * NB: This is done at the time of parsing switches (not later)
+	 * because other individual switches (e.g. -importXXX) can later override
+	 * parts of the configurations set up here.
+	 */
+	private void processImportModelSwitch(String filesOptionsString) throws PrismException
+	{
+		// Split into files/options (on :)
+		String halves[] = splitFilesAndOptions(filesOptionsString);
+		String filesString = halves[0];
+		String optionsString = halves[1];
+		// Split files into basename/extensions
+		int i = filesString.lastIndexOf('.');
+		if (i == -1)
+			throw new PrismException("No file name extension(s) in file(s) \"" + filesString + "\" for -importmodel");
+		String basename = filesString.substring(0, i);
+		String extList = filesString.substring(i + 1);
+		String exts[] = extList.split(",");
+		// Process file extensions
+		for (String ext : exts) {
+			// Items to import
+			if (ext.equals("all")) {
+				importtrans = true;
+				modelFilename = basename + ".tra";
+				importstates = true;
+				importStatesFilename = basename + ".sta";
+				importlabels = true;
+				importLabelsFilename = basename + ".lab";
+			} else if (ext.equals("tra")) {
+				importtrans = true;
+				modelFilename = basename + ".tra";
+			} else if (ext.equals("tra")) {
+				importtrans = true;
+				modelFilename = basename + ".tra";
+			} else if (ext.equals("sta")) {
+				importstates = true;
+				importStatesFilename = basename + ".sta";
+			} else if (ext.equals("lab")) {
+				importlabels = true;
+				importLabelsFilename = basename + ".lab";
+			}
+			// Unknown extension
+			else {
+				throw new PrismException("Unknown extension \"" + ext + "\" for -exportmodel switch");
+			}
+			// Check at least the transition matrix was imported
+			if (!importtrans) {
+				throw new PrismException("You must import the transition matrix when using -importmodel (use option \"tra\" or \"all\")");
+			}
+		}
+		// No options supported currently
+		/*// Process options
+		String options[] = optionsString.split(",");
+		for (String opt : options) {
+			// Ignore ""
+			if (opt.equals("")) {
+			}
+			// Unknown option
+			else {
+				throw new PrismException("Unknown option \"" + opt + "\" for -exportmodel switch");
+			}
+		}*/
+	}
+
+	/**
+	 * Process the arguments (files, options) to the -exportmodel switch
+	 * NB: This is done at the time of parsing switches (not later)
+	 * because other individual switches (e.g. -exportmatlab) can later override
+	 * parts of the configurations set up here.
+	 */
+	private void processExportModelSwitch(String filesOptionsString) throws PrismException
+	{
+		// Split into files/options (on :)
+		String halves[] = splitFilesAndOptions(filesOptionsString);
+		String filesString = halves[0];
+		String optionsString = halves[1];
+		// Split files into basename/extensions
+		int i = filesString.lastIndexOf('.');
+		if (i == -1)
+			throw new PrismException("No file name extension(s) in file(s) \"" + filesString + "\" for -exportmodel");
+		String basename = filesString.substring(0, i);
+		String extList = filesString.substring(i + 1);
+		String exts[] = extList.split(",");
+		// Check for empty base name (e.g. ".all") - will be replaced with modelname
+		if (basename.length() == 0) {
+			basename = "modelFileBasename";
+			exportModelNoBasename = true;
+		}
+		// Process file extensions
+		for (String ext : exts) {
+			// Items to export
+			if (ext.equals("all")) {
+				exporttrans = true;
+				exportTransFilename = basename.equals("stdout") ? "stdout" : basename + ".tra";
+				exportstaterewards = true;
+				exportStateRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".srew";
+				exporttransrewards = true;
+				exportTransRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".trew";
+				exportstates = true;
+				exportStatesFilename = basename.equals("stdout") ? "stdout" : basename + ".sta";
+				exportlabels = true;
+				exportLabelsFilename = basename.equals("stdout") ? "stdout" : basename + ".lab";
+			} else if (ext.equals("tra")) {
+				exporttrans = true;
+				exportTransFilename = basename.equals("stdout") ? "stdout" : basename + ".tra";
+			} else if (ext.equals("tra")) {
+				exporttrans = true;
+				exportTransFilename = basename.equals("stdout") ? "stdout" : basename + ".tra";
+			} else if (ext.equals("srew")) {
+				exportstaterewards = true;
+				exportStateRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".srew";
+			} else if (ext.equals("trew")) {
+				exporttransrewards = true;
+				exportTransRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".trew";
+			} else if (ext.equals("rew")) {
+				exportstaterewards = true;
+				exportStateRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".srew";
+				exporttransrewards = true;
+				exportTransRewardsFilename = basename.equals("stdout") ? "stdout" : basename + ".trew";
+			} else if (ext.equals("sta")) {
+				exportstates = true;
+				exportStatesFilename = basename.equals("stdout") ? "stdout" : basename + ".sta";
+			} else if (ext.equals("lab")) {
+				exportlabels = true;
+				exportLabelsFilename = basename.equals("stdout") ? "stdout" : basename + ".lab";
+			}
+			// Unknown extension
+			else {
+				throw new PrismException("Unknown extension \"" + ext + "\" for -exportmodel switch");
+			}
+		}
+		// Process options
+		String options[] = optionsString.split(",");
+		for (String opt : options) {
+			// Ignore ""
+			if (opt.equals("")) {
+			}
+			// Export type
+			else if (opt.equals("matlab")) {
+				exportType = Prism.EXPORT_MATLAB;
+			} else if (opt.equals("mrmc")) {
+				exportType = Prism.EXPORT_MRMC;
+			} else if (opt.equals("rows")) {
+				exportType = Prism.EXPORT_ROWS;
+			} /*else if (opt.startsWith("type=")) {
+				String exportTypeString = opt.substring(5);
+				if (exportTypeString.equals("matlab")) {
+					exportType = Prism.EXPORT_MATLAB;
+				} else if (exportTypeString.equals("mrmc")) {
+					exportType = Prism.EXPORT_MRMC;
+				} else if (exportTypeString.equals("rows")) {
+					exportType = Prism.EXPORT_ROWS;
+				} else {
+					throw new PrismException("Unknown type \"" + opt + "\" for -exportmodel switch");
+				}
+				}*/
+			// Unordered/ordered
+			else if (opt.equals("unordered")) {
+				exportordered = false;
+			} else if (opt.equals("ordered")) {
+				exportordered = true;
+			}
+			// Unknown option
+			else {
+				throw new PrismException("Unknown option \"" + opt + "\" for -exportmodel switch");
+			}
+		}
+	}
+
+	/**
+	 * Split a string of the form <files>:<options> into its two parts.
+	 * The latter can be empty, in which case the : is optional.
+	 * Instances of :\ are ignored (nor treated as :) in case there is a Windows filename.
+	 * @return the two parts as an array of two strings.
+	 */
+	private static String[] splitFilesAndOptions(String filesOptionsString)
+	{
+		String res[] = new String[2];
+		// Split into files/options (on :)
+		int i = filesOptionsString.indexOf(':');
+		while (filesOptionsString.length() > i + 1 && filesOptionsString.charAt(i + 1) == '\\') {
+			i = filesOptionsString.indexOf(':', i + 1);
+		}
+		if (i != -1) {
+			res[0] = filesOptionsString.substring(0, i);
+			res[1] = filesOptionsString.substring(i + 1);
+		} else {
+			res[0] = filesOptionsString;
+			res[1] = "";
+		}
+		return res;
+	}
+
 	// print command line arguments
 
 	public void printArguments(String[] args)
@@ -1517,6 +1809,45 @@ public class PrismCL implements PrismModelListener
 			if (j == Prism.PGAUSSSEIDEL || j == Prism.BPGAUSSSEIDEL || j == Prism.PSOR || j == Prism.BPSOR) {
 				errorAndExit("Pseudo Gauss-Seidel/SOR methods are currently not supported by the sparse engine");
 			}
+		}
+
+		// process info about parametric constants
+		if (param) {
+			String[] paramDefs = paramSwitch.split(",");
+			paramNames = new String[paramDefs.length];
+			paramLowerBounds = new String[paramDefs.length];
+			paramUpperBounds = new String[paramDefs.length];
+			for (int pdNr = 0; pdNr < paramDefs.length; pdNr++) {
+				if (!paramDefs[pdNr].contains("=")) {
+					paramNames[pdNr] = paramDefs[pdNr];
+					paramLowerBounds[pdNr] = "0";
+					paramUpperBounds[pdNr] = "1";
+				} else {
+					String[] paramDefSplit = paramDefs[pdNr].split("=");
+					paramNames[pdNr] = paramDefSplit[0];
+					paramDefSplit[1] = paramDefSplit[1].trim();
+					String[] upperLower = paramDefSplit[1].split(":");
+					paramLowerBounds[pdNr] = upperLower[0].trim();
+					paramUpperBounds[pdNr] = upperLower[1].trim();
+				}
+			}
+		}
+		
+		// plug in basename for -exportmodel switch if needed
+		if (exportModelNoBasename) {
+			String modelFileBasename = modelFilename;
+			if (modelFileBasename.lastIndexOf('.') > -1)
+				modelFileBasename = modelFilename.substring(0, modelFileBasename.lastIndexOf('.'));
+			if (exporttrans)
+				exportTransFilename = exportTransFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exportstaterewards)
+				exportStateRewardsFilename = exportStateRewardsFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exporttransrewards)
+				exportTransRewardsFilename = exportTransRewardsFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exportstates)
+				exportStatesFilename = exportStatesFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exportlabels)
+				exportLabelsFilename = exportLabelsFilename.replaceFirst("modelFileBasename", modelFileBasename);
 		}
 	}
 
@@ -1654,11 +1985,11 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("========");
 		mainLog.println();
 		mainLog.println("-help .......................... Display this help message");
-		mainLog.println("-version ....................... Display tool version");
+		mainLog.println("-version ....................... Display PRISM version info");
 		mainLog.println("-settings <file>................ Load settings from <file>");
 		mainLog.println();
 		mainLog.println("-pf <props> (or -pctl or -csl) . Model check properties <props>");
-		mainLog.println("-property <n> (or -prop <n>) ... Only model check property <n>");
+		mainLog.println("-property <n> (or -prop <n>) ... Only model check property with index/name <n>");
 		mainLog.println("-const <vals> .................. Define constant values as <vals> (e.g. for experiments)");
 		mainLog.println("-steadystate (or -ss) .......... Compute steady-state probabilities (D/CTMCs only)");
 		mainLog.println("-transient <x> (or -tr <x>) .... Compute transient probabilities for time (or time range) <x> (D/CTMCs only)");
@@ -1669,6 +2000,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println();
 		mainLog.println("IMPORT OPTIONS:");
 		mainLog.println("-importpepa .................... Model description is in PEPA, not the PRISM language");
+		mainLog.println("-importmodel <files> ........... Import the model directly from text file(s)");
 		mainLog.println("-importtrans <file> ............ Import the transition matrix directly from a text file");
 		mainLog.println("-importstates <file>............ Import the list of states directly from a text file");
 		mainLog.println("-importlabels <file>............ Import the list of labels directly from a text file");
@@ -1678,7 +2010,8 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-mdp ........................... Force imported/built model to be an MDP");
 		mainLog.println();
 		mainLog.println("EXPORT OPTIONS:");
-		mainLog.println("-exportresults <file[,options]>  Export the results of model checking to a file");
+		mainLog.println("-exportresults <file[:options]>  Export the results of model checking to a file");
+		mainLog.println("-exportmodel <files[:options]> . Export the built model to file(s)");
 		mainLog.println("-exporttrans <file> ............ Export the transition matrix to a file");
 		mainLog.println("-exportstaterewards <file> ..... Export the state rewards vector to a file");
 		mainLog.println("-exporttransrewards <file> ..... Export the transition rewards matrix to a file");
@@ -1698,8 +2031,8 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-exporttransient <file> ........ Export transient probabilities to a file");
 		mainLog.println("-exportprism <file> ............ Export final PRISM model to a file");
 		mainLog.println("-exportprismconst <file> ....... Export final PRISM model with expanded constants to a file");
-		
-		prism.getSettings().printHelp(mainLog);
+
+		PrismSettings.printHelp(mainLog);
 
 		mainLog.println();
 		mainLog.println("SIMULATION OPTIONS:");
@@ -1713,6 +2046,81 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-simvar <n> .................... Set the minimum number of samples to know the variance is null or not");
 		mainLog.println("-simmaxrwd <x> ................. Set the maximum reward -- useful to display the CI/ACI methods progress");
 		mainLog.println("-simpathlen <n> ................ Set the maximum path length for the simulator");
+
+		mainLog.println();
+		mainLog.println("You can also use \"prism -help xxx\" for help on some switches -xxx with non-obvious syntax.");
+	}
+
+	/**
+	 * Print a -help xxx message, i.e. display help on a specific switch
+	 */
+	private void printHelpSwitch(String sw)
+	{
+		// -const
+		if (sw.equals("const")) {
+			mainLog.println("Switch: -const <vals>\n");
+			mainLog.println("<vals> is a comma-separated list of values or value ranges for undefined constants");
+			mainLog.println("in the model or properties (i.e. those declared without values, such as \"const int a;\").");
+			mainLog.println("You can either specify a single value (a=1), a range (a=1:10) or a range with a step (a=1:2:50).");
+			mainLog.println("For convenience, constant definutions can also be split across multiple -const switches.");
+			mainLog.println("\nExamples:");
+			mainLog.println(" -const a=1,b=5.6,c=true");
+			mainLog.println(" -const a=1:10,b=5.6");
+			mainLog.println(" -const a=1:2:50,b=5.6");
+			mainLog.println(" -const a=1:2:50 -const b=5.6");
+		}
+		// -simpath
+		else if (sw.equals("simpath")) {
+			mainLog.println("Switch: -simpath <options> <file>\n");
+			mainLog.println("Generate a random path with the simulator and export it to <file> (or to the screen if <file>=\"stdout\").");
+			mainLog.println("<options> is a comma-separated list of options taken from:");
+			GenerateSimulationPath.printOptions(mainLog);
+		}
+		// -importmodel
+		else if (sw.equals("importmodel")) {
+			mainLog.println("Switch: -importmodel <files>\n");
+			mainLog.println("Import the model directly from text file(s).");
+			mainLog.println("Use a list of file extensions to indicate which files should be read, e.g.:");
+			mainLog.println("\n -importmodel in.tra,in.sta\n");
+			mainLog.println("Possible extensions are: .tra, .sta, .lab");
+			mainLog.println("Use extension .all to import all, e.g.:");
+			mainLog.println("\n -importmodel in.all\n");
+		}
+		// -exportresults
+		else if (sw.equals("exportresults")) {
+			mainLog.println("Switch: -exportresults <file[,options]>\n");
+			mainLog.println("Exports the results of model checking to <file> (or to the screen if <file>=\"stdout\").");
+			mainLog.println("The default behaviour is to export a list of results in text form, using tabs to separate items.");
+			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
+			mainLog.println(" * csv - Export results as comma-separated values");
+			mainLog.println(" * matrix - Export results as one or more 2D matrices (e.g. for surface plots)");
+		}
+		// -exportmodel
+		else if (sw.equals("exportmodel")) {
+			mainLog.println("Switch: -exportmodel <files[:options]>\n");
+			mainLog.println("Export the built model to file(s) (or to the screen if <file>=\"stdout\").");
+			mainLog.println("Use a list of file extensions to indicate which files should be generated, e.g.:");
+			mainLog.println("\n -exportmodel out.tra,out.sta\n");
+			mainLog.println("Possible extensions are: .tra, .srew, .trew, .sta, .lab");
+			mainLog.println("Use extension .all to export all and .rew to export both .srew/.trew, e.g.:");
+			mainLog.println("\n -exportmodel out.all\n");
+			mainLog.println("Omit the file basename to use the basename of the model file, e.g.:");
+			mainLog.println("\n -exportmodel .all\n");
+			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
+			mainLog.println(" * mrmc - export data in MRMC format");
+			mainLog.println(" * matlab - export data in Matlab format");
+			mainLog.println(" * rows - export matrices with one row/distribution on each line");
+			mainLog.println(" * ordered - output states indices inb ascending ordered [default]");
+			mainLog.println(" * unordered - don't output states indices inb ascending ordered [default]");
+		}
+		// Try PrismSettings
+		else if (PrismSettings.printHelpSwitch(mainLog, sw)) {
+			return;
+		}
+		// Unknown
+		else {
+			mainLog.println("Sorry - no help available for switch -" + sw);
+		}
 	}
 
 	// print version

@@ -38,12 +38,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import jdd.DebugJDD;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
+import param.ModelBuilder;
+import param.ParamModelChecker;
 import parser.ExplicitFiles2ModulesFile;
 import parser.PrismParser;
 import parser.State;
@@ -59,19 +60,18 @@ import parser.ast.Property;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
+import simulator.PrismModelExplorer;
 import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
 import dv.DoubleVector;
 import explicit.CTMC;
 import explicit.CTMCModelChecker;
-import explicit.CTMDPModelChecker;
 import explicit.ConstructModel;
 import explicit.DTMC;
 import explicit.DTMCModelChecker;
-import explicit.MDPModelChecker;
-import explicit.SMGModelChecker;
-import explicit.STPGModelChecker;
+import explicit.FastAdaptiveUniformisation;
+import explicit.FastAdaptiveUniformisationModelChecker;
 
 /**
  * Main class for all PRISM's core functionality. This is independent of the
@@ -81,19 +81,19 @@ public class Prism implements PrismSettingsListener
 {
 	/** PRISM version (e.g. "4.0.3"). Read from prism.Version. */
 	private static String version = prism.Version.versionString;
-	
+
 	/** Optional PRISM version suffix (e.g. "dev", "beta"). Read from prism.Version. */
 	private static String versionSuffix = prism.Version.versionSuffixString;
-	
+
 	/** Build number (e.g. "6667"). Defaults to "" (undefined), read from prism.Revision class if present. */
 	private static String buildNumber = "";
 	static {
-	    try {
-	    	buildNumber = Prism.class.getClassLoader().loadClass("prism.Revision").getField("svnRevision").get(null).toString();
-	    } catch (Exception e) {
-	    	// Any problems (e.g. class not created), ignore.
+		try {
+			buildNumber = Prism.class.getClassLoader().loadClass("prism.Revision").getField("svnRevision").get(null).toString();
+		} catch (Exception e) {
+			// Any problems (e.g. class not created), ignore.
 		}
-	 }
+	}
 
 	// ------------------------------------------------------------------------------
 	// Constants
@@ -126,6 +126,11 @@ public class Prism implements PrismSettingsListener
 	public static final int MDP_MODPOLITER = 4;
 	public static final int MDP_LP = 5;
 
+	// methods for solving multi-objective queries on MDPs
+	public static final int MDP_MULTI_VALITER = 1;
+	public static final int MDP_MULTI_GAUSSSEIDEL = 2;
+	public static final int MDP_MULTI_LP = 3;
+	
 	// termination criterion for iterative methods
 	public static final int ABSOLUTE = 1;
 	public static final int RELATIVE = 2;
@@ -422,6 +427,11 @@ public class Prism implements PrismSettingsListener
 		// correction
 	}
 
+	public void setMDPMultiSolnMethod(int i) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD, i - 1); // note index offset correction
+	}
+
 	public void setTermCrit(int i) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_TERM_CRIT, i - 1); // note index offset
@@ -694,6 +704,11 @@ public class Prism implements PrismSettingsListener
 	{
 		return settings.getInteger(PrismSettings.PRISM_MDP_SOLN_METHOD) + 1;
 	} // NOTE THE CORRECTION for the ChoiceSetting index
+
+	public int getMDPMultiSolnMethod()
+	{
+		return settings.getInteger(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD) + 1;
+	} //NOTE THE CORRECTION for the ChoiceSetting index
 
 	public int getTermCrit()
 	{
@@ -1639,7 +1654,7 @@ public class Prism implements PrismSettingsListener
 	}
 
 	/**
-	 * Set any undefined constants for the currently loaded PRISM model
+	 * Set (some or all) undefined constants for the currently loaded PRISM model
 	 * (assuming they have changed since the last time this was called).
 	 * 
 	 * @param definedMFConstants
@@ -1656,7 +1671,7 @@ public class Prism implements PrismSettingsListener
 		clearBuiltModel();
 		// Store constants here and in ModulesFile
 		currentDefinedMFConstants = definedMFConstants;
-		currentModulesFile.setUndefinedConstants(definedMFConstants);
+		currentModulesFile.setSomeUndefinedConstants(definedMFConstants);
 		// Reset dependent info
 		currentModel = null;
 		currentModelExpl = null;
@@ -1895,8 +1910,7 @@ public class Prism implements PrismSettingsListener
 			case EXPLICIT_FILES:
 				if (!getExplicit()) {
 					expf2mtbdd = new ExplicitFiles2MTBDD(this);
-					currentModel = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile,
-							explicitFilesLabelsFile, currentModulesFile, explicitFilesNumStates);
+					currentModel = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, currentModulesFile, explicitFilesNumStates);
 				} else {
 					throw new PrismException("Explicit import not yet supported for explicit engine");
 				}
@@ -1999,22 +2013,23 @@ public class Prism implements PrismSettingsListener
 				throw new PrismException("Timelock in PTA, e.g. in state " + dls);
 			}
 		}
-
-		/*
-		 * // Create new model checker object and do model checking
-		 * PropertiesFile pf = parsePropertiesString(currentModulesFile,
-		 * "filter(exists,!\"invariants\"); E[F!\"invariants\"]"); if
-		 * (!getExplicit()) { ModelChecker mc = new NondetModelChecker(this,
-		 * currentModel, pf); if (((Boolean)
-		 * mc.check(pf.getProperty(0)).getResult()).booleanValue()) {
-		 * mainLog.println(mc.check(pf.getProperty(1)).getCounterexample()); }
-		 * //sv.pr //mainLog.println("XX" + res.getResult()); } else {
-		 * explicit.StateModelChecker mc = new MDPModelChecker();
-		 * mc.setLog(mainLog); mc.setSettings(settings);
-		 * mc.setModulesFileAndPropertiesFile(currentModulesFile, pf);
-		 * explicit.StateValues sv = mc.checkExpression(currentModelExpl,
-		 * pf.getProperty(0)); sv.print(mainLog, 1); }
-		 */
+		/*// Create new model checker object and do model checking
+		PropertiesFile pf = parsePropertiesString(currentModulesFile, "filter(exists,!\"invariants\"); E[F!\"invariants\"]");
+		if (!getExplicit()) {
+			ModelChecker mc = new NondetModelChecker(this, currentModel, pf);
+			if (((Boolean) mc.check(pf.getProperty(0)).getResult()).booleanValue()) {
+				mainLog.println(mc.check(pf.getProperty(1)).getCounterexample());
+			}
+			//sv.pr
+			//mainLog.println("XX" + res.getResult());
+		} else {
+			explicit.StateModelChecker mc = new MDPModelChecker();
+			mc.setLog(mainLog);
+			mc.setSettings(settings);
+			mc.setModulesFileAndPropertiesFile(currentModulesFile, pf);
+			explicit.StateValues sv = mc.checkExpression(currentModelExpl, pf.getProperty(0));
+			sv.print(mainLog, 1);
+		}*/
 	}
 
 	/**
@@ -2466,6 +2481,7 @@ public class Prism implements PrismSettingsListener
 
 		// print message
 		mainLog.print("\nExporting labels and satisfying states ");
+		mainLog.print(getStringForExportType(exportType) + " ");
 		mainLog.println(getDestinationStringForFile(file));
 
 		// convert labels to bdds
@@ -2567,6 +2583,8 @@ public class Prism implements PrismSettingsListener
 	{
 		Result res = null;
 		Values definedPFConstants = propertiesFile.getConstantValues();
+		boolean engineSwitch = false;
+		int lastEngine = -1;
 
 		if (!digital)
 			mainLog.printSeparator();
@@ -2584,37 +2602,59 @@ public class Prism implements PrismSettingsListener
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
-		// Build model, if necessary
-		buildModelIfRequired();
-		
-		// Create new model checker object and do model checking
-		if (!getExplicit()) {
-			ModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
-			res = mc.check(prop.getExpression());
-		} else {
-			explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(currentModelType);
-			mc.setLog(mainLog);
-			mc.setSettings(settings);
-			mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+		// For fast adaptive uniformisation
+		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+			FastAdaptiveUniformisationModelChecker fauMC;
+			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
+			return fauMC.check(prop.getExpression());
+		}
+		// Auto-switch engine if required
+		else if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
+			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
+				mainLog.printWarning("Switching to explicit engine to allow use of chosen MDP solution method.");
+				engineSwitch = true;
+				lastEngine = getEngine();
+				setEngine(Prism.EXPLICIT);
+			}
+		}
 
-			// if implement strategy option is enabled, build a product with
-			// strategy before model checking
-			if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
-				try {
-					mc.setStrategy(strategy);
-					res = mc.check(strategy.buildProduct(currentModelExpl), prop.getExpression());
-				} catch (UnsupportedOperationException e) {
-					throw new PrismException("Building the product of the model and strategy failed");
+		try {
+			// Build model, if necessary
+			buildModelIfRequired();
+
+			// Create new model checker object and do model checking
+			if (!getExplicit()) {
+				ModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
+				res = mc.check(prop.getExpression());
+			} else {
+				explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(currentModelType);
+				mc.setLog(mainLog);
+				mc.setSettings(settings);
+				mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+				// if implement strategy option is enabled, build a product with
+				// strategy before model checking
+				if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
+					try {
+						mc.setStrategy(strategy);
+						res = mc.check(strategy.buildProduct(currentModelExpl), prop.getExpression());
+					} catch (UnsupportedOperationException e) {
+						throw new PrismException("Building the product of the model and strategy failed");
+					}
+				} else
+					res = mc.check(currentModelExpl, prop.getExpression());
+
+				// saving strategy if it was generated.
+				if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
+					strategy = mc.getStrategy();
+					if (strategy != null)
+						strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType()
+								+ "\nMemory size: " + strategy.getMemorySize());
 				}
-			} else
-				res = mc.check(currentModelExpl, prop.getExpression());
-
-			// saving strategy if it was generated.
-			if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
-				strategy = mc.getStrategy();
-				if (strategy != null)
-					strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType()
-							+ "\nMemory size: " + strategy.getMemorySize());
+			}
+		} finally {
+			// Undo auto-switch (if any)
+			if (engineSwitch) {
+				setEngine(lastEngine);
 			}
 		}
 
@@ -2857,7 +2897,7 @@ public class Prism implements PrismSettingsListener
 		getSimulator().modelCheckExperiment(currentModulesFile, propertiesFile, undefinedConstants, results, expr,
 				initialState, pathLength, simMethod);
 	}
-
+	
 	/**
 	 * Generate a random path through the model using the simulator.
 	 * 
@@ -3027,7 +3067,16 @@ public class Prism implements PrismSettingsListener
 
 		l = System.currentTimeMillis();
 
-		if (!getExplicit()) {
+		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+			PrismModelExplorer modelExplorer = new PrismModelExplorer(getSimulator(), currentModulesFile);
+			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(settings, modelExplorer);
+			fau.setConstantValues(currentModulesFile.getConstantValues());
+			mainLog.println("Starting transient probability computation using fast adaptive uniformisation...");
+			probsExpl = fau.doTransient(time, fileIn);
+			mainLog.println("\nTotal probability lost is : " + fau.getTotalDiscreteLoss());
+			mainLog.println("Maximal number of states stored during analysis : " + fau.getMaxNumStates());
+		}
+		else if (!getExplicit()) {
 			if (currentModelType == ModelType.DTMC) {
 				mc = new ProbModelChecker(this, currentModel, null);
 				probs = ((ProbModelChecker) mc).doTransient((int) time, fileIn);
@@ -3682,6 +3731,45 @@ public class Prism implements PrismSettingsListener
 	public void setStrategy(strat.Strategy strat)
 	{
 		this.strategy = strat;
+	}
+
+	/**
+	 * Performs parametric model checking.
+	 * 
+	 * @param propertiesFile parent properties file
+	 * @param prop property to model check
+	 * @param paramNames parameter names
+	 * @param paramLowerBounds lower bounds of parameters
+	 * @param paramUpperBounds upper bounds of parameters
+	 * @return
+	 * @throws PrismException e.g. if no parameters specified or other things go wrong
+	 */
+	public Result modelCheckParametric(PropertiesFile propertiesFile, Property prop, String[] paramNames, String[] paramLowerBounds, String[] paramUpperBounds)
+	throws PrismException
+	{
+		
+		if (paramNames == null) {
+			throw new PrismException("Must specify some parameters when using "
+					+ "the parametric analysis");
+		}
+		Values constlist = currentModulesFile.getConstantValues();
+		for (int pnr = 0; pnr < paramNames.length; pnr++) {
+			constlist.removeValue(paramNames[pnr]);
+		}
+		param.ModelBuilder builder = new ModelBuilder();
+		builder.setModulesFile(currentModulesFile);
+		builder.setMainLong(mainLog);
+		builder.setParameters(paramNames, paramLowerBounds,	paramUpperBounds);
+		builder.setSettings(settings);
+		builder.build();						
+		explicit.Model modelExpl = builder.getModel();
+		ParamModelChecker mc = new ParamModelChecker();
+		mc.setModelBuilder(builder);
+		mc.setLog(mainLog);
+		mc.setSettings(settings);
+		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
+		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+		return mc.check(modelExpl, prop.getExpression());
 	}
 }
 
