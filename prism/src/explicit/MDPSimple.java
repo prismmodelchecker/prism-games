@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Serializable;
-
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -46,10 +45,10 @@ import prism.PrismUtils;
 import explicit.rewards.MDPRewards;
 
 /**
- * Simple explicit-state representation of an MDP. The implementation is far
- * from optimal, both in terms of memory usage and speed of access. The model
- * is, however, easy to manipulate. For a static model (i.e. one that does not
- * change after creation), consider MDPSparse, which is more efficient.
+ * Simple explicit-state representation of an MDP.
+ * The implementation is far from optimal, both in terms of memory usage and speed of access.
+ * The model is, however, easy to manipulate. For a static model (i.e. one that does not change
+ * after creation), consider MDPSparse, which is more efficient. 
  */
 public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 {
@@ -57,8 +56,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	protected List<List<Distribution>> trans;
 
 	// Action labels
-	// (null list means no actions; null in element s means no actions for state
-	// s)
+	// (null list means no actions; null in element s means no actions for state s)
 	protected List<List<Object>> actions;
 
 	// Flag: allow duplicates in distribution sets?
@@ -95,8 +93,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	{
 		this(mdp.numStates);
 		copyFrom(mdp);
-		// Copy storage directly to avoid worrying about duplicate distributions
-		// (and for efficiency)
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency) 
 		for (int s = 0; s < numStates; s++) {
 			List<Distribution> distrs = trans.get(s);
 			for (Distribution distr : mdp.trans.get(s)) {
@@ -140,19 +137,17 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Construct an MDP from an existing one and a state index permutation, i.e.
-	 * in which state index i becomes index permut[i]. Note: have to build new
-	 * Distributions from scratch anyway to do this, so may as well provide this
-	 * functionality as a constructor.
+	 * Construct an MDP from an existing one and a state index permutation,
+	 * i.e. in which state index i becomes index permut[i].
+	 * Note: have to build new Distributions from scratch anyway to do this,
+	 * so may as well provide this functionality as a constructor.
 	 */
 	public MDPSimple(MDPSimple mdp, int permut[])
 	{
 		this(mdp.numStates);
 		copyFrom(mdp, permut);
-		// Copy storage directly to avoid worrying about duplicate distributions
-		// (and for efficiency)
-		// (Since permut is a bijection, all structures and statistics are
-		// identical)
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency)
+		// (Since permut is a bijection, all structures and statistics are identical)
 		for (int s = 0; s < numStates; s++) {
 			List<Distribution> distrs = trans.get(permut[s]);
 			for (Distribution distr : mdp.trans.get(s)) {
@@ -183,27 +178,19 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Construct MDPSimple from MDPSparse
-	 * 
-	 * @param mdp
+	 * Construct an MDPSimple object from an MDPSparse one.
 	 */
 	public MDPSimple(MDPSparse mdp)
 	{
 		this(mdp.numStates);
 		copyFrom(mdp);
-
-		Distribution distr;
-		Entry<Integer, Double> entry;
-		Iterator<Entry<Integer, Double>> it;
-
-		// Copy storage directly to avoid worrying about duplicate distributions
-		// (and for efficiency)
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency)
 		for (int s = 0; s < numStates; s++) {
 			for (int c = 0; c < mdp.getNumChoices(s); c++) {
-				distr = new Distribution();
-				it = mdp.getTransitionsIterator(s, c);
+				Distribution distr = new Distribution();
+				Iterator<Entry<Integer, Double>> it = mdp.getTransitionsIterator(s, c);
 				while (it.hasNext()) {
-					entry = it.next();
+					Entry<Integer, Double> entry = it.next();
 					distr.add(entry.getKey(), entry.getValue());
 				}
 				this.addChoice(s, distr);
@@ -214,7 +201,6 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 			actions = new ArrayList<List<Object>>(numStates);
 			for (int s = 0; s < numStates; s++)
 				actions.add(null);
-
 			for (int s = 0; s < numStates; s++) {
 				int n = mdp.getNumChoices(s);
 				List<Object> list = new ArrayList<Object>(n);
@@ -224,7 +210,6 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 				actions.set(s, list);
 			}
 		}
-
 		// Copy flags/stats too
 		allowDupes = false; // TODO check this
 		numDistrs = mdp.numDistrs;
@@ -325,8 +310,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 					prob = Double.parseDouble(ss[3]);
 					// For a new state or distribution
 					if (i != iLast || k != kLast) {
-						// Add any previous distribution to the last state,
-						// create new one
+						// Add any previous distribution to the last state, create new one
 						if (distr != null) {
 							addChoice(iLast, distr);
 						}
@@ -358,11 +342,11 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	// Mutators (other)
 
 	/**
-	 * Add a choice (distribution {@code distr}) to state {@code s} (which must
-	 * exist). Distribution is only actually added if it does not already exist
-	 * for state {@code s}. (Assuming {@code allowDupes} flag is not enabled.)
-	 * Returns the index of the (existing or newly added) distribution. Returns
-	 * -1 in case of error.
+	 * Add a choice (distribution {@code distr}) to state {@code s} (which must exist).
+	 * Distribution is only actually added if it does not already exists for state {@code s}.
+	 * (Assuming {@code allowDupes} flag is not enabled.)
+	 * Returns the index of the (existing or newly added) distribution.
+	 * Returns -1 in case of error.
 	 */
 	public int addChoice(int s, Distribution distr)
 	{
@@ -389,11 +373,11 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Add a choice (distribution {@code distr}) labelled with {@code action} to
-	 * state {@code s} (which must exist). Action/distribution is only actually
-	 * added if it does not already exists for state {@code s}. (Assuming
-	 * {@code allowDupes} flag is not enabled.) Returns the index of the
-	 * (existing or newly added) distribution. Returns -1 in case of error.
+	 * Add a choice (distribution {@code distr}) labelled with {@code action} to state {@code s} (which must exist).
+	 * Action/distribution is only actually added if it does not already exists for state {@code s}.
+	 * (Assuming {@code allowDupes} flag is not enabled.)
+	 * Returns the index of the (existing or newly added) distribution.
+	 * Returns -1 in case of error.
 	 */
 	public int addActionLabelledChoice(int s, Distribution distr, Object action)
 	{
@@ -422,11 +406,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Set the action label for choice i in some state s. This method does not
-	 * know about duplicates (i.e. if setting an action causes two choices to be
-	 * identical, one will not be removed). Use
-	 * {@link #addActionLabelledChoice(int, Distribution, Object)} which is more
-	 * reliable.
+	 * Set the action label for choice i in some state s.
+	 * This method does not know about duplicates (i.e. if setting an action causes
+	 * two choices to be identical, one will not be removed).
+	 * Use {@link #addActionLabelledChoice(int, Distribution, Object)} which is more reliable.
 	 */
 	public void setAction(int s, int i, Object o)
 	{
@@ -471,7 +454,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 		}
 		return succs.iterator();
 	}
-	
+
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
@@ -535,8 +518,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
 		for (int i = 0; i < numStates; i++) {
-			// Note that no distributions is a deadlock, not an empty
-			// distribution
+			// Note that no distributions is a deadlock, not an empty distribution
 			if (trans.get(i).isEmpty()) {
 				addDeadlockState(i);
 				if (fix) {
@@ -609,8 +591,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 				j = 0;
 				for (Distribution distr : trans.get(i)) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(j++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(j++) == true)
 						continue;
 					b2 = distr.containsOneOf(u);
 					if (forall) {
@@ -641,8 +622,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 				j = 0;
 				for (Distribution distr : trans.get(i)) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(j++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(j++) == true)
 						continue;
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
@@ -682,7 +662,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 				j++;
 				continue;
 			}
-				
+
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -743,11 +723,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 				d += prob * vect[k];
 			}
 			// Store strategy info if value matches
-			// if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit ==
-			// TermCrit.ABSOLUTE)) {
+			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 			if (PrismUtils.doublesAreClose(val, d, 1e-12, false)) {
 				res.add(j);
-				// res.add(distrs.getAction());
+				//res.add(distrs.getAction());
 			}
 		}
 
@@ -932,8 +911,7 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
-			double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val)
 	{
 		int j, k, c;
 		double d, prob;
@@ -962,11 +940,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 			}
 
 			// Store strategy info if value matches
-			// if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit ==
-			// TermCrit.ABSOLUTE)) {
+			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
 			if (PrismUtils.doublesAreClose(val, d, 1e-12, false)) {
 				res.add(j);
-				// res.add(distrs.getAction());
+				//res.add(distrs.getAction());
 			}
 		}
 
@@ -1006,9 +983,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Returns the index of the choice {@code distr} for state {@code s}, if it
-	 * exists. If none, -1 is returned. If there are multiple (i.e. allowDupes
-	 * is true), the first is returned.
+	 * Returns the index of the choice {@code distr} for state {@code s}, if it exists.
+	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
 	 */
 	public int indexOfChoice(int s, Distribution distr)
 	{
@@ -1016,9 +992,8 @@ public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
 	}
 
 	/**
-	 * Returns the index of the {@code action}-labelled choice {@code distr} for
-	 * state {@code s}, if it exists. If none, -1 is returned. If there are
-	 * multiple (i.e. allowDupes is true), the first is returned.
+	 * Returns the index of the {@code action}-labelled choice {@code distr} for state {@code s}, if it exists.
+	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
 	 */
 	public int indexOfActionLabelledChoice(int s, Distribution distr, Object action)
 	{
