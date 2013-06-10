@@ -26,14 +26,12 @@
 
 package explicit;
 
-import java.io.Serializable;
-
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import prism.PrismUtils;
 
@@ -41,7 +39,7 @@ import prism.PrismUtils;
  * Explicit representation of a probability distribution.
  * Basically, a mapping from (integer-valued) state indices to (non-zero, double-valued) probabilities. 
  */
-public class Distribution implements Iterable<Entry<Integer, Double>>, Serializable
+public class Distribution implements Iterable<Entry<Integer, Double>>
 {
 	private HashMap<Integer, Double> map;
 

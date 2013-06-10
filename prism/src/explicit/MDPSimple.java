@@ -31,7 +31,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -50,7 +49,7 @@ import explicit.rewards.MDPRewards;
  * The model is, however, easy to manipulate. For a static model (i.e. one that does not change
  * after creation), consider MDPSparse, which is more efficient. 
  */
-public class MDPSimple extends MDPExplicit implements ModelSimple, Serializable
+public class MDPSimple extends MDPExplicit implements ModelSimple
 {
 	// Transition function (Steps)
 	protected List<List<Distribution>> trans;

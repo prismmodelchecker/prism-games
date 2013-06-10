@@ -29,7 +29,6 @@ package explicit;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,7 +44,7 @@ import explicit.rewards.MDPRewards;
 /**
  * Base class for explicit-state representations of an MDP.
  */
-public abstract class MDPExplicit extends ModelExplicit implements MDP, Serializable
+public abstract class MDPExplicit extends ModelExplicit implements MDP
 {
 	// list of actions that are disabled in the model
 	protected Map<Integer, BitSet> disabledChoices = new HashMap<Integer, BitSet>();
