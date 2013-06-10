@@ -81,7 +81,7 @@ public class StateModelChecker
 
 	// PRISM settings object
 	// protected PrismSettings settings = new PrismSettings();
-	
+
 	// Flags/settings
 	// (NB: defaults do not necessarily coincide with PRISM)
 
@@ -490,17 +490,17 @@ public class StateModelChecker
 	{
 		StateValues res1 = null;
 		int op = expr.getOperator();
-		
+
 		// Check operand recursively
 		res1 = checkExpression(model, expr.getOperand());
-		
+
 		// Parentheses are easy - nothing to do:
 		if (op == ExpressionUnaryOp.PARENTH)
 			return res1;
 
 		// Apply operation
 		res1.applyUnaryOp(op);
-		
+
 		return res1;
 	}
 
@@ -740,10 +740,8 @@ public class StateModelChecker
 			for (int i = 0; i < model.getNumStates(); i++) {
 				// if state does not contain initial memory element - remove it
 				// from the filter
-				if ((bsFilter.get(i)
-						 && strategy.getInitialStateOfTheProduct(i) != -1
-						  && ((Integer) model.getStatesList().get(i).varValues[model.getStatesList().get(i).varValues.length - 1]) != strategy
-							.getInitialStateOfTheProduct(i))) {
+				if ((bsFilter.get(i) && strategy.getInitialStateOfTheProduct(i) != -1 && ((Integer) model.getStatesList().get(i).varValues[model
+						.getStatesList().get(i).varValues.length - 1]) != strategy.getInitialStateOfTheProduct(i))) {
 					bsFilter.set(i, false);
 				}
 			}
@@ -999,8 +997,7 @@ public class StateModelChecker
 			mainLog.print(expr.getType() instanceof TypeDouble ? "(approximately) " : "" + "this value");
 			boolean verbose = verbosity > 0; // TODO
 			if (!verbose && bsMatch.cardinality() > 10) {
-				mainLog
-						.print(".\nThe first 10 states are displayed below. To view them all, enable verbose mode or use a print filter.\n");
+				mainLog.print(".\nThe first 10 states are displayed below. To view them all, enable verbose mode or use a print filter.\n");
 				states.print(mainLog, 10);
 			} else {
 				mainLog.print(":\n");

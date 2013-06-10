@@ -50,12 +50,12 @@ public enum ModelType {
 		case STPG:
 			return "stochastic two-player game";
 		case SMG:
-			return "stochastic multiplayer game";
+			return "stochastic multi-player game";
 		}
 		// Should never happen
 		return "";
 	}
-	
+
 	/**
 	 * Get the PRISM keyword for this model type.
 	 */
@@ -80,7 +80,7 @@ public enum ModelType {
 		// Should never happen
 		return "";
 	}
-	
+
 	/**
 	 * Do the transitions in a choice sum to 1 for this model type?
 	 * Can also use this to test whether models uses rates or probabilities.
@@ -101,7 +101,7 @@ public enum ModelType {
 		// Should never happen
 		return true;
 	}
-	
+
 	/**
 	 * Are time delay continuous for this model type?
 	 */
@@ -121,7 +121,7 @@ public enum ModelType {
 		// Should never happen
 		return true;
 	}
-	
+
 	/**
 	 * Does this model allow nondeterministic choices?
 	 */
@@ -141,7 +141,7 @@ public enum ModelType {
 		// Should never happen
 		return true;
 	}
-	
+
 	/**
 	 * Does this model have probabilities or rates?
 	 * @return "Probability" or "Rate"
@@ -156,7 +156,7 @@ public enum ModelType {
 			return "Probability";
 		}
 	}
-	
+
 	public static ModelType parseName(String name)
 	{
 		if ("ctmc".equals(name))

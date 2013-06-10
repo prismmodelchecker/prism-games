@@ -150,7 +150,7 @@ public class StateModelChecker implements ModelChecker
 		}
 		return mc;
 	}
-	
+
 	/**
 	 * Clean up the dummy model created when using the abbreviated constructor
 	 */
@@ -171,10 +171,10 @@ public class StateModelChecker implements ModelChecker
 
 		// Create storage for result
 		result = new Result();
-		
+
 		// Remove any existing filter info
 		currentFilter = null;
-		
+
 		// The final result of model checking will be a single value. If the expression to be checked does not
 		// already yield a single value (e.g. because a filter has not been explicitly included), we need to wrap
 		// a new (invisible) filter around it. Note that some filters (e.g. print/argmin/argmax) also do not
@@ -207,7 +207,7 @@ public class StateModelChecker implements ModelChecker
 			// We stop any additional explanation being displayed to avoid confusion.
 			exprFilter.setExplanationEnabled(false);
 		}
-		
+
 		// For any case where a new filter was created above...
 		if (exprFilter != null) {
 			// Make it invisible (not that it will be displayed)
@@ -230,7 +230,7 @@ public class StateModelChecker implements ModelChecker
 			resultString += " (" + expr.getResultName().toLowerCase() + ")";
 		resultString += ": " + result.getResultString();
 		mainLog.print("\n" + resultString + "\n");
-		
+
 		// Clean up
 		vals.clear();
 
@@ -368,8 +368,6 @@ public class StateModelChecker implements ModelChecker
 				res1.clear();
 			if (res2 != null)
 				res2.clear();
-			if (res3 != null)
-				res3.clear();
 			throw e;
 		}
 
@@ -419,8 +417,6 @@ public class StateModelChecker implements ModelChecker
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
-			if (res2 != null)
-				res2.clear();
 			throw e;
 		}
 
@@ -619,8 +615,6 @@ public class StateModelChecker implements ModelChecker
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
-			if (res2 != null)
-				res2.clear();
 			throw e;
 		}
 		dd1 = res1.convertToStateValuesMTBDD().getJDDNode();
@@ -660,13 +654,7 @@ public class StateModelChecker implements ModelChecker
 		int i, n, op = expr.getOperator();
 
 		// Check operand recursively
-		try {
-			res1 = checkExpression(expr.getOperand());
-		} catch (PrismException e) {
-			if (res1 != null)
-				res1.clear();
-			throw e;
-		}
+		res1 = checkExpression(expr.getOperand());
 
 		// Parentheses are easy - nothing to do:
 		if (op == ExpressionUnaryOp.PARENTH)
@@ -736,13 +724,7 @@ public class StateModelChecker implements ModelChecker
 		int i, n, op = expr.getNameCode();
 
 		// Check operand recursively
-		try {
-			res1 = checkExpression(expr.getOperand(0));
-		} catch (PrismException e) {
-			if (res1 != null)
-				res1.clear();
-			throw e;
-		}
+		res1 = checkExpression(expr.getOperand(0));
 		// Symbolic
 		if (res1 instanceof StateValuesMTBDD) {
 			dd1 = ((StateValuesMTBDD) res1).getJDDNode();
@@ -793,8 +775,6 @@ public class StateModelChecker implements ModelChecker
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
-			if (res2 != null)
-				res2.clear();
 			throw e;
 		}
 		// If both operands are symbolic, result will be symbolic
@@ -879,13 +859,7 @@ public class StateModelChecker implements ModelChecker
 		boolean symbolic;
 
 		// Check first operand recursively
-		try {
-			res1 = checkExpression(expr.getOperand(0));
-		} catch (PrismException e) {
-			if (res1 != null)
-				res1.clear();
-			throw e;
-		}
+		res1 = checkExpression(expr.getOperand(0));
 		// Go through remaining operands
 		// Switch to explicit as soon as an operand is explicit
 		n = expr.getNumOperands();
@@ -1086,10 +1060,10 @@ public class StateModelChecker implements ModelChecker
 		} else {
 			currentFilter = null;
 		}
-		
+
 		// Check operand recursively
-		vals = checkExpression(expr.getOperand());	
-		
+		vals = checkExpression(expr.getOperand());
+
 		// Print out number of states satisfying filter
 		if (!filterInit)
 			mainLog.println("\nStates satisfying filter " + filter + ": " + statesFilter.sizeString());
@@ -1334,8 +1308,7 @@ public class StateModelChecker implements ModelChecker
 				resVals = vals;
 				// Set vals to null to stop it being cleared below
 				vals = null;
-			}
-			else {
+			} else {
 				// Find first (only) value
 				d = vals.firstFromBDD(ddFilter);
 				// Store as object/vector

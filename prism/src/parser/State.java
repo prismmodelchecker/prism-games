@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.io.Serializable;
 
-
 import parser.ast.ModulesFile;
 import prism.PrismLangException;
 
@@ -139,9 +138,9 @@ public class State implements Comparable<State>, Serializable
 
 	@Override
 	public int hashCode()
-    {
-            return Arrays.hashCode(varValues);
-    }
+	{
+		return Arrays.hashCode(varValues);
+	}
 
 	@Override
 	public boolean equals(Object o)
@@ -192,7 +191,6 @@ public class State implements Comparable<State>, Serializable
 				else
 					continue;
 			} else {
-				System.out.println(o1 + " " + o2);
 				throw new ClassCastException("Can't compare " + o1.getClass() + " and " + o2.getClass());
 			}
 		}
