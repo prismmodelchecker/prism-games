@@ -115,21 +115,22 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
-	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList)
+	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
+			TransitionList transitionList)
 	{
 		addStep(1.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
 	}
 
 	// Overloaded version with strategy state
-	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList, Object stratState)
+	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
+			TransitionList transitionList, Object stratState)
 	{
-		addStep(0.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList,
-				stratState);
+		addStep(0.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList, stratState);
 	}
 
 	@Override
-	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
-			TransitionList transitionList)
+	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState,
+			double[] newStateRewards, TransitionList transitionList)
 	{
 		Step stepOld, stepNew;
 		// Add info to last existing step
@@ -173,9 +174,7 @@ public class PathFull extends Path implements PathFullInfo
 
 	/**
 	 * Backtrack to a particular step within the current path.
-	 * 
-	 * @param step
-	 *            The step of the path to backtrack to (step >= 0)
+	 * @param step The step of the path to backtrack to (step >= 0)
 	 */
 	public void backtrack(int step)
 	{
@@ -287,7 +286,7 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		return steps.get(steps.size() - 2).probability;
 	}
-	
+
 	@Override
 	public double getTotalTime()
 	{
@@ -480,7 +479,7 @@ public class PathFull extends Path implements PathFullInfo
 	{
 		return steps.get(steps.size() - 2).probability;
 	}
-	
+
 	/**
 	 * Get a transition reward associated with a given step.
 	 * 
@@ -554,7 +553,8 @@ public class PathFull extends Path implements PathFullInfo
 		displayer.start(getState(0), getStateRewards(0));
 		int n = size();
 		for (int i = 1; i <= n; i++) {
-			displayer.step(getTime(i - 1), getCumulativeTime(i), getModuleOrAction(i - 1), getProbability(i - 1), getTransitionRewards(i), i, getState(i), getStateRewards(i));
+			displayer.step(getTime(i - 1), getCumulativeTime(i), getModuleOrAction(i - 1), getProbability(i - 1), getTransitionRewards(i), i, getState(i),
+					getStateRewards(i));
 		}
 		displayer.end();
 	}
