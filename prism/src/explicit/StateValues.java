@@ -1526,8 +1526,7 @@ public class StateValues
 	 * @param printStates Print states (variable values) for each element? 
 	 * @param printIndices Print state indices for each element? 
 	 */
-	public void printFiltered(PrismLog log, BitSet filter, boolean printSparse, boolean printMatlab,
-			boolean printStates, boolean printIndices)
+	public void printFiltered(PrismLog log, BitSet filter, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
 	{
 		doPrinting(log, -1, filter, printSparse, printMatlab, printStates, printIndices);
 	}
@@ -1542,8 +1541,7 @@ public class StateValues
 	 * @param printStates Print states (variable values) for each element? 
 	 * @param printIndices Print state indices for each element? 
 	 */
-	private void doPrinting(PrismLog log, int limit, BitSet filter, boolean printSparse, boolean printMatlab,
-			boolean printStates, boolean printIndices)
+	private void doPrinting(PrismLog log, int limit, BitSet filter, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
 	{
 		int i, count = 0;
 
@@ -1578,8 +1576,7 @@ public class StateValues
 			log.println("];");
 	}
 
-	private boolean printLine(PrismLog log, int n, boolean printSparse, boolean printMatlab, boolean printStates,
-			boolean printIndices)
+	private boolean printLine(PrismLog log, int n, boolean printSparse, boolean printMatlab, boolean printStates, boolean printIndices)
 	{
 		if (!printSparse || isNonZero(n)) {
 			if (printMatlab) {
