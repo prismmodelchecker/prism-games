@@ -99,8 +99,7 @@ public class ConstructRewards
 			throw new PrismException("Explicit engine does not yet handle transition rewards for D/CTMCs");
 		}
 		// Special case: constant rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0))
-				&& rewStr.getReward(0).isConstant()) {
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 		}
 		// Normal: state rewards
@@ -113,9 +112,7 @@ public class ConstructRewards
 				guard = rewStr.getStates(i);
 				for (j = 0; j < numStates; j++) {
 					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
-						rewSA
-								.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues,
-										statesList.get(j)));
+						rewSA.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 					}
 				}
 			}
@@ -129,8 +126,7 @@ public class ConstructRewards
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
-	public MDPRewards buildMDPRewardStructure(MDP mdp, RewardStruct rewStr, Values constantValues)
-			throws PrismException
+	public MDPRewards buildMDPRewardStructure(MDP mdp, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
 		List<State> statesList;
 		Expression guard;
@@ -139,8 +135,7 @@ public class ConstructRewards
 		int i, j, k, n, numStates, numChoices;
 
 		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0))
-				&& rewStr.getReward(0).isConstant()) {
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 		}
 		// Normal: state and transition rewards
@@ -161,15 +156,13 @@ public class ConstructRewards
 							for (k = 0; k < numChoices; k++) {
 								mdpAction = mdp.getAction(j, k);
 								if (mdpAction == null ? (action.isEmpty()) : mdpAction.equals(action)) {
-									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(
-											constantValues, statesList.get(j)));
+									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues,
-									statesList.get(j)));
+							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 						}
 					}
 				}
@@ -184,8 +177,7 @@ public class ConstructRewards
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
-	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardStruct rewStr, Values constantValues)
-			throws PrismException
+	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
 		List<State> statesList;
 		Expression guard;
@@ -194,8 +186,7 @@ public class ConstructRewards
 		int i, s, j, k, numItems, numStates, numChoices, numChoices2;
 
 		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0))
-				&& rewStr.getReward(0).isConstant()) {
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 		}
 		// Normal: state and transition rewards
@@ -216,23 +207,20 @@ public class ConstructRewards
 							for (j = 0; j < numChoices; j++) {
 								stpgAction = stpg.getAction(s, j);
 								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-									rewSimple.addToTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(
-											constantValues, statesList.get(s)));
+									rewSimple.addToTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 								}
 								numChoices2 = stpg.getNumNestedChoices(s, j);
 								for (k = 0; k < numChoices2; k++) {
 									stpgAction = stpg.getNestedAction(s, j, k);
 									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-										rewSimple.addToNestedTransitionReward(s, j, k, rewStr.getReward(i)
-												.evaluateDouble(constantValues, statesList.get(s)));
+										rewSimple.addToNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 									}
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues,
-									statesList.get(s)));
+							rewSimple.addToStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
 						}
 					}
 				}
@@ -247,8 +235,7 @@ public class ConstructRewards
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
-	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues)
-			throws PrismException
+	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
 		List<State> statesList;
 		Set<Integer> schedStates;
@@ -259,8 +246,7 @@ public class ConstructRewards
 		int i, j, k, n, numStates, numChoices;
 
 		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0))
-				&& rewStr.getReward(0).isConstant()) {
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
 		}
 		// Normal: state and transition rewards
@@ -285,15 +271,13 @@ public class ConstructRewards
 							for (k = 0; k < numChoices; k++) {
 								smgAction = smg.getAction(j, k);
 								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
-									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(
-											constantValues, statesList.get(j)));
+									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues,
-									statesList.get(j)));
+							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
 						}
 					}
 				}
