@@ -33,50 +33,43 @@ import java.util.ArrayList;
  */
 public class StateRewardsSimple extends StateRewards
 {
-	/** Number of states */
-	protected int numStates;
 	/** Arraylist of state rewards **/
 	protected ArrayList<Double> stateRewards;
-	
+
 	/**
 	 * Constructor: all zero rewards.
-	 * @param numStates Number of states
 	 */
-	public StateRewardsSimple(int numStates)
+	public StateRewardsSimple()
 	{
-		this.numStates = numStates;
-		stateRewards = new ArrayList<Double>(numStates);
-		for (int i = 0; i < numStates; i++)
-			stateRewards.add(0.0);
+		stateRewards = new ArrayList<Double>();
 	}
-	
+
 	/**
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
 	public StateRewardsSimple(StateRewardsSimple rews)
 	{
-		int numStates = rews.numStates;
 		if (rews.stateRewards == null) {
 			stateRewards = null;
 		} else {
-			stateRewards = new ArrayList<Double>(numStates);
-			for (int i = 0; i < numStates; i++) {
+			int n = rews.stateRewards.size();
+			stateRewards = new ArrayList<Double>(n);
+			for (int i = 0; i < n; i++) {
 				stateRewards.add(rews.stateRewards.get(i));
 			}
 		}
 	}
-	
+
 	// Mutators
-	
+
 	/**
 	 * Set the reward for state {@code s} to {@code r}.
 	 */
 	public void setStateReward(int s, double r)
 	{
-		// Nothing to do for zero reward
-		//if (r == 0.0)
-		//	return;
+		if (r == 0.0 && s >= stateRewards.size())
+			return;
 		// If list not big enough, extend
 		int n = s - stateRewards.size() + 1;
 		if (n > 0) {
@@ -87,20 +80,21 @@ public class StateRewardsSimple extends StateRewards
 		// Set reward
 		stateRewards.set(s, r);
 	}
-	
+
 	// Accessors
-	
+
 	@Override
 	public double getStateReward(int s)
 	{
 		try {
 			return stateRewards.get(s);
-		}
-		catch (ArrayIndexOutOfBoundsException e) {
+		} catch (ArrayIndexOutOfBoundsException e) {
 			return 0.0;
 		}
 	}
-	
+
+	// Other
+
 	@Override
 	public StateRewardsSimple deepCopy()
 	{

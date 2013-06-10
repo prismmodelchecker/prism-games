@@ -54,5 +54,8 @@ public abstract class StateRewards implements MCRewards, MDPRewards, STPGRewards
 		return deepCopy();
 	}
 	
+	/**
+	 * Perform a deep copy.
+	 */
 	public abstract StateRewards deepCopy();
 }

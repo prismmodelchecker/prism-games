@@ -32,7 +32,7 @@ package explicit.rewards;
 public class StateRewardsConstant extends StateRewards
 {
 	protected double stateReward = 0.0;
-	
+
 	/**
 	 * Constructor: all rewards equal to {@code r}
 	 */
@@ -40,15 +40,17 @@ public class StateRewardsConstant extends StateRewards
 	{
 		stateReward = r;
 	}
-	
+
 	// Accessors
-	
+
 	@Override
 	public double getStateReward(int s)
 	{
 		return stateReward;
 	}
-	
+
+	// Other
+
 	@Override
 	public StateRewardsConstant deepCopy()
 	{

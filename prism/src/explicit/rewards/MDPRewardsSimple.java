@@ -41,10 +41,10 @@ public class MDPRewardsSimple implements MDPRewards
 	protected List<Double> stateRewards;
 	/** Transition rewards */
 	protected List<List<Double>> transRewards;
-	
+
 	/** The number returned when the real reward is unset or 0.0*/
 	protected double zeroReplacement = 0.0;
-	
+
 	/**
 	 * Constructor: all zero rewards.
 	 * @param numStates Number of states
@@ -56,7 +56,7 @@ public class MDPRewardsSimple implements MDPRewards
 		stateRewards = null;
 		transRewards = null;
 	}
-	
+
 	/**
 	 * Copy constructor
 	 * @param rews Rewards to copy
@@ -90,10 +90,11 @@ public class MDPRewardsSimple implements MDPRewards
 				}
 			}
 		}
+		zeroReplacement = rews.zeroReplacement;
 	}
-	
+
 	// Mutators
-	
+
 	/**
 	 * Set the state reward for state {@code s} to {@code r}.
 	 */
@@ -154,7 +155,7 @@ public class MDPRewardsSimple implements MDPRewards
 	{
 		setTransitionReward(s, i, getTransitionReward(s, i) + r);
 	}
-	
+
 	/**
 	 * Clear all rewards for state s.
 	 */
@@ -165,7 +166,7 @@ public class MDPRewardsSimple implements MDPRewards
 			transRewards.set(s, null);
 		}
 	}
-	
+
 	/**
 	 * If set, the method {@link #getNestedTransitionReward(int, int, int)}
 	 * will return {@code number} whenever it would normally return {@code 0.0}.
@@ -173,10 +174,11 @@ public class MDPRewardsSimple implements MDPRewards
 	 * some small epsilon>0.
 	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
 	 */
-	public void setZeroReplacement(double number) {
+	public void setZeroReplacement(double number)
+	{
 		this.zeroReplacement = number;
 	}
-	
+
 	/**
 	 * The number the method {@link #getNestedTransitionReward(int, int, int)}
 	 * will return as "zero" 
@@ -184,12 +186,13 @@ public class MDPRewardsSimple implements MDPRewards
 	 * some small epsilon>0.
 	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
 	 */
-	public double getZeroReplacement() {
+	public double getZeroReplacement()
+	{
 		return this.zeroReplacement;
 	}
-	
+
 	// Accessors
-	
+
 	@Override
 	public double getStateReward(int s)
 	{
@@ -197,7 +200,7 @@ public class MDPRewardsSimple implements MDPRewards
 			return this.zeroReplacement;
 		return (stateRewards.get(s) != 0.0) ? stateRewards.get(s) : this.zeroReplacement;
 	}
-	
+
 	@Override
 	public double getTransitionReward(int s, int i)
 	{
@@ -208,7 +211,7 @@ public class MDPRewardsSimple implements MDPRewards
 			return this.zeroReplacement;
 		return (list.get(i) != 0) ? list.get(i) : this.zeroReplacement;
 	}
-	
+
 	@Override
 	public String toString()
 	{
