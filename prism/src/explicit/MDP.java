@@ -174,8 +174,7 @@ public interface MDP extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset,
-			boolean complement, int adv[]);
+	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset, boolean complement, int adv[]);
 
 	/**
 	 * Do a Gauss-Seidel-style matrix-vector multiplication and sum of action reward followed by min/max.
@@ -191,8 +190,7 @@ public interface MDP extends Model
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset,
-			boolean complement, boolean absolute);
+	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
@@ -223,8 +221,7 @@ public interface MDP extends Model
 	 * @param min Min or max (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
-			double val);
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val);
 
 	/**
 	 * Multiply the probability matrix induced by the mdp and {@code adv}
