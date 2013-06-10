@@ -2425,7 +2425,16 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		public int getColumnCount()
 		{
-			return pathActive ? (showStrategyCheck.isSelected() && strategyGenerated ? 4 : 3) : 0;
+			if (pathActive) {
+				int cols = 3;
+				if (showStrategyCheck.isSelected() && strategyGenerated)
+					cols++;
+				if (parsedModel.getModelType() == ModelType.SMG)
+					cols++;
+				return cols;
+			} else {
+				return 0;
+			}
 		}
 
 		public int getRowCount()
@@ -2441,20 +2450,22 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			if (pathActive) {
 				try {
-					int i = 1;
-					if (showStrategyCheck.isSelected() && strategyGenerated)
-						i = 0;
-					switch (columnIndex + i) {
+					// Adjust column index to account for optional columns
+					int offset = 0;
+					if (!(showStrategyCheck.isSelected() && strategyGenerated))
+						offset++;
+					if (parsedModel.getModelType() != ModelType.SMG)
+						offset++;
+					// Then determine cell contents
+					switch (columnIndex + offset) {
+					// Strategy choice
 					case 0:
-
 						if (strategyGenerated && strategy != null && stateIds != null) {
 							//try {
-							Distribution dist = strategy.getNextMove(stateIds.get(oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getCurrentState()));
+							State state = oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getCurrentState();
+							Distribution dist = strategy.getNextMove(stateIds.get(state));
 							int choice = engine.getChoiceIndexOfTransition(rowIndex);
-							if (dist.contains(choice))
-								return choice + "->" + dist.get(choice);
-							else
-								return "x";
+							return dist.contains(choice) ? dist.get(choice) : "";
 							//} finally {
 							// resetting the memory
 							//if (oldUpdate)
@@ -2462,22 +2473,23 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 							//}
 						} else
 							return "";
-
+					// Player
 					case 1:
 						String modAct = engine.getTransitionModuleOrAction(rowIndex);
-						if (parsedModel.getModelType() != ModelType.SMG)
-							return modAct;
-
-						// Printing player who controls the state
 						int player = parsedModel.getPlayerForModule(modAct);
 						if (player == -1)
 							player = parsedModel.getPlayerForAction(modAct);
 						if (player == -1)
-							return modAct;
-						return modAct + " (" + (player + 1) + ":" + parsedModel.getPlayer(player).getName() + ")";
+							return "";
+						return parsedModel.getPlayer(player).getName();
+					// Module/action
 					case 2:
-						return "" + engine.getTransitionProbability(rowIndex);
+						return engine.getTransitionModuleOrAction(rowIndex);
+					// Prob/rate
 					case 3:
+						return "" + engine.getTransitionProbability(rowIndex);
+					// Update
+					case 4:
 						return engine.getTransitionUpdateString(rowIndex);
 					default:
 						return "";
@@ -2496,22 +2508,23 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public String getColumnName(int column)
 		{
 			if (pathActive) {
-				int i = 1;
-				if (showStrategyCheck.isSelected() && strategyGenerated)
-					i = 0;
-				switch (column + i) {
+				// Adjust column index to account for optional columns
+				int offset = 0;
+				if (!(showStrategyCheck.isSelected() && strategyGenerated))
+					offset++;
+				if (parsedModel.getModelType() != ModelType.SMG)
+					offset++;
+				// Then determine column name
+				switch (column + offset) {
 				case 0:
-					return "Strategy choice";
+					return "Strategy";
 				case 1:
-					if (parsedModel.getModelType() != ModelType.SMG)
-						return "Module/[action]";
-
-					// if model type SMG return player info as well
-					return "Module/[action] (player)";
-				case 2: {
-					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
-				}
+					return "Player";
+				case 2:
+					return "Module/[action]";
 				case 3:
+					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
+				case 4:
 					return "Update";
 				default:
 					return "";
