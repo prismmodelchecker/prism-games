@@ -30,7 +30,6 @@ package explicit;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
-
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -67,8 +66,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP, Serializ
 		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		s += ", " + getNumTransitions() + " transitions";
 		s += ", " + getNumChoices() + " choices";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/"
-				+ PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates);
+		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates);
 		return s;
 	}
 
@@ -79,8 +77,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP, Serializ
 		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
 		s += "Transitions: " + getNumTransitions() + "\n";
 		s += "Choices:     " + getNumChoices() + "\n";
-		s += "Max/avg:     " + getMaxNumChoices() + "/"
-				+ PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates) + "\n";
+		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates) + "\n";
 		return s;
 	}
 
@@ -294,8 +291,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP, Serializ
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset,
-			boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], MDPRewards mdpRewards, boolean min, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		// Loop depends on subset/complement arguments
@@ -312,8 +308,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP, Serializ
 	}
 
 	@Override
-	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset,
-			boolean complement, boolean absolute)
+	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;

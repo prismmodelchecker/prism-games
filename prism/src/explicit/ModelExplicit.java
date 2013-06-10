@@ -28,7 +28,6 @@ package explicit;
 
 import java.io.File;
 import java.io.Serializable;
-
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -143,7 +142,7 @@ public abstract class ModelExplicit implements Model, Serializable
 	{
 		this.statesList = statesList;
 	}
-
+	
 	/**
 	 * Set the associated (read-only) constant values.
 	 */
@@ -192,7 +191,7 @@ public abstract class ModelExplicit implements Model, Serializable
 	{
 		return deadlocks.size();
 	}
-
+	
 	@Override
 	public Iterable<Integer> getDeadlockStates()
 	{
@@ -206,7 +205,7 @@ public abstract class ModelExplicit implements Model, Serializable
 		for (int dl : deadlocks) {
 			bs.set(dl);
 		}
-
+		
 		return StateValues.createFromBitSet(bs, this);
 	}
 
@@ -221,7 +220,7 @@ public abstract class ModelExplicit implements Model, Serializable
 	{
 		return deadlocks.contains(i);
 	}
-
+	
 	@Override
 	public List<State> getStatesList()
 	{
@@ -292,7 +291,7 @@ public abstract class ModelExplicit implements Model, Serializable
 	{
 		if (statesList == null)
 			return;
-
+		
 		// Print header: list of model vars
 		if (exportType == Prism.EXPORT_MATLAB)
 			log.print("% ");
@@ -320,7 +319,7 @@ public abstract class ModelExplicit implements Model, Serializable
 		if (exportType == Prism.EXPORT_MATLAB)
 			log.println("];");
 	}
-
+	
 	@Override
 	public abstract String infoString();
 

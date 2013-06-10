@@ -30,13 +30,10 @@ package explicit;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -85,11 +82,8 @@ public class ConstructModel
 	}
 
 	/**
-	 * Build the set of reachable states for a PRISM model language description
-	 * and return.
-	 * 
-	 * @param modulesFile
-	 *            The PRISM model
+	 * Build the set of reachable states for a PRISM model language description and return.
+	 * @param modulesFile The PRISM model
 	 */
 	public List<State> computeReachableStates(ModulesFile modulesFile) throws PrismException
 	{
@@ -98,11 +92,8 @@ public class ConstructModel
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description
-	 * and return.
-	 * 
-	 * @param modulesFile
-	 *            The PRISM model
+	 * Construct an explicit-state model from a PRISM model language description and return.
+	 * @param modulesFile The PRISM model
 	 */
 	public Model constructModel(ModulesFile modulesFile) throws PrismException
 	{
@@ -110,17 +101,12 @@ public class ConstructModel
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description
-	 * and return. If {@code justReach} is true, no model is built and null is
-	 * returned; the set of reachable states can be obtained with
-	 * {@link #getStatesList()}.
-	 * 
-	 * @param modulesFile
-	 *            The PRISM model
-	 * @param justReach
-	 *            If true, just build the reachable state set, not the model
-	 * @param buildSparse
-	 *            Build a sparse version of the model (if possible)?
+	 * Construct an explicit-state model from a PRISM model language description and return.
+	 * If {@code justReach} is true, no model is built and null is returned;
+	 * the set of reachable states can be obtained with {@link #getStatesList()}.
+	 * @param modulesFile The PRISM model
+	 * @param justReach If true, just build the reachable state set, not the model
+	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 */
 	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse) throws PrismException
 	{
@@ -128,23 +114,15 @@ public class ConstructModel
 	}
 
 	/**
-	 * Construct an explicit-state model from a PRISM model language description
-	 * and return. If {@code justReach} is true, no model is built and null is
-	 * returned; the set of reachable states can be obtained with
-	 * {@link #getStatesList()}.
-	 * 
-	 * @param modulesFile
-	 *            The PRISM model
-	 * @param justReach
-	 *            If true, just build the reachable state set, not the model
-	 * @param buildSparse
-	 *            Build a sparse version of the model (if possible)?
-	 * @param distinguishActions
-	 *            True if actions should be attached to distributions (and used
-	 *            to distinguish them)
+	 * Construct an explicit-state model from a PRISM model language description and return.
+	 * If {@code justReach} is true, no model is built and null is returned;
+	 * the set of reachable states can be obtained with {@link #getStatesList()}.
+	 * @param modulesFile The PRISM model
+	 * @param justReach If true, just build the reachable state set, not the model
+	 * @param buildSparse Build a sparse version of the model (if possible)?
+	 * @param distinguishActions True if actions should be attached to distributions (and used to distinguish them)
 	 */
-	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse,
-			boolean distinguishActions) throws PrismException
+	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -246,8 +224,7 @@ public class ConstructModel
 				for (i = 0; i < nc; i++) {
 					int iPlayer = determinePlayerForChoice(modulesFile, modelType, i);
 					if (player != -1 && iPlayer != player) {
-						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state "
-								+ state);
+						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
 					player = iPlayer;
 				}
@@ -259,8 +236,7 @@ public class ConstructModel
 			// Look at each outgoing choice in turn
 			for (i = 0; i < nc; i++) {
 
-				if (!justReach
-						&& (modelType == ModelType.MDP || modelType == ModelType.STPG || modelType == ModelType.SMG)) {
+				if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG || modelType == ModelType.SMG)) {
 					distr = new Distribution();
 				}
 				// Look at each transition in the choice
@@ -324,7 +300,7 @@ public class ConstructModel
 		// Reachability complete
 		mainLog.print("Reachable states exploration" + (justReach ? "" : " and model construction"));
 		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
-		// mainLog.println(states);
+		//mainLog.println(states);
 
 		// Find/fix deadlocks (if required)
 		if (!justReach && findDeadlocks) {
@@ -339,14 +315,14 @@ public class ConstructModel
 			mainLog.println("Sorting reachable states list...");
 			permut = states.buildSortingPermutation();
 			statesList = states.toPermutedArrayList(permut);
-			// mainLog.println(permut);
+			//mainLog.println(permut);
 		} else {
 			statesList = states.toArrayList();
 		}
 		states.clear();
 		states = null;
-		// mainLog.println(permut);
-		// mainLog.println(statesList);
+		//mainLog.println(permut);
+		//mainLog.println(statesList);
 
 		// Construct new explicit-state model (with correct state ordering)
 		if (!justReach) {
@@ -378,7 +354,7 @@ public class ConstructModel
 			model.setStatesList(statesList);
 			model.setConstantValues(new Values(modulesFile.getConstantValues()));
 			// System.out.println(model);
-			// mainLog.println("Model: " + model);
+			//mainLog.println("Model: " + model);
 		}
 
 		// Discard permutation
@@ -401,8 +377,7 @@ public class ConstructModel
 		if (modAct > 0) {
 			player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
 			if (player == -1) {
-				throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1)
-						+ "\" is not assigned to any player");
+				throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
 			}
 			// 0-indexed to 1-indexed
 			player++;
@@ -417,8 +392,7 @@ public class ConstructModel
 				try {
 					player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
 				} catch (Exception e) {
-					throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0)
-							+ "\" is not assigned to any player");
+					throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
 				}
 			}
 			// 0-indexed to 1-indexed
@@ -429,155 +403,22 @@ public class ConstructModel
 	}
 
 	/**
-	 * State placeholder
-	 * 
-	 * @author aissim
-	 * 
-	 */
-	static class DummyState extends State
-	{
-
-		public DummyState(int n)
-		{
-			super(n);
-		}
-
-		public int compareTo(State s)
-		{
-			return -1;
-		}
-
-	}
-
-	/**
 	 * Test method.
 	 */
 	public static void main(String[] args)
 	{
-
-		// TODO HACK!
-		testSMG(args[0]);
-		if (1 == 1)
-			return;
-
 		try {
-			// Simple example: parse a PRISM file from a file, construct the
-			// model and export to a .tra file
+			// Simple example: parse a PRISM file from a file, construct the model and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
 			Prism prism = new Prism(mainLog, mainLog);
 			ModulesFile modulesFile = prism.parseModelFile(new File(args[0]));
 			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
 			if (args.length > 2)
-				undefinedConstants.defineUsingConstSwitch(args[1]);
+				undefinedConstants.defineUsingConstSwitch(args[2]);
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
 			Model model = constructModel.constructModel(modulesFile);
-			MDP mdp = (MDP) model;
-			mainLog.println(mdp);
-			mainLog.println(constructModel.getStatesList());
-			MDPModelChecker mc = new MDPModelChecker();
-			mc.setLog(prism.getMainLog());
-			BitSet target = new BitSet();
-			target.set(2);
-			ModelCheckerResult res = mc.computeReachProbs(mdp, target, true);
-			mainLog.println(res.soln);
-
-		} catch (FileNotFoundException e) {
-			System.out.println("Error: " + e.getMessage());
-			System.exit(1);
-		} catch (PrismException e) {
-			System.out.println("Error: " + e.getMessage());
-			System.exit(1);
-		}
-	}
-
-	/** Method to test STPG construction */
-	public static void testSTPG(String filename)
-	{
-		try {
-			// Simple example: parse a PRISM file from a file, construct the
-			// model
-			// and export to a .tra file
-			PrismLog mainLog = new PrismPrintStreamLog(System.out);
-			Prism prism = new Prism(mainLog, mainLog);
-			ModulesFile modulesFile = prism.parseModelFile(new File(filename));
-			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
-
-			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
-
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-
-			Model model = constructModel.constructModel(modulesFile);
-
-			STPGExplicit stpg = (STPGExplicit) model;
-			mainLog.println(stpg);
-			mainLog.println(constructModel.getStatesList());
-			STPGModelChecker mc = new STPGModelChecker();
-
-			mc.setLog(prism.getMainLog());
-			BitSet target = new BitSet();
-			target.set(8);
-			stpg.exportToDotFile("stpg.dot", target);
-			System.out.println("min min: " + mc.computeReachProbs(stpg, target, true, true).soln[0]);
-			System.out.println("max min: " + mc.computeReachProbs(stpg, target, false, true).soln[0]);
-			System.out.println("min max: " + mc.computeReachProbs(stpg, target, true, false).soln[0]);
-			System.out.println("max max: " + mc.computeReachProbs(stpg, target, false, false).soln[0]);
-
-		} catch (FileNotFoundException e) {
-			System.out.println("Error: " + e.getMessage());
-			System.exit(1);
-		} catch (PrismException e) {
-			System.out.println("Error: " + e.getMessage());
-			System.exit(1);
-		}
-	}
-
-	/**
-	 * Method to test SMG construction
-	 * 
-	 * @param filename
-	 */
-	public static void testSMG(String filename)
-	{
-		try {
-			// Simple example: parse a PRISM file from a file, construct the
-			// model
-			// and export to a .tra file
-			PrismLog mainLog = new PrismPrintStreamLog(System.out);
-			Prism prism = new Prism(mainLog, mainLog);
-			ModulesFile modulesFile = prism.parseModelFile(new File(filename));
-			UndefinedConstants undefinedConstants = new UndefinedConstants(modulesFile, null);
-
-			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
-
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
-
-			Model model = constructModel.constructModel(modulesFile);
-
-			System.out.println("\nStates list: ");
-			mainLog.println(constructModel.getStatesList());
-
-			SMG smg = (SMG) model;
-
-			Set<Integer> player1 = new HashSet<Integer>();
-			player1.add(1);
-			SMG stpg_nondet = smg.clone();
-
-			player1 = new HashSet<Integer>();
-			player1.add(1);
-			SMG stpg_rand = smg.clone();
-
-			System.out.println("\nSMG: ");
-			mainLog.println(smg);
-			System.out.println("\nSTPG-NONDET: ");
-			mainLog.println(stpg_nondet);
-			System.out.println("\nSTPG-RAND: ");
-			mainLog.println(stpg_rand);
-
-			// smg.exportToDotFile("smg.dot");
-			// stpg_nondet.exportToDotFile("stpg_nondet.dot");
-			// stpg_rand.exportToDotFile("stpg_rand.dot");
-
+			model.exportToPrismExplicitTra(args[1]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
