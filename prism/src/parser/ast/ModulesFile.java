@@ -362,6 +362,7 @@ public class ModulesFile extends ASTElement
 
 	/**
 	 * Get the (index of the) player that owns action {@code a}.
+	 * The action can be either of the form "act" or "[act]".
 	 * Players are 0-indexed; returns -1 if no owner found.
 	 */
 	public int getPlayerForAction(String a)
