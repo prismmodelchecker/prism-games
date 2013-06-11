@@ -2450,17 +2450,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			if (pathActive) {
 				try {
-					// Adjust column index to account for optional columns
+					// First 2 columns are optional
 					int offset = 0;
-					if (!(showStrategyCheck.isSelected() && strategyGenerated))
-						offset++;
-					if (!parsedModel.getModelType().multiplePlayers())
-						offset++;
-					// Then determine cell contents
-					switch (columnIndex + offset) {
 					// Strategy choice
-					case 0:
-						if (strategyGenerated && strategy != null && stateIds != null) {
+					if (showStrategyCheck.isSelected() && strategyGenerated & strategy != null && stateIds != null) {
+						if (columnIndex == offset) {
 							//try {
 							State state = oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getCurrentState();
 							Distribution dist = strategy.getNextMove(stateIds.get(state));
@@ -2471,17 +2465,26 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 							//if (oldUpdate)
 							//	strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathFull().size() - 1));
 							//}
-						} else
-							return "";
+						}
+					} else {
+						offset++;
+					}
 					// Player
-					case 1:
-						String modAct = engine.getTransitionModuleOrAction(rowIndex);
-						int player = parsedModel.getPlayerForModule(modAct);
-						if (player == -1)
-							player = parsedModel.getPlayerForAction(modAct);
-						if (player == -1)
-							return "";
-						return parsedModel.getPlayer(player).getName();
+					if (parsedModel.getModelType().multiplePlayers()) {
+						if (columnIndex == offset) {
+							String modAct = engine.getTransitionModuleOrAction(rowIndex);
+							int player = parsedModel.getPlayerForModule(modAct);
+							if (player == -1)
+								player = parsedModel.getPlayerForAction(modAct);
+							if (player == -1)
+								return "";
+							return parsedModel.getPlayer(player).getName();
+						}
+					} else {
+						offset++;
+					}
+					// The rest are fixed
+					switch (columnIndex + offset) {
 					// Module/action
 					case 2:
 						return engine.getTransitionModuleOrAction(rowIndex);
@@ -2508,18 +2511,24 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public String getColumnName(int column)
 		{
 			if (pathActive) {
-				// Adjust column index to account for optional columns
+				// First 2 columns are optional
 				int offset = 0;
-				if (!(showStrategyCheck.isSelected() && strategyGenerated))
+				// Strategy choice
+				if (showStrategyCheck.isSelected() && strategyGenerated) {
+					if (column == offset)
+						return "Strategy";
+				} else {
 					offset++;
-				if (!parsedModel.getModelType().multiplePlayers())
+				}
+				// Player
+				if (parsedModel.getModelType().multiplePlayers()) {
+					if (column == offset)
+						return "Player";
+				} else {
 					offset++;
-				// Then determine column name
+				}
+				// The rest are fixed
 				switch (column + offset) {
-				case 0:
-					return "Strategy";
-				case 1:
-					return "Player";
 				case 2:
 					return "Module/[action]";
 				case 3:
