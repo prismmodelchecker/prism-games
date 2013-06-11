@@ -46,38 +46,27 @@ import prism.PrismUtils;
 import explicit.rewards.MDPRewards;
 
 /**
- * Sparse matrix (non-mutable) explicit-state representation of an MDP. This is
- * much faster to access than e.g. MDPSimple and should also be more compact.
- * The catch is that you have to create the model all in one go and then can't
- * modify it.
+ * Sparse matrix (non-mutable) explicit-state representation of an MDP.
+ * This is much faster to access than e.g. MDPSimple and should also be more compact.
+ * The catch is that you have to create the model all in one go and then can't modify it.
  */
 public class MDPSparse extends MDPExplicit
 {
 	// Sparse matrix storing transition function (Steps)
 	/** Probabilities for each transition (array of size numTransitions) */
 	protected double nonZeros[];
-	/**
-	 * Column (destination) indices for each transition (array of size
-	 * numTransitions)
-	 */
+	/** Column (destination) indices for each transition (array of size numTransitions) */
 	protected int cols[];
-	/**
-	 * Indices into nonZeros/cols giving the start of the transitions for each
-	 * choice (distribution); array is of size numDistrs+1 and last entry is
-	 * always equal to numTransitions
-	 */
+	/** Indices into nonZeros/cols giving the start of the transitions for each choice (distribution);
+	 * array is of size numDistrs+1 and last entry is always equal to numTransitions */
 	protected int choiceStarts[];
-	/**
-	 * Indices into choiceStarts giving the start of the choices for each state;
-	 * array is of size numStates+1 and last entry is always equal to numDistrs
-	 */
+	/** Indices into choiceStarts giving the start of the choices for each state;
+	 * array is of size numStates+1 and last entry is always equal to numDistrs */
 	protected int rowStarts[];
 
 	// Action labels
-	/**
-	 * Array of action labels for choices; if null, there are no actions;
-	 * otherwise, is an array of size numDistrs
-	 */
+	/** Array of action labels for choices;
+	 * if null, there are no actions; otherwise, is an array of size numDistrs */
 	protected Object actions[];
 
 	// Other statistics
@@ -98,11 +87,8 @@ public class MDPSparse extends MDPExplicit
 	/**
 	 * Copy constructor (from MDPSimple). Optionally, transitions within choices
 	 * are sorted (by ascending order of column index).
-	 * 
-	 * @param mdp
-	 *            The MDP to copy
-	 * @param sort
-	 *            Whether or not to sort column indices
+	 * @param mdp The MDP to copy
+	 * @param sort Whether or not to sort column indices
 	 */
 	public MDPSparse(MDPSimple mdp, boolean sort)
 	{
@@ -160,17 +146,13 @@ public class MDPSparse extends MDPExplicit
 
 	/**
 	 * Copy constructor (from MDPSimple). Optionally, transitions within choices
-	 * are sorted (by ascending order of column index). Also, optionally, a
-	 * state index permutation can be provided, i.e. old state index i becomes
-	 * index permut[i]. Note: a states list, if present, will not be permuted
-	 * and should be set separately afterwards if required.
-	 * 
-	 * @param mdp
-	 *            The MDP to copy
-	 * @param sort
-	 *            Whether or not to sort column indices
-	 * @param permut
-	 *            State space permutation
+	 * are sorted (by ascending order of column index). Also, optionally, a state
+	 * index permutation can be provided, i.e. old state index i becomes index permut[i].
+	 * Note: a states list, if present, will not be permuted and should be set
+	 * separately afterwards if required.
+	 * @param mdp The MDP to copy
+	 * @param sort Whether or not to sort column indices
+	 * @param permut State space permutation
 	 */
 	public MDPSparse(MDPSimple mdp, boolean sort, int permut[])
 	{
@@ -233,16 +215,12 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	/**
-	 * Copy constructor for a (sub-)MDP from a given MDP. The states and actions
-	 * will be indexed as given by the order of the lists {@code states} and
-	 * {@code actions}.
-	 * 
-	 * @param mdp
-	 *            MDP to copy from
-	 * @param states
-	 *            States to copy
-	 * @param actions
-	 *            Actions to copy
+	 * Copy constructor for a (sub-)MDP from a given MDP.
+	 * The states and actions will be indexed as given by the order
+	 * of the lists {@code states} and {@code actions}.
+	 * @param mdp MDP to copy from
+	 * @param states States to copy
+	 * @param actions Actions to copy
 	 */
 	public MDPSparse(MDP mdp, List<Integer> states, List<List<Integer>> actions)
 	{
@@ -385,8 +363,7 @@ public class MDPSparse extends MDPExplicit
 				throw new PrismException("Choice count is wrong in tra file (" + kCount + "!=" + numTransitions + ")");
 			}
 			if (jCount != numTransitions) {
-				throw new PrismException("Transition count is wrong in tra file (" + kCount + "!=" + numTransitions
-						+ ")");
+				throw new PrismException("Transition count is wrong in tra file (" + kCount + "!=" + numTransitions + ")");
 			}
 		} catch (IOException e) {
 			System.exit(1);
@@ -416,7 +393,7 @@ public class MDPSparse extends MDPExplicit
 		}
 		return succs.iterator();
 	}
-	
+
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
@@ -519,8 +496,7 @@ public class MDPSparse extends MDPExplicit
 			if (getNumChoices(i) == 0) {
 				addDeadlockState(i);
 				if (fix) {
-					throw new PrismException(
-							"Can't fix deadlocks in an MDPSparse since it cannot be modified after construction");
+					throw new PrismException("Can't fix deadlocks in an MDPSparse since it cannot be modified after construction");
 				}
 			}
 		}
@@ -628,8 +604,7 @@ public class MDPSparse extends MDPExplicit
 				c = 0;
 				for (j = l1; j < h1; j++) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(c++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
 						continue;
 					some = false;
 					l2 = choiceStarts[j];
@@ -671,8 +646,7 @@ public class MDPSparse extends MDPExplicit
 				c = 0;
 				for (j = l1; j < h1; j++) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(c++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
 						continue;
 					some = false;
 					all = true;
@@ -705,9 +679,9 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int adv[])
+	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, advCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
 		double d, minmax;
 		boolean first;
 
@@ -730,19 +704,19 @@ public class MDPSparse extends MDPExplicit
 			// Check whether we have exceeded min/max so far
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
-				// If adversary generation is enabled, remember optimal choice
-				if (adv != null)
-					advCh = j - l1;
+				// If strategy generation is enabled, remember optimal choice
+				if (strat != null)
+					stratCh = j - l1;
 			}
 			first = false;
 		}
-		// If adversary generation is enabled, store optimal choice
-		if (adv != null & !first) {
+		// If strategy generation is enabled, store optimal choice
+		if (strat != null & !first) {
 			// For max, only remember strictly better choices
 			if (min) {
-				adv[s] = advCh;
-			} else if (adv[s] == -1 || minmax > vect[s]) {
-				adv[s] = advCh;
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
+				strat[s] = stratCh;
 			}
 		}
 
@@ -863,9 +837,9 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, advCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
 		double d, minmax;
 		boolean first;
 
@@ -887,17 +861,17 @@ public class MDPSparse extends MDPExplicit
 			// Check whether we have exceeded min/max so far
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
-				// If adversary generation is enabled, remember optimal choice
-				if (adv != null)
-					advCh = j - l1;
+				// If strategy generation is enabled, remember optimal choice
+				if (strat != null)
+					stratCh = j - l1;
 			}
 			first = false;
 		}
-		// If adversary generation is enabled, store optimal choice
-		if (adv != null & !first) {
+		// If strategy generation is enabled, store optimal choice
+		if (strat != null & !first) {
 			// Only remember strictly better choices (required for max)
-			if (adv[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
-				adv[s] = advCh;
+			if (strat[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+				strat[s] = stratCh;
 			}
 		}
 		// Add state reward (doesn't affect min/max)
@@ -947,8 +921,7 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min,
-			double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val)
 	{
 		int j, k, l1, h1, l2, h2, c = 0;
 		double d;
@@ -970,7 +943,6 @@ public class MDPSparse extends MDPExplicit
 			for (k = l2; k < h2; k++) {
 				d += nonZeros[k] * vect[cols[k]];
 			}
-			//	System.out.println(d);
 			// Store strategy info if value matches
 			if (PrismUtils.doublesAreClose(val, d, 1e-12, false)) {
 				res.add(j - l1);
@@ -981,11 +953,11 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public void mvMultRight(int[] states, int[] adv, double[] source, double[] dest)
+	public void mvMultRight(int[] states, int[] strat, double[] source, double[] dest)
 	{
 		for (int s : states) {
 			int j, l2, h2;
-			int k = adv[s];
+			int k = strat[s];
 			j = rowStarts[s] + k;
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
