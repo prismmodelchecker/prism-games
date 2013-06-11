@@ -322,9 +322,10 @@ public class MDPModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachProbs(MDP mdp, BitSet remain, BitSet target, boolean min, double init[], BitSet known) throws PrismException
 	{
 		ModelCheckerResult res = null;
-		BitSet no, yes;
+		BitSet targetOrig, no, yes;
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
+		int strat[] = null;
 		boolean genStrat;
 		// Local copy of setting
 		MDPSolnMethod mdpSolnMethod = this.mdpSolnMethod;
@@ -356,26 +357,35 @@ public class MDPModelChecker extends ProbModelChecker
 		// Store num states
 		n = mdp.getNumStates();
 
-		// Optimise by enlarging target set (if more info is available)
-		if (init != null && known != null) {
-			BitSet targetNew = new BitSet(n);
+		// If required, create/initialise strategy storage
+		// Set all choices to -1, denoting unknown/arbitrary
+		if (genStrat) {
+			strat = new int[n];
 			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 1.0));
+				strat[i] = -1;
 			}
-			target = targetNew;
+		}
+
+		// Optimise by enlarging target set (if more info is available)
+		targetOrig = target;
+		if (init != null && known != null) {
+			target = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				target.set(i, targetOrig.get(i) || (known.get(i) && init[i] == 1.0));
+			}
 		}
 
 		// Precomputation
 		timerProb0 = System.currentTimeMillis();
 		if (precomp && prob0) {
-			no = prob0(mdp, remain, target, min);
+			no = prob0(mdp, remain, target, min, strat);
 		} else {
 			no = new BitSet();
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1 && !genStrat) {
-			yes = prob1(mdp, remain, target, min);
+		if (precomp && prob1) {
+			yes = prob1(mdp, remain, target, min, strat);
 		} else {
 			yes = (BitSet) target.clone();
 		}
@@ -386,10 +396,26 @@ public class MDPModelChecker extends ProbModelChecker
 		numNo = no.cardinality();
 		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
+		// If still required, generate strategy for no/yes (0/1) states.
+		// This is not just for the cases max=0 and min=1, where arbitrary choices suffice.
+		// So just pick the first choice (0) for all these. 
+		if (genStrat) {
+			if (min) {
+				for (i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
+					if (!target.get(i))
+						strat[i] = 0;
+				}
+			} else {
+				for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
+					strat[i] = 0;
+				}
+			}
+		}
+		
 		// Compute probabilities
 		switch (mdpSolnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachProbsValIter(mdp, no, yes, min, init, known);
+			res = computeReachProbsValIter(mdp, no, yes, min, init, known, strat);
 			break;
 		case GAUSS_SEIDEL:
 			res = computeReachProbsGaussSeidel(mdp, no, yes, min, init, known);
@@ -408,6 +434,28 @@ public class MDPModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
+		// Create strategy object
+		if (genStrat && generateStrategy) {
+			strategy = new MemorylessDeterministicStrategy(strat);
+			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
+			// new File(exportAdvFilename + "_"));
+			// strategy.exportToFile(exportAdvFilename + "_adv");
+		}
+
+		// Export adversary
+		if (genStrat && exportAdv) {
+			// Prune strategy
+			restrictStrategyToReachableStates(mdp, strat);
+			// Print strategy
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			out.print("Strat:");
+			for (i = 0; i < n; i++) {
+				out.print(" " + i + ":" + strat[i]);
+			}
+			out.println();
+			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
+		}
+
 		// Update time taken
 		res.timeTaken = timer / 1000.0;
 		res.timeProb0 = timerProb0 / 1000.0;
@@ -421,12 +469,14 @@ public class MDPModelChecker extends ProbModelChecker
 	 * i.e. determine the states of an MDP which, with min/max probability 0,
 	 * reach a state in {@code target}, while remaining in those in @{code remain}.
 	 * {@code min}=true gives Prob0E, {@code min}=false gives Prob0A. 
+	 * Optionally, for min only, store optimal (memoryless) strategy info for 1 states. 
 	 * @param mdp The MDP
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public BitSet prob0(MDP mdp, BitSet remain, BitSet target, boolean min)
+	public BitSet prob0(MDP mdp, BitSet remain, BitSet target, boolean min, int strat[])
 	{
 		int n, iters;
 		BitSet u, soln, unknown;
@@ -482,6 +532,21 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Prob0 (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
+		// If required, generate strategy. This is for min probs,
+		// so it can be done *after* the main prob0 algorithm (unlike for prob1).
+		// We simply pick, for all "no" states, the first choice for which all transitions stay in "no"
+		if (strat != null) {
+			for (int i = u.nextSetBit(0); i >= 0; i = u.nextSetBit(i + 1)) {
+				int numChoices = mdp.getNumChoices(i);
+				for (int k = 0; k < numChoices; k++) {
+					if (mdp.allSuccessorsInSet(i, k, u)) {
+						strat[i] = k;
+						continue;
+					}
+				}
+			}
+		}
+		
 		return u;
 	}
 
@@ -490,12 +555,14 @@ public class MDPModelChecker extends ProbModelChecker
 	 * i.e. determine the states of an MDP which, with min/max probability 1,
 	 * reach a state in {@code target}, while remaining in those in @{code remain}.
 	 * {@code min}=true gives Prob1A, {@code min}=false gives Prob1E. 
+	 * Optionally, for max only, store optimal (memoryless) strategy info for 1 states. 
 	 * @param mdp The MDP
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public BitSet prob1(MDP mdp, BitSet remain, BitSet target, boolean min)
+	public BitSet prob1(MDP mdp, BitSet remain, BitSet target, boolean min, int strat[])
 	{
 		int n, iters;
 		BitSet u, v, soln, unknown;
@@ -540,7 +607,10 @@ public class MDPModelChecker extends ProbModelChecker
 			while (!v_done) {
 				iters++;
 				// Single step of Prob1
-				mdp.prob1step(unknown, u, v, min, soln);
+				if (min)
+					mdp.prob1Astep(unknown, u, v, soln);
+				else
+					mdp.prob1Estep(unknown, u, v, soln, strat);
 				// Check termination (inner)
 				v_done = soln.equals(v);
 				// v = soln
@@ -564,26 +634,24 @@ public class MDPModelChecker extends ProbModelChecker
 
 	/**
 	 * Compute reachability probabilities using value iteration.
+	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param mdp The MDP
 	 * @param no Probability 0 states
 	 * @param yes Probability 1 states
 	 * @param min Min or max probabilities (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (will be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	protected ModelCheckerResult computeReachProbsValIter(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known) throws PrismException
+	protected ModelCheckerResult computeReachProbsValIter(MDP mdp, BitSet no, BitSet yes, boolean min, double init[], BitSet known, int strat[]) throws PrismException
 	{
 		ModelCheckerResult res;
 		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[], initVal;
-		int strat[] = null;
-		boolean genStrat, done;
+		boolean done;
 		long timer;
-
-		// Are we generating an optimal strategy?
-		genStrat = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -621,32 +689,13 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
-		// Create/initialise strategy storage
-		if (genStrat) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = -1;
-			}
-
-			int s;
-			for (i = 0; i < no.length(); i++) {
-				s = no.nextSetBit(i);
-				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (mdp.allSuccessorsInSet(s, c, no)) {
-						strat[i] = c;
-						break;
-					}
-				}
-			}
-		}
-
 		// Start iterations
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultMinMax(soln, min, soln2, unknown, false, genStrat ? strat : null);
+			mdp.mvMultMinMax(soln, min, soln2, unknown, false, strat);
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
 			// Swap vectors for next iter
@@ -665,27 +714,6 @@ public class MDPModelChecker extends ProbModelChecker
 			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
-		}
-
-		// Create strategy object
-		if (genStrat && generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(strat);
-			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
-			// new File(exportAdvFilename + "_"));
-			// strategy.exportToFile(exportAdvFilename + "_adv");
-		}
-
-		// Export adversary
-		if (genStrat && exportAdv) {
-			// Prune strategy
-			restrictStrategyToReachableStates(mdp, strat);
-			// Print strategy
-			PrismLog out = new PrismFileLog(exportAdvFilename);
-			out.print("Strat:");
-			for (i = 0; i < n; i++) {
-				out.print(" " + i + ":" + strat[i]);
-			}
-			out.println();
 		}
 
 		// Return results
@@ -836,7 +864,7 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], soln2[];
 		boolean done;
 		long timer;
-		int strat[];
+		int strat[] = null;
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
 
@@ -927,7 +955,7 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], soln2[];
 		boolean done;
 		long timer;
-		int strat[];
+		int strat[] = null;
 		DTMCModelChecker mcDTMC;
 		DTMC dtmc;
 
@@ -1246,7 +1274,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
-		inf = prob1(mdp, null, target, !min);
+		inf = prob1(mdp, null, target, !min, null);
 		inf.flip(0, n);
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
