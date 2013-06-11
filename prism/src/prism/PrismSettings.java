@@ -297,9 +297,9 @@ public class PrismSettings implements Observer
 																			"Type of adversary to generate and export during MDP model checking" },
 			{ STRING_TYPE,		PRISM_EXPORT_ADV_FILENAME,				"Adversary export filename",			"3.3",			"adv.tra",																	"",															
 																			"Name of file for MDP adversary export (if enabled)" },
-			{ BOOLEAN_TYPE,		PRISM_GENERATE_STRATEGY,				"Generate Strategy",			"4.0.3",			new Boolean(false),																	"",															
-																			"Generates strategy when model checking" },
-			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.0.3",			new Boolean(false),																	"",															
+			{ BOOLEAN_TYPE,		PRISM_GENERATE_STRATEGY,				"Generate Strategy",			"4.1",			new Boolean(false),																	"",															
+																			"Generate an optimal strategy when model checking an MDP/game" },
+			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.1",			new Boolean(false),																	"",															
 																			"Model checks the property with respect to strategy." },
 		},
 		{
