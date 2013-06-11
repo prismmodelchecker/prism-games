@@ -2429,7 +2429,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				int cols = 3;
 				if (showStrategyCheck.isSelected() && strategyGenerated)
 					cols++;
-				if (parsedModel.getModelType() == ModelType.SMG)
+				if (parsedModel.getModelType().multiplePlayers())
 					cols++;
 				return cols;
 			} else {
@@ -2454,7 +2454,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					int offset = 0;
 					if (!(showStrategyCheck.isSelected() && strategyGenerated))
 						offset++;
-					if (parsedModel.getModelType() != ModelType.SMG)
+					if (!parsedModel.getModelType().multiplePlayers())
 						offset++;
 					// Then determine cell contents
 					switch (columnIndex + offset) {
@@ -2512,7 +2512,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				int offset = 0;
 				if (!(showStrategyCheck.isSelected() && strategyGenerated))
 					offset++;
-				if (parsedModel.getModelType() != ModelType.SMG)
+				if (!parsedModel.getModelType().multiplePlayers())
 					offset++;
 				// Then determine column name
 				switch (column + offset) {
