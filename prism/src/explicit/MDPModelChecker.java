@@ -779,7 +779,7 @@ public class MDPModelChecker extends ProbModelChecker
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply
-			maxDiff = mdp.mvMultGSMinMax(soln, min, unknown, false, termCrit == TermCrit.ABSOLUTE);
+			maxDiff = mdp.mvMultGSMinMax(soln, min, unknown, false, termCrit == TermCrit.ABSOLUTE, strat);
 			// Check termination
 			done = maxDiff < termCritParam;
 		}
@@ -796,16 +796,22 @@ public class MDPModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		if (genStrat) {
-			// extracting strategy from the MDP
-			for (i = 0; i < n; i++) {
-				if (no.get(i))
-					continue;
-				// get the first choice of the available ones
-				List<Integer> choi = mdp.mvMultMinMaxSingleChoices(i, soln, min, soln[i]);
-				strat[i] = choi.size() == 0 ? 0 : choi.get(0);
-			}
+		// Create strategy object
+		if (genStrat && generateStrategy) {
 			strategy = new MemorylessDeterministicStrategy(strat);
+		}
+
+		// Export adversary
+		if (genStrat && exportAdv) {
+			// Prune strategy
+			restrictStrategyToReachableStates(mdp, strat);
+			// Print strategy
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			out.print("Strat:");
+			for (i = 0; i < n; i++) {
+				out.print(" " + i + ":" + strat[i]);
+			}
+			out.println();
 		}
 
 		// Return results

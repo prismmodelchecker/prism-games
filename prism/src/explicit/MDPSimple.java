@@ -287,8 +287,10 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 			// Parse first line to get num states
 			s = in.readLine();
 			lineNum = 1;
-			if (s == null)
+			if (s == null) {
+				in.close();
 				throw new PrismException("Missing first line of .tra file");
+			}
 			ss = s.split(" ");
 			n = Integer.parseInt(ss[0]);
 			// Initialise
@@ -750,14 +752,15 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	}
 
 	@Override
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min)
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int k, c;
+		int j, k, stratCh = -1, c;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
 		c = 0;
+		j = 0;
 		minmax = 0;
 		first = true;
 		step = trans.get(s);
@@ -782,9 +785,24 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 			if (diag > 0)
 				d /= diag;
 			// Check whether we have exceeded min/max so far
-			if (first || (min && d < minmax) || (!min && d > minmax))
+			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
+				// If strategy generation is enabled, remember optimal choice
+				if (strat != null) {
+					stratCh = j;
+				}
+			}
 			first = false;
+			j++;
+		}
+		// If strategy generation is enabled, store optimal choice
+		if (strat != null & !first) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
+				strat[s] = stratCh;
+			}
 		}
 
 		return minmax;
