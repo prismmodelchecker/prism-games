@@ -394,7 +394,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
 	{
 		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
-		return mvMultJacMinMaxSingle(s, vect, min);
+		return mvMultJacMinMaxSingle(s, vect, min, null);
 	}
 
 	@Override
