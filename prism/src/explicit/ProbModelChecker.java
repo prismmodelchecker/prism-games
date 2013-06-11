@@ -72,7 +72,7 @@ public class ProbModelChecker extends StateModelChecker
 	// Method used for numerical solution
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Adversary export
-	// protected boolean exportAdv = false;
+	protected boolean exportAdv = false;
 	protected String exportAdvFilename;
 
 	protected boolean useDiscounting = false;
@@ -216,9 +216,9 @@ public class ProbModelChecker extends StateModelChecker
 		}
 
 		// PRISM_EXPORT_ADV
-		// s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
-		// if (!(s.equals("None")))
-		// setExportAdv(true);
+		s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
+		if (!(s.equals("None")))
+		setExportAdv(true);
 		// PRISM_EXPORT_ADV_FILENAME
 		setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
 
@@ -352,10 +352,10 @@ public class ProbModelChecker extends StateModelChecker
 		this.solnMethod = solnMethod;
 	}
 
-	// public void setExportAdv(boolean exportAdv)
-	// {
-	// this.exportAdv = exportAdv;
-	// }
+	public void setExportAdv(boolean exportAdv)
+	{
+		this.exportAdv = exportAdv;
+	}
 
 	public void setExportAdvFilename(String exportAdvFilename)
 	{

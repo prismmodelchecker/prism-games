@@ -38,6 +38,8 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import prism.PrismDevNullLog;
 import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
@@ -342,7 +344,7 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		// Are we generating an optimal adversary?
-		genAdv = generateStrategy;
+		genAdv = exportAdv || generateStrategy;
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -581,7 +583,7 @@ public class MDPModelChecker extends ProbModelChecker
 		long timer;
 
 		// Are we generating an optimal adversary?
-		genAdv = generateStrategy;
+		genAdv = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -665,8 +667,7 @@ public class MDPModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		//System.out.println(mdp.getClass());
-		// Creating strategy object
+		// Create strategy object
 		if (genAdv) {
 			strategy = new MemorylessDeterministicStrategy(adv);
 			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
@@ -675,17 +676,17 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		// Process adversary
-		// if (genAdv) {
-		// // Prune adversary
-		// restrictAdversaryToReachableStates(mdp, adv);
-		// // Print adversary
-		// PrismLog out = new PrismFileLog(exportAdvFilename);
-		// out.print("Adv:");
-		// for (i = 0; i < n; i++) {
-		// out.print(" " + i + ":" + adv[i]);
-		// }
-		// out.println();
-		// }
+		if (genAdv) {
+			// Prune adversary
+			restrictAdversaryToReachableStates(mdp, adv);
+			// Print adversary
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			out.print("Adv:");
+			for (i = 0; i < n; i++) {
+				out.print(" " + i + ":" + adv[i]);
+			}
+			out.println();
+		}
 
 		// Return results
 		res = new ModelCheckerResult();
@@ -713,7 +714,7 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], initVal, maxDiff;
 		boolean done;
 		long timer;
-		boolean genAdv = generateStrategy;
+		boolean genAdv = exportAdv || generateStrategy;
 		int[] adv = null;
 
 		// Start value iteration
@@ -1288,7 +1289,7 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], maxDiff;
 		boolean done;
 		long timer;
-		boolean genAdv = generateStrategy;
+		boolean genAdv = exportAdv || generateStrategy;
 		int[] adv = null;
 
 		// Start value iteration
@@ -1410,7 +1411,7 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], soln2[], tmpsoln[];
 		boolean done;
 		long timer;
-		boolean genAdv = generateStrategy;
+		boolean genAdv = exportAdv || generateStrategy;
 		int[] adv = null;
 
 		// Start value iteration

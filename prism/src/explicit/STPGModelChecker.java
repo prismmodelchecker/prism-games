@@ -40,6 +40,8 @@ import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
@@ -434,7 +436,7 @@ public class STPGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = null;
 		int n;
 		double soln[], soln2[];
-		boolean genAdv = generateStrategy;
+		boolean genAdv = exportAdv || generateStrategy;
 		int[] adv = null;
 		long timer;
 
@@ -594,7 +596,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Are we generating an optimal adversary?
-		genAdv = generateStrategy;
+		genAdv = exportAdv || generateStrategy;
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -1005,7 +1007,7 @@ public class STPGModelChecker extends ProbModelChecker
 		long timer;
 
 		// Are we generating an optimal adversary?
-		genAdv = generateStrategy;
+		genAdv = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -1104,14 +1106,13 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Print adversary
-		// if (genAdv) {
-		// PrismLog out = new PrismFileLog(exportAdvFilename);
-		// for (i = 0; i < n; i++) {
-		// out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) :
-		// "-"));
-		// }
-		// out.println();
-		// }
+		if (genAdv) {
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			for (i = 0; i < n; i++) {
+				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+			}
+			out.println();
+		}
 
 		// Return results
 		res = new ModelCheckerResult();
@@ -1573,7 +1574,7 @@ public class STPGModelChecker extends ProbModelChecker
 		long timer;
 
 		// Are we generating an optimal adversary?
-		genAdv = generateStrategy;
+		genAdv = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
