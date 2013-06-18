@@ -37,6 +37,7 @@ import java.util.Map;
 
 import parser.State;
 import parser.Values;
+import parser.VarList;
 import parser.ast.ModulesFile;
 import prism.ModelType;
 import prism.Prism;
@@ -158,6 +159,11 @@ public class ConstructModel
 			throw new PrismException("Cannot do explicit-state reachability if there are multiple initial states");
 		}
 
+		// Display a warning if there are unbounded vars
+		VarList varList = modulesFile.createVarList();
+		if (varList.containsUnboundedVariables())
+			mainLog.printWarning("Model contains one or more unbounded variables: model construction may not terminate");
+		
 		// Starting reachability...
 		mainLog.print("\nComputing reachable states...\n");
 		mainLog.flush();

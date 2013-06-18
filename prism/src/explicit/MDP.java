@@ -65,13 +65,20 @@ public interface MDP extends Model
 	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i);
 
 	/**
-	 * Check if all the successor states from choice {@code i} of state {@code s} are in the set  {@code set}.
-	 * Get an iterator over the transitions .
+	 * Check if all the successor states from choice {@code i} of state {@code s} are in the set {@code set}.
 	 * @param s The state to check
 	 * @param i Choice index
 	 * @param set The set to test for inclusion
 	 */
 	public boolean allSuccessorsInSet(int s, int i, BitSet set);
+	
+	/**
+	 * Check if some successor state from choice {@code i} of state {@code s} is in the set {@code set}.
+	 * @param s The state to check
+	 * @param i Choice index
+	 * @param set The set to test for inclusion
+	 */
+	public boolean someSuccessorsInSet(int s, int i, BitSet set);
 	
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
@@ -100,7 +107,7 @@ public interface MDP extends Model
 	 * Perform a single step of precomputation algorithm Prob1E, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for some choice,
 	 * there is a transition to a state in {@code v} and all transitions go to states in {@code u}.
-	 * Optionally, store optimal (memoryless) strategy info. 
+	 * Optionally, store optimal (memoryless) strategy info for 1 states. 
 	 * @param subset Only compute for these states
 	 * @param u Set of states {@code u}
 	 * @param v Set of states {@code v}
@@ -220,6 +227,7 @@ public interface MDP extends Model
 	 * and store new values directly in {@code vect} as computed.
 	 * The maximum (absolute/relative) difference between old/new
 	 * elements of {@code vect} is also returned.
+	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param vect Vector to multiply by (and store the result in)
 	 * @param mdpRewards The rewards
 	 * @param min Min or max for (true=min, false=max)
@@ -227,8 +235,9 @@ public interface MDP extends Model
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute);
+	public double mvMultRewGSMinMax(double vect[], MDPRewards mdpRewards, boolean min, BitSet subset, boolean complement, boolean absolute, int strat[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
@@ -245,12 +254,14 @@ public interface MDP extends Model
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication and sum of action reward followed by min/max.
 	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param s Row index
 	 * @param vect Vector to multiply by
 	 * @param mdpRewards The rewards
 	 * @param min Min or max for (true=min, false=max)
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min);
+	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[]);
 
 	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.

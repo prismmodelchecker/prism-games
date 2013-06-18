@@ -397,7 +397,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// If still required, generate strategy for no/yes (0/1) states.
-		// This is not just for the cases max=0 and min=1, where arbitrary choices suffice.
+		// This is just for the cases max=0 and min=1, where arbitrary choices suffice.
 		// So just pick the first choice (0) for all these. 
 		if (genStrat) {
 			if (min) {
@@ -475,7 +475,7 @@ public class MDPModelChecker extends ProbModelChecker
 	 * i.e. determine the states of an MDP which, with min/max probability 0,
 	 * reach a state in {@code target}, while remaining in those in @{code remain}.
 	 * {@code min}=true gives Prob0E, {@code min}=false gives Prob0A. 
-	 * Optionally, for min only, store optimal (memoryless) strategy info for 1 states. 
+	 * Optionally, for min only, store optimal (memoryless) strategy info for 0 states. 
 	 * @param mdp The MDP
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -616,7 +616,7 @@ public class MDPModelChecker extends ProbModelChecker
 				if (min)
 					mdp.prob1Astep(unknown, u, v, soln);
 				else
-					mdp.prob1Estep(unknown, u, v, soln, strat);
+					mdp.prob1Estep(unknown, u, v, soln, null);
 				// Check termination (inner)
 				v_done = soln.equals(v);
 				// v = soln
@@ -628,6 +628,29 @@ public class MDPModelChecker extends ProbModelChecker
 			// u = v
 			u.clear();
 			u.or(v);
+		}
+
+		// If we need to generate a strategy, do another iteration of the inner loop for this
+		// We could do this during the main double fixed point above, but we would generate surplus
+		// strategy info for non-1 states during early iterations of the outer loop,
+		// which are not straightforward to remove since this method does not know which states
+		// already have valid strategy info from Prob0.
+		// Notice that we only need to look at states in u (since we already know the answer),
+		// so we restrict 'unknown' further 
+		unknown.and(u);
+		if (!min && strat != null) {
+			v_done = false;
+			v.clear();
+			v.or(target);
+			soln.clear();
+			soln.or(target);
+			while (!v_done) {
+				mdp.prob1Estep(unknown, u, v, soln, strat);
+				v_done = soln.equals(v);
+				v.clear();
+				v.or(soln);
+			}
+			u_done = v.equals(u);
 		}
 
 		// Finished precomputation
@@ -1229,6 +1252,8 @@ public class MDPModelChecker extends ProbModelChecker
 		BitSet inf;
 		int i, n, numTarget, numInf;
 		long timer, timerProb1;
+		int strat[] = null;
+		boolean genStrat;
 		// Local copy of setting
 		MDPSolnMethod mdpSolnMethod = this.mdpSolnMethod;
 
@@ -1237,6 +1262,9 @@ public class MDPModelChecker extends ProbModelChecker
 			mdpSolnMethod = MDPSolnMethod.GAUSS_SEIDEL;
 			mainLog.printWarning("Switching to MDP solution method \"" + mdpSolnMethod.fullName() + "\"");
 		}
+
+		// Are we generating an optimal strategy?
+		genStrat = exportAdv;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -1247,6 +1275,15 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Store num states
 		n = mdp.getNumStates();
+
+		// If required, create/initialise strategy storage
+		// Set all choices to -1, denoting unknown/arbitrary
+		if (genStrat) {
+			strat = new int[n];
+			for (i = 0; i < n; i++) {
+				strat[i] = -1;
+			}
+		}
 
 		// Optimise by enlarging target set (if more info is available)
 		if (init != null && known != null) {
@@ -1268,16 +1305,54 @@ public class MDPModelChecker extends ProbModelChecker
 		numInf = inf.cardinality();
 		mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
+		// If required, generate strategy for "inf" states.
+		if (genStrat) {
+			if (min) {
+				// If min reward is infinite, all choices give infinity.
+				// So just pick the first choice (0) for all "inf" states. 
+				for (i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
+					strat[i] = 0;
+				}
+			} else {
+				// If max reward is infinite, there is at least one choice giving infinity.
+				// So we pick, for all "inf" states, the first choice for which some transitions stays in "inf".
+				for (i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
+					int numChoices = mdp.getNumChoices(i);
+					for (int k = 0; k < numChoices; k++) {
+						if (mdp.allSuccessorsInSet(i, k, inf)) {
+							strat[i] = k;
+							continue;
+						}
+					}
+				}
+			}
+		}
+
 		// Compute rewards
 		switch (mdpSolnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(mdp, mdpRewards, target, inf, min, init, known);
+			res = computeReachRewardsValIter(mdp, mdpRewards, target, inf, min, init, known, strat);
 			break;
 		case GAUSS_SEIDEL:
-			res = computeReachRewardsGaussSeidel(mdp, mdpRewards, target, inf, min, init, known);
+			res = computeReachRewardsGaussSeidel(mdp, mdpRewards, target, inf, min, init, known, strat);
 			break;
 		default:
 			throw new PrismException("Unknown MDP solution method " + mdpSolnMethod.fullName());
+		}
+
+		// Export adversary
+		if (genStrat && exportAdv) {
+			// Prune strategy
+			restrictStrategyToReachableStates(mdp, strat);
+			// Print strategy
+			mainLog.print("Strat:");
+			for (i = 0; i < n; i++) {
+				mainLog.print(" " + i + ":" + strat[i]);
+			}
+			mainLog.println();
+			// Export
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
 		}
 
 		// Finished expected reachability
@@ -1292,129 +1367,8 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Compute expected reachability rewards using Gauss-Seidel (including Jacobi-style updates).
-	 * @param mdp The MDP
-	 * @param mdpRewards The rewards
-	 * @param target Target states
-	 * @param inf States for which reward is infinite
-	 * @param min Min or max rewards (true=min, false=max)
-	 * @param init Optionally, an initial solution vector (will be overwritten) 
-	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
-	 */
-	protected ModelCheckerResult computeReachRewardsGaussSeidel(MDP mdp, MDPRewards mdpRewards, BitSet target, BitSet inf, boolean min, double init[],
-			BitSet known) throws PrismException
-	{
-		ModelCheckerResult res;
-		BitSet unknown, notInf;
-		int i, n, iters;
-		double soln[], maxDiff;
-		boolean done;
-		long timer;
-		boolean genStrat = exportAdv || generateStrategy;
-		int[] strat = null;
-
-		// Start value iteration
-		timer = System.currentTimeMillis();
-		mainLog.println("Starting Gauss-Seidel (" + (min ? "min" : "max") + ")...");
-
-		// Store num states
-		n = mdp.getNumStates();
-
-		// Create solution vector(s)
-		soln = (init == null) ? new double[n] : init;
-
-		// Initialise solution vector. Use (where available) the following in
-		// order of preference:
-		// (1) exact answer, if already known; (2) 0.0/infinity if in
-		// target/inf; (3) passed in initial value; (4) 0.0
-		if (init != null) {
-			if (known != null) {
-				for (i = 0; i < n; i++)
-					soln[i] = known.get(i) ? init[i] : target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
-			} else {
-				for (i = 0; i < n; i++)
-					soln[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
-			}
-		} else {
-			for (i = 0; i < n; i++)
-				soln[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
-		}
-
-		// Determine set of states actually need to compute values for
-		unknown = new BitSet();
-		unknown.set(0, n);
-		unknown.andNot(target);
-		unknown.andNot(inf);
-		if (known != null)
-			unknown.andNot(known);
-
-		// constructing not infinity set
-		notInf = (BitSet) inf.clone();
-		notInf.flip(0, n);
-
-		if (genStrat) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = -1;
-			}
-
-			int s;
-			for (i = 0; i < inf.length(); i++) {
-				s = inf.nextSetBit(i);
-				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
-						strat[i] = c;
-						break;
-					}
-				}
-			}
-		}
-
-		// Start iterations
-		iters = 0;
-		done = false;
-		while (!done && iters < maxIters) {
-			//mainLog.println(soln);
-			iters++;
-			// Matrix-vector multiply and min/max ops
-			maxDiff = mdp.mvMultRewGSMinMax(soln, mdpRewards, min, unknown, false, termCrit == TermCrit.ABSOLUTE);
-			// Check termination
-			done = maxDiff < termCritParam;
-		}
-
-		// Finished Gauss-Seidel
-		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Gauss-Seidel (" + (min ? "min" : "max") + ")");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-
-		// Non-convergence is an error
-		if (!done) {
-			String msg = "Iterative method did not converge within " + iters + " iterations.";
-			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
-			throw new PrismException(msg);
-		}
-
-		if (genStrat) {
-			// extracting strategy from the MDP
-			for (i = 0; i < n; i++) {
-				if (inf.get(i))
-					continue;
-				// get the first choice of the available ones
-				strat[i] = mdp.mvMultRewMinMaxSingleChoices(i, soln, mdpRewards, min, soln[i] == 0 ? 0 : soln[i] - mdpRewards.getStateReward(i)).get(0);
-			}
-			strategy = new MemorylessDeterministicStrategy(strat);
-		}
-		// Return results
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		res.numIters = iters;
-		res.timeTaken = timer / 1000.0;
-		return res;
-	}
-
-	/**
 	 * Compute expected reachability rewards using value iteration.
+	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param mdp The MDP
 	 * @param mdpRewards The rewards
 	 * @param target Target states
@@ -1422,9 +1376,10 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param min Min or max rewards (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (will be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
-	protected ModelCheckerResult computeReachRewardsValIter(MDP mdp, MDPRewards mdpRewards, BitSet target, BitSet inf, boolean min, double init[], BitSet known)
+	protected ModelCheckerResult computeReachRewardsValIter(MDP mdp, MDPRewards mdpRewards, BitSet target, BitSet inf, boolean min, double init[], BitSet known, int strat[])
 			throws PrismException
 	{
 		ModelCheckerResult res;
@@ -1434,7 +1389,6 @@ public class MDPModelChecker extends ProbModelChecker
 		boolean done;
 		long timer;
 		boolean genStrat = exportAdv || generateStrategy;
-		int[] strat = null;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -1511,6 +1465,127 @@ public class MDPModelChecker extends ProbModelChecker
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
 		mainLog.print("Value iteration (" + (min ? "min" : "max") + ")");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Non-convergence is an error
+		if (!done) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+
+		if (genStrat) {
+			// extracting strategy from the MDP
+			for (i = 0; i < n; i++) {
+				if (inf.get(i))
+					continue;
+				// get the first choice of the available ones
+				strat[i] = mdp.mvMultRewMinMaxSingleChoices(i, soln, mdpRewards, min, soln[i] == 0 ? 0 : soln[i] - mdpRewards.getStateReward(i)).get(0);
+			}
+			strategy = new MemorylessDeterministicStrategy(strat);
+		}
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		return res;
+	}
+
+	/**
+	 * Compute expected reachability rewards using Gauss-Seidel (including Jacobi-style updates).
+	 * Optionally, store optimal (memoryless) strategy info. 
+	 * @param mdp The MDP
+	 * @param mdpRewards The rewards
+	 * @param target Target states
+	 * @param inf States for which reward is infinite
+	 * @param min Min or max rewards (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 */
+	protected ModelCheckerResult computeReachRewardsGaussSeidel(MDP mdp, MDPRewards mdpRewards, BitSet target, BitSet inf, boolean min, double init[],
+			BitSet known, int strat[]) throws PrismException
+	{
+		ModelCheckerResult res;
+		BitSet unknown, notInf;
+		int i, n, iters;
+		double soln[], maxDiff;
+		boolean done;
+		long timer;
+		boolean genStrat = exportAdv || generateStrategy;
+
+		// Start value iteration
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting Gauss-Seidel (" + (min ? "min" : "max") + ")...");
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		// Create solution vector(s)
+		soln = (init == null) ? new double[n] : init;
+
+		// Initialise solution vector. Use (where available) the following in order of preference:
+		// (1) exact answer, if already known; (2) 0.0/infinity if in target/inf; (3) passed in initial value; (4) 0.0
+		if (init != null) {
+			if (known != null) {
+				for (i = 0; i < n; i++)
+					soln[i] = known.get(i) ? init[i] : target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
+			} else {
+				for (i = 0; i < n; i++)
+					soln[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
+			}
+		} else {
+			for (i = 0; i < n; i++)
+				soln[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+		}
+
+		// Determine set of states actually need to compute values for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(target);
+		unknown.andNot(inf);
+		if (known != null)
+			unknown.andNot(known);
+
+		// constructing not infinity set
+		notInf = (BitSet) inf.clone();
+		notInf.flip(0, n);
+
+		if (genStrat) {
+			strat = new int[n];
+			for (i = 0; i < n; i++) {
+				strat[i] = -1;
+			}
+
+			int s;
+			for (i = 0; i < inf.length(); i++) {
+				s = inf.nextSetBit(i);
+				for (int c = 0; c < mdp.getNumChoices(s); c++) {
+					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
+						strat[i] = c;
+						break;
+					}
+				}
+			}
+		}
+
+		// Start iterations
+		iters = 0;
+		done = false;
+		while (!done && iters < maxIters) {
+			//mainLog.println(soln);
+			iters++;
+			// Matrix-vector multiply and min/max ops
+			maxDiff = mdp.mvMultRewGSMinMax(soln, mdpRewards, min, unknown, false, termCrit == TermCrit.ABSOLUTE, strat);
+			// Check termination
+			done = maxDiff < termCritParam;
+		}
+
+		// Finished Gauss-Seidel
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Gauss-Seidel (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Non-convergence is an error
