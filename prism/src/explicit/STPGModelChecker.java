@@ -82,7 +82,6 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method.
-
 		if (expr.isSimplePathFormula()) {
 			return checkProbPathFormulaSimple(model, expr, min1, min2, bound);
 		} else {
