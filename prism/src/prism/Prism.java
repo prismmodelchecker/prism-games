@@ -2735,6 +2735,7 @@ public class Prism implements PrismSettingsListener
 
 	/**
 	 * Export a strategy (for the currently loaded model);
+	 * TODO: is it necessarily loaded?
 	 * @param strat The strategy
 	 * @param file File to output the path to (stdout if null)
 	 */

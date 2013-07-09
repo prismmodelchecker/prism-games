@@ -27,19 +27,25 @@
 
 package strat;
 
+import prism.PrismException;
+import explicit.Distribution;
+import explicit.Model;
+
 /**
  * Class to store a memoryless deterministic (MD) strategy, as a (Java) array of choice indices.
  */
 public class MDStrategyArray extends MDStrategy
 {
+	private explicit.Model model;
 	private int choices[];
 	
 	/**
 	 * Creates an MDStrategyArray from an integer array of choices.
 	 * The array may later be modified/delete - take a copy if you want to keep it.
 	 */
-	public MDStrategyArray(int choices[])
+	public MDStrategyArray(explicit.Model model, int choices[])
 	{
+		this.model = model;
 		this.choices = choices;
 	}
 	
@@ -53,5 +59,11 @@ public class MDStrategyArray extends MDStrategy
 	public int getChoice(int i)
 	{
 		return choices[i];
+	}
+	
+	@Override
+	public Object getChoiceAction(int i)
+	{
+		return "";//model.getAction(choices[i]);
 	}
 }
