@@ -43,6 +43,7 @@ import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
+import strat.MDStrategyArray;
 import explicit.rewards.MDPRewards;
 
 /**
@@ -195,6 +196,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		res = computeUntilProbs((MDP) model, b1, b2, min);
 		probs = StateValues.createFromDoubleArray(res.soln, model);
+		result.setStrategy(res.strat);
 
 		return probs;
 	}
@@ -326,7 +328,6 @@ public class MDPModelChecker extends ProbModelChecker
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
 		int strat[] = null;
-		boolean genStrat;
 		// Local copy of setting
 		MDPSolnMethod mdpSolnMethod = this.mdpSolnMethod;
 
@@ -344,9 +345,6 @@ public class MDPModelChecker extends ProbModelChecker
 				throw new PrismException("Value iteration from above only works for minimum probabilities");
 		}
 
-		// Are we generating an optimal strategy?
-		genStrat = exportAdv || generateStrategy;
-
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
 		mainLog.println("\nStarting probabilistic reachability (" + (min ? "min" : "max") + ")...");
@@ -359,7 +357,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// If required, create/initialise strategy storage
 		// Set all choices to -1, denoting unknown/arbitrary
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -399,7 +397,7 @@ public class MDPModelChecker extends ProbModelChecker
 		// If still required, generate strategy for no/yes (0/1) states.
 		// This is just for the cases max=0 and min=1, where arbitrary choices suffice.
 		// So just pick the first choice (0) for all these. 
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			if (min) {
 				for (i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
 					if (!target.get(i))
@@ -440,15 +438,18 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
 		// Create strategy object
-		if (genStrat && generateStrategy) {
+		if (generateStrategy) {
 			strategy = new MemorylessDeterministicStrategy(strat);
 			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
 			// new File(exportAdvFilename + "_"));
 			// strategy.exportToFile(exportAdvFilename + "_adv");
 		}
-
+		// Store strategy
+		if (genStrat) {
+			res.strat = new MDStrategyArray(mdp, strat);
+		}
 		// Export adversary
-		if (genStrat && exportAdv) {
+		if (exportAdv) {
 			// Prune strategy
 			restrictStrategyToReachableStates(mdp, strat);
 			// Print strategy
@@ -1253,7 +1254,6 @@ public class MDPModelChecker extends ProbModelChecker
 		int i, n, numTarget, numInf;
 		long timer, timerProb1;
 		int strat[] = null;
-		boolean genStrat;
 		// Local copy of setting
 		MDPSolnMethod mdpSolnMethod = this.mdpSolnMethod;
 
@@ -1262,9 +1262,6 @@ public class MDPModelChecker extends ProbModelChecker
 			mdpSolnMethod = MDPSolnMethod.GAUSS_SEIDEL;
 			mainLog.printWarning("Switching to MDP solution method \"" + mdpSolnMethod.fullName() + "\"");
 		}
-
-		// Are we generating an optimal strategy?
-		genStrat = exportAdv;
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
@@ -1278,7 +1275,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// If required, create/initialise strategy storage
 		// Set all choices to -1, denoting unknown/arbitrary
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -1306,7 +1303,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// If required, generate strategy for "inf" states.
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			if (min) {
 				// If min reward is infinite, all choices give infinity.
 				// So just pick the first choice (0) for all "inf" states. 
@@ -1341,7 +1338,7 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		// Export adversary
-		if (genStrat && exportAdv) {
+		if (exportAdv) {
 			// Prune strategy
 			restrictStrategyToReachableStates(mdp, strat);
 			// Print strategy
@@ -1388,7 +1385,6 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], soln2[], tmpsoln[];
 		boolean done;
 		long timer;
-		boolean genStrat = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -1428,7 +1424,7 @@ public class MDPModelChecker extends ProbModelChecker
 		notInf = (BitSet) inf.clone();
 		notInf.flip(0, n);
 
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -1474,7 +1470,7 @@ public class MDPModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			// extracting strategy from the MDP
 			for (i = 0; i < n; i++) {
 				if (inf.get(i))
@@ -1514,7 +1510,6 @@ public class MDPModelChecker extends ProbModelChecker
 		double soln[], maxDiff;
 		boolean done;
 		long timer;
-		boolean genStrat = exportAdv || generateStrategy;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
@@ -1553,7 +1548,7 @@ public class MDPModelChecker extends ProbModelChecker
 		notInf = (BitSet) inf.clone();
 		notInf.flip(0, n);
 
-		if (genStrat) {
+		if (genStrat || generateStrategy || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -1595,7 +1590,7 @@ public class MDPModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		if (genStrat) {
+		if (generateStrategy) {
 			strategy = new MemorylessDeterministicStrategy(strat);
 		}
 

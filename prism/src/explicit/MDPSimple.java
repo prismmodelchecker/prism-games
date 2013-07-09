@@ -49,7 +49,7 @@ import explicit.rewards.MDPRewards;
  * The model is, however, easy to manipulate. For a static model (i.e. one that does not change
  * after creation), consider MDPSparse, which is more efficient. 
  */
-public class MDPSimple extends MDPExplicit implements ModelSimple
+public class MDPSimple extends MDPExplicit implements NondetModelSimple
 {
 	// Transition function (Steps)
 	protected List<List<Distribution>> trans;
@@ -501,12 +501,6 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	}
 
 	@Override
-	public int getNumChoices(int s)
-	{
-		return trans.get(s).size();
-	}
-
-	@Override
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
 		for (int i = 0; i < numStates; i++) {
@@ -531,12 +525,12 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		}
 	}
 
-	// Accessors (for MDP)
-
+	// Accessors (for NondetModel)
+	
 	@Override
-	public int getNumChoices()
+	public int getNumChoices(int s)
 	{
-		return numDistrs;
+		return trans.get(s).size();
 	}
 
 	@Override
@@ -552,24 +546,18 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 	}
 
 	@Override
+	public int getNumChoices()
+	{
+		return numDistrs;
+	}
+
+	@Override
 	public Object getAction(int s, int i)
 	{
 		List<Object> list;
 		if (actions == null || (list = actions.get(s)) == null)
 			return null;
 		return list.get(i);
-	}
-
-	@Override
-	public int getNumTransitions(int s, int i)
-	{
-		return trans.get(s).get(i).size();
-	}
-
-	@Override
-	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
-	{
-		return trans.get(s).get(i).iterator();
 	}
 
 	@Override
@@ -584,6 +572,20 @@ public class MDPSimple extends MDPExplicit implements ModelSimple
 		return trans.get(s).get(i).containsOneOf(set);
 	}
 	
+	// Accessors (for MDP)
+
+	@Override
+	public int getNumTransitions(int s, int i)
+	{
+		return trans.get(s).get(i).size();
+	}
+
+	@Override
+	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i)
+	{
+		return trans.get(s).get(i).iterator();
+	}
+
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
 	{

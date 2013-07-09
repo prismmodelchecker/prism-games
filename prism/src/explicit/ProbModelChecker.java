@@ -536,7 +536,7 @@ public class ProbModelChecker extends StateModelChecker
 				} else
 					throw new PrismException(
 							"=? queries for exact probabilities are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactProbabilityFormula(model, expr, p);
+				return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, expr, p);
 			}
 		} else if (type == ExpressionPATL.REW) {
 			Object rs; // Reward struct index
@@ -615,7 +615,7 @@ public class ProbModelChecker extends StateModelChecker
 						throw new PrismException("Invalid probability bound " + p + " in R operator");
 				} else
 					throw new PrismException("=? queries for exact rewards are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactRewardFormula(model, smgRewards, expr, p);
+				return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, smgRewards, expr, p);
 			}
 		} else {
 			throw new PrismException("Expression type unknown.");

@@ -467,12 +467,6 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
-	public int getNumChoices(int s)
-	{
-		return rowStarts[s + 1] - rowStarts[s];
-	}
-
-	@Override
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
 		for (int i = 0; i < numStates; i++) {
@@ -496,12 +490,12 @@ public class MDPSparse extends MDPExplicit
 		}
 	}
 
-	// Accessors (for MDP)
+	// Accessors (for NondetModel)
 
 	@Override
-	public int getNumChoices()
+	public int getNumChoices(int s)
 	{
-		return numDistrs;
+		return rowStarts[s + 1] - rowStarts[s];
 	}
 
 	@Override
@@ -511,10 +505,50 @@ public class MDPSparse extends MDPExplicit
 	}
 
 	@Override
+	public int getNumChoices()
+	{
+		return numDistrs;
+	}
+
+	@Override
 	public Object getAction(int s, int i)
 	{
 		return actions == null ? null : actions[rowStarts[s] + i];
 	}
+
+	@Override
+	public boolean allSuccessorsInSet(int s, int i, BitSet set)
+	{
+		int j, k, l2, h2;
+		j = rowStarts[s] + i;
+		l2 = choiceStarts[j];
+		h2 = choiceStarts[j + 1];
+		for (k = l2; k < h2; k++) {
+			// Assume that only non-zero entries are stored
+			if (!set.get(cols[k])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean someSuccessorsInSet(int s, int i, BitSet set)
+	{
+		int j, k, l2, h2;
+		j = rowStarts[s] + i;
+		l2 = choiceStarts[j];
+		h2 = choiceStarts[j + 1];
+		for (k = l2; k < h2; k++) {
+			// Assume that only non-zero entries are stored
+			if (set.get(cols[k])) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// Accessors (for MDP)
 
 	@Override
 	public int getNumTransitions(int s, int i)
@@ -574,38 +608,6 @@ public class MDPSparse extends MDPExplicit
 				throw new UnsupportedOperationException();
 			}
 		};
-	}
-
-	@Override
-	public boolean allSuccessorsInSet(int s, int i, BitSet set)
-	{
-		int j, k, l2, h2;
-		j = rowStarts[s] + i;
-		l2 = choiceStarts[j];
-		h2 = choiceStarts[j + 1];
-		for (k = l2; k < h2; k++) {
-			// Assume that only non-zero entries are stored
-			if (!set.get(cols[k])) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	@Override
-	public boolean someSuccessorsInSet(int s, int i, BitSet set)
-	{
-		int j, k, l2, h2;
-		j = rowStarts[s] + i;
-		l2 = choiceStarts[j];
-		h2 = choiceStarts[j + 1];
-		for (k = l2; k < h2; k++) {
-			// Assume that only non-zero entries are stored
-			if (set.get(cols[k])) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	@Override

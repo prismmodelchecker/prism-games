@@ -1,6 +1,7 @@
 package strat;
 
 import prism.PrismException;
+import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
 
@@ -173,4 +174,11 @@ public interface Strategy
 	//	 * @return expectation
 	//	 */
 	//	public double getExpectedValue(int action, int state);
+
+	// NEW METHODS:
+	
+	/**
+	 * Export the strategy to a PrismLog.
+	 */
+	public void export(PrismLog out);
 }

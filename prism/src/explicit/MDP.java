@@ -37,23 +37,8 @@ import explicit.rewards.MDPRewards;
 /**
  * Interface for classes that provide (read) access to an explicit-state MDP.
  */
-public interface MDP extends Model
+public interface MDP extends NondetModel
 {
-	/**
-	 * Get the total number of choices (distributions) over all states.
-	 */
-	public int getNumChoices();
-
-	/**
-	 * Get the maximum number of choices (distributions) in any state.
-	 */
-	public int getMaxNumChoices();
-
-	/**
-	 * Get the action label (if any) for choice {@code i} of state {@code s}.
-	 */
-	public Object getAction(int s, int i);
-
 	/**
 	 * Get the number of transitions from choice {@code i} of state {@code s}.
 	 */
@@ -64,22 +49,6 @@ public interface MDP extends Model
 	 */
 	public Iterator<Entry<Integer, Double>> getTransitionsIterator(int s, int i);
 
-	/**
-	 * Check if all the successor states from choice {@code i} of state {@code s} are in the set {@code set}.
-	 * @param s The state to check
-	 * @param i Choice index
-	 * @param set The set to test for inclusion
-	 */
-	public boolean allSuccessorsInSet(int s, int i, BitSet set);
-	
-	/**
-	 * Check if some successor state from choice {@code i} of state {@code s} is in the set {@code set}.
-	 * @param s The state to check
-	 * @param i Choice index
-	 * @param set The set to test for inclusion
-	 */
-	public boolean someSuccessorsInSet(int s, int i, BitSet set);
-	
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some choices,
@@ -172,7 +141,7 @@ public interface MDP extends Model
 
 	/**
 	 * Do a Gauss-Seidel-style matrix-vector multiplication followed by min/max.
-	 * i.e. for all s: vect[s] = min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * i.e. for all s: vect[s] = min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / 1-P_k(s,s) }
 	 * and store new values directly in {@code vect} as computed.
 	 * The maximum (absolute/relative) difference between old/new
 	 * elements of {@code vect} is also returned.
@@ -189,7 +158,7 @@ public interface MDP extends Model
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
-	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / 1-P_k(s,s) }
 	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param s Row index
 	 * @param vect Vector to multiply by
@@ -200,7 +169,7 @@ public interface MDP extends Model
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication for a specific choice.
-	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / 1-P_k(s,s) }
 	 * @param s Row index
 	 * @param k Choice index
 	 * @param vect Vector to multiply by
@@ -223,7 +192,7 @@ public interface MDP extends Model
 
 	/**
 	 * Do a Gauss-Seidel-style matrix-vector multiplication and sum of action reward followed by min/max.
-	 * i.e. for all s: vect[s] = min/max_k { rew(s) + (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * i.e. for all s: vect[s] = min/max_k { rew(s) + (sum_{j!=s} P_k(s,j)*vect[j]) / 1-P_k(s,s) }
 	 * and store new values directly in {@code vect} as computed.
 	 * The maximum (absolute/relative) difference between old/new
 	 * elements of {@code vect} is also returned.
@@ -253,7 +222,7 @@ public interface MDP extends Model
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication and sum of action reward followed by min/max.
-	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / P_k(s,s) }
+	 * i.e. return min/max_k { (sum_{j!=s} P_k(s,j)*vect[j]) / 1-P_k(s,s) }
 	 * Optionally, store optimal (memoryless) strategy info. 
 	 * @param s Row index
 	 * @param vect Vector to multiply by

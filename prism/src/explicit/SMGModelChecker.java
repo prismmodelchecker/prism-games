@@ -123,7 +123,7 @@ public class SMGModelChecker extends STPGModelChecker
 		return rewards;
 	}
 
-	protected StateValues checkExactProbabilityFormula(Model model, ExpressionPATL expr, double p) throws PrismException
+	protected StateValues checkExactProbabilityFormula(NondetModel model, ExpressionPATL expr, double p) throws PrismException
 	{
 		if (expr.getExpressionProb().getExpression() instanceof ExpressionTemporal
 				&& ((ExpressionTemporal) expr.getExpressionProb().getExpression()).hasBounds()) {
@@ -201,7 +201,7 @@ public class SMGModelChecker extends STPGModelChecker
 		return StateValues.createFromBitSet(ret, model);
 	}
 
-	protected StateValues checkExactRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL expr, double p) throws PrismException
+	protected StateValues checkExactRewardFormula(NondetModel model, SMGRewards modelRewards, ExpressionPATL expr, double p) throws PrismException
 	{
 		((SMG) model).setCoalition(expr.getCoalition());
 		// check if the reward is Fc

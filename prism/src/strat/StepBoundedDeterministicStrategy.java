@@ -12,6 +12,7 @@ import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
+import prism.PrismLog;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
@@ -573,4 +574,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	//		throw new UnsupportedOperationException(
 	//				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
 	//	}
+
+	public void export(PrismLog out) {};
 }

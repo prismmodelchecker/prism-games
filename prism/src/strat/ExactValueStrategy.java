@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 
 import parser.State;
 import prism.PrismException;
+import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.SMG;
@@ -717,4 +718,5 @@ public class ExactValueStrategy implements Strategy
 	//		return 0;
 	//	}
 
+	public void export(PrismLog out) {};
 }

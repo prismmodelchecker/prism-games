@@ -51,9 +51,11 @@ import explicit.rewards.STPGRewards;
  * Simple explicit-state representation of a stochastic two-player game (STPG),
  * as used for abstraction of MDPs, i.e. with strict cycling between player 1,
  * player 2 and probabilistic states. Thus, we store this a set of sets of
- * distributions for each state.
+ * distributions for each state. This means that the player 2 states are not true
+ * states, i.e. they don't count for statistics and player 1 states are treated
+ * as successors of each other.
  */
-public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
+public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelSimple
 {
 	// Transition function (Steps)
 	protected List<ArrayList<DistributionSet>> trans;
@@ -303,7 +305,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		}
 		return succs.iterator();
 	}
-	
+
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
@@ -338,12 +340,6 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 			}
 		}
 		return false;
-	}
-
-	@Override
-	public int getNumChoices(int s)
-	{
-		return trans.get(s).size();
 	}
 
 	@Override
@@ -474,13 +470,24 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 		return s;
 	}
 
-	// Accessors (for STPG)
+	// Accessors (for NondetModel)
 
 	@Override
-	public int getPlayer(int s)
+	public int getNumChoices(int s)
 	{
-		// All states are player 1
-		return 1;
+		return trans.get(s).size();
+	}
+
+	@Override
+	public int getMaxNumChoices()
+	{
+		return maxNumDistrSets;
+	}
+
+	@Override
+	public int getNumChoices()
+	{
+		return numDistrSets;
 	}
 
 	@Override
@@ -488,6 +495,27 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	{
 		// No actions stored currently
 		return null;
+	}
+
+	@Override
+	public boolean allSuccessorsInSet(int s, int i, BitSet set)
+	{
+		return trans.get(s).get(i).isSubsetOf(set);
+	}
+
+	@Override
+	public boolean someSuccessorsInSet(int s, int i, BitSet set)
+	{
+		return trans.get(s).get(i).containsOneOf(set);
+	}
+	
+	// Accessors (for STPG)
+
+	@Override
+	public int getPlayer(int s)
+	{
+		// All states are player 1
+		return 1;
 	}
 
 	@Override
@@ -950,11 +978,6 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, ModelSimple
 	{
 		// TODO: Recompute if necessary
 		return maxNumDistrs;
-	}
-
-	public boolean allSuccessorsInSet(int s, int c, BitSet set)
-	{
-		throw new UnsupportedOperationException("Method not implemented");
 	}
 
 	// Standard methods

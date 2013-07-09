@@ -379,4 +379,5 @@ public class MemorylessDeterministicStrategy implements Strategy
 	//		return expValues[s];
 	//	}
 
+	public void export(PrismLog out) {};
 }

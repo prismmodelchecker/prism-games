@@ -175,12 +175,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public Object getAction(int s, int i)
-	{
-		return super.getAction(s, i);
-	}
-
-	@Override
 	public int getNumTransitions(int s, int i)
 	{
 		return super.getNumTransitions(s, i);
