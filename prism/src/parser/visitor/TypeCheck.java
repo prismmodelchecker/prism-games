@@ -195,6 +195,8 @@ public class TypeCheck extends ASTTraverse
 			e.setType(TypePathBool.getInstance());
 			break;
 		case ExpressionTemporal.R_F:
+		case ExpressionTemporal.R_Fc:
+		case ExpressionTemporal.R_F0:
 			if (e.getOperand2() != null) {
 				type = e.getOperand2().getType();
 				if (!(type instanceof TypeBool) && !(type instanceof TypePathBool))
