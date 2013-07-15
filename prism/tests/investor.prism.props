@@ -1,0 +1,3 @@
+// What is the maximum possible expected profit the investor can guarantee?
+// RESULT (vmax=5,vinit=2): 2.365893
+<<investor>> Rmax=? [ Fc "finished" ]

@@ -1,0 +1,10 @@
+const int k;
+
+// RESULT (k=2): 0.0
+// RESULT (k=3): 0.66667
+// RESULT (k=4): 0.77778
+// RESULT (k=5): 0.92963
+// RESULT (k=6): 0.96827
+// RESULT (k=7): 0.97605
+// RESULT (k=8): 0.97747
+<<p1>> Pmax=? [F<=k "T"]

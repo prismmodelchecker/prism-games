@@ -1,0 +1,12 @@
+const int k;
+
+<<p1>> P=0.5 [ F s=3 ]
+
+<<p2>> Pmin=? [ F s=3 ]
+
+<<p2>> Pmax=? [ F s=3 ]
+
+<<p1>> Pmax=? [ F<=k s=3 ]
+
+<<p1>> Pmax=? [ F<=2 s=3 ]
+
