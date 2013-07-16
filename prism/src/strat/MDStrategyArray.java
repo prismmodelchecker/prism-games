@@ -36,34 +36,38 @@ import explicit.Model;
  */
 public class MDStrategyArray extends MDStrategy
 {
-	private explicit.Model model;
+	// Model associated with the strategy
+	private explicit.NondetModel model;
+	// Index of choice taken in each state (wrt model above) 
+	// Other possible values: -1 (unknown), -2 (arbitrary), -3 (unreachable)
 	private int choices[];
 	
 	/**
 	 * Creates an MDStrategyArray from an integer array of choices.
 	 * The array may later be modified/delete - take a copy if you want to keep it.
 	 */
-	public MDStrategyArray(explicit.Model model, int choices[])
+	public MDStrategyArray(explicit.NondetModel model, int choices[])
 	{
 		this.model = model;
 		this.choices = choices;
 	}
 	
+	@Override
 	public int getNumStates()
 	{
-		// Need?
-		return choices.length;
+		return model.getNumStates();
 	}
 	
 	@Override
-	public int getChoice(int i)
+	public int getChoice(int s)
 	{
-		return choices[i];
+		return choices[s];
 	}
 	
 	@Override
-	public Object getChoiceAction(int i)
+	public Object getChoiceAction(int s)
 	{
-		return "";//model.getAction(choices[i]);
+		int c = choices[s];
+		return c >= 0 ? model.getAction(s, c) : c == -1 ? "?" : c == -2 ? "*" : "-";
 	}
 }

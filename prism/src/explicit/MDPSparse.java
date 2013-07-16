@@ -513,7 +513,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public Object getAction(int s, int i)
 	{
-		return actions == null ? null : actions[rowStarts[s] + i];
+		return i < 0 || actions == null ? null : actions[rowStarts[s] + i];
 	}
 
 	@Override
@@ -982,8 +982,10 @@ public class MDPSparse extends MDPExplicit
 		minmax += mdpRewards.getStateReward(s);
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null & !first) {
-			// Only remember strictly better choices (required for max)
-			if (strat[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
 			}
 		}
@@ -1033,8 +1035,10 @@ public class MDPSparse extends MDPExplicit
 		minmax += mdpRewards.getStateReward(s);
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null & !first) {
-			// Only remember strictly better choices (required for max)
-			if (strat[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
 			}
 		}

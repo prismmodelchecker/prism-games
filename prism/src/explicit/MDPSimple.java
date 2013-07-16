@@ -555,7 +555,7 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	public Object getAction(int s, int i)
 	{
 		List<Object> list;
-		if (actions == null || (list = actions.get(s)) == null)
+		if (i < 0 || actions == null || (list = actions.get(s)) == null)
 			return null;
 		return list.get(i);
 	}
@@ -927,8 +927,10 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		minmax += mdpRewards.getStateReward(s);
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null & !first) {
-			// Only remember strictly better choices (required for max)
-			if (strat[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s]) || this instanceof STPG) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s] || this instanceof STPG) {
 				strat[s] = stratCh;
 			}
 		}
@@ -984,8 +986,10 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		minmax += mdpRewards.getStateReward(s);
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null & !first) {
-			// Only remember strictly better choices (required for max)
-			if (strat[s] == -1 || (min && minmax < vect[s]) || (!min && minmax > vect[s])) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
 			}
 		}

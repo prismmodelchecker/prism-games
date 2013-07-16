@@ -178,7 +178,7 @@ public interface Strategy
 	// NEW METHODS:
 	
 	/**
-	 * Export the strategy to a PrismLog.
+	 * Export the strategy to a PrismLog, displaying strategy choices as action names.
 	 */
-	public void export(PrismLog out);
+	public void exportActions(PrismLog out);
 }

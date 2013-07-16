@@ -2752,7 +2752,7 @@ public class Prism implements PrismSettingsListener
 		tmpLog = getPrismLogForFile(file);
 
 		// Export
-		strat.export(tmpLog);
+		strat.exportActions(tmpLog);
 
 		// Tidy up
 		if (file != null)
