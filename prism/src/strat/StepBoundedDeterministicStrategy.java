@@ -575,5 +575,12 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	//				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
 	//	}
 
-	public void export(PrismLog out) {};
+	public void export(PrismLog out) {}
+
+	@Override
+	public void exportActions(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
+	};
 }

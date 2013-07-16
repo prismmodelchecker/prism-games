@@ -718,5 +718,12 @@ public class ExactValueStrategy implements Strategy
 	//		return 0;
 	//	}
 
-	public void export(PrismLog out) {};
+	public void export(PrismLog out) {}
+
+	@Override
+	public void exportActions(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
+	};
 }
