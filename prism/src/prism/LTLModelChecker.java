@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Carlos S. Bederián (Universidad Nacional de Córdoba)
+//	* Carlos S. Bederian (Universidad Nacional de Cordoba)
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
 //	
 //------------------------------------------------------------------------------
@@ -28,8 +28,6 @@
 package prism;
 
 import java.util.*;
-
-import mtbdd.PrismMTBDD;
 
 import jdd.*;
 import parser.*;
@@ -120,7 +118,7 @@ public class LTLModelChecker
 	 * @param model: The  DTMC/CTMC
 	 * @param labelDDs: BDDs giving the set of states for each AP in the DRA
 	 */
-	public ProbModel constructProductMC(DRA dra, ProbModel model, Vector<JDDNode> labelDDs) throws PrismException
+	public ProbModel constructProductMC(DRA<BitSet> dra, ProbModel model, Vector<JDDNode> labelDDs) throws PrismException
 	{
 		return constructProductMC(dra, model, labelDDs, null, null, true);
 	}
@@ -133,7 +131,7 @@ public class LTLModelChecker
 	 * @param draDDRowVarsCopy: (Optionally) empty JDDVars object to obtain copy of DD row vars for DRA
 	 * @param draDDColVarsCopy: (Optionally) empty JDDVars object to obtain copy of DD col vars for DRA
 	 */
-	public ProbModel constructProductMC(DRA dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy)
+	public ProbModel constructProductMC(DRA<BitSet> dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy)
 			throws PrismException
 	{
 		return constructProductMC(dra, model, labelDDs, draDDRowVarsCopy, draDDColVarsCopy, true);
@@ -149,7 +147,7 @@ public class LTLModelChecker
 	 * @param allInit: Do we assume that all states of the original model are initial states?
 	 *        (just for the purposes of reachability)
 	 */
-	public ProbModel constructProductMC(DRA dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy, boolean allInit)
+	public ProbModel constructProductMC(DRA<BitSet> dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy, boolean allInit)
 			throws PrismException
 	{
 		// Existing model - dds, vars, etc.
@@ -320,7 +318,7 @@ public class LTLModelChecker
 	 * @param model: The MDP
 	 * @param labelDDs: BDDs giving the set of states for each AP in the DRA
 	 */
-	public NondetModel constructProductMDP(DRA dra, NondetModel model, Vector<JDDNode> labelDDs) throws PrismException
+	public NondetModel constructProductMDP(DRA<BitSet> dra, NondetModel model, Vector<JDDNode> labelDDs) throws PrismException
 	{
 		return constructProductMDP(dra, model, labelDDs, null, null, true, null);
 	}
@@ -333,7 +331,7 @@ public class LTLModelChecker
 	 * @param draDDRowVarsCopy: (Optionally) empty JDDVars object to obtain copy of DD row vars for DRA
 	 * @param draDDColVarsCopy: (Optionally) empty JDDVars object to obtain copy of DD col vars for DRA
 	 */
-	public NondetModel constructProductMDP(DRA dra, NondetModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy)
+	public NondetModel constructProductMDP(DRA<BitSet> dra, NondetModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy)
 			throws PrismException
 	{
 		return constructProductMDP(dra, model, labelDDs, draDDRowVarsCopy, draDDColVarsCopy, true, null);
@@ -351,7 +349,7 @@ public class LTLModelChecker
 	 * @param init: The initial state(s) (of the original model) used to build the product;
 	 *        if null; we just take the existing initial states from model.getStart().
 	 */
-	public NondetModel constructProductMDP(DRA dra, NondetModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy,
+	public NondetModel constructProductMDP(DRA<BitSet> dra, NondetModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy,
 			boolean allInit, JDDNode init) throws PrismException
 	{
 		// Existing model - dds, vars, etc.
@@ -654,7 +652,7 @@ public class LTLModelChecker
 				 * [dA97] uses Rabin acceptance pairs (H_i, L_i) such that
 				 * H_i contains Inf(\rho) and the intersection of Inf(K) and L_i is non-empty
 				 * 
-				 * OTOH PRISM's DRAs (via ltl2dstar use pairs (L_i, K_i) such that
+				 * OTOH PRISM's DRAs (via ltl2dstar) use pairs (L_i, K_i) such that
 				 * the intersection of L_i and Inf(\rho) is empty
 				 * and the intersection of K_i and Inf(\rho) is non-empty
 				 * So: L_i = K_i, H_i = S - L_i 
@@ -717,7 +715,7 @@ public class LTLModelChecker
 					 * [dA97] uses Rabin acceptance pairs (H_i, L_i) such that
 					 * H_i contains Inf(\rho) and the intersection of Inf(K) and L_i is non-empty
 					 * 
-					 * OTOH PRISM's DRAs (via ltl2dstar use pairs (L_i, K_i) such that
+					 * OTOH PRISM's DRAs (via ltl2dstar) use pairs (L_i, K_i) such that
 					 * the intersection of L_i and Inf(\rho) is empty
 					 * and the intersection of K_i and Inf(\rho) is non-empty
 					 * So: L_i = K_i, H_i = S - L_i 
@@ -805,7 +803,7 @@ public class LTLModelChecker
 					 * [dA97] uses Rabin acceptance pairs (H_i, L_i) such that
 					 * H_i contains Inf(\rho) and the intersection of Inf(K) and L_i is non-empty
 					 * 
-					 * OTOH PRISM's DRAs (via ltl2dstar use pairs (L_i, K_i) such that
+					 * OTOH PRISM's DRAs (via ltl2dstar) use pairs (L_i, K_i) such that
 					 * the intersection of L_i and Inf(\rho) is empty
 					 * and the intersection of K_i and Inf(\rho) is non-empty
 					 * So: L_i = K_i, H_i = S - L_i 
