@@ -194,7 +194,7 @@ public class DTMCModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * LTL-like path formula for P operator
+	 * Compute probabilities for an LTL path formula
 	 */
 	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual) throws PrismException
 	{
@@ -242,29 +242,23 @@ public class DTMCModelChecker extends ProbModelChecker
 		mainLog.println("\nTime for Rabin translation: " + time / 1000.0 + " seconds.");
 
 		// Build product of Markov chain and automaton
-		// (note: might be a CTMC - StochModelChecker extends this class)
 		mainLog.println("\nConstructing MC-DRA product...");
-		Pair<Model, int[]> pair = mcLtl.constructProductMC(dra, model, labelBS);
+		Pair<Model, int[]> pair = mcLtl.constructProductMC(dra, (DTMC) model, labelBS);
 		modelProduct = pair.first;
 		int invMap[] = pair.second;
 		int modelProductSize = modelProduct.getNumStates();
+		mainLog.print("\n" + modelProduct.infoStringTable());
 
-		// Find accepting maximum end components
-		mainLog.println("\nFinding accepting end components...");
-
-		// Compute accepting BSCCs
+		// Find accepting BSCCs + compute reachability probabilities
+		mainLog.println("\nFinding accepting BSCCs...");
 		BitSet acceptingBSCCs = mcLtl.findAcceptingBSCCs(dra, modelProduct, invMap, sccMethod);
-		mainLog.println(acceptingBSCCs);
-
-		// Compute reachability probabilities
 		mainLog.println("\nComputing reachability probabilities...");
 		mcProduct = new DTMCModelChecker();
-
 		probsProduct = StateValues.createFromDoubleArray(mcProduct.computeReachProbs((DTMC) modelProduct, acceptingBSCCs).soln, modelProduct);
 
 		// Mapping probabilities in the original model
 		double[] probsProductDbl = probsProduct.getDoubleArray();
-		double[] probsDbl = new double[modelProductSize];
+		double[] probsDbl = new double[model.getNumStates()];
 
 		LinkedList<Integer> queue = new LinkedList<Integer>();
 		for (int s : model.getInitialStates())

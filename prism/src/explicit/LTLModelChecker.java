@@ -30,8 +30,10 @@ package explicit;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import parser.ast.Expression;
@@ -47,37 +49,46 @@ import prism.Pair;
 import prism.PrismException;
 import explicit.SCCComputer.SCCMethod;
 
+/**
+ * LTL model checking functionality
+ */
 public class LTLModelChecker
 {
-
+	/**
+	 * Convert an LTL formula into a DRA. The LTL formula is represented as a PRISM Expression,
+	 * in which atomic propositions are represented by ExpressionLabel objects.
+	 */
 	public static DRA<BitSet> convertLTLFormulaToDRA(Expression ltl) throws PrismException
 	{
 		return LTL2RabinLibrary.convertLTLFormulaToDRA(ltl);
 	}
 
+	/**
+	 * Extract maximal state formula from an LTL path formula, model check them (with passed in model checker) and
+	 * replace them with ExpressionLabel objects L0, L1, etc. Expression passed in is modified directly, but the result
+	 * is also returned. As an optimisation, model checking that results in true/false for all states is converted to an
+	 * actual true/false, and duplicate results are given the same label. BitSets giving the states which satisfy each label
+	 * are put into the vector {@code labelBS}, which should be empty when this function is called.
+	 */
 	public Expression checkMaximalStateFormulas(ProbModelChecker mc, Model model, Expression expr, Vector<BitSet> labelBS) throws PrismException
 	{
 		// A state formula
 		if (expr.getType() instanceof TypeBool) {
 			// Model check
 			StateValues sv = mc.checkExpression(model, expr);
-			if (sv.type != TypeBool.getInstance() || sv.valuesB == null) {
-				throw new PrismException("Excepting a boolean value here!");
-			}
 			BitSet bs = sv.getBitSet();
 			// Detect special cases (true, false) for optimisation
 			if (bs.isEmpty()) {
 				return Expression.False();
 			}
-			BitSet tmp = (BitSet) bs.clone();
-			tmp.flip(0, tmp.length());
-			if (tmp.isEmpty()) {
+			if (bs.cardinality() == model.getNumStates()) {
 				return Expression.True();
 			}
 			// See if we already have an identical result
 			// (in which case, reuse it)
 			int i = labelBS.indexOf(bs);
 			if (i != -1) {
+				sv.clear();
 				return new ExpressionLabel("L" + i);
 			}
 			// Otherwise, add result to list, return new label
@@ -107,26 +118,20 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Constructs the product of a DTMC and a DRA automaton
-	 * 
-	 * @param dra the DRA representing the LTL formula
-	 * @param model the original model
-	 * @param labelBS a set of labels for states in the original model
-	 * @return a Pair consisting of the product model and a map from 
+	 * Construct the product of a DRA and a DTMC.
+	 * @param dra The DRA
+	 * @param dtmc The DTMC
+	 * @param labelBS BitSets giving the set of states for each AP in the DRA
+	 * @return a Pair consisting of the product DTMC and a map from 
 	 *   (s_i * draSize + q_j) to the right state in the DRA product 
-	 * @throws PrismException
 	 */
-	public Pair<Model, int[]> constructProductMC(DRA<BitSet> dra, Model model, Vector<BitSet> labelBS) throws PrismException
+	public Pair<Model, int[]> constructProductMC(DRA<BitSet> dra, DTMC dtmc, Vector<BitSet> labelBS) throws PrismException
 	{
-		if (!(model instanceof DTMCSimple)) {
-			throw new PrismException("Expecting a DTMC here");
-		}
-
-		DTMCSimple modelDTMC = (DTMCSimple) model;
 		DTMCSimple prodModel = new DTMCSimple();
 
 		int draSize = dra.size();
-		int modelNumStates = modelDTMC.getNumStates();
+		int numAPs = dra.getAPList().size();
+		int modelNumStates = dtmc.getNumStates();
 		int prodNumStates = modelNumStates * draSize;
 
 		// Encoding: 
@@ -139,7 +144,7 @@ public class LTLModelChecker
 		int map[] = new int[prodNumStates];
 		Arrays.fill(map, -1);
 		int q_0 = dra.getStartState();
-		for (int s_0 : model.getInitialStates()) {
+		for (int s_0 : dtmc.getInitialStates()) {
 			queue.add(new Point(s_0, q_0));
 			prodModel.addState();
 			prodModel.addInitialState(prodModel.getNumStates() - 1);
@@ -149,24 +154,32 @@ public class LTLModelChecker
 		// Product states
 		BitSet visited = new BitSet(prodNumStates);
 		int q_1 = 0, q_2 = 0, s_1 = 0, s_2 = 0;
+		BitSet s_2_labels = new BitSet(numAPs);
 		while (!queue.isEmpty()) {
 			Point p = queue.pop();
 			s_1 = p.x;
 			q_1 = p.y;
 			visited.set(s_1 * draSize + q_1);
-			int numEdges = dra.getNumEdges(q_1);
-			for (int j = 0; j < numEdges; j++) {
-				q_2 = dra.getEdgeDest(q_1, j);
-				BitSet label = computeLabel(dra, labelBS, modelNumStates, q_1, j);
-				for (s_2 = label.nextSetBit(0); s_2 != -1; s_2 = label.nextSetBit(s_2 + 1)) {
-					if (!visited.get(s_2 * draSize + q_2) && map[s_2 * draSize + q_2] == -1) {
-						queue.add(new Point(s_2, q_2));
-						prodModel.addState();
-						map[s_2 * draSize + q_2] = prodModel.getNumStates() - 1;
-					}
-					double prob = modelDTMC.getProbability(s_1, s_2);
-					prodModel.setProbability(map[s_1 * draSize + q_1], map[s_2 * draSize + q_2], prob);
+
+			// Go through transitions from state s_1 in original DTMC
+			Iterator<Map.Entry<Integer, Double>> iter = dtmc.getTransitionsIterator(s_1);
+			while (iter.hasNext()) {
+				Map.Entry<Integer, Double> e = iter.next();
+				s_2 = e.getKey();
+				double prob = e.getValue();
+				// Get BitSet representing APs (labels) satisfied by successor state s_2
+				for (int k = 0; k < numAPs; k++) {
+					s_2_labels.set(k, labelBS.get(k).get(s_2));
 				}
+				// Find corresponding successor in DRA
+				q_2 = dra.getEdgeDestByLabel(q_1, s_2_labels);
+				// Add state/transition to model
+				if (!visited.get(s_2 * draSize + q_2) && map[s_2 * draSize + q_2] == -1) {
+					queue.add(new Point(s_2, q_2));
+					prodModel.addState();
+					map[s_2 * draSize + q_2] = prodModel.getNumStates() - 1;
+				}
+				prodModel.setProbability(map[s_1 * draSize + q_1], map[s_2 * draSize + q_2], prob);
 			}
 		}
 
@@ -182,56 +195,44 @@ public class LTLModelChecker
 		return new Pair<Model, int[]>(prodModel, invMap);
 	}
 
-	private BitSet computeLabel(DRA<BitSet> dra, Vector<BitSet> labelBS, int origStates, int q_1, int j)
-	{
-		int numAPs = dra.getAPList().size();
-		List<String> apList = dra.getAPList();
-		BitSet label = new BitSet(origStates);
-		label.flip(0, origStates);
-		for (int k = 0; k < numAPs; k++) {
-			int bsID = Integer.parseInt(apList.get(k).substring(1));
-			BitSet bs = labelBS.get(bsID);
-			if (dra.getEdgeLabel(q_1, j).get(k)) {
-				label.and(bs);
-			} else {
-				label.andNot(bs);
-			}
-		}
-		return label;
-	}
-
-	public BitSet findAcceptingBSCCs(DRA<BitSet> dra, Model modelProduct, int invMap[], SCCMethod sccMethod)
+	/**
+	 * Find the set of states belong to accepting BSCCs in a model, according to a DRA {@code dra}.
+	 * @param dra The DRA
+	 * @param model The model
+	 * @param invMap The map returned by the constructProduct method(s)
+	 * @param sccMethod The method to use for SCC detection
+	 * @return
+	 */
+	public BitSet findAcceptingBSCCs(DRA<BitSet> dra, Model model, int invMap[], SCCMethod sccMethod)
 	{
 		// Compute bottom strongly connected components (BSCCs)
-		SCCComputer sccComputer = SCCComputer.createSCCComputer(sccMethod, modelProduct);
+		SCCComputer sccComputer = SCCComputer.createSCCComputer(sccMethod, model);
 		sccComputer.computeBSCCs();
 		List<BitSet> bsccs = sccComputer.getBSCCs();
-
+		
 		int draSize = dra.size();
-
+		int numAcceptancePairs = dra.getNumAcceptancePairs();
 		BitSet result = new BitSet();
+		
 		for (BitSet bscc : bsccs) {
-			int numAcceptancePairs = dra.getNumAcceptancePairs();
 			boolean isLEmpty = true;
 			boolean isKEmpty = true;
 			for (int acceptancePair = 0; acceptancePair < numAcceptancePairs && isLEmpty && isKEmpty; acceptancePair++) {
 				BitSet L = dra.getAcceptanceL(acceptancePair);
 				BitSet K = dra.getAcceptanceK(acceptancePair);
-
 				for (int state = bscc.nextSetBit(0); state != -1; state = bscc.nextSetBit(state + 1)) {
 					int draState = invMap[state] % draSize;
 					isLEmpty &= !L.get(draState);
 					isKEmpty &= !K.get(draState);
 				}
-			}
-
-			if (isLEmpty && !isKEmpty) {
-				// Acceptance condition
-				result.or(bscc);
+				// Stop as soon as we find the first acceptance pair that is satisfied
+				if (isLEmpty && !isKEmpty) {
+					result.or(bscc);
+					break;
+				}
 			}
 		}
 
 		return result;
 	}
-
 }
