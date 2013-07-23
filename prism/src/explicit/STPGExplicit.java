@@ -702,7 +702,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 			System.out.println(stpg);
 
 			// Model check
-			mc = new STPGModelChecker();
+			mc = new STPGModelChecker(null);
 			// mc.setVerbosity(2);
 			target = new BitSet();
 			target.set(8);

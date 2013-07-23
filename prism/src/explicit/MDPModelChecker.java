@@ -36,6 +36,7 @@ import java.util.Map;
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
+import prism.PrismComponent;
 import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -51,6 +52,14 @@ import explicit.rewards.MDPRewards;
  */
 public class MDPModelChecker extends ProbModelChecker
 {
+	/**
+	 * Create a new MDPModelChecker, inherit basic state from parent (unless null).
+	 */
+	public MDPModelChecker(PrismComponent parent) throws PrismException
+	{
+		super(parent);
+	}
+	
 	// Model checking functions
 
 	/**
@@ -869,7 +878,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("Starting policy iteration (" + (min ? "min" : "max") + ")...");
 
 		// Create a DTMC model checker (for solving policies)
-		mcDTMC = new DTMCModelChecker();
+		mcDTMC = new DTMCModelChecker(this);
 		mcDTMC.inheritSettings(this);
 		mcDTMC.setLog(new PrismDevNullLog());
 
@@ -967,7 +976,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("Starting modified policy iteration (" + (min ? "min" : "max") + ")...");
 
 		// Create a DTMC model checker (for solving policies)
-		mcDTMC = new DTMCModelChecker();
+		mcDTMC = new DTMCModelChecker(this);
 		mcDTMC.inheritSettings(this);
 		mcDTMC.setLog(new PrismDevNullLog());
 
@@ -1679,7 +1688,7 @@ public class MDPModelChecker extends ProbModelChecker
 		Map<String, BitSet> labels;
 		boolean min = true;
 		try {
-			mc = new MDPModelChecker();
+			mc = new MDPModelChecker(null);
 			mdp = new MDPSimple();
 			mdp.buildFromPrismExplicit(args[0]);
 			//System.out.println(mdp);

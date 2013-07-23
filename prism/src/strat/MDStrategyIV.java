@@ -24,45 +24,78 @@
 //	
 //==============================================================================
 
-package explicit;
+package strat;
 
-import java.util.BitSet;
 import java.util.List;
 
-import prism.PrismComponent;
-import prism.PrismException;
+import dv.IntegerVector;
+
+import prism.Model;
 
 /**
- * Abstract class for (explicit) classes that compute (M)ECs, i.e. (maximal) end components,
- * for a nondeterministic model such as an MDP.
+ * Class to store a memoryless deterministic (MD) strategy, as a IntegerVector (i.e. stored natively as an array).
  */
-public abstract class ECComputer extends PrismComponent
+public class MDStrategyIV extends MDStrategy
 {
+	// Model associated with the strategy
+	private Model model;
+	
+	private IntegerVector iv;
+	
+	private List<String> actions;
+	
+	private int numStates;
+	private long ptr;
+	
 	/**
-	 * Static method to create a new ECComputer object, depending on current settings.
+	 * Creates...
 	 */
-	public static ECComputer createECComputer(PrismComponent parent, NondetModel model) throws PrismException
+	public MDStrategyIV(Model model)
 	{
-		// Only one algorithm implemented currently
-		return new ECComputerDefault(parent, model);
+		this.model = model;
+		numStates = (int) model.getNumStates();
+		actions = model.getSynchs();
 	}
-
+	
 	/**
-	 * Base constructor.
+	 * Creates...
 	 */
-	public ECComputer(PrismComponent parent) throws PrismException
+	public MDStrategyIV(Model model, IntegerVector iv)
 	{
-		super(parent);
+		this.model = model;
+		numStates = (int) model.getNumStates();
+		actions = model.getSynchs();
+		this.iv = iv;
 	}
-
-	/**
-	 * Compute states of maximal end components (MECs) and store them.
-	 * They can be retrieved using {@link #getMECStates()}.
-	 */
-	public abstract void computeMECStates() throws PrismException;
-
-	/**
-	 * Get the list of states for computed MECs.
-	 */
-	public abstract List<BitSet> getMECStates();
+	
+	public void setPointer(long ptr)
+	{
+		this.ptr = ptr;
+	}
+	
+	@Override
+	public int getNumStates()
+	{
+		return numStates;
+	}
+	
+	@Override
+	public int getChoice(int s)
+	{
+		return 99;
+	}
+	
+	@Override
+	public Object getChoiceAction(int s)
+	{
+		int c = iv.getElement(s);
+		//return ""+c; //c >= 0 ? actions.get(c) : "?";
+		return c >= 0 ? actions.get(c) : c == -1 ? "?" : c == -2 ? "*" : "-";
+	}
+	
+	public void clear()
+	{
+		iv.clear();
+		iv = null;
+	}
 }

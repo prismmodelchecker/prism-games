@@ -36,7 +36,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import jdd.JDD;
 import jdd.JDDNode;
@@ -57,7 +56,6 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
-import parser.type.TypeBool;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
@@ -79,7 +77,7 @@ import explicit.FastAdaptiveUniformisationModelChecker;
  * Main class for all PRISM's core functionality.
  * This is independent of the user interface (command line or gui).
  */
-public class Prism implements PrismSettingsListener
+public class Prism extends PrismComponent implements PrismSettingsListener
 {
 	/** PRISM version (e.g. "4.0.3"). Read from prism.Version. */
 	private static String version = prism.Version.versionString;
@@ -159,9 +157,6 @@ public class Prism implements PrismSettingsListener
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
 
-	// Main PRISM settings
-	private PrismSettings settings;
-
 	// Export parsed PRISM model?
 	protected boolean exportPrism = false;
 	protected File exportPrismFile = null;
@@ -199,10 +194,6 @@ public class Prism implements PrismSettingsListener
 	//  2 - (s l ... l r c ... r c) (s l ... l r c ... r c) ...
 	private int ordering = 1;
 
-	// Round-off threshold for places where doubles are summed and compared to integers
-	// (e.g. checking that probabilities sum to 1 in an update).
-	private double sumRoundOff = 1e-5;
-
 	// Method to use for (symbolic) state-space reachability
 	private int reachMethod = REACH_BFS;
 
@@ -210,8 +201,7 @@ public class Prism implements PrismSettingsListener
 	// Logs
 	//------------------------------------------------------------------------------
 
-	private PrismLog mainLog; // one log for most output
-	private PrismLog techLog; // another one for technical/diagnostic output
+	private PrismLog techLog; // log for technical/diagnostic output
 
 	//------------------------------------------------------------------------------
 	// Parsers/translators/model checkers/simulators/etc.
@@ -360,7 +350,7 @@ public class Prism implements PrismSettingsListener
 
 	public void setEngine(int e) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_ENGINE, e - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_ENGINE, e);
 	}
 
 	public void setVerbose(boolean b) throws PrismException
@@ -398,6 +388,11 @@ public class Prism implements PrismSettingsListener
 		settings.set(PrismSettings.PRISM_DO_PROB_CHECKS, b);
 	}
 
+	public void setSumRoundOff(double d) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_SUM_ROUND_OFF, d);
+	}
+
 	public void setCompact(boolean b) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_COMPACT, b);
@@ -405,7 +400,7 @@ public class Prism implements PrismSettingsListener
 
 	public void setLinEqMethod(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_LIN_EQ_METHOD, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_LIN_EQ_METHOD, i);
 	}
 
 	public void setLinEqMethodParam(double d) throws PrismException
@@ -415,17 +410,17 @@ public class Prism implements PrismSettingsListener
 
 	public void setMDPSolnMethod(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_MDP_SOLN_METHOD, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_MDP_SOLN_METHOD, i);
 	}
 
 	public void setMDPMultiSolnMethod(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD, i);
 	}
 
 	public void setTermCrit(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_TERM_CRIT, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_TERM_CRIT, i);
 	}
 
 	public void setTermCritParam(double d) throws PrismException
@@ -485,12 +480,12 @@ public class Prism implements PrismSettingsListener
 
 	public void setSCCMethod(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_SCC_METHOD, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_SCC_METHOD, i);
 	}
 
 	public void setExportAdv(int i) throws PrismException
 	{
-		settings.set(PrismSettings.PRISM_EXPORT_ADV, i - 1); // note index offset correction
+		settings.setChoice(PrismSettings.PRISM_EXPORT_ADV, i);
 	}
 
 	public void setExportAdvFilename(String s) throws PrismException
@@ -602,11 +597,6 @@ public class Prism implements PrismSettingsListener
 		ordering = i;
 	}
 
-	public void setSumRoundOff(double d) throws PrismException
-	{
-		sumRoundOff = d;
-	}
-
 	public static int REACH_BFS = 1;
 	public static int REACH_FRONTIER = 2;
 
@@ -661,8 +651,8 @@ public class Prism implements PrismSettingsListener
 
 	public int getEngine()
 	{
-		return settings.getInteger(PrismSettings.PRISM_ENGINE) + 1;
-	} //note the correction
+		return settings.getInteger(PrismSettings.PRISM_ENGINE);
+	}
 
 	/**
 	 * Is the current engine "Explicit"?
@@ -682,10 +672,15 @@ public class Prism implements PrismSettingsListener
 		return settings.getBoolean(PrismSettings.PRISM_DO_PROB_CHECKS);
 	}
 
+	public double getSumRoundOff()
+	{
+		return settings.getDouble(PrismSettings.PRISM_SUM_ROUND_OFF);
+	}
+
 	public int getLinEqMethod()
 	{
-		return settings.getInteger(PrismSettings.PRISM_LIN_EQ_METHOD) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_LIN_EQ_METHOD);
+	}
 
 	public double getLinEqMethodParam()
 	{
@@ -694,18 +689,18 @@ public class Prism implements PrismSettingsListener
 
 	public int getMDPSolnMethod()
 	{
-		return settings.getInteger(PrismSettings.PRISM_MDP_SOLN_METHOD) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_MDP_SOLN_METHOD);
+	}
 
 	public int getMDPMultiSolnMethod()
 	{
-		return settings.getInteger(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_MDP_MULTI_SOLN_METHOD);
+	}
 
 	public int getTermCrit()
 	{
-		return settings.getInteger(PrismSettings.PRISM_TERM_CRIT) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_TERM_CRIT);
+	}
 
 	public double getTermCritParam()
 	{
@@ -794,13 +789,13 @@ public class Prism implements PrismSettingsListener
 
 	public int getSCCMethod()
 	{
-		return settings.getInteger(PrismSettings.PRISM_SCC_METHOD) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_SCC_METHOD);
+	}
 
 	public int getExportAdv()
 	{
-		return settings.getInteger(PrismSettings.PRISM_EXPORT_ADV) + 1;
-	} //NOTE THE CORRECTION for the ChoiceSetting index
+		return settings.getChoice(PrismSettings.PRISM_EXPORT_ADV);
+	}
 
 	public String getExportAdvFilename()
 	{
@@ -892,11 +887,6 @@ public class Prism implements PrismSettingsListener
 		return ordering;
 	}
 
-	public double getSumRoundOff()
-	{
-		return sumRoundOff;
-	}
-
 	public int getReachMethod()
 	{
 		return reachMethod;
@@ -982,64 +972,50 @@ public class Prism implements PrismSettingsListener
 	 * Get an SCCComputer object.
 	 * Type (i.e. algorithm) depends on SCCMethod PRISM option.
 	 */
-	public SCCComputer getSCCComputer(Model model)
+	public SCCComputer getSCCComputer(Model model) throws PrismException
 	{
-		return getSCCComputer(model.getReach(), model.getTrans01(), model.getAllDDRowVars(), model.getAllDDColVars());
+		return SCCComputer.createSCCComputer(this, model);
 	}
 
 	/**
 	 * Get an SCCComputer object.
 	 * Type (i.e. algorithm) depends on SCCMethod PRISM option.
 	 */
-	public SCCComputer getSCCComputer(JDDNode reach, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars)
+	public SCCComputer getSCCComputer(JDDNode reach, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars) throws PrismException
 	{
-		SCCComputer sccComputer;
-		switch (getSCCMethod()) {
-		case Prism.LOCKSTEP:
-			sccComputer = new SCCComputerLockstep(this, reach, trans01, allDDRowVars, allDDColVars);
-			break;
-		case Prism.SCCFIND:
-			sccComputer = new SCCComputerSCCFind(this, reach, trans01, allDDRowVars, allDDColVars);
-			break;
-		case Prism.XIEBEEREL:
-			sccComputer = new SCCComputerXB(this, reach, trans01, allDDRowVars, allDDColVars);
-			break;
-		default:
-			sccComputer = new SCCComputerLockstep(this, reach, trans01, allDDRowVars, allDDColVars);
-		}
-		return sccComputer;
+		return SCCComputer.createSCCComputer(this, reach, trans01, allDDRowVars, allDDColVars);
 	}
 
 	/**
 	 * Get an SCCComputer object for the explicit engine.
 	 */
-	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model model)
+	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model model) throws PrismException
 	{
-		return explicit.SCCComputer.createSCCComputer(explicit.SCCComputer.SCCMethod.TARJAN, model);
+		return explicit.SCCComputer.createSCCComputer(this, model);
 	}
 	
 	/**
 	 * Get an ECComputer object.
 	 */
-	public ECComputer getECComputer(NondetModel model)
+	public ECComputer getECComputer(NondetModel model) throws PrismException
 	{
-		return getECComputer(model.getReach(), model.getTrans(), model.getTrans01(), model.getAllDDRowVars(), model.getAllDDColVars(), model.getAllDDNondetVars());
+		return ECComputer.createECComputer(this, model);
 	}
 
 	/**
 	 * Get an ECComputer object.
 	 */
-	public ECComputer getECComputer(JDDNode reach, JDDNode trans, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars, JDDVars allDDNondetVars)
+	public ECComputer getECComputer(JDDNode reach, JDDNode trans, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars, JDDVars allDDNondetVars) throws PrismException
 	{
-		return new ECComputerDefault(this, reach, trans, trans01, allDDRowVars, allDDColVars, allDDNondetVars);
+		return ECComputer.createECComputer(this, reach, trans, trans01, allDDRowVars, allDDColVars, allDDNondetVars);
 	}
 
 	/**
 	 * Get an ECComputer object for the explicit engine.
 	 */
-	public explicit.ECComputer getExplicitECComputer(explicit.NondetModel model)
+	public explicit.ECComputer getExplicitECComputer(explicit.NondetModel model) throws PrismException
 	{
-		return explicit.ECComputer.createECComputer(model);
+		return explicit.ECComputer.createECComputer(this, model);
 	}
 	
 	//------------------------------------------------------------------------------
@@ -2349,7 +2325,7 @@ public class Prism implements PrismSettingsListener
 
 		// print states for each bscc
 		if (!getExplicit()) {
-			n = sccComputer.getVectBSCCs().size();
+			n = sccComputer.getBSCCs().size();
 		} else {
 			n = sccComputerExpl.getBSCCs().size();
 		}
@@ -2362,10 +2338,10 @@ public class Prism implements PrismSettingsListener
 				tmpLog.println("bscc" + (i + 1) + "=[");
 			if (!getExplicit()) {
 				if (exportType != EXPORT_MATLAB)
-					new StateListMTBDD(sccComputer.getVectBSCCs().get(i), currentModel).print(tmpLog);
+					new StateListMTBDD(sccComputer.getBSCCs().get(i), currentModel).print(tmpLog);
 				else
-					new StateListMTBDD(sccComputer.getVectBSCCs().get(i), currentModel).printMatlab(tmpLog);
-				JDD.Deref(sccComputer.getVectBSCCs().get(i));
+					new StateListMTBDD(sccComputer.getBSCCs().get(i), currentModel).printMatlab(tmpLog);
+				JDD.Deref(sccComputer.getBSCCs().get(i));
 			} else {
 				explicit.StateValues.createFromBitSet(sccComputerExpl.getBSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
 			}
@@ -2413,10 +2389,10 @@ public class Prism implements PrismSettingsListener
 		l = System.currentTimeMillis();
 		if (!getExplicit()) {
 			ecComputer = getECComputer((NondetModel) currentModel);
-			ecComputer.computeECs();
+			ecComputer.computeMECStates();
 		} else {
 			ecComputerExpl = getExplicitECComputer((explicit.NondetModel) currentModelExpl);
-			ecComputerExpl.computeMECs();
+			ecComputerExpl.computeMECStates();
 		}
 		l = System.currentTimeMillis() - l;
 		mainLog.println("\nTime for MEC computation: " + l / 1000.0 + " seconds.");
@@ -2442,9 +2418,9 @@ public class Prism implements PrismSettingsListener
 
 		// print states for each mec
 		if (!getExplicit()) {
-			n = ecComputer.getVectECs().size();
+			n = ecComputer.getMECStates().size();
 		} else {
-			n = ecComputerExpl.getMECs().size();
+			n = ecComputerExpl.getMECStates().size();
 		}
 		for (i = 0; i < n; i++) {
 			tmpLog.println();
@@ -2455,12 +2431,12 @@ public class Prism implements PrismSettingsListener
 				tmpLog.println("mec" + (i + 1) + "=[");
 			if (!getExplicit()) {
 				if (exportType != EXPORT_MATLAB)
-					new StateListMTBDD(ecComputer.getVectECs().get(i), currentModel).print(tmpLog);
+					new StateListMTBDD(ecComputer.getMECStates().get(i), currentModel).print(tmpLog);
 				else
-					new StateListMTBDD(ecComputer.getVectECs().get(i), currentModel).printMatlab(tmpLog);
-				JDD.Deref(ecComputer.getVectECs().get(i));
+					new StateListMTBDD(ecComputer.getMECStates().get(i), currentModel).printMatlab(tmpLog);
+				JDD.Deref(ecComputer.getMECStates().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(ecComputerExpl.getMECs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
+				explicit.StateValues.createFromBitSet(ecComputerExpl.getMECStates().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -2961,9 +2937,7 @@ public class Prism implements PrismSettingsListener
 			}
 		} else {
 			if (currentModelExpl.getModelType() == ModelType.DTMC) {
-				DTMCModelChecker mcDTMC = new DTMCModelChecker();
-				mcDTMC.setLog(mainLog);
-				mcDTMC.setSettings(settings);
+				DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
 				probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, (File) null);
 				//TODO: probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, fileIn);
 			} else if (currentModelType == ModelType.CTMC) {
@@ -3083,9 +3057,7 @@ public class Prism implements PrismSettingsListener
 			if (currentModelType == ModelType.DTMC) {
 				throw new PrismException("Not implemented yet");
 			} else if (currentModelType == ModelType.CTMC) {
-				CTMCModelChecker mcCTMC = new CTMCModelChecker();
-				mcCTMC.setLog(mainLog);
-				mcCTMC.setSettings(settings);
+				CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
 				probsExpl = mcCTMC.doTransient((CTMC) currentModelExpl, time, fileIn);
 			} else {
 				throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
@@ -3191,9 +3163,7 @@ public class Prism implements PrismSettingsListener
 				}
 			} else {
 				if (currentModelType.continuousTime()) {
-					CTMCModelChecker mc = new CTMCModelChecker();
-					mc.setLog(mainLog);
-					mc.setSettings(settings);
+					CTMCModelChecker mc = new CTMCModelChecker(this);
 					if (i == 0) {
 						initDistExpl = mc.readDistributionFromFile(fileIn, currentModelExpl);
 						initTimeDouble = 0;
@@ -3346,9 +3316,7 @@ public class Prism implements PrismSettingsListener
 	private explicit.StateModelChecker createModelCheckerExplicit(PropertiesFile propertiesFile) throws PrismException
 	{
 		// Create model checker
-		explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(currentModelType);
-		mc.setLog(mainLog);
-		mc.setSettings(settings);
+		explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(currentModelType, this);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		// Pass any additional local settings
 		mc.setGenStrat(genStrat);

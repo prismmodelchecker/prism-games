@@ -63,10 +63,9 @@ import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import prism.Filter;
 import prism.ModelType;
+import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
-import prism.PrismLog;
-import prism.PrismPrintStreamLog;
 import prism.PrismSettings;
 import prism.Result;
 import strat.Strategy;
@@ -74,24 +73,24 @@ import strat.Strategy;
 /**
  * Super class for explicit-state model checkers
  */
-public class StateModelChecker
+public class StateModelChecker extends PrismComponent
 {
-	// Log for output (default to System.out)
-	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
-
-	// PRISM settings object
-	// protected PrismSettings settings = new PrismSettings();
-
-	// Flags/settings
+	// Flags/settings that can be extracted from PrismSettings
 	// (NB: defaults do not necessarily coincide with PRISM)
 
-	// Method used for numerical solution
-	protected SCCMethod sccMethod = SCCMethod.TARJAN;
-
+	// Verbosity level
+	protected int verbosity = 0;
+	
 	// Additional flags/settings not included in PrismSettings
 	
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
+	
+	// Strategy generation
+	protected boolean generateStrategy = false;
+	protected boolean implementStrategy = false;
+	protected Strategy strategy = null;
+
 	
 	// Model file (for reward structures, etc.)
 	protected ModulesFile modulesFile = null;
@@ -109,118 +108,50 @@ public class StateModelChecker
 	protected Result result;
 
 	/**
+	 * Create a new StateModelChecker, inherit basic state from parent (unless null).
+	 */
+	public StateModelChecker(PrismComponent parent) throws PrismException
+	{
+		super(parent);
+	}
+	
+	/**
 	 * Create a model checker (a subclass of this one) for a given model type
 	 */
 	public static StateModelChecker createModelChecker(ModelType modelType) throws PrismException
 	{
+		return createModelChecker(modelType, null);
+	}
+	
+	/**
+	 * Create a model checker (a subclass of this one) for a given model type
+	 */
+	public static StateModelChecker createModelChecker(ModelType modelType, PrismComponent parent) throws PrismException
+	{
 		explicit.StateModelChecker mc = null;
 		switch (modelType) {
 		case DTMC:
-			mc = new DTMCModelChecker();
+			mc = new DTMCModelChecker(parent);
 			break;
 		case MDP:
-			mc = new MDPModelChecker();
+			mc = new MDPModelChecker(parent);
 			break;
 		case CTMC:
-			mc = new CTMCModelChecker();
+			mc = new CTMCModelChecker(parent);
 			break;
 		case CTMDP:
-			mc = new CTMDPModelChecker();
+			mc = new CTMDPModelChecker(parent);
 			break;
 		case STPG:
-			mc = new STPGModelChecker();
+			mc = new STPGModelChecker(parent);
 			break;
 		case SMG:
-			mc = new SMGModelChecker();
+			mc = new SMGModelChecker(parent);
 			break;
 		default:
 			throw new PrismException("Cannot create model checker for model type " + modelType);
 		}
 		return mc;
-	}
-
-	// Flags/settings
-
-	// Verbosity level
-	protected int verbosity = 0;
-
-	// Strategy generation
-	protected boolean generateStrategy = false;
-	protected boolean implementStrategy = false;
-	protected Strategy strategy = null;
-
-	// Setters/getters
-
-	/**
-	 * Set log for output.
-	 */
-	public void setLog(PrismLog log)
-	{
-		this.mainLog = log;
-	}
-
-	/**
-	 * Get log for output.
-	 */
-	public PrismLog getLog()
-	{
-		return mainLog;
-	}
-
-	/**
-	 * Set flag of whether to generate a strategy
-	 * 
-	 * @param b
-	 *            new value
-	 */
-	public void setGenerateStrategy(boolean b)
-	{
-		this.generateStrategy = b;
-	}
-
-	/**
-	 * Set flag of whether to implement the strategy when model checking
-	 * 
-	 * @param b
-	 */
-	public void setImplementStrategy(boolean b)
-	{
-		this.implementStrategy = b;
-	}
-
-	/**
-	 * Method to retrieve the strategy that has been generated
-	 * 
-	 * @return the strategy that had been generated
-	 */
-	public Strategy getStrategy()
-	{
-		return strategy;
-	}
-
-	/**
-	 * Method sets the strategy to be used by the model checker
-	 * @param strategy strategy
-	 */
-	public void setStrategy(Strategy strategy)
-	{
-		this.strategy = strategy;
-	}
-
-	/**
-	 * Set the attached model file (for e.g. reward structures when model
-	 * checking) and the attached properties file (for e.g. constants/labels
-	 * when model checking)
-	 */
-	public void setModulesFileAndPropertiesFile(ModulesFile modulesFile, PropertiesFile propertiesFile)
-	{
-		this.modulesFile = modulesFile;
-		this.propertiesFile = propertiesFile;
-		// Get combined constant values from model/properties
-		constantValues = new Values();
-		constantValues.addValues(modulesFile.getConstantValues());
-		if (propertiesFile != null)
-			constantValues.addValues(propertiesFile.getConstantValues());
 	}
 
 	// Settings methods
@@ -230,6 +161,8 @@ public class StateModelChecker
 	 */
 	public void setSettings(PrismSettings settings) throws PrismException
 	{
+		super.setSettings(settings);
+		
 		if (settings == null)
 			return;
 
@@ -271,6 +204,30 @@ public class StateModelChecker
 		this.genStrat = genStrat;
 	}
 
+	/**
+	 * Set flag of whether to generate a strategy.
+	 */
+	public void setGenerateStrategy(boolean b)
+	{
+		this.generateStrategy = b;
+	}
+
+	/**
+	 * Set flag of whether to implement the strategy when model checking
+	 */
+	public void setImplementStrategy(boolean b)
+	{
+		this.implementStrategy = b;
+	}
+
+	/**
+	 * Method sets the strategy to be used by the model checker
+	 */
+	public void setStrategy(Strategy strategy)
+	{
+		this.strategy = strategy;
+	}
+
 	// Get methods for flags/settings
 
 	public int getVerbosity()
@@ -284,6 +241,31 @@ public class StateModelChecker
 	public boolean getGenStrat()
 	{
 		return genStrat;
+	}
+
+	// Other setters/getters
+
+	/**
+	 * Set the attached model file (for e.g. reward structures when model checking)
+	 * and the attached properties file (for e.g. constants/labels when model checking)
+	 */
+	public void setModulesFileAndPropertiesFile(ModulesFile modulesFile, PropertiesFile propertiesFile)
+	{
+		this.modulesFile = modulesFile;
+		this.propertiesFile = propertiesFile;
+		// Get combined constant values from model/properties
+		constantValues = new Values();
+		constantValues.addValues(modulesFile.getConstantValues());
+		if (propertiesFile != null)
+			constantValues.addValues(propertiesFile.getConstantValues());
+	}
+
+	/**
+	 * Method to retrieve the strategy that has been generated
+	 */
+	public Strategy getStrategy()
+	{
+		return strategy;
 	}
 
 	// Model checking functions

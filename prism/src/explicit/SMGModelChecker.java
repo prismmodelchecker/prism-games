@@ -31,6 +31,7 @@ import java.util.BitSet;
 import parser.ast.Expression;
 import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionTemporal;
+import prism.PrismComponent;
 import prism.PrismException;
 import strat.ExactValueStrategy;
 import strat.Strategy;
@@ -41,6 +42,14 @@ import explicit.rewards.SMGRewards;
  */
 public class SMGModelChecker extends STPGModelChecker
 {
+	/**
+	 * Create a new SMGModelChecker, inherit basic state from parent (unless null).
+	 */
+	public SMGModelChecker(PrismComponent parent) throws PrismException
+	{
+		super(parent);
+	}
+	
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */

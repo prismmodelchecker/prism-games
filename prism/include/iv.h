@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Alistair John Strachan <alistair@devzero.co.uk> (University of Edinburgh)
+//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -24,46 +24,30 @@
 //	
 //==============================================================================
 
-#ifndef JNIPOINTER_H
-#define JNIPOINTER_H
+#ifndef IV_H
+#define IV_H
 
-#include <inttypes.h>
-#include "jni.h"
+//------------------------------------------------------------------------------
 
-/*
- * Currently does nothing, used to annotate jlong's that are pointers
- */
+#include <util.h>
+#include <cudd.h>
+#include <odd.h>
 
-#define __jlongpointer
+// Flags for building Windows DLLs
+#ifdef __MINGW32__
+	#define EXPORT __declspec(dllexport)
+#else
+	#define EXPORT
+#endif
 
-/*
- * C++ doesn't support implicit conversion from void*
- */
+// function prototypes
 
-#define jlong_to_FILE(x)		(FILE *)jlong_to_ptr(x)
+EXPORT int *mtbdd_to_integer_vector(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, ODDNode *odd);
+EXPORT int *mtbdd_to_integer_vector(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, ODDNode *odd, int *res);
+EXPORT DdNode *integer_vector_to_mtbdd(DdManager *ddman, int *vec, DdNode **vars, int num_vars, ODDNode *odd);
 
-// for dd
-#define jlong_to_DdManager(x)		(DdManager *)jlong_to_ptr(x)
-#define jlong_to_DdNode(x)		(DdNode *)jlong_to_ptr(x)
-#define jlong_to_DdNode_array(x)	(DdNode **)jlong_to_ptr(x)
+//------------------------------------------------------------------------------
 
-// for odd
-#define jlong_to_ODDNode(x)		(ODDNode *)jlong_to_ptr(x)
-#define jlong_to_double(x)		(double *)jlong_to_ptr(x)
+#endif
 
-// for sparse matrices
-#define jlong_to_NDSparseMatrix(x)	(NDSparseMatrix *)jlong_to_ptr(x)
-
-// void* <-> jlong conversions functions
-
-static inline jlong __jlongpointer ptr_to_jlong(void *ptr)
-{
-	return (jlong)((intptr_t)ptr);
-}
-
-static inline void *jlong_to_ptr(jlong __jlongpointer ptr)
-{
-	return (void*)((intptr_t)ptr);
-}
-
-#endif // JNIPOINTER_H
+//------------------------------------------------------------------------------

@@ -40,12 +40,8 @@ import explicit.StateModelChecker;
  * The intention is to minimise dependencies on the Prism class by anything in this package.
  * This makes these classes easier to use independently.
  */
-public class PrismExplicit
+public class PrismExplicit extends PrismComponent
 {
-	// Parent Prism object
-	private PrismLog mainLog = null;
-	private PrismSettings settings = null;
-
 	public PrismExplicit(PrismLog mainLog, PrismSettings settings)
 	{
 		this.mainLog = mainLog;
@@ -205,28 +201,26 @@ public class PrismExplicit
 		expr.checkValid(model.getModelType());
 		switch (model.getModelType()) {
 		case DTMC:
-			mc = new DTMCModelChecker();
+			mc = new DTMCModelChecker(this);
 			break;
 		case MDP:
-			mc = new MDPModelChecker();
+			mc = new MDPModelChecker(this);
 			break;
 		case CTMC:
-			mc = new CTMCModelChecker();
+			mc = new CTMCModelChecker(this);
 			break;
 		case CTMDP:
-			mc = new CTMDPModelChecker();
+			mc = new CTMDPModelChecker(this);
 			break;
 		case STPG:
-			mc = new STPGModelChecker();
+			mc = new STPGModelChecker(this);
 			break;
 		case SMG:
-			mc = new SMGModelChecker();
+			mc = new SMGModelChecker(this);
 			break;
 		default:
 			throw new PrismException("Unknown model type " + model.getModelType());
 		}
-		mc.setLog(mainLog);
-		mc.setSettings(settings);
 		//temporary HACK, we should eventually decide if we use boolean verbose or int verbosity
 		mc.setVerbosity(settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1);
 
@@ -270,9 +264,7 @@ public class PrismExplicit
 		l = System.currentTimeMillis();
 
 		if (model.getModelType() == ModelType.DTMC) {
-			DTMCModelChecker mcDTMC = new DTMCModelChecker();
-			mcDTMC.setLog(mainLog);
-			mcDTMC.setSettings(settings);
+			DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
 			probs = mcDTMC.doSteadyState((DTMC) model);
 		}
 		else if (model.getModelType() == ModelType.CTMC) {
@@ -348,9 +340,7 @@ public class PrismExplicit
 		}
 		else if (model.getModelType() == ModelType.CTMC) {
 			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
-			CTMCModelChecker mcCTMC = new CTMCModelChecker();
-			mcCTMC.setLog(mainLog);
-			mcCTMC.setSettings(settings);
+			CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
 			probs = mcCTMC.doTransient((CTMC) model, time, fileIn);
 		}
 		else {
