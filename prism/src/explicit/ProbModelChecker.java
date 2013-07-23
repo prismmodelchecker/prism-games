@@ -702,13 +702,13 @@ public class ProbModelChecker extends StateModelChecker
 			probs = ((CTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case CTMDP:
-			probs = ((CTMDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
+			probs = ((CTMDPModelChecker) this).checkProbPathFormula((NondetModel) model, expr.getExpression(), min1);
 			break;
 		case DTMC:
 			probs = ((DTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
 			break;
 		case MDP:
-			probs = ((MDPModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1);
+			probs = ((MDPModelChecker) this).checkProbPathFormula((NondetModel) model, expr.getExpression(), min1);
 			break;
 		case STPG:
 			// TODO: p is not always initialised?
@@ -850,7 +850,7 @@ public class ProbModelChecker extends StateModelChecker
 			rews = ((DTMCModelChecker) this).checkRewardFormula(model, mcRewards, expr.getExpression());
 			break;
 		case MDP:
-			rews = ((MDPModelChecker) this).checkRewardFormula(model, mdpRewards, expr.getExpression(), min1);
+			rews = ((MDPModelChecker) this).checkRewardFormula((NondetModel) model, mdpRewards, expr.getExpression(), min1);
 			break;
 		case STPG:
 			rews = ((STPGModelChecker) this).checkRewardFormula(model, stpgRewards, expr.getExpression(), min1, min2);
