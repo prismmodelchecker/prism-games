@@ -29,7 +29,6 @@
 package prism;
 
 import java.util.List;
-import java.util.Vector;
 
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -52,7 +51,7 @@ public abstract class ECComputer extends PrismComponent
 	protected JDDVars allDDNondetVars;
 
 	// stuff for ECs
-	protected Vector<JDDNode> mecs;
+	protected List<JDDNode> mecs;
 
 	/**
 	 * Static method to create a new ECComputer object, depending on current settings.
@@ -90,11 +89,29 @@ public abstract class ECComputer extends PrismComponent
 	}
 
 	/**
-	 * Compute states of maximal end components (MECs) and store them.
+	 * Compute states of all maximal end components (MECs) and store them.
 	 * They can be retrieved using {@link #getMECStates()}.
 	 * You will need to to deref these afterwards.
 	 */
 	public abstract void computeMECStates() throws PrismException;
+
+	/**
+	 * Compute states of all maximal end components (MECs) contained within {@code states}, and store them.
+	 * They can be retrieved using {@link #getMECStates()}.
+	 * You will need to to deref these afterwards.
+	 * @param states BDD of the set of containing states
+	 */
+	public abstract void computeMECStates(JDDNode states) throws PrismException;
+
+	/**
+	 * Compute states of all accepting maximal end components (MECs) contained within {@code states}, and store them,
+	 * where acceptance is defined as those which intersect with {@code filter}.
+	 * They can be retrieved using {@link #getMECStates()}.
+	 * You will need to to deref these afterwards.
+	 * @param states BDD of the set of containing states
+	 * @param filter BDD for the set of accepting states
+	 */
+	public abstract void computeMECStates(JDDNode states, JDDNode filter) throws PrismException;
 
 	/**
 	 * Get the list of states for computed MECs.

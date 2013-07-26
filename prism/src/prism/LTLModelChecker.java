@@ -37,15 +37,14 @@ import parser.type.*;
 /**
  * LTL model checking functionality
  */
-public class LTLModelChecker
+public class LTLModelChecker extends PrismComponent
 {
-	protected Prism prism;
-	protected PrismLog mainLog;
-
-	public LTLModelChecker(Prism prism) throws PrismException
+	/**
+	 * Create a new DTMCModelChecker, inherit basic state from parent (unless null).
+	 */
+	public LTLModelChecker(PrismComponent parent) throws PrismException
 	{
-		this.prism = prism;
-		mainLog = prism.getMainLog();
+		super(parent);
 	}
 
 	/**
@@ -147,8 +146,8 @@ public class LTLModelChecker
 	 * @param allInit Do we assume that all states of the original model are initial states?
 	 *        (just for the purposes of reachability)
 	 */
-	public ProbModel constructProductMC(DRA<BitSet> dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy, boolean allInit)
-			throws PrismException
+	public ProbModel constructProductMC(DRA<BitSet> dra, ProbModel model, Vector<JDDNode> labelDDs, JDDVars draDDRowVarsCopy, JDDVars draDDColVarsCopy,
+			boolean allInit) throws PrismException
 	{
 		// Existing model - dds, vars, etc.
 		JDDVars varDDRowVars[];
@@ -621,11 +620,14 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Computes sets of accepting states in a DTMC/CTMC for each Rabin acceptance pair
-	 * 
-	 * @returns a referenced BDD of the union of all the accepting sets
+	 * Find the set of accepting BSCCs in a model wrt a Rabin acceptance condition.
+	 * @param dra The DRA storing the Rabin acceptance condition
+	 * @param draDDRowVars BDD row variables for the DRA part of the model
+	 * @param draDDColVars BDD column variables for the DRA part of the model
+	 * @param model The model
+	 * @return A referenced BDD for the union of all states in accepting BSCCs
 	 */
-	public JDDNode findAcceptingBSCCs(DRA<BitSet> dra, JDDVars draDDRowVars, JDDVars draDDColVars, ProbModel model) throws PrismException
+	public JDDNode findAcceptingBSCCsForRabin(DRA<BitSet> dra, ProbModel model, JDDVars draDDRowVars, JDDVars draDDColVars) throws PrismException
 	{
 		SCCComputer sccComputer;
 		JDDNode acceptingStates, allAcceptingStates;
@@ -633,7 +635,7 @@ public class LTLModelChecker
 		int i, j, n;
 
 		// Compute BSCCs for model
-		sccComputer = prism.getSCCComputer(model);
+		sccComputer = SCCComputer.createSCCComputer(this, model);
 		sccComputer.computeBSCCs();
 		vectBSCCs = sccComputer.getBSCCs();
 		JDD.Deref(sccComputer.getNotInBSCCs());
@@ -666,7 +668,6 @@ public class LTLModelChecker
 			}
 
 			// Check each BSCC for inclusion in H_i states
-			// i.e. restrict each BSCC to H_i states and test if unchanged
 			n = vectBSCCs.size();
 			newVectBSCCs = new Vector<JDDNode>();
 			for (j = 0; j < n; j++) {
@@ -690,11 +691,16 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Computes sets of accepting states in an MDP for each Rabin acceptance pair
-	 * 
-	 * @returns a referenced BDD of the union of all the accepting sets
+	 * Find the set of states in accepting MEC in a nondeterministic model wrt a Rabin acceptance condition.
+	 * @param dra The DRA storing the Rabin acceptance condition
+	 * @param model The model
+	 * @param draDDRowVars BDD row variables for the DRA part of the model
+	 * @param draDDColVars BDD column variables for the DRA part of the model
+	 * @param fairness Consider fairness?
+	 * @return A referenced BDD for the union of all states in accepting MECs
 	 */
-	public JDDNode findAcceptingStates(DRA<BitSet> dra, NondetModel model, JDDVars draDDRowVars, JDDVars draDDColVars, boolean fairness) throws PrismException
+	public JDDNode findAcceptingMECStatesForRabin(DRA<BitSet> dra, NondetModel model, JDDVars draDDRowVars, JDDVars draDDColVars, boolean fairness)
+			throws PrismException
 	{
 		JDDNode acceptingStates = null, allAcceptingStates, acceptanceVector_H, acceptanceVector_L, candidateStates;
 		int i, j;
@@ -741,9 +747,9 @@ public class LTLModelChecker
 			acceptanceVector_H = JDD.PermuteVariables(acceptanceVector_H, draDDRowVars, draDDColVars);
 			candidateStates = JDD.Apply(JDD.TIMES, candidateStates, acceptanceVector_H);
 			candidateStates = JDD.ThereExists(candidateStates, model.getAllDDColVars());
-			candidateStates = JDD.ThereExists(candidateStates, model.getAllDDNondetVars());			
+			candidateStates = JDD.ThereExists(candidateStates, model.getAllDDNondetVars());
 			// find all maximal end components
-			Vector<JDDNode> allecs = findEndComponents(model, candidateStates, acceptanceVector_L);
+			List<JDDNode> allecs = findEndComponents(model, candidateStates, acceptanceVector_L);
 			JDD.Deref(candidateStates);
 
 			for (i = 0; i < dra.getNumAcceptancePairs(); i++) {
@@ -752,7 +758,7 @@ public class LTLModelChecker
 				acceptanceVector_L = statesL.get(i);
 				for (JDDNode ec : allecs) {
 					// build bdd of accepting states (under H_i) in the product model
-					Vector<JDDNode> ecs;
+					List<JDDNode> ecs;
 					JDD.Ref(ec);
 					JDD.Ref(acceptanceVector_H);
 					candidateStates = JDD.And(ec, acceptanceVector_H);
@@ -840,7 +846,7 @@ public class LTLModelChecker
 					acceptingStates = findFairECs(model, candidateStates);
 				} else {
 					// find ECs in acceptingStates that are accepting under L_i
-					Vector<JDDNode> ecs = findEndComponents(model, candidateStates);
+					List<JDDNode> ecs = findEndComponents(model, candidateStates);
 					JDD.Deref(candidateStates);
 					acceptingStates = filteredUnion(ecs, acceptanceVector_L);
 				}
@@ -854,7 +860,7 @@ public class LTLModelChecker
 	}
 
 	public JDDNode findMultiAcceptingStates(DRA<BitSet> dra, NondetModel model, JDDVars draDDRowVars, JDDVars draDDColVars, boolean fairness,
-			Vector<JDDNode> allecs, ArrayList<JDDNode> statesH, ArrayList<JDDNode> statesL) throws PrismException
+			List<JDDNode> allecs, List<JDDNode> statesH, List<JDDNode> statesL) throws PrismException
 	{
 		JDDNode acceptingStates = null, allAcceptingStates, candidateStates;
 		JDDNode acceptanceVector_H, acceptanceVector_L;
@@ -870,7 +876,7 @@ public class LTLModelChecker
 			acceptanceVector_L = statesL.get(i);
 			for (JDDNode ec : allecs) {
 				// build bdd of accepting states (under H_i) in the product model
-				Vector<JDDNode> ecs = null;
+				List<JDDNode> ecs = null;
 				JDD.Ref(ec);
 				JDD.Ref(acceptanceVector_H);
 				candidateStates = JDD.And(ec, acceptanceVector_H);
@@ -1002,7 +1008,7 @@ public class LTLModelChecker
 					JDD.Ref(e.statesL.get(j));
 					JDD.Ref(nextstatesL.get(k));
 					JDDNode acceptanceVector_L = JDD.And(e.statesL.get(j), nextstatesL.get(k));
-					Vector<JDDNode> ecs = null;
+					List<JDDNode> ecs = null;
 					ecs = findEndComponents(model, candidateStates1, acceptanceVector_L);
 					JDD.Deref(candidateStates1);
 
@@ -1068,15 +1074,13 @@ public class LTLModelChecker
 				JDD.Deref(e.statesL.get(i));
 			}
 		}
-
 	}
 
 	/**
 	 * Returns all end components in candidateStates under fairness assumptions
 	 * 
-	 * @param candidateStates
-	 *            set of candidate states S x H_i (dereferenced after calling this function)
-	 * @return a referenced BDD with the maximal stable set in c
+	 * @param candidateStates Set of candidate states S x H_i (dereferenced after calling this function)
+	 * @return S referenced BDD with the maximal stable set in c
 	 */
 	private JDDNode findFairECs(NondetModel model, JDDNode candidateStates)
 	{
@@ -1108,7 +1112,9 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Return the set of states that reach nodes through edges Refs: result Derefs: nodes, edges
+	 * Return the set of states that reach nodes through edges
+	 * Refs: result
+	 * Derefs: nodes, edges
 	 */
 	private JDDNode backwardSet(NondetModel model, JDDNode nodes, JDDNode edges)
 	{
@@ -1144,76 +1150,30 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Find all maximal end components (ECs) contained within {@code states}.
+	 * Find all maximal end components (MECs) contained within {@code states}.
 	 * @param states BDD of the set of containing states
 	 * @return a vector of (referenced) BDDs representing the ECs
 	 */
-	public Vector<JDDNode> findEndComponents(NondetModel model, JDDNode states) throws PrismException
+	public List<JDDNode> findEndComponents(NondetModel model, JDDNode states) throws PrismException
 	{
-		return findEndComponents(model, states, null);
+		ECComputer ecComputer = ECComputer.createECComputer(this, model);
+		ecComputer.computeMECStates(states, null);
+		return ecComputer.getMECStates();
 	}
 
 	/**
-	 * Find all maximal accepting end components (ECs) contained within {@code states},
+	 * Find all accepting maximal end components (MECs) contained within {@code states},
 	 * where acceptance is defined as those which intersect with {@code filter}.
 	 * (If {@code filter} is null, the acceptance condition is trivially satisfied.)
 	 * @param states BDD of the set of containing states
 	 * @param filter BDD for the set of accepting states
 	 * @return a vector of (referenced) BDDs representing the ECs
 	 */
-	public Vector<JDDNode> findEndComponents(NondetModel model, JDDNode states, JDDNode filter) throws PrismException
+	public List<JDDNode> findEndComponents(NondetModel model, JDDNode states, JDDNode filter) throws PrismException
 	{
-		Stack<JDDNode> candidates = new Stack<JDDNode>();
-		JDD.Ref(states);
-		candidates.push(states);
-		Vector<JDDNode> ecs = new Vector<JDDNode>();
-		SCCComputer sccComputer;
-
-		while (!candidates.isEmpty()) {
-			JDDNode candidate = candidates.pop();
-			// Compute the stable set
-			JDD.Ref(candidate);
-			JDDNode stableSet = findMaximalStableSet(model, candidate);
-			// Drop empty sets
-			if (stableSet.equals(JDD.ZERO)) {
-				JDD.Deref(stableSet);
-				JDD.Deref(candidate);
-				continue;
-			}
-
-			if (stableSet.equals(candidate) && JDD.GetNumMinterms(stableSet, model.getNumDDRowVars()) == 1) {
-				ecs.add(candidate);
-				JDD.Deref(stableSet);
-				continue;
-			}
-
-			// Filter bad transitions
-			JDD.Ref(stableSet);
-			JDDNode stableSetTrans = maxStableSetTrans(model, stableSet);
-
-			// now find the maximal SCCs in (stableSet, stableSetTrans)
-			List<JDDNode> sccs;
-			sccComputer = prism.getSCCComputer(stableSet, stableSetTrans, model.getAllDDRowVars(), model.getAllDDColVars());
-			if (filter != null)
-				sccComputer.computeSCCs(filter);
-			else
-				sccComputer.computeSCCs();
-			JDD.Deref(stableSet);
-			JDD.Deref(stableSetTrans);
-			sccs = sccComputer.getSCCs();
-			JDD.Deref(sccComputer.getNotInSCCs());
-			if (sccs.size() > 0) {
-				if (sccs.size() > 1 || !sccs.get(0).equals(candidate)) {
-					candidates.addAll(sccs);
-					JDD.Deref(candidate);
-				} else {
-					ecs.add(candidate);
-					JDD.Deref(sccs.get(0));
-				}
-			} else
-				JDD.Deref(candidate);
-		}
-		return ecs;
+		ECComputer ecComputer = ECComputer.createECComputer(this, model);
+		ecComputer.computeMECStates(states, filter);
+		return ecComputer.getMECStates();
 	}
 
 	/**
@@ -1222,10 +1182,10 @@ public class LTLModelChecker
 	 * @param states BDD of the set of containing states
 	 * @return a vector of (referenced) BDDs representing the ECs
 	 */
-	public Vector<JDDNode> findBottomEndComponents(NondetModel model, JDDNode states) throws PrismException
+	public List<JDDNode> findBottomEndComponents(NondetModel model, JDDNode states) throws PrismException
 	{
-		Vector<JDDNode> ecs = findEndComponents(model, states);
-		Vector<JDDNode> becs = new Vector<JDDNode>();
+		List<JDDNode> ecs = findEndComponents(model, states);
+		List<JDDNode> becs = new Vector<JDDNode>();
 		JDDNode out;
 
 		for (JDDNode scc : ecs) {
@@ -1235,79 +1195,13 @@ public class LTLModelChecker
 			JDD.Ref(scc);
 			out = JDD.And(out, JDD.Not(JDD.PermuteVariables(scc, model.getAllDDRowVars(), model.getAllDDColVars())));
 			if (out.equals(JDD.ZERO)) {
-				becs.addElement(scc);
+				becs.add(scc);
 			} else {
 				JDD.Deref(scc);
 			}
 			JDD.Deref(out);
 		}
 		return becs;
-	}
-
-	/**
-	 * Returns a stable set of states contained in candidateStates
-	 * 
-	 * @param candidateStates
-	 *            set of candidate states S x H_i (dereferenced after calling this function)
-	 * @return a referenced BDD with the maximal stable set in c
-	 */
-	private JDDNode findMaximalStableSet(NondetModel model, JDDNode candidateStates)
-	{
-
-		JDDNode old = JDD.Constant(0);
-		JDDNode current = candidateStates;
-
-		while (!current.equals(old)) {
-			JDD.Deref(old);
-			JDD.Ref(current);
-			old = current;
-
-			JDD.Ref(current);
-			JDD.Ref(model.getTrans());
-			// Select transitions starting in current
-			JDDNode currTrans = JDD.Apply(JDD.TIMES, model.getTrans(), current);
-			// Select transitions starting in current and ending in current
-			JDDNode tmp = JDD.PermuteVariables(current, model.getAllDDRowVars(), model.getAllDDColVars());
-			tmp = JDD.Apply(JDD.TIMES, currTrans, tmp);
-			// Sum all successor probabilities for each (state, action) tuple
-			tmp = JDD.SumAbstract(tmp, model.getAllDDColVars());
-			// If the sum for a (state,action) tuple is 1,
-			// there is an action that remains in the stable set with prob 1
-			tmp = JDD.GreaterThan(tmp, 1 - prism.getSumRoundOff());
-			// Without fairness, we just need one action per state
-			current = JDD.ThereExists(tmp, model.getAllDDNondetVars());
-		}
-		JDD.Deref(old);
-		return current;
-	}
-
-	/**
-	 * Returns the transition relation of a stable set
-	 * 
-	 * @param b
-	 *            BDD of a stable set (dereferenced after calling this function)
-	 * @return referenced BDD of the transition relation restricted to the stable set
-	 */
-	public JDDNode maxStableSetTrans(NondetModel model, JDDNode b)
-	{
-
-		JDD.Ref(b);
-		JDD.Ref(model.getTrans());
-		// Select transitions starting in b
-		JDDNode currTrans = JDD.Apply(JDD.TIMES, model.getTrans(), b);
-		JDDNode mask = JDD.PermuteVariables(b, model.getAllDDRowVars(), model.getAllDDColVars());
-		// Select transitions starting in current and ending in current
-		mask = JDD.Apply(JDD.TIMES, currTrans, mask);
-		// Sum all successor probabilities for each (state, action) tuple
-		mask = JDD.SumAbstract(mask, model.getAllDDColVars());
-		// If the sum for a (state,action) tuple is 1,
-		// there is an action that remains in the stable set with prob 1
-		mask = JDD.GreaterThan(mask, 1 - prism.getSumRoundOff());
-		// select the transitions starting in these tuples
-		JDD.Ref(model.getTrans01());
-		JDDNode stableTrans01 = JDD.And(model.getTrans01(), mask);
-		// Abstract over actions
-		return JDD.ThereExists(stableTrans01, model.getAllDDNondetVars());
 	}
 
 	public JDDNode maxStableSetTrans1(NondetModel model, JDDNode b)
@@ -1324,7 +1218,7 @@ public class LTLModelChecker
 		mask = JDD.SumAbstract(mask, model.getAllDDColVars());
 		// If the sum for a (state,action) tuple is 1,
 		// there is an action that remains in the stable set with prob 1
-		mask = JDD.GreaterThan(mask, 1 - prism.getSumRoundOff());
+		mask = JDD.GreaterThan(mask, 1 - settings.getDouble(PrismSettings.PRISM_SUM_ROUND_OFF));
 		// select the transitions starting in these tuples
 		JDD.Ref(model.getTrans01());
 		JDDNode stableTrans01 = JDD.And(model.getTrans01(), mask);
@@ -1333,16 +1227,10 @@ public class LTLModelChecker
 	}
 
 	/**
-	 * Returns the union of each set in the vector that has nonempty intersection with the filter BDD.
-	 * 
-	 * @param sets
-	 *            Vector with sets which are dereferenced after calling this function
-	 * @param filter
-	 *            filter BDD against which each set is checked for nonempty intersection also dereferenced after calling
-	 *            this function
-	 * @return Referenced BDD with the filtered union
-	 * 
-	 * modified by Hongyang for testing
+	 * Return the union of sets from {@code sets} which have a non-empty intersection with {@code filter}.
+	 * @param sets List of BDDs representing sets (dereferenced after calling this function)
+	 * @param filter BDD of states to test for intersection (dereferenced after calling)
+	 * @return Referenced BDD representing the filtered union
 	 */
 	private JDDNode filteredUnion(List<JDDNode> sets, JDDNode filter)
 	{
