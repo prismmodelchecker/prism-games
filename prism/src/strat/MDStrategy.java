@@ -38,21 +38,51 @@ import prism.PrismLog;
 public abstract class MDStrategy implements Strategy
 {
 	/**
+	 * Current state of model
+	 */
+	protected int currentState = -1;
+	
+	/**
 	 * Get the number of states of the model associated with this strategy. 
 	 */
 	public abstract int getNumStates();
+
+	/**
+	 * Get the type of choice information stored for state s.
+	 */
+	public abstract Strategy.Choice getChoice(int s);
 
 	/**
 	 * Get the index of the choice taken in state s.
 	 * The index is defined with respect to a particular model, stored locally.
 	 * Other possible values: -1 (unknown), -2 (arbitrary), -3 (unreachable)
 	 */
-	public abstract int getChoice(int s);
+	public abstract int getChoiceIndex(int s);
 
 	/**
 	 * Get the action taken in state s.
 	 */
 	public abstract Object getChoiceAction(int s);
+
+	// Methods for Strategy
+	
+	@Override
+	public void initialise(int s)
+	{
+		currentState = s;
+	}
+	
+	@Override
+	public void update(int action, int s)
+	{
+		currentState = s;
+	}
+	
+	@Override
+	public Object getChoiceAction()
+	{
+		return getChoiceAction(currentState);
+	}
 
 	@Override
 	public void exportActions(PrismLog out)
@@ -60,7 +90,7 @@ public abstract class MDStrategy implements Strategy
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
 			// Only print actions for reachable states
-			if (getChoice(s) != -3)
+			if (getChoice(s) != Choice.UNREACHABLE)
 				out.println(s + ":" + getChoiceAction(s));
 		}
 	}

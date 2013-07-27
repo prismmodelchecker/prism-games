@@ -88,7 +88,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		fairness = prism.getFairness();
 
 		// Display warning and/or make changes for some option combinations
-		boolean advGenNeeded = (prism.getExportAdv() != Prism.EXPORT_ADV_NONE);
+		boolean advGenNeeded = genStrat || (prism.getExportAdv() != Prism.EXPORT_ADV_NONE);
 		if (advGenNeeded) {
 			if (engine != Prism.SPARSE) {
 				mainLog.println("Switching engine since only sparse engine currently supports this computation...");
@@ -1961,14 +1961,13 @@ public class NondetModelChecker extends NonProbModelChecker
 				case Prism.SPARSE:
 					IntegerVector strat = null;
 					if (genStrat) {
-						strat = new IntegerVector((int) model.getNumStates());
+						JDDNode ddStrat = JDD.ITE(yes, JDD.Constant(-2), JDD.Constant(-1));
+						strat = new IntegerVector(ddStrat, allDDRowVars, odd);
+						JDD.Deref(ddStrat);
 					}
 					probsDV = PrismSparse.NondetUntil(tr, tra, model.getSynchs(), odd, allDDRowVars, allDDColVars, allDDNondetVars, yes, maybe, min, strat);
 					if (genStrat) {
-						mainLog.println();
-						MDStrategyIV strategy = new MDStrategyIV(model, strat);
-						strategy.exportActions(mainLog);
-						strategy.clear();
+						result.setStrategy(new MDStrategyIV(model, strat));
 					}
 					probs = new StateValuesDV(probsDV, model);
 					break;
