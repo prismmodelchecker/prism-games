@@ -3746,13 +3746,6 @@ public class PrismParser implements PrismParserConstants {
     finally { jj_save(14, xla); }
   }
 
-  static private boolean jj_3R_121() {
-    if (jj_scan_token(LPARENTH)) return true;
-    if (jj_3R_38()) return true;
-    if (jj_scan_token(RPARENTH)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_47() {
     if (jj_3R_53()) return true;
     return false;
@@ -5437,6 +5430,13 @@ public class PrismParser implements PrismParserConstants {
 
   static private boolean jj_3R_37() {
     if (jj_scan_token(REG_IDENTPRIME)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_121() {
+    if (jj_scan_token(LPARENTH)) return true;
+    if (jj_3R_38()) return true;
+    if (jj_scan_token(RPARENTH)) return true;
     return false;
   }
 
