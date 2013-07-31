@@ -592,7 +592,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public void update(int action, int s)
+	public void update(Object action, int s)
 	{
 		// TODO Auto-generated method stub
 		

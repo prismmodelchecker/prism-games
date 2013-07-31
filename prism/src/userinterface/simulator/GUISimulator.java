@@ -96,6 +96,7 @@ import userinterface.util.GUIExitEvent;
 import userinterface.util.GUIPrismFileFilter;
 import explicit.Distribution;
 
+@SuppressWarnings("serial")
 public class GUISimulator extends GUIPlugin implements MouseListener, ListSelectionListener, PrismSettingsListener
 {
 	private static final long serialVersionUID = 1L;
@@ -1231,13 +1232,13 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		innerAutomaticExplorationPanel = new javax.swing.JPanel();
 		randomExplorationButton = new javax.swing.JButton();
 		noStepsExplorePanel = new javax.swing.JPanel();
-		typeExploreCombo = new javax.swing.JComboBox();
+		typeExploreCombo = new javax.swing.JComboBox<String>();
 		inputExploreField = new javax.swing.JTextField();
 		backtrackPanel = new javax.swing.JPanel();
 		innerBacktrackPanel = new javax.swing.JPanel();
 		backtrackButton = new javax.swing.JButton();
 		noStepsBacktrackPanel = new javax.swing.JPanel();
-		typeBacktrackCombo = new javax.swing.JComboBox();
+		typeBacktrackCombo = new javax.swing.JComboBox<String>();
 		inputBacktrackField = new javax.swing.JTextField();
 		manualUpdatesPanel = new javax.swing.JPanel();
 		innerManualUpdatesPanel = new javax.swing.JPanel();
@@ -1495,7 +1496,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		noStepsExplorePanel.setLayout(new java.awt.GridBagLayout());
 
 		noStepsExplorePanel.setMinimumSize(new java.awt.Dimension(107, 0));
-		typeExploreCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Num. steps", "Upto state", "Max. time" }));
+		typeExploreCombo.setModel(new javax.swing.DefaultComboBoxModel<String>(new String[] { "Num. steps", "Upto state", "Max. time" }));
 		typeExploreCombo.setToolTipText("");
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
@@ -1553,7 +1554,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		noStepsBacktrackPanel.setLayout(new java.awt.GridBagLayout());
 
 		noStepsBacktrackPanel.setMinimumSize(new java.awt.Dimension(107, 0));
-		typeBacktrackCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Num. steps", "To state" }));
+		typeBacktrackCombo.setModel(new javax.swing.DefaultComboBoxModel<String>(new String[] { "Num. steps", "To state" }));
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
 		gridBagConstraints.weightx = 2.0;
@@ -2050,6 +2051,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				} catch (NumberFormatException nfe) {
 					String msg = "The \"" + typeExploreCombo.getSelectedItem() + "\" parameter is invalid: ";
 					msg += "it should be greater than " + currentTime;
+					throw new PrismException(msg);
 				}
 			}
 
@@ -2353,8 +2355,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private javax.swing.JPanel topValues;
 	private javax.swing.JLabel totalTime;
 	private javax.swing.JLabel totalTimeLabel;
-	private javax.swing.JComboBox typeBacktrackCombo;
-	private javax.swing.JComboBox typeExploreCombo;
+	private javax.swing.JComboBox<String> typeBacktrackCombo;
+	private javax.swing.JComboBox<String> typeExploreCombo;
 
 	// End of variables declaration//GEN-END:variables
 
