@@ -38,9 +38,11 @@ import java.util.Map;
 import parser.State;
 import parser.Values;
 import parser.VarList;
+import parser.ast.Expression;
 import parser.ast.ModulesFile;
 import prism.ModelType;
 import prism.Prism;
+import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
@@ -48,11 +50,10 @@ import prism.ProgressDisplay;
 import prism.UndefinedConstants;
 import simulator.SimulatorEngine;
 
-public class ConstructModel
+public class ConstructModel extends PrismComponent
 {
-	// The simulator engine and a log for output
+	// The simulator engine
 	private SimulatorEngine engine;
-	private PrismLog mainLog;
 
 	// Options:
 	// Find deadlocks during model construction?
@@ -60,16 +61,13 @@ public class ConstructModel
 	// Automatically fix deadlocks?
 	private boolean fixDeadlocks = true;
 
-	// Basic info needed about model
-	// private ModelType modelType;
-
 	// Details of built model
 	private List<State> statesList;
 
-	public ConstructModel(SimulatorEngine engine, PrismLog mainLog)
+	public ConstructModel(PrismComponent parent, SimulatorEngine engine) throws PrismException
 	{
+		super(parent);
 		this.engine = engine;
-		this.mainLog = mainLog;
 	}
 
 	public List<State> getStatesList()
@@ -128,7 +126,7 @@ public class ConstructModel
 		// Model info
 		ModelType modelType;
 		// State storage
-		IndexedSet<State> states;
+		StateStorage<State> states;
 		LinkedList<State> explore;
 		State state, stateNew;
 		// Explicit model storage
@@ -201,18 +199,31 @@ public class ConstructModel
 		// Initialise states storage
 		states = new IndexedSet<State>(true);
 		explore = new LinkedList<State>();
-		// Add initial state to lists/model
-		if (modulesFile.getInitialStates() != null) {
-			throw new PrismException("Explicit model construction does not support multiple initial states");
+		// Add initial state(s) to 'explore'
+		// Easy (normal) case: just one initial state
+		if (modulesFile.getInitialStates() == null) {
+			state = modulesFile.getDefaultInitialState();
+			explore.add(state);
 		}
-		state = modulesFile.getDefaultInitialState();
-		states.add(state);
-		explore.add(state);
-		if (!justReach) {
-			modelSimple.addState();
-			modelSimple.addInitialState(0);
+		// Otherwise, there may be multiple initial states
+		// For now, we handle this is in a very inefficient way
+		else {
+			Expression init = modulesFile.getInitialStates();
+			List<State> allPossStates = varList.getAllStates();
+			for (State possState : allPossStates) {
+				if (init.evaluateBoolean(modulesFile.getConstantValues(), possState)) {
+					explore.add(possState);
+				}
+			}
 		}
-
+		// Copy initial state(s) to 'states' and to the model
+		for (State initState : explore) {
+			states.add(initState);
+			if (!justReach) {
+				modelSimple.addState();
+				modelSimple.addInitialState(modelSimple.getNumStates() - 1);
+			}
+		}
 		// Explore...
 		src = -1;
 		while (!explore.isEmpty()) {
@@ -422,7 +433,7 @@ public class ConstructModel
 			if (args.length > 2)
 				undefinedConstants.defineUsingConstSwitch(args[2]);
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(prism, prism.getSimulator());
 			Model model = constructModel.constructModel(modulesFile);
 			model.exportToPrismExplicitTra(args[1]);
 		} catch (FileNotFoundException e) {

@@ -28,33 +28,39 @@ package explicit;
 
 import java.util.*;
 
-import parser.State;
-
 /**
  * Class storing an indexed set of objects of type T.
  * Typically used for storing state space during reachability.
  */
-public class IndexedSet<T>
+public class IndexedSet<T> implements StateStorage<T>
 {
-	private Map<T, Integer> set;
-	private int indexOfLastAdd;
+	protected Map<T, Integer> set;
+	protected int indexOfLastAdd;
 
 	public IndexedSet()
 	{
-		this(false);
+		indexOfLastAdd = -1;
 	}
 
 	public IndexedSet(boolean sorted)
 	{
+		this();
 		set = sorted ? new TreeMap<T, Integer>() : new HashMap<T, Integer>();
-		indexOfLastAdd = -1;
+	}
+	
+	public IndexedSet(Comparator<T> comparator)
+	{
+		this();
+		set = new TreeMap<T, Integer>(comparator);
 	}
 
+	@Override
 	public void clear()
 	{
 		set.clear();
 	}
 	
+	@Override
 	public boolean add(T state)
 	{
 		Integer i = set.get(state);
@@ -68,16 +74,19 @@ public class IndexedSet<T>
 		}
 	}
 
+	@Override
 	public boolean contains(T state)
 	{
 			return set.get(state) != null;
 	}
 
+	@Override
 	public int getIndexOfLastAdd()
 	{
 		return indexOfLastAdd;
 	}
 
+	@Override
 	public boolean isEmpty()
 	{
 		return set.isEmpty();
@@ -86,6 +95,7 @@ public class IndexedSet<T>
 	/**
 	 * Get the number of objects stored in the set.
 	 */
+	@Override
 	public int size()
 	{
 		return set.size();
@@ -94,6 +104,7 @@ public class IndexedSet<T>
 	/**
 	 * Get access to the underlying set of map entries. 
 	 */
+	@Override
 	public Set<Map.Entry<T, Integer>> getEntrySet()
 	{
 		return set.entrySet();
@@ -102,6 +113,7 @@ public class IndexedSet<T>
 	/**
 	 * Create an ArrayList of the states, ordered by index.
 	 */
+	@Override
 	public ArrayList<T> toArrayList()
 	{
 		ArrayList<T> list = new ArrayList<T>(set.size());
@@ -113,6 +125,7 @@ public class IndexedSet<T>
 	 * Create an ArrayList of the states, ordered by index, storing in the passed in list.
 	 * @param list An empty ArrayList in which to store the result.
 	 */
+	@Override
 	public void toArrayList(ArrayList<T> list)
 	{
 		int i, n;
@@ -130,6 +143,7 @@ public class IndexedSet<T>
 	 * Index in new list is permut[old_index].
 	 * @param permut Permutation to apply
 	 */
+	@Override
 	public ArrayList<T> toPermutedArrayList(int permut[])
 	{
 		ArrayList<T> list = new ArrayList<T>(set.size());
@@ -143,6 +157,7 @@ public class IndexedSet<T>
 	 * @param permut Permutation to apply
 	 * @param list An empty ArrayList in which to store the result.
 	 */
+	@Override
 	public void toPermutedArrayList(int permut[], ArrayList<T> list)
 	{
 		int i, n;
@@ -160,6 +175,7 @@ public class IndexedSet<T>
 	 * this returns a permutation (integer array) mapping current indices
 	 * to new indices under the sorting order.
 	 */
+	@Override
 	public int[] buildSortingPermutation()
 	{
 		int i, n;
@@ -181,6 +197,7 @@ public class IndexedSet<T>
 		return set.toString();
 	}
 
+	@Override
 	public int get(T t)
 	{
 		return set.get(t);

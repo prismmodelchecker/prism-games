@@ -1847,7 +1847,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					currentModel = mod2mtbdd.translate();
 					currentModelExpl = null;
 				} else {
-					ConstructModel constructModel = new ConstructModel(getSimulator(), mainLog);
+					ConstructModel constructModel = new ConstructModel(this, getSimulator());
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					currentModelExpl = constructModel.constructModel(currentModulesFile, false, true);
 					currentModel = null;
@@ -2000,7 +2000,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (currentDefinedMFConstants != null && currentDefinedMFConstants.getNumValues() > 0)
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
-		constructModel = new ConstructModel(getSimulator(), mainLog);
+		constructModel = new ConstructModel(this, getSimulator());
 		modelExpl = constructModel.constructModel(modulesFile);
 		statesList = constructModel.getStatesList();
 

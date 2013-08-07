@@ -130,6 +130,14 @@ public class DBMList extends NCZone
 	{
 		return pta;
 	}
+	
+	/**
+	 * Get DBM
+	 */
+	public DBM getDBM(int i) 
+	{
+		return list.get(i);
+	}
 
 	// Zone operations (modify the zone)
 
@@ -435,6 +443,15 @@ public class DBMList extends NCZone
 	}
 	
 	/**
+	 * Get the number of DBMs in this DBMList.
+	 * @return
+	 */
+	public int size()
+	{
+		return list.size();
+	}
+
+	/**
 	 * Clone this zone
 	 */
 	public DBMList deepCopy()
@@ -448,12 +465,14 @@ public class DBMList extends NCZone
 
 	// Standard Java methods
 
+	@Override
 	public int hashCode()
 	{
 		// Simple hash code
 		return list.size();
 	}
 
+	@Override
 	public boolean equals(Object o)
 	{
 		DBMList dbml;
@@ -477,6 +496,7 @@ public class DBMList extends NCZone
 
 	// To string methods
 
+	@Override
 	public String toString()
 	{
 		return "" + list;
@@ -530,10 +550,6 @@ public class DBMList extends NCZone
 		}
 	}
 	
-	public int size() {
-		return list.size();
-	}
-
 	// Test program for complementing big DBM lists
 	
 	public static void main(String args[])

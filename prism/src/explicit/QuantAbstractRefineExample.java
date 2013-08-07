@@ -34,6 +34,7 @@ import parser.State;
 import parser.ast.*;
 import prism.ModelType;
 import prism.Prism;
+import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
@@ -57,6 +58,14 @@ public class QuantAbstractRefineExample extends QuantAbstractRefine
 	protected int concreteToAbstract[];
 	// Map from abstract P1 choices to concrete state sets
 	protected List<List<Set<Integer>>> abstractToConcrete;
+
+	/**
+	 * Default constructor.
+	 */
+	public QuantAbstractRefineExample(PrismComponent parent) throws PrismException
+	{
+		super(parent);
+	}
 
 	// Implementation of initialise() for abstraction-refinement loop; see superclass for details 
 
@@ -317,12 +326,12 @@ public class QuantAbstractRefineExample extends QuantAbstractRefine
 			modulesFile = (ModulesFile) modulesFile.deepCopy().expandConstants(modulesFile.getConstantList());
 			
 			// Build the model (explicit-state reachability) 
-			ConstructModel constructModel = new ConstructModel(prism.getSimulator(), mainLog);
+			ConstructModel constructModel = new ConstructModel(prism, prism.getSimulator());
 			ModelSimple model = (ModelSimple) constructModel.constructModel(modulesFile, false, false);
 			model.exportToPrismExplicitTra(args[1]);
 			
 			// Create/initialise abstraction-refinement engine
-			QuantAbstractRefineExample abstractRefine = new QuantAbstractRefineExample();
+			QuantAbstractRefineExample abstractRefine = new QuantAbstractRefineExample(prism);
 			abstractRefine.setModelType(ModelType.MDP);
 			abstractRefine.setPropertyType(PropertyType.PROB_REACH);
 			abstractRefine.sanityChecks = true;
