@@ -42,7 +42,7 @@ const int e52=e25;
 const int e53=e35;
 const int e54=e45;
 
-player controller, [str1], [str2], [str3], [str4], [str5] endplayer
+player p0 controller, [str1], [str2], [str3], [str4], [str5] endplayer
 module controller // schedules the algorithm
 
 	// algorithm status
