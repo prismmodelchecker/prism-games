@@ -1,0 +1,11 @@
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Wed Sep 04 11:46:39 BST 2013
+Hostname: qavbench.comlab
+Command line: prism team-form-online-r.prism team-form-r.props
+
+Parsing model file "team-form-online-r.prism"...
+
+Error: Syntax error (",", line 45, column 18).
