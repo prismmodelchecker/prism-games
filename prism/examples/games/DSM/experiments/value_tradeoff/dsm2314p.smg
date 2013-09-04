@@ -77,6 +77,11 @@ global job2 : [0..4];
 // scheduling variable
 global sched : [0..N];
 
+
+player p0
+ 	player0
+endplayer
+
 // definition of scheduling module
 module player0
 
