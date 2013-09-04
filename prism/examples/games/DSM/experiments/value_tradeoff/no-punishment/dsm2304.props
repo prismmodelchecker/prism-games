@@ -1,5 +1,0 @@
-
-<<p1>> R{"value1"}max=? [F time=max_time]
-<<p1,p2>> R{"value12"}max=? [F time=max_time]
-
-

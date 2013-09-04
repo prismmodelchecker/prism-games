@@ -1,7 +1,0 @@
-<<p1>> R{"value1"}max=? [F time=max_time]
-<<p1,p2>> R{"value12"}max=? [F time=max_time]
-<<p1,p2,p3>> R{"value123"}max=? [F time=max_time]
-<<p1,p2,p3,p4>> R{"value1234"}max=? [F time=max_time]
-<<p1,p2,p3,p4,p5>> R{"value12345"}max=? [F time=max_time]
-<<p1,p2,p3,p4,p5,p6>> R{"value123456"}max=? [F time=max_time]
-
