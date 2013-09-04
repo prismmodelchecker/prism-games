@@ -2,10 +2,494 @@ PRISM-games
 ===========
 
 Version: 4.1.beta2
-Date: Wed Sep 04 11:46:40 BST 2013
+Date: Wed Sep 04 12:50:23 BST 2013
 Hostname: qavbench.comlab
 Command line: prism team-form-online-s.prism team-form-s.props
 
 Parsing model file "team-form-online-s.prism"...
 
-Error: Syntax error (",", line 46, column 18).
+Parsing properties file "team-form-s.props"...
+
+20 properties:
+(1) <<p1>> R{"w_1_total"}max=? [ F status=8 ]
+(2) <<p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+(3) <<p4, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+(4) <<p4, p3, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+(5) <<p5, p4, p3, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+(6) <<p1>> R{"w_2_total"}max=? [ F status=8 ]
+(7) <<p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+(8) <<p4, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+(9) <<p4, p3, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+(10) <<p5, p4, p3, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+(11) <<p1>> Pmax=? [ F task1_completed ]
+(12) <<p2, p1>> Pmax=? [ F task1_completed ]
+(13) <<p4, p2, p1>> Pmax=? [ F task1_completed ]
+(14) <<p4, p3, p2, p1>> Pmax=? [ F task1_completed ]
+(15) <<p5, p4, p3, p2, p1>> Pmax=? [ F task1_completed ]
+(16) <<p1>> Pmax=? [ F task2_completed&task1_completed ]
+(17) <<p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+(18) <<p4, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+(19) <<p4, p3, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+(20) <<p5, p4, p3, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Type:        SMG
+Modules:     controller agent1 agent2 agent3 agent4 agent5 
+Variables:   status t1_r1 t1_r2 t1_r3 t2_r1 t2_r2 t2_r3 turn1 turn2 turn3 turn4 turn5 state1 m1_t1 m1_t2 state2 m2_t1 m2_t2 state3 m3_t1 m3_t2 state4 m4_t1 m4_t2 state5 m5_t1 m5_t2 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<p1>> R{"w_1_total"}max=? [ F status=8 ]
+
+Building model...
+
+Computing reachable states...
+ 85722 215990 346350 514310 670569 767868 964633 states
+Reachable states exploration and model construction done in 20.96 secs.
+Sorting reachable states list...
+
+Time for model construction: 22.005 seconds.
+
+Type:        SMG
+States:      964633 (1 initial)
+Transitions: 1429152
+Choices:     973993
+Max/avg:     3/1.01
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 15 iterations and 1.559 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.04 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 2.051 seconds.
+Computed an over-approximation of the solution (in 2 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 15 iterations and 1.733 seconds.
+Expected reachability took 5.424 seconds.
+
+Value in the initial state: 0.14285714285714263
+
+Time for model checking: 11.815 seconds.
+
+Result: 0.14285714285714263 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 16 iterations and 1.672 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.04 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.926 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 1.738 seconds.
+Expected reachability took 5.407 seconds.
+
+Value in the initial state: 0.8571428571428551
+
+Time for model checking: 8.799 seconds.
+
+Result: 0.8571428571428551 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.765 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.04 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.752 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 1.651 seconds.
+Expected reachability took 5.206 seconds.
+
+Value in the initial state: 2.3333333333333286
+
+Time for model checking: 8.557 seconds.
+
+Result: 2.3333333333333286 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p3, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.862 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.04 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.766 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.76 seconds.
+Expected reachability took 5.426 seconds.
+
+Value in the initial state: 2.6071428571428514
+
+Time for model checking: 8.725 seconds.
+
+Result: 2.6071428571428514 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p5, p4, p3, p2, p1>> R{"w_1_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.797 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.04 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.703 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.709 seconds.
+Expected reachability took 5.245 seconds.
+
+Value in the initial state: 2.7142857142857086
+
+Time for model checking: 8.539 seconds.
+
+Result: 2.7142857142857086 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p1>> R{"w_2_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 15 iterations and 1.603 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.02 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.705 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 15 iterations and 1.425 seconds.
+Expected reachability took 4.77 seconds.
+
+Value in the initial state: 0.14285714285714263
+
+Time for model checking: 5.471 seconds.
+
+Result: 0.14285714285714263 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 16 iterations and 1.655 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.02 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.753 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 1.501 seconds.
+Expected reachability took 4.957 seconds.
+
+Value in the initial state: 0.42857142857142755
+
+Time for model checking: 5.646 seconds.
+
+Result: 0.42857142857142755 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.744 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.02 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.929 seconds.
+Computed an over-approximation of the solution (in 1 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 1.626 seconds.
+Expected reachability took 5.347 seconds.
+
+Value in the initial state: 0.8571428571428563
+
+Time for model checking: 6.032 seconds.
+
+Result: 0.8571428571428563 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p3, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.759 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.02 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 2.008 seconds.
+Computed an over-approximation of the solution (in 2 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.788 seconds.
+Expected reachability took 5.602 seconds.
+
+Value in the initial state: 0.9999999999999986
+
+Time for model checking: 6.283 seconds.
+
+Result: 0.9999999999999986 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p5, p4, p3, p2, p1>> R{"w_2_total"}max=? [ F status=8 ]
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 17 iterations and 1.763 seconds.
+target=464520, inf=0, rest=500113
+Computing the upper bound where 0.02 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 2.024 seconds.
+Computed an over-approximation of the solution (in 2 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 18 iterations and 1.951 seconds.
+Expected reachability took 5.785 seconds.
+
+Value in the initial state: 1.0285714285714271
+
+Time for model checking: 6.497 seconds.
+
+Result: 1.0285714285714271 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p1>> Pmax=? [ F task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 16 iterations and 1.939 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 32 iterations and 3.907 seconds.
+target=122920, yes=125416, no=812000, maybe=27217
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 0.424 seconds.
+Probabilistic reachability took 6.281 seconds.
+
+Value in the initial state: 0.14285714285714263
+
+Time for model checking: 7.061 seconds.
+
+Result: 0.14285714285714263 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p2, p1>> Pmax=? [ F task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.767 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 43 iterations and 5.279 seconds.
+target=122920, yes=126440, no=810424, maybe=27769
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 0.347 seconds.
+Probabilistic reachability took 7.405 seconds.
+
+Value in the initial state: 0.42857142857142755
+
+Time for model checking: 8.163 seconds.
+
+Result: 0.42857142857142755 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p2, p1>> Pmax=? [ F task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.773 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 64 iterations and 7.762 seconds.
+target=122920, yes=128106, no=809404, maybe=27123
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 0.309 seconds.
+Probabilistic reachability took 9.854 seconds.
+
+Value in the initial state: 0.7619047619047613
+
+Time for model checking: 10.616 seconds.
+
+Result: 0.7619047619047613 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p3, p2, p1>> Pmax=? [ F task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.763 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 64 iterations and 7.823 seconds.
+target=122920, yes=129170, no=808676, maybe=26787
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 16 iterations and 0.31 seconds.
+Probabilistic reachability took 9.906 seconds.
+
+Value in the initial state: 0.8476190476190469
+
+Time for model checking: 10.666 seconds.
+
+Result: 0.8476190476190469 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p5, p4, p3, p2, p1>> Pmax=? [ F task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 14 iterations and 1.67 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 60 iterations and 7.15 seconds.
+target=122920, yes=130392, no=808144, maybe=26097
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 15 iterations and 0.287 seconds.
+Probabilistic reachability took 9.118 seconds.
+
+Value in the initial state: 0.885714285714285
+
+Time for model checking: 9.889 seconds.
+
+Result: 0.885714285714285 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 14 iterations and 1.739 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 16 iterations and 2.11 seconds.
+target=20000, yes=20000, no=920921, maybe=23712
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 14 iterations and 0.259 seconds.
+Probabilistic reachability took 4.119 seconds.
+
+Value in the initial state: 0.0
+
+Time for model checking: 5.677 seconds.
+
+Result: 0.0 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 16 iterations and 2.017 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 18 iterations and 2.408 seconds.
+target=20000, yes=20000, no=917768, maybe=26865
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 0.317 seconds.
+Probabilistic reachability took 4.753 seconds.
+
+Value in the initial state: 0.020408163265306107
+
+Time for model checking: 6.295 seconds.
+
+Result: 0.020408163265306107 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.908 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 17 iterations and 2.247 seconds.
+target=20000, yes=20000, no=915728, maybe=28905
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 0.32 seconds.
+Probabilistic reachability took 4.486 seconds.
+
+Value in the initial state: 0.06122448979591828
+
+Time for model checking: 6.009 seconds.
+
+Result: 0.06122448979591828 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p4, p3, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.896 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 17 iterations and 2.281 seconds.
+target=20000, yes=20000, no=914272, maybe=30361
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 0.32 seconds.
+Probabilistic reachability took 4.508 seconds.
+
+Value in the initial state: 0.12244897959183672
+
+Time for model checking: 6.048 seconds.
+
+Result: 0.12244897959183672 (value in the initial state)
+
+---------------------------------------------------------------------
+
+Model checking: <<p5, p4, p3, p2, p1>> Pmax=? [ F task2_completed&task1_completed ]
+
+Starting probabilistic reachability...
+Starting Prob0 (maxmin)...
+Prob0 (maxmin) took 15 iterations and 1.871 seconds.
+Starting Prob1 (maxmin)...
+Prob1 (maxmin) took 17 iterations and 2.252 seconds.
+target=20000, yes=20000, no=913208, maybe=31425
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 17 iterations and 0.322 seconds.
+Probabilistic reachability took 4.456 seconds.
+
+Value in the initial state: 0.1265306122448979
+
+Time for model checking: 5.983 seconds.
+
+Result: 0.1265306122448979 (value in the initial state)
+
