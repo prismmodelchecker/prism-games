@@ -1,4 +1,4 @@
-// STPG version of the team formation protocol (offline version)
+// STPG version of the team formation protocol (online version)
 // 5 agents
 // 2 tasks
 // 3 resources
@@ -12,25 +12,25 @@ const int n_tasks = 2;
 // agent resources
 const int resource1=1;
 const int resource2=2;
-const int resource3=2;
+const int resource3=3;
 const int resource4=3;
-const int resource5=3;
+const int resource5=2;
 
 // network configuration
 const int e12=1;
 const int e13=1;
 const int e14=1;
-const int e15=1;
+const int e15=0;
 
 const int e21=e12;
 const int e23=1;
 const int e24=1;
-const int e25=1;
+const int e25=0;
 
 const int e31=e13;
 const int e32=e23;
 const int e34=1;
-const int e35=1;
+const int e35=0;
 
 const int e41=e14;
 const int e42=e24;
@@ -43,7 +43,7 @@ const int e53=e35;
 const int e54=e45;
 
 
-player p0 controller, [str1], [str2], [str3], [str4], [str5] endplayer
+player controller, [str1], [str2], [str3], [str4], [str5] endplayer
 module controller // schedules the algorithm
 
 	// algorithm status
@@ -188,125 +188,126 @@ module controller // schedules the algorithm
 		 + 1/120 : (turn1'=5) & (turn2'=4) & (turn3'=3) & (turn4'=2) & (turn5'=1) & (status'=1);
 
 
-	// initialising non-empty tasks uniformly at random
-	[] status=1 -> 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=2)
-		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=2);
-
+	
 	// executing the schedule
 
 	// 1st round
-	[str1] status=2 & turn1=1 -> (status'=2);
-	[fin1] status=2 & turn1=1 -> (status'=3);
-	[str2] status=2 & turn1=2 -> (status'=2);
-	[fin2] status=2 & turn1=2 -> (status'=3);
-	[str3] status=2 & turn1=3 -> (status'=2);
-	[fin3] status=2 & turn1=3 -> (status'=3);
-	[str4] status=2 & turn1=4 -> (status'=2);
-	[fin4] status=2 & turn1=4 -> (status'=3);
-	[str5] status=2 & turn1=5 -> (status'=2);
-	[fin5] status=2 & turn1=5 -> (status'=3);
+	[str1] status=1 & turn1=1 -> (status'=1);
+	[fin1] status=1 & turn1=1 -> (status'=2);
+	[str2] status=1 & turn1=2 -> (status'=1);
+	[fin2] status=1 & turn1=2 -> (status'=2);
+	[str3] status=1 & turn1=3 -> (status'=1);
+	[fin3] status=1 & turn1=3 -> (status'=2);
+	[str4] status=1 & turn1=4 -> (status'=1);
+	[fin4] status=1 & turn1=4 -> (status'=2);
+	[str5] status=1 & turn1=5 -> (status'=1);
+	[fin5] status=1 & turn1=5 -> (status'=2);
 
 	// 2nd round
-	[str1] status=3 & turn2=1 -> (status'=3);
-	[fin1] status=3 & turn2=1 -> (status'=4);
-	[str2] status=3 & turn2=2 -> (status'=3);
-	[fin2] status=3 & turn2=2 -> (status'=4);
-	[str3] status=3 & turn2=3 -> (status'=3);
-	[fin3] status=3 & turn2=3 -> (status'=4);
-	[str4] status=3 & turn2=4 -> (status'=3);
-	[fin4] status=3 & turn2=4 -> (status'=4);
-	[str5] status=3 & turn2=5 -> (status'=3);
-	[fin5] status=3 & turn2=5 -> (status'=4);
+	[str1] status=2 & turn2=1 -> (status'=2);
+	[fin1] status=2 & turn2=1 -> (status'=3);
+	[str2] status=2 & turn2=2 -> (status'=2);
+	[fin2] status=2 & turn2=2 -> (status'=3);
+	[str3] status=2 & turn2=3 -> (status'=2);
+	[fin3] status=2 & turn2=3 -> (status'=3);
+	[str4] status=2 & turn2=4 -> (status'=2);
+	[fin4] status=2 & turn2=4 -> (status'=3);
+	[str5] status=2 & turn2=5 -> (status'=2);
+	[fin5] status=2 & turn2=5 -> (status'=3);
 
 	// 3rd round
-	[str1] status=4 & turn3=1 -> (status'=4);
-	[fin1] status=4 & turn3=1 -> (status'=5);
-	[str2] status=4 & turn3=2 -> (status'=4);
-	[fin2] status=4 & turn3=2 -> (status'=5);
-	[str3] status=4 & turn3=3 -> (status'=4);
-	[fin3] status=4 & turn3=3 -> (status'=5);
-	[str4] status=4 & turn3=4 -> (status'=4);
-	[fin4] status=4 & turn3=4 -> (status'=5);
-	[str5] status=4 & turn3=5 -> (status'=4);
-	[fin5] status=4 & turn3=5 -> (status'=5);
+	[str1] status=3 & turn3=1 -> (status'=3);
+	[fin1] status=3 & turn3=1 -> (status'=4);
+	[str2] status=3 & turn3=2 -> (status'=3);
+	[fin2] status=3 & turn3=2 -> (status'=4);
+	[str3] status=3 & turn3=3 -> (status'=3);
+	[fin3] status=3 & turn3=3 -> (status'=4);
+	[str4] status=3 & turn3=4 -> (status'=3);
+	[fin4] status=3 & turn3=4 -> (status'=4);
+	[str5] status=3 & turn3=5 -> (status'=3);
+	[fin5] status=3 & turn3=5 -> (status'=4);
 
 	// 4th round
-	[str1] status=5 & turn4=1 -> (status'=5);
-	[fin1] status=5 & turn4=1 -> (status'=6);
-	[str2] status=5 & turn4=2 -> (status'=5);
-	[fin2] status=5 & turn4=2 -> (status'=6);
-	[str3] status=5 & turn4=3 -> (status'=5);
-	[fin3] status=5 & turn4=3 -> (status'=6);
-	[str4] status=5 & turn4=4 -> (status'=5);
-	[fin4] status=5 & turn4=4 -> (status'=6);
-	[str5] status=5 & turn4=5 -> (status'=5);
-	[fin5] status=5 & turn4=5 -> (status'=6);
+	[str1] status=4 & turn4=1 -> (status'=4);
+	[fin1] status=4 & turn4=1 -> (status'=5);
+	[str2] status=4 & turn4=2 -> (status'=4);
+	[fin2] status=4 & turn4=2 -> (status'=5);
+	[str3] status=4 & turn4=3 -> (status'=4);
+	[fin3] status=4 & turn4=3 -> (status'=5);
+	[str4] status=4 & turn4=4 -> (status'=4);
+	[fin4] status=4 & turn4=4 -> (status'=5);
+	[str5] status=4 & turn4=5 -> (status'=4);
+	[fin5] status=4 & turn4=5 -> (status'=5);
 
 	// 5th round
-	[str1] status=6 & turn5=1 -> (status'=6);
-	[fin1] status=6 & turn5=1 -> (status'=7);
-	[str2] status=6 & turn5=2 -> (status'=6);
-	[fin2] status=6 & turn5=2 -> (status'=7);
-	[str3] status=6 & turn5=3 -> (status'=6);
-	[fin3] status=6 & turn5=3 -> (status'=7);
-	[str4] status=6 & turn5=4 -> (status'=6);
-	[fin4] status=6 & turn5=4 -> (status'=7);
-	[str5] status=6 & turn5=5 -> (status'=6);
-	[fin5] status=6 & turn5=5 -> (status'=7);
+	[str1] status=5 & turn5=1 -> (status'=5);
+	[fin1] status=5 & turn5=1 -> (status'=6);
+	[str2] status=5 & turn5=2 -> (status'=5);
+	[fin2] status=5 & turn5=2 -> (status'=6);
+	[str3] status=5 & turn5=3 -> (status'=5);
+	[fin3] status=5 & turn5=3 -> (status'=6);
+	[str4] status=5 & turn5=4 -> (status'=5);
+	[fin4] status=5 & turn5=4 -> (status'=6);
+	[str5] status=5 & turn5=5 -> (status'=5);
+	[fin5] status=5 & turn5=5 -> (status'=6);
+
+	// initialising non-empty tasks uniformly at random
+	[] status=6 -> 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=0) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=0) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=0) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=0) & (t2_r2'=1) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=0) & (t2_r3'=1) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=0) & (status'=7)
+		 + 1/49 : (t1_r1'=1) & (t1_r2'=1) & (t1_r3'=1) & (t2_r1'=1) & (t2_r2'=1) & (t2_r3'=1) & (status'=7);
+
 
 	[] status=7 -> (status'=8);
 
 	[] status=8 -> true;
 
 endmodule
-
 
 player p1 agent1, [fin1] endplayer
 module agent1
@@ -321,17 +322,16 @@ module agent1
 	[str1] state1=0 -> (state1'=1);
 
 	// if there is no team and has required skill - initiating the team
-	[] state1=1 & !committed & team_size_t1=0 & has_resource_t1 -> (m1_t1'=1);
-	[] state1=1 & !committed & team_size_t2=0 & has_resource_t2 -> (m1_t2'=1);
+	[] state1=1 & !committed & team_size_t1=0 -> (m1_t1'=1);
+	[] state1=1 & !committed & team_size_t2=0 -> (m1_t2'=1);
 
 	// if team already exists and one of the neighbours is in it - joining the team 
-	[] state1=1 & !committed & team_size_t1>0 & can_join_t1 & has_resource_t1 & !resource_filled_t1 -> (m1_t1'=1);
-	[] state1=1 & !committed & team_size_t2>0 & can_join_t2 & has_resource_t2 & !resource_filled_t2 -> (m1_t2'=1);
+	[] state1=1 & !committed & team_size_t1>0 & can_join_t1  & !resource_filled_t1 -> (m1_t1'=1);
+	[] state1=1 & !committed & team_size_t2>0 & can_join_t2  & !resource_filled_t2 -> (m1_t2'=1);
 	
 	[fin1] state1>0 -> (state1'=0); 
 
 endmodule
-
 
 player p2 agent2, [fin2] endplayer
 module agent2 = agent1 

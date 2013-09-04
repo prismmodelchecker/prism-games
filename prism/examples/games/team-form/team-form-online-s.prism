@@ -23,24 +23,25 @@ const int e14=1;
 const int e15=1;
 
 const int e21=e12;
-const int e23=1;
-const int e24=1;
-const int e25=1;
+const int e23=0;
+const int e24=0;
+const int e25=0;
 
 const int e31=e13;
 const int e32=e23;
-const int e34=1;
-const int e35=1;
+const int e34=0;
+const int e35=0;
 
 const int e41=e14;
 const int e42=e24;
 const int e43=e34;
-const int e45=1;
+const int e45=0;
 
 const int e51=e15;
 const int e52=e25;
 const int e53=e35;
 const int e54=e45;
+
 
 player controller, [str1], [str2], [str3], [str4], [str5] endplayer
 module controller // schedules the algorithm
