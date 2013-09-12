@@ -297,12 +297,17 @@ public class ConstructModel extends PrismComponent
 							mdp.addChoice(src, distr);
 						}
 					} else if (modelType == ModelType.STPG) {
-						// TODO: need addActionLabelledChoice
-						int k = stpg.addChoice(src, distr);
-						stpg.setAction(src, k, engine.getTransitionAction(i, 0));
+						if (distinguishActions) {
+							stpg.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
+						} else {
+							stpg.addChoice(src, distr);
+						}
 					} else if (modelType == ModelType.SMG) {
-						int k = smg.addChoice(src, distr);
-						smg.setAction(src, k, engine.getTransitionAction(i, 0));
+						if (distinguishActions) {
+							smg.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
+						} else {
+							smg.addChoice(src, distr);
+						}
 					}
 				}
 			}
