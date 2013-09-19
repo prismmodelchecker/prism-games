@@ -53,16 +53,16 @@ import simulator.SimulatorEngine;
 public class ConstructModel extends PrismComponent
 {
 	// The simulator engine
-	private SimulatorEngine engine;
+	protected SimulatorEngine engine;
 
 	// Options:
 	// Find deadlocks during model construction?
-	private boolean findDeadlocks = true;
+	protected boolean findDeadlocks = true;
 	// Automatically fix deadlocks?
-	private boolean fixDeadlocks = true;
+	protected boolean fixDeadlocks = true;
 
 	// Details of built model
-	private List<State> statesList;
+	protected List<State> statesList;
 
 	public ConstructModel(PrismComponent parent, SimulatorEngine engine) throws PrismException
 	{
@@ -96,7 +96,7 @@ public class ConstructModel extends PrismComponent
 	 */
 	public Model constructModel(ModulesFile modulesFile) throws PrismException
 	{
-		return constructModel(modulesFile, false, false, false);
+		return constructModel(modulesFile, false, true);
 	}
 
 	/**

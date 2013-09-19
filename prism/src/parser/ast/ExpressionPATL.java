@@ -104,6 +104,12 @@ public class ExpressionPATL extends Expression {
 	}
 
 	@Override
+	public boolean isProposition()
+	{
+		return false;
+	}
+	
+	@Override
 	public boolean returnsSingleValue() {
 		return false;
 	}
