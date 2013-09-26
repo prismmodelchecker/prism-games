@@ -345,7 +345,7 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
-	 * Get the number of "player" defintions in the model.
+	 * Get the number of "player" definitions in the model.
 	 */
 	public int getNumPlayers()
 	{
@@ -840,22 +840,22 @@ public class ModulesFile extends ASTElement
 			for (String m : player.getModules()) {
 				// Check existing
 				if (getModuleIndex(m) == -1)
-					throw new PrismLangException("Module name \"" + m + "\" in player defintion \"" + player.getName()
+					throw new PrismLangException("Module name \"" + m + "\" in player definition \"" + player.getName()
 							+ "\" does not exist", player);
 				// Check for dupes
 				if (modulesUsed.contains(m))
-					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player defintions",
+					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player definitions",
 							player);
 				modulesUsed.add(m);
 			}
 			for (String a : player.getActions()) {
 				// Check existing
 				if (!isSynch(a))
-					throw new PrismLangException("Action name \"" + a + "\" in player defintion \"" + player.getName()
+					throw new PrismLangException("Action name \"" + a + "\" in player definition \"" + player.getName()
 							+ "\" does not exist", player);
 				// Check for dupes
 				if (actionsUsed.contains(a))
-					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player defintions",
+					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player definitions",
 							player);
 				actionsUsed.add(a);
 			}
