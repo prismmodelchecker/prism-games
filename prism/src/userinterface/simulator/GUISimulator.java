@@ -2452,41 +2452,38 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			if (pathActive) {
 				try {
-					// First 2 columns are optional
+					// First 2 columns are optional, so adjust index
 					int offset = 0;
 					// Strategy choice
-					if (showStrategyCheck.isSelected() && strategyGenerated & strategy != null && stateIds != null) {
-						if (columnIndex == offset) {
-							//try {
-							State state = oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getCurrentState();
-							Distribution dist = strategy.getNextMove(stateIds.get(state));
-							int choice = engine.getChoiceIndexOfTransition(rowIndex);
-							return dist.contains(choice) ? dist.get(choice) : "";
-							//} finally {
-							// resetting the memory
-							//if (oldUpdate)
-							//	strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathFull().size() - 1));
-							//}
-						}
-					} else {
+					if (!(showStrategyCheck.isSelected() && strategyGenerated & strategy != null && stateIds != null))
 						offset++;
-					}
 					// Player
-					if (parsedModel.getModelType().multiplePlayers()) {
-						if (columnIndex == offset) {
-							String modAct = engine.getTransitionModuleOrAction(rowIndex);
-							int player = parsedModel.getPlayerForModule(modAct);
-							if (player == -1)
-								player = parsedModel.getPlayerForAction(modAct);
-							if (player == -1)
-								return "";
-							return parsedModel.getPlayer(player).getName();
-						}
-					} else {
+					if (!(parsedModel.getModelType().multiplePlayers()))
 						offset++;
-					}
-					// The rest are fixed
+					
 					switch (columnIndex + offset) {
+					
+					// Strategy choice
+					case 0:
+						//try {
+						State state = oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getCurrentState();
+						Distribution dist = strategy.getNextMove(stateIds.get(state));
+						int choice = engine.getChoiceIndexOfTransition(rowIndex);
+						return dist.contains(choice) ? dist.get(choice) : "";
+						//} finally {
+						// resetting the memory
+						//if (oldUpdate)
+						//	strategy.setMemory(engine.getPathFull().getStrategyState(engine.getPathFull().size() - 1));
+						//}
+					// Player
+					case 1:
+						String modAct = engine.getTransitionModuleOrAction(rowIndex);
+						int player = parsedModel.getPlayerForModule(modAct);
+						if (player == -1)
+							player = parsedModel.getPlayerForAction(modAct);
+						if (player == -1)
+							return "";
+						return parsedModel.getPlayer(player).getName();
 					// Module/action
 					case 2:
 						return engine.getTransitionModuleOrAction(rowIndex);
@@ -2513,24 +2510,20 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public String getColumnName(int column)
 		{
 			if (pathActive) {
-				// First 2 columns are optional
+				// First 2 columns are optional, so adjust index
 				int offset = 0;
 				// Strategy choice
-				if (showStrategyCheck.isSelected() && strategyGenerated) {
-					if (column == offset)
-						return "Strategy";
-				} else {
+				if (!(showStrategyCheck.isSelected() && strategyGenerated & strategy != null && stateIds != null))
 					offset++;
-				}
 				// Player
-				if (parsedModel.getModelType().multiplePlayers()) {
-					if (column == offset)
-						return "Player";
-				} else {
+				if (!(parsedModel.getModelType().multiplePlayers()))
 					offset++;
-				}
-				// The rest are fixed
+				
 				switch (column + offset) {
+				case 0:
+					return "Strategy";
+				case 1:
+					return "Player";
 				case 2:
 					return "Module/[action]";
 				case 3:
