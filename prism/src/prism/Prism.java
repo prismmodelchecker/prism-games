@@ -2512,6 +2512,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			n = sccComputerExpl.getSCCs().size();
 		}
 		for (i = 0; i < n; i++) {
+			if(getExplicit() && sccComputerExpl.getSCCs().get(i).cardinality() == 1) continue;
+			
 			tmpLog.println();
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.print("% ");
@@ -2525,7 +2527,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(sccComputer.getSCCs().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(sccComputer.getSCCs().get(i));
 			} else {
-				if(sccComputerExpl.getSCCs().get(i).cardinality() == 1) continue;
 				explicit.StateValues.createFromBitSet(sccComputerExpl.getSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
