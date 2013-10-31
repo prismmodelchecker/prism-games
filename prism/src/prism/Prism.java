@@ -2512,8 +2512,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			n = sccComputerExpl.getSCCs().size();
 		}
 		for (i = 0; i < n; i++) {
-			if(getExplicit() && sccComputerExpl.getSCCs().get(i).cardinality() == 1) continue;
-			
 			tmpLog.println();
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.print("% ");
