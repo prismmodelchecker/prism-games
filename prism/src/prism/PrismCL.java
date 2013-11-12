@@ -73,9 +73,9 @@ public class PrismCL implements PrismModelListener
 	private boolean exportdot = false;
 	private boolean exporttransdot = false;
 	private boolean exporttransdotstates = false;
+	private boolean exportsccs = false;
 	private boolean exportbsccs = false;
 	private boolean exportmecs = false;
-	private boolean exportsccs = false;
 	private boolean exportresults = false;
 	private boolean exportresultsmatrix = false;
 	private boolean exportresultscsv = false;
@@ -129,9 +129,9 @@ public class PrismCL implements PrismModelListener
 	private String exportDotFilename = null;
 	private String exportTransDotFilename = null;
 	private String exportTransDotStatesFilename = null;
+	private String exportSCCsFilename = null;
 	private String exportBSCCsFilename = null;
 	private String exportMECsFilename = null;
-	private String exportSCCsFilename = null;
 	private String exportResultsFilename = null;
 	private String exportSteadyStateFilename = null;
 	private String exportTransientFilename = null;
@@ -356,7 +356,7 @@ public class PrismCL implements PrismModelListener
 
 						// store result of model checking
 						results[j].setResult(definedMFConstants, definedPFConstants, res.getResult());
-						
+
 						// if a counterexample was generated, display it
 						Object cex = res.getCounterexample();
 						if (cex != null) {
@@ -386,7 +386,7 @@ public class PrismCL implements PrismModelListener
 								error(e.getMessage());
 							}
 						}
-						
+
 						// if required, check result against expected value
 						if (test) {
 							try {
@@ -419,7 +419,7 @@ public class PrismCL implements PrismModelListener
 			}
 
 			// Explicitly request a build if necessary
-			if (propertiesToCheck.size() == 0 && !simpath && !nobuild && prism.modelCanBeBuilt() && !prism.modelIsBuilt()) {
+			if (propertiesToCheck.size() == 0 && !steadystate && !dotransient && !simpath && !nobuild && prism.modelCanBeBuilt() && !prism.modelIsBuilt()) {
 				try {
 					prism.buildModel();
 				} catch (PrismException e) {
@@ -762,6 +762,20 @@ public class PrismCL implements PrismModelListener
 			}
 		}
 
+		// export SCCs to a file
+		if (exportsccs) {
+			try {
+				File f = (exportSCCsFilename.equals("stdout")) ? null : new File(exportSCCsFilename);
+				prism.exportSCCsToFile(exportType, f);
+			}
+			// in case of error, report it and proceed
+			catch (FileNotFoundException e) {
+				error("Couldn't open file \"" + exportSCCsFilename + "\" for output");
+			} catch (PrismException e) {
+				error(e.getMessage());
+			}
+		}
+
 		// export BSCCs to a file
 		if (exportbsccs) {
 			try {
@@ -785,20 +799,6 @@ public class PrismCL implements PrismModelListener
 			// in case of error, report it and proceed
 			catch (FileNotFoundException e) {
 				error("Couldn't open file \"" + exportMECsFilename + "\" for output");
-			} catch (PrismException e) {
-				error(e.getMessage());
-			}
-		}
-		
-		// export SCCs to a file
-		if (exportsccs) {
-			try {
-				File f = (exportSCCsFilename.equals("stdout")) ? null : new File(exportSCCsFilename);
-				prism.exportSCCsToFile(exportType, f);
-			}
-			// in case of error, report it and proceed
-			catch (FileNotFoundException e) {
-				error("Couldn't open file \"" + exportSCCsFilename + "\" for output");
 			} catch (PrismException e) {
 				error(e.getMessage());
 			}
@@ -1124,18 +1124,17 @@ public class PrismCL implements PrismModelListener
 						s = args[++i];
 						// Assume use of : to split filename/options but check for , if : not found
 						// (this was the old notation)
-						String halves[] = splitFilesAndOptions(s); 
+						String halves[] = splitFilesAndOptions(s);
 						if (halves[1].length() == 0 && halves[0].indexOf(',') > -1) {
 							int comma = halves[0].indexOf(',');
-							halves[1] = halves[0].substring(comma + 1); 
+							halves[1] = halves[0].substring(comma + 1);
 							halves[0] = halves[0].substring(0, comma);
 						}
 						exportResultsFilename = halves[0];
 						String ss[] = halves[1].split(",");
 						for (j = 0; j < ss.length; j++) {
 							if (ss[j].equals("")) {
-							}
-							else if (ss[j].equals("csv"))
+							} else if (ss[j].equals("csv"))
 								exportresultscsv = true;
 							else if (ss[j].equals("matrix"))
 								exportresultsmatrix = true;
@@ -1257,6 +1256,15 @@ public class PrismCL implements PrismModelListener
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
+				// export sccs to file
+				else if (sw.equals("exportsccs")) {
+					if (i < args.length - 1) {
+						exportsccs = true;
+						exportSCCsFilename = args[++i];
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
 				// export bsccs to file
 				else if (sw.equals("exportbsccs")) {
 					if (i < args.length - 1) {
@@ -1271,15 +1279,6 @@ public class PrismCL implements PrismModelListener
 					if (i < args.length - 1) {
 						exportmecs = true;
 						exportMECsFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export sccs to file
-				else if (sw.equals("exportsccs")) {
-					if (i < args.length - 1) {
-						exportsccs = true;
-						exportSCCsFilename = args[++i];
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
@@ -1926,7 +1925,7 @@ public class PrismCL implements PrismModelListener
 				}
 			}
 		}
-		
+
 		// plug in basename for -exportmodel switch if needed
 		if (exportModelNoBasename) {
 			String modelFileBasename = modelFilename;
@@ -2120,7 +2119,9 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-exporttransdot <file> ......... Export the transition matrix graph to a dot file");
 		mainLog.println("-exporttransdotstates <file> ... Export the transition matrix graph to a dot file, with state info");
 		mainLog.println("-exportdot <file> .............. Export the transition matrix MTBDD to a dot file");
+		mainLog.println("-exportsccs <file> ............. Compute and export all SCCs of the model");
 		mainLog.println("-exportbsccs <file> ............ Compute and export all BSCCs of the model");
+		mainLog.println("-exportmecs <file> ............. Compute and export all maximal end components (MDPs only)");
 		mainLog.println("-exportsteadystate <file> ...... Export steady-state probabilities to a file");
 		mainLog.println("-exporttransient <file> ........ Export transient probabilities to a file");
 		mainLog.println("-exportprism <file> ............ Export final PRISM model to a file");
@@ -2150,6 +2151,10 @@ public class PrismCL implements PrismModelListener
 	 */
 	private void printHelpSwitch(String sw)
 	{
+		// Remove "-" from start of switch, in case present (it shouldn't be really)
+		if (sw.charAt(0) == '-')
+			sw = sw.substring(1);
+
 		// -const
 		if (sw.equals("const")) {
 			mainLog.println("Switch: -const <vals>\n");
@@ -2182,7 +2187,7 @@ public class PrismCL implements PrismModelListener
 		}
 		// -exportresults
 		else if (sw.equals("exportresults")) {
-			mainLog.println("Switch: -exportresults <file[,options]>\n");
+			mainLog.println("Switch: -exportresults <file[:options]>\n");
 			mainLog.println("Exports the results of model checking to <file> (or to the screen if <file>=\"stdout\").");
 			mainLog.println("The default behaviour is to export a list of results in text form, using tabs to separate items.");
 			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
@@ -2204,8 +2209,8 @@ public class PrismCL implements PrismModelListener
 			mainLog.println(" * mrmc - export data in MRMC format");
 			mainLog.println(" * matlab - export data in Matlab format");
 			mainLog.println(" * rows - export matrices with one row/distribution on each line");
-			mainLog.println(" * ordered - output states indices inb ascending ordered [default]");
-			mainLog.println(" * unordered - don't output states indices inb ascending ordered [default]");
+			mainLog.println(" * ordered - output states indices in ascending order [default]");
+			mainLog.println(" * unordered - don't output states indices in ascending order");
 		}
 		// Try PrismSettings
 		else if (PrismSettings.printHelpSwitch(mainLog, sw)) {

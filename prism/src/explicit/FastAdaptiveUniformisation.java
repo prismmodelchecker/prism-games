@@ -72,12 +72,9 @@ import prism.*;
  */
 
 /**
- * Implementation of fast adaptive uniformisation
- * @author Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
- * @author Frits Dannenberg <frits.dannenberg@cs.ox.ac.uk> (University of Oxford)
- * @author Ernst Moritz Hahn <emhahn@cs.ox.ac.uk>  (University of Oxford)
+ * Implementation of fast adaptive uniformisation (FAU).
  */
-public class FastAdaptiveUniformisation
+public class FastAdaptiveUniformisation extends PrismComponent
 {
 	/**
 	 * Stores properties of states needed for fast adaptive method.
@@ -87,8 +84,6 @@ public class FastAdaptiveUniformisation
 	 * states and the rates to them, the number of incoming transitions
 	 * (references) and a flag whether the state has a significant probability
 	 * mass (alive).
-	 * 
-	 * @author Ernst Moritz Hahn <emhahn@cs.ox.ac.uk>  (University of Oxford)
 	 */
 	private final class StateProp
 	{
@@ -410,12 +405,10 @@ public class FastAdaptiveUniformisation
 		REW_CUMUL
 	}
 
-	/** PRISM settings to read analysis parameters from */
-	private PrismSettings settings = null;
 	/** model exploration component to generate new states */
 	private ModelExplorer modelExplorer;
 	/** probability allowed to drop birth process */
-	private double termCritParam;
+	private double epsilon;
 	/** probability threshold when to drop states in discrete-time process */
 	private double delta;
 	/** number of intervals to divide time into */
@@ -466,13 +459,14 @@ public class FastAdaptiveUniformisation
 	/**
 	 * Constructor.
 	 */
-	public FastAdaptiveUniformisation(PrismSettings settings, ModelExplorer modelExplorer) throws PrismException
+	public FastAdaptiveUniformisation(PrismComponent parent, ModelExplorer modelExplorer) throws PrismException
 	{
-		maxNumStates = 0;
-		this.settings = settings;
+		super(parent);
+		
 		this.modelExplorer = modelExplorer;
+		maxNumStates = 0;
 
-		termCritParam = settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM);
+		epsilon = settings.getDouble(PrismSettings.PRISM_FAU_EPSILON);
 		delta = settings.getDouble(PrismSettings.PRISM_FAU_DELTA);
 		numIntervals = settings.getInteger(PrismSettings.PRISM_FAU_INTERVALS);
 		arrayThreshold = settings.getInteger(PrismSettings.PRISM_FAU_ARRAYTHRESHOLD);
@@ -621,6 +615,8 @@ public class FastAdaptiveUniformisation
 	 */
 	public StateValues doTransient(double time, StateValues initDist) throws PrismException
 	{
+		mainLog.println("\nComputing probabilities (fast adaptive uniformisation)...");
+		
 		if (initDist == null) {
 			initDist = new StateValues();
 			initDist.type = TypeDouble.getInstance();
@@ -665,6 +661,10 @@ public class FastAdaptiveUniformisation
 		probs.size = probsArr.length;
 		probs.valuesD = probsArr;
 		probs.statesList = statesList;		
+
+		mainLog.println("\nTotal probability lost is : " + getTotalDiscreteLoss());
+		mainLog.println("Maximal number of states stored during analysis : " + getMaxNumStates());
+		
 		return probs;
 	}
 
@@ -740,14 +740,14 @@ public class FastAdaptiveUniformisation
 	{
 		birthProc = new BirthProcess();
 		birthProc.setTime(interval);
-		birthProc.setTermCritParam(termCritParam);
+		birthProc.setEpsilon(epsilon);
 
 		int iters = 0;
 		birthProbSum = 0.0;
 		itersUnchanged = 0;
 		keepSumProb = false;
-		while (birthProbSum < (1 - termCritParam)) {
-			if (birthProbSum >= termCritParam/2) {
+		while (birthProbSum < (1 - epsilon)) {
+			if (birthProbSum >= epsilon/2) {
 				keepSumProb = true;
 			}
 			if ((itersUnchanged == arrayThreshold)) {

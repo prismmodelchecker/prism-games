@@ -1822,7 +1822,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private void doBuildModel() throws PrismException
 	{
 		long l; // timer
-
+		
 		// Clear any existing built model(s)
 		clearBuiltModel();
 
@@ -2692,7 +2692,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// For fast adaptive uniformisation
 		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
 			FastAdaptiveUniformisationModelChecker fauMC;
-			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
+			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile, getSimulator());
 			return fauMC.check(prop.getExpression());
 		}
 		// Auto-switch engine if required
@@ -2996,25 +2996,23 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		explicit.StateValues probsExpl = null;
 		PrismLog tmpLog;
 
+		// Do some checks
 		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-
 		if (fileOut != null && getEngine() == MTBDD)
+			// TODO: auto-switch?
 			throw new PrismException("Steady-state probability export not supported for MTBDD engine");
-		// TODO: auto-switch?
+		if (exportType == EXPORT_MRMC)
+			exportType = EXPORT_PLAIN; // no specific states format for MRMC
+		if (exportType == EXPORT_ROWS)
+			exportType = EXPORT_PLAIN; // rows format does not apply to states output
 
+		// Print message
 		mainLog.printSeparator();
 		mainLog.println("\nComputing steady-state probabilities...");
 
 		// Build model, if necessary
 		buildModelIfRequired();
-
-		// no specific states format for MRMC
-		if (exportType == EXPORT_MRMC)
-			exportType = EXPORT_PLAIN;
-		// rows format does not apply to states output
-		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN;
 
 		l = System.currentTimeMillis();
 
@@ -3102,43 +3100,35 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		explicit.StateValues probsExpl = null;
 		PrismLog tmpLog;
 
+		// Do some checks
 		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-
 		if (time < 0)
 			throw new PrismException("Cannot compute transient probabilities for negative time value");
-
 		if (fileOut != null && getEngine() == MTBDD)
 			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
-
-		mainLog.printSeparator();
-		if (currentModelType.continuousTime()) {
-			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
-		} else {
-			mainLog.println("\nComputing transient probabilities (time = " + (int) time + ")...");
-		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// no specific states format for MRMC
 		if (exportType == EXPORT_MRMC)
-			exportType = EXPORT_PLAIN;
-		// rows format does not apply to states output
+			exportType = EXPORT_PLAIN; // no specific states format for MRMC
 		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN;
+			exportType = EXPORT_PLAIN; // rows format does not apply to states output
+
+		// Print message
+		mainLog.printSeparator();
+		String strTime = currentModelType.continuousTime() ? Double.toString(time) : Integer.toString((int) time);
+			mainLog.println("\nComputing transient probabilities (time = " + strTime + ")...");
 
 		l = System.currentTimeMillis();
 
+		// FAU
 		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
 			PrismModelExplorer modelExplorer = new PrismModelExplorer(getSimulator(), currentModulesFile);
-			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(settings, modelExplorer);
+			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, modelExplorer);
 			fau.setConstantValues(currentModulesFile.getConstantValues());
-			mainLog.println("Starting transient probability computation using fast adaptive uniformisation...");
 			probsExpl = fau.doTransient(time, fileIn);
-			mainLog.println("\nTotal probability lost is : " + fau.getTotalDiscreteLoss());
-			mainLog.println("Maximal number of states stored during analysis : " + fau.getMaxNumStates());
-		} else if (!getExplicit()) {
+		}
+		// Symbolic
+		else if (!getExplicit()) {
+			buildModelIfRequired();
 			if (currentModelType == ModelType.DTMC) {
 				mc = new ProbModelChecker(this, currentModel, null);
 				probs = ((ProbModelChecker) mc).doTransient((int) time, fileIn);
@@ -3146,7 +3136,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				mc = new StochModelChecker(this, currentModel, null);
 				probs = ((StochModelChecker) mc).doTransient(time, fileIn);
 			}
-		} else {
+		}
+		// Explicit
+		else {
+			buildModelIfRequired();
 			if (currentModelType == ModelType.DTMC) {
 				throw new PrismException("Not implemented yet");
 			} else if (currentModelType == ModelType.CTMC) {
@@ -3168,7 +3161,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		tmpLog = getPrismLogForFile(fileOut);
 
 		// print out or export probabilities
-		if (!getExplicit())
+		if (probs != null)
 			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
 		else
 			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
@@ -3177,9 +3170,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
 
 		// tidy up
-		if (!getExplicit())
+		if (probs != null)
 			probs.clear();
-		else
+		if (probsExpl != null)
 			probsExpl.clear();
 		if (fileOut != null)
 			tmpLog.close();
@@ -3205,18 +3198,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		PrismLog tmpLog = null;
 		File fileOutActual = null;
 
+		// Do some checks
 		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-
 		if (fileOut != null && getEngine() == MTBDD)
 			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
-
-		// no specific states format for MRMC
 		if (exportType == EXPORT_MRMC)
-			exportType = EXPORT_PLAIN;
-		// rows format does not apply to states output
+			exportType = EXPORT_PLAIN; // no specific states format for MRMC
 		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN;
+			exportType = EXPORT_PLAIN; // rows format does not apply to states output
 
 		// Step through required time points
 		for (i = 0; i < times.getNumPropertyIterations(); i++) {
@@ -3230,15 +3220,23 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			if (currentModelType.continuousTime() ? (((Double) time).doubleValue() < 0) : (((Integer) time).intValue() < 0))
 				throw new PrismException("Cannot compute transient probabilities for negative time value");
 
+			// Print message
 			mainLog.printSeparator();
 			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
 
-			// Build model, if necessary
-			buildModelIfRequired();
-
 			l = System.currentTimeMillis();
 
-			if (!getExplicit()) {
+			// FAU
+			if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+				// For FAU, we don't do computation incrementally
+				PrismModelExplorer modelExplorer = new PrismModelExplorer(getSimulator(), currentModulesFile);
+				FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, modelExplorer);
+				fau.setConstantValues(currentModulesFile.getConstantValues());
+				probsExpl = fau.doTransient(timeDouble, fileIn);
+			}
+			// Symbolic
+			else if (!getExplicit()) {
+				buildModelIfRequired();
 				if (currentModelType.continuousTime()) {
 					StochModelChecker mc = new StochModelChecker(this, currentModel, null);
 					if (i == 0) {
@@ -3254,7 +3252,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 					probs = ((ProbModelChecker) mc).doTransient(timeInt - initTimeInt, initDist);
 				}
-			} else {
+			}
+			// Explicit
+			else {
+				buildModelIfRequired();
 				if (currentModelType.continuousTime()) {
 					CTMCModelChecker mc = new CTMCModelChecker(this);
 					if (i == 0) {
@@ -3285,7 +3286,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			tmpLog = getPrismLogForFile(fileOutActual);
 
 			// print out or export probabilities
-			if (!getExplicit())
+			if (probs != null)
 				probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
 			else
 				probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, true);
@@ -3302,9 +3303,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 
 		// tidy up
-		if (!getExplicit())
+		if (probs != null)
 			probs.clear();
-		else
+		if (probsExpl != null)
 			probsExpl.clear();
 		if (fileOut != null)
 			tmpLog.close();
