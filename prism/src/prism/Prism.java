@@ -175,6 +175,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected String exportProductStatesFilename = null;
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false; 
+	protected boolean exportStats = false;
 
 	// A few miscellaneous options (i.e. defunct/hidden/undocumented/etc.)
 	// See constructor below for default values
@@ -562,6 +563,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void setExportProductStatesFilename(String s) throws PrismException
 	{
 		exportProductStatesFilename = s;
+	}
+	
+	public void setExportStats(boolean b) throws PrismException
+	{
+		exportStats = b;
 	}
 
 	/**
@@ -2739,6 +2745,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			// Undo auto-switch (if any)
 			if (engineSwitch) {
 				setEngine(lastEngine);
+			}
+		}
+		
+		if(res != null && exportStats) {
+			if(currentModel != null) {
+				res.setModel(currentModel);
+			} else {
+				res.setModelExplicit(currentModelExpl);
 			}
 		}
 
