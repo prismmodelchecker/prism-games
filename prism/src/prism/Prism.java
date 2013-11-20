@@ -175,7 +175,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected String exportProductStatesFilename = null;
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false; 
-	protected boolean exportStats = false;
 
 	// A few miscellaneous options (i.e. defunct/hidden/undocumented/etc.)
 	// See constructor below for default values
@@ -565,11 +564,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		exportProductStatesFilename = s;
 	}
 	
-	public void setExportStats(boolean b) throws PrismException
-	{
-		exportStats = b;
-	}
-
 	/**
 	 * Specify whether or not a strategy should be generated during model checking.
 	 */
@@ -2748,14 +2742,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			}
 		}
 		
-		if(res != null && exportStats) {
-			if(currentModel != null) {
-				res.setModel(currentModel);
-			} else {
-				res.setModelExplicit(currentModelExpl);
-			}
-		}
-
 		// Return result
 		return res;
 	}

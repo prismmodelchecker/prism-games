@@ -28,7 +28,6 @@
 
 package prism;
 
-import parser.Values;
 import strat.Strategy;
 
 /**
@@ -46,10 +45,6 @@ public class Result
 	private Object cex;
 	// Strategy (optional)
 	private Strategy strat;
-	//Model
-	private Model model;
-	//Model
-	private explicit.Model modelExplicit;
 	
 	/**
 	 * Construct an empty Result object.
@@ -60,7 +55,6 @@ public class Result
 		this.explanation = null;
 		this.cex = null;
 		this.strat = null;
-		this.model = null;
 	}
 	
 	/**
@@ -105,22 +99,6 @@ public class Result
 	}
 	
 	/**
-	 * Set the model (null denotes n/a).
-	 */
-	public void setModel(Model model)
-	{
-		this.model = model;
-	}
-	
-	/**
-	 * Set the model (null denotes n/a).
-	 */
-	public void setModelExplicit(explicit.Model model)
-	{
-		this.modelExplicit = model;
-	}
-	
-	/**
 	 * Get the result.
 	 */
 	public Object getResult()
@@ -150,17 +128,6 @@ public class Result
 	public Strategy getStrategy()
 	{
 		return strat;
-	}
-	
-	/**
-	 * Get the model (null denotes n/a).
-	 */
-	public Model getModel() {
-		return model;
-	}
-	
-	public explicit.Model getModelExplicit() {
-		return modelExplicit;
 	}
 	
 	/**

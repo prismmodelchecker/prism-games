@@ -410,7 +410,7 @@ public class PrismCL implements PrismModelListener
 						}
 						
 						if(exportstats) {
-							if(res.getModelExplicit() == null) {
+							if(prism.getBuiltModelExplicit() == null) {
 								errorAndExit("Model statistics are only available for the explicit engine.");
 							}
 							
@@ -424,7 +424,7 @@ public class PrismCL implements PrismModelListener
 								errorAndExit("Couldn't open file \"" + exportStatsFilename + "\" for output");
 							}
 
-							ModelStatistics ms = new ModelStatistics((SMG)res.getModelExplicit());
+							ModelStatistics ms = new ModelStatistics((SMG)prism.getBuiltModelExplicit());
 							try {
 								ms.generateStatistics(tmpLog);
 							} catch (PrismException e) {
@@ -1422,7 +1422,6 @@ public class PrismCL implements PrismModelListener
 					if (i < args.length - 1) {
 						exportstats = true;
 						exportStatsFilename = args[++i];
-						prism.setExportStats(true);
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
