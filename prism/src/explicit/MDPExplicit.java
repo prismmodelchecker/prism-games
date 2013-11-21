@@ -31,6 +31,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -39,6 +40,7 @@ import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import strat.MDStrategy;
 import explicit.rewards.MDPRewards;
 
 /**
@@ -81,7 +83,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
+	public void exportToPrismExplicitTra(PrismLog out)
 	{
 		int i, j, numChoices;
 		Object action;
@@ -230,6 +232,26 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 		}
 	}
 
+	// Accessors (for NondetModel)
+	
+	@Override
+	public boolean areAllChoiceActionsUnique()
+	{
+		HashSet<Object> sActions = new HashSet<Object>();
+		for (int s = 0; s < numStates; s++) {
+			int n = getNumChoices(s);
+			if (n > 1) {
+				sActions.clear();
+				for (int i = 0; i < n; i++) {
+					if (!sActions.add(getAction(s, i))) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
 	// Accessors (for MDP)
 
 	@Override
@@ -344,6 +366,12 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 			}
 		}*/
 		return maxDiff;
+	}
+	
+	@Override
+	public Model constructInducedModel(MDStrategy strat)
+	{
+		return new DTMCFromMDPAndMDStrategy(this, strat);
 	}
 
 	@Override

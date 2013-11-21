@@ -610,5 +610,19 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void exportIndices(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void exportInducedModel(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
 	};
 }

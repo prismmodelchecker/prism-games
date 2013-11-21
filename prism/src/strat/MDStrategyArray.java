@@ -27,8 +27,7 @@
 
 package strat;
 
-import prism.PrismException;
-import explicit.Distribution;
+import prism.PrismLog;
 import explicit.Model;
 
 /**
@@ -41,7 +40,7 @@ public class MDStrategyArray extends MDStrategy
 	// Index of choice taken in each state (wrt model above) 
 	// Other possible values: -1 (unknown), -2 (arbitrary), -3 (unreachable)
 	private int choices[];
-	
+
 	/**
 	 * Creates an MDStrategyArray from an integer array of choices.
 	 * The array may later be modified/delete - take a copy if you want to keep it.
@@ -51,15 +50,21 @@ public class MDStrategyArray extends MDStrategy
 		this.model = model;
 		this.choices = choices;
 	}
-	
+
 	// Methods for MDStrategy
-	
+
 	@Override
 	public int getNumStates()
 	{
 		return model.getNumStates();
 	}
-	
+
+	@Override
+	public boolean isChoiceDefined(int s)
+	{
+		return choices[s] >= 0;
+	}
+
 	@Override
 	public Strategy.Choice getChoice(int s)
 	{
@@ -74,13 +79,13 @@ public class MDStrategyArray extends MDStrategy
 			return Choice.INDEX;
 		}
 	}
-	
+
 	@Override
 	public int getChoiceIndex(int s)
 	{
 		return choices[s];
 	}
-	
+
 	@Override
 	public Object getChoiceAction(int s)
 	{
@@ -89,7 +94,14 @@ public class MDStrategyArray extends MDStrategy
 	}
 
 	// Methods for Strategy
-	
+
+	@Override
+	public void exportInducedModel(PrismLog out)
+	{
+		Model dtmcInd = model.constructInducedModel(this);
+		dtmcInd.exportToPrismExplicitTra(out);
+	}
+
 	@Override
 	public void clear()
 	{

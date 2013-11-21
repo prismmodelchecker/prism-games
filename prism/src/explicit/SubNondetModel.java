@@ -28,15 +28,14 @@
 package explicit;
 
 import java.io.File;
-import java.io.NotSerializableException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 
 import parser.State;
 import parser.Values;
@@ -44,6 +43,7 @@ import parser.VarList;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
+import strat.MDStrategy;
 
 /*
  * Class for creating a sub-model of any NondetModel, please note the translate* methods
@@ -235,7 +235,7 @@ public class SubNondetModel implements NondetModel {
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(PrismLog log) throws PrismException {
+	public void exportToPrismExplicitTra(PrismLog log) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -293,6 +293,12 @@ public class SubNondetModel implements NondetModel {
 		i = translateAction(s, i);
 		
 		return model.getAction(s, i);
+	}
+
+	@Override
+	public boolean areAllChoiceActionsUnique()
+	{
+		throw new RuntimeException("Not implemented");
 	}
 
 	@Override
@@ -356,6 +362,12 @@ public class SubNondetModel implements NondetModel {
 			distrs.put(succ, e.getValue());
 		}
 		return distrs.entrySet().iterator();
+	}
+	
+	@Override
+	public Model constructInducedModel(MDStrategy strat)
+	{
+		throw new RuntimeException("Not implemented");
 	}
 	
 	private void generateLookupTable(BitSet states, Map<Integer,BitSet> actions) {

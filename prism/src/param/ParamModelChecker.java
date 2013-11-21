@@ -68,6 +68,7 @@ import parser.ast.*;
 import parser.ast.ExpressionFilter.FilterOperator;
 import parser.type.*;
 import prism.ModelType;
+import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
@@ -79,7 +80,7 @@ import prism.Result;
  * 
  * @author Ernst Moritz Hahn <emhahn@cs.ox.ac.uk> (University of Oxford)
  */
-final public class ParamModelChecker
+final public class ParamModelChecker extends PrismComponent
 {
 	// Log for output (default to System.out)
 	private PrismLog mainLog = new PrismPrintStreamLog(System.out);
@@ -118,23 +119,57 @@ final public class ParamModelChecker
 
 	private ModelBuilder modelBuilder;
 	
+	/**
+	 * Constructor
+	 */
+	public ParamModelChecker(PrismComponent parent) throws PrismException
+	{
+		super(parent);
+		
+		// If present, initialise settings from PrismSettings
+		if (settings != null) {
+		verbosity = settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1;
+		precision = new BigRational(settings.getString(PrismSettings.PRISM_PARAM_PRECISION));
+		String splitMethodString = settings.getString(PrismSettings.PRISM_PARAM_SPLIT);
+		if (splitMethodString.equals("Longest")) {
+			splitMethod = BoxRegion.SPLIT_LONGEST;
+		} else if (splitMethodString.equals("All")) {
+			splitMethod = BoxRegion.SPLIT_ALL;
+		} else {
+			throw new PrismException("unknown region splitting method " + splitMethodString);				
+		}
+		String eliminationOrderString = settings.getString(PrismSettings.PRISM_PARAM_ELIM_ORDER);
+		if (eliminationOrderString.equals("Arbitrary")) {
+			eliminationOrder = EliminationOrder.ARBITRARY;
+		} else if (eliminationOrderString.equals("Forward")) {
+			eliminationOrder = EliminationOrder.FORWARD;
+		} else if (eliminationOrderString.equals("Forward-reversed")) {
+			eliminationOrder = EliminationOrder.FORWARD_REVERSED;
+		} else if (eliminationOrderString.equals("Backward")) {
+			eliminationOrder = EliminationOrder.BACKWARD;
+		} else if (eliminationOrderString.equals("Backward-reversed")) {
+			eliminationOrder = EliminationOrder.BACKWARD_REVERSED;
+		} else if (eliminationOrderString.equals("Random")) {
+			eliminationOrder = EliminationOrder.RANDOM;
+		} else {
+			throw new PrismException("unknown state elimination order " + eliminationOrderString);				
+		}
+		numRandomPoints = settings.getInteger(PrismSettings.PRISM_PARAM_RANDOM_POINTS);
+		String bisimTypeString = settings.getString(PrismSettings.PRISM_PARAM_BISIM);
+		if (bisimTypeString.equals("Weak")) {
+			bisimType = BisimType.WEAK;
+		} else if (bisimTypeString.equals("Strong")) {
+			bisimType = BisimType.STRONG;
+		} else if (bisimTypeString.equals("None")) {
+			bisimType = BisimType.NULL;
+		} else {
+			throw new PrismException("unknown bisimulation type " + bisimTypeString);							
+		}
+		simplifyRegions = settings.getBoolean(PrismSettings.PRISM_PARAM_SUBSUME_REGIONS);
+		}
+	}
+	
 	// Setters/getters
-
-	/**
-	 * Set log for output.
-	 */
-	public void setLog(PrismLog log)
-	{
-		this.mainLog = log;
-	}
-
-	/**
-	 * Get log for output.
-	 */
-	public PrismLog getLog()
-	{
-		return mainLog;
-	}
 
 	/**
 	 * Set the attached model file (for e.g. reward structures when model checking)
@@ -149,88 +184,6 @@ final public class ParamModelChecker
 		constantValues.addValues(modulesFile.getConstantValues());
 		if (propertiesFile != null)
 			constantValues.addValues(propertiesFile.getConstantValues());
-	}
-
-	// Settings methods
-	
-	/**
-	 * Set settings from a PRISMSettings object.
-	 * @throws PrismException 
-	 */
-	public void setSettings(PrismSettings settings) throws PrismException
-	{
-		verbosity = settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1;
-		precision = new BigRational(settings.getString(PrismSettings.PRISM_PARAM_PRECISION));
-		String splitMethodString = settings.getString(PrismSettings.PRISM_PARAM_SPLIT);
-		if (splitMethodString.equals("longest")) {
-			splitMethod = BoxRegion.SPLIT_LONGEST;
-		} else if (splitMethodString.equals("all")) {
-			splitMethod = BoxRegion.SPLIT_ALL;
-		} else {
-			throw new PrismException("unknown region splitting method " + splitMethodString);				
-		}
-		String eliminationOrderString = settings.getString(PrismSettings.PRISM_PARAM_ELIM_ORDER);
-		if (eliminationOrderString.equals("arbitrary")) {
-			eliminationOrder = EliminationOrder.ARBITRARY;
-		} else if (eliminationOrderString.equals("forward")) {
-			eliminationOrder = EliminationOrder.FORWARD;
-		} else if (eliminationOrderString.equals("forward-reversed")) {
-			eliminationOrder = EliminationOrder.FORWARD_REVERSED;
-		} else if (eliminationOrderString.equals("backward")) {
-			eliminationOrder = EliminationOrder.BACKWARD;
-		} else if (eliminationOrderString.equals("backward-reversed")) {
-			eliminationOrder = EliminationOrder.BACKWARD_REVERSED;
-		} else if (eliminationOrderString.equals("random")) {
-			eliminationOrder = EliminationOrder.RANDOM;
-		} else {
-			throw new PrismException("unknown state elimination order " + eliminationOrderString);				
-		}
-		numRandomPoints = settings.getInteger(PrismSettings.PRISM_PARAM_RANDOM_POINTS);
-		String bisimTypeString = settings.getString(PrismSettings.PRISM_PARAM_BISIM);
-		if (bisimTypeString.equals("weak")) {
-			bisimType = BisimType.WEAK;
-		} else if (bisimTypeString.equals("strong")) {
-			bisimType = BisimType.STRONG;
-		} else if (bisimTypeString.equals("none")) {
-			bisimType = BisimType.NULL;
-		} else {
-			throw new PrismException("unknown bisimulation type " + bisimTypeString);							
-		}
-		simplifyRegions = settings.getBoolean(PrismSettings.PRISM_PARAM_SUBSUME_REGIONS);
-	}
-
-	/**
-	 * Inherit settings (and other info) from another model checker object.
-	 */
-	public void inheritSettings(ParamModelChecker other)
-	{
-		setLog(other.getLog());
-		setVerbosity(other.getVerbosity());
-	}
-
-	/**
-	 * Print summary of current settings.
-	 */
-	public void printSettings()
-	{
-		mainLog.print("verbosity = " + verbosity + " ");
-	}
-
-	// Set methods for flags/settings
-
-	/**
-	 * Set verbosity level, i.e. amount of output produced.
-	 */
-	public void setVerbosity(int verbosity)
-	{
-		this.verbosity = verbosity;
-	}
-
-	// Get methods for flags/settings
-
-	public int getVerbosity()
-	{
-		return verbosity;
 	}
 
 	// Model checking functions
@@ -312,10 +265,20 @@ final public class ParamModelChecker
 		RegionValues vals = checkExpression(paramModel, expr, needStates);
 		timer = System.currentTimeMillis() - timer;
 		mainLog.println("\nTime for model checking: " + timer / 1000.0 + " seconds.");
+
+		// Store result
 		result = new Result();
 		vals.clearExceptInit();
 		result.setResult(vals);
-		mainLog.println(result);
+		
+		// Print result to log
+		String resultString = "Result";
+		if (!("Result".equals(expr.getResultName())))
+			resultString += " (" + expr.getResultName().toLowerCase() + ")";
+		resultString += ": " + result.getResultString();
+		mainLog.print("\n" + resultString);
+		
+		/* // Output plot to tex file
 		if (paramLower.length == 2) {
 			try {
 				FileOutputStream file = new FileOutputStream("out.tex");
@@ -328,7 +291,7 @@ final public class ParamModelChecker
 			} catch (Exception e) {
 				throw new PrismException("file could not be written");
 			}
-		}
+		}*/
 		
 		return result;
 	}
@@ -953,7 +916,7 @@ final public class ParamModelChecker
 		probs = checkProbPathFormulaSimple(model, expr.getExpression(), min, needStates);
 		probs.clearNotNeeded(needStates);
 
-		if (getVerbosity() > 5) {
+		if (verbosity > 5) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
 			mainLog.print(probs);
 		}
@@ -1086,7 +1049,7 @@ final public class ParamModelChecker
 		rews.clearNotNeeded(needStates);
 
 		// Print out probabilities
-		if (getVerbosity() > 5) {
+		if (verbosity > 5) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
 			mainLog.print(rews);
 		}
@@ -1231,7 +1194,7 @@ final public class ParamModelChecker
 		probs = checkProbSteadyState(model, expr.getExpression(), min, needStates);
 		probs.clearNotNeeded(needStates);
 
-		if (getVerbosity() > 5) {
+		if (verbosity > 5) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
 			mainLog.print(probs);
 		}

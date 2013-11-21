@@ -153,6 +153,24 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public static final int LOCKSTEP = 2;
 	public static final int SCCFIND = 3;
 
+	// Options for type of strategy export
+	public enum StrategyExportType {
+		ACTIONS, INDICES, INDUCED_MODEL;
+		public String description()
+		{
+			switch (this) {
+			case ACTIONS:
+				return "as actions";
+			case INDICES:
+				return "as indices";
+			case INDUCED_MODEL:
+				return "as an induced model";
+			default:
+				return this.toString();
+			}
+		}
+	}
+	
 	//------------------------------------------------------------------------------
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
@@ -2704,6 +2722,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				setEngine(Prism.EXPLICIT);
 			}
 		}
+		// Compatibility check
+		if (genStrat && currentModelType.nondeterministic() && !getExplicit()) {
+			if (!((NondetModel) currentModel).areAllChoiceActionsUnique())
+				throw new PrismException("Cannot generate strategies with the current engine "
+						+ "because some state of the model do not have unique action labels for each choice. "
+						+ "Either switch to the explicit engine or add more action labels to the model");
+		}
 
 		try {
 			// Build model, if necessary
@@ -2935,27 +2960,78 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Export a strategy (for the currently loaded model);
-	 * TODO: is it necessarily loaded?
+	 * Perform parametric model checking on the currently loaded model.
+	 * @param propertiesFile parent properties file
+	 * @param prop property to model check
+	 * @param paramNames parameter names
+	 * @param paramLowerBounds lower bounds of parameters
+	 * @param paramUpperBounds upper bounds of parameters
+	 */
+	public Result modelCheckParametric(PropertiesFile propertiesFile, Property prop, String[] paramNames, String[] paramLowerBounds, String[] paramUpperBounds)
+			throws PrismException
+	{
+		// Some checks
+		if (paramNames == null) {
+			throw new PrismException("Must specify some parameters when using " + "the parametric analysis");
+		}
+		if (!(currentModelType == ModelType.DTMC || currentModelType == ModelType.CTMC || currentModelType == ModelType.MDP))
+			throw new PrismException("Parametric model checking is only supported for DTMCs, CTMCs and MDPs");
+
+		Values definedPFConstants = propertiesFile.getConstantValues();
+		Values constlist = currentModulesFile.getConstantValues();
+		for (int pnr = 0; pnr < paramNames.length; pnr++) {
+			constlist.removeValue(paramNames[pnr]);
+		}
+
+		// Print info
+		mainLog.printSeparator();
+		mainLog.println("\nParametric model checking: " + prop);
+		if (currentDefinedMFConstants != null && currentDefinedMFConstants.getNumValues() > 0)
+			mainLog.println("Model constants: " + currentDefinedMFConstants);
+		if (definedPFConstants != null && definedPFConstants.getNumValues() > 0)
+			mainLog.println("Property constants: " + definedPFConstants);
+
+		param.ModelBuilder builder = new ModelBuilder(this);
+		builder.setModulesFile(currentModulesFile);
+		builder.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
+		builder.build();
+		explicit.Model modelExpl = builder.getModel();
+		ParamModelChecker mc = new ParamModelChecker(this);
+		mc.setModelBuilder(builder);
+		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
+		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+		return mc.check(modelExpl, prop.getExpression());
+	}
+	
+	/**
+	 * Export a strategy. The associated model should be attached to the strategy.
+	 * Strictly, speaking that does not need to be the currently loaded model,
+	 * but it would probably have been discarded if that was not the case.
 	 * @param strat The strategy
+	 * @param exportType The type of output
 	 * @param file File to output the path to (stdout if null)
 	 */
-	public void exportStrategy(Strategy strat, File file) throws FileNotFoundException, PrismException
+	public void exportStrategy(Strategy strat, StrategyExportType exportType, File file) throws FileNotFoundException, PrismException
 	{
 		PrismLog tmpLog;
 
 		// Print message
-		mainLog.print("\nExporting strategy ");
-		//mainLog.print(getStringForExportType(exportType) + " ");
+		mainLog.print("\nExporting strategy " + exportType.description() + " ");
 		mainLog.println(getDestinationStringForFile(file));
 
-		// Create new file log or use main log
+		// Export to file (or use main log)
 		tmpLog = getPrismLogForFile(file);
-
-		// Export
-		strat.exportActions(tmpLog);
-
-		// Tidy up
+		switch (exportType) {
+		case ACTIONS:
+			strat.exportActions(tmpLog);
+			break;
+		case INDICES:
+			strat.exportIndices(tmpLog);
+			break;
+		case INDUCED_MODEL:
+			strat.exportInducedModel(tmpLog);
+			break;
+		}
 		if (file != null)
 			tmpLog.close();
 	}
@@ -3752,44 +3828,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		loadBuiltModel(model);
 		doTransient(time, exportType, file, fileIn);
-	}
-
-	/**
-	 * Performs parametric model checking.
-	 * 
-	 * @param propertiesFile parent properties file
-	 * @param prop property to model check
-	 * @param paramNames parameter names
-	 * @param paramLowerBounds lower bounds of parameters
-	 * @param paramUpperBounds upper bounds of parameters
-	 * @return
-	 * @throws PrismException e.g. if no parameters specified or other things go wrong
-	 */
-	public Result modelCheckParametric(PropertiesFile propertiesFile, Property prop, String[] paramNames, String[] paramLowerBounds, String[] paramUpperBounds)
-			throws PrismException
-	{
-
-		if (paramNames == null) {
-			throw new PrismException("Must specify some parameters when using " + "the parametric analysis");
-		}
-		Values constlist = currentModulesFile.getConstantValues();
-		for (int pnr = 0; pnr < paramNames.length; pnr++) {
-			constlist.removeValue(paramNames[pnr]);
-		}
-		param.ModelBuilder builder = new ModelBuilder();
-		builder.setModulesFile(currentModulesFile);
-		builder.setMainLong(mainLog);
-		builder.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		builder.setSettings(settings);
-		builder.build();
-		explicit.Model modelExpl = builder.getModel();
-		ParamModelChecker mc = new ParamModelChecker();
-		mc.setModelBuilder(builder);
-		mc.setLog(mainLog);
-		mc.setSettings(settings);
-		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
-		return mc.check(modelExpl, prop.getExpression());
 	}
 }
 

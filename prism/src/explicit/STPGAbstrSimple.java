@@ -46,6 +46,7 @@ import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
 import explicit.rewards.STPGRewards;
+import strat.MDStrategy;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game (STPG),
@@ -373,7 +374,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(PrismLog out) throws PrismException
+	public void exportToPrismExplicitTra(PrismLog out)
 	{
 		int i, j, k;
 		TreeMap<Integer, Double> sorted;
@@ -500,6 +501,12 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
+	public boolean areAllChoiceActionsUnique()
+	{
+		throw new RuntimeException("Not implemented");
+	}
+
+	@Override
 	public boolean allSuccessorsInSet(int s, int i, BitSet set)
 	{
 		return trans.get(s).get(i).isSubsetOf(set);
@@ -534,6 +541,12 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 		return null;
 	}
 
+	@Override
+	public Model constructInducedModel(MDStrategy strat)
+	{
+		throw new RuntimeException("Not implemented");
+	}
+	
 	@Override
 	public boolean isChoiceNested(int s, int i)
 	{

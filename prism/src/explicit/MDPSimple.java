@@ -526,7 +526,7 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	}
 
 	// Accessors (for NondetModel)
-	
+
 	@Override
 	public int getNumChoices(int s)
 	{
@@ -565,13 +565,13 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	{
 		return trans.get(s).get(i).isSubsetOf(set);
 	}
-	
+
 	@Override
 	public boolean someSuccessorsInSet(int s, int i, BitSet set)
 	{
 		return trans.get(s).get(i).containsOneOf(set);
 	}
-	
+
 	// Accessors (for MDP)
 
 	@Override
