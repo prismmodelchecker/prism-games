@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -160,6 +159,11 @@ public class SubNondetModel implements NondetModel {
 
 	@Override
 	public Values getConstantValues() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public BitSet getLabelStates(String name) {
 		throw new UnsupportedOperationException();
 	}
 
