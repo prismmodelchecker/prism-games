@@ -46,10 +46,12 @@ import parser.ast.PropertiesFile;
 import parser.type.Type;
 import prism.ModelType;
 import prism.Prism;
+import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
+import prism.PrismSettings;
 import prism.PrismUtils;
 import prism.ResultsCollection;
 import prism.UndefinedConstants;
@@ -97,12 +99,8 @@ import userinterface.graph.Graph;
  * <LI> {@link #modelCheckExperiment}
  * </UL>
  */
-public class SimulatorEngine
+public class SimulatorEngine extends PrismComponent
 {
-	// PRISM stuff
-	protected Prism prism;
-	protected PrismLog mainLog;
-
 	// The current parsed model + info
 	private ModulesFile modulesFile;
 	private ModelType modelType;
@@ -143,6 +141,9 @@ public class SimulatorEngine
 	// strategy information
 	private Strategy strategy;
 	private Map<State, Integer> stateIds;
+	
+	// TODO: remove this (not in trunk any more)
+	private Prism prism;
 
 	// ------------------------------------------------------------------------------
 	// Basic setup
@@ -151,10 +152,10 @@ public class SimulatorEngine
 	/**
 	 * Constructor for the simulator engine.
 	 */
-	public SimulatorEngine(Prism prism)
+	public SimulatorEngine(PrismComponent parent, Prism prism)
 	{
+		super(parent);
 		this.prism = prism;
-		setMainLog(prism.getMainLog());
 		modulesFile = null;
 		modelType = null;
 		varList = null;
@@ -174,22 +175,6 @@ public class SimulatorEngine
 		updater = null;
 		rng = new RandomNumberGenerator();
 		strategy = null;
-	}
-
-	/**
-	 * Set the log to which any output is sent. 
-	 */
-	public void setMainLog(PrismLog log)
-	{
-		mainLog = log;
-	}
-
-	/**
-	 * Get access to the parent Prism object
-	 */
-	public Prism getPrism()
-	{
-		return prism;
 	}
 
 	// ------------------------------------------------------------------------------
@@ -724,7 +709,8 @@ public class SimulatorEngine
 		transitionList = new TransitionList();
 
 		// Create updater for model
-		updater = new Updater(this, modulesFile, varList);
+		updater = new Updater(modulesFile, varList);
+		updater.setSumRoundOff(settings.getDouble(PrismSettings.PRISM_SUM_ROUND_OFF));
 
 		// Create storage for labels/properties
 		labels = new ArrayList<Expression>();
@@ -1796,9 +1782,9 @@ public class SimulatorEngine
 	public void setStrategy(Strategy strategy)
 	{
 		this.strategy = strategy;
-		if (strategy != null && getPrism().getBuiltModelExplicit() != null) {
+		if (strategy != null && prism.getBuiltModelExplicit() != null) {
 			stateIds = new HashMap<State, Integer>();
-			java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
+			java.util.List<State> stateslist = prism.getBuiltModelExplicit().getStatesList();
 			int i = 0;
 			for (State s : stateslist)
 				stateIds.put(s, i++);
