@@ -35,6 +35,7 @@ import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
+import parser.ast.RelOp;
 import parser.ast.RewardStruct;
 import prism.ModelType;
 import prism.PrismComponent;
@@ -487,11 +488,11 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		Expression pb; // Probability bound (expression)
 		double p = 0; // Probability bound (actual value)
-		String relOp;
+		RelOp relOp;
 		boolean min, exact;
 		StateValues probs = null;
 
-		// get info about operator
+		// Get info from operator
 		switch (type) {
 		case ExpressionPATL.PRB:
 			relOp = exprProb.getRelOp();
@@ -502,28 +503,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		default:
 			throw new PrismException("Relational operator type unknown.");
 		}
-
-		exact = false;
-		min = false;
-		// determine whether the problem is minimisation or maximisation
-		if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("min=")) {
-			// min
-			min = true;
-		} else if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("max=")) {
-			// max
-			min = false;
-		} else if (relOp.equals("=")) {
-			exact = true;
-		} else {
-			throw new PrismException("Unknown relational operator.");
-		}
+		min = !relOp.isLowerBound();
+		exact = relOp == RelOp.EQ;
 
 		if (!(this instanceof SMGModelChecker))
 			throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
 		if (type == ExpressionPATL.PRB) {
 			// Get info from prob operator
-			relOp = expr.getExpressionProb().getRelOp();
 			pb = expr.getExpressionProb().getProb();
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
@@ -651,13 +638,10 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
 	{
-		// Probability bound
-		Expression pb; // (expression)
-		double p = -1; // (actual value, -1 means undefined)
-		// Relational operator
-		String relOp;
-		// For nondeterministic models, are we finding min (true) or max (false)
-		// probs
+		Expression pb; // Probability bound (expression)
+		double p = -1; // Probability bound (actual value, -1 means undefined)
+		RelOp relOp; // Relational operator
+		// For nondeterministic models, are we finding min (true) or max (false) probs
 		boolean min1 = false;
 		boolean min2 = false;
 		ModelType modelType = model.getModelType();
@@ -677,27 +661,21 @@ public class ProbModelChecker extends NonProbModelChecker
 		// probabilities needed
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
-				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
-					// min
-					min1 = true;
-				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
-					// max
-					min1 = false;
-				} else {
-					throw new PrismException(
-							"Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+				min1 = relOp.isLowerBound();
+				if (relOp == RelOp.EQ) {
+					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
-				if (relOp.equals("minmin=")) {
+				if (relOp == RelOp.MINMIN) {
 					min1 = true;
 					min2 = true;
-				} else if (relOp.equals("minmax=")) {
+				} else if (relOp == RelOp.MINMAX) {
 					min1 = true;
 					min2 = false;
-				} else if (relOp.equals("maxmin=")) {
+				} else if (relOp == RelOp.MAXMIN) {
 					min1 = false;
 					min2 = true;
-				} else if (relOp.equals("maxmax=")) {
+				} else if (relOp == RelOp.MAXMAX) {
 					min1 = false;
 					min2 = false;
 				} else {
@@ -763,7 +741,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		RewardStruct rewStruct = null; // Reward struct object
 		Expression rb; // Reward bound (expression)
 		double r = 0; // Reward bound (actual value)
-		String relOp; // Relational operator
+		RelOp relOp; // Relational operator
 		boolean min1 = false;
 		boolean min2 = false;
 		ModelType modelType = model.getModelType();
@@ -787,31 +765,25 @@ public class ProbModelChecker extends NonProbModelChecker
 		// probabilities needed
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
-				if (relOp.equals(">") || relOp.equals(">=") || relOp.equals("min=")) {
-					// min
-					min1 = true;
-				} else if (relOp.equals("<") || relOp.equals("<=") || relOp.equals("max=")) {
-					// max
-					min1 = false;
-				} else {
-					throw new PrismException(
-							"Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+				min1 = relOp.isLowerBound();
+				if (relOp == RelOp.EQ) {
+					throw new PrismException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
-				if (relOp.equals("minmin=")) {
+				if (relOp == RelOp.MINMIN) {
 					min1 = true;
 					min2 = true;
-				} else if (relOp.equals("minmax=")) {
+				} else if (relOp == RelOp.MINMAX) {
 					min1 = true;
 					min2 = false;
-				} else if (relOp.equals("maxmin=")) {
+				} else if (relOp == RelOp.MAXMIN) {
 					min1 = false;
 					min2 = true;
-				} else if (relOp.equals("maxmax=")) {
+				} else if (relOp == RelOp.MAXMAX) {
 					min1 = false;
 					min2 = false;
 				} else {
-					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
+					throw new PrismException("Use e.g. \"Rminmax=?\" for stochastic games");
 				}
 			} else {
 				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator()
@@ -897,7 +869,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		Expression pb; // Probability bound (expression)
 		double p = 0; // Probability bound (actual value)
-		String relOp; // Relational operator
+		RelOp relOp; // Relational operator
 		ModelType modelType = model.getModelType();
 
 		StateValues probs = null;

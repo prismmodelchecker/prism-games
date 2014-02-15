@@ -51,7 +51,6 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
-import prism.PrismSettings;
 import prism.PrismUtils;
 import prism.ResultsCollection;
 import prism.UndefinedConstants;
@@ -432,11 +431,15 @@ public class SimulatorEngine extends PrismComponent
 		if (time > path.getTotalTime()) {
 			throw new PrismException("There is no time point " + time + " to backtrack to");
 		}
-		int step, n;
 		PathFull pathFull = (PathFull) path;
-		n = path.size();
+		// Get length (non-on-the-fly paths will never exceed length Integer.MAX_VALUE) 
+		long nLong = path.size();
+		if (nLong > Integer.MAX_VALUE)
+			throw new PrismException("PathFull cannot deal with paths over length " + Integer.MAX_VALUE);
+		int n = (int) nLong;
 		// Find the index of the step we are in at that point
 		// i.e. the first state whose cumulative time on entering exceeds 'time'
+		int step;
 		for (step = 0; step <= n && pathFull.getCumulativeTime(step) < time; step++)
 			;
 		// Then backtrack to this step
@@ -502,7 +505,10 @@ public class SimulatorEngine extends PrismComponent
 		boolean found;
 		State state, nextState;
 		createNewPath(modulesFile);
-		numSteps = newPath.size();
+		long numStepsLong = newPath.size();
+		if (numStepsLong > Integer.MAX_VALUE)
+			throw new PrismException("PathFull cannot deal with paths over length " + Integer.MAX_VALUE);
+		numSteps = (int) numStepsLong;
 		state = newPath.getState(0);
 		initialisePath(state);
 		for (i = 0; i < numSteps; i++) {
@@ -709,8 +715,7 @@ public class SimulatorEngine extends PrismComponent
 		transitionList = new TransitionList();
 
 		// Create updater for model
-		updater = new Updater(modulesFile, varList);
-		updater.setSumRoundOff(settings.getDouble(PrismSettings.PRISM_SUM_ROUND_OFF));
+		updater = new Updater(modulesFile, varList, this);
 
 		// Create storage for labels/properties
 		labels = new ArrayList<Expression>();
@@ -734,8 +739,8 @@ public class SimulatorEngine extends PrismComponent
 		Choice choice = transitions.getChoice(i);
 		if (!onTheFly && index == -1)
 			index = transitions.getTotalIndexOfTransition(i, offset);
-		// Compute probability for transition (is normalised for a DTMC)
-		double p = (modelType == ModelType.DTMC ? choice.getProbability(offset) / transitions.getNumChoices() : choice.getProbability(offset));
+		// Get probability for transition
+		double p = choice.getProbability(offset);
 		// Compute its transition rewards
 		updater.calculateTransitionRewards(path.getCurrentState(), choice, tmpTransitionRewards);
 		// Compute next state. Note use of path.getCurrentState() because currentState
@@ -783,7 +788,7 @@ public class SimulatorEngine extends PrismComponent
 		Choice choice = transitions.getChoice(i);
 		if (!onTheFly && index == -1)
 			index = transitions.getTotalIndexOfTransition(i, offset);
-		// Get probability for transition (no need to normalise because DTMC transitions are never timed)
+		// Get probability for transition
 		double p = choice.getProbability(offset);
 		// Compute its transition rewards
 		updater.calculateTransitionRewards(path.getCurrentState(), choice, tmpTransitionRewards);
@@ -838,11 +843,15 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	private void recomputeSamplers() throws PrismLangException
 	{
-		int i, n;
 		resetSamplers();
-		n = path.size();
+		// Get length (non-on-the-fly paths will never exceed length Integer.MAX_VALUE) 
+		long nLong = path.size();
+		if (nLong > Integer.MAX_VALUE)
+			throw new PrismLangException("PathFull cannot deal with paths over length " + Integer.MAX_VALUE);
+		int n = (int) nLong;
+		// Loop
 		PathFullPrefix prefix = new PathFullPrefix((PathFull) path, 0);
-		for (i = 0; i <= n; i++) {
+		for (int i = 0; i <= n; i++) {
 			prefix.setPrefixLength(i);
 			for (Sampler sampler : propertySamplers) {
 				sampler.update(prefix, null);
@@ -1008,9 +1017,7 @@ public class SimulatorEngine extends PrismComponent
 	public double getTransitionProbability(int i, int offset) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		double p = transitions.getChoice(i).getProbability(offset);
-		// For DTMCs, we need to normalise (over choices)
-		return (modelType == ModelType.DTMC ? p / transitions.getNumChoices() : p);
+		return transitions.getChoice(i).getProbability(offset);
 	}
 
 	/**
@@ -1019,9 +1026,7 @@ public class SimulatorEngine extends PrismComponent
 	public double getTransitionProbability(int index) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		double p = transitions.getTransitionProbability(index);
-		// For DTMCs, we need to normalise (over choices)
-		return (modelType == ModelType.DTMC ? p / transitions.getNumChoices() : p);
+		return transitions.getTransitionProbability(index);
 	}
 
 	/**
@@ -1088,7 +1093,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get the size of the current path (number of steps; or number of states - 1).
 	 */
-	public int getPathSize()
+	public long getPathSize()
 	{
 		return path.size();
 	}
@@ -1258,7 +1263,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get at which step a deterministic loop (if present) starts.
 	 */
-	public int loopStart()
+	public long loopStart()
 	{
 		return path.loopStart();
 	}
@@ -1266,7 +1271,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get at which step a deterministic loop (if present) ends.
 	 */
-	public int loopEnd()
+	public long loopEnd()
 	{
 		return path.loopEnd();
 	}
@@ -1390,7 +1395,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-	public Object modelCheckSingleProperty(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, State initialState, int maxPathLength,
+	public Object modelCheckSingleProperty(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
 	{
 		ArrayList<Expression> exprs;
@@ -1422,7 +1427,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
 	public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
-			int maxPathLength, SimulationMethod simMethod) throws PrismException
+			long maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
 		// Load model into simulator
 		createNewOnTheFlyPath(modulesFile);
@@ -1536,7 +1541,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @throws InterruptedException if the thread is interrupted
 	 */
 	public void modelCheckExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants,
-			ResultsCollection resultsCollection, Expression expr, State initialState, int maxPathLength, SimulationMethod simMethod) throws PrismException,
+			ResultsCollection resultsCollection, Expression expr, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException,
 			InterruptedException
 	{
 		// Load model into simulator
@@ -1637,9 +1642,10 @@ public class SimulatorEngine extends PrismComponent
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param maxPathLength The maximum path length for sampling
 	 */
-	private void doSampling(State initialState, int maxPathLength) throws PrismException
+	private void doSampling(State initialState, long maxPathLength) throws PrismException
 	{
-		int i, iters;
+		int iters;
+		long i;
 		// Flags
 		boolean stoppedEarly = false;
 		boolean deadlocksFound = false;
@@ -1649,7 +1655,7 @@ public class SimulatorEngine extends PrismComponent
 		boolean shouldStopSampling = false;
 		// Path stats
 		double avgPathLength = 0;
-		int minPathFound = 0, maxPathFound = 0;
+		long minPathFound = 0, maxPathFound = 0;
 		// Progress info
 		int lastPercentageDone = 0;
 		int percentageDone = 0;

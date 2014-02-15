@@ -28,6 +28,7 @@ package parser.visitor;
 
 import parser.ast.*;
 import parser.type.*;
+import prism.PrismException;
 import prism.PrismLangException;
 import prism.ModelType;
 
@@ -97,6 +98,18 @@ public class CheckValid extends ASTTraverse
 		}
 	}
 
+	public void visitPost(ExpressionProb e) throws PrismLangException
+	{
+		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+			throw new PrismLangException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+	}
+	
+	public void visitPost(ExpressionReward e) throws PrismLangException
+	{
+		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+			throw new PrismLangException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
+	}
+	
 	public void visitPost(ExpressionSS e) throws PrismLangException
 	{
 		// S operator only works for some models
@@ -106,5 +119,7 @@ public class CheckValid extends ASTTraverse
 		if (modelType == ModelType.PTA) {
 			throw new PrismLangException("The S operator cannot be used for PTAs");
 		}
+		/*if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+			throw new PrismLangException("Can't use \"S=?\" for nondeterministic models; use \"Smin=?\" or \"Smax=?\"");*/
 	}
 }
