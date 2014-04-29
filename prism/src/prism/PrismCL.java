@@ -399,6 +399,7 @@ public class PrismCL implements PrismModelListener
 						// if required, check result against expected value
 						if (test) {
 							try {
+								mainLog.println();
 								Values allConsts = new Values(definedMFConstants);
 								allConsts.addValues(definedPFConstants);
 								if (propertiesToCheck.get(j).checkAgainstExpectedResult(res.getResult(), allConsts)) {
@@ -1863,6 +1864,8 @@ public class PrismCL implements PrismModelListener
 					exportStratType = StrategyExportType.INDICES;
 				else if (optVal.equals("induced"))
 					exportStratType = StrategyExportType.INDUCED_MODEL;
+				else if (optVal.equals("dot"))
+					exportStratType = StrategyExportType.DOT_FILE;
 				else
 					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"type\" option of -exportstrat");
 			}

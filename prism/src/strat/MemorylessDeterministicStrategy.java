@@ -428,5 +428,12 @@ public class MemorylessDeterministicStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void exportDotFile(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
 	};
 }
