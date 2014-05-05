@@ -40,6 +40,7 @@ import parser.ast.Expression;
 import parser.ast.RewardStruct;
 import prism.PrismException;
 import prism.PrismFileLog;
+import prism.PrismLangException;
 import prism.PrismLog;
 import explicit.DTMC;
 import explicit.MDP;
@@ -100,7 +101,10 @@ public class ConstructRewards
 		}
 		// Special case: constant rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
 		}
 		// Normal: state rewards
 		else {
@@ -112,7 +116,10 @@ public class ConstructRewards
 				guard = rewStr.getStates(i);
 				for (j = 0; j < numStates; j++) {
 					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
-						rewSA.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+						double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+						if (Double.isNaN(rew))
+							throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+						rewSA.addToStateReward(j, rew);
 					}
 				}
 			}
@@ -136,7 +143,10 @@ public class ConstructRewards
 
 		// Special case: constant state rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
 		}
 		// Normal: state and transition rewards
 		else {
@@ -156,13 +166,19 @@ public class ConstructRewards
 							for (k = 0; k < numChoices; k++) {
 								mdpAction = mdp.getAction(j, k);
 								if (mdpAction == null ? (action.isEmpty()) : mdpAction.equals(action)) {
-									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+									if (Double.isNaN(rew))
+										throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+									rewSimple.addToTransitionReward(j, k, rew);
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+							rewSimple.addToStateReward(j, rew);
 						}
 					}
 				}
