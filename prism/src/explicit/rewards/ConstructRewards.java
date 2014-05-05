@@ -203,7 +203,10 @@ public class ConstructRewards
 
 		// Special case: constant state rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
 		}
 		// Normal: state and transition rewards
 		else {
@@ -222,21 +225,27 @@ public class ConstructRewards
 							numChoices = stpg.getNumChoices(s);
 							for (j = 0; j < numChoices; j++) {
 								stpgAction = stpg.getAction(s, j);
+								double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+								if (Double.isNaN(rew))
+									throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(s), rewStr.getReward(i));
 								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-									rewSimple.addToTransitionReward(s, j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+									rewSimple.addToTransitionReward(s, j, rew);
 								}
 								numChoices2 = stpg.getNumNestedChoices(s, j);
 								for (k = 0; k < numChoices2; k++) {
 									stpgAction = stpg.getNestedAction(s, j, k);
 									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-										rewSimple.addToNestedTransitionReward(s, j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+										rewSimple.addToNestedTransitionReward(s, j, k, rew);
 									}
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(s, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s)));
+							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(s), rewStr.getReward(i));
+							rewSimple.addToStateReward(s, rew);
 						}
 					}
 				}
@@ -263,7 +272,10 @@ public class ConstructRewards
 
 		// Special case: constant state rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			return new StateRewardsConstant(rewStr.getReward(0).evaluateDouble(constantValues));
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
 		}
 		// Normal: state and transition rewards
 		else {
@@ -287,13 +299,19 @@ public class ConstructRewards
 							for (k = 0; k < numChoices; k++) {
 								smgAction = smg.getAction(j, k);
 								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
-									rewSimple.addToTransitionReward(j, k, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+									if (Double.isNaN(rew))
+										throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+									rewSimple.addToTransitionReward(j, k, rew);
 								}
 							}
 						}
 						// State reward
 						else {
-							rewSimple.addToStateReward(j, rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j)));
+							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+							rewSimple.addToStateReward(j, rew);
 						}
 					}
 				}
