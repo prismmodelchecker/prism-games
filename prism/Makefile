@@ -57,13 +57,14 @@ endif
 # Architecture #
 ################
 
-# To build on AMD64 or Itanium machines, ARCH should be set.
-# We attempt to auto-detect this here.
-ifneq (,$(findstring 86_64, $(shell uname -m)))
-	ARCH = amd64
-endif
-ifneq (,$(findstring ia64, $(shell uname -m)))
-	ARCH = ia64
+# For Linux, we use uname to see if we are on a 64-bit (AMD64 or Itanium) machine
+ifeq ($(OSTYPE),linux)
+	ifneq (,$(findstring 86_64, $(shell uname -m)))
+		ARCH = amd64
+	endif
+	ifneq (,$(findstring ia64, $(shell uname -m)))
+		ARCH = ia64
+	endif
 endif
 # For Mac/Windows, we decide whether to build in 64-bit mode based on
 # whether java is 32/64-bit (since these need to match)
@@ -412,7 +413,7 @@ add_rev:
 
 dist_src: dist_check_version dist_copy clean_all dist_tidy
 
-dist_bin: JFLAGS += -source 1.6 -target 1.6
+dist_bin: JFLAGS += -source 1.7 -target 1.7
 dist_bin: dist_check_version all binary dist_tidy dist_bin_copy
 
 dist_check_version:
