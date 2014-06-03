@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jdd.JDD;
+
 import parser.State;
 import parser.Values;
 import parser.ast.Expression;
@@ -86,6 +88,9 @@ public class StateModelChecker extends PrismComponent
 
 	// Additional flags/settings not included in PrismSettings
 
+	// Store the final results vector after model checking?
+	protected boolean storeVector = false;
+	
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
 	
@@ -202,6 +207,14 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
+	 * Specify whether or not to store the final results vector after model checking.
+	 */
+	public void setStoreVector(boolean storeVector)
+	{
+		this.storeVector = storeVector;
+	}
+
+	/**
 	 * Specify whether or not a strategy should be generated during model checking.
 	 */
 	public void setGenStrat(boolean genStrat)
@@ -246,6 +259,14 @@ public class StateModelChecker extends PrismComponent
 	public int getVerbosity()
 	{
 		return verbosity;
+	}
+
+	/**
+	 * Whether or not to store the final results vector after model checking.
+	 */
+	public boolean getStoreVector()
+	{
+		return storeVector;
 	}
 
 	/**
@@ -300,7 +321,6 @@ public class StateModelChecker extends PrismComponent
 	 */
 	public Result check(Model model, Expression expr) throws PrismException
 	{
-		ExpressionFilter exprFilter = null;
 		long timer = 0;
 		StateValues vals;
 		String resultString;
@@ -310,57 +330,14 @@ public class StateModelChecker extends PrismComponent
 
 		// Remove any existing filter info
 		currentFilter = null;
-
-		// The final result of model checking will be a single value. If the
-		// expression to be checked does not
-		// already yield a single value (e.g. because a filter has not been
-		// explicitly included), we need to wrap
-		// a new (invisible) filter around it. Note that some filters (e.g.
-		// print/argmin/argmax) also do not
-		// return single values and have to be treated in this way.
-		if (!expr.returnsSingleValue()) {
-			// New filter depends on expression type and number of initial
-			// states.
-			// Boolean expressions...
-			if (expr.getType() instanceof TypeBool) {
-				// Result is true iff true for all initial states
-				exprFilter = new ExpressionFilter("forall", expr, new ExpressionLabel("init"));
-			}
-			// Non-Boolean (double or integer) expressions...
-			else {
-				// Result is for the initial state, if there is just one,
-				// or the range over all initial states, if multiple
-				if (model.getNumInitialStates() == 1) {
-					exprFilter = new ExpressionFilter("state", expr, new ExpressionLabel("init"));
-				} else {
-					exprFilter = new ExpressionFilter("range", expr, new ExpressionLabel("init"));
-				}
-			}
+		// Wrap a filter round the property, if needed
+		// (in order to extract the final result of model checking) 
+		ExpressionFilter exprFilter = ExpressionFilter.addDefaultFilterIfNeeded(expr, model.getNumInitialStates() == 1);
+		// And if we need to store a copy of the results vector, make a note of this
+		if (storeVector) {
+			exprFilter.setStoreVector(true);
 		}
-		// Even, when the expression does already return a single value, if the
-		// the outermost operator
-		// of the expression is not a filter, we still need to wrap a new filter
-		// around it.
-		// e.g. 2*filter(...) or 1-P=?[...{...}]
-		// This because the final result of model checking is only stored when
-		// we process a filter.
-		else if (!(expr instanceof ExpressionFilter)) {
-			// We just pick the first value (they are all the same)
-			exprFilter = new ExpressionFilter("first", expr, new ExpressionLabel("init"));
-			// We stop any additional explanation being displayed to avoid
-			// confusion.
-			exprFilter.setExplanationEnabled(false);
-		}
-
-		// For any case where a new filter was created above...
-		if (exprFilter != null) {
-			// Make it invisible (not that it will be displayed)
-			exprFilter.setInvisible(true);
-			// Compute type of new filter expression (will be same as child)
-			exprFilter.typeCheck();
-			// Store as expression to be model checked
-			expr = exprFilter;
-		}
+		expr = exprFilter;
 
 		// If required, do bisimulation minimisation
 		if (doBisim) {
@@ -388,7 +365,8 @@ public class StateModelChecker extends PrismComponent
 		mainLog.print("\n" + resultString + "\n");
 
 		// Clean up
-		vals.clear();
+		//vals.clear();
+		result.setVector(vals);
 
 		// Return result
 		return result;
@@ -1057,10 +1035,12 @@ public class StateModelChecker extends PrismComponent
 		} else {
 			result.setExplanation(null);
 		}
-
-		// Clear up
-		if (vals != null)
+		// Store vector if requested (and if not, clear it)
+		if (storeVector) {
+			result.setVector(vals);
+		} else if (vals != null) {
 			vals.clear();
+		}
 
 		return resVals;
 	}
