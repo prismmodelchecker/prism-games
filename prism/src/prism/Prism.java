@@ -2206,11 +2206,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				throw new PrismException("Export not yet supported");
 			case Prism.EXPORT_DOT:
 				currentModelExpl.exportToDotFile(tmpLog);
+				break;
 			case Prism.EXPORT_MRMC:
 			case Prism.EXPORT_ROWS:
 			case Prism.EXPORT_DOT_STATES:
 				throw new PrismException("Export not yet supported");
 			}
+			tmpLog.close();
 		}
 
 		// for export to dot with states, need to do a bit more
@@ -3501,6 +3503,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		PrismMTBDD.closeDown();
 		PrismSparse.closeDown();
 		PrismHybrid.closeDown();
+		ParamModelChecker.closeDown();
 		// Close down CUDD/JDD
 		if (cuddStarted) {
 			JDD.CloseDownCUDD(check);
