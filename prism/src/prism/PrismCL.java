@@ -88,7 +88,6 @@ public class PrismCL implements PrismModelListener
 	private int exportType = Prism.EXPORT_PLAIN;
 	private boolean exportordered = true;
 	private boolean exportstrat = false;
-	private boolean exportstats = false;
 	private boolean simulate = false;
 	private boolean simpath = false;
 	private boolean param = false;
@@ -141,7 +140,6 @@ public class PrismCL implements PrismModelListener
 	private String exportSteadyStateFilename = null;
 	private String exportTransientFilename = null;
 	private String exportStratFilename = null;
-	private String exportStatsFilename = null;
 	private String simpathFilename = null;
 
 	// logs
@@ -414,31 +412,6 @@ public class PrismCL implements PrismModelListener
 							}
 						}
 						
-						if(exportstats) {
-							if(prism.getBuiltModelExplicit() == null) {
-								errorAndExit("Model statistics are only available for the explicit engine.");
-							}
-							
-							mainLog.print("\nGenerating stats ");
-							if (!exportStatsFilename.equals("stdout"))
-								mainLog.println("to file \"" + exportStatsFilename + "\"...");
-							else
-								mainLog.println("below:\n");
-							PrismFileLog tmpLog = new PrismFileLog(exportStatsFilename);
-							if (!tmpLog.ready()) {
-								errorAndExit("Couldn't open file \"" + exportStatsFilename + "\" for output");
-							}
-
-							ModelStatistics ms = new ModelStatistics((SMG)prism.getBuiltModelExplicit());
-							try {
-								ms.generateStatistics(tmpLog);
-							} catch (PrismException e) {
-								error(e.getMessage());
-							}
-							
-							tmpLog.close();
-						}
-
 						// iterate to next property
 						undefinedConstants[j].iterateProperty();
 					}
@@ -1420,15 +1393,6 @@ public class PrismCL implements PrismModelListener
 					if (i < args.length - 1) {
 						exportspy = true;
 						exportSpyFilename = args[++i];
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// export model statistics to file
-				else if (sw.equals("exportstats")) {
-					if (i < args.length - 1) {
-						exportstats = true;
-						exportStatsFilename = args[++i];
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
