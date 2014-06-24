@@ -55,7 +55,7 @@ public class DTMCModelChecker extends ProbModelChecker
 	{
 		super(parent);
 	}
-	
+
 	// Model checking functions
 
 	/**
