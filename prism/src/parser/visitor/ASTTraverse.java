@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -382,6 +382,15 @@ public class ASTTraverse implements ASTVisitor
 		return null;
 	}
 	public void visitPost(SystemBrackets e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(SystemReference e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(SystemReference e) throws PrismLangException
+	{
+		visitPre(e);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(SystemReference e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionTemporal e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionTemporal e) throws PrismLangException

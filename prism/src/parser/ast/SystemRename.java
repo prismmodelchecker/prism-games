@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -38,141 +38,165 @@ public class SystemRename extends SystemDefn
 	// Vectors for pairs of actions to be renamed
 	private Vector<String> from;
 	private Vector<String> to;
-	
+
 	// Constructors
-	
+
 	public SystemRename()
 	{
 		from = new Vector<String>();
 		to = new Vector<String>();
 	}
-	
+
 	public SystemRename(SystemDefn s)
 	{
 		operand = s;
 		from = new Vector<String>();
 		to = new Vector<String>();
 	}
-	
+
 	// Set methods
-	
+
 	public void setOperand(SystemDefn s)
 	{
 		operand = s;
 	}
-	
+
 	public void addRename(String s1, String s2)
 	{
 		from.addElement(s1);
 		to.addElement(s2);
 	}
-		
+
 	public void setRename(int i, String s1, String s2)
 	{
 		from.setElementAt(s1, i);
 		to.setElementAt(s2, i);
 	}
-			
+
 	// Get methods
-	
+
 	public SystemDefn getOperand()
 	{
 		return operand;
 	}
-	
+
 	public int getNumRenames()
 	{
 		return from.size();
 	}
-	
+
 	public String getFrom(int i)
 	{
 		return from.elementAt(i);
 	}
-		
+
 	public String getTo(int i)
 	{
 		return to.elementAt(i);
 	}
-		
+
 	public String getNewName(String s)
 	{
 		int i;
-		
+
 		i = from.indexOf(s);
 		if (i == -1) {
 			return s;
-		}
-		else {
-			return (String)to.elementAt(i);
+		} else {
+			return (String) to.elementAt(i);
 		}
 	}
-		
+
 	// Methods required for SystemDefn (all subclasses should implement):
-	
-	/**
-	 * Get list of all modules appearing (recursively).
-	 */
+
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getModules(Vector<String> v)
 	{
 		operand.getModules(v);
 	}
 
-	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
-	 */
+	@Override
+	public void getModules(Vector<String> v, ModulesFile modulesFile)
+	{
+		operand.getModules(v, modulesFile);
+	}
+
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getSynchs(Vector<String> v)
 	{
 		int i, n;
 		String s;
-		
+
 		// add action names in renames
 		// (only look in 'to' vector because we're only
 		//  interested in actions _introduced_)
 		n = getNumRenames();
 		for (i = 0; i < n; i++) {
 			s = getTo(i);
-			if (!(v.contains(s))) v.addElement(s);
+			if (!(v.contains(s)))
+				v.addElement(s);
 		}
-		
+
 		// recurse
 		operand.getSynchs(v);
 	}
 
+	@Override
+	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
+	{
+		int i, n;
+		String s;
+
+		// add action names in renames
+		// (only look in 'to' vector because we're only
+		//  interested in actions _introduced_)
+		n = getNumRenames();
+		for (i = 0; i < n; i++) {
+			s = getTo(i);
+			if (!(v.contains(s)))
+				v.addElement(s);
+		}
+
+		// recurse
+		operand.getSynchs(v, modulesFile);
+	}
+
+	@Override
+	public void getReferences(Vector<String> v)
+	{
+		operand.getReferences(v);
+	}
+
 	// Methods required for ASTElement:
-	
-	/**
-	 * Visitor method.
-	 */
+
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
-	
-	/**
-	 * Convert to string.
-	 */
+
+	@Override
 	public String toString()
 	{
 		int i, n;
 		String s = "";
-		
+
 		s = s + operand + "{";
 		n = getNumRenames();
-		for (i = 0; i < n-1; i++) {
+		for (i = 0; i < n - 1; i++) {
 			s = s + getFrom(i) + "<-" + getTo(i) + ",";
 		}
 		if (n > 0) {
-			s = s + getFrom(n-1) + "<-" + getTo(n-1);
+			s = s + getFrom(n - 1) + "<-" + getTo(n - 1);
 		}
 		s = s + "}";
-		
+
 		return s;
 	}
-	
-	/**
-	 * Perform a deep copy.
-	 */
+
+	@Override
 	public SystemDefn deepCopy()
 	{
 		int i, n;

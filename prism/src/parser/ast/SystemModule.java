@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -63,43 +63,51 @@ public class SystemModule extends SystemDefn
 	
 	// Methods required for SystemDefn (all subclasses should implement):
 	
-	/**
-	 * Get list of all modules appearing (recursively).
-	 */
+	@Override
 	public void getModules(Vector<String> v)
 	{
 		v.addElement(name);
 	}
 	
-	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
-	 */
+	@Override
+	public void getModules(Vector<String> v, ModulesFile modulesFile)
+	{
+		v.addElement(name);
+	}
+	
+	@Override
 	public void getSynchs(Vector<String> v)
+	{
+		// do nothing
+	}
+	
+	@Override
+	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
+	{
+		// do nothing
+	}
+	
+	@Override
+	public void getReferences(Vector<String> v)
 	{
 		// do nothing
 	}
 	
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
 	public String toString()
 	{
 		return name;
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
+	@Override
 	public SystemDefn deepCopy()
 	{
 		SystemDefn ret = new SystemModule(name);

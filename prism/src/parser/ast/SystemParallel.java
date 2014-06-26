@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -104,37 +104,52 @@ public class SystemParallel extends SystemDefn
 		
 	// Methods required for SystemDefn (all subclasses should implement):
 	
-	/**
-	 * Get list of all modules appearing (recursively).
-	 */
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getModules(Vector<String> v)
 	{
 		operand1.getModules(v);
 		operand2.getModules(v);
 	}
 
-	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
-	 */
+	@Override
+	public void getModules(Vector<String> v, ModulesFile modulesFile)
+	{
+		operand1.getModules(v, modulesFile);
+		operand2.getModules(v, modulesFile);
+	}
+
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getSynchs(Vector<String> v)
 	{
 		operand1.getSynchs(v);
 		operand2.getSynchs(v);
 	}
 	
+	@Override
+	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
+	{
+		operand1.getSynchs(v, modulesFile);
+		operand2.getSynchs(v, modulesFile);
+	}
+	
+	@Override
+	public void getReferences(Vector<String> v)
+	{
+		operand1.getReferences(v);
+		operand2.getReferences(v);
+	}
+	
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
 	public String toString()
 	{
 		int i, n;
@@ -153,9 +168,7 @@ public class SystemParallel extends SystemDefn
 		return s;
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
+	@Override
 	@SuppressWarnings("unchecked")
 	public SystemDefn deepCopy()
 	{

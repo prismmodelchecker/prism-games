@@ -31,97 +31,71 @@ import java.util.Vector;
 import parser.visitor.*;
 import prism.PrismLangException;
 
-public class SystemInterleaved extends SystemDefn
+public class SystemReference extends SystemDefn
 {
-	// Vector of operands
-	private Vector<SystemDefn> operands;
+	// Name of SystemDefn referenced
+	private String name;
 	
-	// Constructor
+	// Constructors
 	
-	public SystemInterleaved()
+	public SystemReference(String name)
 	{
-		operands = new Vector<SystemDefn>();
+		this.name = name;
 	}
 	
-	// Set methods
+	// Set method
 	
-	public void addOperand(SystemDefn s)
+	public void setName(String name)
 	{
-		operands.addElement(s);
-	}
-		
-	public void setOperand(int i, SystemDefn s)
-	{
-		operands.setElementAt(s, i);
-	}
-			
-	// Get methods
-	
-	public int getNumOperands()
-	{
-		return operands.size();
+		this.name = name;
 	}
 	
-	public SystemDefn getOperand(int i)
+	// Get method
+	
+	public String getName()
 	{
-		return operands.elementAt(i);
+		return name;
 	}
-		
+	
 	// Methods required for SystemDefn (all subclasses should implement):
 	
 	@Override
-	@SuppressWarnings("deprecation")
 	public void getModules(Vector<String> v)
 	{
-		int i, n;
-		
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			getOperand(i).getModules(v);
-		}
+		v.addElement(name);
 	}
-
+	
 	@Override
 	public void getModules(Vector<String> v, ModulesFile modulesFile)
 	{
-		int i, n;
-		
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			getOperand(i).getModules(v, modulesFile);
+		// Recurse into referenced SystemDefn
+		SystemDefn ref = modulesFile.getSystemDefnByName(name);
+		if (ref != null) {
+			ref.getModules(v, modulesFile);
 		}
 	}
-
+	
 	@Override
-	@SuppressWarnings("deprecation")
 	public void getSynchs(Vector<String> v)
 	{
-		int i, n;
-		
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			getOperand(i).getSynchs(v);
-		}
+		// do nothing
 	}
 	
 	@Override
 	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
 	{
-		int i, n;
-		
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			getOperand(i).getSynchs(v, modulesFile);
+		// Recurse into referenced SystemDefn
+		SystemDefn ref = modulesFile.getSystemDefnByName(name);
+		if (ref != null) {
+			ref.getSynchs(v, modulesFile);
 		}
 	}
 	
 	@Override
 	public void getReferences(Vector<String> v)
 	{
-		int n = getNumOperands();
-		for (int i = 0; i < n; i++) {
-			getOperand(i).getReferences(v);
-		}
+		if (!v.contains(name))
+			v.add(name);
 	}
 	
 	// Methods required for ASTElement:
@@ -135,29 +109,13 @@ public class SystemInterleaved extends SystemDefn
 	@Override
 	public String toString()
 	{
-		int i, n;
-		String s = "";
-		
-		n = getNumOperands();
-		for (i = 0; i < n-1; i++) {
-			s = s + getOperand(i) + " ||| ";
-		}
-		if (n > 0) {
-			s = s + getOperand(n-1);
-		}
-		
-		return s;
+		return "\"" + name + "\"";
 	}
 	
 	@Override
 	public SystemDefn deepCopy()
 	{
-		int i, n;
-		SystemInterleaved ret = new SystemInterleaved();
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			ret.addOperand(getOperand(i).deepCopy());
-		}
+		SystemDefn ret = new SystemReference(name);
 		ret.setPosition(this);
 		return ret;
 	}

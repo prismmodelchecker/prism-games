@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -38,6 +38,7 @@ import parser.type.Type;
 import parser.visitor.ASTVisitor;
 import prism.ModelType;
 import prism.PrismLangException;
+import prism.PrismUtils;
 
 // Class representing parsed model file
 
@@ -52,7 +53,8 @@ public class ModulesFile extends ASTElement
 	private ConstantList constantList;
 	private Vector<Declaration> globals; // Global variables
 	private Vector<Object> modules; // Modules (includes renamed modules)
-	private SystemDefn systemDefn; // System definition (system...endsystem construct)
+	private ArrayList<SystemDefn> systemDefns; // System definitions (system...endsystem constructs)
+	private ArrayList<String> systemDefnNames; // System definition names (system...endsystem constructs)
 	private ArrayList<RewardStruct> rewardStructs; // Rewards structures
 	private Expression initStates; // Initial states specification
 	private List<Player> players; // Player definitions
@@ -83,7 +85,8 @@ public class ModulesFile extends ASTElement
 		modelType = ModelType.MDP; // default type
 		globals = new Vector<Declaration>();
 		modules = new Vector<Object>();
-		systemDefn = null;
+		systemDefns = new ArrayList<SystemDefn>();
+		systemDefnNames = new ArrayList<String>();
 		rewardStructs = new ArrayList<RewardStruct>();
 		initStates = null;
 		players = new ArrayList<Player>();
@@ -145,9 +148,55 @@ public class ModulesFile extends ASTElement
 		modules.add(m);
 	}
 
-	public void setSystemDefn(SystemDefn s)
+	/**
+	 * Set a (single, un-named) "system...endsystem" construct for this model.
+	 * @param systemDefn SystemDefn object for the "system...endsystem" construct 
+	 */
+	public void setSystemDefn(SystemDefn systemDefn)
 	{
-		systemDefn = s;
+		clearSystemDefns();
+		addSystemDefn(systemDefn);
+	}
+
+	/**
+	 * Remove any "system...endsystem" constructs for this model.
+	 */
+	public void clearSystemDefns()
+	{
+		systemDefns.clear();
+		systemDefnNames.clear();
+	}
+
+	/**
+	 * Add an (un-named) "system...endsystem" construct to this model.
+	 * @param systemDefn SystemDefn object for the "system...endsystem" construct 
+	 */
+	public void addSystemDefn(SystemDefn systemDefn)
+	{
+		addSystemDefn(systemDefn, null);
+	}
+
+	/**
+	 * Add a "system...endsystem" construct to this model.
+	 * @param systemDefn SystemDefn object for the "system...endsystem" construct 
+	 * @param name Optional name for the construct (null if un-named) 
+	 */
+	public void addSystemDefn(SystemDefn systemDefn, String name)
+	{
+		systemDefns.add(systemDefn);
+		systemDefnNames.add(name);
+	}
+
+	/**
+	 * Set the {@code i}th  "system...endsystem" construct for this model.
+	 * @param i Index (starting from 0) 
+	 * @param systemDefn SystemDefn object for the "system...endsystem" construct 
+	 * @param name Optional name for the construct (null if un-named) 
+	 */
+	public void setSystemDefn(int i, SystemDefn systemDefn, String name)
+	{
+		systemDefns.set(i, systemDefn);
+		systemDefnNames.set(i, name);
 	}
 
 	public void clearRewardStructs()
@@ -268,9 +317,74 @@ public class ModulesFile extends ASTElement
 		return -1;
 	}
 
+	/**
+	 * Get the default "system...endsystem" construct for this model, if it exists.
+	 * If there is an un-named "system...endsystem" (there can be at most one),
+	 * this is the default. If not, the first (named) one is taken as the default.
+	 * If there are no  "system...endsystem" constructs, this method returns null.
+	 */
 	public SystemDefn getSystemDefn()
 	{
-		return systemDefn;
+		int n = systemDefns.size();
+		if (n == 0)
+			return null;
+		for (int i = 0; i < n; i++) {
+			if (systemDefnNames.get(i) == null)
+				return systemDefns.get(i);
+		}
+		return systemDefns.get(0);
+	}
+	
+	/**
+	 * Get the number of "system...endsystem" constructs for this model.
+	 */
+	public int getNumSystemDefns()
+	{
+		return systemDefns.size();
+	}
+
+	/**
+	 * Get the {@code i}th "system...endsystem" construct for this model (0-indexed).
+	 */
+	public SystemDefn getSystemDefn(int i)
+	{
+		return systemDefns.get(i);
+	}
+
+	/**
+	 * Get the name of the {@code i}th "system...endsystem" construct for this model (0-indexed).
+	 * Returns null if that construct is un-named.
+	 */
+	public String getSystemDefnName(int i)
+	{
+		return systemDefnNames.get(i);
+	}
+
+	/**
+	 * Get the index of a "system...endsystem" construct by its name (indexed from 0).
+	 * Passing null for the name looks up an un-named construct. 
+	 * Returns null if the requested construct does not exist.
+	 */
+	public int getSystemDefnIndex(String name)
+	{
+		int n = systemDefns.size();
+		for (int i = 0; i < n; i++) {
+			String s = systemDefnNames.get(i); 
+			if ((s == null && name == null) || (s != null && s.equals(name)))
+				return i;
+		}
+		return -1;
+	}
+
+	/**
+	 * Get a "system...endsystem" construct by its name.
+	 * Passing null for the name looks up an un-named construct. 
+	 * Returns null if the requested construct does not exist.
+	 */
+	public SystemDefn getSystemDefnByName(String name)
+	{
+		int i = getSystemDefnIndex(name);
+		return i == -1 ? null : getSystemDefn(i);
 	}
 
 	/**
@@ -555,11 +669,6 @@ public class ModulesFile extends ASTElement
 		// Check module names
 		checkModuleNames();
 
-		// Get synchronising action names
-		getSynchNames();
-		// Then identify/check any references to action names
-		findAllActions(synchs);
-
 		// Check constant identifiers
 		checkConstantIdents();
 		// Find all instances of constants
@@ -579,6 +688,15 @@ public class ModulesFile extends ASTElement
 
 		// Check reward structure names
 		checkRewardStructNames();
+
+		// Check "system...endsystem" constructs
+		checkSystemDefns();
+		
+		// Get synchronising action names
+		// (NB: Do this *after* checking for cycles in system defns above)
+		getSynchNames();
+		// Then identify/check any references to action names
+		findAllActions(synchs);
 
 		// Check player info
 		checkPlayerDefns();
@@ -738,10 +856,10 @@ public class ModulesFile extends ASTElement
 			}
 		}
 
-		// then extract any which are introduced in system construct (i.e. by
-		// renaming)
-		if (systemDefn != null) {
-			systemDefn.getSynchs(synchs);
+		// then extract any which are introduced in the (default) system construct (by renaming)
+		SystemDefn defaultSystemDefn = getSystemDefn();
+		if (defaultSystemDefn != null) {
+			defaultSystemDefn.getSynchs(synchs, this);
 		}
 	}
 
@@ -830,6 +948,7 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+<<<<<<< .working
 	 * Check that player definitions are valid.
 	 */
 	private void checkPlayerDefns() throws PrismLangException
@@ -863,6 +982,60 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+=======
+	 * Check "system...endsystem" constructs, if present.
+	 */
+	private void checkSystemDefns() throws PrismLangException
+	{
+		int n = systemDefns.size();
+		
+		// Check there is a most one un-named system...endsystem...
+		
+		// None is ok
+		if (n == 0)
+			return;
+		// If there are any, at most one should be un-named
+		// and names should be unique 
+		int numUnnamed = 0;
+		HashSet<String> names = new HashSet<String>();
+		for (int i = 0; i < n; i++) {
+			String s = systemDefnNames.get(i); 
+			if (s == null) {
+				numUnnamed++;
+			} else {
+				if (!names.add(s))
+					throw new PrismLangException("Duplicated system...endystem name \"" + s + "\"", getSystemDefn(i));
+			}
+			if (numUnnamed > 1)
+				throw new PrismLangException("There can be at most one un-named system...endsystem construct", getSystemDefn(i));
+		}
+
+		// Check for cyclic dependencies...
+		
+		// Create boolean matrix of dependencies
+		// (matrix[i][j] is true if prop i contains a ref to prop j)
+		boolean matrix[][] = new boolean[n][n];
+		for (int i = 0; i < n; i++) {
+			SystemDefn sys = systemDefns.get(i);
+			Vector<String> v = new Vector<>();
+			sys.getReferences(v);
+			for (int j = 0; j < v.size(); j++) {
+				int k = getSystemDefnIndex(v.elementAt(j));
+				if (k != -1) {
+					matrix[i][k] = true;
+				}
+			}
+		}
+		// Check for and report dependencies
+		int firstCycle = PrismUtils.findCycle(matrix);
+		if (firstCycle != -1) {
+			String s = "Cyclic dependency from references in system...endsystem definition \"" + getSystemDefnName(firstCycle) + "\"";
+			throw new PrismLangException(s, getSystemDefn(firstCycle));
+		}
+	}
+	
+	/**
+>>>>>>> .merge-right.r8602
 	 * Get  a list of constants in the model that are undefined
 	 * ("const int x;" rather than "const int x = 1;") 
 	 */
@@ -1097,8 +1270,11 @@ public class ModulesFile extends ASTElement
 		}
 		s += modules.elementAt(modules.size() - 1) + "\n";
 
-		if (systemDefn != null) {
-			s += "\nsystem " + systemDefn + " endsystem\n";
+		for (i = 0; i < systemDefns.size(); i++) {
+			s += "\nsystem ";
+			if (systemDefnNames.get(i) != null)
+				s += "\"" + systemDefnNames.get(i) + "\" ";
+			s += systemDefns.get(i) + " endsystem\n";
 		}
 
 		for (Player player : players) {
@@ -1142,8 +1318,10 @@ public class ModulesFile extends ASTElement
 		for (i = 0; i < n; i++) {
 			ret.addModule((Module) getModule(i).deepCopy());
 		}
-		if (systemDefn != null)
-			ret.setSystemDefn(systemDefn.deepCopy());
+		n = getNumSystemDefns();
+		for (i = 0; i < n; i++) {
+			ret.addSystemDefn(getSystemDefn(i).deepCopy(), getSystemDefnName(i));
+		}
 		n = getNumRewardStructs();
 		for (i = 0; i < n; i++) {
 			ret.addRewardStruct((RewardStruct) getRewardStruct(i).deepCopy());

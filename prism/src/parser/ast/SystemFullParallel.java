@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -69,9 +69,8 @@ public class SystemFullParallel extends SystemDefn
 		
 	// Methods required for SystemDefn (all subclasses should implement):
 	
-	/**
-	 * Get list of all modules appearing (recursively).
-	 */
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getModules(Vector<String> v)
 	{
 		int i, n;
@@ -82,9 +81,19 @@ public class SystemFullParallel extends SystemDefn
 		}
 	}
 
-	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
-	 */
+	@Override
+	public void getModules(Vector<String> v, ModulesFile modulesFile)
+	{
+		int i, n;
+		
+		n = getNumOperands();
+		for (i = 0; i < n; i++) {
+			getOperand(i).getModules(v, modulesFile);
+		}
+	}
+
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getSynchs(Vector<String> v)
 	{
 		int i, n;
@@ -95,19 +104,35 @@ public class SystemFullParallel extends SystemDefn
 		}
 	}
 	
+	@Override
+	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
+	{
+		int i, n;
+		
+		n = getNumOperands();
+		for (i = 0; i < n; i++) {
+			getOperand(i).getSynchs(v, modulesFile);
+		}
+	}
+	
+	@Override
+	public void getReferences(Vector<String> v)
+	{
+		int n = getNumOperands();
+		for (int i = 0; i < n; i++) {
+			getOperand(i).getReferences(v);
+		}
+	}
+	
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
 	public String toString()
 	{
 		int i, n;
@@ -124,9 +149,7 @@ public class SystemFullParallel extends SystemDefn
 		return s;
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
+	@Override
 	public SystemDefn deepCopy()
 	{
 		int i, n;

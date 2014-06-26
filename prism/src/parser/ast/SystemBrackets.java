@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -67,43 +67,53 @@ public class SystemBrackets extends SystemDefn
 	
 	// Methods required for SystemDefn (all subclasses should implement):
 	
-	/**
-	 * Get list of all modules appearing (recursively).
-	 */
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getModules(Vector<String> v)
 	{
 		operand.getModules(v);
 	}
 
-	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
-	 */
+	@Override
+	public void getModules(Vector<String> v, ModulesFile modulesFile)
+	{
+		operand.getModules(v, modulesFile);
+	}
+
+	@Override
+	@SuppressWarnings("deprecation")
 	public void getSynchs(Vector<String> v)
 	{
 		operand.getSynchs(v);
 	}
 	
+	@Override
+	public void getSynchs(Vector<String> v, ModulesFile modulesFile)
+	{
+		operand.getSynchs(v, modulesFile);
+	}
+	
+	@Override
+	public void getReferences(Vector<String> v)
+	{
+		operand.getReferences(v);
+	}
+	
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
 	public String toString()
 	{
 		return "(" + operand + ")";
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
+	@Override
 	public SystemDefn deepCopy()
 	{
 		SystemDefn ret = new SystemBrackets(getOperand().deepCopy());

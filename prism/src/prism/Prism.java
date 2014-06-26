@@ -3106,6 +3106,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 *  Sets the strategy that will be available for this prism session
+	 * @param strat the strategy
+	 */
+	public void setStrategy(strat.Strategy strat)
+	{
+		this.strategy = strat;
+	}
+
+	/**
 	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
 	 * Output probability distribution to log. 
 	 */
@@ -3123,7 +3132,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void doSteadyState(int exportType, File fileOut, File fileIn) throws PrismException
 	{
 		long l = 0; // timer
-		ModelChecker mc = null;
 		StateValues probs = null;
 		explicit.StateValues probsExpl = null;
 		PrismLog tmpLog;
@@ -3147,29 +3155,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		buildModelIfRequired();
 
 		l = System.currentTimeMillis();
-
 		if (!getExplicit()) {
-			if (currentModel.getModelType() == ModelType.DTMC) {
-				mc = new ProbModelChecker(this, currentModel, null);
-				probs = ((ProbModelChecker) mc).doSteadyState(fileIn);
-			} else if (currentModel.getModelType() == ModelType.CTMC) {
-				mc = new StochModelChecker(this, currentModel, null);
-				probs = ((StochModelChecker) mc).doSteadyState(fileIn);
-			} else {
-				throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-			}
+			probs = computeSteadyStateProbabilities(currentModel, fileIn);
 		} else {
-			if (currentModelExpl.getModelType() == ModelType.DTMC) {
-				DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
-				probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, (File) null);
-				//TODO: probsExpl = mcDTMC.doSteadyState((DTMC) currentModelExpl, fileIn);
-			} else if (currentModelType == ModelType.CTMC) {
-				throw new PrismException("Not implemented yet");
-			} else {
-				throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-			}
+			probsExpl = computeSteadyStateProbabilitiesExplicit(currentModelExpl, fileIn);
 		}
-
 		l = System.currentTimeMillis() - l;
 
 		// print message
@@ -3199,12 +3189,44 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 *  Sets the strategy that will be available for this prism session
-	 * @param strat the strategy
+	 * Compute steady-state probabilities (for a DTMC or CTMC) using symbolic engines.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * If null, start from initial state (or uniform distribution over multiple initial states).
 	 */
-	public void setStrategy(strat.Strategy strat)
+	protected StateValues computeSteadyStateProbabilities(Model model, File fileIn) throws PrismException
 	{
-		this.strategy = strat;
+		ProbModelChecker mc;
+		if (model.getModelType() == ModelType.DTMC) {
+			mc = new ProbModelChecker(this, model, null);
+		}
+		else if (model.getModelType() == ModelType.CTMC) {
+			mc = new StochModelChecker(this, model, null);
+		}
+		else {
+			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
+		}
+		return mc.doSteadyState(fileIn);
+	}
+	
+	/**
+	 * Compute steady-state probabilities (for a DTMC or CTMC) using the explicit engine.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * If null, start from initial state (or uniform distribution over multiple initial states).
+	 */
+	protected explicit.StateValues computeSteadyStateProbabilitiesExplicit(explicit.Model model, File fileIn) throws PrismException
+	{
+		DTMCModelChecker mcDTMC;
+		explicit.StateValues probs;
+		if (model.getModelType() == ModelType.DTMC) {
+			mcDTMC = new DTMCModelChecker(this);
+			//TODO: probs = mcDTMC.doSteadyState((DTMC) model, fileIn);
+			probs = mcDTMC.doSteadyState((DTMC) model, (File) null);
+		} else if (model.getModelType() == ModelType.CTMC) {
+			throw new PrismException("Not implemented yet");
+		} else {
+			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
+		}
+		return probs;
 	}
 
 	/**

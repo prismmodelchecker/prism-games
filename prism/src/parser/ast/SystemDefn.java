@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -30,24 +30,45 @@ import java.util.Vector;
 
 public abstract class SystemDefn extends ASTElement
 {
-	 // Overrided version of deepCopy() from superclass ASTElement (to reduce casting).
-	 
+	// Overrided version of deepCopy() from superclass ASTElement (to reduce casting).
+
 	/**
 	 * Perform a deep copy.
 	 */
 	public abstract SystemDefn deepCopy();
-	
+
 	// Methods required for SystemDefn (all subclasses should implement):
-	
+
 	/**
 	 * Get list of all modules appearing (recursively).
+	 * Duplicates are not removed and will appear multiple times in the list.
+	 * @deprecated Use {@link SystemDefn#getModules(Vector, ModulesFile)} instead.
 	 */
+	@Deprecated
 	public abstract void getModules(Vector<String> v);
 
 	/**
-	 * Get list of all synchronising actions _introduced_ (recursively).
+	 * Get list of all modules appearing (recursively, including descent into references).
+	 * Duplicates are not removed and will appear multiple times in the list.
 	 */
+	public abstract void getModules(Vector<String> v, ModulesFile modulesFile);
+
+	/**
+	 * Get list of all synchronising actions _introduced_ (recursively).
+	 * @deprecated Use {@link SystemDefn#getSynchs(Vector, ModulesFile)} instead.
+	 */
+	@Deprecated
 	public abstract void getSynchs(Vector<String> v);
+
+	/**
+	 * Get list of all synchronising actions _introduced_ (recursively, including descent into references).
+	 */
+	public abstract void getSynchs(Vector<String> v, ModulesFile modulesFile);
+
+	/**
+	 * Get list of all references to other SystemDefns (recursively, but not following references).
+	 */
+	public abstract void getReferences(Vector<String> v);
 }
 
 //------------------------------------------------------------------------------
