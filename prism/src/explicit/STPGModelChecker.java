@@ -81,7 +81,7 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		super(parent);
 	}
-	
+
 	// Model checking functions
 
 	/**
