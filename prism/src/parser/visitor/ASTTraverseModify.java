@@ -508,17 +508,6 @@ public class ASTTraverseModify implements ASTVisitor
 	}
 	public void visitPost(ExpressionVar e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
-	public void visitPre(ExpressionPATL e) throws PrismLangException { defaultVisitPre(e); }
-	public Object visit(ExpressionPATL e) throws PrismLangException
-	{
-		visitPre(e);
-		if (e.getExpressionProb() != null) e.setExpressionProb((ExpressionProb)e.getExpressionProb().accept(this));
-		if (e.getExpressionRew() != null) e.setExpressionRew((ExpressionReward)e.getExpressionRew().accept(this));
-		visitPost(e);
-		return e;
-	}
-	public void visitPost(ExpressionPATL e) throws PrismLangException { defaultVisitPost(e); }
-	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionProb e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionProb e) throws PrismLangException
 	{
@@ -576,6 +565,16 @@ public class ASTTraverseModify implements ASTVisitor
 		return e;
 	}
 	public void visitPost(ExpressionForAll e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionStrategy e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionStrategy e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getExpression() != null) e.setExpression((Expression)(e.getExpression().accept(this)));
+		visitPost(e);
+		return e;
+	}
+	public void visitPost(ExpressionStrategy e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionLabel e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionLabel e) throws PrismLangException

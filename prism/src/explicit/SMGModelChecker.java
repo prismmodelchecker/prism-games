@@ -27,9 +27,11 @@
 package explicit;
 
 import java.util.BitSet;
+import java.util.List;
 
 import parser.ast.Expression;
-import parser.ast.ExpressionPATL;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionReward;
 import parser.ast.ExpressionTemporal;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -53,20 +55,17 @@ public class SMGModelChecker extends STPGModelChecker
 	/**
 	 * Compute probabilities for the contents of a P operator.
 	 */
-	protected StateValues checkProbPathFormula(Model model, ExpressionPATL exprPATL, boolean min) throws PrismException
+	protected StateValues checkProbPathFormula(Model model, ExpressionProb exprProb, List<String> coalition, boolean min) throws PrismException
 	{
 
-		//@clemens : don't change this - this works out the player coalition
-		// setting coalition parameter
-		((SMG) model).setCoalition(exprPATL.getCoalition());
-
-		Expression expr = exprPATL.getExpressionProb().getExpression();
+		((SMG) model).setCoalition(coalition);
+		Expression expr = exprProb.getExpression();
 
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and then pass control to appropriate method.
 		if (expr.isSimplePathFormula()) {
 			double p = -1;
-			Expression pb = exprPATL.getExpressionProb().getProb();
+			Expression pb = exprProb.getProb();
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 			}
@@ -101,13 +100,13 @@ public class SMGModelChecker extends STPGModelChecker
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
-	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionPATL exprPATL, boolean min) throws PrismException
+	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, boolean min) throws PrismException
 	{
 		// setting coalition parameter
-		((SMG) model).setCoalition(exprPATL.getCoalition());
+		((SMG) model).setCoalition(coalition);
 
 		StateValues rewards = null;
-		Expression expr = exprPATL.getExpressionRew().getExpression();
+		Expression expr = exprRew.getExpression();
 
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
@@ -132,14 +131,14 @@ public class SMGModelChecker extends STPGModelChecker
 		return rewards;
 	}
 
-	protected StateValues checkExactProbabilityFormula(NondetModel model, ExpressionPATL expr, double p) throws PrismException
+	protected StateValues checkExactProbabilityFormula(NondetModel model, ExpressionProb expr, List<String> coalition, double p) throws PrismException
 	{
-		if (expr.getExpressionProb().getExpression() instanceof ExpressionTemporal
-				&& ((ExpressionTemporal) expr.getExpressionProb().getExpression()).hasBounds()) {
+		if (expr.getExpression() instanceof ExpressionTemporal
+				&& ((ExpressionTemporal) expr.getExpression()).hasBounds()) {
 			throw new PrismException("The exact probability queries are not supported for step-bounded properties");
 		}
 
-		((SMG) model).setCoalition(expr.getCoalition());
+		((SMG) model).setCoalition(coalition);
 		// 1) check whether the game is stopping, if not - terminate
 		// 1.1) find states which have self loops only
 		BitSet terminal = findTerminalStates(model);
@@ -168,10 +167,10 @@ public class SMGModelChecker extends STPGModelChecker
 
 		do {
 			// computing minmax and maxmin
-			minmax = this.checkProbPathFormula(model, expr, true).getDoubleArray();
+			minmax = this.checkProbPathFormula(model, expr, coalition, true).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
-			maxmin = this.checkProbPathFormula(model, expr, false).getDoubleArray();
+			maxmin = this.checkProbPathFormula(model, expr, coalition, false).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 
@@ -210,13 +209,13 @@ public class SMGModelChecker extends STPGModelChecker
 		return StateValues.createFromBitSet(ret, model);
 	}
 
-	protected StateValues checkExactRewardFormula(NondetModel model, SMGRewards modelRewards, ExpressionPATL expr, double p) throws PrismException
+	protected StateValues checkExactRewardFormula(NondetModel model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, double p) throws PrismException
 	{
-		((SMG) model).setCoalition(expr.getCoalition());
+		((SMG) model).setCoalition(coalition);
 		// check if the reward is Fc
 		ExpressionTemporal exprTemp = null;
-		if (expr.getExpressionRew().getExpression() instanceof ExpressionTemporal) {
-			exprTemp = (ExpressionTemporal) expr.getExpressionRew().getExpression();
+		if (exprRew.getExpression() instanceof ExpressionTemporal) {
+			exprTemp = (ExpressionTemporal) exprRew.getExpression();
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_Fc:
 				break;

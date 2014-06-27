@@ -28,7 +28,6 @@ package parser.visitor;
 
 import parser.ast.*;
 import parser.type.*;
-import prism.PrismException;
 import prism.PrismLangException;
 import prism.ModelType;
 
@@ -90,14 +89,6 @@ public class CheckValid extends ASTTraverse
 		}
 	}
 
-	public void visitPost(ExpressionPATL e) throws PrismLangException
-	{
-		// Coalition operator only works for game models (i.e. SMG)
-		if (modelType != ModelType.SMG) {
-			throw new PrismLangException("The coalition operator can only be used for game models (i.e. SMGs)");
-		}
-	}
-
 	public void visitPost(ExpressionProb e) throws PrismLangException
 	{
 		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
@@ -121,5 +112,14 @@ public class CheckValid extends ASTTraverse
 		}
 		/*if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
 			throw new PrismLangException("Can't use \"S=?\" for nondeterministic models; use \"Smin=?\" or \"Smax=?\"");*/
+	}
+
+	public void visitPost(ExpressionStrategy e) throws PrismLangException
+	{
+		if (!modelType.nondeterministic())
+			throw new PrismLangException("The " + e.getOperatorString() + " operator is only meaningful for models with nondeterminism");
+		// For now, we only use this on SMGs
+		if (!modelType.nondeterministic())
+			throw new PrismLangException("The " + e.getOperatorString() + " operator can currently only be used for game models (i.e. SMGs)");
 	}
 }

@@ -459,14 +459,16 @@ TOKEN :
 |	< RPARENTH:		")" >
 |	< LBRACKET: 	"[" >
 |	< RBRACKET:		"]" >
+|	< DLBRACKET: 	"[[" >
+|	< DRBRACKET:	"]]" >
 |	< LBRACE:		"{" >
 |	< RBRACE:		"}" >
 |	< EQ:			"=" >
 |	< NE:			"!=" >
 |	< LT:			"<" >
 |	< GT:			">" >
-|	< PATLL:		"<<" >
-|	< PATLR:		">>" >
+|	< DLT:			"<<" >
+|	< DGT:			">>" >
 |	< LE:			"<=" >
 |	< GE:			">=" >
 |	< PLUS:			"+" >
@@ -1369,8 +1371,6 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 		ret = ExpressionParenth(prop, pathprop)
 	|
 		// Remaining options are only applicable for properties
-		ret = ExpressionPATL(prop, pathprop)		
-	|
 		ret = ExpressionProb(prop, pathprop)
 	|
 		ret = ExpressionSS(prop, pathprop)
@@ -1380,6 +1380,8 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 		ret = ExpressionExists(prop, pathprop)
 	|
 		ret = ExpressionForAll(prop, pathprop)
+	|
+		ret = ExpressionStrategy(prop, pathprop)
 	|
 		ret = ExpressionLabel(prop, pathprop)
 	|
@@ -1447,37 +1449,6 @@ void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) :
 }
 {
 	expr = Expression(prop, pathprop) { func.addOperand(expr); } ( <COMMA> expr = Expression(prop, pathprop) { func.addOperand(expr); })*
-}
-
-// Arguments for a coalition operator
-
-void ExpressionPATLArgs(boolean prop, boolean pathprop, Set coalition) :
-{
-	Expression expr;
-}
-{
-	// parsing a list of players
-	(
-		<REG_INT> {
-	  		coalition.add(""+getToken(0).image);
-	  	}
-		|
-		<REG_IDENT> {
-			coalition.add(getToken(0).image);	
-		}
-		
-	)*
-	(<COMMA> 
-	(
-		<REG_INT> {
-	  		coalition.add(""+getToken(0).image);
-	  	}
-		|
-		<REG_IDENT> {
-			coalition.add(getToken(0).image);	
-		}
-	)
-	)*
 }
 
 // Expression: literal
@@ -1595,35 +1566,6 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 		else return ret;
 	}
 }
-
-// (Property) expression: PATL formula <<C>> P/R []
-
-Expression ExpressionPATL(boolean prop, boolean pathprop) :
-{
-	Expression expr;
-	ExpressionPATL ret = new ExpressionPATL();
-	ExpressionProb prob = new ExpressionProb();
-	ExpressionReward rew = new ExpressionReward();
-	Set<String> coalition = new HashSet<String>();
-	Token begin = null;
-	boolean isBool;
-	
-}
-{
-
-	// This production is only allowed in expressions if the "prop" parameter is true
-	{ if (!prop) throw generateParseException(); }
-	// Various options for "P" keyword and attached symbols
-	
-	( begin = 	<PATLL>  ExpressionPATLArgs(prop, pathprop, coalition)  {ret.setCoalition(coalition);} <PATLR> 
-		((expr = ExpressionProb(prop, pathprop) {ret.setExpressionProb((ExpressionProb)expr); ret.setExpressionType(ExpressionPATL.PRB);})
-		|(expr = ExpressionReward(prop, pathprop) {ret.setExpressionRew((ExpressionReward)expr); ret.setExpressionType(ExpressionPATL.REW);}))
-	)
-	{
-		return ret;
-	}
-	}
-	
 
 // Filter for a P/S/R operator
 
@@ -1822,6 +1764,57 @@ Expression ExpressionForAll(boolean prop, boolean pathprop) :
 		return ret;
 	}
 }
+
+// (Property) expression: ATL strategy operators <<>> and [[]]
+
+Expression ExpressionStrategy(boolean prop, boolean pathprop) :
+{
+	ExpressionStrategy ret;
+	Expression expr;
+	Token begin = null;
+}
+{
+	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	(
+	// <<...>> or [[...]]
+	(( begin = <DLT> { ret = new ExpressionStrategy(true); } ExpressionStrategyCoalition(ret) <DGT> )
+	| (begin = <DLBRACKET> { ret = new ExpressionStrategy(false); } ExpressionStrategyCoalition(ret) <DRBRACKET> ))
+	// Child expression
+	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop)
+	| expr = ExpressionParenth(prop, pathprop) | expr = ExpressionFuncOrIdent(prop, pathprop) )
+	{ ret.setExpression(expr); }
+	)
+	{
+		ret.setPosition(begin, getToken(0));
+		return ret;
+	}
+}
+	
+// Coalition (player list) for a strategy (<<>> or [[]]) operator
+
+void ExpressionStrategyCoalition(ExpressionStrategy exprStrat) :
+{
+	List<String> coalition = new ArrayList<String>();
+	String s;
+}
+{
+	( s = ExpressionStrategyCoalitionPlayer() { coalition.add(s); }
+	( <COMMA> s = ExpressionStrategyCoalitionPlayer()  { coalition.add(s); } )* )?
+	{ exprStrat.setCoalition(coalition); }
+}
+
+// Single player in a coalition for a strategy (<<>> or [[]]) operator
+
+String ExpressionStrategyCoalitionPlayer() :
+{
+	String s;
+}
+{
+	( <REG_INT> | <REG_IDENT> ) { s = getToken(0).image; }
+	{ return s; }
+}
+
 
 // (Property) expression: label (including "init")
 

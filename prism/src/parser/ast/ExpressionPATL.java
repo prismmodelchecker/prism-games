@@ -117,7 +117,7 @@ public class ExpressionPATL extends Expression {
 	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
-		return v.visit(this);
+		return null; // v.visit(this);
 	}
 
 	@Override

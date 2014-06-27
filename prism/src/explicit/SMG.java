@@ -47,8 +47,8 @@ public class SMG extends STPGExplicit implements STPG
 	// State labels: states with label i are controlled by player i
 	protected List<Integer> stateLabels;
 
-	// Set of players which form a coalition
-	protected Set<Integer> coalition;
+	// List of players which form a coalition
+	protected List<Integer> coalition;
 
 	// player-integer mapping
 	protected Map<String, Integer> players;
@@ -82,7 +82,7 @@ public class SMG extends STPGExplicit implements STPG
 		for (int i = 0; i < numStates; i++) {
 			stateLabels.set(permut[i], smg.stateLabels.get(i));
 		}
-		coalition = new HashSet<Integer>();
+		coalition = new ArrayList<Integer>();
 
 	}
 
@@ -94,7 +94,7 @@ public class SMG extends STPGExplicit implements STPG
 		super(smg);
 		this.players = new HashMap<String, Integer>(smg.players);
 		stateLabels = new ArrayList<Integer>(smg.stateLabels);
-		coalition = new HashSet<Integer>(smg.coalition);
+		coalition = new ArrayList<Integer>(smg.coalition);
 	}
 
 	/**
@@ -168,26 +168,13 @@ public class SMG extends STPGExplicit implements STPG
 			stateLabels.set(s, player);
 	}
 
-	// /**
-	// * Sets the coalition (representing Player 1)
-	// * @param coalition
-	// */
-	// public void setCoalition(Set<Integer> coalition) {
-	// this.coalition = coalition;
-	// }
-	//
 	/**
 	 * Sets the coalition (representing Player 1)
-	 * 
 	 * @param coalition
-	 * @throws PrismException
 	 */
-	public void setCoalition(Set<String> coalition) throws PrismException
+	public void setCoalition(List<String> coalition) throws PrismException
 	{
-
 		this.coalition.clear();
-
-		int pl;
 		for (String player : coalition) {
 			if (players.containsKey(player)) { // get the number of the player
 				this.coalition.add(players.get(player));
@@ -198,9 +185,7 @@ public class SMG extends STPGExplicit implements STPG
 					throw new PrismException("Player " + player + " is not present in the model");
 				}
 			}
-
 		}
-
 	}
 
 	/**
@@ -209,11 +194,9 @@ public class SMG extends STPGExplicit implements STPG
 	 * @param coalition
 	 * @throws PrismException
 	 */
-	public void setCoalitionInts(Set<Integer> coalition) throws PrismException
+	public void setCoalitionInts(List<Integer> coalition) throws PrismException
 	{
-
 		this.coalition = coalition;
-
 	}
 
 	/**
@@ -253,7 +236,7 @@ public class SMG extends STPGExplicit implements STPG
 		return coalition.contains(stateLabels.get(s)) ? PLAYER_1 : PLAYER_2;
 	}
 
-	public Set<Integer> getCoalition()
+	public List<Integer> getCoalition()
 	{
 		return this.coalition;
 	}

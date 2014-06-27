@@ -181,53 +181,57 @@ public interface PrismParserConstants {
   /** RegularExpression Id. */
   int RBRACKET = 85;
   /** RegularExpression Id. */
-  int LBRACE = 86;
+  int DLBRACKET = 86;
   /** RegularExpression Id. */
-  int RBRACE = 87;
+  int DRBRACKET = 87;
   /** RegularExpression Id. */
-  int EQ = 88;
+  int LBRACE = 88;
   /** RegularExpression Id. */
-  int NE = 89;
+  int RBRACE = 89;
   /** RegularExpression Id. */
-  int LT = 90;
+  int EQ = 90;
   /** RegularExpression Id. */
-  int GT = 91;
+  int NE = 91;
   /** RegularExpression Id. */
-  int PATLL = 92;
+  int LT = 92;
   /** RegularExpression Id. */
-  int PATLR = 93;
+  int GT = 93;
   /** RegularExpression Id. */
-  int LE = 94;
+  int DLT = 94;
   /** RegularExpression Id. */
-  int GE = 95;
+  int DGT = 95;
   /** RegularExpression Id. */
-  int PLUS = 96;
+  int LE = 96;
   /** RegularExpression Id. */
-  int MINUS = 97;
+  int GE = 97;
   /** RegularExpression Id. */
-  int TIMES = 98;
+  int PLUS = 98;
   /** RegularExpression Id. */
-  int DIVIDE = 99;
+  int MINUS = 99;
   /** RegularExpression Id. */
-  int PRIME = 100;
+  int TIMES = 100;
   /** RegularExpression Id. */
-  int RENAME = 101;
+  int DIVIDE = 101;
   /** RegularExpression Id. */
-  int QMARK = 102;
+  int PRIME = 102;
   /** RegularExpression Id. */
-  int DQUOTE = 103;
+  int RENAME = 103;
   /** RegularExpression Id. */
-  int REG_INT = 104;
+  int QMARK = 104;
   /** RegularExpression Id. */
-  int REG_DOUBLE = 105;
+  int DQUOTE = 105;
   /** RegularExpression Id. */
-  int REG_IDENTPRIME = 106;
+  int REG_INT = 106;
   /** RegularExpression Id. */
-  int REG_IDENT = 107;
+  int REG_DOUBLE = 107;
   /** RegularExpression Id. */
-  int PREPROC = 108;
+  int REG_IDENTPRIME = 108;
   /** RegularExpression Id. */
-  int LEXICAL_ERROR = 109;
+  int REG_IDENT = 109;
+  /** RegularExpression Id. */
+  int PREPROC = 110;
+  /** RegularExpression Id. */
+  int LEXICAL_ERROR = 111;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -320,6 +324,8 @@ public interface PrismParserConstants {
     "\")\"",
     "\"[\"",
     "\"]\"",
+    "\"[[\"",
+    "\"]]\"",
     "\"{\"",
     "\"}\"",
     "\"=\"",

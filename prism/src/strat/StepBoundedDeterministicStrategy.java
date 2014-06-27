@@ -312,7 +312,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		// construct a new SMG of size ModelSize * MemorySize
 		SMG smg = new SMG(model.getStatesList().size() * bound);
 		smg.setPlayerMapping(new HashMap<String, Integer>(model.getPlayerMapping()));
-		smg.setCoalitionInts(new HashSet<Integer>(model.getCoalition()));
+		smg.setCoalitionInts(new ArrayList<Integer>(model.getCoalition()));
 		int n = smg.getNumStates();
 
 		List<Integer> stateLabels = new ArrayList<Integer>(n);

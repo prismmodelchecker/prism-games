@@ -27,14 +27,15 @@
 package explicit;
 
 import java.util.BitSet;
+import java.util.List;
 import java.util.Set;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
-import parser.ast.ExpressionPATL;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
+import parser.ast.ExpressionStrategy;
 import parser.ast.RelOp;
 import parser.ast.RewardStruct;
 import prism.ModelType;
@@ -463,9 +464,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		else if (expr instanceof ExpressionSS) {
 			res = checkExpressionSteadyState(model, (ExpressionSS) expr); 
 		}
-		// PATL coalition operator
-		else if (expr instanceof ExpressionPATL) {
-			res = checkExpressionPATL(model, (ExpressionPATL) expr);
+		// <<>> operator
+		else if (expr instanceof ExpressionStrategy) {
+			res = checkExpressionStrategy(model, (ExpressionStrategy) expr);
 		}
 		// Functions (for multi-objective)
 		else if (expr instanceof ExpressionFunc) {
@@ -479,39 +480,43 @@ public class ProbModelChecker extends NonProbModelChecker
 		return res;
 	}
 
-	private StateValues checkExpressionPATL(Model model, ExpressionPATL expr) throws PrismException
+	private StateValues checkExpressionStrategy(Model model, ExpressionStrategy expr) throws PrismException
 	{
-		int type = expr.getExpressionType();
-		ExpressionProb exprProb = expr.getExpressionProb();
-		ExpressionReward exprRew = expr.getExpressionRew();
-		Set<String> coalition = expr.getCoalition();
-
 		Expression pb; // Probability bound (expression)
 		double p = 0; // Probability bound (actual value)
 		RelOp relOp;
 		boolean min, exact;
 		StateValues probs = null;
 
-		// Get info from operator
-		switch (type) {
-		case ExpressionPATL.PRB:
-			relOp = exprProb.getRelOp();
-			break;
-		case ExpressionPATL.REW:
-			relOp = exprRew.getRelOp();
-			break;
-		default:
-			throw new PrismException("Relational operator type unknown.");
+		// Only support <<>> right now, not [[]]
+		if (!expr.isThereExists())
+			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
+		
+		boolean prob; // P or R?
+		ExpressionProb exprProb = null;
+		ExpressionReward exprRew = null;
+		if (expr.getExpression() instanceof ExpressionProb) {
+			prob = true;
+			exprProb = ((ExpressionProb) expr.getExpression());
+		} else if (expr.getExpression() instanceof ExpressionReward) {
+			prob = false;
+			exprRew = ((ExpressionReward) expr.getExpression());
+		} else {
+			throw new PrismException("Currently, only P and R operators can appear within " + expr.getOperatorString());
 		}
+		
+		// Get info from operator
+		List<String> coalition = expr.getCoalition();
+		relOp = prob ? exprProb.getRelOp() : exprRew.getRelOp();
 		min = !relOp.isLowerBound();
 		exact = relOp == RelOp.EQ;
 
 		if (!(this instanceof SMGModelChecker))
 			throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
-		if (type == ExpressionPATL.PRB) {
+		if (prob) {
 			// Get info from prob operator
-			pb = expr.getExpressionProb().getProb();
+			pb = exprProb.getProb();
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 				if (p < 0 || p > 1)
@@ -519,7 +524,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 
 			if (!exact) {
-				probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min);
+				probs = ((SMGModelChecker) this).checkProbPathFormula(model, exprProb, coalition, min);
 
 				// Print out probabilities
 				if (getVerbosity() > 5) {
@@ -547,9 +552,9 @@ public class ProbModelChecker extends NonProbModelChecker
 				} else
 					throw new PrismException(
 							"=? queries for exact probabilities are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, expr, p);
+				return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, exprProb, coalition, p);
 			}
-		} else if (type == ExpressionPATL.REW) {
+		} else {
 			Object rs; // Reward struct index
 			RewardStruct rewStruct = null; // Reward struct object
 			Expression rb; // Reward bound (expression)
@@ -561,12 +566,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			int i;
 
 			// Get info from reward operator
-			rs = expr.getExpressionRew().getRewardStructIndex();
-			rb = expr.getExpressionRew().getReward();
-			if(expr.getExpressionRew().getDiscount() != null)
-			{
+			rs = exprRew.getRewardStructIndex();
+			rb = exprRew.getReward();
+			if (exprRew.getDiscount() != null) {
 				useDiscounting = true;
-				discountFactor = ((Expression)expr.getExpressionRew().getDiscount()).evaluateDouble();
+				discountFactor = ((Expression)exprRew.getDiscount()).evaluateDouble();
 			}
 			if (rb != null) {
 				r = rb.evaluateDouble(constantValues);
@@ -599,7 +603,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			mainLog.println("Computing rewards...");
 
 			if (!exact) {
-				rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, expr, min);
+				rews = ((SMGModelChecker) this).checkRewardFormula(model, smgRewards, exprRew, coalition, min);
 
 				// Print out probabilities
 				if (getVerbosity() > 5) {
@@ -626,10 +630,8 @@ public class ProbModelChecker extends NonProbModelChecker
 						throw new PrismException("Invalid probability bound " + p + " in R operator");
 				} else
 					throw new PrismException("=? queries for exact rewards are not supported, please provide a value");
-				return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, smgRewards, expr, p);
+				return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, smgRewards, exprRew, coalition, p);
 			}
-		} else {
-			throw new PrismException("Expression type unknown.");
 		}
 	}
 
