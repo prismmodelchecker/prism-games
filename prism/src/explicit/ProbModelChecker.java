@@ -508,7 +508,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Get info from operator
 		List<String> coalition = expr.getCoalition();
 		relOp = prob ? exprProb.getRelOp() : exprRew.getRelOp();
-		min = !relOp.isLowerBound();
+		min = relOp.isUpperBound() || relOp.isMin();
 		exact = relOp == RelOp.EQ;
 
 		if (!(this instanceof SMGModelChecker))
@@ -663,7 +663,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// probabilities needed
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
-				min1 = relOp.isLowerBound();
+				min1 = relOp.isLowerBound() || relOp.isMin();
 				if (relOp == RelOp.EQ) {
 					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 				}
@@ -767,7 +767,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// probabilities needed
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
-				min1 = relOp.isLowerBound();
+				min1 = relOp.isLowerBound() || relOp.isMin();
 				if (relOp == RelOp.EQ) {
 					throw new PrismException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
 				}
