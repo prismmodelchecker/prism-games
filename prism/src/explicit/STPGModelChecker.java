@@ -1049,12 +1049,9 @@ public class STPGModelChecker extends ProbModelChecker
 		// Create solution vector
 		soln = (init == null) ? new double[n] : init;
 
-		// Initialise solution vector. Use (where available) the following in
-		// order of preference:
-		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3)
-		// passed in initial value; (4) initVal
-		// where initVal is 0.0 or 1.0, depending on whether we converge from
-		// below/above.
+		// Initialise solution vector. Use (where available) the following in order of preference:
+		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3) passed in initial value; (4) initVal
+		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above.
 		initVal = (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
 		if (init != null) {
 			if (known != null) {
@@ -1256,7 +1253,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Print vector (for debugging)
-		// mainLog.println(soln);
+		//mainLog.println(soln);
 
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
@@ -1395,10 +1392,8 @@ public class STPGModelChecker extends ProbModelChecker
 		soln = new double[n];
 		soln2 = (init == null) ? new double[n] : init;
 
-		// Initialise solution vectors. Use (where available) the following in
-		// order of preference:
-		// (1) exact answer, if already known; (2) 0.0/infinity if in
-		// target/inf; (3) passed in initial value; (4) 0.0
+		// Initialise solution vectors. Use (where available) the following in order of preference:
+		// (1) exact answer, if already known; (2) 0.0/infinity if in target/inf; (3) passed in initial value; (4) 0.0
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
@@ -1448,7 +1443,7 @@ public class STPGModelChecker extends ProbModelChecker
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
-			// mainLog.println(soln);
+			//mainLog.println(soln);
 			iters++;
 			// Matrix-vector multiply and min/max ops
 			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null, useDiscounting ? discountFactor : 1.0);
