@@ -664,7 +664,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
 				min1 = relOp.isLowerBound() || relOp.isMin();
-				if (relOp == RelOp.EQ) {
+				if (relOp == RelOp.EQ && pb == null) {
 					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
@@ -768,7 +768,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (modelType.nondeterministic()) {
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
 				min1 = relOp.isLowerBound() || relOp.isMin();
-				if (relOp == RelOp.EQ) {
+				if (relOp == RelOp.EQ && rb == null) {
 					throw new PrismException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
 				}
 			} else if (modelType == ModelType.STPG) {
