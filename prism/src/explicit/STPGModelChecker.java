@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
-import parser.ast.ExpressionUnaryOp;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -83,70 +82,6 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	// Model checking functions
-
-	/**
-	 * Compute probabilities for the contents of a P operator.
-	 */
-	protected StateValues checkProbPathFormula(Model model, Expression expr, boolean min1, boolean min2, double bound) throws PrismException
-	{
-		// Test whether this is a simple path formula (i.e. PCTL)
-		// and then pass control to appropriate method.
-		if (expr.isSimplePathFormula()) {
-			return checkProbPathFormulaSimple(model, expr, min1, min2, bound);
-		} else {
-			throw new PrismException("Explicit engine does not yet handle LTL-style path formulas");
-		}
-	}
-
-	/**
-	 * Compute probabilities for a simple, non-LTL path operator.
-	 */
-	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, boolean min1, boolean min2, double bound) throws PrismException
-	{
-		StateValues probs = null;
-
-		// Negation/parentheses
-		if (expr instanceof ExpressionUnaryOp) {
-			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
-			// Parentheses
-			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
-				// Recurse
-				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), min1, min2, bound);
-			}
-			// Negation
-			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
-				// Compute, then subtract from 1 
-				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), !min1, !min2, bound == -1 ? -1 : 1.0 - bound);
-				probs.timesConstant(-1.0);
-				probs.plusConstant(1.0);
-			}
-		}
-		// Temporal operators
-		else if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			// Next
-			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
-				probs = checkProbNext(model, exprTemp, min1, min2);
-			}
-			// Until
-			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
-				if (exprTemp.hasBounds()) {
-					probs = checkProbBoundedUntil(model, exprTemp, min1, min2);
-				} else {
-					probs = checkProbUntil(model, exprTemp, min1, min2, bound);
-				}
-			}
-			// Anything else - convert to until and recurse
-			else {
-				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min1, min2, bound);
-			}
-		}
-
-		if (probs == null)
-			throw new PrismException("Unrecognised path operator in P operator");
-
-		return probs;
-	}
 
 	/**
 	 * Computes the probability that a formula (F G target) is satisfied.
@@ -247,10 +182,8 @@ public class STPGModelChecker extends ProbModelChecker
 		return probs;
 	}
 
-	/**
-	 * Compute probabilities for a next operator.
-	 */
-	protected StateValues checkProbNext(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	@Override
+	protected StateValues checkProbNext(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
 	{
 		BitSet target = null;
 		ModelCheckerResult res = null;
@@ -258,14 +191,12 @@ public class STPGModelChecker extends ProbModelChecker
 		// Model check the operand
 		target = checkExpression(model, expr.getOperand2()).getBitSet();
 
-		res = computeNextProbs((STPG) model, target, min1, min2);
+		res = computeNextProbs((STPG) model, target, minMax.isMin1(), minMax.isMin2());
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
 
-	/**
-	 * Compute probabilities for a bounded until operator.
-	 */
-	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
+	@Override
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
 	{
 		int time;
 		BitSet b1, b2;
@@ -298,7 +229,7 @@ public class STPGModelChecker extends ProbModelChecker
 			// prob is 1 in b2 states, 0 otherwise
 			probs = StateValues.createFromBitSetAsDoubles(b2, model);
 		} else {
-			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, min1, min2);
+			res = computeBoundedUntilProbs((STPG) model, b1, b2, time, minMax.isMin1(), minMax.isMin2());
 			probs = StateValues.createFromDoubleArray(res.soln, model);
 		}
 
@@ -311,7 +242,8 @@ public class STPGModelChecker extends ProbModelChecker
 	 * is only interested whether a probability is greater/lower than
 	 * {@code bound}, this method can use it to avoid unnecessary computations.
 	 */
-	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, boolean min1, boolean min2, double bound) throws PrismException
+	@Override
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
 	{
 		BitSet b1, b2;
 		StateValues probs = null;
@@ -327,12 +259,18 @@ public class STPGModelChecker extends ProbModelChecker
 		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
 		// allDDRowVars.n()) + " states\n");
 
-		res = computeUntilProbs((STPG) model, b1, b2, min1, min2, bound);
+		res = computeUntilProbs((STPG) model, b1, b2, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
 		probs = StateValues.createFromDoubleArray(res.soln, model);
 
 		return probs;
 	}
 
+	@Override
+	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax) throws PrismException
+	{
+		throw new PrismException("LTL model checking not yet supported for stochastic games");
+	}
+	
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */

@@ -36,6 +36,8 @@ import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
 import parser.ast.ExpressionStrategy;
+import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
 import parser.ast.RelOp;
 import parser.ast.RewardStruct;
 import prism.ModelType;
@@ -75,14 +77,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	// Method used for numerical solution
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Is non-convergence of an iterative method an error?
-	protected boolean errorOnNonConverge = true; 
+	protected boolean errorOnNonConverge = true;
 	// Adversary export
 	protected boolean exportAdv = false;
 	protected String exportAdvFilename;
 
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
-	
+
 	// Enums for flags/settings
 
 	// Method used for numerical solution
@@ -219,7 +221,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			// PRISM_EXPORT_ADV
 			s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
 			if (!(s.equals("None")))
-			setExportAdv(true);
+				setExportAdv(true);
 			// PRISM_EXPORT_ADV_FILENAME
 			setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
 
@@ -228,7 +230,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			setImplementStrategy(settings.getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY));
 		}
 	}
-	
+
 	// Settings methods
 
 	/**
@@ -462,7 +464,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// S operator
 		else if (expr instanceof ExpressionSS) {
-			res = checkExpressionSteadyState(model, (ExpressionSS) expr); 
+			res = checkExpressionSteadyState(model, (ExpressionSS) expr);
 		}
 		// <<>> operator
 		else if (expr instanceof ExpressionStrategy) {
@@ -491,7 +493,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Only support <<>> right now, not [[]]
 		if (!expr.isThereExists())
 			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
-		
+
 		boolean prob; // P or R?
 		ExpressionProb exprProb = null;
 		ExpressionReward exprRew = null;
@@ -504,7 +506,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		} else {
 			throw new PrismException("Currently, only P and R operators can appear within " + expr.getOperatorString());
 		}
-		
+
 		// Get info from operator
 		List<String> coalition = expr.getCoalition();
 		relOp = prob ? exprProb.getRelOp() : exprRew.getRelOp();
@@ -550,8 +552,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					if (p < 0 || p > 1)
 						throw new PrismException("Invalid probability bound " + p + " in P operator");
 				} else
-					throw new PrismException(
-							"=? queries for exact probabilities are not supported, please provide a value");
+					throw new PrismException("=? queries for exact probabilities are not supported, please provide a value");
 				return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, exprProb, coalition, p);
 			}
 		} else {
@@ -570,7 +571,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			rb = exprRew.getReward();
 			if (exprRew.getDiscount() != null) {
 				useDiscounting = true;
-				discountFactor = ((Expression)exprRew.getDiscount()).evaluateDouble();
+				discountFactor = ((Expression) exprRew.getDiscount()).evaluateDouble();
 			}
 			if (rb != null) {
 				r = rb.evaluateDouble(constantValues);
@@ -646,6 +647,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// For nondeterministic models, are we finding min (true) or max (false) probs
 		boolean min1 = false;
 		boolean min2 = false;
+		MinMax minMax = null;
 		ModelType modelType = model.getModelType();
 
 		StateValues probs = null;
@@ -659,50 +661,38 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismException("Invalid probability bound " + p + " in P operator");
 		}
 
-		// For nondeterministic models, determine whether min or max
-		// probabilities needed
+		// For nondeterministic models, determine whether min or max probabilities needed
 		if (modelType.nondeterministic()) {
-			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP || modelType == ModelType.SMG) {
-				min1 = relOp.isLowerBound() || relOp.isMin();
-				if (relOp == RelOp.EQ && pb == null) {
-					throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
-				}
-			} else if (modelType == ModelType.STPG) {
+			if (relOp == RelOp.EQ && pb == null) {
+				throw new PrismException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
+			}
+			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
+				minMax = (relOp.isLowerBound() || relOp.isMin()) ? MinMax.min() : MinMax.max();
+			} else if (modelType == ModelType.SMG) {
+				minMax = (relOp.isLowerBound() || relOp.isMin()) ? MinMax.minMin(true, false) : MinMax.minMin(false, true);
+			}
+			else if (modelType == ModelType.STPG) {
 				if (relOp == RelOp.MINMIN) {
-					min1 = true;
-					min2 = true;
+					minMax = MinMax.minMin(true, true);
 				} else if (relOp == RelOp.MINMAX) {
-					min1 = true;
-					min2 = false;
+					minMax = MinMax.minMin(true, false);
 				} else if (relOp == RelOp.MAXMIN) {
-					min1 = false;
-					min2 = true;
+					minMax = MinMax.minMin(false, true);
 				} else if (relOp == RelOp.MAXMAX) {
-					min1 = false;
-					min2 = false;
+					minMax = MinMax.minMin(false, false);
 				} else {
 					throw new PrismException("Use e.g. \"Pminmax=?\" for stochastic games");
 				}
+				// TODO: p is not always initialised?
+				minMax.setBound(p);
 			} else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator()
-						+ " properties for " + modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfPOperator() + " properties for " + modelType + "s");
 			}
 		}
 
 		// Compute probabilities
+<<<<<<< .working
 		switch (modelType) {
-		case CTMC:
-			probs = ((CTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
-			break;
-		case CTMDP:
-			probs = ((CTMDPModelChecker) this).checkProbPathFormula((NondetModel) model, expr.getExpression(), min1);
-			break;
-		case DTMC:
-			probs = ((DTMCModelChecker) this).checkProbPathFormula(model, expr.getExpression());
-			break;
-		case MDP:
-			probs = ((MDPModelChecker) this).checkProbPathFormula((NondetModel) model, expr.getExpression(), min1);
-			break;
 		case STPG:
 			// TODO: p is not always initialised?
 			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2, p);
@@ -715,6 +705,9 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
 		}
 
+=======
+		probs = checkProbPathFormula(model, expr.getExpression(), minMax);
+		
 		// Print out probabilities
 		if (getVerbosity() > 5) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
@@ -734,8 +727,112 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
+	<<<<<<< .working
 	 * Model check an R operator expression and return the values for all
 	 * states.
+	=======
+	 * Compute probabilities for the contents of a P operator.
+	 */
+	protected StateValues checkProbPathFormula(Model model, Expression expr, MinMax minMax) throws PrismException
+	{
+		// Test whether this is a simple path formula (i.e. PCTL)
+		// and then pass control to appropriate method. 
+		if (expr.isSimplePathFormula()) {
+			return checkProbPathFormulaSimple(model, expr, minMax);
+		} else {
+			return checkProbPathFormulaLTL(model, expr, false, minMax);
+		}
+	}
+
+	/**
+	 * Compute probabilities for a simple, non-LTL path operator.
+	 */
+	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, MinMax minMax) throws PrismException
+	{
+		StateValues probs = null;
+
+		// Negation/parentheses
+		if (expr instanceof ExpressionUnaryOp) {
+			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
+			// Parentheses
+			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
+				// Recurse
+				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), minMax);
+			}
+			// Negation
+			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
+				// Compute, then subtract from 1 
+				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), minMax.negate());
+				probs.timesConstant(-1.0);
+				probs.plusConstant(1.0);
+			}
+		}
+		// Temporal operators
+		else if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			// Next
+			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+				probs = checkProbNext(model, exprTemp, minMax);
+			}
+			// Until
+			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+				if (exprTemp.hasBounds()) {
+					probs = checkProbBoundedUntil(model, exprTemp, minMax);
+				} else {
+					probs = checkProbUntil(model, exprTemp, minMax);
+				}
+			}
+			// Anything else - convert to until and recurse
+			else {
+				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), minMax);
+			}
+		}
+
+		if (probs == null)
+			throw new PrismException("Unrecognised path operator in P operator");
+
+		return probs;
+	}
+
+	/**
+	 * Compute probabilities for a next operator.
+	 */
+	protected StateValues checkProbNext(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
+	{
+		// To be overridden by subclasses
+		throw new PrismException("Computation not implemented yet");
+	}
+
+	/**
+	 * Compute probabilities for a bounded until operator.
+	 */
+	protected StateValues checkProbBoundedUntil(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
+	{
+		// To be overridden by subclasses
+		throw new PrismException("Computation not implemented yet");
+	}
+
+	/**
+	 * Compute probabilities for an (unbounded) until operator.
+	 */
+	protected StateValues checkProbUntil(Model model, ExpressionTemporal expr, MinMax minMax) throws PrismException
+	{
+		// To be overridden by subclasses
+		throw new PrismException("Computation not implemented yet");
+	}
+
+	/**
+	 * Compute probabilities for an LTL path formula
+	 */
+	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax) throws PrismException
+	{
+		// To be overridden by subclasses
+		throw new PrismException("Computation not implemented yet");
+	}
+
+	/**
+	 * Model check an R operator expression and return the values for all states.
+	>>>>>>> .merge-right.r8644
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
 	{
@@ -788,8 +885,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					throw new PrismException("Use e.g. \"Rminmax=?\" for stochastic games");
 				}
 			} else {
-				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator()
-						+ " properties for " + modelType + "s");
+				throw new PrismException("Don't know how to model check " + expr.getTypeOfROperator() + " properties for " + modelType + "s");
 			}
 		}
 
@@ -885,7 +981,6 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismException("Invalid probability bound " + p + " in P operator");
 		}
 
-
 		// Compute probabilities
 		switch (modelType) {
 		case CTMC:
@@ -928,7 +1023,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			return super.checkExpressionFunc(model, expr);
 		}
 	}
-	
+
 	/**
 	 * Finds states of the model which only have self-loops
 	 * 

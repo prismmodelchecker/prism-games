@@ -69,7 +69,9 @@ public class SMGModelChecker extends STPGModelChecker
 			if (pb != null) {
 				p = pb.evaluateDouble(constantValues);
 			}
-			return super.checkProbPathFormulaSimple(model, expr, min, !min, p);
+			MinMax minMax = MinMax.minMin(min, !min);
+			minMax.setBound(p);
+			return super.checkProbPathFormulaSimple(model, expr, minMax);
 		}
 
 		/*
