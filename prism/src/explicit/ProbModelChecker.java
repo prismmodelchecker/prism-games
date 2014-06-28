@@ -645,8 +645,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		double p = -1; // Probability bound (actual value, -1 means undefined)
 		RelOp relOp; // Relational operator
 		// For nondeterministic models, are we finding min (true) or max (false) probs
-		boolean min1 = false;
-		boolean min2 = false;
 		MinMax minMax = null;
 		ModelType modelType = model.getModelType();
 
