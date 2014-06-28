@@ -710,10 +710,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
-	<<<<<<< .working
-	 * Model check an R operator expression and return the values for all
-	 * states.
-	=======
 	 * Compute probabilities for the contents of a P operator.
 	 */
 	protected StateValues checkProbPathFormula(Model model, Expression expr, MinMax minMax) throws PrismException
@@ -815,7 +811,6 @@ public class ProbModelChecker extends NonProbModelChecker
 
 	/**
 	 * Model check an R operator expression and return the values for all states.
-	>>>>>>> .merge-right.r8644
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr) throws PrismException
 	{
