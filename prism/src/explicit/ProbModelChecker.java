@@ -691,21 +691,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		// Compute probabilities
-<<<<<<< .working
-		switch (modelType) {
-		case STPG:
-			// TODO: p is not always initialised?
-			probs = ((STPGModelChecker) this).checkProbPathFormula(model, expr.getExpression(), min1, min2, p);
-			break;
-		case SMG:
-			// TODO: p is not always initialised?
-			probs = ((SMGModelChecker) this).checkProbPathFormula(model, expr, min1, !min1, p);
-			break;
-		default:
-			throw new PrismException("Cannot model check " + expr + " for a " + modelType);
-		}
-
-=======
 		probs = checkProbPathFormula(model, expr.getExpression(), minMax);
 		
 		// Print out probabilities
