@@ -493,6 +493,10 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (!expr.isThereExists())
 			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
 
+		// Only support <<>> for SMGs right now
+		if (!(this instanceof SMGModelChecker))
+			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for SMGs currently");
+
 		boolean prob; // P or R?
 		ExpressionProb exprProb = null;
 		ExpressionReward exprRew = null;
@@ -511,9 +515,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		relOp = prob ? exprProb.getRelOp() : exprRew.getRelOp();
 		min = relOp.isUpperBound() || relOp.isMin();
 		exact = relOp == RelOp.EQ;
-
-		if (!(this instanceof SMGModelChecker))
-			throw new PrismException("PATL model checking is not supported for model type " + model.getModelType());
 
 		if (prob) {
 			// Get info from prob operator
