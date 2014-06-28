@@ -794,6 +794,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeNextProbs((MDP) model, target, minMax.isMin());
 			break;
 		case STPG:
+		case SMG:
 			res = ((STPGModelChecker) this).computeNextProbs((STPG) model, target, minMax.isMin1(), minMax.isMin2());
 			break;
 		default:
@@ -838,6 +839,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeBoundedUntilProbs((MDP) model, remain, target, time, minMax.isMin());
 			break;
 		case STPG:
+		case SMG:
 			res = ((STPGModelChecker) this).computeBoundedUntilProbs((STPG) model, remain, target, time, minMax.isMin1(), minMax.isMin2());
 			break;
 		default:
@@ -869,6 +871,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			result.setStrategy(res.strat);
 			break;
 		case STPG:
+		case SMG:
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
 			break;
 		default:
