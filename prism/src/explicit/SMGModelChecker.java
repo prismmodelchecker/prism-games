@@ -53,53 +53,6 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	
 	/**
-	 * Compute probabilities for the contents of a P operator.
-	 */
-	protected StateValues checkProbPathFormula(Model model, ExpressionProb exprProb, List<String> coalition, boolean min) throws PrismException
-	{
-
-		((SMG) model).setCoalition(coalition);
-		Expression expr = exprProb.getExpression();
-
-		// Test whether this is a simple path formula (i.e. PCTL)
-		// and then pass control to appropriate method.
-		if (expr.isSimplePathFormula()) {
-			double p = -1;
-			Expression pb = exprProb.getProb();
-			if (pb != null) {
-				p = pb.evaluateDouble(constantValues);
-			}
-			MinMax minMax = MinMax.minMin(min, !min);
-			minMax.setBound(p);
-			return super.checkProbPathFormulaSimple(model, expr, minMax);
-		}
-
-		/*
-		 * TODO implement FG and GF formulae //Test if this is FG if (expr
-		 * instanceof ExpressionTemporal) { ExpressionTemporal exprT =
-		 * (ExpressionTemporal) expr; if (exprT.getOperator() ==
-		 * ExpressionTemporal.P_F) { Expression expr2 = exprT.getOperand2(); if
-		 * (expr2 instanceof ExpressionTemporal) { ExpressionTemporal expr2T =
-		 * (ExpressionTemporal) expr2; if (expr2T.getOperator() ==
-		 * ExpressionTemporal.P_G) { Expression expr3 = expr2T.getOperand2(); if
-		 * (!(expr3 instanceof ExpressionTemporal)) { return
-		 * super.checkFG(model, expr, min, !min); } } } } }
-		 * 
-		 * //Test whether this is GF if (expr instanceof ExpressionTemporal) {
-		 * ExpressionTemporal exprT = (ExpressionTemporal) expr; if
-		 * (exprT.getOperator() == ExpressionTemporal.P_G) { Expression expr2 =
-		 * exprT.getOperand2(); if (expr2 instanceof ExpressionTemporal) {
-		 * ExpressionTemporal expr2T = (ExpressionTemporal) expr2; if
-		 * (expr2T.getOperator() == ExpressionTemporal.P_F) { Expression expr3 =
-		 * expr2T.getOperand2(); if (!(expr3 instanceof ExpressionTemporal)) {
-		 * return super.checkGF(model, expr, min, !min); } } } } }
-		 */
-
-		// in other case
-		throw new PrismException("Explicit engine does not yet handle LTL-style path formulas except for GF and FG");
-	}
-
-	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
 	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, boolean min) throws PrismException
@@ -133,20 +86,24 @@ public class SMGModelChecker extends STPGModelChecker
 		return rewards;
 	}
 
-	protected StateValues checkExactProbabilityFormula(NondetModel model, ExpressionProb expr, List<String> coalition, double p) throws PrismException
+	/**
+	 * Model check a P operator expression with an exact probability bound (P=p[...])
+	 */
+	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, List<String> coalition, double p) throws PrismException
 	{
-		if (expr.getExpression() instanceof ExpressionTemporal
-				&& ((ExpressionTemporal) expr.getExpression()).hasBounds()) {
-			throw new PrismException("The exact probability queries are not supported for step-bounded properties");
+		// Just support untimed , non-LTL path formulas
+		if (!expr.isSimplePathFormula())
+			throw new PrismException("Exact probability queries cannot contain LTL formulas");
+		if (Expression.containsTemporalTimeBounds(expr)) {
+			throw new PrismException("Exact probability queries cannot contain time-bounded operators");
 		}
 
-		((SMG) model).setCoalition(coalition);
 		// 1) check whether the game is stopping, if not - terminate
 		// 1.1) find states which have self loops only
-		BitSet terminal = findTerminalStates(model);
+		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
+		double[] res = computeUntilProbs(smg, null, terminal, true, true, 1.0).soln;
 
 		// System.out.println("Terminal states: " + terminal);
 		// System.out.println(Arrays.toString(res));
@@ -157,22 +114,27 @@ public class SMGModelChecker extends STPGModelChecker
 		// 2) computing minmax and maxmin values for all states
 		double[] minmax = null, maxmin = null; // see the do loop below
 
-		// 3) removing states from the game which have minmax>maxmin
-		// model.
-		int n = model.getNumStates();
+		// 3) removing states from the game which have minmax>maxmin model.
+		int n = smg.getNumStates();
 		boolean repeat;
 		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
-		STPG stpg = ((STPG) model);
+		STPG stpg = ((STPG) smg);
 
 		Strategy minStrat = null;
 		Strategy maxStrat = null;
 
 		do {
 			// computing minmax and maxmin
-			minmax = this.checkProbPathFormula(model, expr, coalition, true).getDoubleArray();
+			MinMax minMax1 = MinMax.minMin(true, false);
+			minMax1.setCoalition(coalition);
+			minMax1.setBound(p);
+			minmax = checkProbPathFormula(smg, expr.getExpression(), minMax1).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
-			maxmin = this.checkProbPathFormula(model, expr, coalition, false).getDoubleArray();
+			MinMax minMax2 = MinMax.minMin(false, true);
+			minMax2.setCoalition(coalition);
+			minMax2.setBound(p);
+			maxmin = checkProbPathFormula(smg, expr.getExpression(), minMax2).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 
@@ -188,7 +150,7 @@ public class SMGModelChecker extends STPGModelChecker
 			// disabling choices that have transitions to those states
 			removedNew.flip(0, n);
 			for (int i = 0; i < n; i++)
-				for (int j = 0; j < model.getNumChoices(i); j++)
+				for (int j = 0; j < smg.getNumChoices(i); j++)
 					if (!stpg.allSuccessorsInSet(i, j, removedNew))
 						stpg.disableChoice(i, j);
 			removedNew.clear();
@@ -205,10 +167,10 @@ public class SMGModelChecker extends STPGModelChecker
 		stpg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) smg);
 		}
 
-		return StateValues.createFromBitSet(ret, model);
+		return StateValues.createFromBitSet(ret, smg);
 	}
 
 	protected StateValues checkExactRewardFormula(NondetModel model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, double p) throws PrismException

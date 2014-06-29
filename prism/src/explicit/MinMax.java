@@ -26,6 +26,8 @@
 
 package explicit;
 
+import java.util.List;
+
 /**
  * Class to store info about types of probabilities that are to be computed
  * (typically how to quantify over strategies, e.g. "min" or "max"). 
@@ -56,6 +58,7 @@ public class MinMax
 	protected boolean min1;
 	protected boolean min2;
 	protected double bound;
+	protected List<String> coalition;
 	
 	public void setMinMin(boolean min1, boolean min2)
 	{
@@ -68,6 +71,11 @@ public class MinMax
 		this.bound = bound;
 	}
 	
+	public void setCoalition(List<String> coalition)
+	{
+		this.coalition = coalition;
+	}
+
 	public boolean isMin1()
 	{
 		return min1;
@@ -83,6 +91,11 @@ public class MinMax
 		return bound;
 	}
 	
+	public List<String> getCoalition()
+	{
+		return coalition;
+	}
+
 	// Create a new instance by applying some operation
 	
 	public MinMax negate()

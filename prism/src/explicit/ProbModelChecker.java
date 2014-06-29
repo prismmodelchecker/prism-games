@@ -483,12 +483,6 @@ public class ProbModelChecker extends NonProbModelChecker
 
 	private StateValues checkExpressionStrategy(Model model, ExpressionStrategy expr) throws PrismException
 	{
-		Expression pb; // Probability bound (expression)
-		double p = 0; // Probability bound (actual value)
-		RelOp relOp;
-		boolean min, exact;
-		StateValues probs = null;
-
 		// Only support <<>> right now, not [[]]
 		if (!expr.isThereExists())
 			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
@@ -496,6 +490,19 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Only support <<>> for SMGs right now
 		if (!(this instanceof SMGModelChecker))
 			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for SMGs currently");
+
+		// P operator case can be passed straight to other methods
+		// Rewards stuff still needs to re-factored
+		if (expr.getExpression() instanceof ExpressionProb) {
+			List<String> coalition = expr.getCoalition();
+			return checkExpressionProb(model, (ExpressionProb) expr.getExpression(), false, coalition);
+		}
+		
+		Expression pb; // Probability bound (expression)
+		double p = -1; // Probability bound (actual value)
+		RelOp relOp;
+		boolean min, exact;
+		StateValues probs = null;
 
 		boolean prob; // P or R?
 		ExpressionProb exprProb = null;
@@ -526,7 +533,9 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 
 			if (!exact) {
-				probs = ((SMGModelChecker) this).checkProbPathFormula(model, exprProb, coalition, min);
+				MinMax minMax = MinMax.minMin(min, !min);
+				minMax.setBound(p);
+				probs = ((SMGModelChecker) this).checkProbPathFormula(model, exprProb.getExpression(), minMax);
 
 				// Print out probabilities
 				if (getVerbosity() > 5) {
@@ -641,6 +650,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
 	{
+		return checkExpressionProb(model, expr, true, null);
+	}
+	
+	/**
+	 * Model check a P operator expression and return the values for all states.
+	 */
+	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, boolean forAll, List<String> coalition) throws PrismException
+	{
 		Expression pb; // Probability bound (expression)
 		double p = -1; // Probability bound (actual value, -1 means undefined)
 		RelOp relOp; // Relational operator
@@ -667,7 +684,12 @@ public class ProbModelChecker extends NonProbModelChecker
 			if (modelType == ModelType.MDP || modelType == ModelType.CTMDP) {
 				minMax = (relOp.isLowerBound() || relOp.isMin()) ? MinMax.min() : MinMax.max();
 			} else if (modelType == ModelType.SMG) {
-				minMax = (relOp.isLowerBound() || relOp.isMin()) ? MinMax.minMin(true, false) : MinMax.minMin(false, true);
+				if (relOp.isMin() || (forAll && relOp.isLowerBound()) || (!forAll && relOp.isUpperBound())) {
+					minMax = MinMax.minMin(true, false);
+				} else {
+					minMax = MinMax.minMin(false, true);
+				}
+				minMax.setCoalition(coalition);
 			}
 			else if (modelType == ModelType.STPG) {
 				if (relOp == RelOp.MINMIN) {
@@ -688,6 +710,14 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 		}
 
+		// Handle exact probabilities case (SMGs only)
+		if (relOp == RelOp.EQ && pb != null) {
+			if (modelType != ModelType.SMG){
+				throw new PrismException("Exact bounds only supported for SMGs");
+			}
+			return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, expr, coalition, p);
+		}
+		
 		// Compute probabilities
 		probs = checkProbPathFormula(model, expr.getExpression(), minMax);
 		
@@ -794,7 +824,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeNextProbs((MDP) model, target, minMax.isMin());
 			break;
 		case STPG:
+			res = ((STPGModelChecker) this).computeNextProbs((STPG) model, target, minMax.isMin1(), minMax.isMin2());
+			break;
 		case SMG:
+			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeNextProbs((STPG) model, target, minMax.isMin1(), minMax.isMin2());
 			break;
 		default:
@@ -839,7 +872,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeBoundedUntilProbs((MDP) model, remain, target, time, minMax.isMin());
 			break;
 		case STPG:
+			res = ((STPGModelChecker) this).computeBoundedUntilProbs((STPG) model, remain, target, time, minMax.isMin1(), minMax.isMin2());
+			break;
 		case SMG:
+			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeBoundedUntilProbs((STPG) model, remain, target, time, minMax.isMin1(), minMax.isMin2());
 			break;
 		default:
@@ -871,7 +907,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			result.setStrategy(res.strat);
 			break;
 		case STPG:
+			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
+			break;
 		case SMG:
+			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
 			break;
 		default:
