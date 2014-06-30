@@ -53,40 +53,6 @@ public class SMGModelChecker extends STPGModelChecker
 	}
 	
 	/**
-	 * Compute rewards for the contents of an R operator.
-	 */
-	protected StateValues checkRewardFormula(Model model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, boolean min) throws PrismException
-	{
-		// setting coalition parameter
-		((SMG) model).setCoalition(coalition);
-
-		StateValues rewards = null;
-		Expression expr = exprRew.getExpression();
-
-		if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			switch (exprTemp.getOperator()) {
-			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_INFINITY);
-				break;
-			case ExpressionTemporal.R_Fc:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_CUMULATIVE);
-				break;
-			case ExpressionTemporal.R_F0:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min, !min, STPGModelChecker.R_ZERO);
-				break;
-			default:
-				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " operator in the R operator");
-			}
-		}
-
-		if (rewards == null)
-			throw new PrismException("Unrecognised operator in R operator");
-
-		return rewards;
-	}
-
-	/**
 	 * Model check a P operator expression with an exact probability bound (P=p[...])
 	 */
 	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, List<String> coalition, double p) throws PrismException
@@ -173,9 +139,8 @@ public class SMGModelChecker extends STPGModelChecker
 		return StateValues.createFromBitSet(ret, smg);
 	}
 
-	protected StateValues checkExactRewardFormula(NondetModel model, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, double p) throws PrismException
+	protected StateValues checkExactRewardFormula(SMG smg, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, double p) throws PrismException
 	{
-		((SMG) model).setCoalition(coalition);
 		// check if the reward is Fc
 		ExpressionTemporal exprTemp = null;
 		if (exprRew.getExpression() instanceof ExpressionTemporal) {
@@ -196,10 +161,10 @@ public class SMGModelChecker extends STPGModelChecker
 
 		// 1) check whether the game is stopping, if not - terminate
 		// 1.1) find states which have self loops only
-		BitSet terminal = findTerminalStates(model);
+		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		double[] res = ((SMGModelChecker) this).computeUntilProbs((STPG) model, null, terminal, true, true, 1.0).soln;
+		double[] res = computeUntilProbs(smg, null, terminal, true, true, 1.0).soln;
 
 		// System.out.println("Terminal states: " + terminal);
 		// System.out.println(Arrays.toString(res));
@@ -212,20 +177,25 @@ public class SMGModelChecker extends STPGModelChecker
 
 		// 3) removing states from the game which have minmax>maxmin
 		// model.
-		int n = model.getNumStates();
+		int n = smg.getNumStates();
 		boolean repeat;
 		BitSet removed = new BitSet(n), removedNew = new BitSet(n);
-		STPG stpg = ((STPG) model);
 
 		Strategy minStrat = null;
 		Strategy maxStrat = null;
 
 		do {
 			// computing minmax and maxmin
-			minmax = this.checkRewardReach(model, modelRewards, exprTemp, true, false, STPGModelChecker.R_CUMULATIVE).valuesD;
+			MinMax minMax1 = MinMax.minMin(true, false);
+			minMax1.setCoalition(coalition);
+			minMax1.setBound(p);
+			minmax = checkRewardReach(smg, modelRewards, exprTemp, minMax1).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
-			maxmin = this.checkRewardReach(model, modelRewards, exprTemp, false, true, STPGModelChecker.R_CUMULATIVE).valuesD;
+			MinMax minMax2 = MinMax.minMin(false, true);
+			minMax2.setCoalition(coalition);
+			minMax2.setBound(p);
+			maxmin = checkRewardReach(smg, modelRewards, exprTemp, minMax2).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 
@@ -241,9 +211,9 @@ public class SMGModelChecker extends STPGModelChecker
 			// disabling choices that have transitions to those states
 			removedNew.flip(0, n);
 			for (int i = 0; i < n; i++)
-				for (int j = 0; j < model.getNumChoices(i); j++)
-					if (!stpg.allSuccessorsInSet(i, j, removedNew))
-						stpg.disableChoice(i, j);
+				for (int j = 0; j < smg.getNumChoices(i); j++)
+					if (!smg.allSuccessorsInSet(i, j, removedNew))
+						smg.disableChoice(i, j);
 			removedNew.clear();
 			// 4) repeat 2-3 while the set of states from 3 is empty
 		} while (repeat);
@@ -255,12 +225,12 @@ public class SMGModelChecker extends STPGModelChecker
 			ret.set(i, !removed.get(i) && minmax[i] <= p && maxmin[i] >= p);
 
 		// enabling choices that have been disabled for model checking
-		stpg.enableAllChoices();
+		smg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) model);
+			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, smg);
 		}
 
-		return StateValues.createFromBitSet(ret, model);
+		return StateValues.createFromBitSet(ret, smg);
 	}
 }

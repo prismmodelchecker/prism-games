@@ -188,66 +188,6 @@ public class STPGModelChecker extends ProbModelChecker
 		throw new PrismException("LTL model checking not yet supported for stochastic games");
 	}
 	
-	/**
-	 * Compute rewards for the contents of an R operator.
-	 */
-	protected StateValues checkRewardFormula(Model model, STPGRewards modelRewards, Expression expr, boolean min1, boolean min2) throws PrismException
-	{
-		StateValues rewards = null;
-
-		if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			switch (exprTemp.getOperator()) {
-			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach(model, modelRewards, exprTemp, min1, min2);
-				break;
-			default:
-				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " operator in the R operator");
-			}
-		}
-
-		if (rewards == null)
-			throw new PrismException("Unrecognised operator in R operator");
-
-		return rewards;
-	}
-
-	/**
-	 * Compute rewards for a reachability reward operator, where the runs not reaching the final state get infinity.
-	 */
-	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2) throws PrismException
-	{
-		return checkRewardReach(model, modelRewards, expr, min1, min2, R_INFINITY);
-	}
-
-	/**
-	 * Compute rewards for a reachability reward operator.
-	 * 
-	 * @param unreachingSemantics
-	 *            Determines how to treat runs that don't reach the target. One
-	 *            of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {
-	 *            {@link #R_ZERO}.
-	 */
-	protected StateValues checkRewardReach(Model model, STPGRewards modelRewards, ExpressionTemporal expr, boolean min1, boolean min2, int unreachingSemantics)
-			throws PrismException
-	{
-		BitSet b;
-		StateValues rewards = null;
-		ModelCheckerResult res = null;
-
-		// model check operand first
-		b = checkExpression(model, expr.getOperand2()).getBitSet();
-
-		// print out some info about num states
-		// mainLog.print("\nb = " + JDD.GetNumMintermsString(b1,
-		// allDDRowVars.n()));
-
-		res = computeReachRewards((STPG) model, modelRewards, b, min1, min2, null, null, unreachingSemantics);
-		rewards = StateValues.createFromDoubleArray(res.soln, model);
-
-		return rewards;
-	}
-
 	// Numerical computation functions
 
 	/**
