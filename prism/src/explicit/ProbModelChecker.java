@@ -493,16 +493,28 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (!(this instanceof SMGModelChecker))
 			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for SMGs currently");
 
-		// Pass straight to other methods
+		// Extract coalition info
 		List<String> coalition = expr.getCoalition();
-		if (expr.getExpression() instanceof ExpressionProb) {
-			return checkExpressionProb(model, (ExpressionProb) expr.getExpression(), false, coalition);
-		} else {
-			if (((ExpressionReward) expr.getExpression()).getDiscount() != null) {
+		// Strip any parentheses (they might have been needless wrapped around a single P or R)
+		Expression exprSub = expr.getExpression();
+		while (Expression.isParenth(exprSub))
+			exprSub = ((ExpressionUnaryOp) exprSub).getOperand();
+		// Pass onto relevant method:
+		// P operator
+		if (exprSub instanceof ExpressionProb) {
+			return checkExpressionProb(model, (ExpressionProb) exprSub, false, coalition);
+		}
+		// R operator
+		else if (exprSub instanceof ExpressionReward) {
+			if (((ExpressionReward) exprSub).getDiscount() != null) {
 				useDiscounting = true;
-				discountFactor = ((Expression) ((ExpressionReward) expr.getExpression()).getDiscount()).evaluateDouble();
+				discountFactor = ((Expression) ((ExpressionReward) exprSub).getDiscount()).evaluateDouble();
 			}
-			return checkExpressionReward(model, (ExpressionReward) expr.getExpression(), false, coalition);
+			return checkExpressionReward(model, (ExpressionReward) exprSub, false, coalition);
+		}
+		// Anything else is treated as multi-objective 
+		else {
+			return checkExpressionMulti(model, exprSub, false, coalition);
 		}
 	}
 
@@ -1142,6 +1154,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
 
+	/**
+	 * Model check a P operator expression and return the values for all states.
+	 */
+	protected StateValues checkExpressionMulti(Model model, Expression expr, boolean forAll, List<String> coalition) throws PrismException
+	{
+		throw new PrismException("Multi-objective model checking is not yet supported for SMGs");
+	}
+	
 	/**
 	 * Model check a function.
 	 */
