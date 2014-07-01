@@ -187,7 +187,7 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		throw new PrismException("LTL model checking not yet supported for stochastic games");
 	}
-	
+
 	// Numerical computation functions
 
 	/**
