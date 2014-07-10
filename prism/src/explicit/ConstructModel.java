@@ -224,8 +224,8 @@ public class ConstructModel extends PrismComponent
 			// Use simulator to explore all choices/transitions from this state
 			engine.initialisePath(state);
 			nc = engine.getNumChoices();
-			// For an STPG, first determine which player owns the state
-			if (modelType == ModelType.STPG || modelType == ModelType.SMG) {
+			// For games, first determine which player owns the state
+			if (modelType.multiplePlayers()) {
 				player = -1;
 				for (i = 0; i < nc; i++) {
 					int iPlayer = determinePlayerForChoice(modulesFile, modelType, i);
@@ -234,10 +234,11 @@ public class ConstructModel extends PrismComponent
 					}
 					player = iPlayer;
 				}
-				if (modelType == ModelType.STPG)
+				if (modelType == ModelType.STPG) {
 					stpg.setPlayer(src, player);
-				else
+				} else if (modelType == ModelType.SMG) {
 					smg.setPlayer(src, player);
+				}
 			}
 			// Look at each outgoing choice in turn
 			for (i = 0; i < nc; i++) {
@@ -349,29 +350,29 @@ public class ConstructModel extends PrismComponent
 		if (!justReach) {
 			switch (modelType) {
 			case DTMC:
-				model = new DTMCSimple(dtmc, permut);
+				model = sort ? new DTMCSimple(dtmc, permut) : (DTMCSimple) dtmc;
 				break;
 			case CTMC:
-				model = new CTMCSimple(ctmc, permut);
+				model = sort ? new CTMCSimple(ctmc, permut) : (CTMCSimple) ctmc;
 				break;
 			case MDP:
-				//				buildSparse = false;
 				if (buildSparse) {
-					model = new MDPSparse(mdp, true, permut);
+					model = sort ? new MDPSparse(mdp, true, permut) : new MDPSparse(mdp);
 				} else {
-					model = new MDPSimple(mdp, permut);
+					model = sort ? new MDPSimple(mdp, permut) : mdp;
 				}
 				break;
 			case CTMDP:
 				model = sort ? new CTMDPSimple(ctmdp, permut) : mdp;
 				break;
 			case STPG:
-				model = new STPGExplicit(stpg, permut);
+				model = sort ? new STPGExplicit(stpg, permut) : stpg;
 				break;
 			case SMG:
 				HashMap<String, Integer> players = new HashMap<String, Integer>();
 				for (i = 0; i < modulesFile.getNumPlayers(); i++)
 					players.put(modulesFile.getPlayer(i).getName(), i + 1);
+				// TODO: allow unsorted SMG construction
 				model = new SMG(smg, permut, players);
 				break;
 			case PTA:
