@@ -29,11 +29,9 @@ package explicit;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import parser.State;
 import parser.Values;
@@ -134,6 +132,7 @@ public class ConstructModel extends PrismComponent
 		DTMCSimple dtmc = null;
 		CTMCSimple ctmc = null;
 		MDPSimple mdp = null;
+		CTMDPSimple ctmdp = null;
 		STPGExplicit stpg = null;
 		SMG smg = null;
 		ModelExplicit model = null;
@@ -141,29 +140,14 @@ public class ConstructModel extends PrismComponent
 		// Misc
 		int i, j, nc, nt, src, dest, player;
 		long timer;
-		// int id;
-		int nPlayers = 0;
-		State tempState;
-
-		// SMG vars
-		Map<Integer, List<Integer>> playerChoices = new HashMap<Integer, List<Integer>>();
-		List<Integer> originalStates = new ArrayList<Integer>();
-		List<Integer> choices;
-		boolean lazy = false;
-		int schedIndx = 0;
-
-		// Don't support multiple initial states
-		if (modulesFile.getInitialStates() != null) {
-			throw new PrismException("Cannot do explicit-state reachability if there are multiple initial states");
-		}
 
 		// Display a warning if there are unbounded vars
 		VarList varList = modulesFile.createVarList();
 		if (varList.containsUnboundedVariables())
 			mainLog.printWarning("Model contains one or more unbounded variables: model construction may not terminate");
-		
+
 		// Starting reachability...
-		mainLog.print("\nComputing reachable states...\n");
+		mainLog.print("\nComputing reachable states...");
 		mainLog.flush();
 		ProgressDisplay progress = new ProgressDisplay(mainLog);
 		progress.start();
@@ -187,12 +171,17 @@ public class ConstructModel extends PrismComponent
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
 				break;
+			case CTMDP:
+				modelSimple = ctmdp = new CTMDPSimple();
+				break;
 			case STPG:
 				modelSimple = stpg = new STPGExplicit();
 				break;
 			case SMG:
 				modelSimple = smg = new SMG();
 				break;
+			case PTA:
+				throw new PrismException("Model construction not supported for " + modelType + "s");
 			}
 		}
 
@@ -252,8 +241,8 @@ public class ConstructModel extends PrismComponent
 			}
 			// Look at each outgoing choice in turn
 			for (i = 0; i < nc; i++) {
-
-				if (!justReach && (modelType == ModelType.MDP || modelType == ModelType.STPG || modelType == ModelType.SMG)) {
+				// For nondet models, collect transitions in a Distribution
+				if (!justReach && modelType.nondeterministic()) {
 					distr = new Distribution();
 				}
 				// Look at each transition in the choice
@@ -282,19 +271,29 @@ public class ConstructModel extends PrismComponent
 							ctmc.addToProbability(src, dest, engine.getTransitionProbability(i, j));
 							break;
 						case MDP:
+						case CTMDP:
 						case STPG:
 						case SMG:
 							distr.add(dest, engine.getTransitionProbability(i, j));
 							break;
+						case PTA:
+							throw new PrismException("Model construction not supported for " + modelType + "s");
 						}
 					}
 				}
+				// For nondet models, add collated transition to model 
 				if (!justReach) {
 					if (modelType == ModelType.MDP) {
 						if (distinguishActions) {
 							mdp.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
 						} else {
 							mdp.addChoice(src, distr);
+						}
+					} else if (modelType == ModelType.CTMDP) {
+						if (distinguishActions) {
+							ctmdp.addActionLabelledChoice(src, distr, engine.getTransitionAction(i, 0));
+						} else {
+							ctmdp.addChoice(src, distr);
 						}
 					} else if (modelType == ModelType.STPG) {
 						if (distinguishActions) {
@@ -363,6 +362,9 @@ public class ConstructModel extends PrismComponent
 					model = new MDPSimple(mdp, permut);
 				}
 				break;
+			case CTMDP:
+				model = sort ? new CTMDPSimple(ctmdp, permut) : mdp;
+				break;
 			case STPG:
 				model = new STPGExplicit(stpg, permut);
 				break;
@@ -372,6 +374,8 @@ public class ConstructModel extends PrismComponent
 					players.put(modulesFile.getPlayer(i).getName(), i + 1);
 				model = new SMG(smg, permut, players);
 				break;
+			case PTA:
+				throw new PrismException("Model construction not supported for " + modelType + "s");
 			}
 			model.setStatesList(statesList);
 			model.setConstantValues(new Values(modulesFile.getConstantValues()));
