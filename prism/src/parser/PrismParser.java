@@ -1366,7 +1366,7 @@ public class PrismParser implements PrismParserConstants {
       sys2 = SystemParallel();
                                                                                                                                par.addOperand(sys2);
     }
-                if (par==null) {
+                if (par==null || par.getNumOperands() == 1) {
                         {if (true) return sys1;}
                 }
                 else {
@@ -1397,7 +1397,7 @@ public class PrismParser implements PrismParserConstants {
       sys2 = SystemFullParallel();
                                                                                                                                              par.addOperand(sys2);
     }
-                if (par==null) {
+                if (par==null || par.getNumOperands() == 1) {
                         {if (true) return sys1;}
                 }
                 else {
