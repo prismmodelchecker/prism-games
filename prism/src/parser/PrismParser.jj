@@ -1630,7 +1630,6 @@ Expression ExpressionSS(boolean prop, boolean pathprop) :
 Expression ExpressionReward(boolean prop, boolean pathprop) :
 {
 	int r;
-	Object[] index = null;
 	String relOp = null;
 	Expression rew = null;
 	Expression expr;
@@ -1643,7 +1642,7 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "R" keyword and attached symbols
-	(( begin = <R> (index = RewardIndex())?
+	(( begin = <R> (RewardIndex(ret))?
 	(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
 	       |( <EQ> ((<QMARK> { relOp = "="; isBool = false; } )
 	               |(rew = Expression(false, false) { relOp = "="; isBool = true; } )
@@ -1671,13 +1670,11 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// Path formula, optional filter
 	<LBRACKET> expr = ExpressionRewardContents(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
-		ret.setRewardStructIndex(index == null ? null : index[0]);
 		ret.setRelOp(relOp);
 		ret.setReward(rew);
 		ret.setExpression(expr);
 		ret.setFilter(filter);
 		ret.setPosition(begin, getToken(0));
-		ret.setDiscount(index == null ? null : index[1]);
 		// Filter is actually dealt with by wrapping this expression in
 		// an (invisible) ExpressionFilter expression
 		if (filter != null) {
@@ -1692,10 +1689,11 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 
 // Reward struct index for R operator
 
-Object[] RewardIndex() :
+void RewardIndex(ExpressionReward exprRew) :
 {
-	Object index=null;
-	Object discount=null;
+	Object index = null;
+	Object indexDiv = null;
+	Object discount = null;
 }
 {
 	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
@@ -1705,7 +1703,17 @@ Object[] RewardIndex() :
 	) 
 	(<COMMA><DISCOUNT><EQ> discount=Expression(false,false))?
 	<RBRACE>)
-	{ return new Object[] {index, discount}; }
+	// Optional second reward structure index (for ratio objectives)
+	( <DIVIDE> ( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> indexDiv = Identifier() <DQUOTE> ) | indexDiv = Expression(false, false) ) <RBRACE> ))?
+	{
+		exprRew.setRewardStructIndex(index);
+		if (indexDiv != null) {
+			exprRew.setRewardStructIndexDiv(indexDiv);
+		}
+		if (discount != null) {
+			exprRew.setDiscount(discount);
+		}
+	}
 }
 
 // Contents of an R operator
