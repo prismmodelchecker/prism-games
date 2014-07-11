@@ -865,24 +865,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Build rewards
 		mainLog.println("Building reward structure...");
-		ConstructRewards constructRewards = new ConstructRewards(mainLog);
-		switch (model.getModelType()) {
-		case CTMC:
-		case DTMC:
-			rewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, constantValues);
-			break;
-		case MDP:
-			rewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
-			break;
-		case STPG:
-			rewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
-			break;
-		case SMG:
-			rewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
-			break;
-		default:
-			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
-		}
+		rewards = constructRewards(model, rewStruct);
 
 		// Handle exact probabilities case (SMGs only)
 		if (relOp == RelOp.EQ && rb != null) {
@@ -913,6 +896,33 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 	}
 
+	/**
+	 * Construct rewards from a reward structure and a model.
+	 */
+	protected Rewards constructRewards(Model model, RewardStruct rewStruct) throws PrismException
+	{
+		Rewards rewards;
+		ConstructRewards constructRewards = new ConstructRewards(mainLog);
+		switch (model.getModelType()) {
+		case CTMC:
+		case DTMC:
+			rewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, constantValues);
+			break;
+		case MDP:
+			rewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
+			break;
+		case STPG:
+			rewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
+			break;
+		case SMG:
+			rewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
+			break;
+		default:
+			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
+		}
+		return rewards;
+	}
+	
 	/**
 	 * Compute rewards for the contents of an R operator.
 	 */
