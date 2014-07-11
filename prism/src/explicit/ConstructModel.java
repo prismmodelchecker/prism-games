@@ -141,6 +141,9 @@ public class ConstructModel extends PrismComponent
 		int i, j, nc, nt, src, dest, player;
 		long timer;
 
+		// Get model info
+		modelType = modulesFile.getModelType();
+		
 		// Display a warning if there are unbounded vars
 		VarList varList = modulesFile.createVarList();
 		if (varList.containsUnboundedVariables())
@@ -154,7 +157,6 @@ public class ConstructModel extends PrismComponent
 		timer = System.currentTimeMillis();
 
 		// Initialise simulator for this model
-		modelType = modulesFile.getModelType();
 
 		engine.createNewOnTheFlyPath(modulesFile);
 
