@@ -231,7 +231,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 
 		for (int s = 0; s < n; s++) {
 			// checking if the state belong to player 1
-			if (stpg.getPlayer(s) != STPGExplicit.PLAYER_1)
+			if (stpg.getPlayer(s) != 1)
 				// if not then doing nothing
 				continue;
 
@@ -271,7 +271,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 
 		for (int s = 0; s < n; s++) {
 			// checking if the state belong to player 1
-			if (smg.getPlayer(s) != SMG.PLAYER_1)
+			if (smg.getPlayer(s) != 1)
 				// if not then doing nothing
 				continue;
 

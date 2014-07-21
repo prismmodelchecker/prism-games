@@ -347,7 +347,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			for (int i = 0; i < oldStates.size(); i++) {
 				// if the state belongs to player 1 retrieving choice chosen by
 				// the optimal strategy
-				if (model.getPlayer(i) == SMG.PLAYER_1) {
+				if (model.getPlayer(i) == 1) {
 					try {
 						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
 
@@ -432,7 +432,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			for (int i = 0; i < oldStates.size(); i++) {
 				// if the state belongs to player 1 retrieving choice chosen by
 				// the optimal strategy
-				if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
+				if (model.getPlayer(i) == 1) {
 					try {
 						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
 

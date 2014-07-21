@@ -1226,7 +1226,7 @@ public class STPGModelChecker extends ProbModelChecker
 				s = inf.nextSetBit(i);
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
 					// for player 1 check
-					if (stpg.getPlayer(s) == STPGExplicit.PLAYER_1 && !stpg.allSuccessorsInSet(s, c, notInf)) {
+					if (stpg.getPlayer(s) == 1 && !stpg.allSuccessorsInSet(s, c, notInf)) {
 						adv[i] = c;
 						break;
 					}

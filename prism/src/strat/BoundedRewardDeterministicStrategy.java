@@ -168,7 +168,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 					initial = (bound - j) * oldStates.size() + i;
 				// if the state belongs to player 1 retrieving choice chosen by
 				// the optimal strategy
-				if (model.getPlayer(i) == SMG.PLAYER_1) {
+				if (model.getPlayer(i) == 1) {
 					try {
 						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
 

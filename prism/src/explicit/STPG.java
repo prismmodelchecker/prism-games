@@ -54,7 +54,7 @@ import explicit.rewards.STPGRewards;
 public interface STPG extends NondetModel
 {
 	/**
-	 * Get the player (1 or 2) for state {@code s}.
+	 * Get the player that owns state {@code s} (1 or 2 for an STPG).
 	 */
 	public int getPlayer(int s);
 

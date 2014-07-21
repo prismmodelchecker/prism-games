@@ -97,7 +97,7 @@ public class ExactValueStrategy implements Strategy
 				memoryUpdateFunction[s][2 * c + 1] = new HashMap<Integer, Double>();
 
 				// for player 2 state adjusting the exptectation
-				if (model.getPlayer(s) == STPGExplicit.PLAYER_2) {
+				if (model.getPlayer(s) == 2) {
 					// computing min and max expectations for the action
 					Iterator<Entry<Integer, Double>> it = model.getTransitionsIterator(s, c);
 					double max = 0, min = 0;
@@ -457,7 +457,7 @@ public class ExactValueStrategy implements Strategy
 			minIndx = 3 * i + 1;
 			maxIndx = 3 * i + 2;
 
-			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
+			if (model.getPlayer(i) == 1) {
 				// for player 1 state just leaving max or min choice
 				// constructing transition for min element
 				newDistr = new Distribution();
@@ -575,7 +575,7 @@ public class ExactValueStrategy implements Strategy
 			minIndx = 3 * i + 1;
 			maxIndx = 3 * i + 2;
 
-			if (model.getPlayer(i) == STPGExplicit.PLAYER_1) {
+			if (model.getPlayer(i) == 1) {
 				// for player 1 state just leaving max or min choice
 				// constructing transition for min element
 				newDistr = new Distribution();

@@ -228,12 +228,12 @@ public class SMG extends STPGExplicit implements STPG
 	// Accessors (for STPG)
 
 	/**
-	 * Returns the 1 if the state belong to coalition and 2 otherwise
+	 * Get the player that owns state {@code s}.
 	 */
 	@Override
 	public int getPlayer(int s)
 	{
-		return coalition.contains(stateLabels.get(s)) ? PLAYER_1 : PLAYER_2;
+		return coalition.contains(stateLabels.get(s)) ? 1 : 2;
 	}
 
 	public List<Integer> getCoalition()
