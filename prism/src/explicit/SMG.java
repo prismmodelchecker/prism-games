@@ -37,7 +37,7 @@ import prism.ModelType;
 import prism.PrismException;
 
 /**
- * Simple explicit-state representation of a stochastic multi-player game (SMG).
+ * Simple explicit-state representation of a (turn-based) stochastic multi-player game (SMG).
  * States can be labelled arbitrarily with player 1..n, player 0 has a special
  * purpose of scheduling the moves of other players
  */

@@ -483,7 +483,10 @@ public class ProbModelChecker extends NonProbModelChecker
 		return res;
 	}
 
-	private StateValues checkExpressionStrategy(Model model, ExpressionStrategy expr) throws PrismException
+	/**
+	 * Model check a <<>> or [[]] operator expression and return the values for all states.
+	 */
+	protected StateValues checkExpressionStrategy(Model model, ExpressionStrategy expr) throws PrismException
 	{
 		// Only support <<>> right now, not [[]]
 		if (!expr.isThereExists())
@@ -523,11 +526,17 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr) throws PrismException
 	{
+		// Use the default semantics for a standalone P operator
+		// (i.e. quantification over all strategies, and no game-coalition info)
 		return checkExpressionProb(model, expr, true, null);
 	}
 	
 	/**
 	 * Model check a P operator expression and return the values for all states.
+	 * @param model The model
+	 * @param expr The P operator expression
+	 * @param forAll Are we checking "for all strategies" (true) or "there exists a strategy" (false)? [irrelevant for numerical (=?) queries] 
+	 * @param coalition If relevant, info about which set of players this P operator refers to
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, boolean forAll, List<String> coalition) throws PrismException
 	{
