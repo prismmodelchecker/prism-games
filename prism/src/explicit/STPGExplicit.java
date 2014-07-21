@@ -38,8 +38,7 @@ import explicit.rewards.MDPRewards;
 import explicit.rewards.STPGRewards;
 
 /**
- * Simple explicit-state representation of a stochastic two-player game
- * (STPG). States can be labelled arbitrarily with player 1 player 2.
+ * Simple explicit-state representation of a (turn-based) stochastic two-player game (STPG).
  */
 public class STPGExplicit extends MDPSimple implements STPG
 {
@@ -47,22 +46,27 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public static final int PLAYER_1 = 1;
 	public static final int PLAYER_2 = 2;
 
-	protected List<Integer> stateLabels;
+	/** Which player owns each state, i.e. stateOwners[i] is owned by player i (1 or 2) */
+	protected List<Integer> stateOwners;
 
+	// Constructors
+
+	/**
+	 * Constructor: empty STPG.
+	 */
 	public STPGExplicit()
 	{
 		super();
-
-		// initialising state labels
-		stateLabels = new ArrayList<Integer>(numStates);
+		stateOwners = new ArrayList<Integer>(0);
 	}
 
-	public STPGExplicit(int n)
+	/**
+	 * Constructor: new STPG with fixed number of states.
+	 */
+	public STPGExplicit(int numStates)
 	{
-		super(n);
-
-		// initialising state labels
-		stateLabels = new ArrayList<Integer>(n);
+		super(numStates);
+		stateOwners = new ArrayList<Integer>(numStates);
 	}
 
 	/**
@@ -72,14 +76,14 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public STPGExplicit(STPGExplicit stpg, int permut[])
 	{
 		super(stpg, permut);
-		stateLabels = new ArrayList<Integer>(numStates);
+		stateOwners = new ArrayList<Integer>(numStates);
 		// Create blank array of correct size
 		for (int i = 0; i < numStates; i++) {
-			stateLabels.add(0);
+			stateOwners.add(0);
 		}
 		// Copy permuted player info
 		for (int i = 0; i < numStates; i++) {
-			stateLabels.set(permut[i], stpg.stateLabels.get(i));
+			stateOwners.set(permut[i], stpg.stateOwners.get(i));
 		}
 	}
 
@@ -89,11 +93,13 @@ public class STPGExplicit extends MDPSimple implements STPG
 	public STPGExplicit(STPGExplicit stpg)
 	{
 		super(stpg);
-		stateLabels = new ArrayList<Integer>(stpg.stateLabels);
+		stateOwners = new ArrayList<Integer>(stpg.stateOwners);
 	}
 
+	// Mutators (for ModelSimple)
+	
 	/**
-	 * Adds one state, assigned to player 1
+	 * Add a new (player 1) state and return its index.
 	 */
 	@Override
 	public int addState()
@@ -102,59 +108,48 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	/**
-	 * Adds specified number of states all assigned to player 1
+	 * Add multiple new (player 1) states.
 	 */
 	@Override
 	public void addStates(int numToAdd)
 	{
 		super.addStates(numToAdd);
 		for (int i = 0; i < numToAdd; i++)
-			stateLabels.add(PLAYER_1);
+			stateOwners.add(PLAYER_1);
 	}
 
 	/**
-	 * Adds state assigned to the specified player
-	 * 
-	 * @param player state owner
-	 * @return state id
+	 * Add a new (player p) state and return its index.
+	 * @param p Player (1 or 2) who owns the new state.
 	 */
-	public int addState(int player)
+	public int addState(int p)
 	{
-		checkPlayer(player);
-
+		checkPlayer(p);
 		super.addStates(1);
-		stateLabels.add(player);
-
-		//System.out.println("State " + (numStates - 1) + " player " + player);
-
+		stateOwners.add(p);
 		return numStates - 1;
 	}
 
 	/**
-	 * Adds the number of states the same as number of Integer in the list, each
-	 * assigned to the corresponding player
-	 * 
-	 * @param players list of players (to which corresponding state belongs)
+	 * Add multiple new states, with owners as given in the list {@code p}
+	 * (the number of states to add is dictated by the length of the list).
+	 * @param p List of players owning each new state
 	 */
-	public void addStates(List<Integer> players)
+	public void addStates(List<Integer> p)
 	{
-		checkPlayers(players);
-
-		super.addStates(players.size());
-		stateLabels.addAll(players);
+		checkPlayers(p);
+		super.addStates(p.size());
+		stateOwners.addAll(p);
 	}
 
 	/**
-	 * labels the given state with the given player
-	 * 
-	 * @param s state
-	 * @param player player
+	 * Set player {@code p} (1 or 2) to own state {@code s}. 
 	 */
-	public void setPlayer(int s, int player)
+	public void setPlayer(int s, int p)
 	{
-		checkPlayer(player);
-		if (s < stateLabels.size())
-			stateLabels.set(s, player);
+		checkPlayer(p);
+		if (s < stateOwners.size())
+			stateOwners.set(s, p);
 	}
 
 	// Accessors (for Model)
@@ -170,7 +165,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public int getPlayer(int s)
 	{
-		return stateLabels.get(s);
+		return stateOwners.get(s);
 	}
 
 	@Override
@@ -239,8 +234,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(c++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
 						continue;
 					b2 = distr.containsOneOf(u);
 					if (forall) {
@@ -279,8 +273,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
 					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i)
-							&& disabledChoices.get(i).get(c++) == true)
+					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
 						continue;
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
@@ -302,8 +295,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 
 	// TODO fix the method
 	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
-			boolean complement, int adv[])
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
@@ -352,8 +344,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
-			boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;
@@ -391,8 +382,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
-			BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
@@ -424,10 +414,10 @@ public class STPGExplicit extends MDPSimple implements STPG
 			}
 		}
 	}
-	
+
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
-			BitSet subset, boolean complement, int adv[], double disc)
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[],
+			double disc)
 	{
 		int s;
 		boolean min = false;
@@ -461,8 +451,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
-			int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
@@ -470,8 +459,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
-			boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = getPlayer(s) == PLAYER_1 ? min1 : getPlayer(s) == PLAYER_2 ? min2 : false;
@@ -562,19 +550,18 @@ public class STPGExplicit extends MDPSimple implements STPG
 
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
-			
+
 			for (Map.Entry<Integer, Double> e : distr) {
 				k = (Integer) e.getKey();
 				prob = (Double) e.getValue();
 				d += prob * vect[k] * disc;
 			}
-			
+
 			// Check whether we have exceeded min/max so far
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
 				// If adversary generation is enabled, remember optimal choice
-				if (adv != null)
-				{
+				if (adv != null) {
 					advCh = j;
 				}
 			}
@@ -587,7 +574,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 				adv[s] = advCh;
 			}
 		}
-		
+
 		// Add state reward (doesn't affect min/max)
 		minmax += mdpRewards.getStateReward(s);
 
