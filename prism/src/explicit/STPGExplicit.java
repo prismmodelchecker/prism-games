@@ -115,12 +115,11 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	/**
-	 * Add a new (player p) state and return its index.
-	 * @param p Player (1 or 2) who owns the new state.
+	 * Add a new (player {@code p}) state and return its index. For an STPG, {@code p} should be 1 or 2. 
+	 * @param p Player who owns the new state.
 	 */
 	public int addState(int p)
 	{
-		checkPlayer(p);
 		super.addStates(1);
 		stateOwners.add(p);
 		return numStates - 1;
@@ -129,23 +128,22 @@ public class STPGExplicit extends MDPSimple implements STPG
 	/**
 	 * Add multiple new states, with owners as given in the list {@code p}
 	 * (the number of states to add is dictated by the length of the list).
+	 * For an STPG, player indices should be 1 or 2.
 	 * @param p List of players owning each new state
 	 */
 	public void addStates(List<Integer> p)
 	{
-		checkPlayers(p);
 		super.addStates(p.size());
 		stateOwners.addAll(p);
 	}
 
 	/**
-	 * Set player {@code p} (1 or 2) to own state {@code s}. 
+	 * Set player {@code p} to own state {@code s}. For an STPG, {@code} should be 1 or 2.
+	 * It is not checked whether {@code s} or {@code p} are in the correct range.
 	 */
 	public void setPlayer(int s, int p)
 	{
-		checkPlayer(p);
-		if (s < stateOwners.size())
-			stateOwners.set(s, p);
+		stateOwners.set(s, p);
 	}
 
 	// Accessors (for Model)
@@ -420,26 +418,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
 		boolean min = (getPlayer(s) == 1) ? min1 : min2;
 		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
-	}
-
-	// Accessors (other)
-
-	/**
-	 * Check whether the given player is valid and throw an exception otherwise
-	 **/
-	private void checkPlayer(int player)
-	{
-		if (player < 1 || player > 2)
-			throw new IllegalArgumentException("Player " + player + " is undefined!");
-	}
-
-	/**
-	 * Check whether every player in the list is valid and throw an exception otherwise
-	 **/
-	private void checkPlayers(List<Integer> players)
-	{
-		for (Integer p : players)
-			checkPlayer(p);
 	}
 
 	// Standard methods

@@ -5,7 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -315,8 +314,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		smg.setCoalitionInts(new ArrayList<Integer>(model.getCoalition()));
 		int n = smg.getNumStates();
 
-		List<Integer> stateLabels = new ArrayList<Integer>(n);
-
 		List<State> oldStates = model.getStatesList();
 
 		// creating helper states for constructing the product
@@ -328,15 +325,15 @@ public class StepBoundedDeterministicStrategy implements Strategy
 
 		// creating product state list
 		List<State> newStates = new ArrayList<State>(n);
+		int count = 0;
 		for (int j = 0; j < bound; j++)
 			for (int i = 0; i < oldStates.size(); i++) {
 				newStates.add(new State(oldStates.get(i), mem[j]));
-				stateLabels.add(model.getPlayer(i));
+				smg.setPlayer(count++, model.getPlayer(i));
 			}
 
 		// setting the states list to SMG
 		smg.setStatesList(newStates);
-		smg.setStateLabels(stateLabels);
 
 		// adding choices for the product SMG
 		// adding transitions to the state with the next memory element

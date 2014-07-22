@@ -263,7 +263,6 @@ public class ConstructRewards
 	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
 		List<State> statesList;
-		Set<Integer> schedStates;
 		SMGRewardsSimple rewSimple;
 		Expression guard;
 		String action;
@@ -281,16 +280,12 @@ public class ConstructRewards
 		else {
 			numStates = smg.getNumStates();
 			statesList = smg.getStatesList();
-			schedStates = smg.getSchedulerStates();
 			rewSimple = new SMGRewardsSimple(numStates);
 			n = rewStr.getNumItems();
 			for (i = 0; i < n; i++) {
 				guard = rewStr.getStates(i);
 				action = rewStr.getSynch(i);
 				for (j = 0; j < numStates; j++) {
-					// ignoring states that belong to the scheduler
-					if (schedStates.contains(j))
-						continue;
 					// Is guard satisfied?
 					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
 						// Transition reward

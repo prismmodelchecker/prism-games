@@ -28,10 +28,8 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prism.ModelType;
 import prism.PrismException;
@@ -43,6 +41,8 @@ import prism.PrismException;
  */
 public class SMG extends STPGExplicit implements STPG
 {
+	// NB: We re-use the existing stateOwners list in the superclass to assign states to players
+	
 	// List of players which form a coalition
 	protected List<Integer> coalition;
 
@@ -97,18 +97,7 @@ public class SMG extends STPGExplicit implements STPG
 	// Mutators
 	
 	/**
-	 * Returns the list of states that belong to the scheduler
-	 * 
-	 * @return the list of states that belong to the scheduler
-	 */
-	public Set<Integer> getSchedulerStates()
-	{
-		Set<Integer> ret = new HashSet<Integer>();
-		return ret;
-	}
-
-	/**
-	 * Adds one state, assigned to player 0
+	 * Add a new (player 0) state and return its index.
 	 */
 	@Override
 	public int addState()
@@ -117,54 +106,13 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
-	 * Adds specified number of states all assigned to player 0
+	 * Add multiple new (player 0) states.
 	 */
 	@Override
 	public void addStates(int numToAdd)
 	{
 		for (int i = 0; i < numToAdd; i++)
 			stateOwners.add(0);
-	}
-
-	/**
-	 * Adds state assigned to the specified player
-	 * 
-	 * @param player
-	 *            state owner
-	 * @return state id
-	 */
-	public int addState(int player)
-	{
-		super.addStates(1);
-		stateOwners.add(player);
-		return numStates - 1;
-	}
-
-	/**
-	 * Adds the number of states the same as number of Integer in the list, each
-	 * assigned to the corresponding player
-	 * 
-	 * @param players
-	 *            list of players (to which corresponding state belongs)
-	 */
-	public void addStates(List<Integer> players)
-	{
-		super.addStates(players.size());
-		stateOwners.addAll(players);
-	}
-
-	/**
-	 * labels the given state with the given player
-	 * 
-	 * @param s
-	 *            state
-	 * @param player
-	 *            player
-	 */
-	public void setPlayer(int s, int player)
-	{
-		if (s < stateOwners.size())
-			stateOwners.set(s, player);
 	}
 
 	/**
@@ -226,9 +174,6 @@ public class SMG extends STPGExplicit implements STPG
 
 	// Accessors (for STPG)
 
-	/**
-	 * Get the player that owns state {@code s}.
-	 */
 	@Override
 	public int getPlayer(int s)
 	{
@@ -278,15 +223,4 @@ public class SMG extends STPGExplicit implements STPG
 		s += " ]\n";
 		return s;
 	}
-
-	public List<Integer> getStateLabels()
-	{
-		return stateOwners;
-	}
-
-	public void setStateLabels(List<Integer> list)
-	{
-		stateOwners = list;
-	}
-
 }

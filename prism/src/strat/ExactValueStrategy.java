@@ -6,13 +6,12 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Map.Entry;
+import java.util.Scanner;
 
 import parser.State;
 import prism.PrismException;
@@ -400,8 +399,6 @@ public class ExactValueStrategy implements Strategy
 		smg.setCoalitionInts(new ArrayList<Integer>(model.getCoalition()));
 		int n = smg.getNumStates();
 
-		List<Integer> stateLabels = new ArrayList<Integer>(n);
-
 		List<State> oldStates = model.getStatesList();
 
 		// creating helper states
@@ -412,18 +409,18 @@ public class ExactValueStrategy implements Strategy
 
 		// creating product state list
 		List<State> newStates = new ArrayList<State>(n);
+		int count = 0;
 		for (int i = 0; i < oldStates.size(); i++) {
 			newStates.add(new State(oldStates.get(i), stateInit));
 			newStates.add(new State(oldStates.get(i), stateMin));
 			newStates.add(new State(oldStates.get(i), stateMax));
-			stateLabels.add(model.getPlayer(i));
-			stateLabels.add(model.getPlayer(i));
-			stateLabels.add(model.getPlayer(i));
+			smg.setPlayer(count++, model.getPlayer(i));
+			smg.setPlayer(count++, model.getPlayer(i));
+			smg.setPlayer(count++, model.getPlayer(i));
 		}
 
 		// setting the states list to STPG
 		smg.setStatesList(newStates);
-		smg.setStateLabels(stateLabels);
 
 		// adding choices for the product STPG
 		// initial distributions
