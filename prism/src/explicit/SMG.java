@@ -42,7 +42,7 @@ import prism.PrismException;
 public class SMG extends STPGExplicit implements STPG
 {
 	// NB: We re-use the existing stateOwners list in the superclass to assign states to players
-	
+
 	// List of players which form a coalition
 	protected List<Integer> coalition;
 
@@ -95,7 +95,7 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	// Mutators
-	
+
 	/**
 	 * Add a new (player 0) state and return its index.
 	 */
@@ -190,7 +190,7 @@ public class SMG extends STPGExplicit implements STPG
 		return this.players;
 	}
 
-        public void setPlayerMapping(Map<String, Integer> pl)
+	public void setPlayerMapping(Map<String, Integer> pl)
 	{
 		this.players = pl;
 	}
