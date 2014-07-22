@@ -710,6 +710,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		case SMG:
 			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeNextProbs((STPG) model, target, minMax.isMin1(), minMax.isMin2());
+			((SMG) model).setCoalition(null);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
@@ -758,6 +759,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		case SMG:
 			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeBoundedUntilProbs((STPG) model, remain, target, time, minMax.isMin1(), minMax.isMin2());
+			((SMG) model).setCoalition(null);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
@@ -793,6 +795,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		case SMG:
 			((SMG) model).setCoalition(minMax.getCoalition());
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
+			((SMG) model).setCoalition(null);
 			break;
 		default:
 			throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
@@ -1008,6 +1011,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2(), null, null, STPGModelChecker.R_ZERO);
 				break;
 			}
+			((SMG) model).setCoalition(null);
 			break;
 		default:
 			throw new PrismException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()

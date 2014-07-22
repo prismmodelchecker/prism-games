@@ -129,7 +129,7 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 		// construct a new SMG of size ModelSize * MemorySize
 		SMG smg = new SMG(model.getStatesList().size() * bound);
 		smg.setPlayerMapping(new HashMap<String, Integer>(model.getPlayerMapping()));
-		smg.setCoalitionInts(new ArrayList<Integer>(model.getCoalition()));
+		smg.setCoalitionInts(model.getCoalition());
 		int n = smg.getNumStates();
 
 		List<State> oldStates = model.getStatesList();
