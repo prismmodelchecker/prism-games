@@ -43,10 +43,6 @@ import prism.PrismException;
  */
 public class SMG extends STPGExplicit implements STPG
 {
-
-	// State labels: states with label i are controlled by player i
-	protected List<Integer> stateLabels;
-
 	// List of players which form a coalition
 	protected List<Integer> coalition;
 
@@ -56,13 +52,13 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG()
 	{
 		super();
-		stateLabels = new ArrayList<Integer>(numStates);
+		stateOwners = new ArrayList<Integer>(numStates);
 	}
 
 	public SMG(int n)
 	{
 		super(n);
-		stateLabels = new ArrayList<Integer>(numStates);
+		stateOwners = new ArrayList<Integer>(numStates);
 	}
 
 	/**
@@ -73,14 +69,14 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super(smg, permut);
 		this.players = players;
-		stateLabels = new ArrayList<Integer>(numStates);
+		stateOwners = new ArrayList<Integer>(numStates);
 		// Create blank array of correct size
 		for (int i = 0; i < numStates; i++) {
-			stateLabels.add(0);
+			stateOwners.add(0);
 		}
 		// Copy permuted player info
 		for (int i = 0; i < numStates; i++) {
-			stateLabels.set(permut[i], smg.stateLabels.get(i));
+			stateOwners.set(permut[i], smg.stateOwners.get(i));
 		}
 		coalition = new ArrayList<Integer>();
 
@@ -93,7 +89,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super(smg);
 		this.players = new HashMap<String, Integer>(smg.players);
-		stateLabels = new ArrayList<Integer>(smg.stateLabels);
+		stateOwners = new ArrayList<Integer>(smg.stateOwners);
 		coalition = new ArrayList<Integer>(smg.coalition);
 	}
 
@@ -124,7 +120,7 @@ public class SMG extends STPGExplicit implements STPG
 	public void addStates(int numToAdd)
 	{
 		for (int i = 0; i < numToAdd; i++)
-			stateLabels.add(0);
+			stateOwners.add(0);
 	}
 
 	/**
@@ -137,7 +133,7 @@ public class SMG extends STPGExplicit implements STPG
 	public int addState(int player)
 	{
 		super.addStates(1);
-		stateLabels.add(player);
+		stateOwners.add(player);
 		return numStates - 1;
 	}
 
@@ -151,7 +147,7 @@ public class SMG extends STPGExplicit implements STPG
 	public void addStates(List<Integer> players)
 	{
 		super.addStates(players.size());
-		stateLabels.addAll(players);
+		stateOwners.addAll(players);
 	}
 
 	/**
@@ -164,8 +160,8 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public void setPlayer(int s, int player)
 	{
-		if (s < stateLabels.size())
-			stateLabels.set(s, player);
+		if (s < stateOwners.size())
+			stateOwners.set(s, player);
 	}
 
 	/**
@@ -212,7 +208,7 @@ public class SMG extends STPGExplicit implements STPG
 		smg.maxNumDistrsOk = this.maxNumDistrsOk;
 		smg.numDistrs = this.numDistrs;
 		smg.numTransitions = this.numTransitions;
-		smg.stateLabels = new ArrayList<Integer>(this.stateLabels);
+		smg.stateOwners = new ArrayList<Integer>(this.stateOwners);
 		smg.trans = new ArrayList<List<Distribution>>(this.trans);
 		return smg;
 	}
@@ -233,7 +229,7 @@ public class SMG extends STPGExplicit implements STPG
 	@Override
 	public int getPlayer(int s)
 	{
-		return coalition.contains(stateLabels.get(s)) ? 1 : 2;
+		return coalition.contains(stateOwners.get(s)) ? 1 : 2;
 	}
 
 	public List<Integer> getCoalition()
@@ -263,7 +259,7 @@ public class SMG extends STPGExplicit implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + stateLabels.get(i) + " " + statesList.get(i) + "): ";
+			s += i + "(P-" + stateOwners.get(i) + " " + statesList.get(i) + "): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {
@@ -282,12 +278,12 @@ public class SMG extends STPGExplicit implements STPG
 
 	public List<Integer> getStateLabels()
 	{
-		return stateLabels;
+		return stateOwners;
 	}
 
 	public void setStateLabels(List<Integer> list)
 	{
-		stateLabels = list;
+		stateOwners = list;
 	}
 
 }
