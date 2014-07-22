@@ -181,6 +181,11 @@ public class ConstructModel extends PrismComponent
 				break;
 			case SMG:
 				modelSimple = smg = new SMG();
+				// Add player info
+				HashMap<String, Integer> players = new HashMap<String, Integer>();
+				for (i = 0; i < modulesFile.getNumPlayers(); i++)
+					players.put(modulesFile.getPlayer(i).getName(), i + 1);
+				smg.setPlayerMapping(players);
 				break;
 			case PTA:
 				throw new PrismException("Model construction not supported for " + modelType + "s");
@@ -371,11 +376,7 @@ public class ConstructModel extends PrismComponent
 				model = sort ? new STPGExplicit(stpg, permut) : stpg;
 				break;
 			case SMG:
-				HashMap<String, Integer> players = new HashMap<String, Integer>();
-				for (i = 0; i < modulesFile.getNumPlayers(); i++)
-					players.put(modulesFile.getPlayer(i).getName(), i + 1);
-				// TODO: allow unsorted SMG construction
-				model = new SMG(smg, permut, players);
+				model = sort ? new SMG(smg, permut) : smg;
 				break;
 			case PTA:
 				throw new PrismException("Model construction not supported for " + modelType + "s");

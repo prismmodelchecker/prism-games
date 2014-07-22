@@ -49,36 +49,38 @@ public class SMG extends STPGExplicit implements STPG
 	// player-integer mapping
 	protected Map<String, Integer> players;
 
+	// Constructors
+
+	/**
+	 * Constructor: empty SMG.
+	 */
 	public SMG()
 	{
 		super();
-		stateOwners = new ArrayList<Integer>(numStates);
-	}
-
-	public SMG(int n)
-	{
-		super(n);
-		stateOwners = new ArrayList<Integer>(numStates);
+		players = new HashMap<String, Integer>();
+		coalition = new ArrayList<Integer>();
 	}
 
 	/**
-	 * Construct an SMG from an existing one and a state index permutation, i.e.
-	 * in which state indexsetPlayer i becomes index permut[i].
+	 * Constructor: new SMG with fixed number of states.
 	 */
-	public SMG(SMG smg, int permut[], Map<String, Integer> players)
+	public SMG(int numStates)
+	{
+		super(numStates);
+		players = new HashMap<String, Integer>();
+		coalition = new ArrayList<Integer>();
+	}
+
+	/**
+	 * Construct an SMG from an existing one and a state index permutation,
+	 * i.e. in which state index i becomes index permut[i].
+	 * Player and coalition info is also copied across.
+	 */
+	public SMG(SMG smg, int permut[])
 	{
 		super(smg, permut);
-		this.players = players;
-		stateOwners = new ArrayList<Integer>(numStates);
-		// Create blank array of correct size
-		for (int i = 0; i < numStates; i++) {
-			stateOwners.add(0);
-		}
-		// Copy permuted player info
-		for (int i = 0; i < numStates; i++) {
-			stateOwners.set(permut[i], smg.stateOwners.get(i));
-		}
-		coalition = new ArrayList<Integer>();
+		players = new HashMap<String, Integer>(smg.players);
+		coalition = new ArrayList<Integer>(smg.coalition);
 
 	}
 
@@ -88,11 +90,12 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG(SMG smg)
 	{
 		super(smg);
-		this.players = new HashMap<String, Integer>(smg.players);
-		stateOwners = new ArrayList<Integer>(smg.stateOwners);
+		players = new HashMap<String, Integer>(smg.players);
 		coalition = new ArrayList<Integer>(smg.coalition);
 	}
 
+	// Mutators
+	
 	/**
 	 * Returns the list of states that belong to the scheduler
 	 * 
