@@ -43,11 +43,11 @@ public class SMG extends STPGExplicit implements STPG
 {
 	// NB: We re-use the existing stateOwners list in the superclass to assign states to players
 
+	// Mapping from player names to (integer) indices
+	protected Map<String, Integer> players;
+
 	// List of players which form a coalition
 	protected List<Integer> coalition;
-
-	// player-integer mapping
-	protected Map<String, Integer> players;
 
 	// Constructors
 
@@ -116,6 +116,14 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
+	 * Set the mapping from player names to (integer) indices.
+	 */
+	public void setPlayerMapping(Map<String, Integer> pl)
+	{
+		this.players = pl;
+	}
+
+	/**
 	 * Sets the coalition (representing Player 1)
 	 * @param coalition
 	 */
@@ -180,19 +188,14 @@ public class SMG extends STPGExplicit implements STPG
 		return coalition.contains(stateOwners.get(s)) ? 1 : 2;
 	}
 
-	public List<Integer> getCoalition()
-	{
-		return this.coalition;
-	}
-
 	public Map<String, Integer> getPlayerMapping()
 	{
 		return this.players;
 	}
 
-	public void setPlayerMapping(Map<String, Integer> pl)
+	public List<Integer> getCoalition()
 	{
-		this.players = pl;
+		return this.coalition;
 	}
 
 	// Standard methods
