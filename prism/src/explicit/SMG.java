@@ -172,7 +172,7 @@ public class SMG extends STPGExplicit implements STPG
 		return ModelType.SMG;
 	}
 
-	// Accessors (for STPG)
+	// Accessors (for STPG/SMG)
 
 	@Override
 	public int getPlayer(int s)
