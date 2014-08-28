@@ -168,7 +168,7 @@ public class SMG extends STPGExplicit implements STPG
 		if (coalition == null) {
 			this.coalition = null;
 		} else {
-			this.coalition = new ArrayList<>(coalition);
+			this.coalition = new ArrayList<Integer>(coalition);
 		}
 	}
 

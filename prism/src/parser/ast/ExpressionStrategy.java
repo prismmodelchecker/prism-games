@@ -166,7 +166,7 @@ public class ExpressionStrategy extends Expression
 	{
 		ExpressionStrategy expr = new ExpressionStrategy();
 		expr.setThereExists(isThereExists());
-		expr.setCoalition(new ArrayList<>(coalition));
+		expr.setCoalition(new ArrayList<String>(coalition));
 		expr.setExpression(expression == null ? null : expression.deepCopy());
 		expr.setType(type);
 		expr.setPosition(this);
