@@ -948,7 +948,6 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
-<<<<<<< .working
 	 * Check that player definitions are valid.
 	 */
 	private void checkPlayerDefns() throws PrismLangException
@@ -982,7 +981,6 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
-=======
 	 * Check "system...endsystem" constructs, if present.
 	 */
 	private void checkSystemDefns() throws PrismLangException
@@ -1035,7 +1033,6 @@ public class ModulesFile extends ASTElement
 	}
 	
 	/**
->>>>>>> .merge-right.r8602
 	 * Get  a list of constants in the model that are undefined
 	 * ("const int x;" rather than "const int x = 1;") 
 	 */
