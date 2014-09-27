@@ -1823,7 +1823,6 @@ String ExpressionStrategyCoalitionPlayer() :
 	{ return s; }
 }
 
-
 // (Property) expression: label (including "init")
 
 Expression ExpressionLabel(boolean prop, boolean pathprop) :

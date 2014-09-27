@@ -40,17 +40,12 @@ import java.util.LinkedHashMap;
 import java.util.ListIterator;
 import java.util.Map;
 
-import dv.DoubleVector;
-
 import parser.ast.Expression;
 import parser.ast.ExpressionIdent;
 import parser.ast.LabelList;
 import parser.ast.RewardStruct;
-import parser.type.TypeBool;
 import parser.type.TypeDouble;
-import parser.type.TypeInt;
 import parser.Values;
-
 import parser.State;
 import prism.*;
 import prism.Model;
@@ -82,7 +77,7 @@ import prism.Model;
 /**
  * Implementation of fast adaptive uniformisation (FAU).
  */
-public class FastAdaptiveUniformisation extends PrismComponent
+public final class FastAdaptiveUniformisation extends PrismComponent
 {
 	/**
 	 * Stores properties of states needed for fast adaptive method.
@@ -93,7 +88,7 @@ public class FastAdaptiveUniformisation extends PrismComponent
 	 * (references) and a flag whether the state has a significant probability
 	 * mass (alive).
 	 */
-	private final class StateProp
+	private final static class StateProp
 	{
 		/** current-step probability.
 		 * should contain initial probability before actual analysis is started.
@@ -462,7 +457,9 @@ public class FastAdaptiveUniformisation extends PrismComponent
 	private AnalysisType analysisType;
 	/** total loss of probability in discrete-time process */
 	private double totalProbLoss;
-
+	/** probability mass intentionally set to zero */
+	private double totalProbSetZero;
+	
 	/**
 	 * Constructor.
 	 */
@@ -1101,6 +1098,8 @@ public class FastAdaptiveUniformisation extends PrismComponent
 		for (StateProp prop : states.values()) {
 			totalProb += prop.getSum();
 		}
+		totalProb += totalProbSetZero;
+		
 		totalProbLoss = 1.0 - totalProb;
 	}
 
@@ -1112,6 +1111,26 @@ public class FastAdaptiveUniformisation extends PrismComponent
 	public double getTotalDiscreteLoss()
 	{
 		return totalProbLoss;
+	}
+
+	/**
+	 * Sets the probability of sink states to zero.
+	 * @throws PrismException 
+	 */
+	public void clearSinkStates() throws PrismException {
+		for (Map.Entry<State,StateProp> statePair : states.entrySet()) {
+			State state = statePair.getKey();
+			StateProp prop = statePair.getValue();
+			modelExplorer.queryState(state);
+			specialLabels.setLabel(0, modelExplorer.getNumTransitions() == 0 ? Expression.True() : Expression.False());
+			specialLabels.setLabel(1, initStates.contains(state) ? Expression.True() : Expression.False());
+			Expression evSink = sink.deepCopy();
+			evSink = (Expression) evSink.expandLabels(specialLabels);
+			if (evSink.evaluateBoolean(constantValues, state)) {
+				totalProbSetZero += prop.getProb();
+				prop.setProb(0.0);
+			}
+		}
 	}
 	
 	/**
