@@ -42,8 +42,10 @@ import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
+import param.BigRational;
 import param.ModelBuilder;
 import param.ParamModelChecker;
+import param.RegionValues;
 import parser.ExplicitFiles2ModulesFile;
 import parser.PrismParser;
 import parser.State;
@@ -2760,6 +2762,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
+		// For exact model checking
+		if (settings.getBoolean(PrismSettings.PRISM_EXACT_ENABLED)) {
+			return modelCheckExact(propertiesFile, prop);
+		}
 		// For fast adaptive uniformisation
 		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
 			FastAdaptiveUniformisationModelChecker fauMC;
@@ -3013,6 +3019,55 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Perform model checking on the currently loaded model using exact methods
+	 * (currently, this is done via the parametric model checking functionality)
+	 * @param propertiesFile parent properties file
+	 * @param prop property to model check
+	 */
+	public Result modelCheckExact(PropertiesFile propertiesFile, Property prop) throws PrismException
+	{
+		// Some checks
+		if (!(currentModelType == ModelType.DTMC || currentModelType == ModelType.CTMC || currentModelType == ModelType.MDP))
+			throw new PrismException("Exact model checking is only supported for DTMCs, CTMCs and MDPs");
+
+		// Set up a dummy parameter (not used)
+		String[] paramNames = new String[] { "dummy" };
+		String[] paramLowerBounds = new String[] { "0" };
+		String[] paramUpperBounds = new String[] { "1" };
+		// And execute parameteric model checking
+		param.ModelBuilder builder = new ModelBuilder(this);
+		builder.setModulesFile(currentModulesFile);
+		builder.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
+		builder.build();
+		explicit.Model modelExpl = builder.getModel();
+		ParamModelChecker mc = new ParamModelChecker(this);
+		mc.setModelBuilder(builder);
+		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
+		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
+		Result result = mc.check(modelExpl, prop.getExpression());
+		
+		// Convert result of parametric model checking to just a rational
+		// There should be just one region since no parameters are used
+		RegionValues regVals = (RegionValues) result.getResult();
+		if (regVals.getNumRegions() != 1)
+			throw new PrismException("Unexpected result from paramteric model checker");
+		param.Function func = regVals.getResult(0).getInitStateValueAsFunction();
+		// Evaluate the function at an arbitrary point (should not depend on parameter values)
+		BigRational rat = func.evaluate(new param.Point(new BigRational[] { new BigRational(0) }));
+		// Restore in result object
+		result.setResult(rat);
+		
+		// Print result to log
+		String resultString = "Result";
+		if (!("Result".equals(prop.getExpression().getResultName())))
+			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
+		resultString += ": " + result.getResultString();
+		mainLog.print("\n" + resultString);
+		
+		return result;
+	}
+	
+	/**
 	 * Perform parametric model checking on the currently loaded model.
 	 * @param propertiesFile parent properties file
 	 * @param prop property to model check
@@ -3053,7 +3108,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
-		return mc.check(modelExpl, prop.getExpression());
+		Result result = mc.check(modelExpl, prop.getExpression());
+		
+		// Print result to log
+		String resultString = "Result";
+		if (!("Result".equals(prop.getExpression().getResultName())))
+			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
+		resultString += ": " + result.getResultString();
+		mainLog.print("\n" + resultString);
+		
+		return result;
 	}
 	
 	/**

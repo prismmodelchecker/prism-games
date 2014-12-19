@@ -111,6 +111,8 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_PARETO_EPSILON					= "prism.paretoEpsilon";
 	public static final	String PRISM_EXPORT_PARETO_FILENAME			= "prism.exportParetoFileName";
 	
+	public static final	String PRISM_EXACT_ENABLED					= "prism.exact.enabled";
+	
 	public static final	String PRISM_PARAM_ENABLED					= "prism.param.enabled";
 	public static final	String PRISM_PARAM_PRECISION				= "prism.param.precision";
 	public static final	String PRISM_PARAM_SPLIT					= "prism.param.split";
@@ -298,6 +300,10 @@ public class PrismSettings implements Observer
 																			"Generate an optimal strategy when model checking an MDP/game" },
 			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.1",			new Boolean(false),																	"",															
 																			"Model checks the property with respect to strategy." },																		
+			// EXACT MODEL CHECKING
+			{ BOOLEAN_TYPE,		PRISM_EXACT_ENABLED,					"Do exact model checking",			"4.2.1",			new Boolean(false),															"",
+																			"Perform exact model checking." },
+			
 			// PARAMETRIC MODEL CHECKING
 			{ BOOLEAN_TYPE,		PRISM_PARAM_ENABLED,					"Do parametric model checking",			"4.1",			new Boolean(false),															"",
 																			"Perform parametric model checking." },
@@ -802,7 +808,33 @@ public class PrismSettings implements Observer
 		
 		notifySettingsListeners();
 	}
+
+	// HIDDEN OPTIONS
 	
+	// Export property automaton info?
+	protected boolean exportPropAut = false;
+	protected String exportPropAutFilename = null;
+	
+	public void setExportPropAut(boolean b) throws PrismException
+	{
+		exportPropAut = b;
+	}
+
+	public void setExportPropAutFilename(String s) throws PrismException
+	{
+		exportPropAutFilename = s;
+	}
+
+	public boolean getExportPropAut()
+	{
+		return exportPropAut;
+	}
+
+	public String getExportPropAutFilename()
+	{
+		return exportPropAutFilename;
+	}
+
 	/**
 	 * Set an option by parsing one or more command-line arguments.
 	 * Reads the ith argument (assumed to be in the form "-switch")
@@ -1218,6 +1250,12 @@ public class PrismSettings implements Observer
 			}
 		}
 		
+		// EXACT MODEL CHECKING:
+		
+		else if (sw.equals("exact")) {
+			set(PRISM_EXACT_ENABLED, true);
+		}
+		
 		// PARAMETRIC MODEL CHECKING:
 		
 		else if (sw.equals("param")) {
@@ -1396,6 +1434,18 @@ public class PrismSettings implements Observer
 			}
 		}
 
+		// HIDDEN OPTIONS
+		
+		// export property automaton to file (hidden option)
+		else if (sw.equals("exportpropaut")) {
+			if (i < args.length - 1) {
+				setExportPropAut(true);
+				setExportPropAutFilename(args[++i]);
+			} else {
+				throw new PrismException("No file specified for -" + sw + " switch");
+			}
+		}
+		
 		// unknown switch - error
 		else {
 			throw new PrismException("Invalid switch -" + sw + " (type \"prism -help\" for full list)");

@@ -79,6 +79,9 @@ import javax.swing.event.ListSelectionListener;
 
 import org.jfree.data.xy.XYDataItem;
 
+import param.BigRational;
+import param.Function;
+import param.RegionValues;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
@@ -161,7 +164,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private JScrollPane expScroller;
 	private JTextField fileTextField;
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
-			removeLabel, newExperiment, deleteExperiment, stopExperiment, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
+			removeLabel, newExperiment, deleteExperiment, stopExperiment, parametric, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
 			exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab, exportStratProduct, exportStratPlain, strategyInfo, generateStrategy,
 			implementStrategy, importStrategy, strategyExperiment;
 	private JMenu strategiesMenu;
@@ -645,6 +648,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// newExperiment: enabled if there is exactly one prop selected and it
 		// is valid
 		newExperiment.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
+		// parametric: enabled if there is exactly one prop selected and it is valid
+		parametric.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
 		// deleteExperiments: enabled if one or more experiments selected
 		deleteExperiment.setEnabled(experiments.getSelectedRowCount() > 0);
 		// viewResults: enabled if at least one experiment is selected
@@ -967,8 +972,25 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		}
 		
-		// For a single property with a displayable counterexample, offer to do
-		// show it
+		// How to plot a parametric result...
+		/*if (selected.length == 1) {
+			GUIProperty gp = propList.getProperty(selected[0]);
+			if (gp.getResult().getResult() instanceof RegionValues) {
+				Graph graph = new Graph("Param");
+				SeriesKey sk = graph.addSeries("param");
+				RegionValues vals = (RegionValues) gp.getResult().getResult();
+				param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+				int n = 100;
+				for (int i = 0; i < n; i++) {
+					BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, n)}));
+					XYDataItem di = new XYDataItem(((double)i)/n, br.doubleValue());
+					graph.addPointToSeries(sk, di);
+				}
+				this.getGraphHandler().addGraph(graph);
+			}
+		}*/
+		
+		// For a single property with a displayable counterexample, offer to do show it
 		if (selected.length == 1) {
 			GUIProperty gp = propList.getProperty(selected[0]);
 			Object cex = gp.getResult().getCounterexample();
@@ -1612,6 +1634,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
 
 				newExperiment.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
+				parametric.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
 
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
@@ -1619,6 +1642,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
+					parametric.setEnabled(false);
 				}
 
 				propertiesPopup.show(e.getComponent(), e.getX(), e.getY());
@@ -1709,6 +1733,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				details.setEnabled(propList.existsValidSelectedProperties());
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
 				newExperiment.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
+				parametric.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
 
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
@@ -1716,6 +1741,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
+					parametric.setEnabled(false);
 				}
 
 				propertiesPopup.show(e.getComponent(), e.getX(), e.getY());
@@ -1946,6 +1972,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.add(verifySelected);
 			propMenu.add(simulate);
 			propMenu.add(newExperiment);
+			//propMenu.add(parametric);
 			JMenu exportlabelsMenu = new JMenu("Export labels");
 			exportlabelsMenu.setMnemonic('E');
 			exportlabelsMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
@@ -1985,8 +2012,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(verifySelected);
 		propertiesPopup.add(simulate);
-		// experiment
 		propertiesPopup.add(newExperiment);
+		//propertiesPopup.add(parametric);
 		propertiesPopup.add(details);
 
 		// strategies
@@ -2302,6 +2329,18 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		plotResults.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
 		plotResults.putValue(Action.NAME, "Plot results");
 		plotResults.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileGraph.png"));
+
+		parametric = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_newExperiment();
+			}
+		};
+		parametric.putValue(Action.LONG_DESCRIPTION, "Perform parametric model checking");
+		parametric.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
+		parametric.putValue(Action.NAME, "Parametric");
+		parametric.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileGraph.png"));
 
 		exportResultsListText = new AbstractAction()
 		{

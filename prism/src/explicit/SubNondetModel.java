@@ -31,6 +31,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -195,17 +196,17 @@ public class SubNondetModel implements NondetModel
 	public Iterator<Integer> getSuccessorsIterator(int s)
 	{
 		s = translateState(s);
-		List<Integer> succ = new ArrayList<Integer>();
+		HashSet<Integer> succs = new HashSet<Integer>();
 		for (int i = 0; i < model.getNumChoices(s); i++) {
 			if (actions.get(s).get(i)) {
 				Iterator<Integer> it = model.getSuccessorsIterator(s, i);
 				while (it.hasNext()) {
 					int j = it.next();
-					succ.add(inverseTranslateState(j));
+					succs.add(inverseTranslateState(j));
 				}
 			}
 		}
-		return succ.iterator();
+		return succs.iterator();
 	}
 
 	@Override
@@ -352,10 +353,10 @@ public class SubNondetModel implements NondetModel
 	@Override
 	public Object getAction(int s, int i)
 	{
-		s = translateState(s);
-		i = translateAction(s, i);
+		int sOriginal = translateState(s);
+		int iOriginal = translateAction(s, i);
 
-		return model.getAction(s, i);
+		return model.getAction(sOriginal, iOriginal);
 	}
 
 	@Override
@@ -367,38 +368,38 @@ public class SubNondetModel implements NondetModel
 	@Override
 	public int getNumTransitions(int s, int i)
 	{
-		s = translateState(s);
-		i = translateAction(s, i);
-		return model.getNumTransitions(s, i);
+		int sOriginal = translateState(s);
+		int iOriginal = translateAction(s, i);
+		return model.getNumTransitions(sOriginal, iOriginal);
 	}
 	
 	@Override
 	public boolean allSuccessorsInSet(int s, int i, BitSet set)
 	{
-		s = translateState(s);
-		i = translateAction(s, i);
+		int sOriginal = translateState(s);
+		int iOriginal = translateAction(s, i);
 		set = translateSet(set);
 
-		return model.allSuccessorsInSet(s, i, set);
+		return model.allSuccessorsInSet(sOriginal, iOriginal, set);
 	}
 
 	@Override
 	public boolean someSuccessorsInSet(int s, int i, BitSet set)
 	{
-		s = translateState(s);
-		i = translateAction(s, i);
+		int sOriginal = translateState(s);
+		int iOriginal = translateAction(s, i);
 		set = translateSet(set);
 
-		return model.someSuccessorsInSet(s, i, set);
+		return model.someSuccessorsInSet(sOriginal, iOriginal, set);
 	}
 
 	@Override
 	public Iterator<Integer> getSuccessorsIterator(int s, int i)
 	{
-		s = translateState(s);
-		i = translateAction(s, i);
+		int sOriginal = translateState(s);
+		int iOriginal = translateAction(s, i);
 		List<Integer> succ = new ArrayList<Integer>();
-		Iterator<Integer> it = model.getSuccessorsIterator(s, i);
+		Iterator<Integer> it = model.getSuccessorsIterator(sOriginal, iOriginal);
 		while (it.hasNext()) {
 			int j = it.next();
 			succ.add(inverseTranslateState(j));
