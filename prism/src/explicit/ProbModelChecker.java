@@ -492,9 +492,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (!expr.isThereExists())
 			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
 
-		// Only support <<>> for SMGs right now
-		if (!(this instanceof SMGModelChecker))
-			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for SMGs currently");
+		// Only support <<>> for MDPs/SMGs right now
+		if (!(this instanceof MDPModelChecker || this instanceof SMGModelChecker))
+			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for MDPs and SMGs currently");
 
 		// Extract coalition info
 		List<String> coalition = expr.getCoalition();
@@ -545,7 +545,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		RelOp relOp; // Relational operator
 		MinMax minMax = MinMax.blank();
 		ModelType modelType = model.getModelType();
-
+		
 		StateValues probs = null;
 
 		// Get info from P operator
