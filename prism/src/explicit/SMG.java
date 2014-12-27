@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import parser.ast.Coalition;
 import prism.ModelType;
 import prism.PrismException;
 
@@ -50,7 +51,7 @@ public class SMG extends STPGExplicit implements STPG
 	// When set, this SMG effectively reduces to 2 players,
 	// i.e. an STPG in which the coalition corresponds to player 1.
 	// This is why the class implements the STPG interface.
-	protected List<Integer> coalition;
+	protected List<Integer> coalitionPlayerIndices;
 
 	// Constructors
 
@@ -61,7 +62,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super();
 		players = new HashMap<String, Integer>();
-		coalition = null;
+		coalitionPlayerIndices = null;
 	}
 
 	/**
@@ -71,7 +72,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super(numStates);
 		players = new HashMap<String, Integer>();
-		coalition = null;
+		coalitionPlayerIndices = null;
 	}
 
 	/**
@@ -83,8 +84,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super(smg, permut);
 		players = new HashMap<String, Integer>(smg.players);
-		coalition = smg.coalition == null ? null : new ArrayList<Integer>(smg.coalition);
-
+		coalitionPlayerIndices = smg.coalitionPlayerIndices == null ? null : new ArrayList<Integer>(smg.coalitionPlayerIndices);
 	}
 
 	/**
@@ -94,7 +94,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		super(smg);
 		players = new HashMap<String, Integer>(smg.players);
-		coalition = smg.coalition == null ? null : new ArrayList<Integer>(smg.coalition);
+		coalitionPlayerIndices = smg.coalitionPlayerIndices == null ? null : new ArrayList<Integer>(smg.coalitionPlayerIndices);
 	}
 
 	// Mutators
@@ -130,25 +130,33 @@ public class SMG extends STPGExplicit implements STPG
 	 * Set a coalition of players for this SMG
 	 * (which effectively makes it an STPG with player 1 representing the coalition).
 	 * Pass null to remove any coalition info from this SMG.
-	 * @param playerNames List of names of players making up the coalition 
+	 * @param coalition Coalition info object 
 	 */
-	public void setCoalition(List<String> playerNames) throws PrismException
+	public void setCoalition(Coalition coalition) throws PrismException
 	{
-		if (playerNames == null) {
-			coalition = null;
+		if (coalition == null) {
+			this.coalitionPlayerIndices = null;
 			return;
 		}
 			
-		coalition = new ArrayList<Integer>();
-		for (String playerName : playerNames) {
+		coalitionPlayerIndices = new ArrayList<Integer>();
+		
+		/*int numPlayers = ...
+		for (int i = 0; i < numPlayers; i++) {
+			if (coalition.isPlayerIndexInCoalition(i, players))
+				coalitionPlayerIndices.add(i);
+		}
+		*/
+		
+		for (String playerName : coalition.getPlayers()) {
 			// Look up index of each player and add to coalition
 			if (players.containsKey(playerName)) {
-				coalition.add(players.get(playerName));
+				coalitionPlayerIndices.add(players.get(playerName));
 			}
 			// Failing that, try parsing it as an integer
 			else {
 				try {
-					coalition.add(Integer.parseInt(playerName));
+					coalitionPlayerIndices.add(Integer.parseInt(playerName));
 				} catch (NumberFormatException e) {
 					throw new PrismException("Player " + playerName + " is not present in the model");
 				}
@@ -159,16 +167,16 @@ public class SMG extends STPGExplicit implements STPG
 	/**
 	 * Set a coalition of players for this SMG
 	 * (which effectively makes it an STPG with player 1 representing the coalition).
-	 * The list if indices is copied, not stored directly.
+	 * The list of indices is copied, not stored directly.
 	 * Pass null to remove any coalition info from this SMG.
 	 * @param coalition List of indices of players making up the coalition 
 	 */
-	public void setCoalitionInts(List<Integer> coalition) throws PrismException
+	public void setCoalitionInts(List<Integer> coalitionPlayerIndices) throws PrismException
 	{
-		if (coalition == null) {
-			this.coalition = null;
+		if (coalitionPlayerIndices == null) {
+			this.coalitionPlayerIndices = null;
 		} else {
-			this.coalition = new ArrayList<Integer>(coalition);
+			this.coalitionPlayerIndices = new ArrayList<Integer>(coalitionPlayerIndices);
 		}
 	}
 
@@ -203,10 +211,10 @@ public class SMG extends STPGExplicit implements STPG
 	@Override
 	public int getPlayer(int s)
 	{
-		if (coalition == null)
+		if (coalitionPlayerIndices == null)
 			return stateOwners.get(s);
 		else
-			return coalition.contains(stateOwners.get(s)) ? 1 : 2;
+			return coalitionPlayerIndices.contains(stateOwners.get(s)) ? 1 : 2;
 	}
 
 	/**
@@ -222,7 +230,7 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public List<Integer> getCoalition()
 	{
-		return coalition;
+		return coalitionPlayerIndices;
 	}
 
 	// Standard methods

@@ -27,8 +27,8 @@
 package explicit;
 
 import java.util.BitSet;
-import java.util.List;
 
+import parser.ast.Coalition;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
@@ -55,7 +55,7 @@ public class SMGModelChecker extends STPGModelChecker
 	/**
 	 * Model check a P operator expression with an exact probability bound (P=p[...])
 	 */
-	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, List<String> coalition, double p) throws PrismException
+	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, Coalition coalition, double p) throws PrismException
 	{
 		// Just support untimed , non-LTL path formulas
 		if (!expr.isSimplePathFormula())
@@ -139,7 +139,7 @@ public class SMGModelChecker extends STPGModelChecker
 		return StateValues.createFromBitSet(ret, smg);
 	}
 
-	protected StateValues checkExactRewardFormula(SMG smg, SMGRewards modelRewards, ExpressionReward exprRew, List<String> coalition, double p) throws PrismException
+	protected StateValues checkExactRewardFormula(SMG smg, SMGRewards modelRewards, ExpressionReward exprRew, Coalition coalition, double p) throws PrismException
 	{
 		// check if the reward is Fc
 		ExpressionTemporal exprTemp = null;
