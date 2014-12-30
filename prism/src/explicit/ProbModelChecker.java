@@ -570,7 +570,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// Otherwise, compare against bound to get set of satisfying states
 		else {
-			BitSet sol = probs.getBitSetFromInterval(expr.getRelOp(), opInfo.getBound());
+			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
 			probs.clear();
 			return StateValues.createFromBitSet(sol, model);
 		}
@@ -816,7 +816,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// Otherwise, compare against bound to get set of satisfying states
 		else {
-			BitSet sol = rews.getBitSetFromInterval(expr.getRelOp(), opInfo.getBound());
+			BitSet sol = rews.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
 			rews.clear();
 			return StateValues.createFromBitSet(sol, model);
 		}
@@ -1033,7 +1033,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// Otherwise, compare against bound to get set of satisfying states
 		else {
-			BitSet sol = probs.getBitSetFromInterval(expr.getRelOp(), opInfo.getBound());
+			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
 			probs.clear();
 			return StateValues.createFromBitSet(sol, model);
 		}

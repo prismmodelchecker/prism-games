@@ -37,6 +37,7 @@ import odd.ODDUtils;
 
 import jdd.*;
 import dv.*;
+import explicit.MinMax;
 import mtbdd.*;
 import sparse.*;
 import strat.MDStrategyIV;
@@ -154,53 +155,37 @@ public class NondetModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionProb(ExpressionProb expr) throws PrismException
 	{
-		Expression pb; // probability bound (expression)
-		double p = 0; // probability bound (actual value)
-		RelOp relOp; // relational operator
-		boolean min; // are we finding min (true) or max (false) probs
-
-		JDDNode sol;
-		StateValues probs = null;
-
-		// Get info from prob operator
-		relOp = expr.getRelOp();
-		pb = expr.getProb();
-		if (pb != null) {
-			p = pb.evaluateDouble(constantValues);
-			if (p < 0 || p > 1)
-				throw new PrismException("Invalid probability bound " + p + " in P operator");
-		}
-		min = relOp.isLowerBound() || relOp.isMin();
-
+		// Get info from P operator
+		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), true);
+		
 		// Check for trivial (i.e. stupid) cases
-		if (pb != null) {
-			if ((p == 0 && relOp == RelOp.GEQ) || (p == 1 && relOp == RelOp.LEQ)) {
-				mainLog.printWarning("Checking for probability " + relOp + " " + p + " - formula trivially satisfies all states");
-				JDD.Ref(reach);
-				return new StateValuesMTBDD(reach, model);
-			} else if ((p == 0 && relOp == RelOp.LT) || (p == 1 && relOp == RelOp.GT)) {
-				mainLog.printWarning("Checking for probability " + relOp + " " + p + " - formula trivially satisfies no states");
-				return new StateValuesMTBDD(JDD.Constant(0), model);
-			}
+		if (opInfo.isTriviallyTrue()) {
+			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies all states");
+			JDD.Ref(reach);
+			return new StateValuesMTBDD(reach, model);
+		} else if (opInfo.isTriviallyFalse()) {
+			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies no states");
+			return new StateValuesMTBDD(JDD.Constant(0), model);
 		}
 
 		// Compute probabilities
-		boolean qual = pb != null && ((p == 0) || (p == 1)) && precomp && prob0 && prob1;
-		probs = checkProbPathFormula(expr.getExpression(), qual, min);
+		boolean qual = opInfo.isQualitative() && precomp && prob0 && prob1;
+		StateValues probs = checkProbPathFormula(expr.getExpression(), qual, minMax.isMin());
 
 		// Print out probabilities
 		if (verbose) {
-			mainLog.print("\n" + (min ? "Minimum" : "Maximum") + " probabilities (non-zero only) for all states:\n");
+			mainLog.print("\n" + (minMax.isMin() ? "Minimum" : "Maximum") + " probabilities (non-zero only) for all states:\n");
 			probs.print(mainLog);
 		}
 
 		// For =? properties, just return values
-		if (pb == null) {
+		if (opInfo.isNumeric()) {
 			return probs;
 		}
 		// Otherwise, compare against bound to get set of satisfying states
 		else {
-			sol = probs.getBDDFromInterval(relOp, p);
+			JDDNode sol = probs.getBDDFromInterval(opInfo.getRelOp(), opInfo.getBound());
 			// remove unreachable states from solution
 			JDD.Ref(reach);
 			sol = JDD.And(sol, reach);
@@ -215,70 +200,28 @@ public class NondetModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionReward(ExpressionReward expr) throws PrismException
 	{
-		Object rs; // reward struct index
-		Expression rb; // reward bound (expression)
-		double r = 0; // reward bound (actual value)
-		RelOp relOp; // relational operator
-		boolean min; // are we finding min (true) or max (false) rewards
-		Expression expr2; // expression
+		// Get info from R operator
+		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), true);
 
-		JDDNode stateRewards = null, transRewards = null, sol;
+		// Get rewards
+		Object rs = expr.getRewardStructIndex();
+		JDDNode stateRewards = getStateRewardsByIndexObject(rs, model, constantValues);
+		JDDNode transRewards = getTransitionRewardsByIndexObject(rs, model, constantValues);
+
+		// Compute rewards
 		StateValues rewards = null;
-		int i;
-
-		// get info from reward operator
-		rs = expr.getRewardStructIndex();
-		relOp = expr.getRelOp();
-		rb = expr.getReward();
-		if (rb != null) {
-			r = rb.evaluateDouble(constantValues);
-			if (r < 0)
-				throw new PrismException("Invalid reward bound " + r + " in R operator");
-		}
-		min = relOp.isLowerBound() || relOp.isMin();
-
-		// get reward info
-		if (model.getNumRewardStructs() == 0)
-			throw new PrismException("Model has no rewards specified");
-		if (rs == null) {
-			stateRewards = model.getStateRewards(0);
-			transRewards = model.getTransRewards(0);
-		} else if (rs instanceof Expression) {
-			i = ((Expression) rs).evaluateInt(constantValues);
-			rs = new Integer(i); // for better error reporting below
-			stateRewards = model.getStateRewards(i - 1);
-			transRewards = model.getTransRewards(i - 1);
-		} else if (rs instanceof String) {
-			stateRewards = model.getStateRewards((String) rs);
-			transRewards = model.getTransRewards((String) rs);
-		}
-		if (stateRewards == null || transRewards == null)
-			throw new PrismException("Invalid reward structure index \"" + rs + "\"");
-
-		// check for trivial (i.e. stupid) cases
-		if (rb != null) {
-			if (r == 0 && relOp == RelOp.GEQ) {
-				mainLog.printWarning("Checking for reward " + relOp + " " + r + " - formula trivially satisfies all states");
-				JDD.Ref(reach);
-				return new StateValuesMTBDD(reach, model);
-			} else if (r == 0 && relOp == RelOp.LT) {
-				mainLog.printWarning("Checking for reward " + relOp + " " + r + " - formula trivially satisfies no states");
-				return new StateValuesMTBDD(JDD.Constant(0), model);
-			}
-		}
-
-		// compute rewards
-		expr2 = expr.getExpression();
+		Expression expr2 = expr.getExpression();
 		if (expr2 instanceof ExpressionTemporal) {
 			switch (((ExpressionTemporal) expr2).getOperator()) {
 			case ExpressionTemporal.R_C:
-				rewards = checkRewardCumul((ExpressionTemporal) expr2, stateRewards, transRewards, min);
+				rewards = checkRewardCumul((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
 				break;
 			case ExpressionTemporal.R_I:
-				rewards = checkRewardInst((ExpressionTemporal) expr2, stateRewards, transRewards, min);
+				rewards = checkRewardInst((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
 				break;
 			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach((ExpressionTemporal) expr2, stateRewards, transRewards, min);
+				rewards = checkRewardReach((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
 				break;
 			}
 		}
@@ -287,17 +230,17 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// print out rewards
 		if (verbose) {
-			mainLog.print("\n" + (min ? "Minimum" : "Maximum") + " rewards (non-zero only) for all states:\n");
+			mainLog.print("\n" + (minMax.isMin() ? "Minimum" : "Maximum") + " rewards (non-zero only) for all states:\n");
 			rewards.print(mainLog);
 		}
 
 		// For =? properties, just return values
-		if (rb == null) {
+		if (opInfo.isNumeric()) {
 			return rewards;
 		}
 		// Otherwise, compare against bound to get set of satisfying states
 		else {
-			sol = rewards.getBDDFromInterval(relOp, r);
+			JDDNode sol = rewards.getBDDFromInterval(opInfo.getRelOp(), opInfo.getBound());
 			// remove unreachable states from solution
 			JDD.Ref(reach);
 			sol = JDD.And(sol, reach);
@@ -314,14 +257,9 @@ public class NondetModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionMultiObjective(ExpressionFunc expr) throws PrismException
 	{
 		// Objective/target info
-		int numTargets;
-		List<Expression> targetExprs;
-		List<JDDNode> targetDDs, multitargetDDs = null;
+		List<JDDNode> multitargetDDs = null;
 		List<Integer> multitargetIDs = null;
-		OpsAndBoundsList opsAndBounds;
 
-		// TODO this only stored prob vs reward objective anyway
-		// boolean[] reachExpr; // whether target is just reachability (true) or LTL (false)
 		// LTL/product model stuff
 		NondetModel modelProduct, modelNew;
 		JDDVars[] draDDRowVars, draDDColVars;
@@ -346,12 +284,6 @@ public class NondetModelChecker extends NonProbModelChecker
 			ddStateIndex = ODDUtils.SingleIndexToDD(stateIndex, odd, allDDRowVars);
 		}
 
-		// Check format and extract bounds/etc.
-		numTargets = expr.getNumOperands();
-		opsAndBounds = new OpsAndBoundsList();
-		List<JDDNode> rewards = new ArrayList<JDDNode>(numTargets);
-		List<JDDNode> rewardsIndex = new ArrayList<JDDNode>(numTargets);
-
 		// Can't do LTL with time-bounded variants of the temporal operators
 		// TODO removed since it is allowed for valiter.
 		// TODO make sure it is treated correctly for all params
@@ -359,10 +291,15 @@ public class NondetModelChecker extends NonProbModelChecker
 			throw new PrismException("Time-bounded operators not supported in LTL: " + expr);
 		}*/
 
+		// Check format and extract bounds/etc.
+		int numObjectives = expr.getNumOperands();
+		OpsAndBoundsList opsAndBounds = new OpsAndBoundsList();
+		List<JDDNode> rewards = new ArrayList<JDDNode>(numObjectives);
+		List<JDDNode> rewardsIndex = new ArrayList<JDDNode>(numObjectives);
 		ArrayList<String> targetName = new ArrayList<String>();
-		targetExprs = new ArrayList<Expression>(numTargets);
-		for (int i = 0; i < numTargets; i++) {
-			extractInfoFromMultiObjectiveOperand(expr.getOperand(i), opsAndBounds, rewardsIndex, targetName, targetExprs, i == 0);
+		List<Expression> targetExprs = new ArrayList<Expression>(numObjectives);
+		for (int i = 0; i < numObjectives; i++) {
+			extractInfoFromMultiObjectiveOperand(expr.getOperand(i), opsAndBounds, rewardsIndex, targetName, targetExprs);
 		}
 
 		//currently we do 1 numerical subject to booleans, or multiple numericals only 
@@ -374,16 +311,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		negateresult = opsAndBounds.contains(Operator.P_MIN);
 		hasMaxReward = opsAndBounds.contains(Operator.R_GE) || opsAndBounds.contains(Operator.R_MAX);
 
-		// Create array to store target DDs
-		targetDDs = new ArrayList<JDDNode>(numTargets);
-
 		// Multi-objective model checking
 
 		// Create arrays to store LTL/DRA info
-		ltl = new Expression[numTargets];
-		dra = new DRA[numTargets];
-		draDDRowVars = new JDDVars[numTargets];
-		draDDColVars = new JDDVars[numTargets];
+		ltl = new Expression[numObjectives];
+		dra = new DRA[numObjectives];
+		draDDRowVars = new JDDVars[numObjectives];
+		draDDColVars = new JDDVars[numObjectives];
 
 		// For LTL/multi-obj model checking routines
 		mcLtl = new LTLModelChecker(prism);
@@ -394,7 +328,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Go through probabilistic objectives and construct product MDP.
 		boolean originalmodel = true;
-		for (int i = 0; i < numTargets; i++) {
+		for (int i = 0; i < numObjectives; i++) {
 			if (opsAndBounds.isProbabilityObjective(i)) {
 				draDDRowVars[i] = new JDDVars();
 				draDDColVars[i] = new JDDVars();
@@ -424,7 +358,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Removing actions with non-zero reward from the product for maximum cases
 		if (hasMaxReward /*& hasLTLconstraint*/) {
-			mcMo.removeNonZeroMecsForMax(modelProduct, mcLtl, rewardsIndex, opsAndBounds, numTargets, dra, draDDRowVars, draDDColVars);
+			mcMo.removeNonZeroMecsForMax(modelProduct, mcLtl, rewardsIndex, opsAndBounds, numObjectives, dra, draDDRowVars, draDDColVars);
 		}
 
 		// Remove all non-zero reward from trans in order to search for zero reward end components
@@ -433,11 +367,11 @@ public class NondetModelChecker extends NonProbModelChecker
 		boolean transchanged = mcMo.removeNonZeroRewardTrans(modelProduct, rewardsIndex, opsAndBounds);
 
 		// Compute all maximal end components
-		ArrayList<ArrayList<JDDNode>> allstatesH = new ArrayList<ArrayList<JDDNode>>(numTargets);
-		ArrayList<ArrayList<JDDNode>> allstatesL = new ArrayList<ArrayList<JDDNode>>(numTargets);
+		ArrayList<ArrayList<JDDNode>> allstatesH = new ArrayList<ArrayList<JDDNode>>(numObjectives);
+		ArrayList<ArrayList<JDDNode>> allstatesL = new ArrayList<ArrayList<JDDNode>>(numObjectives);
 		JDDNode acceptanceVector_H = JDD.Constant(0);
 		JDDNode acceptanceVector_L = JDD.Constant(0);
-		for (int i = 0; i < numTargets; i++) {
+		for (int i = 0; i < numObjectives; i++) {
 			if (opsAndBounds.isProbabilityObjective(i)) {
 				ArrayList<JDDNode> statesH = new ArrayList<JDDNode>();
 				ArrayList<JDDNode> statesL = new ArrayList<JDDNode>();
@@ -469,9 +403,11 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Find accepting maximum end components for each LTL formula
 		List<JDDNode> allecs = mcMo.computeAllEcs(modelProduct, mcLtl, allstatesH, allstatesL, acceptanceVector_H, acceptanceVector_L, draDDRowVars, draDDColVars,
-				opsAndBounds, numTargets);
+				opsAndBounds, numObjectives);
 
-		for (int i = 0; i < numTargets; i++) {
+		// Create array to store target DDs
+		List<JDDNode> targetDDs = new ArrayList<JDDNode>(numObjectives);
+		for (int i = 0; i < numObjectives; i++) {
 			if (opsAndBounds.isProbabilityObjective(i)) {
 				targetDDs.add(mcMo.computeAcceptingEndComponent(dra[i], modelProduct, draDDRowVars[i], draDDColVars[i], allecs, allstatesH.get(i),
 						allstatesL.get(i), mcLtl, conflictformulae > 1, targetName.get(i)));
@@ -490,7 +426,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		if (conflictformulae > 1) {
 			multitargetDDs = new ArrayList<JDDNode>();
 			multitargetIDs = new ArrayList<Integer>();
-			mcMo.checkConflictsInObjectives(modelProduct, mcLtl, conflictformulae, numTargets, opsAndBounds, dra, draDDRowVars, draDDColVars, targetDDs, allstatesH,
+			mcMo.checkConflictsInObjectives(modelProduct, mcLtl, conflictformulae, numObjectives, opsAndBounds, dra, draDDRowVars, draDDColVars, targetDDs, allstatesH,
 					allstatesL, multitargetDDs, multitargetIDs);
 		}
 
@@ -525,7 +461,7 @@ public class NondetModelChecker extends NonProbModelChecker
 			JDD.Deref(ddStateIndex);
 		if (modelProduct != null && modelProduct != model)
 			modelProduct.clear();
-		for (int i = 0; i < numTargets; i++) {
+		for (int i = 0; i < numObjectives; i++) {
 			if (opsAndBounds.isProbabilityObjective(i)) {
 				draDDRowVars[i].derefAll();
 				draDDColVars[i].derefAll();
@@ -567,9 +503,12 @@ public class NondetModelChecker extends NonProbModelChecker
 			
 	}
 
-	//takes one operand of multi-objective expression and extracts operator, values and reward functions from it.
+	/**
+	 * Extract the information from the operator defining one objective of a multi-objective query,
+	 * store the info in the passed in arrays and so some checks. 
+	 */
 	protected void extractInfoFromMultiObjectiveOperand(Expression operand, OpsAndBoundsList opsAndBounds, List<JDDNode> rewardsIndex, List<String> targetName,
-			List<Expression> targetExprs, boolean isFirst) throws PrismException
+			List<Expression> targetExprs) throws PrismException
 	{
 		int stepBound = 0;
 		ExpressionProb exprProb = null;
@@ -585,28 +524,13 @@ public class NondetModelChecker extends NonProbModelChecker
 			exprProb = null;
 			relOp = exprReward.getRelOp();
 			Object rs = exprReward.getRewardStructIndex();
-			JDDNode transRewards = null;
-			JDDNode stateRewards = null;
-			if (model.getNumRewardStructs() == 0)
-				throw new PrismException("Model has no rewards specified");
-			if (rs == null) {
-				transRewards = model.getTransRewards(0);
-				stateRewards = model.getStateRewards(0);
-			} else if (rs instanceof Expression) {
-				int j = ((Expression) rs).evaluateInt(constantValues);
-				rs = new Integer(j); // for better error reporting below
-				transRewards = model.getTransRewards(j - 1);
-				stateRewards = model.getStateRewards(j - 1);
-			} else if (rs instanceof String) {
-				transRewards = model.getTransRewards((String) rs);
-				stateRewards = model.getStateRewards((String) rs);	
-			}
+			JDDNode stateRewards = getStateRewardsByIndexObject(rs, model, constantValues);
+			JDDNode transRewards = getTransitionRewardsByIndexObject(rs, model, constantValues);
 
 			//check if there are state rewards and display a warning
 			if (stateRewards != null && !stateRewards.equals(JDD.ZERO))
 				throw new PrismException("Multi-objective model checking does not support state rewards; please convert to transition rewards");
-			if (transRewards == null)
-				throw new PrismException("Invalid reward structure index \"" + rs + "\"");
+			
 			rewardsIndex.add(transRewards);
 		} else {
 			throw new PrismException("Multi-objective properties can only contain P and R operators");
@@ -674,16 +598,11 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 
 		// Now extract targets
-		// Also store which ones are just reachability (in reachExpr)
 		if (exprProb != null) {
 			targetExprs.add(exprProb.getExpression());
-			// TODO check if the following line is unneeded: it only kept track of probs vs rewards
-			// reachExpr[i] = false;
 			targetName.add(exprProb.getExpression().toString());
 		} else {
 			targetExprs.add(null);
-			// TODO check if the following line is unneeded: it only kept track of probs vs rewards
-			// reachExpr[i] = true;
 			targetName.add("");
 		}
 	}
