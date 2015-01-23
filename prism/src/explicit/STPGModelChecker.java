@@ -122,7 +122,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// model check operand first, then negate it because we want 'not
 		// target'
-		b = checkExpression(model, subformula).getBitSet();
+		b = checkExpression(model, subformula, null).getBitSet(); // TODO: should we get statesOfInterest form somewhere?
 		b.flip(0, ((STPG) model).getNumStates());
 
 		// model check using FG and swapped mins/maxes
@@ -174,7 +174,7 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException("The expression passed to checkFG must be of the form (F G psi) where psi is a state formula");
 
 		// model check operand first
-		b = checkExpression(model, subformula).getBitSet();
+		b = checkExpression(model, subformula, null).getBitSet(); // TODO: should we get statesOfInterest form somewhere?
 
 		res = computeFG((STPG) model, b, min1, min2);
 
@@ -183,7 +183,7 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	@Override
-	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax) throws PrismException
+	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		throw new PrismException("LTL model checking not yet supported for stochastic games");
 	}

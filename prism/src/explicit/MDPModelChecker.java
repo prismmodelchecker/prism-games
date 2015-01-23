@@ -66,7 +66,7 @@ public class MDPModelChecker extends ProbModelChecker
 	// Model checking functions
 
 	@Override
-	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax) throws PrismException
+	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs;
@@ -112,7 +112,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Build product of MDP and automaton
 		mainLog.println("\nConstructing MDP-DRA product...");
-		Pair<NondetModel, int[]> pair = mcLtl.constructProductMDP(dra, (MDP) model, labelBS);
+		Pair<NondetModel, int[]> pair = mcLtl.constructProductMDP(dra, (MDP) model, labelBS, statesOfInterest);
 		modelProduct = pair.first;
 		int invMap[] = pair.second;
 

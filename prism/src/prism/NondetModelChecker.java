@@ -213,15 +213,20 @@ public class NondetModelChecker extends NonProbModelChecker
 		StateValues rewards = null;
 		Expression expr2 = expr.getExpression();
 		if (expr2 instanceof ExpressionTemporal) {
-			switch (((ExpressionTemporal) expr2).getOperator()) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr2;
+			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_C:
-				rewards = checkRewardCumul((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
+				if (exprTemp.hasBounds()) {
+					rewards = checkRewardCumul(exprTemp, stateRewards, transRewards, minMax.isMin());
+				} else {
+					rewards = checkRewardTotal(exprTemp, stateRewards, transRewards, minMax.isMin());
+				}
 				break;
 			case ExpressionTemporal.R_I:
-				rewards = checkRewardInst((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
+				rewards = checkRewardInst(exprTemp, stateRewards, transRewards, minMax.isMin());
 				break;
 			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach((ExpressionTemporal) expr2, stateRewards, transRewards, minMax.isMin());
+				rewards = checkRewardReach(exprTemp, stateRewards, transRewards, minMax.isMin());
 				break;
 			}
 		}
@@ -268,7 +273,6 @@ public class NondetModelChecker extends NonProbModelChecker
 		Expression[] ltl;
 		DRA<BitSet>[] dra;
 		// State index info
-		JDDNode ddStateIndex = null;
 		// Misc
 		boolean negateresult = false;
 		int conflictformulae = 0;
@@ -277,6 +281,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Make sure we are only expected to compute a value for a single state
 		// Assuming yes, determine index of state of interest and build BDD
+		JDDNode ddStateIndex = null;
 		if (currentFilter == null || !(currentFilter.getOperator() == Filter.FilterOperator.STATE))
 			throw new PrismException("Multi-objective model checking can only compute values from a single state");
 		else {
@@ -299,7 +304,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		ArrayList<String> targetName = new ArrayList<String>();
 		List<Expression> targetExprs = new ArrayList<Expression>(numObjectives);
 		for (int i = 0; i < numObjectives; i++) {
-			extractInfoFromMultiObjectiveOperand(expr.getOperand(i), opsAndBounds, rewardsIndex, targetName, targetExprs);
+			extractInfoFromMultiObjectiveOperand((ExpressionQuant) expr.getOperand(i), opsAndBounds, rewardsIndex, targetName, targetExprs);
 		}
 
 		//currently we do 1 numerical subject to booleans, or multiple numericals only 
@@ -507,7 +512,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	 * Extract the information from the operator defining one objective of a multi-objective query,
 	 * store the info in the passed in arrays and so some checks. 
 	 */
-	protected void extractInfoFromMultiObjectiveOperand(Expression operand, OpsAndBoundsList opsAndBounds, List<JDDNode> rewardsIndex, List<String> targetName,
+	protected void extractInfoFromMultiObjectiveOperand(ExpressionQuant exprQuant, OpsAndBoundsList opsAndBounds, List<JDDNode> rewardsIndex, List<String> targetName,
 			List<Expression> targetExprs) throws PrismException
 	{
 		int stepBound = 0;
@@ -515,12 +520,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		ExpressionReward exprReward = null;
 		ExpressionTemporal exprTemp;
 		RelOp relOp;
-		if (operand instanceof ExpressionProb) {
-			exprProb = (ExpressionProb) operand;
+		
+		if (exprQuant instanceof ExpressionProb) {
+			exprProb = (ExpressionProb) exprQuant;
 			exprReward = null;
 			relOp = exprProb.getRelOp();
-		} else if (operand instanceof ExpressionReward) {
-			exprReward = (ExpressionReward) operand;
+		} else if (exprQuant instanceof ExpressionReward) {
+			exprReward = (ExpressionReward) exprQuant;
 			exprProb = null;
 			relOp = exprReward.getRelOp();
 			Object rs = exprReward.getRewardStructIndex();
@@ -567,9 +573,12 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 
 		// Get info from P/R operator
+		OpRelOpBound opInfo = exprQuant.getRelopBoundInfo(constantValues);
+		
 		// Store relational operator
-		if (relOp.isStrict())
+		if (opInfo.getRelOp().isStrict())
 			throw new PrismException("Multi-objective properties can not use strict inequalities on P/R operators");
+		
 		Operator op;
 		if (relOp == RelOp.MAX) {
 			op = (exprProb != null) ? Operator.P_MAX : Operator.R_MAX;
@@ -581,21 +590,14 @@ public class NondetModelChecker extends NonProbModelChecker
 			op = (exprProb != null) ? Operator.P_LE : Operator.R_LE;
 		} else
 			throw new PrismException("Multi-objective properties can only contain P/R operators with max/min=? or lower/upper probability bounds");
-		// Store probability/rewards bound
-		Expression pb = (exprProb != null) ? exprProb.getProb() : exprReward.getReward();
-		if (pb != null) {
-			double p = pb.evaluateDouble(constantValues);
-			if ((exprProb != null) && (p < 0 || p > 1))
-				throw new PrismException("Invalid probability bound " + p + " in P operator");
-			if ((exprProb == null) && (p < 0))
-				throw new PrismException("Invalid reward bound " + p + " in P operator");
-			if (exprProb != null && relOp == RelOp.LEQ)
-				p = 1 - p;
-
-			opsAndBounds.add(op, p, stepBound);
-		} else {
-			opsAndBounds.add(op, -1.0, stepBound);
-		}
+		
+		// Find bound
+		double p = opInfo.isNumeric() ? -1.0 : opInfo.getBound();
+		// Subtract bound from 1 if of the form P<=p
+		if (opInfo.isProbabilistic() && opInfo.getRelOp().isUpperBound())
+			p = 1 - p;
+		// Store bound
+		opsAndBounds.add(opInfo, op, p, stepBound);
 
 		// Now extract targets
 		if (exprProb != null) {
@@ -615,7 +617,8 @@ public class NondetModelChecker extends NonProbModelChecker
 		for (JDDNode set : tmpecs)
 			acceptingStates = JDD.Or(acceptingStates, set);
 		targetDDs.add(acceptingStates);
-		opsAndBounds.add(Operator.P_GE, 0.0, -1);
+		OpRelOpBound opInfo = new OpRelOpBound("P", RelOp.GEQ, 0.0);
+		opsAndBounds.add(opInfo, Operator.P_GE, 0.0, -1);
 	}
 
 	//Prints info about the product model in multi-objective
@@ -629,18 +632,16 @@ public class NondetModelChecker extends NonProbModelChecker
 		if (prism.getExportProductTrans()) {
 			try {
 				mainLog.println("\nExporting product transition matrix to file \"" + prism.getExportProductTransFilename() + "\"...");
-				prism.exportTransToFile(modelProduct, true, Prism.EXPORT_PLAIN, new File(prism.getExportProductTransFilename()));
+				modelProduct.exportToFile(Prism.EXPORT_PLAIN, true, new File(prism.getExportProductTransFilename()));
 			} catch (FileNotFoundException e) {
 				mainLog.printWarning("Could not export product transition matrix to file \"" + prism.getExportProductTransFilename() + "\"");
 			}
 		}
 		if (prism.getExportProductStates()) {
-			try {
-				mainLog.println("\nExporting product state space to file \"" + prism.getExportProductStatesFilename() + "\"...");
-				prism.exportStatesToFile(modelProduct, Prism.EXPORT_PLAIN, new File(prism.getExportProductStatesFilename()));
-			} catch (FileNotFoundException e) {
-				mainLog.printWarning("Could not export product state space to file \"" + prism.getExportProductStatesFilename() + "\"");
-			}
+			mainLog.println("\nExporting product state space to file \"" + prism.getExportProductStatesFilename() + "\"...");
+			PrismFileLog out = new PrismFileLog(prism.getExportProductStatesFilename());
+			modelProduct.exportStates(Prism.EXPORT_PLAIN, out);
+			out.close();
 		}
 	}
 
@@ -1063,6 +1064,15 @@ public class NondetModelChecker extends NonProbModelChecker
 			}
 		}
 
+		return rewards;
+	}
+
+	/**
+	 * Compute rewards for a total reward operator.
+	 */
+	protected StateValues checkRewardTotal(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min) throws PrismException
+	{
+		StateValues rewards = computeTotalRewards(trans, trans01, stateRewards, transRewards, min);
 		return rewards;
 	}
 
@@ -1498,6 +1508,13 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 
 		return rewards;
+	}
+
+	// compute cumulative rewards
+
+	protected StateValues computeTotalRewards(JDDNode tr, JDDNode tr01, JDDNode sr, JDDNode trr, boolean min) throws PrismException
+	{
+		throw new PrismException("Expected total reward (C) is not yet supported for MDPs.");
 	}
 
 	// compute rewards for inst reward

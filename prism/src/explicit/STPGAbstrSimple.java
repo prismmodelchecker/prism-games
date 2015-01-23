@@ -30,7 +30,6 @@ package explicit;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -45,8 +44,11 @@ import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
-import explicit.rewards.STPGRewards;
 import strat.MDStrategy;
+
+import common.IterableStateSet;
+
+import explicit.rewards.STPGRewards;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game (STPG),
@@ -609,66 +611,60 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
 		boolean b1, b2, b3;
-		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-				b1 = forall1; // there exists or for all player 1 choices
-				for (DistributionSet distrs : trans.get(i)) {
-					b2 = forall2; // there exists or for all player 2 choices
-					for (Distribution distr : distrs) {
-						b3 = distr.containsOneOf(u);
-						if (forall2) {
-							if (!b3)
-								b2 = false;
-						} else {
-							if (b3)
-								b2 = true;
-						}
-					}
-					if (forall1) {
-						if (!b2)
-							b1 = false;
+		for (int i : new IterableStateSet(subset, numStates)) {
+			b1 = forall1; // there exists or for all player 1 choices
+			for (DistributionSet distrs : trans.get(i)) {
+				b2 = forall2; // there exists or for all player 2 choices
+				for (Distribution distr : distrs) {
+					b3 = distr.containsOneOf(u);
+					if (forall2) {
+						if (!b3)
+							b2 = false;
 					} else {
-						if (b2)
-							b1 = true;
+						if (b3)
+							b2 = true;
 					}
 				}
-				result.set(i, b1);
+				if (forall1) {
+					if (!b2)
+						b1 = false;
+				} else {
+					if (b2)
+						b1 = true;
+				}
 			}
+			result.set(i, b1);
 		}
 	}
 
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
 		boolean b1, b2, b3;
-		for (i = 0; i < numStates; i++) {
-			if (subset.get(i)) {
-				b1 = forall1; // there exists or for all player 1 choices
-				for (DistributionSet distrs : trans.get(i)) {
-					b2 = forall2; // there exists or for all player 2 choices
-					for (Distribution distr : distrs) {
-						b3 = distr.containsOneOf(v) && distr.isSubsetOf(u);
-						if (forall2) {
-							if (!b3)
-								b2 = false;
-						} else {
-							if (b3)
-								b2 = true;
-						}
-					}
-					if (forall1) {
-						if (!b2)
-							b1 = false;
+		for (int i : new IterableStateSet(subset, numStates)) {
+			b1 = forall1; // there exists or for all player 1 choices
+			for (DistributionSet distrs : trans.get(i)) {
+				b2 = forall2; // there exists or for all player 2 choices
+				for (Distribution distr : distrs) {
+					b3 = distr.containsOneOf(v) && distr.isSubsetOf(u);
+					if (forall2) {
+						if (!b3)
+							b2 = false;
 					} else {
-						if (b2)
-							b1 = true;
+						if (b3)
+							b2 = true;
 					}
 				}
-				result.set(i, b1);
+				if (forall1) {
+					if (!b2)
+						b1 = false;
+				} else {
+					if (b2)
+						b1 = true;
+				}
 			}
+			result.set(i, b1);
 		}
 	}
 
@@ -676,17 +672,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
 			boolean complement, int adv[])
 	{
-		int s;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++)
-				result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
+		for (int s : new IterableStateSet(subset, numStates, complement)) {
+			result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
 		}
 	}
 
@@ -772,30 +759,12 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
 			boolean absolute)
 	{
-		int s;
 		double d, diff, maxDiff = 0.0;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
-				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
-				maxDiff = diff > maxDiff ? diff : maxDiff;
-				vect[s] = d;
-			}
+		for (int s : new IterableStateSet(subset, numStates, complement)) {
+			d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+			diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+			maxDiff = diff > maxDiff ? diff : maxDiff;
+			vect[s] = d;
 		}
 		return maxDiff;
 	}
@@ -847,17 +816,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
 			BitSet subset, boolean complement, int adv[])
 	{
-		int s;
-		// Loop depends on subset/complement arguments
-		if (subset == null) {
-			for (s = 0; s < numStates; s++)
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
-		} else if (complement) {
-			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
-		} else {
-			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1))
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
+		for (int s : new IterableStateSet(subset, numStates, complement)) {
+			result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
 		}
 	}
 

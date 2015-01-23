@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Vector;
 
 import parser.ast.Expression;
+import parser.ast.RelOp;
 
 import dv.DoubleVector;
 
@@ -86,10 +87,10 @@ public class MultiObjModelChecker extends PrismComponent
 		mainLog.println("Time for Rabin translation: " + l / 1000.0 + " seconds.");
 		// If required, export DRA 
 		if (prism.getSettings().getExportPropAut()) {
-			String exportPropAutFilename = PrismUtils.addCounterSuffixToFilename(prism.getSettings().getExportPropAutFilename(), i);
+			String exportPropAutFilename = PrismUtils.addCounterSuffixToFilename(prism.getSettings().getExportPropAutFilename(), i + 1);
 			mainLog.println("Exporting DRA to file \"" + exportPropAutFilename + "\"...");
 			PrismLog out = new PrismFileLog(exportPropAutFilename);
-			out.println(dra);
+			out.println(dra[i]);
 			out.close();
 			//dra.printDot(new java.io.PrintStream("dra.dot"));
 		}
@@ -257,11 +258,10 @@ public class MultiObjModelChecker extends PrismComponent
 
 					for (int i = 0; i < opsAndBounds.probSize(); i++) {
 						if (opsAndBounds.getProbOperator(i) != Operator.P_MAX) {
-							tmpOpsAndBounds.add(opsAndBounds.getProbOperator(i), opsAndBounds.getProbBound(i), opsAndBounds.getProbStepBound(i));
+							tmpOpsAndBounds.add(opsAndBounds.getOpRelOpBound(i), opsAndBounds.getProbOperator(i), opsAndBounds.getProbBound(i), opsAndBounds.getProbStepBound(i));
 						}
 					}
-
-					tmpOpsAndBounds.add(Operator.R_MAX, -1.0, -1);
+					tmpOpsAndBounds.add(new OpRelOpBound("R", RelOp.MAX, -1.0), Operator.R_MAX, -1.0, -1);
 
 					ArrayList<JDDNode> tmprewards = new ArrayList<JDDNode>(1);
 					tmprewards.add(rtarget);
@@ -538,7 +538,6 @@ public class MultiObjModelChecker extends PrismComponent
 		n = targets.size();
 
 		JDDNode labels[] = new JDDNode[n];
-		String labelNames[] = new String[n];
 		// Build temporary DDs for combined targets
 		for (i = 0; i < n; i++) {
 			JDD.Ref(targets.get(i));
@@ -552,13 +551,21 @@ public class MultiObjModelChecker extends PrismComponent
 				}
 			}
 			labels[i] = tmp;
-			labelNames[i] = "target" + i;
 		}
 
+		// If required, export info about target states 
 		if (prism.getExportTarget()) {
+			JDDNode labels2[] = new JDDNode[n + 1];
+			String labelNames[] = new String[n + 1];
+			labels2[0] = modelProduct.getStart();
+			labelNames[0] = "init";
+			for (i = 0; i < n; i++) {
+				labels2[i + 1] = labels[i];
+				labelNames[i + 1] = "target" + i;
+			}
 			try {
 				mainLog.print("\nExporting target states info to file \"" + prism.getExportTargetFilename() + "\"...");
-				PrismMTBDD.ExportLabels(labels, labelNames, "l", modelProduct.getAllDDRowVars(), modelProduct.getODD(), Prism.EXPORT_PLAIN,
+				PrismMTBDD.ExportLabels(labels2, labelNames, "l", modelProduct.getAllDDRowVars(), modelProduct.getODD(), Prism.EXPORT_PLAIN,
 						prism.getExportTargetFilename());
 			} catch (FileNotFoundException e) {
 				mainLog.println("\nWarning: Could not export target to file \"" + prism.getExportTargetFilename() + "\"");
@@ -696,7 +703,7 @@ public class MultiObjModelChecker extends PrismComponent
 		int numberOfMaximizing = opsAndBounds.numberOfNumerical();
 
 		if (numberOfMaximizing > 2)
-			throw new PrismException("Number of maximizing objectives must be at most 3");
+			throw new PrismException("Number of maximizing objectives must be at most 2");
 
 		if (numberOfMaximizing >= 2 && opsAndBounds.probSize() + opsAndBounds.rewardSize() > numberOfMaximizing)
 				throw new PrismException("Number of maximizing objectives can be 2 or 3 only if there are no other (i.e. bounded) objectives present");

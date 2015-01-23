@@ -55,7 +55,7 @@ public class SMGModelChecker extends STPGModelChecker
 	/**
 	 * Model check a P operator expression with an exact probability bound (P=p[...])
 	 */
-	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, Coalition coalition, double p) throws PrismException
+	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, Coalition coalition, double p, BitSet statesOfInterest) throws PrismException
 	{
 		// Just support untimed , non-LTL path formulas
 		if (!expr.isSimplePathFormula())
@@ -94,13 +94,13 @@ public class SMGModelChecker extends STPGModelChecker
 			MinMax minMax1 = MinMax.minMin(true, false);
 			minMax1.setCoalition(coalition);
 			minMax1.setBound(p);
-			minmax = checkProbPathFormula(smg, expr.getExpression(), minMax1).getDoubleArray();
+			minmax = checkProbPathFormula(smg, expr.getExpression(), minMax1, statesOfInterest).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
 			MinMax minMax2 = MinMax.minMin(false, true);
 			minMax2.setCoalition(coalition);
 			minMax2.setBound(p);
-			maxmin = checkProbPathFormula(smg, expr.getExpression(), minMax2).getDoubleArray();
+			maxmin = checkProbPathFormula(smg, expr.getExpression(), minMax2, statesOfInterest).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 

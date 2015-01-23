@@ -59,7 +59,7 @@ public class DTMCModelChecker extends ProbModelChecker
 	// Model checking functions
 
 	@Override
-	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax) throws PrismException
+	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs;
@@ -100,7 +100,7 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Build product of Markov chain and automaton
 		mainLog.println("\nConstructing MC-DRA product...");
-		Pair<Model, int[]> pair = mcLtl.constructProductMC(dra, (DTMC) model, labelBS);
+		Pair<Model, int[]> pair = mcLtl.constructProductMC(dra, (DTMC) model, labelBS, statesOfInterest);
 		modelProduct = pair.first;
 		int invMap[] = pair.second;
 		mainLog.print("\n" + modelProduct.infoStringTable());
