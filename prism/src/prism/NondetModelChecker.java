@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
+import acceptance.AcceptanceRabin;
 import odd.ODDUtils;
 
 import jdd.*;
@@ -271,7 +272,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		MultiObjModelChecker mcMo;
 		LTLModelChecker mcLtl;
 		Expression[] ltl;
-		DRA<BitSet>[] dra;
+		DA<BitSet,AcceptanceRabin>[] dra;
 		// State index info
 		// Misc
 		boolean negateresult = false;
@@ -320,7 +321,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// Create arrays to store LTL/DRA info
 		ltl = new Expression[numObjectives];
-		dra = new DRA[numObjectives];
+		dra = new DA[numObjectives];
 		draDDRowVars = new JDDVars[numObjectives];
 		draDDColVars = new JDDVars[numObjectives];
 
@@ -380,14 +381,14 @@ public class NondetModelChecker extends NonProbModelChecker
 			if (opsAndBounds.isProbabilityObjective(i)) {
 				ArrayList<JDDNode> statesH = new ArrayList<JDDNode>();
 				ArrayList<JDDNode> statesL = new ArrayList<JDDNode>();
-				for (int k = 0; k < dra[i].getNumAcceptancePairs(); k++) {
+				for (int k = 0; k < dra[i].getAcceptance().size(); k++) {
 					JDDNode tmpH = JDD.Constant(0);
 					JDDNode tmpL = JDD.Constant(0);
 					for (int j = 0; j < dra[i].size(); j++) {
-						if (!dra[i].getAcceptanceL(k).get(j)) {
+						if (!dra[i].getAcceptance().get(k).getL().get(j)) {
 							tmpH = JDD.SetVectorElement(tmpH, draDDRowVars[i], j, 1.0);
 						}
-						if (dra[i].getAcceptanceK(k).get(j)) {
+						if (dra[i].getAcceptance().get(k).getK().get(j)) {
 							tmpL = JDD.SetVectorElement(tmpL, draDDRowVars[i], j, 1.0);
 						}
 					}
@@ -739,18 +740,14 @@ public class NondetModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbBoundedUntil(ExpressionTemporal expr, boolean min) throws PrismException
 	{
-		int time;
 		JDDNode b1, b2;
 		StateValues probs = null;
+		Integer lowerBound;
+		IntegerBound bounds;
+		int i;
 
-		// get info from bounded until
-		time = expr.getUpperBound().evaluateInt(constantValues);
-		if (expr.upperBoundIsStrict())
-			time--;
-		if (time < 0) {
-			String bound = expr.upperBoundIsStrict() ? "<" + (time + 1) : "<=" + time;
-			throw new PrismException("Invalid bound " + bound + " in bounded until formula");
-		}
+		// get and check bounds information
+		bounds = IntegerBound.fromExpressionTemporal(expr, constantValues, true);
 
 		// model check operands first
 		b1 = checkExpressionDD(expr.getOperand1());
@@ -767,20 +764,47 @@ public class NondetModelChecker extends NonProbModelChecker
 		// mainLog.print(" states, b2 = " + JDD.GetNumMintermsString(b2,
 		// allDDRowVars.n()) + " states\n");
 
-		// compute probabilities
+		if (bounds.hasLowerBound()) {
+			lowerBound = bounds.getLowestInteger();
+		} else {
+			lowerBound = 0;
+		}
 
-		// a trivial case: "U<=0"
-		if (time == 0) {
+		Integer windowSize = null;  // unbounded
+		if (bounds.hasUpperBound()) {
+			windowSize = bounds.getHighestInteger() - lowerBound;
+		}
+
+		// compute probabilities for Until<=windowSize
+		if (windowSize == null) {
+			// unbounded
+			try {
+				probs = checkProbUntil(b1, b2, false, min);
+			} catch (PrismException e) {
+				JDD.Deref(b1);
+				JDD.Deref(b2);
+				throw e;
+			}
+		} else if (windowSize == 0) {
+			// the trivial case: windowSize = 0
 			// prob is 1 in b2 states, 0 otherwise
 			JDD.Ref(b2);
 			probs = new StateValuesMTBDD(b2, model);
 		} else {
 			try {
-				probs = computeBoundedUntilProbs(trans, trans01, b1, b2, time, min);
+				probs = computeBoundedUntilProbs(trans, trans01, b1, b2, windowSize, min);
 			} catch (PrismException e) {
 				JDD.Deref(b1);
 				JDD.Deref(b2);
 				throw e;
+			}
+		}
+
+		// perform lowerBound restricted next-step computations to
+		// deal with lower bound.
+		if (lowerBound > 0) {
+			for (i = 0; i < lowerBound; i++) {
+				probs = computeRestrictedNext(trans, b1, probs, min);
 			}
 		}
 
@@ -920,7 +944,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		StateValues probsProduct = null, probs = null;
 		Expression ltl;
 		Vector<JDDNode> labelDDs;
-		DRA<BitSet> dra;
+		DA<BitSet,AcceptanceRabin> dra;
 		NondetModel modelProduct;
 		NondetModelChecker mcProduct;
 		JDDNode startMask;
@@ -955,7 +979,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		mainLog.println("\nBuilding deterministic Rabin automaton (for " + ltl + ")...");
 		l = System.currentTimeMillis();
 		dra = LTLModelChecker.convertLTLFormulaToDRA(ltl);
-		mainLog.println("DRA has " + dra.size() + " states, " + dra.getNumAcceptancePairs() + " pairs.");
+		mainLog.println("DRA has " + dra.size() + " states, " + dra.getAcceptance().getSizeStatistics()+".");
 		l = System.currentTimeMillis() - l;
 		mainLog.println("Time for Rabin translation: " + l / 1000.0 + " seconds.");
 		// If required, export DRA 
@@ -990,17 +1014,9 @@ public class NondetModelChecker extends NonProbModelChecker
 			out.close();
 		}
 
-		// Find accepting states + compute reachability probabilities
-		JDDNode acc = null;
-		if (dra.isDFA()) {
-			// For a DFA, just collect the accept states
-			mainLog.println("\nSkipping end component detection since DRA is a DFA...");
-			acc = mcLtl.findTargetStatesForRabin(dra, modelProduct, draDDRowVars, draDDColVars);
-		} else {
-			// Usually, we have to detect end components in the product
-			mainLog.println("\nFinding accepting end components...");
-			acc = mcLtl.findAcceptingECStatesForRabin(dra, modelProduct, draDDRowVars, draDDColVars, fairness);
-		}
+		// Find accepting MECs + compute reachability probabilities
+		mainLog.println("\nFinding accepting end components...");
+		JDDNode acc = mcLtl.findAcceptingECStatesForRabin(dra, modelProduct, draDDRowVars, draDDColVars, fairness);
 		mainLog.println("\nComputing reachability probabilities...");
 		mcProduct = new NondetModelChecker(prism, modelProduct, null);
 		probsProduct = mcProduct.checkProbUntil(modelProduct.getReach(), acc, qual, min && fairness);
@@ -1153,6 +1169,51 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 		probs = new StateValuesMTBDD(tmp, model);
 
+		return probs;
+	}
+
+	/**
+	 * Given a value vector x, compute the probability:
+	 *   v(s) = min/max sched [ Sum_s' P_sched(s,s')*x(s') ]  for s labeled with a,
+	 *   v(s) = 0   for s not labeled with a.
+	 *
+	 * Clears the StateValues object x.
+	 *
+	 * @param tr the transition matrix
+	 * @param a the set of states labeled with a
+	 * @param x the value vector
+	 * @param min compute min instead of max
+	 */
+	protected StateValues computeRestrictedNext(JDDNode tr, JDDNode a, StateValues x, boolean min)
+	{
+		JDDNode tmp;
+		StateValuesMTBDD probs = null;
+
+		// ensure that values are given in MTBDD format
+		StateValuesMTBDD ddX = x.convertToStateValuesMTBDD();
+
+		tmp = ddX.getJDDNode();
+		JDD.Ref(tmp);
+		tmp = JDD.PermuteVariables(tmp, allDDRowVars, allDDColVars);
+		JDD.Ref(tr);
+		tmp = JDD.MatrixMultiply(tr, tmp, allDDColVars, JDD.BOULDER);
+		// (then min or max)
+		if (min) {
+			// min
+			JDD.Ref(nondetMask);
+			tmp = JDD.Apply(JDD.MAX, tmp, nondetMask);
+			tmp = JDD.MinAbstract(tmp, allDDNondetVars);
+		} else {
+			// max
+			tmp = JDD.MaxAbstract(tmp, allDDNondetVars);
+		}
+
+		// label is 0/1 BDD, MIN sets all values to 0 for states not in a
+		JDD.Ref(a);
+		tmp = JDD.Apply(JDD.MIN, tmp, a);
+
+		probs = new StateValuesMTBDD(tmp, model);
+		ddX.clear();
 		return probs;
 	}
 

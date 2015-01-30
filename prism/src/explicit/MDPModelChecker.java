@@ -34,8 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import acceptance.AcceptanceRabin;
 import parser.ast.Expression;
-import prism.DRA;
+import prism.DA;
 import prism.Pair;
 import prism.PrismComponent;
 import prism.PrismDevNullLog;
@@ -71,7 +72,7 @@ public class MDPModelChecker extends ProbModelChecker
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs;
 		Expression ltl;
-		DRA<BitSet> dra;
+		DA<BitSet,AcceptanceRabin> dra;
 		NondetModel modelProduct;
 		MDPModelChecker mcProduct;
 		long time;
@@ -98,7 +99,7 @@ public class MDPModelChecker extends ProbModelChecker
 		time = System.currentTimeMillis();
 		dra = LTLModelChecker.convertLTLFormulaToDRA(ltl);
 		int draSize = dra.size();
-		mainLog.println("DRA has " + dra.size() + " states, " + dra.getNumAcceptancePairs() + " pairs.");
+		mainLog.println("DRA has " + dra.size() + " states, " + dra.getAcceptance().getSizeStatistics() + ".");
 		time = System.currentTimeMillis() - time;
 		mainLog.println("Time for Rabin translation: " + time / 1000.0 + " seconds.");
 		// If required, export DRA 
@@ -116,21 +117,13 @@ public class MDPModelChecker extends ProbModelChecker
 		modelProduct = pair.first;
 		int invMap[] = pair.second;
 
-		// Find accepting states + compute reachability probabilities
-		BitSet acc = null;
-		if (dra.isDFA()) {
-			// For a DFA, just collect the accept states
-			mainLog.println("\nSkipping MEC detection since DRA is a DFA...");
-			acc = mcLtl.findTargetStatesForRabin(dra, modelProduct, invMap);
-		} else {
-			// Usually, we have to detect MECs in the product
-			mainLog.println("\nFinding accepting MECs...");
-			acc = mcLtl.findAcceptingECStatesForRabin(dra, modelProduct, invMap);
-		}
+		// Find accepting MECs + compute reachability probabilities
+		mainLog.println("\nFinding accepting MECs...");
+		BitSet acceptingMECs = mcLtl.findAcceptingECStatesForRabin(dra, modelProduct, invMap);
 		mainLog.println("\nComputing reachability probabilities...");
 		mcProduct = new MDPModelChecker(this);
 		mcProduct.inheritSettings(this);
-		probsProduct = StateValues.createFromDoubleArray(mcProduct.computeReachProbs((MDP) modelProduct, acc, false).soln, modelProduct);
+		probsProduct = StateValues.createFromDoubleArray(mcProduct.computeReachProbs((MDP) modelProduct, acceptingMECs, false).soln, modelProduct);
 
 		// Subtract from 1 if we're model checking a negated formula for regular Pmin
 		if (minMax.isMin()) {
@@ -189,6 +182,36 @@ public class MDPModelChecker extends ProbModelChecker
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		return res;
+	}
+
+	/**
+	 * Given a value vector x, compute the probability:
+	 *   v(s) = min/max sched [ Sum_s' P_sched(s,s')*x(s') ]  for s labeled with a,
+	 *   v(s) = 0   for s not labeled with a.
+	 *
+	 * Clears the StateValues object x.
+	 *
+	 * @param tr the transition matrix
+	 * @param a the set of states labeled with a
+	 * @param x the value vector
+	 * @param min compute min instead of max
+	 */
+	public double[] computeRestrictedNext(MDP mdp, BitSet a, double[] x, boolean min)
+	{
+		int n;
+		double soln[];
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		// initialized to 0.0
+		soln = new double[n];
+
+		// Next-step probabilities multiplication
+		// restricted to a states
+		mdp.mvMultMinMax(x, min, soln, a, false, null);
+
+		return soln;
 	}
 
 	/**
