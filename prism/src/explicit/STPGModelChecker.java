@@ -1264,21 +1264,12 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Print adversary
 		if (genAdv) {
-			/*
-			 * Iterator<Entry<Integer, Double>> it; PrismLog out = new
-			 * PrismFileLog
-			 * (settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
-			 * //out.print("Adv:"); out.println(n + " ?"); for (i = 0; i < n;
-			 * i++) { if (adv[i] == -1) continue; //out.print(" " + i + ":" +
-			 * stpg.getStatesList().get(i) + ":"); //out.println(adv[i] != -1 ?
-			 * stpg.getAction(i, adv[i]) : "-");
-			 * 
-			 * it = stpg.getTransitionsIterator(i, adv[i]); if (it == null)
-			 * continue; while (it.hasNext()) { Entry<Integer, Double> next =
-			 * it.next(); out.print(i + " 0 " + next.getKey() + " " +
-			 * next.getValue() + " "); out.println(adv[i] != -1 ?
-			 * stpg.getAction(i, adv[i]) : "-"); } } out.println();
-			 */
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			for (i = 0; i < n; i++) {
+				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+			}
+			out.println();
+			out.close();
 		}
 
 		// Non-convergence is an error (usually)
