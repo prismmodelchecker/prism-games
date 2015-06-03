@@ -32,10 +32,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
 
-import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceOmegaDD;
-import acceptance.AcceptanceRabin;
-import acceptance.AcceptanceRabinDD;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -49,6 +45,10 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.type.TypeBool;
 import parser.type.TypePathBool;
+import acceptance.AcceptanceOmega;
+import acceptance.AcceptanceOmegaDD;
+import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceRabinDD;
 
 /**
  * LTL model checking functionality

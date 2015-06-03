@@ -34,10 +34,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
 
-import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceOmegaDD;
-import acceptance.AcceptanceReachDD;
-import acceptance.AcceptanceType;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -51,6 +47,10 @@ import parser.ast.ExpressionUnaryOp;
 import parser.ast.PropertiesFile;
 import parser.ast.RelOp;
 import sparse.PrismSparse;
+import acceptance.AcceptanceOmega;
+import acceptance.AcceptanceOmegaDD;
+import acceptance.AcceptanceReachDD;
+import acceptance.AcceptanceType;
 import dv.DoubleVector;
 
 /*

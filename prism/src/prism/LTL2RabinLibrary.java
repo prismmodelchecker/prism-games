@@ -27,15 +27,25 @@
 
 package prism;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
 
-import acceptance.AcceptanceRabin;
-import acceptance.AcceptanceRabin.RabinPair;
 import parser.Values;
-import parser.ast.*;
+import parser.ast.Expression;
+import parser.ast.ExpressionLabel;
+import parser.ast.ExpressionLiteral;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
 import parser.visitor.ASTTraverse;
 import parser.visitor.ASTTraverseModify;
+import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceRabin.RabinPair;
 
 /**
  * LTL-to-DRA conversion via
