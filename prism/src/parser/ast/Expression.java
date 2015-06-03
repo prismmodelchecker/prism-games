@@ -123,6 +123,34 @@ public abstract class Expression extends ASTElement
 	}
 
 	/**
+	 * Returns {@code true} if this expression is a path formula.
+	 * If {@code allowNestedOperators==false} then we don't allow
+	 * nested P, R, ... operators.
+	 * @param allowNestedOperators allow nested P, R, ... operators?
+	 */
+	public boolean isPathFormula(boolean allowNestedOperators)
+	{
+		try {
+			if (getType() == null) {
+				this.typeCheck();
+			}
+			if (getType() == TypePathBool.getInstance() ||
+			    getType() == TypeBool.getInstance()) {
+				if (!allowNestedOperators) {
+					if (this.computeProbNesting() >= 1) {
+						return false;
+					}
+				}
+				return true;
+			}
+
+			return false;
+		} catch (PrismLangException e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Convert a property expression (an LTL formula) into the classes used by
 	 * the jltl2ba (and jltl2dstar) libraries.
 	 */
@@ -715,6 +743,78 @@ public abstract class Expression extends ASTElement
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Converts an Expression that is a simple path formula to a canonical form:
+	 * Either a single non-negated next-step operator
+	 * or a single until-operator, optionally preceded by a single negation.
+	 * Parentheses are removed.
+	 * @param expr the simple path formula
+	 * @return the canonical expression
+	 */
+	public static Expression convertSimplePathFormulaToCanonicalForm(Expression expr) throws PrismLangException
+	{
+		boolean negated = false;
+
+		if (!expr.isSimplePathFormula()) {
+			throw new PrismLangException("Expression is not a simple path formula.");
+		}
+
+		// Negation/parentheses
+		while (expr instanceof ExpressionUnaryOp) {
+			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
+			// remove parentheses
+			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
+				expr = exprUnary.getOperand();
+			}
+			// deal with negation
+			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
+				negated = !negated;
+				expr = exprUnary.getOperand();
+			} else {
+				throw new PrismLangException("Expression is not a simple path formula: Unexpected unary operator "+exprUnary.getOperatorSymbol());
+			}
+		}
+
+		// Temporal operator
+		if (expr instanceof ExpressionTemporal) {
+			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+			// Next
+			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+				if (negated) {
+					if (exprTemp.hasBounds()) throw new PrismLangException("Next-Step operator should not have bounds!");
+
+					// ! X expr  <=> X ! expr
+					return new ExpressionTemporal(ExpressionTemporal.P_X, null,
+					                              Expression.Not(Expression.Parenth(exprTemp.getOperand2())));
+				} else {
+					// X expr
+					return exprTemp;
+				}
+			} else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+				// Until
+				expr = exprTemp;
+			} else {
+				// other operators: convert
+				expr = exprTemp.convertToUntilForm();
+			}
+		} else {
+			throw new PrismLangException("Expression is not a simple path formula: Unsupported expression "+expr.toString());
+		}
+
+		if (negated) {
+			if (expr instanceof ExpressionUnaryOp &&
+			    ((ExpressionUnaryOp)expr).getOperator() == ExpressionUnaryOp.NOT) {
+				// remove the outer negation
+				return ((ExpressionUnaryOp)expr).getOperand();
+			} else {
+				// negate
+				return Expression.Not(expr);
+			}
+		}
+
+		return expr;
 	}
 }
 

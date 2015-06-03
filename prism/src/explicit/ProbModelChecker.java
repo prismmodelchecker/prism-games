@@ -587,8 +587,18 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkProbPathFormula(Model model, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// Test whether this is a simple path formula (i.e. PCTL)
-		// and then pass control to appropriate method. 
-		if (expr.isSimplePathFormula()) {
+		// and whether we want to use the corresponding algorithms
+		boolean useSimplePathAlgo = expr.isSimplePathFormula();
+
+		if (useSimplePathAlgo &&
+		    settings.getBoolean(PrismSettings.PRISM_PATH_VIA_AUTOMATA) &&
+		    LTLModelChecker.isSupportedLTLFormula(model.getModelType(), expr)) {
+			// If PRISM_PATH_VIA_AUTOMATA is true, we want to use the LTL engine
+			// whenever possible
+			useSimplePathAlgo = false;
+		}
+
+		if (useSimplePathAlgo) {
 			return checkProbPathFormulaSimple(model, expr, minMax, statesOfInterest);
 		} else {
 			return checkProbPathFormulaLTL(model, expr, false, minMax, statesOfInterest);
@@ -600,27 +610,22 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbPathFormulaSimple(Model model, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
+		boolean negated = false;
 		StateValues probs = null;
 
-		// Negation/parentheses
-		if (expr instanceof ExpressionUnaryOp) {
-			ExpressionUnaryOp exprUnary = (ExpressionUnaryOp) expr;
-			// Parentheses
-			if (exprUnary.getOperator() == ExpressionUnaryOp.PARENTH) {
-				// Recurse
-				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), minMax, statesOfInterest);
-			}
-			// Negation
-			else if (exprUnary.getOperator() == ExpressionUnaryOp.NOT) {
-				// Compute, then subtract from 1 
-				probs = checkProbPathFormulaSimple(model, exprUnary.getOperand(), minMax.negate(), statesOfInterest);
-				probs.timesConstant(-1.0);
-				probs.plusConstant(1.0);
-			}
+		expr = Expression.convertSimplePathFormulaToCanonicalForm(expr);
+
+		// Negation
+		if (expr instanceof ExpressionUnaryOp &&
+		    ((ExpressionUnaryOp)expr).getOperator() == ExpressionUnaryOp.NOT) {
+			negated = true;
+			minMax = minMax.negate();
+			expr = ((ExpressionUnaryOp)expr).getOperand();
 		}
-		// Temporal operators
-		else if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+
+		if (expr instanceof ExpressionTemporal) {
+ 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+
 			// Next
 			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
 				probs = checkProbNext(model, exprTemp, minMax, statesOfInterest);
@@ -633,14 +638,16 @@ public class ProbModelChecker extends NonProbModelChecker
 					probs = checkProbUntil(model, exprTemp, minMax, statesOfInterest);
 				}
 			}
-			// Anything else - convert to until and recurse
-			else {
-				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), minMax, statesOfInterest);
-			}
 		}
 
 		if (probs == null)
 			throw new PrismException("Unrecognised path operator in P operator");
+
+		if (negated) {
+			// Subtract from 1 for negation
+			probs.timesConstant(-1.0);
+			probs.plusConstant(1.0);
+		}
 
 		return probs;
 	}

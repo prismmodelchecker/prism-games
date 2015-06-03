@@ -4,6 +4,7 @@
 //	Authors:
 //	* Alessandro Bruni <albr@dtu.dk> (Technical University of Denmark)
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -28,6 +29,7 @@
 package explicit;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -36,8 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceType;
 import common.IterableStateSet;
+import parser.State;
 import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionLabel;
@@ -46,16 +51,55 @@ import parser.ast.ExpressionUnaryOp;
 import parser.type.TypeBool;
 import parser.type.TypePathBool;
 import prism.DA;
-import prism.LTL2RabinLibrary;
-import prism.Pair;
+import prism.LTL2DA;
+import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismLangException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 
 /**
  * LTL model checking functionality
  */
 public class LTLModelChecker extends PrismComponent
 {
+	/** Make LTL product accessible as a Product */
+	public class LTLProduct<M extends Model> extends Product<M> {
+		private int daSize;
+		private int invMap[];
+		private AcceptanceOmega acceptance;
+
+		public LTLProduct(M productModel, M originalModel, AcceptanceOmega acceptance, int daSize, int[] invMap)
+		{
+			super(productModel, originalModel);
+			this.daSize = daSize;
+			this.invMap = invMap;
+			this.acceptance = acceptance;
+		}
+
+		@Override
+		public int getModelState(int productState)
+		{
+			return invMap[productState] / daSize;
+		}
+
+		@Override
+		public int getAutomatonState(int productState)
+		{
+			return invMap[productState] % daSize;
+		}
+
+		public AcceptanceOmega getAcceptance() {
+			return acceptance;
+		}
+
+		public void setAcceptance(AcceptanceOmega acceptance) {
+			this.acceptance = acceptance;
+		}
+	}
+
+
 	/**
 	 * Create a new LTLModelChecker, inherit basic state from parent (unless null).
 	 */
@@ -65,12 +109,26 @@ public class LTLModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Convert an LTL formula into a DRA. The LTL formula is represented as a PRISM Expression,
-	 * in which atomic propositions are represented by ExpressionLabel objects.
+	 * Returns {@code true} if expression {@code expr} is a formula that can be handled by
+	 * LTLModelChecker for the given ModelType.
 	 */
-	public static DA<BitSet,AcceptanceRabin> convertLTLFormulaToDRA(Expression ltl) throws PrismException
+	public static boolean isSupportedLTLFormula(ModelType modelType, Expression expr) throws PrismLangException
 	{
-		return LTL2RabinLibrary.convertLTLFormulaToDRA(ltl);
+		if (!expr.isPathFormula(true)) {
+			return false;
+		}
+		if (Expression.containsTemporalTimeBounds(expr)) {
+			if (modelType.continuousTime()) {
+				// Only support temporal bounds for discrete time models
+				return false;
+			}
+			
+			if (!expr.isSimplePathFormula()) {
+				// Only support temporal bounds for simple path formulas
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -128,32 +186,104 @@ public class LTLModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Construct the product of a DRA and a DTMC.
-	 * @param dra The DRA
-	 * @param dtmc The DTMC
-	 * @param labelBS BitSets giving the set of states for each AP in the DRA
-	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
-	 * @return The product DTMC and a list of each of its states (s,q), encoded as (s * draSize + q) 
+	 * Generate a deterministic automaton for the given LTL expression and construct the product.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param dtmc the model
+	 * @param expr a path expression
+ 	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+ 	 * @param allowedAcceptance the allowed acceptance types
+	 * @return the product with the DA
 	 */
-	public Pair<Model, int[]> constructProductMC(DA<BitSet,AcceptanceRabin> dra, DTMC dtmc, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
+	public LTLProduct<DTMC> constructProductMC(ProbModelChecker mc, DTMC dtmc, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		Expression ltl;
+		DA<BitSet,? extends AcceptanceOmega> da;
+		LTLProduct<DTMC> product;
+		long time;
+
+		if (Expression.containsTemporalTimeBounds(expr)) {
+			if (dtmc.getModelType().continuousTime()) {
+				throw new PrismException("DRA construction for time-bounded operators not supported for " + dtmc.getModelType()+".");
+			}
+
+			if (expr.isSimplePathFormula()) {
+				// Convert simple path formula to canonical form,
+				// DRA is then generated by LTL2RabinLibrary.
+				//
+				// The conversion to canonical form has to happen here, because once
+				// checkMaximalStateFormulas has been called, the formula should not be modified
+				// anymore, as converters may expect that the generated labels for maximal state
+				// formulas only appear positively
+				expr = Expression.convertSimplePathFormulaToCanonicalForm(expr);
+			} else {
+				throw new PrismException("Time-bounded operators not supported in LTL: " + expr);
+			}
+		}
+
+		// Model check maximal state formulas
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		ltl = checkMaximalStateFormulas(mc, dtmc, expr.deepCopy(), labelBS);
+
+		// Convert LTL formula to deterministic automaton
+		mainLog.println("\nBuilding deterministic automaton (for " + ltl + ")...");
+		time = System.currentTimeMillis();
+		LTL2DA ltl2da = new LTL2DA(this);
+		da = ltl2da.convertLTLFormulaToDA(ltl, mc.getConstantValues(), allowedAcceptance);
+		mainLog.println(da.getAutomataType()+" has " + da.size() + " states, " + da.getAcceptance().getSizeStatistics() + ".");
+		time = System.currentTimeMillis() - time;
+		mainLog.println("Time for "+da.getAutomataType()+" translation: " + time / 1000.0 + " seconds.");
+		// If required, export DRA
+		if (settings.getExportPropAut()) {
+			mainLog.println("Exporting DRA to file \"" + settings.getExportPropAutFilename() + "\"...");
+			PrismLog out = new PrismFileLog(settings.getExportPropAutFilename());
+			out.println(da);
+			out.close();
+			//dra.printDot(new java.io.PrintStream("dra.dot"));
+		}
+
+
+		// Build product of Markov chain and automaton
+		mainLog.println("\nConstructing MC-"+da.getAutomataType()+" product...");
+		product = constructProductMC(da, dtmc, labelBS, statesOfInterest);
+
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
+	}
+
+	/**
+	 * Construct the product of a DA and a DTMC.
+	 * @param dra The DA
+	 * @param dtmc The DTMC
+	 * @param labelBS BitSets giving the set of states for each AP in the DA
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @return The product DTMC
+	 */
+	public LTLProduct<DTMC> constructProductMC(DA<BitSet,? extends AcceptanceOmega> da, DTMC dtmc, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
 	{
 		DTMCSimple prodModel = new DTMCSimple();
 
-		int draSize = dra.size();
-		int numAPs = dra.getAPList().size();
+		int daSize = da.size();
+		int numAPs = da.getAPList().size();
 		int modelNumStates = dtmc.getNumStates();
-		int prodNumStates = modelNumStates * draSize;
+		int prodNumStates = modelNumStates * daSize;
 		int s_1, s_2, q_1, q_2;
 		BitSet s_labels = new BitSet(numAPs);
+		List<State> prodStatesList = null;
 
 		// Encoding: 
-		// each state s' = <s, q> = s * draSize + q
-		// s(s') = s' / draSize
-		// q(s') = s' % draSize
+		// each state s' = <s, q> = s * daSize + q
+		// s(s') = s' / daSize
+		// q(s') = s' % daSize
 
 		LinkedList<Point> queue = new LinkedList<Point>();
 		int map[] = new int[prodNumStates];
 		Arrays.fill(map, -1);
+
+		if (dtmc.getStatesList() != null) {
+			prodStatesList = new ArrayList<State>();
+		}
 
 		// We need results for all states of the original model in statesOfInterest
 		// We thus explore states of the product starting from these states.
@@ -164,15 +294,19 @@ public class LTLModelChecker extends PrismComponent
 		for (int s_0 : new IterableStateSet(statesOfInterest, dtmc.getNumStates())) {
 			// Get BitSet representing APs (labels) satisfied by state s_0
 			for (int k = 0; k < numAPs; k++) {
-				s_labels.set(k, labelBS.get(Integer.parseInt(dra.getAPList().get(k).substring(1))).get(s_0));
+				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
 			}
-			// Find corresponding initial state in DRA
-			int q_0 = dra.getEdgeDestByLabel(dra.getStartState(), s_labels);
+			// Find corresponding initial state in DA
+			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
 			// Add (initial) state to product
 			queue.add(new Point(s_0, q_0));
 			prodModel.addState();
 			prodModel.addInitialState(prodModel.getNumStates() - 1);
-			map[s_0 * draSize + q_0] = prodModel.getNumStates() - 1;
+			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
+			if (prodStatesList != null) {
+				// store DTMC state information for the product state
+				prodStatesList.add(dtmc.getStatesList().get(s_0));
+			}
 		}
 
 		// Product states
@@ -181,7 +315,7 @@ public class LTLModelChecker extends PrismComponent
 			Point p = queue.pop();
 			s_1 = p.x;
 			q_1 = p.y;
-			visited.set(s_1 * draSize + q_1);
+			visited.set(s_1 * daSize + q_1);
 
 			// Go through transitions from state s_1 in original DTMC
 			Iterator<Map.Entry<Integer, Double>> iter = dtmc.getTransitionsIterator(s_1);
@@ -191,17 +325,21 @@ public class LTLModelChecker extends PrismComponent
 				double prob = e.getValue();
 				// Get BitSet representing APs (labels) satisfied by successor state s_2
 				for (int k = 0; k < numAPs; k++) {
-					s_labels.set(k, labelBS.get(Integer.parseInt(dra.getAPList().get(k).substring(1))).get(s_2));
+					s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_2));
 				}
 				// Find corresponding successor in DRA
-				q_2 = dra.getEdgeDestByLabel(q_1, s_labels);
+				q_2 = da.getEdgeDestByLabel(q_1, s_labels);
 				// Add state/transition to model
-				if (!visited.get(s_2 * draSize + q_2) && map[s_2 * draSize + q_2] == -1) {
+				if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
 					queue.add(new Point(s_2, q_2));
 					prodModel.addState();
-					map[s_2 * draSize + q_2] = prodModel.getNumStates() - 1;
+					map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
+					if (prodStatesList != null) {
+						// store DTMC state information for the product state
+						prodStatesList.add(dtmc.getStatesList().get(s_2));
+					}
 				}
-				prodModel.setProbability(map[s_1 * draSize + q_1], map[s_2 * draSize + q_2], prob);
+				prodModel.setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
 			}
 		}
 
@@ -215,27 +353,110 @@ public class LTLModelChecker extends PrismComponent
 
 		prodModel.findDeadlocks(false);
 
-		return new Pair<Model, int[]>(prodModel, invMap);
+		if (prodStatesList != null) {
+			prodModel.setStatesList(prodStatesList);
+		}
+
+		LTLProduct<DTMC> product = new LTLProduct<DTMC>(prodModel, dtmc, null, daSize, invMap);
+
+		// generate acceptance for the product model by lifting
+		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
+
+		// lift the labels
+		for (String label : dtmc.getLabels()) {
+			BitSet liftedLabel = product.liftFromModel(dtmc.getLabelStates(label));
+			prodModel.addLabel(label, liftedLabel);
+		}
+
+		return product;
+	}
+	/**
+	 * Generate the DA for the given LTL expression and construct the product.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param model the model
+	 * @param expr a path expression
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @param allowedAcceptance the allowed acceptance conditions
+	 * @return the product with the DA
+	 * @throws PrismException
+	 */
+	public LTLProduct<MDP> constructProductMDP(ProbModelChecker mc, MDP model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		Expression ltl;
+		DA<BitSet, ? extends AcceptanceOmega> da;
+		LTLProduct<MDP> product;
+		long time;
+
+		if (Expression.containsTemporalTimeBounds(expr)) {
+			if (model.getModelType().continuousTime()) {
+				throw new PrismException("DRA construction for time-bounded operators not supported for " + model.getModelType()+".");
+			}
+
+			if (expr.isSimplePathFormula()) {
+				// Convert simple path formula to canonical form,
+				// DRA is then generated by LTL2RabinLibrary.
+				//
+				// The conversion to canonical form has to happen here, because once
+				// checkMaximalStateFormulas has been called, the formula should not be modified
+				// anymore, as converters may expect that the generated labels for maximal state
+				// formulas only appear positively
+				expr = Expression.convertSimplePathFormulaToCanonicalForm(expr);
+			} else {
+				throw new PrismException("Time-bounded operators not supported in LTL: " + expr);
+			}
+		}
+
+		// Model check maximal state formulas
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		ltl = checkMaximalStateFormulas(mc, model, expr.deepCopy(), labelBS);
+
+		// Convert LTL formula to deterministic automaton
+		mainLog.println("\nBuilding deterministic automaton (for " + ltl + ")...");
+		time = System.currentTimeMillis();
+		LTL2DA ltl2da = new LTL2DA(this);
+		da = ltl2da.convertLTLFormulaToDA(ltl, mc.getConstantValues(), allowedAcceptance);
+		mainLog.println(da.getAutomataType()+" has " + da.size() + " states, " + da.getAcceptance().getSizeStatistics() + ".");
+		time = System.currentTimeMillis() - time;
+		mainLog.println("Time for "+da.getAutomataType()+" translation: " + time / 1000.0 + " seconds.");
+		// If required, export DA
+		if (settings.getExportPropAut()) {
+			mainLog.println("Exporting "+da.getAutomataType()+" to file \"" + settings.getExportPropAutFilename() + "\"...");
+			PrismLog out = new PrismFileLog(settings.getExportPropAutFilename());
+			out.println(da);
+			out.close();
+			//da.printDot(new java.io.PrintStream("da.dot"));
+		}
+
+		// Build product of MDP and automaton
+		mainLog.println("\nConstructing MDP-"+da.getAutomataType()+" product...");
+		product = constructProductMDP(da, model, labelBS, statesOfInterest);
+
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
 	}
 
 	/**
-	 * Construct the product of a DRA and an MDP.
-	 * @param dra The DRA
+	 * Construct the product of a DA and an MDP.
+	 * @param da The DA
 	 * @param mdp The MDP
-	 * @param labelBS BitSets giving the set of states for each AP in the DRA
+	 * @param labelBS BitSets giving the set of states for each AP in the DA
 	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
-	 * @return The product MDP and a list of each of its states (s,q), encoded as (s * draSize + q) 
+	 * @return The product MDP
 	 */
-	public Pair<NondetModel, int[]> constructProductMDP(DA<BitSet,AcceptanceRabin> dra, MDP mdp, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
+	public LTLProduct<MDP> constructProductMDP(DA<BitSet,? extends AcceptanceOmega> da, MDP mdp, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
 	{
 		MDPSimple prodModel = new MDPSimple();
 
-		int draSize = dra.size();
-		int numAPs = dra.getAPList().size();
+		int daSize = da.size();
+		int numAPs = da.getAPList().size();
 		int modelNumStates = mdp.getNumStates();
-		int prodNumStates = modelNumStates * draSize;
+		int prodNumStates = modelNumStates * daSize;
 		int s_1, s_2, q_1, q_2;
 		BitSet s_labels = new BitSet(numAPs);
+		List<State> prodStatesList = null;
+
 
 		// Encoding: 
 		// each state s' = <s, q> = s * draSize + q
@@ -246,6 +467,10 @@ public class LTLModelChecker extends PrismComponent
 		int map[] = new int[prodNumStates];
 		Arrays.fill(map, -1);
 
+		if (mdp.getStatesList() != null) {
+			prodStatesList = new ArrayList<State>();
+		}
+
 		// We need results for all states of the original model in statesOfInterest
 		// We thus explore states of the product starting from these states.
 		// These are designated as initial states of the product model
@@ -255,15 +480,19 @@ public class LTLModelChecker extends PrismComponent
 		for (int s_0 : new IterableStateSet(statesOfInterest, mdp.getNumStates())) {
 			// Get BitSet representing APs (labels) satisfied by state s_0
 			for (int k = 0; k < numAPs; k++) {
-				s_labels.set(k, labelBS.get(Integer.parseInt(dra.getAPList().get(k).substring(1))).get(s_0));
+				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
 			}
 			// Find corresponding initial state in DRA
-			int q_0 = dra.getEdgeDestByLabel(dra.getStartState(), s_labels);
+			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
 			// Add (initial) state to product
 			queue.add(new Point(s_0, q_0));
 			prodModel.addState();
 			prodModel.addInitialState(prodModel.getNumStates() - 1);
-			map[s_0 * draSize + q_0] = prodModel.getNumStates() - 1;
+			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
+			if (prodStatesList != null) {
+				// store MDP state information for the product state
+				prodStatesList.add(mdp.getStatesList().get(s_0));
+			}
 		}
 
 		// Product states
@@ -272,7 +501,7 @@ public class LTLModelChecker extends PrismComponent
 			Point p = queue.pop();
 			s_1 = p.x;
 			q_1 = p.y;
-			visited.set(s_1 * draSize + q_1);
+			visited.set(s_1 * daSize + q_1);
 
 			// Go through transitions from state s_1 in original DTMC
 			int numChoices = mdp.getNumChoices(s_1);
@@ -285,19 +514,23 @@ public class LTLModelChecker extends PrismComponent
 					double prob = e.getValue();
 					// Get BitSet representing APs (labels) satisfied by successor state s_2
 					for (int k = 0; k < numAPs; k++) {
-						s_labels.set(k, labelBS.get(Integer.parseInt(dra.getAPList().get(k).substring(1))).get(s_2));
+						s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_2));
 					}
 					// Find corresponding successor in DRA
-					q_2 = dra.getEdgeDestByLabel(q_1, s_labels);
+					q_2 = da.getEdgeDestByLabel(q_1, s_labels);
 					// Add state/transition to model
-					if (!visited.get(s_2 * draSize + q_2) && map[s_2 * draSize + q_2] == -1) {
+					if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
 						queue.add(new Point(s_2, q_2));
 						prodModel.addState();
-						map[s_2 * draSize + q_2] = prodModel.getNumStates() - 1;
+						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
+						if (prodStatesList != null) {
+							// store MDP state information for the product state
+							prodStatesList.add(mdp.getStatesList().get(s_2));
+						}
 					}
-					prodDistr.set(map[s_2 * draSize + q_2], prob);
+					prodDistr.set(map[s_2 * daSize + q_2], prob);
 				}
-				prodModel.addActionLabelledChoice(map[s_1 * draSize + q_1], prodDistr, mdp.getAction(s_1, j));
+				prodModel.addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, mdp.getAction(s_1, j));
 			}
 		}
 
@@ -311,45 +544,42 @@ public class LTLModelChecker extends PrismComponent
 
 		prodModel.findDeadlocks(false);
 
-		return new Pair<NondetModel, int[]>(prodModel, invMap);
+		if (prodStatesList != null) {
+			prodModel.setStatesList(prodStatesList);
+		}
+
+		LTLProduct<MDP> product = new LTLProduct<MDP>(prodModel, mdp, null, daSize, invMap);
+
+		// generate acceptance for the product model by lifting
+		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
+
+		// lift the labels
+		for (String label : mdp.getLabels()) {
+			BitSet liftedLabel = product.liftFromModel(mdp.getLabelStates(label));
+			prodModel.addLabel(label, liftedLabel);
+		}
+
+		return product;
 	}
 
 	/**
-	 * Find the set of states belong to accepting BSCCs in a model wrt a Rabin acceptance condition.
-	 * @param dra The DRA
+	 * Find the set of states that belong to accepting BSCCs in a model wrt an acceptance condition.
 	 * @param model The model
-	 * @param invMap The map returned by the constructProduct method(s)
+	 * @param acceptance The acceptance condition
 	 */
-	public BitSet findAcceptingBSCCsForRabin(DA<BitSet,AcceptanceRabin> dra, Model model, int invMap[]) throws PrismException
+	public BitSet findAcceptingBSCCs(Model model, AcceptanceOmega acceptance) throws PrismException
 	{
 		// Compute bottom strongly connected components (BSCCs)
 		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, model);
 		sccComputer.computeBSCCs();
 		List<BitSet> bsccs = sccComputer.getBSCCs();
 
-		int draSize = dra.size();
-		int numAcceptancePairs = dra.getAcceptance().size();
 		BitSet result = new BitSet();
 
 		for (BitSet bscc : bsccs) {
-			for (int acceptancePair = 0; acceptancePair < numAcceptancePairs; acceptancePair++) {
-				// accepting for L,K <=> BSCC does not intersect L but does intersect K
-				boolean isLEmpty = true;
-				boolean isKEmpty = true;
-
-				BitSet L = dra.getAcceptance().get(acceptancePair).getL();
-				BitSet K = dra.getAcceptance().get(acceptancePair).getK();
-				for (int state = bscc.nextSetBit(0); state != -1; state = bscc.nextSetBit(state + 1)) {
-					int draState = invMap[state] % draSize;
-					isLEmpty &= !L.get(draState);
-					isKEmpty &= !K.get(draState);
-				}
-				if (isLEmpty && !isKEmpty) {
-					// this BSCC is accepting
-					result.or(bscc);
-					// we do not have to consider the other acceptance pairs, continue with next BSCC
-					break;
-				}
+			if (acceptance.isBSCCAccepting(bscc)) {
+				// this BSCC is accepting
+				result.or(bscc);
 			}
 		}
 
@@ -357,24 +587,37 @@ public class LTLModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Find the set of states in accepting end components (ECs) in a nondeterministic model wrt a Rabin acceptance condition.
-	 * @param dra The DRA
-	 * @param model The model
-	 * @param invMap The map returned by the constructProduct method(s)
+	 * Compute the set of states in end components of the model that are accepting
+	 * with regard to the acceptance condition.
+	 * @param model the model
+	 * @param acceptance the acceptance condition
+	 * @return BitSet with the set of states that are accepting
 	 */
-	public BitSet findAcceptingECStatesForRabin(DA<BitSet,AcceptanceRabin> dra, NondetModel model, int invMap[]) throws PrismException
+	public BitSet findAcceptingECStates(NondetModel model, AcceptanceOmega acceptance) throws PrismException
+	{
+		if (acceptance instanceof AcceptanceRabin) {
+			return findAcceptingECStatesForRabin(model, (AcceptanceRabin) acceptance);
+		}
+		throw new PrismException("Computing end components for acceptance type '"+acceptance.getTypeName()+"' currently not supported (explicit engine).");
+	}
+
+	/**
+	 * Find the set of states in accepting end components (ECs) in a nondeterministic model wrt a Rabin acceptance condition.
+	 * @param model The model
+	 * @param acceptance The acceptance condition
+	 */
+	public BitSet findAcceptingECStatesForRabin(NondetModel model, AcceptanceRabin acceptance) throws PrismException
 	{
 		BitSet allAcceptingStates = new BitSet();
 		int numStates = model.getNumStates();
-		int draSize = dra.size();
 		
 		// Go through the DRA acceptance pairs (L_i, K_i) 
-		for (int i = 0; i < dra.getAcceptance().size(); i++) {
+		for (int i = 0; i < acceptance.size(); i++) {
 			// Find model states *not* satisfying L_i
-			BitSet bitsetLi = dra.getAcceptance().get(i).getL();
+			BitSet bitsetLi = acceptance.get(i).getL();
 			BitSet statesLi_not = new BitSet();
 			for (int s = 0; s < numStates; s++) {
-				if (!bitsetLi.get(invMap[s] % draSize)) {
+				if (!bitsetLi.get(s)) {
 					statesLi_not.set(s);
 				}
 			}
@@ -386,17 +629,33 @@ public class LTLModelChecker extends PrismComponent
 			ecComputer.computeMECStates(statesLi_not);
 			List<BitSet> mecs = ecComputer.getMECStates();
 			// Check with MECs contain a K_i state
-			BitSet bitsetKi = dra.getAcceptance().get(i).getK();
+			BitSet bitsetKi = acceptance.get(i).getK();
 			for (BitSet mec : mecs) {
-				for (int s = mec.nextSetBit(0); s != -1; s = mec.nextSetBit(s + 1)) {
-					if (bitsetKi.get(invMap[s] % draSize)) {
-						allAcceptingStates.or(mec);
-						break;
-					}
+				if (mec.intersects(bitsetKi)) {
+					allAcceptingStates.or(mec);
 				}
 			}
 		}
 
 		return allAcceptingStates;
 	}
+
+	/** Lift the acceptance condition from the automaton to the product states. */
+	private AcceptanceOmega liftAcceptance(final LTLProduct<?> product, AcceptanceOmega acceptance)
+	{
+		// make a copy of the acceptance condition
+		AcceptanceOmega lifted = acceptance.clone();
+
+		// lift state sets
+		lifted.lift(new AcceptanceOmega.LiftBitSet() {
+			@Override
+			public BitSet lift(BitSet states)
+			{
+				return product.liftFromAutomaton(states);
+			}
+		});
+
+		return lifted;
+	}
+
 }

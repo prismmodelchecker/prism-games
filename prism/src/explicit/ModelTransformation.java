@@ -1,8 +1,8 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2014-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -24,20 +24,26 @@
 //	
 //==============================================================================
 
-package prism;
+package explicit;
 
-import jdd.JDDNode;
-import parser.Values;
-import parser.ast.*;
+import prism.PrismException;
 
-// interface for model checker classes
+/**
+ * Interface for a model transformation.
+ */
+public interface ModelTransformation<OriginalModel extends Model, TransformedModel extends Model> {
 
-public interface ModelChecker
-{
-	public Result check(Expression expr) throws PrismException;
-	public StateValues checkExpression(Expression expr) throws PrismException;
-	public JDDNode checkExpressionDD(Expression expr) throws PrismException;
-	public Values getConstantValues();
+	/** Get the original model. */
+	public OriginalModel getOriginalModel();
+
+	/** Get the transformed model. */
+	public TransformedModel getTransformedModel() throws PrismException;
+
+	/**
+	 * Take a {@code StateValues} object for the transformed model and
+	 * project the values to the original model.
+	 * @param svTransformedModel a {@code StateValues} object for the transformed model
+	 * @return a corresponding {@code StateValues} object for the original model.
+	 **/
+	public StateValues projectToOriginalModel(StateValues svTransformedModel) throws PrismException;
 }
-
-//------------------------------------------------------------------------------

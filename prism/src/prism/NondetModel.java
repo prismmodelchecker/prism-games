@@ -223,16 +223,16 @@ public class NondetModel extends ProbModel
 		}
 
 		// build mask for nondeterminstic choices
+		// (and work out number of choices)
 		JDD.Ref(trans01);
 		JDD.Ref(reach);
 		if (this.nondetMask != null)
 			JDD.Deref(this.nondetMask);
 		// nb: this assumes that there are no deadlock states
-		nondetMask = JDD.And(JDD.Not(JDD.ThereExists(trans01, allDDColVars)), reach);
-
-		// work out number of choices
-		double d = JDD.GetNumMinterms(nondetMask, getNumDDRowVars() + getNumDDNondetVars());
-		numChoices = ((Math.pow(2, getNumDDNondetVars())) * numStates) - d;
+		nondetMask = JDD.And(JDD.ThereExists(trans01, allDDColVars), reach);
+		numChoices = JDD.GetNumMinterms(nondetMask, getNumDDRowVars() + getNumDDNondetVars());
+		JDD.Ref(reach);
+		nondetMask = JDD.And(JDD.Not(nondetMask), reach);
 	}
 
 	@Override
@@ -268,15 +268,18 @@ public class NondetModel extends ProbModel
 				transInd = JDD.Or(transInd, JDD.ThereExists(tmp, allDDColVars));
 			}
 			JDD.Deref(tmp);
-			// update mask
-			JDD.Deref(nondetMask);
+			// update transition count
+			numTransitions = JDD.GetNumMinterms(trans01, getNumDDVarsInTrans());
+			// re-build mask for nondeterminstic choices
+			// (and work out number of choices)
 			JDD.Ref(trans01);
 			JDD.Ref(reach);
-			nondetMask = JDD.And(JDD.Not(JDD.ThereExists(trans01, allDDColVars)), reach);
-			// update model stats
-			numTransitions = JDD.GetNumMinterms(trans01, getNumDDVarsInTrans());
-			double d = JDD.GetNumMinterms(nondetMask, getNumDDRowVars() + getNumDDNondetVars());
-			numChoices = ((Math.pow(2, getNumDDNondetVars())) * numStates) - d;
+			if (this.nondetMask != null)
+				JDD.Deref(this.nondetMask);
+			nondetMask = JDD.And(JDD.ThereExists(trans01, allDDColVars), reach);
+			numChoices = JDD.GetNumMinterms(nondetMask, getNumDDRowVars() + getNumDDNondetVars());
+			JDD.Ref(reach);
+			nondetMask = JDD.And(JDD.Not(nondetMask), reach);
 		}
 	}
 
