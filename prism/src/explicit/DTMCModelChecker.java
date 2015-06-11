@@ -35,6 +35,7 @@ import parser.ast.Expression;
 import parser.type.TypeDouble;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
@@ -239,7 +240,7 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	public StateValues doTransient(DTMC dtmc, int k, double initDist[]) throws PrismException
 	{
-		throw new PrismException("Not implemented yet");
+		throw new PrismNotSupportedException("Not implemented yet");
 	}
 
 	// Utility methods for probability distributions
@@ -1330,7 +1331,7 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeTransientProbs(DTMC dtmc, int k, double initDist[]) throws PrismException
 	{
-		throw new PrismException("Not implemented yet");
+		throw new PrismNotSupportedException("Not implemented yet");
 	}
 
 	/**

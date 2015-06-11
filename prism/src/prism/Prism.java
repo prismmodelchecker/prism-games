@@ -1927,7 +1927,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					currentModel = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, currentModulesFile,
 							explicitFilesNumStates);
 				} else {
-					throw new PrismException("Explicit import not yet supported for explicit engine");
+					throw new PrismNotSupportedException("Explicit import not yet supported for explicit engine");
 				}
 				break;
 			default:
@@ -2129,7 +2129,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		JDDNode tmp;
 
 		if (getExplicit())
-			throw new PrismException("Export to Spy file not yet supported by explicit engine");
+			throw new PrismNotSupportedException("Export to Spy file not yet supported by explicit engine");
 
 		// Build model, if necessary
 		buildModelIfRequired();
@@ -2160,7 +2160,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void exportToDotFile(File file) throws FileNotFoundException, PrismException
 	{
 		if (getExplicit())
-			throw new PrismException("Export to Dot file not yet supported by explicit engine");
+			throw new PrismNotSupportedException("Export to Dot file not yet supported by explicit engine");
 
 		// Build model, if necessary
 		buildModelIfRequired();
@@ -2223,7 +2223,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				currentModelExpl.exportToPrismExplicitTra(tmpLog);
 				break;
 			case Prism.EXPORT_MATLAB:
-				throw new PrismException("Export not yet supported");
+				throw new PrismNotSupportedException("Export not yet supported");
 			case Prism.EXPORT_DOT:
 				currentModelExpl.exportToDotFile(tmpLog);
 				break;
@@ -2232,7 +2232,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				break;
 			case Prism.EXPORT_MRMC:
 			case Prism.EXPORT_ROWS:
-				throw new PrismException("Export not yet supported");
+				throw new PrismNotSupportedException("Export not yet supported");
 			}
 			tmpLog.close();
 		}
@@ -2265,7 +2265,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		String s;
 
 		if (getExplicit())
-			throw new PrismException("Export of state rewards not yet supported by explicit engine");
+			throw new PrismNotSupportedException("Export of state rewards not yet supported by explicit engine");
 
 		// rows format does not apply to vectors
 		if (exportType == EXPORT_ROWS)
@@ -3617,8 +3617,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Utility method to create and initialiser a (symbolic) model checker based on the current model.
-	 * @param propertiesFile Optional properties file for extra info needed durinng model checking (can be null)
+	 * Utility method to create and initialise a (symbolic) model checker based on the current model.
+	 * @param propertiesFile Optional properties file for extra info needed during model checking (can be null)
 	 */
 	private ModelChecker createModelChecker(PropertiesFile propertiesFile) throws PrismException
 	{
@@ -3631,8 +3631,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 	
 	/**
-	 * Utility method to create and initialiser an (explicit) model checker based on the current model.
-	 * @param propertiesFile Optional properties file for extra info needed durinng model checking (can be null)
+	 * Utility method to create and initialise an (explicit) model checker based on the current model.
+	 * @param propertiesFile Optional properties file for extra info needed during model checking (can be null)
 	 */
 	private explicit.StateModelChecker createModelCheckerExplicit(PropertiesFile propertiesFile) throws PrismException
 	{

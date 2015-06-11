@@ -45,6 +45,7 @@ import prism.OpRelOpBound;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismSettings;
+import prism.PrismNotSupportedException;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
@@ -179,7 +180,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			} else if (s.equals("Backwards SOR")) {
 				setLinEqMethod(LinEqMethod.BACKWARDS_SOR);
 			} else {
-				throw new PrismException("Explicit engine does not support linear equation solution method \"" + s + "\"");
+				throw new PrismNotSupportedException("Explicit engine does not support linear equation solution method \"" + s + "\"");
 			}
 			// PRISM_MDP_SOLN_METHOD
 			s = settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD);
@@ -194,7 +195,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			} else if (s.equals("Linear programming")) {
 				setMDPSolnMethod(MDPSolnMethod.LINEAR_PROGRAMMING);
 			} else {
-				throw new PrismException("Explicit engine does not support MDP solution method \"" + s + "\"");
+				throw new PrismNotSupportedException("Explicit engine does not support MDP solution method \"" + s + "\"");
 			}
 			// PRISM_TERM_CRIT
 			s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
@@ -203,7 +204,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			} else if (s.equals("Relative")) {
 				setTermCrit(TermCrit.RELATIVE);
 			} else {
-				throw new PrismException("Unknown termination criterion \"" + s + "\"");
+				throw new PrismNotSupportedException("Unknown termination criterion \"" + s + "\"");
 			}
 			// PRISM_TERM_CRIT_PARAM
 			setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
@@ -217,7 +218,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			setProb1(settings.getBoolean(PrismSettings.PRISM_PROB1));
 			// PRISM_FAIRNESS
 			if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
-				throw new PrismException("The explicit engine does not support model checking MDPs under fairness");
+				throw new PrismNotSupportedException("The explicit engine does not support model checking MDPs under fairness");
 			}
 
 			// PRISM_EXPORT_ADV
@@ -492,11 +493,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		// Only support <<>> right now, not [[]]
 		if (!expr.isThereExists())
-			throw new PrismException("The " + expr.getOperatorString() + " operator is not yet supported");
+			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is not yet supported");
 
 		// Only support <<>> for MDPs/SMGs right now
 		if (!(this instanceof MDPModelChecker || this instanceof SMGModelChecker))
-			throw new PrismException("The " + expr.getOperatorString() + " operator is only supported for MDPs and SMGs currently");
+			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is only supported for MDPs and SMGs currently");
 
 		// Extract coalition info
 		Coalition coalition = expr.getCoalition();
@@ -681,7 +682,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			((SMG) model).setCoalition(null);
 			break;
 		default:
-			throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
+			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
@@ -769,7 +770,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				((SMG) model).setCoalition(null);
 				break;
 			default:
-				throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
+				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 			sv = StateValues.createFromDoubleArray(res.soln, model);
 		}
@@ -789,12 +790,12 @@ public class ProbModelChecker extends NonProbModelChecker
 					break;
 				case STPG:
 					// TODO (JK): Figure out if we can handle lower bounds for STPG in the same way
-					throw new PrismException("Lower bounds not yet supported for STPGModelChecker");
+					throw new PrismNotSupportedException("Lower bounds not yet supported for STPGModelChecker");
 				case SMG:
 					// TODO (JK): Figure out if we can handle lower bounds for SMG in the same way
 					throw new PrismException("Lower bounds not yet supported for STPGModelChecker");
 				default:
-					throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
+					throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 				}
 			}
 
@@ -835,7 +836,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			((SMG) model).setCoalition(null);
 			break;
 		default:
-			throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
+			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
@@ -846,7 +847,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// To be overridden by subclasses
-		throw new PrismException("Computation not implemented yet");
+		throw new PrismNotSupportedException("Computation not implemented yet");
 	}
 
 	/**
@@ -925,7 +926,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			rewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
 			break;
 		default:
-			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
+			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
 		}
 		return rewards;
 	}
@@ -952,7 +953,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				rewards = checkRewardCumulative(model, modelRewards, exprTemp, minMax);
 				break;
 			default:
-				throw new PrismException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " reward operator");
+				throw new PrismNotSupportedException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " reward operator");
 			}
 		}
 
@@ -1009,7 +1010,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			((SMG) model).setCoalition(null);
 			break;
 		default:
-			throw new PrismException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
@@ -1033,7 +1034,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((CTMCModelChecker) this).computeInstantaneousRewards((CTMC) model, (MCRewards) modelRewards, t);
 			break;
 		default:
-			throw new PrismException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
@@ -1049,7 +1050,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Check that there is an upper time bound
 		if (expr.getUpperBound() == null) {
-			throw new PrismException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
+			throw new PrismNotSupportedException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
 		}
 
 		// Get time bound
@@ -1084,7 +1085,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			result.setStrategy(res.strat);
 			break;
 		default:
-			throw new PrismException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
@@ -1136,7 +1137,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((DTMCModelChecker) this).computeSteadyStateBackwardsProbs((DTMC) model, multProbs);
 			break;
 		default:
-			throw new PrismException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}

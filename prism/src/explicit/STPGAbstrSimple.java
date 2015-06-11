@@ -42,6 +42,7 @@ import java.util.TreeMap;
 
 import prism.ModelType;
 import prism.PrismException;
+import prism.PrismNotSupportedException;
 import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
@@ -439,7 +440,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	@Override
 	public void exportToPrismLanguage(String filename) throws PrismException
 	{
-		throw new PrismException("Export to STPG PRISM models not supported");
+		throw new PrismNotSupportedException("Export to STPG PRISM models not supported");
 	}
 
 	@Override

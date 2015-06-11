@@ -42,6 +42,7 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import explicit.DTMC;
 import explicit.MDP;
 import explicit.Model;
@@ -79,7 +80,7 @@ public class ConstructRewards
 		case SMG:
 			return buildSMGRewardStructure((SMG) model, rewStr, constantValues);
 		default:
-			throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
+			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
 		}
 	}
 
@@ -97,7 +98,7 @@ public class ConstructRewards
 
 		if (rewStr.getNumTransItems() > 0) {
 			// TODO
-			throw new PrismException("Explicit engine does not yet handle transition rewards for D/CTMCs");
+			throw new PrismNotSupportedException("Explicit engine does not yet handle transition rewards for D/CTMCs");
 		}
 		// Special case: constant rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
@@ -364,7 +365,7 @@ public class ConstructRewards
 		}
 
 		if (rewt != null) {
-			throw new PrismException("Explicit engine does not yet handle transition rewards for D/CTMCs");
+			throw new PrismNotSupportedException("Explicit engine does not yet handle transition rewards for D/CTMCs");
 		}
 
 		return rewSA;

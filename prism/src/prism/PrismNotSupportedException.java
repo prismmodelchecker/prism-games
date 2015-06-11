@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -26,41 +26,14 @@
 
 package prism;
 
-import java.util.Map.Entry;
-
 /**
- * Simple class to store a pair of values.
+ * An exception indicating that a given feature is (currently) not supported,
+ * e.g., a given combination of model type, engine and property.
  */
-public class Pair<X,Y> implements Entry<X, Y>
+public class PrismNotSupportedException extends PrismException
 {
-	public X first;
-	public Y second;
-	
-	public Pair(X first, Y second)
+	public PrismNotSupportedException(String s)
 	{
-		this.first = first;
-		this.second = second;
-	}
-
-	@Override
-	public X getKey() {
-		return first;
-	}
-
-	@Override
-	public Y getValue() {
-		return second;
-	}
-
-	@Override
-	public Y setValue(Y value) {
-		second = value;
-		return second;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return "(" + first + "," + second + ")"; 
+		super(s);
 	}
 }

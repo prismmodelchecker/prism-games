@@ -44,6 +44,7 @@ import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
+import prism.PrismNotSupportedException;
 import prism.ProgressDisplay;
 import prism.UndefinedConstants;
 import simulator.SimulatorEngine;
@@ -188,7 +189,7 @@ public class ConstructModel extends PrismComponent
 				smg.setPlayerMapping(players);
 				break;
 			case PTA:
-				throw new PrismException("Model construction not supported for " + modelType + "s");
+				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 		}
 
@@ -285,7 +286,7 @@ public class ConstructModel extends PrismComponent
 							distr.add(dest, engine.getTransitionProbability(i, j));
 							break;
 						case PTA:
-							throw new PrismException("Model construction not supported for " + modelType + "s");
+							throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 						}
 					}
 				}
@@ -379,7 +380,7 @@ public class ConstructModel extends PrismComponent
 				model = sort ? new SMG(smg, permut) : smg;
 				break;
 			case PTA:
-				throw new PrismException("Model construction not supported for " + modelType + "s");
+				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 			model.setStatesList(statesList);
 			model.setConstantValues(new Values(modulesFile.getConstantValues()));

@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import jdd.JDD;
+import jdd.JDDNode;
 import parser.State;
 import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
@@ -53,10 +55,10 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceType;
-
 import common.IterableStateSet;
 
 /**
@@ -134,9 +136,9 @@ public class LTLModelChecker extends PrismComponent
 	/**
 	 * Extract maximal state formula from an LTL path formula, model check them (with passed in model checker) and
 	 * replace them with ExpressionLabel objects L0, L1, etc. Expression passed in is modified directly, but the result
-	 * is also returned. As an optimisation, model checking that results in true/false for all states is converted to an
-	 * actual true/false, and duplicate results are given the same label. BitSets giving the states which satisfy each label
-	 * are put into the vector {@code labelBS}, which should be empty when this function is called.
+	 * is also returned. As an optimisation, expressions that results in true/false for all states are converted to an
+	 * actual true/false, and duplicate results (or their negations) reuse the same label. BitSets giving the states which
+	 * satisfy each label are put into the vector labelDDs, which should be empty when this function is called.
 	 */
 	public Expression checkMaximalStateFormulas(ProbModelChecker mc, Model model, Expression expr, Vector<BitSet> labelBS) throws PrismException
 	{
@@ -158,6 +160,16 @@ public class LTLModelChecker extends PrismComponent
 			if (i != -1) {
 				sv.clear();
 				return new ExpressionLabel("L" + i);
+			}
+			// Also, see if we already have the negation of this result
+			// (in which case, reuse it)
+			BitSet bsNeg = new BitSet(model.getNumStates());
+			bsNeg.set(0, model.getNumStates());
+			bsNeg.andNot(bs);
+			i = labelBS.indexOf(bsNeg);
+			if (i != -1) {
+				sv.clear();
+				return Expression.Not(new ExpressionLabel("L" + i));
 			}
 			// Otherwise, add result to list, return new label
 			labelBS.add(bs);
@@ -218,7 +230,7 @@ public class LTLModelChecker extends PrismComponent
 				// formulas only appear positively
 				expr = Expression.convertSimplePathFormulaToCanonicalForm(expr);
 			} else {
-				throw new PrismException("Time-bounded operators not supported in LTL: " + expr);
+				throw new PrismNotSupportedException("Time-bounded operators not supported in LTL: " + expr);
 			}
 		}
 
@@ -577,7 +589,7 @@ public class LTLModelChecker extends PrismComponent
 		if (acceptance instanceof AcceptanceRabin) {
 			return findAcceptingECStatesForRabin(model, (AcceptanceRabin) acceptance);
 		}
-		throw new PrismException("Computing end components for acceptance type '"+acceptance.getTypeName()+"' currently not supported (explicit engine).");
+		throw new PrismNotSupportedException("Computing end components for acceptance type '"+acceptance.getTypeName()+"' currently not supported (explicit engine).");
 	}
 
 	/**
