@@ -1591,6 +1591,7 @@ Filter Filter() :
 
 Expression ExpressionSS(boolean prop, boolean pathprop) :
 {
+	ExpressionIdent modifier = null;
 	int r;
 	String relOp = null;
 	Expression prob = null;
@@ -1605,12 +1606,14 @@ Expression ExpressionSS(boolean prop, boolean pathprop) :
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "S" keyword and attached symbols
 	begin = <S> (
+		( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )?
 		( r = LtGt() prob = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } ) |
 		( <EQ> <QMARK> { relOp = "="; isBool = false; } )
 	)
 	// Expression, optional filter
 	<LBRACKET> expr = Expression(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
+		ret.setModifier(modifier == null ? null : modifier.getName());
 		ret.setRelOp(relOp);
 		ret.setProb(prob);
 		ret.setExpression(expr);
@@ -1632,6 +1635,7 @@ Expression ExpressionSS(boolean prop, boolean pathprop) :
 
 Expression ExpressionReward(boolean prop, boolean pathprop) :
 {
+	ExpressionIdent modifier = null;
 	int r;
 	String relOp = null;
 	Expression rew = null;
@@ -1645,8 +1649,10 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "R" keyword and attached symbols
-	(( begin = <R> (RewardIndex(ret))?
-	(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
+	(( begin = <R>
+		( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )?
+		(RewardIndex(ret))?
+		(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
 	       |( <EQ> ((<QMARK> { relOp = "="; isBool = false; } )
 	               |(rew = Expression(false, false) { relOp = "="; isBool = true; } )
 	       ))
@@ -1673,6 +1679,7 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 	// Path formula, optional filter
 	<LBRACKET> expr = ExpressionRewardContents(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
+		ret.setModifier(modifier == null ? null : modifier.getName());
 		ret.setRelOp(relOp);
 		ret.setReward(rew);
 		ret.setExpression(expr);
