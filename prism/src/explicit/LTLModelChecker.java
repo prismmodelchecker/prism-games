@@ -215,6 +215,11 @@ public class LTLModelChecker extends PrismComponent
 		DA<BitSet,? extends AcceptanceOmega> da;
 		long time;
 
+		// Reward-bounded path formulas not allowed in LTL
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Automaton construction for reward-bounded path formulas not supported");
+		}
+		
 		if (Expression.containsTemporalTimeBounds(expr)) {
 			if (model.getModelType().continuousTime()) {
 				throw new PrismException("Automaton construction for time-bounded operators not supported for " + model.getModelType()+".");

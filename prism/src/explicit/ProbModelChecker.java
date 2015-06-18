@@ -39,11 +39,13 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.RewardStruct;
 import parser.type.TypeDouble;
+import parser.visitor.ASTTraverse;
 import prism.IntegerBound;
 import prism.ModelType;
 import prism.OpRelOpBound;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.PrismNotSupportedException;
 import explicit.rewards.ConstructRewards;
@@ -587,6 +589,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbPathFormula(Model model, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
+		// If the path formula is of the form R(path)~r, deal with it
+		if (expr instanceof ExpressionReward && "path".equals(((ExpressionReward) expr).getModifier())) {
+			return checkProbBoundedRewardFormula(model, (ExpressionReward) expr, minMax, statesOfInterest);
+		}
+		
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and whether we want to use the corresponding algorithms
 		boolean useSimplePathAlgo = expr.isSimplePathFormula();
@@ -850,6 +857,15 @@ public class ProbModelChecker extends NonProbModelChecker
 		throw new PrismNotSupportedException("Computation not implemented yet");
 	}
 
+	/**
+	 * Compute probabilities for an LTL path formula
+	 */
+	protected StateValues checkProbBoundedRewardFormula(Model model, ExpressionReward expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	{
+		// No support for this by default
+		throw new PrismNotSupportedException("Reward-bounded path formulas not yet supported");
+	}
+	
 	/**
 	 * Model check a P operator expression and return the values for all states.
 	 */

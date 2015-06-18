@@ -57,6 +57,11 @@ public class SMGModelChecker extends STPGModelChecker
 	 */
 	protected StateValues checkExactProbabilityFormula(SMG smg, ExpressionProb expr, Coalition coalition, double p, BitSet statesOfInterest) throws PrismException
 	{
+		// No support for reward-bounded path formulas (i.e. of the form R(path)~r)
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Reward-bounded path formulas not supported");
+		}
+		
 		// Just support untimed , non-LTL path formulas
 		if (!expr.isSimplePathFormula())
 			throw new PrismException("Exact probability queries cannot contain LTL formulas");

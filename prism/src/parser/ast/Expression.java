@@ -725,6 +725,27 @@ public abstract class Expression extends ASTElement
 	}
 	
 	/**
+	 * Test if an expression contains any reward-bounded path formulas (i.e. of the form R(path)~r). 
+	 */
+	public static boolean containsRewardBoundedPathFormula(Expression expr)
+	{
+		try {
+			expr.accept(new ASTTraverse()
+			{
+				public void visitPre(ExpressionReward e) throws PrismLangException
+				{
+					if ("path".equals(e.getModifier())) {
+						throw new PrismLangException("Found one");
+					}
+				}
+			});
+		} catch (PrismLangException e) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
 	 * Test if an expression contains a multi(...) property within 
 	 */
 	public static boolean containsMultiObjective(Expression expr)

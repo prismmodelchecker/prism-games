@@ -522,7 +522,12 @@ public class TypeCheck extends ASTTraverse
 			throw new PrismLangException("Type error: Contents of R operator is invalid", e.getExpression());
 		}
 		// Set type
-		e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
+		if (e.getModifier() != null && e.getModifier().equals("path")) {
+			e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypePathBool.getInstance());
+			
+		} else {
+			e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
+		}
 	}
 
 	public void visitPost(ExpressionSS e) throws PrismLangException

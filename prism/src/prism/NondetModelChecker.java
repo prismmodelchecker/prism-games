@@ -671,6 +671,11 @@ public class NondetModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbPathFormula(Expression expr, boolean qual, boolean min) throws PrismException
 	{
+		// No support for reward-bounded path formulas (i.e. of the form R(path)~r)
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Reward-bounded path formulas not supported");
+		}
+		
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and whether we want to use the corresponding algorithms
 		boolean useSimplePathAlgo = expr.isSimplePathFormula();
@@ -984,6 +989,11 @@ public class NondetModelChecker extends NonProbModelChecker
 			expr = Expression.Not(Expression.Parenth(expr));
 		}
 
+		// Reward-bounded path formulas not allowed in LTL
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Automaton construction for reward-bounded path formulas not supported");
+		}
+		
 		if (Expression.containsTemporalTimeBounds(expr)) {
 			if (model.getModelType().continuousTime()) {
 				throw new PrismException("DA construction for time-bounded operators not supported for " + model.getModelType()+".");
