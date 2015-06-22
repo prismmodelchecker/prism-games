@@ -356,12 +356,6 @@ public class MDPModelChecker extends ProbModelChecker
 		if (exportAdv) {
 			// Prune strategy
 			restrictStrategyToReachableStates(mdp, strat);
-			// Print strategy
-			mainLog.print("Strat:");
-			for (i = 0; i < n; i++) {
-				mainLog.print(" " + i + ":" + strat[i]);
-			}
-			mainLog.println();
 			// Export
 			PrismLog out = new PrismFileLog(exportAdvFilename);
 			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
@@ -1319,12 +1313,6 @@ public class MDPModelChecker extends ProbModelChecker
 		if (exportAdv) {
 			// Prune strategy
 			restrictStrategyToReachableStates(mdp, strat);
-			// Print strategy
-			mainLog.print("Strat:");
-			for (i = 0; i < n; i++) {
-				mainLog.print(" " + i + ":" + strat[i]);
-			}
-			mainLog.println();
 			// Export
 			PrismLog out = new PrismFileLog(exportAdvFilename);
 			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
