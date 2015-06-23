@@ -42,6 +42,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionConstant;
 import parser.ast.ExpressionFilter;
+import parser.ast.ExpressionFilter.FilterOperator;
 import parser.ast.ExpressionFormula;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionITE;
@@ -55,7 +56,6 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
-import parser.ast.ExpressionFilter.FilterOperator;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
@@ -65,8 +65,8 @@ import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
-import prism.PrismSettings;
 import prism.PrismNotSupportedException;
+import prism.PrismSettings;
 import prism.Result;
 import strat.Strategy;
 
@@ -89,10 +89,10 @@ public class StateModelChecker extends PrismComponent
 
 	// Store the final results vector after model checking?
 	protected boolean storeVector = false;
-	
+
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
-	
+
 	// Strategy generation
 	protected boolean generateStrategy = false;
 	protected boolean implementStrategy = false;
@@ -122,13 +122,13 @@ public class StateModelChecker extends PrismComponent
 	public StateModelChecker(PrismComponent parent) throws PrismException
 	{
 		super(parent);
-		
+
 		// For explicit.StateModelChecker and its subclasses, we explicitly set 'settings'
 		// to null if there is no parent or if the parent has a null 'settings'.
 		// This allows us to choose to ignore the default one created by PrismComponent.
 		if (parent == null || parent.getSettings() == null)
 			setSettings(null);
-		
+
 		// If present, initialise settings from PrismSettings
 		if (settings != null) {
 			verbosity = settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1;
@@ -355,7 +355,7 @@ public class StateModelChecker extends PrismComponent
 			mainLog.println("Modified property: " + exprNew);
 			expr = exprNew;
 		}
-		
+
 		// Do model checking and store result vector
 		timer = System.currentTimeMillis();
 		// check expression for all states (null => statesOfInterest=all)
@@ -1090,7 +1090,7 @@ public class StateModelChecker extends PrismComponent
 		private Model model;
 		private List<String> propNames;
 		private List<BitSet> propBSs;
-		
+
 		public CheckMaximalPropositionalFormulas(StateModelChecker mc, Model model, List<String> propNames, List<BitSet> propBSs)
 		{
 			this.mc = mc;
@@ -1098,57 +1098,57 @@ public class StateModelChecker extends PrismComponent
 			this.propNames = propNames;
 			this.propBSs = propBSs;
 		}
-		
+
 		public Object visit(ExpressionITE e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionBinaryOp e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionUnaryOp e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionFunc e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionIdent e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionLiteral e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionConstant e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionFormula e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionVar e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionLabel e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		public Object visit(ExpressionProp e) throws PrismLangException
 		{
 			// Look up property and recurse
@@ -1159,12 +1159,12 @@ public class StateModelChecker extends PrismComponent
 				throw new PrismLangException("Unknown property reference " + e, e);
 			}
 		}
-		
+
 		public Object visit(ExpressionFilter e) throws PrismLangException
 		{
 			return (e.getType() instanceof TypeBool && e.isProposition()) ? replaceWithLabel(e) : super.visit(e);
 		}
-		
+
 		/**
 		 * Evaluate this expression in all states (i.e. model check it),
 		 * store the resulting BitSet in the list {@code propBSs},
@@ -1202,7 +1202,7 @@ public class StateModelChecker extends PrismComponent
 			return new ExpressionLabel(newLabelName);
 		}
 	}
-	
+
 	/**
 	 * Loads labels from a PRISM labels file and stores them in BitSet objects.
 	 * (Actually, it returns a map from label name Strings to BitSets.) (Note:

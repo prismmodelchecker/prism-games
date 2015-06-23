@@ -131,8 +131,7 @@ public interface STPG extends NondetModel
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
-			boolean complement, int adv[]);
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication followed by min/max,
@@ -168,8 +167,7 @@ public interface STPG extends NondetModel
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
-			boolean absolute);
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute);
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
@@ -192,8 +190,7 @@ public interface STPG extends NondetModel
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
-			BitSet subset, boolean complement, int adv[]);
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
@@ -204,9 +201,8 @@ public interface STPG extends NondetModel
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
-			int adv[]);
-	
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[]);
+
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
 	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
@@ -217,9 +213,8 @@ public interface STPG extends NondetModel
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 * @param disc discounting factor
 	 */
-	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1,
-			boolean min2, double[] result, BitSet subset, boolean complement,
-			int[] adv, double disc);
+	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv,
+			double disc);
 
 	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.
@@ -229,8 +224,7 @@ public interface STPG extends NondetModel
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
-			boolean min2, double val);
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val);
 
 	/**
 	 * Checks  whether all successors of action c in state s are in a given set
@@ -253,6 +247,4 @@ public interface STPG extends NondetModel
 	 * Enables all choices that have been disabled previously
 	 */
 	public void enableAllChoices();
-
-
 }
