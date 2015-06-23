@@ -335,6 +335,7 @@ public class StateModelChecker extends PrismComponent
 
 		// Remove any existing filter info
 		currentFilter = null;
+
 		// Wrap a filter round the property, if needed
 		// (in order to extract the final result of model checking) 
 		ExpressionFilter exprFilter = ExpressionFilter.addDefaultFilterIfNeeded(expr, model.getNumInitialStates() == 1);

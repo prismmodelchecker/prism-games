@@ -169,7 +169,7 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 	{
 		return map.keySet();
 	}
-	
+
 	/**
 	 * Get an iterator over the entries of the map defining the distribution.
 	 */
