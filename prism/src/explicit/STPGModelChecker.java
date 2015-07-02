@@ -805,7 +805,6 @@ public class STPGModelChecker extends ProbModelChecker
 			out.close();
 		}
 
-		
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;
