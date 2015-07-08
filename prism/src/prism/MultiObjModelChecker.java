@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Vector;
 
 import acceptance.AcceptanceRabin;
+import automata.DA;
+import automata.LTL2DA;
 import parser.ast.Expression;
 import parser.ast.RelOp;
 import dv.DoubleVector;
@@ -113,7 +115,7 @@ public class MultiObjModelChecker extends PrismComponent
 	 * 
 	 * @param modelProduct
 	 * @param rewardsIndex
-	 * @param relOpsReward
+	 * @param opsAndBounds
 	 * @return True if some transitions were removed
 	 */
 	protected boolean removeNonZeroRewardTrans(NondetModel modelProduct, List<JDDNode> rewardsIndex, OpsAndBoundsList opsAndBounds)
@@ -216,7 +218,7 @@ public class MultiObjModelChecker extends PrismComponent
 		// TODO: check if the model satisfies the LTL constraints 
 		if (!rmecs.equals(JDD.ZERO)) {
 			boolean constraintViolated = false;
-			if (JDD.AreInterecting(modelProduct.getStart(), rmecs)) {
+			if (JDD.AreIntersecting(modelProduct.getStart(), rmecs)) {
 				constraintViolated = true;
 				JDD.Deref(rmecs);
 			} else {

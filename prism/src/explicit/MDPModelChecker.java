@@ -27,13 +27,18 @@
 package explicit;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import parser.VarList;
+import parser.ast.Declaration;
+import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
+import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismDevNullLog;
 import prism.PrismException;
@@ -83,11 +88,30 @@ public class MDPModelChecker extends ProbModelChecker
 
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
+				AcceptanceType.GENERALIZED_RABIN,
 				AcceptanceType.REACH
 		};
 
 		product = mcLtl.constructProductMDP(this, (MDP)model, expr, statesOfInterest, allowedAcceptance);
-
+		
+		// Output product, if required
+		if (getExportProductTrans()) {
+				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
+				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
+		}
+		if (getExportProductStates()) {
+			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
+			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
+			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
+			out.close();
+		}
+		
 		// Find accepting states + compute reachability probabilities
 		BitSet acc;
 		if (product.getAcceptance() instanceof AcceptanceReach) {
@@ -266,6 +290,18 @@ public class MDPModelChecker extends ProbModelChecker
 			for (i = 0; i < n; i++) {
 				target.set(i, targetOrig.get(i) || (known.get(i) && init[i] == 1.0));
 			}
+		}
+
+		// If required, export info about target states 
+		if (getExportTarget()) {
+			BitSet bsInit = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				bsInit.set(i, mdp.isInitialState(i));
+			}
+			List<BitSet> labels = Arrays.asList(bsInit, target);
+			List<String> labelNames = Arrays.asList("init", "target");
+			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
+			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
 		}
 
 		// If required, create/initialise strategy storage

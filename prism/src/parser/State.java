@@ -119,9 +119,10 @@ public class State implements Comparable<State>, Serializable
 	/**
 	 * Set the {@code i}th value to {@code val}.
 	 */
-	public void setValue(int i, Object val)
+	public State setValue(int i, Object val)
 	{
 		varValues[i] = val;
+		return this;
 	}
 
 	/**

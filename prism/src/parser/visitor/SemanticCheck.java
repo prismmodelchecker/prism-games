@@ -458,7 +458,7 @@ public class SemanticCheck extends ASTTraverse
 					throw new PrismLangException("Properties of the form R(path)[...] are path formulas and cannot use =?", e);
 				}
 			} else if (!(e.getModifier().equals("exp"))) {
-				throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for P operator", e);
+				throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for R operator", e);
 			}
 		}
 		if (e.getRewardStructIndex() != null) {
@@ -495,7 +495,7 @@ public class SemanticCheck extends ASTTraverse
 	public void visitPost(ExpressionSS e) throws PrismLangException
 	{
 		if (e.getModifier() != null) {
-			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for P operator", e);
+			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for S operator", e);
 		}
 		if (e.getProb() != null && !e.getProb().isConstant()) {
 			throw new PrismLangException("S operator probability bound is not constant", e.getProb());

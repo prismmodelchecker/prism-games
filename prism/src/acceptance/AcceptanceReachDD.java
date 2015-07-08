@@ -1,9 +1,9 @@
-package acceptance;
 //==============================================================================
 //
 //Copyright (c) 2014-
 //Authors:
-//* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //
 //------------------------------------------------------------------------------
 //
@@ -24,6 +24,8 @@ package acceptance;
 //Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //==============================================================================
+
+package acceptance;
 
 import jdd.JDD;
 import jdd.JDDNode;
@@ -88,7 +90,7 @@ public class AcceptanceReachDD implements AcceptanceOmegaDD
 	@Override
 	public boolean isBSCCAccepting(JDDNode bscc_states)
 	{
-		return JDD.AreInterecting(goalStates, bscc_states);
+		return JDD.AreIntersecting(goalStates, bscc_states);
 	}
 
 	@Override

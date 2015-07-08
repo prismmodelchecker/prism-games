@@ -45,8 +45,6 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.type.TypeBool;
 import parser.type.TypePathBool;
-import prism.DA;
-import prism.LTL2DA;
 import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -54,10 +52,12 @@ import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import acceptance.AcceptanceGenRabin;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceType;
-
+import automata.DA;
+import automata.LTL2DA;
 import common.IterableStateSet;
 
 /**
@@ -304,7 +304,7 @@ public class LTLModelChecker extends PrismComponent
 		int prodNumStates = modelNumStates * daSize;
 		int s_1, s_2, q_1, q_2;
 		BitSet s_labels = new BitSet(numAPs);
-		List<State> prodStatesList = null;
+		List<State> prodStatesList = null, daStatesList = null;
 
 		// Encoding: 
 		// each state s' = <s, q> = s * daSize + q
@@ -317,6 +317,10 @@ public class LTLModelChecker extends PrismComponent
 
 		if (dtmc.getStatesList() != null) {
 			prodStatesList = new ArrayList<State>();
+			daStatesList = new ArrayList<State>(da.size());
+			for (int i = 0; i < da.size(); i++) {
+				daStatesList.add(new State(1).setValue(0, i));
+			}
 		}
 
 		// We need results for all states of the original model in statesOfInterest
@@ -339,7 +343,7 @@ public class LTLModelChecker extends PrismComponent
 			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
 			if (prodStatesList != null) {
 				// store DTMC state information for the product state
-				prodStatesList.add(dtmc.getStatesList().get(s_0));
+				prodStatesList.add(new State(daStatesList.get(q_0), dtmc.getStatesList().get(s_0)));
 			}
 		}
 
@@ -370,7 +374,7 @@ public class LTLModelChecker extends PrismComponent
 					map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
 					if (prodStatesList != null) {
 						// store DTMC state information for the product state
-						prodStatesList.add(dtmc.getStatesList().get(s_2));
+						prodStatesList.add(new State(daStatesList.get(q_2), dtmc.getStatesList().get(s_2)));
 					}
 				}
 				prodModel.setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
@@ -449,7 +453,7 @@ public class LTLModelChecker extends PrismComponent
 		int prodNumStates = modelNumStates * daSize;
 		int s_1, s_2, q_1, q_2;
 		BitSet s_labels = new BitSet(numAPs);
-		List<State> prodStatesList = null;
+		List<State> prodStatesList = null, daStatesList = null;
 
 
 		// Encoding: 
@@ -463,6 +467,10 @@ public class LTLModelChecker extends PrismComponent
 
 		if (mdp.getStatesList() != null) {
 			prodStatesList = new ArrayList<State>();
+			daStatesList = new ArrayList<State>(da.size());
+			for (int i = 0; i < da.size(); i++) {
+				daStatesList.add(new State(1).setValue(0, i));
+			}
 		}
 
 		// We need results for all states of the original model in statesOfInterest
@@ -485,7 +493,7 @@ public class LTLModelChecker extends PrismComponent
 			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
 			if (prodStatesList != null) {
 				// store MDP state information for the product state
-				prodStatesList.add(mdp.getStatesList().get(s_0));
+				prodStatesList.add(new State(daStatesList.get(q_0), mdp.getStatesList().get(s_0)));
 			}
 		}
 
@@ -519,7 +527,7 @@ public class LTLModelChecker extends PrismComponent
 						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
 						if (prodStatesList != null) {
 							// store MDP state information for the product state
-							prodStatesList.add(mdp.getStatesList().get(s_2));
+							prodStatesList.add(new State(daStatesList.get(q_2), mdp.getStatesList().get(s_2)));
 						}
 					}
 					prodDistr.set(map[s_2 * daSize + q_2], prob);
@@ -591,6 +599,8 @@ public class LTLModelChecker extends PrismComponent
 	{
 		if (acceptance instanceof AcceptanceRabin) {
 			return findAcceptingECStatesForRabin(model, (AcceptanceRabin) acceptance);
+		} else if (acceptance instanceof AcceptanceGenRabin) {
+			return findAcceptingECStatesForGeneralizedRabin(model, (AcceptanceGenRabin) acceptance);
 		}
 		throw new PrismNotSupportedException("Computing end components for acceptance type '"+acceptance.getTypeName()+"' currently not supported (explicit engine).");
 	}
@@ -625,6 +635,53 @@ public class LTLModelChecker extends PrismComponent
 			// Union MEC states
 			for (BitSet mec : mecs) {
 				allAcceptingStates.or(mec);
+			}
+		}
+
+		return allAcceptingStates;
+	}
+
+	/**
+	 * Find the set of states in accepting end components (ECs) in a nondeterministic model wrt a Generalized Rabin acceptance condition.
+	 * @param model The model
+	 * @param acceptance The acceptance condition
+	 */
+	public BitSet findAcceptingECStatesForGeneralizedRabin(NondetModel model, AcceptanceGenRabin acceptance) throws PrismException
+	{
+		BitSet allAcceptingStates = new BitSet();
+		int numStates = model.getNumStates();
+		
+		// Go through the GR acceptance pairs (L_i, K_i_1, ..., K_i_n) 
+		for (int i = 0; i < acceptance.size(); i++) {
+			
+			// Find model states *not* satisfying L_i
+			BitSet bitsetLi = acceptance.get(i).getL();
+			BitSet statesLi_not = new BitSet();
+			for (int s = 0; s < numStates; s++) {
+				if (!bitsetLi.get(s)) {
+					statesLi_not.set(s);
+				}
+			}
+			// Skip pairs with empty !L_i
+			if (statesLi_not.cardinality() == 0)
+				continue;
+			// Compute maximum end components (MECs) in !L_i
+			ECComputer ecComputer = ECComputer.createECComputer(this, model);
+			ecComputer.computeMECStates(statesLi_not);
+			List<BitSet> mecs = ecComputer.getMECStates();
+			// Check which MECs contain a state from each K_i_j
+			int n = acceptance.get(i).getNumK();
+			for (BitSet mec : mecs) {
+				boolean allj = true;
+				for (int j = 0; j < n; j++) {
+					if (!mec.intersects(acceptance.get(i).getK(j))) {
+						allj = false;
+						break;
+					}
+				}
+				if (allj) {
+					allAcceptingStates.or(mec);
+				}
 			}
 		}
 

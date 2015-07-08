@@ -29,6 +29,7 @@
 package prism;
 
 import java.util.*;
+
 import parser.*;
 
 /**
@@ -42,6 +43,9 @@ public class ResultsCollection
 	private int numMFRangingConstants;
 	private int numPFRangingConstants;
 
+	// Info about other constants (over which these results do *not* range)
+	private Values nonRangingConstantValues;
+	
 	// Storage of the actual results
 	private TreeNode root;
 	private int currentIteration = 0;
@@ -68,7 +72,8 @@ public class ResultsCollection
 			rangingConstants.add(tmpRangingConstants.get(i));
 		}
 		numMFRangingConstants = uCons.getNumModelRangingConstants(); 
-		numPFRangingConstants = uCons.getNumPropertyRangingConstants(); 
+		numPFRangingConstants = uCons.getNumPropertyRangingConstants();
+		nonRangingConstantValues = uCons.getNonRangingConstantValues();
 
 		this.root = (rangingConstants.size() > 0) ? new TreeNode(0) : new TreeLeaf();
 		this.resultName = (resultName == null) ? "Result" : resultName;
@@ -92,6 +97,11 @@ public class ResultsCollection
 	public int getNumPropertyRangingConstants()
 	{
 		return numPFRangingConstants;
+	}
+
+	public Values getNonRangingConstantValues()
+	{
+		return nonRangingConstantValues;
 	}
 
 	public boolean addResultListener(ResultListener resultListener)
@@ -212,7 +222,7 @@ public class ResultsCollection
 
 		// create header
 		for (i = 0; i < rangingConstants.size(); i++) {
-			res[i] = ((DefinedConstant) rangingConstants.elementAt(i)).getName();
+			res[i] = rangingConstants.elementAt(i).getName();
 		}
 		res[rangingConstants.size()] = "Result";
 
@@ -222,7 +232,7 @@ public class ResultsCollection
 	/**
 	 * Create ArrayList based representation of the data
 	 */
-	public ArrayList toArrayList()
+	public ArrayList<String[]> toArrayList()
 	{
 		return root.toArrayList();
 	}
@@ -263,7 +273,7 @@ public class ResultsCollection
 			for (i = 0; i < rangingConstants.size(); i++) {
 				if (i > 0)
 					s += sep;
-				s += ((DefinedConstant) rangingConstants.elementAt(i)).getName();
+				s += rangingConstants.elementAt(i).getName();
 			}
 			s += eq + "Result\n";
 		}
@@ -273,6 +283,20 @@ public class ResultsCollection
 		return s;
 	}
 
+	/**
+	 * Pass the results to a ResultsExporter.
+	 * For convenience, returns a pointer to the same ResultsExporter passed in 
+	 */
+	public ResultsExporter export(ResultsExporter exporter)
+	{
+		exporter.setRangingConstants(rangingConstants);
+		exporter.setNonRangingConstantValues(nonRangingConstantValues);
+		exporter.start();
+		root.export(exporter);
+		exporter.end();
+		return exporter;
+	}
+	
 	/**
 	 * Create string representation of the data for a partial evaluation
 	 * @param partial Values for a subset of the constants
@@ -293,7 +317,7 @@ public class ResultsCollection
 		// if there are no variables, override eq separator
 		noVars = true;
 		for (i = 0; i < rangingConstants.size(); i++) {
-			if (!partial.contains(((DefinedConstant) rangingConstants.elementAt(i)).getName())) {
+			if (!partial.contains(rangingConstants.elementAt(i).getName())) {
 				noVars = false;
 				break;
 			}
@@ -304,7 +328,7 @@ public class ResultsCollection
 		if (header) {
 			first = true;
 			for (i = 0; i < rangingConstants.size(); i++) {
-				name = ((DefinedConstant) rangingConstants.elementAt(i)).getName();
+				name = rangingConstants.elementAt(i).getName();
 				// only print constants for which we haven't been given values
 				if (!partial.contains(name)) {
 					if (!first)
@@ -360,7 +384,7 @@ public class ResultsCollection
 
 			// store level and create children
 			level = l;
-			constant = (DefinedConstant) rangingConstants.get(level);
+			constant = rangingConstants.get(level);
 			n = constant.getNumSteps();
 			kids = new TreeNode[n];
 			for (i = 0; i < n; i++) {
@@ -421,15 +445,15 @@ public class ResultsCollection
 		/**
 		 * Create ArrayList representation of the data
 		 */
-		public ArrayList toArrayList()
+		public ArrayList<String[]> toArrayList()
 		{
-			ArrayList a = new ArrayList();
+			ArrayList<String[]> a = new ArrayList<String[]>();
 			String line[] = new String[rangingConstants.size() + 1];
 			toArrayListRec(a, line);
 			return a;
 		}
 
-		public void toArrayListRec(ArrayList a, String line[])
+		public void toArrayListRec(ArrayList<String[]> a, String line[])
 		{
 			int i, n;
 			n = constant.getNumSteps();
@@ -462,6 +486,14 @@ public class ResultsCollection
 			return ret;
 		}
 
+		/**
+		 * Pass the results to a ResultsExporter.
+		 */
+		public void export(ResultsExporter export)
+		{
+			exportRec(new Values(), export);
+		}
+
 		public String toStringRec(boolean pv, String sep, String eq, String head)
 		{
 			int i, n;
@@ -482,6 +514,15 @@ public class ResultsCollection
 			return res;
 		}
 
+		public void exportRec(Values values, ResultsExporter export)
+		{
+			int n = constant.getNumSteps();
+			for (int i = 0; i < n; i++) {
+				values.setValue(constant.getName(), constant.getValue(i));
+				kids[i].exportRec(values, export);
+			}
+		}
+		
 		/**
 		 * Create string representation of the data for a partial evaluation
 		 * @param partial Values for a subset of the constants
@@ -552,9 +593,11 @@ public class ResultsCollection
 				if (rangingConstants.size() > 2)
 					res += head+", ";
 				if (rangingConstants.size() == 1)
-					res += constant.getName() + ":";
+					res += constant.getName();
 				else
-					res += constant.getName() + "\\" + kids[0].constant.getName() + ":";
+					res += constant.getName() + "\\" + kids[0].constant.getName();
+				if (!sep.equals(", "))
+					res += ":";
 				if (sep.equals(", "))
 					res += "\"";
 				res += "\n";
@@ -625,12 +668,17 @@ public class ResultsCollection
 			return head + eq + val + "\n";
 		}
 
+		public void exportRec(Values values, ResultsExporter export)
+		{
+			export.exportResult(values, val);
+		}
+		
 		public String toStringPartialRec(Values partial, boolean first, boolean pv, String sep, String eq, String head)
 		{
 			return head + eq + val + "\n";
 		}
 
-		public void toArrayListRec(ArrayList a, String line[])
+		public void toArrayListRec(ArrayList<String[]> a, String line[])
 		{
 			line[rangingConstants.size()] = "" + val;
 			a.add(line.clone());

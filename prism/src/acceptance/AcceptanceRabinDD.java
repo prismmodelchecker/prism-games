@@ -98,16 +98,17 @@ public class AcceptanceRabinDD
 
 		/** Returns true if the bottom strongly connected component
 		 * given by bscc_states is accepting for this pair.
+		 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
 		 */
 		public boolean isBSCCAccepting(JDDNode bscc_states)
 		{
-			if (JDD.AreInterecting(L, bscc_states)) {
+			if (JDD.AreIntersecting(L, bscc_states)) {
 				// there is some state in bscc_states that is
 				// forbidden by L
 				return false;
 			}
 
-			if (JDD.AreInterecting(K, bscc_states)) {
+			if (JDD.AreIntersecting(K, bscc_states)) {
 				// there is some state in bscc_states that is
 				// contained in K -> infinitely often visits to K
 				return true;
@@ -149,10 +150,7 @@ public class AcceptanceRabinDD
 		}
 	}
 
-	/** Returns true if the bottom strongly connected component
-	 * given by bscc_states is accepting for this Rabin condition,
-	 * i.e., there is a pair that accepts for bscc_states.
-	 */
+	@Override
 	public boolean isBSCCAccepting(JDDNode bscc_states)
 	{
 		for (RabinPairDD pair : this) {

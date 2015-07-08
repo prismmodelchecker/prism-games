@@ -782,6 +782,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		return settings.getBoolean(PrismSettings.PRISM_PROB1);
 	}
+	
+	public boolean getPreRel()
+	{
+		return settings.getBoolean(PrismSettings.PRISM_PRE_REL);
+	}
 
 	public boolean getFairness()
 	{
@@ -1097,7 +1102,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	/**
 	 * Compare two version numbers of PRISM (strings).
 	 * Example ordering: { "1", "2.0", "2.1.alpha", "2.1.alpha.r5555", "2.1.alpha.r5557", "2.1.beta", "2.1.beta4", "2.1", "2.1.dev", "2.1.dev.r6666", "2.1.dev1", "2.1.dev2", "2.1.2", "2.9", "3", "3.4"};
-	 * Returns: 1 if v1>v2, -1 if v1<v2, 0 if v1=v2
+	 * Returns: 1 if v1&gt;v2, -1 if v1&lt;v2, 0 if v1=v2
 	 */
 	public static int compareVersions(String v1, String v2)
 	{
@@ -1299,6 +1304,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.print("Hostname: " + h + "\n");
 		} catch (java.net.UnknownHostException e) {
 		}
+		mainLog.print("Memory limits: cudd=" + getCUDDMaxMem());
+		mainLog.println(", java(heap)=" + PrismUtils.convertBytesToMemoryString(Runtime.getRuntime().maxMemory()));
 
 		// initialise cudd/jdd
 		long cuddMaxMem = PrismUtils.convertMemoryStringtoKB(getCUDDMaxMem());
@@ -2631,60 +2638,43 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportLabelsToFile(PropertiesFile propertiesFile, int exportType, File file) throws FileNotFoundException, PrismException
 	{
-		int i, n;
+		int numLabels;
 		LabelList ll;
-		Expression expr;
-		prism.StateModelChecker mc = null;
-		JDDNode dd, labels[];
-		String labelNames[];
 
-		if (getExplicit())
-			throw new PrismException("Export of labels not yet supported by explicit engine");
-
-		// get label list and size
+		// Get label list and size
 		if (propertiesFile == null) {
 			ll = currentModulesFile.getLabelList();
-			n = ll.size();
+			numLabels = ll.size();
 		} else {
 			ll = propertiesFile.getCombinedLabelList();
-			n = ll.size();
+			numLabels = ll.size();
 		}
 
 		// Build model, if necessary
 		buildModelIfRequired();
 
-		// print message
+		// Print message
 		mainLog.print("\nExporting labels and satisfying states ");
 		mainLog.print(getStringForExportType(exportType) + " ");
 		mainLog.println(getDestinationStringForFile(file));
 
-		// convert labels to bdds
-		if (n > 0) {
-			mc = new prism.StateModelChecker(this, currentModel, propertiesFile);
+		// Collect labels to export
+		List<String> labelNames = new ArrayList<String>();
+		labelNames.add("init");
+		labelNames.add("deadlock");
+		for (int i = 0; i < numLabels; i++) {
+			labelNames.add(ll.getLabelName(i));
 		}
-		labels = new JDDNode[n + 2];
-		labels[0] = currentModel.getStart();
-		labels[1] = currentModel.getDeadlocks();
-		for (i = 0; i < n; i++) {
-			expr = ll.getLabel(i);
-			dd = mc.checkExpressionDD(expr);
-			labels[i + 2] = dd;
-		}
-		// put names for labels in an array
-		labelNames = new String[n + 2];
-		labelNames[0] = "init";
-		labelNames[1] = "deadlock";
-		for (i = 0; i < n; i++) {
-			labelNames[i + 2] = ll.getLabelName(i);
-		}
-
-		// export them to a file
-		PrismMTBDD.ExportLabels(labels, labelNames, "l", currentModel.getAllDDRowVars(), currentModel.getODD(), exportType, (file != null) ? file.getPath()
-				: null);
-
-		// deref dds
-		for (i = 0; i < n; i++) {
-			JDD.Deref(labels[i + 2]);
+		
+		// Export
+		if (getExplicit()) {
+			PrismLog out = getPrismLogForFile(file);
+			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(propertiesFile);
+			mcExpl.exportLabels(currentModelExpl, labelNames, exportType, out);
+			out.close();
+		} else {
+			prism.StateModelChecker mc = createModelChecker(propertiesFile);
+			mc.exportLabels(labelNames, exportType, file);
 		}
 	}
 
@@ -2858,6 +2848,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				currentModulesFile = dc.getNewModulesFile();
 				currentModulesFile.setUndefinedConstants(oldModulesFile.getConstantValues());
 				currentModelType = ModelType.MDP;
+				clearBuiltModel();
 				currentModel = null;
 				currentModelExpl = null;
 				// If required, export generated PRISM model
@@ -2877,6 +2868,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				digital = false;
 				currentModulesFile = oldModulesFile;
 				currentModelType = ModelType.PTA;
+				clearBuiltModel();
 				currentModel = null;
 				currentModelExpl = null;
 			}
@@ -3002,7 +2994,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Note: All constants in the model file must have already been defined.
 	 * @param propertiesFile Properties file containing property to check, constants defined
 	 * @param undefinedConstants Details of constant ranges defining the experiment
-	 * @param resultsCollection Where to store the results
+	 * @param results Where to store the results
 	 * @param expr The property to check
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param maxPathLength The maximum path length for sampling
@@ -3626,10 +3618,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Utility method to create and initialise a (symbolic) model checker based on the current model.
 	 * @param propertiesFile Optional properties file for extra info needed during model checking (can be null)
 	 */
-	private ModelChecker createModelChecker(PropertiesFile propertiesFile) throws PrismException
+	private StateModelChecker createModelChecker(PropertiesFile propertiesFile) throws PrismException
 	{
+		// Create a dummy properties file if none exist
+		// (the symbolic model checkers rely on this to store e.g. model labels)
+		if (propertiesFile == null) {
+			propertiesFile = parsePropertiesString(currentModulesFile, "");
+		}
 		// Create model checker
-		ModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
+		StateModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
 		// Pass any additional local settings
 		// TODO
 		
@@ -3646,6 +3643,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(currentModelType, this);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		// Pass any additional local settings
+		mc.setExportTarget(exportTarget);
+		mc.setExportTargetFilename(exportTargetFilename);
+		mc.setExportProductTrans(exportProductTrans);
+		mc.setExportProductTransFilename(exportProductTransFilename);
+		mc.setExportProductStates(exportProductStates);
+		mc.setExportProductStatesFilename(exportProductStatesFilename);
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
 		mc.setDoBisim(doBisim);

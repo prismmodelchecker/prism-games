@@ -75,6 +75,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected boolean precomp = true;
 	protected boolean prob0 = true;
 	protected boolean prob1 = true;
+	// Use predecessor relation? (e.g. for precomputation)
+	protected boolean preRel = true;
 	// Direction of convergence for value iteration (lfp/gfp)
 	protected ValIterDir valIterDir = ValIterDir.BELOW;
 	// Method used for numerical solution
@@ -216,6 +218,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			setProb0(settings.getBoolean(PrismSettings.PRISM_PROB0));
 			// PRISM_PROB1
 			setProb1(settings.getBoolean(PrismSettings.PRISM_PROB1));
+			// PRISM_USE_PRE
+			setPreRel(settings.getBoolean(PrismSettings.PRISM_PRE_REL));
 			// PRISM_FAIRNESS
 			if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
 				throw new PrismNotSupportedException("The explicit engine does not support model checking MDPs under fairness");
@@ -352,6 +356,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
+	 * Set whether or not to use pre-computed predecessor relation
+	 */
+	public void setPreRel(boolean preRel)
+	{
+		this.preRel = preRel;
+	}
+
+	/**
 	 * Set direction of convergence for value iteration (lfp/gfp).
 	 */
 	public void setValIterDir(ValIterDir valIterDir)
@@ -430,6 +442,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	public boolean getProb1()
 	{
 		return prob1;
+	}
+
+	public boolean getPreRel()
+	{
+		return preRel;
 	}
 
 	public ValIterDir getValIterDir()
@@ -964,7 +981,11 @@ public class ProbModelChecker extends NonProbModelChecker
 				rewards = checkRewardInstantaneous(model, modelRewards, exprTemp, minMax);
 				break;
 			case ExpressionTemporal.R_C:
-				rewards = checkRewardCumulative(model, modelRewards, exprTemp, minMax);
+				if (exprTemp.hasBounds()) {
+					rewards = checkRewardCumulative(model, modelRewards, exprTemp, minMax);
+				} else {
+					rewards = checkRewardTotal(model, modelRewards, exprTemp, minMax);
+				}
 				break;
 			default:
 				throw new PrismNotSupportedException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " reward operator");
@@ -1064,7 +1085,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Check that there is an upper time bound
 		if (expr.getUpperBound() == null) {
-			throw new PrismNotSupportedException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
+			throw new PrismNotSupportedException("This is not a cumulative reward operator");
 		}
 
 		// Get time bound
@@ -1097,6 +1118,33 @@ public class ProbModelChecker extends NonProbModelChecker
 		case MDP:
 			res = ((MDPModelChecker) this).computeCumulativeRewards((MDP) model, (MDPRewards) modelRewards, timeInt, minMax.isMin());
 			result.setStrategy(res.strat);
+			break;
+		default:
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
+					+ "s");
+		}
+		return StateValues.createFromDoubleArray(res.soln, model);
+	}
+
+	/**
+	 * Compute expected rewards for a total reward operator.
+	 */
+	protected StateValues checkRewardTotal(Model model, Rewards modelRewards, ExpressionTemporal expr, MinMax minMax) throws PrismException
+	{
+		// Check that there is no upper time bound
+		if (expr.getUpperBound() != null) {
+			throw new PrismException("This is not a total reward operator");
+		}
+
+		// Compute/return the rewards
+		ModelCheckerResult res = null;
+		switch (model.getModelType()) {
+		case DTMC:
+			res = ((DTMCModelChecker) this).computeTotalRewards((DTMC) model, (MCRewards) modelRewards);
+			break;
+		case CTMC:
+			break;
+		case MDP:
 			break;
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()

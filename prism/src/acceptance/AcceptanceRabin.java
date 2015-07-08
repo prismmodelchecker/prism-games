@@ -96,6 +96,16 @@ public class AcceptanceRabin
 			return false;
 		}
 
+		public AcceptanceGeneric toAcceptanceGeneric()
+		{
+			AcceptanceGeneric genericL = new AcceptanceGeneric(AcceptanceGeneric.ElementType.FIN, (BitSet)L.clone());
+			AcceptanceGeneric genericK = new AcceptanceGeneric(AcceptanceGeneric.ElementType.INF, (BitSet)K.clone());
+			
+			//      F G ! "L" & G F "K"
+			// <=>  Fin(L) & Inf(K)
+			return new AcceptanceGeneric(AcceptanceGeneric.ElementType.AND, genericL, genericK);
+		}
+
 		/** Generate signature for this Rabin pair and the given state.
 		 *  If the state is a member of L, returns "-pairIndex".
 		 *  If the state is a member of K, returns "+pairIndex".
@@ -202,6 +212,24 @@ public class AcceptanceRabin
 	public AcceptanceRabinDD toAcceptanceDD(JDDVars ddRowVars)
 	{
 		return new AcceptanceRabinDD(this, ddRowVars);
+	}
+
+	@Override
+	public AcceptanceGeneric toAcceptanceGeneric()
+	{
+		if (size() == 0) {
+			return new AcceptanceGeneric(false);
+		}
+		AcceptanceGeneric genericPairs = null;
+		for (RabinPair pair : this) {
+			AcceptanceGeneric genericPair = pair.toAcceptanceGeneric();
+			if (genericPairs == null) {
+				genericPairs = genericPair;
+			} else {
+				genericPairs = new AcceptanceGeneric(AcceptanceGeneric.ElementType.OR, genericPairs, genericPair);
+			}
+		}
+		return genericPairs;
 	}
 
 	/**

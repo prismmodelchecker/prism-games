@@ -459,7 +459,6 @@ public class UndefinedConstants
 	 *  @param sl If sh are ss are null, this is the value to be assigned. Otherwise, it is the lower bound for the range.
 	 *  @param sh The upper bound for the range.
 	 *  @param ss The step for the values. Null means 1.
-	 *  @param useAll If true, throw an exception if {@code name} is does not need to be defined
 	 *  
 	 *  @return True if the constant was defined before.
 	 */
@@ -659,7 +658,7 @@ public class UndefinedConstants
 	}
 
 	/**
-	 * Get the number of ranging constants (constants with range > 1) from the model file.
+	 * Get the number of ranging constants (constants with range greater than 1) from the model file.
 	 */
 	public int getNumModelRangingConstants()
 	{
@@ -685,7 +684,7 @@ public class UndefinedConstants
 	}
 
 	/**
-	 * Get the number of ranging constants (constants with range > 1) from the properties file.
+	 * Get the number of ranging constants (constants with range greater than 1) from the properties file.
 	 */
 	public int getNumPropertyRangingConstants()
 	{
@@ -706,18 +705,15 @@ public class UndefinedConstants
 
 	/**
 	 * Get a list of DefinedConstant objects: one for each ranging constant,
-	 * i.e. each constant that has range > 1.
+	 * i.e. each constant that has range greater than 1.
 	 */
 	public Vector<DefinedConstant> getRangingConstants()
 	{
-		int i;
-		Vector<DefinedConstant> res;
-
-		res = new Vector<DefinedConstant>();
-		for (i = 0; i < mfNumConsts; i++)
+		Vector<DefinedConstant> res = new Vector<DefinedConstant>();
+		for (int i = 0; i < mfNumConsts; i++)
 			if (mfConsts.get(i).getNumSteps() > 1)
 				res.addElement(mfConsts.get(i));
-		for (i = 0; i < pfNumConsts; i++)
+		for (int i = 0; i < pfNumConsts; i++)
 			if (pfConsts.get(i).getNumSteps() > 1)
 				res.addElement(pfConsts.get(i));
 
@@ -798,5 +794,20 @@ public class UndefinedConstants
 	public Values getPFConstantValues()
 	{
 		return pfValues;
+	}
+
+	/**
+	 * Get the values for non-ranging model constants, i.e. each constant that has range 1.
+	 */
+	public Values getNonRangingConstantValues()
+	{
+		Values vals = new Values();
+		for (int i = 0; i < mfNumConsts; i++)
+			if (mfConsts.get(i).getNumSteps() == 1)
+				vals.addValue(mfConsts.get(i).getName(), mfConsts.get(i).getValue());
+		for (int i = 0; i < pfNumConsts; i++)
+			if (pfConsts.get(i).getNumSteps() == 1)
+				vals.addValue(pfConsts.get(i).getName(), pfConsts.get(i).getValue());
+		return vals;
 	}
 }

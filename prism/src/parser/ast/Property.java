@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import param.BigRational;
 import parser.Values;
 import parser.type.*;
 import parser.visitor.*;
@@ -318,8 +319,8 @@ public class Property extends ASTElement
 				throw new PrismException("Wrong result (expected " + intExp + ", got " +intRes + ")");
 		}
 
-		// Double-valued properties
-		else if (type instanceof TypeDouble) {
+		// Double-valued properties (non-exact mode)
+		else if (type instanceof TypeDouble && !(result instanceof BigRational)) {
 			// Parse expected result
 			double doubleExp;
 			try {
@@ -341,10 +342,9 @@ public class Property extends ASTElement
 				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for double-valued property");
 			}
 			// Parse actual result
-			double doubleRes;
 			if (!(result instanceof Double))
 				throw new PrismException("Result is wrong type for (double-valued) property");
-			doubleRes = ((Double) result).doubleValue();
+			double doubleRes = ((Double) result).doubleValue();
 			// Compare results
 			if (Double.isNaN(doubleRes)) {
 				if (!Double.isNaN(doubleExp))
@@ -355,6 +355,29 @@ public class Property extends ASTElement
 			}
 		}
 
+		// Double-valued properties (exact mode)
+		else if (type instanceof TypeDouble && result instanceof BigRational) {
+			// Parse expected result
+			BigRational rationalRes = (BigRational) result;
+			BigRational rationalExp = null;
+			try {
+				// See if it's NaN
+				if (strExpected.equals("NaN")) {
+					if (!rationalRes.isNaN())
+						throw new PrismException("Wrong result (expected NaN, got " + rationalRes + ")");
+				}
+				// For integers/rationals/doubles, parse with BigRational if it's an integer
+				else {
+					rationalExp = new BigRational(strExpected);
+				}
+			} catch (NumberFormatException e) {
+				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for rational-valued property");
+			}
+			// Compare results
+			if (!rationalRes.equals(rationalExp))
+				throw new PrismException("Wrong result (expected " + rationalExp + ", got " + rationalRes + ")");
+		}
+		
 		// Unknown type
 		else {
 			throw new PrismException("Don't know how to test properties of type " + type);

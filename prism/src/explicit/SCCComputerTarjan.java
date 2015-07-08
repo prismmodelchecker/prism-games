@@ -86,12 +86,12 @@ public class SCCComputerTarjan extends SCCComputer
 		tarjan();
 		// Now remove trivial SCCs
 		notInSCCs = new BitSet();
-		for (int i = 0; i < sccs.size(); i++) {
-			BitSet scc = sccs.get(i);
+		for (Iterator<BitSet> it = sccs.iterator(); it.hasNext(); ) {
+			BitSet scc = it.next();
 			if (scc.cardinality() == 1) {
 				int s = scc.nextSetBit(0);
 				if (!model.someSuccessorsInSet(s, scc)) {
-					sccs.remove(i);
+					it.remove(); // remove this SCC from sccs list
 					notInSCCs.set(s);
 				}
 			}
@@ -102,7 +102,7 @@ public class SCCComputerTarjan extends SCCComputer
 	public void computeBSCCs()
 	{
 		computeSCCs();
-		notInBSCCs = new BitSet();
+		notInBSCCs = (BitSet) getNotInSCCs().clone();
 		int n = sccs.size();
 		for (int i = 0; i < n; i++) {
 			BitSet scc = sccs.get(i);

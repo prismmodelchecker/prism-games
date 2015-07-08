@@ -27,6 +27,7 @@
 package prism;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -179,7 +180,7 @@ public class PrismUtils
 		return formatterPercent1dp.format(frac);
 	}
 
-	private static DecimalFormat formatterPercent1dp = new DecimalFormat("#0.0%");
+	private static DecimalFormat formatterPercent1dp = new DecimalFormat("#0.0%", DecimalFormatSymbols.getInstance(Locale.UK));
 
 	/**
 	 * Format a double to 2 decimal places.
@@ -189,7 +190,7 @@ public class PrismUtils
 		return formatterDouble2dp.format(d);
 	}
 
-	private static DecimalFormat formatterDouble2dp = new DecimalFormat("#0.00");
+	private static DecimalFormat formatterDouble2dp = new DecimalFormat("#0.00", DecimalFormatSymbols.getInstance(Locale.UK));
 
 	/**
 	 * Format a double, as would be done by printf's %.12g
@@ -202,7 +203,7 @@ public class PrismUtils
 	}
 
 	/**
-	 * Format a double, as would be done by printf's %.<prec>g
+	 * Format a double, as would be done by printf's %.(prec)g
 	 */
 	public static String formatDouble(int prec, double d)
 	{
@@ -213,7 +214,7 @@ public class PrismUtils
 	
 	/**
 	 * Create a string for a list of objects, with a specified separator,
-	 * e.g. ["a","b","c"], "," -> "a,b,c"
+	 * e.g. ["a","b","c"], "," -&gt; "a,b,c"
 	 */
 	public static String joinString(List<?> objs, String separator)
 	{
@@ -232,7 +233,7 @@ public class PrismUtils
 	
 	/**
 	 * Create a string for an array of objects, with a specified separator,
-	 * e.g. ["a","b","c"], "," -> "a,b,c"
+	 * e.g. ["a","b","c"], "," -&gt; "a,b,c"
 	 */
 	public static String joinString(Object[] objs, String separator)
 	{
@@ -315,6 +316,25 @@ public class PrismUtils
 			// Shouldn't happen
 			throw new PrismException("Invalid amount of memory \"" + mem + "\"");
 		}
+	}
+
+	/**
+	 * Convert a number of bytes to a string representing the amount of memory (e.g. 125k, 50m, 4g).
+	 */
+	public static String convertBytesToMemoryString(long bytes) throws PrismException
+	{
+		String units[] = { "b", "k", "m", "g" };
+		for (int i = 3; i > 0; i--) {
+			long pow = 1 << (i * 10);
+			if (bytes >= pow) {
+				return (bytes % pow == 0 ? (bytes / pow) : String.format(Locale.UK, "%.1f", ((double) bytes) / pow)) + units[i];
+			}
+		}
+		return bytes + units[0];
+		
+		/*for (String s : new String[] { "1g", "1500m", "2g", "1000m", "1024m", "1" }) {
+			System.out.println(s + " => " + PrismUtils.convertMemoryStringtoKB(s) * 1024 + " => " + PrismUtils.convertBytesToMemoryString(PrismUtils.convertMemoryStringtoKB(s) * 1024));
+		}*/
 	}
 }
 

@@ -78,7 +78,7 @@ public class PrismCL implements PrismModelListener
 	private boolean exportmecs = false;
 	private boolean exportresults = false;
 	private boolean exportresultsmatrix = false;
-	private boolean exportresultscsv = false;
+	private String exportResultsFormat = "plain";
 	private boolean exportPlainDeprecated = false;
 	private boolean exportModelNoBasename = false;
 	private int exportType = Prism.EXPORT_PLAIN;
@@ -442,32 +442,31 @@ public class PrismCL implements PrismModelListener
 
 		// export results (if required)
 		if (exportresults) {
-
-			mainLog.print("\nExporting results ");
-			if (exportresultsmatrix)
-				mainLog.print("in matrix form ");
-			if (!exportResultsFilename.equals("stdout"))
-				mainLog.println("to file \"" + exportResultsFilename + "\"...");
-			else
-				mainLog.println("below:\n");
+			ResultsExporter exporter = new ResultsExporter(exportResultsFormat, "string");
+			mainLog.print("\nExporting results " + (exportresultsmatrix ? "in matrix form " : ""));
+			mainLog.println(exportResultsFilename.equals("stdout") ? "below:\n" : "to file \"" + exportResultsFilename + "\"...");
 			PrismFileLog tmpLog = new PrismFileLog(exportResultsFilename);
 			if (!tmpLog.ready()) {
 				errorAndExit("Couldn't open file \"" + exportResultsFilename + "\" for output");
 			}
-
-			String sep = exportresultscsv ? ", " : "\t";
 			for (i = 0; i < numPropertiesToCheck; i++) {
 				if (i > 0)
 					tmpLog.println();
 				if (numPropertiesToCheck > 1) {
-					if (sep.equals(", "))
-						tmpLog.print("\"" + propertiesToCheck.get(i) + ":\"\n");
-					else
-						tmpLog.print(propertiesToCheck.get(i) + ":\n");
+					if (!exportresultsmatrix) {
+						exporter.setProperty(propertiesToCheck.get(i));
+					} else {
+						if (exportResultsFormat.equalsIgnoreCase("csv")) {
+							tmpLog.print( "\"" + propertiesToCheck.get(i).toString().replaceAll("\"", "\"\"") + "\"\n");
+						} else {
+							tmpLog.print(propertiesToCheck.get(i) + ":\n");
+						}
+					}
 				}
 				if (!exportresultsmatrix) {
-					tmpLog.println(results[i].toString(false, sep, sep));
+					tmpLog.println(results[i].export(exporter).getExportString());
 				} else {
+					String sep = exportResultsFormat.equals("plain") ? "\t" : ", ";
 					tmpLog.println(results[i].toStringMatrix(sep));
 				}
 			}
@@ -952,6 +951,11 @@ public class PrismCL implements PrismModelListener
 					}
 					exit();
 				}
+				// java max mem
+				else if (sw.equals("javamaxmem")) {
+					i++;
+					// ignore - this is dealt with before java is launched
+				}
 				// print version
 				else if (sw.equals("version")) {
 					printVersion();
@@ -1140,12 +1144,15 @@ public class PrismCL implements PrismModelListener
 						}
 						exportResultsFilename = halves[0];
 						String ss[] = halves[1].split(",");
+						exportResultsFormat = "plain";
 						for (j = 0; j < ss.length; j++) {
 							if (ss[j].equals("")) {
 							} else if (ss[j].equals("csv"))
-								exportresultscsv = true;
+								exportResultsFormat = "csv";
 							else if (ss[j].equals("matrix"))
 								exportresultsmatrix = true;
+							else if (ss[j].equals("comment"))
+								exportResultsFormat = "comment";
 							else
 								errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");
 						}

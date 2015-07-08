@@ -25,27 +25,22 @@
 //	
 //==============================================================================
 
-package prism;
+package automata;
 
-import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 
-import parser.Values;
-import parser.ast.Expression;
-import parser.ast.ExpressionLabel;
-import parser.ast.ExpressionLiteral;
-import parser.ast.ExpressionProb;
-import parser.ast.ExpressionTemporal;
-import parser.ast.ExpressionUnaryOp;
-import parser.ast.ModulesFile;
-import parser.ast.PropertiesFile;
-import parser.visitor.ASTTraverse;
-import parser.visitor.ASTTraverseModify;
 import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceRabin.RabinPair;
+import parser.Values;
+import parser.ast.*;
+import parser.visitor.ASTTraverse;
+import parser.visitor.ASTTraverseModify;
+import prism.IntegerBound;
+import prism.Prism;
+import prism.PrismException;
+import prism.PrismLangException;
+import prism.PrismNotSupportedException;
 
 /**
  * LTL-to-DRA conversion via
@@ -86,7 +81,7 @@ public class LTL2RabinLibrary
 	 *     constructions {@code constructDRAFor....}
 	 * </ul>
 	 * Return {@code null} if the automaton can not be constructed using the library.
-	 * <br/> The LTL formula is represented as a PRISM Expression,
+	 * <br> The LTL formula is represented as a PRISM Expression,
 	 * in which atomic propositions are represented by ExpressionLabel objects.
 	 * @param ltl the LTL formula
 	 * @param constants values for constants in the formula (may be {@code null})
@@ -146,7 +141,7 @@ public class LTL2RabinLibrary
 	}
 	
 	/**
-	 * Construct a prism.DA<BitSet,AcceptanceRabin> for the given until formula.
+	 * Construct a prism.DA&lt;BitSet,AcceptanceRabin&gt; for the given until formula.
 	 * The expression is expected to have the form a U b, where
 	 * a and b are either ExpressionLabels or true/false.
 	 * The operator can have integer bounds.

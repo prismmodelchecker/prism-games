@@ -59,6 +59,8 @@ import acceptance.AcceptanceOmegaDD;
 import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReachDD;
 import acceptance.AcceptanceType;
+import automata.DA;
+import automata.LTL2DA;
 import dv.DoubleVector;
 import dv.IntegerVector;
 import explicit.MinMax;
@@ -1031,6 +1033,7 @@ public class NondetModelChecker extends NonProbModelChecker
 		LTL2DA ltl2da = new LTL2DA(prism);
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
+				AcceptanceType.GENERALIZED_RABIN,
 				AcceptanceType.REACH
 		};
 		da = ltl2da.convertLTLFormulaToDA(ltl, constantValues, allowedAcceptance);

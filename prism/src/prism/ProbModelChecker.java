@@ -34,6 +34,8 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
 
+import automata.DA;
+import automata.LTL2DA;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -551,7 +553,8 @@ public class ProbModelChecker extends NonProbModelChecker
 		LTL2DA ltl2da = new LTL2DA(prism);
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
-				AcceptanceType.REACH
+				AcceptanceType.REACH,
+				AcceptanceType.GENERIC
 		};
 		da = ltl2da.convertLTLFormulaToDA(ltl, constantValues, allowedAcceptance);
 		mainLog.println(da.getAutomataType()+" has " + da.size() + " states, " + da.getAcceptance().getSizeStatistics() + ".");
@@ -1553,7 +1556,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		JDDNode trrNonZero = JDD.GreaterThan(trr, 0);
 		JDDNode bsccsNonZero = JDD.Constant(0);
 		for (int b = 0; b < numBSCCs; b++) {
-			if (JDD.AreInterecting(bsccs.get(b), srNonZero) || JDD.AreInterecting(bsccs.get(b), trrNonZero)) {
+			if (JDD.AreIntersecting(bsccs.get(b), srNonZero) || JDD.AreIntersecting(bsccs.get(b), trrNonZero)) {
 				JDD.Ref(bsccs.get(b));
 				bsccsNonZero = JDD.Or(bsccsNonZero, bsccs.get(b));
 			}

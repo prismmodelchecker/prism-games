@@ -26,11 +26,16 @@
 
 package parser;
 
-import java.util.*;
-import java.text.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Locale;
 
-import parser.type.*;
 import parser.ast.ModulesFile;
+import parser.type.Type;
+import parser.type.TypeBool;
+import parser.type.TypeDouble;
+import parser.type.TypeInt;
 import prism.PrismLangException;
 
 /**
@@ -61,6 +66,16 @@ public class Values //implements Comparable
 	{
 		names = (ArrayList<String>)v.names.clone();
 		values = (ArrayList<Object>)v.values.clone();
+	}
+	
+	/**
+	 * Construct a new Values object by merging two existing ones.
+	 * There is no checking for duplicates.
+	 */
+	public Values(Values v1, Values v2)
+	{
+		this(v1);
+		addValues(v2);
 	}
 	
 	/**
@@ -414,16 +429,30 @@ public class Values //implements Comparable
 	@Override
 	public String toString()
 	{
-		int i, n;
-		String s;
+		return toString(true, ",");
+	}
+	
+	/**
+	 * Return a string representation of this Values object, e.g. "x=1,y=2".
+	 * If {@code printNames} is false, the "x="s are omitted.
+	 * The separator ("," above) can be specified in {@code separator}.
+	 * @param printNames Print variable/constant names?
+	 * @param separator String used to separate values in the list 
+	 */
+	public String toString(boolean printNames, String separator)
+	{
 		// Build string of form "x=1,y=2"
-		n = getNumValues();
-		s = "";
-		for (i = 0; i < n; i++) {
-			s += getName(i) + "=" + valToString(getValue(i));
-			if (i < n-1) s += ",";
+		int n = getNumValues();
+		String s = "";
+		for (int i = 0; i < n; i++) {
+			if (printNames) {
+				s += getName(i) + "=";
+			}
+			s += valToString(getValue(i));
+			if (i < n-1) {
+				s += separator;
+			}
 		}
-		
 		return s;
 	}
 	
@@ -457,7 +486,7 @@ public class Values //implements Comparable
 		String s;
 		
 		if (o instanceof Double) {
-			NumberFormat nf = new DecimalFormat();
+			NumberFormat nf = DecimalFormat.getInstance(Locale.UK);
 			nf.setMaximumFractionDigits(6);
 			s = nf.format(((Double)o).doubleValue());
 		} else {

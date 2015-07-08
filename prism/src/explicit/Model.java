@@ -164,7 +164,7 @@ public interface Model
 	 * Find all deadlock states and store this information in the model.
 	 * If requested (if fix=true) and if needed (i.e. for DTMCs/CTMCs),
 	 * fix deadlocks by adding self-loops in these states.
-	 * The set of deadlocks (before any possible fixing) can be obtained from {@link #getDeadlocks()}.
+	 * The set of deadlocks (before any possible fixing) can be obtained from {@link #getDeadlockStates()}.
 	 * @throws PrismException if the model is unable to fix deadlocks because it is non-mutable.
 	 */
 	public void findDeadlocks(boolean fix) throws PrismException;
@@ -253,4 +253,21 @@ public interface Model
 	 * Report info/stats about the model, tabulated, as a string.
 	 */
 	public String infoStringTable();
+
+	/** Has this model a stored PredecessorRelation? */
+	public boolean hasStoredPredecessorRelation();
+
+	/**
+	 * If there is a PredecessorRelation stored for this model, return that.
+	 * Otherwise, create one and return that. If {@code storeIfNew},
+	 * store it for later use.
+	 *
+	 * @param parent a PrismComponent (for obtaining the log)
+	 * @param storeIfNew if the predecessor relation is newly created, store it
+	 */
+	public PredecessorRelation getPredecessorRelation(prism.PrismComponent parent, boolean storeIfNew);
+
+	/** Clear any stored predecessor relation, e.g., because the model was modified */
+	public void clearPredecessorRelation();
+
 }

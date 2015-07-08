@@ -892,10 +892,27 @@ final public class ParamModelChecker extends PrismComponent
 	
 	private RegionValues checkProbPathFormulaSimple(ParamModel model, Expression expr, boolean min, BitSet needStates) throws PrismException
 	{
+		boolean negated = false;
 		RegionValues probs = null;
+		
+		expr = Expression.convertSimplePathFormulaToCanonicalForm(expr);
+		
+		// Negation
+		if (expr instanceof ExpressionUnaryOp &&
+		    ((ExpressionUnaryOp)expr).getOperator() == ExpressionUnaryOp.NOT) {
+			negated = true;
+			expr = ((ExpressionUnaryOp)expr).getOperand();
+		}
+			
 		if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+			
+			// Next
+			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+				throw new PrismNotSupportedException("Next operator not supported by parametric engine");
+			}
+			// Until
+			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
 				BitSet needStatesInner = new BitSet(model.getNumStates());
 				needStatesInner.set(0, model.getNumStates());
 				RegionValues b1 = checkExpression(model, exprTemp.getOperand1(), needStatesInner);
@@ -906,10 +923,14 @@ final public class ParamModelChecker extends PrismComponent
 					probs = checkProbUntil(model, b1, b2, min, needStates);
 				}
 			}
-			// Anything else - convert to until and recurse
-			else {
-				probs = checkProbPathFormulaSimple(model, exprTemp.convertToUntilForm(), min, needStates);
-			}
+		}
+		
+		if (probs == null)
+			throw new PrismException("Unrecognised path operator in P operator");
+
+		if (negated) {
+			// Subtract from 1 for negation
+			probs = probs.binaryOp(new BigRational(1, 1), parserBinaryOpToRegionOp(ExpressionBinaryOp.MINUS));
 		}
 		
 		return probs;
@@ -921,29 +942,19 @@ final public class ParamModelChecker extends PrismComponent
 		
 	private RegionValues checkProbBoundedUntil(ParamModel model, RegionValues b1, RegionValues b2, boolean min) throws PrismException {
 		ModelType modelType = model.getModelType();
-		RegionValues probs;
+		//RegionValues probs;
 		switch (modelType) {
 		case CTMC:
-			throw new PrismNotSupportedException("bounded until not implemented for parametric CTMCs");
+			throw new PrismNotSupportedException("Bounded until operator not supported by parametric engine");
 		case DTMC:
-			probs = checkProbBoundedUntilDTMC(model, b1, b2);
-			break;
+			throw new PrismNotSupportedException("Bounded until operator not supported by parametric engine");
 		case MDP:
-			probs = checkProbBoundedUntilMDP(model, b1, b2, min);
-			break;
+			throw new PrismNotSupportedException("Bounded until operator not supported by parametric engine");
 		default:
 			throw new PrismNotSupportedException("Cannot model check for a " + modelType);
 		}
 
-		return probs;
-	}
-
-	private RegionValues checkProbBoundedUntilMDP(ParamModel model, RegionValues b1, RegionValues b2, boolean min) {
-		throw new UnsupportedOperationException("Bounded until is not supported at the moment");
-	}
-
-	private RegionValues checkProbBoundedUntilDTMC(ParamModel model, RegionValues b1, RegionValues b2) {
-		throw new UnsupportedOperationException("Bounded until is not supported at the moment");
+		//return probs;
 	}
 
 	/**

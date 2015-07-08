@@ -27,14 +27,20 @@
 package explicit;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
+import parser.VarList;
+import parser.ast.Declaration;
+import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
 import parser.type.TypeDouble;
+import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismFileLog;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import acceptance.AcceptanceReach;
@@ -70,10 +76,29 @@ public class DTMCModelChecker extends ProbModelChecker
 		// Build product of Markov chain and automaton
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
-				AcceptanceType.REACH
+				AcceptanceType.REACH,
+				AcceptanceType.GENERIC
 		};
 		product = mcLtl.constructProductMC(this, (DTMC)model, expr, statesOfInterest, allowedAcceptance);
 
+		// Output product, if required
+		if (getExportProductTrans()) {
+				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
+				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
+		}
+		if (getExportProductStates()) {
+			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
+			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
+			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
+			out.close();
+		}
+		
 		// Find accepting states + compute reachability probabilities
 		BitSet acc;
 		if (product.getAcceptance() instanceof AcceptanceReach) {
@@ -187,6 +212,69 @@ public class DTMCModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
+		return res;
+	}
+
+	public ModelCheckerResult computeTotalRewards(DTMC dtmc, MCRewards mcRewards) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		int n, numBSCCs = 0;
+		long timer;
+
+		// Switch to a supported method, if necessary
+		if (!(linEqMethod == LinEqMethod.POWER)) {
+			linEqMethod = LinEqMethod.POWER;
+			mainLog.printWarning("Switching to linear equation solution method \"" + linEqMethod.fullName() + "\"");
+		}
+
+		// Store num states
+		n = dtmc.getNumStates();
+
+		// Start total rewards computation
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total reward computation...");
+
+		// Compute bottom strongly connected components (BSCCs)
+		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, dtmc);
+		sccComputer.computeBSCCs();
+		List<BitSet> bsccs = sccComputer.getBSCCs();
+		numBSCCs = bsccs.size();
+
+		// Find BSCCs with non-zero reward
+		BitSet bsccsNonZero = new BitSet();
+		for (int b = 0; b < numBSCCs; b++) {
+			BitSet bscc = bsccs.get(b);
+			for (int i = bscc.nextSetBit(0); i >= 0; i = bscc.nextSetBit(i + 1)) {
+				if (mcRewards.getStateReward(i) > 0) {
+					bsccsNonZero.or(bscc);
+					continue;
+				}
+			}
+		}
+		mainLog.print("States in non-zero reward BSCCs: " + bsccsNonZero.cardinality());
+		
+		// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0)
+		BitSet inf = prob0(dtmc, null, bsccsNonZero);
+		inf.flip(0, n);
+		int numInf = inf.cardinality();
+		mainLog.println(", inf=" + numInf + ", maybe=" + (n - numInf));
+		
+		// Compute rewards
+		// (do this using the functions for "reward reachability" properties but with no targets)
+		switch (linEqMethod) {
+		case POWER:
+			res = computeReachRewardsValIter(dtmc, mcRewards, new BitSet(), inf, null, null);
+			break;
+		default:
+			throw new PrismException("Unknown linear equation solution method " + linEqMethod.fullName());
+		}
+
+		// Finished total reward computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Total reward computation");
+		mainLog.println(" took " + timer / 1000.0 + " seconds.");
+
+		// Return results
 		return res;
 	}
 
@@ -387,6 +475,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int i, n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
+		PredecessorRelation pre = null;
 		// Local copy of setting
 		LinEqMethod linEqMethod = this.linEqMethod;
 
@@ -415,17 +504,41 @@ public class DTMCModelChecker extends ProbModelChecker
 			target = targetNew;
 		}
 
+		// If required, export info about target states
+		if (getExportTarget()) {
+			BitSet bsInit = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				bsInit.set(i, dtmc.isInitialState(i));
+			}
+			List<BitSet> labels = Arrays.asList(bsInit, target);
+			List<String> labelNames = Arrays.asList("init", "target");
+			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
+			exportLabels(dtmc, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
+		}
+
+		if (precomp && (prob0 || prob1) && preRel) {
+			pre = dtmc.getPredecessorRelation(this, true);
+		}
+
 		// Precomputation
 		timerProb0 = System.currentTimeMillis();
 		if (precomp && prob0) {
-			no = prob0(dtmc, remain, target);
+			if (preRel) {
+				no = prob0(dtmc, remain, target, pre);
+			} else {
+				no = prob0(dtmc, remain, target);
+			}
 		} else {
 			no = new BitSet();
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
 		if (precomp && prob1) {
-			yes = prob1(dtmc, remain, target);
+			if (preRel) {
+				yes = prob1(dtmc, remain, target, pre);
+			} else {
+				yes = prob1(dtmc, remain, target);
+			}
 		} else {
 			yes = (BitSet) target.clone();
 		}
@@ -460,12 +573,56 @@ public class DTMCModelChecker extends ProbModelChecker
 		return res;
 	}
 
+
 	/**
-	 * Prob0 precomputation algorithm.
+	 * Prob0 precomputation algorithm (using predecessor relation),
 	 * i.e. determine the states of a DTMC which, with probability 0,
-	 * reach a state in {@code target}, while remaining in those in @{code remain}.
-	 * @param mdp The MDP
-	 * @param remain Remain in these states (optional: null means "all")
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
+	 * @param dtmc The DTMC
+	 * @param remain Remain in these states (optional: {@code null} means "all states")
+	 * @param target Target states
+	 * @param pre The predecessor relation
+	 */
+	public BitSet prob0(DTMC dtmc, BitSet remain, BitSet target, PredecessorRelation pre)
+	{
+		BitSet canReachTarget, result;
+		long timer;
+
+		// Start precomputation
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting Prob0...");
+
+		// Special case: no target states
+		if (target.isEmpty()) {
+			BitSet soln = new BitSet(dtmc.getNumStates());
+			soln.set(0, dtmc.getNumStates());
+			return soln;
+		}
+
+		// calculate all states that can reach 'target'
+		// while remaining in 'remain' in the underlying graph,
+		// where all the 'target' states are made absorbing
+		canReachTarget = pre.calculatePreStar(remain, target, target);
+
+		// prob0 = complement of 'canReachTarget'
+		result = new BitSet();
+		result.set(0, dtmc.getNumStates(), true);
+		result.andNot(canReachTarget);
+
+		// Finished precomputation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Prob0");
+		mainLog.println(" took " + timer / 1000.0 + " seconds.");
+
+		return result;
+	}
+
+	/**
+	 * Prob0 precomputation algorithm (using a fixed-point computation),
+	 * i.e. determine the states of a DTMC which, with probability 0,
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
+	 * @param dtmc The DTMC
+	 * @param remain Remain in these states (optional: {@code null} means "all")
 	 * @param target Target states
 	 */
 	public BitSet prob0(DTMC dtmc, BitSet remain, BitSet target)
@@ -528,11 +685,78 @@ public class DTMCModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Prob1 precomputation algorithm.
+	 * Prob1 precomputation algorithm (using predecessor relation),
 	 * i.e. determine the states of a DTMC which, with probability 1,
-	 * reach a state in {@code target}, while remaining in those in @{code remain}.
-	 * @param mdp The MDP
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
+	 * @param dtmc The DTMC
 	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param pre The predecessor relation of the DTMC
+	 */
+	public BitSet prob1(DTMC dtmc, BitSet remain, BitSet target, PredecessorRelation pre) {
+		// Implements the constrained reachability algorithm from
+		// Baier, Katoen: Principles of Model Checking (Corollary 10.31 Qualitative Constrained Reachability)
+		long timer;
+
+		// Start precomputation
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting Prob1...");
+
+		// Special case: no 'target' states
+		if (target.isEmpty()) {
+			// empty set
+			return new BitSet();
+		}
+
+		// mark all states in 'target' and all states not in 'remain' as absorbing
+		BitSet absorbing = new BitSet();
+		if (remain != null) {
+			// complement remain
+			absorbing.set(0, dtmc.getNumStates(), true);
+			absorbing.andNot(remain);
+		} else {
+			// for remain == null, remain consists of all states
+			// thus, absorbing = the empty set is already the complementation of remain
+		}
+		// union with 'target'
+		absorbing.or(target);
+
+		// M' = DTMC where all 'absorbing' states are considered to be absorbing
+
+		// the set of states that satisfy E [ F target ] in M'
+		// Pre*(target)
+		BitSet canReachTarget = pre.calculatePreStar(null, target, absorbing);
+
+		// complement canReachTarget
+		// S\Pre*(target)
+		BitSet canNotReachTarget = new BitSet();
+		canNotReachTarget.set(0, dtmc.getNumStates(), true);
+		canNotReachTarget.andNot(canReachTarget);
+
+		// the set of states that can reach a canNotReachTarget state in M'
+		// Pre*(S\Pre*(target))
+		BitSet probTargetNot1 = pre.calculatePreStar(null, canNotReachTarget, absorbing);
+
+		// complement probTargetNot1
+		// S\Pre*(S\Pre*(target))
+		BitSet result = new BitSet();
+		result.set(0, dtmc.getNumStates(), true);
+		result.andNot(probTargetNot1);
+
+		// Finished precomputation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Prob1");
+		mainLog.println(" took " + timer / 1000.0 + " seconds.");
+
+		return result;
+	}
+
+	/**
+	 * Prob1 precomputation algorithm (using a fixed-point computation)
+	 * i.e. determine the states of a DTMC which, with probability 1,
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
+	 * @param dtmc The DTMC
+	 * @param remain Remain in these states (optional: {@code null} means "all")
 	 * @param target Target states
 	 */
 	public BitSet prob1(DTMC dtmc, BitSet remain, BitSet target)

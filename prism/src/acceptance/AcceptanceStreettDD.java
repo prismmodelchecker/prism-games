@@ -98,14 +98,15 @@ public class AcceptanceStreettDD
 
 		/** Returns true if the bottom strongly connected component
 		 * given by bscc_states is accepting for this pair.
+		 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
 		 */
 		public boolean isBSCCAccepting(JDDNode bscc_states)
 		{
-			if (JDD.AreInterecting(R, bscc_states)) {
+			if (JDD.AreIntersecting(R, bscc_states)) {
 				// there is some state in bscc_states
 				// that is in R, requiring that G is visited
 				// as well:
-				if (!JDD.AreInterecting(G, bscc_states)) {
+				if (!JDD.AreIntersecting(G, bscc_states)) {
 					return false;
 				} else {
 					// G is visited as well
