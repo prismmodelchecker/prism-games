@@ -316,7 +316,7 @@ public class PrismSettings implements Observer
 			{ STRING_TYPE,		PRISM_LTL2DA_TOOL,						"Use external LTL->DA tool",		"4.2.1",			"",		null,
 																			"If non-empty, the path to the executable for the external LTL->DA tool."},
 
-			{ STRING_TYPE,		PRISM_LTL2DA_SYNTAX,					"LTL syntax for external LTL->DA tool",		"4.2.1",			"LBT",		"LBT,Spin,Spot,Rabinizer",
+			{ CHOICE_TYPE,		PRISM_LTL2DA_SYNTAX,					"LTL syntax for external LTL->DA tool",		"4.2.1",			"LBT",		"LBT,Spin,Spot,Rabinizer",
 																			"The syntax for LTL formulas passed to the external LTL->DA tool."},
 
 			// PARAMETRIC MODEL CHECKING
@@ -1568,7 +1568,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-hybrid (or -h) ................ Use the Hybrid engine [default]");
 		mainLog.println("-explicit (or -ex) ............. Use the explicit engine");
 		mainLog.println("-exact ......................... Perform exact (arbitrary precision) model checking");
-		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital) [default: games]");
+		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
 		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
 		mainLog.println();
 		mainLog.println("SOLUTION METHODS (LINEAR EQUATIONS):");

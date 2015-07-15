@@ -103,8 +103,16 @@ public class LTL2DA extends PrismComponent
 					getLog().println("Taking deterministic Rabin automaton from library...");
 				}
 			} catch (Exception e) {
-				getLog().println("Warning: Exception during attempt to construct DRA using the LTL2RabinLibrary:");
-				getLog().println(" "+e.getMessage());
+				if (containsTemporalBounds) {
+					// there is (currently) no other way to translate LTL with temporal bounds,
+					// so treat an exception as a "real" one
+					throw e;
+				} else {
+					// there is the possibility that we might be able to construct
+					// an automaton below, just issue a warning
+					getLog().println("Warning: Exception during attempt to construct DRA using the LTL2RabinLibrary:");
+					getLog().println(" "+e.getMessage());
+				}
 			}
 		}
 
@@ -290,22 +298,18 @@ public class LTL2DA extends PrismComponent
 		}
 		return false;
 	}
-	
+
+	/** Check the atomic propositions of the (externally generated) automaton */
 	private void checkAPs(SimpleLTL ltl, List<String> automatonAPs) throws PrismException
 	{
 		APSet ltlAPs = ltl.getAPs();
-		for (String ap : ltlAPs) {
-			if (!automatonAPs.contains(ap)) {
-				throw new PrismException("Generated automaton misses atomic proposition \""+ap+"\"");
-			}
-		}
 		for (String ap : automatonAPs) {
 			if (!ltlAPs.hasAP(ap)) {
 				throw new PrismException("Generated automaton has extra atomic proposition \""+ap+"\"");
 			}
 		}
+		// It's fine for the automaton to not have APs that occur in the formula, e.g., for
+		// p0 | !p0, the external tool could simplify to 'true' and omit all APs
 	}
 
-	
-	
 }

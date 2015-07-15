@@ -394,8 +394,7 @@ public class PrismCL implements PrismModelListener
 						if (test) {
 							try {
 								mainLog.println();
-								Values allConsts = new Values(definedMFConstants);
-								allConsts.addValues(definedPFConstants);
+								Values allConsts = new Values(modulesFile.getConstantValues(), propertiesFile.getConstantValues());
 								if (propertiesToCheck.get(j).checkAgainstExpectedResult(res.getResult(), allConsts)) {
 									mainLog.println("Testing result: PASS");
 								} else {
@@ -931,6 +930,9 @@ public class PrismCL implements PrismModelListener
 
 				// Remove "-"
 				sw = args[i].substring(1);
+				if (sw.length() == 0) {
+					errorAndExit("Invalid empty switch");
+				}
 				// Remove optional second "-" (i.e. we allow switches of the form --sw too)
 				if (sw.charAt(0) == '-')
 					sw = sw.substring(1);
@@ -2125,6 +2127,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-nobuild ....................... Skip model construction (just do parse/export)");
 		mainLog.println("-test .......................... Enable \"test\" mode");
 		mainLog.println("-testall ....................... Enable \"test\" mode, but don't exit on error");
+		mainLog.println("-javamaxmem .................... Set the maximum heap size for Java, e.g. 500m, 4g [default: 1g]");
 		mainLog.println();
 		mainLog.println("IMPORT OPTIONS:");
 		mainLog.println("-importpepa .................... Model description is in PEPA, not the PRISM language");
@@ -2228,6 +2231,7 @@ public class PrismCL implements PrismModelListener
 			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
 			mainLog.println(" * csv - Export results as comma-separated values");
 			mainLog.println(" * matrix - Export results as one or more 2D matrices (e.g. for surface plots)");
+			mainLog.println(" * comment - Export results in comment format for regerssion testing)");
 		}
 		// -exportmodel
 		else if (sw.equals("exportmodel")) {

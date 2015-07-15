@@ -321,28 +321,62 @@ def runPrism(args, dir=""):
     print ' '.join(prismArgs)
     if options.logDir:
         logFile = os.path.join(options.logDir, createLogFileName(args, dir))
-        f = open(logFile, 'w')
-        exitCode = subprocess.Popen(prismArgs, stdout=f).wait()
+        #f = open(logFile, 'w')
+        prismArgs = prismArgs + ['-mainlog', logFile, '-techlog', logFile]
+        exitCode = subprocess.Popen(prismArgs).wait()
         #exitCode = subprocess.Popen(prismArgs, cwd=dir, stdout=f).wait()
     elif options.test:
         f = tempfile.NamedTemporaryFile(delete=False)
         logFile = f.name
-        exitCode = subprocess.Popen(prismArgs, stdout=f).wait()
+        prismArgs = prismArgs + ['-mainlog', logFile, '-techlog', logFile]
+        exitCode = subprocess.Popen(prismArgs).wait()
     else:
         exitCode = subprocess.Popen(prismArgs).wait()
     # Extract test results if needed
     if options.test:
         for line in open(logFile, 'r').readlines():
             if re.match('Testing result:', line):
-                print line,
+                printTestResult(line)
+            if options.showWarnings and re.match('Warning:', line):
+                printTestResult(line)
     if options.test and exitCode != 0:
         for line in open(logFile, 'r').readlines():
             if re.match('Error:', line):
-                print line,
+                printTestResult(line)
         print "To see log file, run:"
         print "edit " + logFile
         if not options.testAll:
             sys.exit(1)
+
+# Print a testing-related message, colour coding if needed
+
+def printTestResult(msg):
+    msg = str.rstrip(msg)
+    if not isColourEnabled():
+        print msg;
+        return
+    # Coloured-coded...
+    if 'Error:' in msg or 'FAIL' in msg:
+        print '\033[31m' + msg + '\033[0m'
+    elif 'PASS' in msg:
+        print '\033[32m' + msg + '\033[0m'
+    elif 'SKIPPED' in msg:
+        print '\033[90m' + msg + '\033[0m'
+    elif 'UNSUPPORTED' in msg or 'Warning:' in msg:
+        print '\033[33m' + msg + '\033[0m'
+    else:
+        print msg
+
+# Is printing of colour coded messages enabled?
+
+def isColourEnabled():
+    if options.colourEnabled == "yes":
+        return True
+    elif options.colourEnabled == "no":
+        return False
+    else:
+        # auto: yes if in terminal mode
+        return sys.stdout.isatty()
 
 # Checks for each file from the outFiles list whether there is an identical file
 # with the name exportPrefix + file. If so, said file is deleted. Otherwise, it is kept
@@ -352,27 +386,28 @@ def verifyAndCleanupExports(outFiles, exportPrefix):
     result = True
     # Check for equality with out files
     for outFile in outFiles:
-    	print "Testing export " + os.path.basename(outFile) + ":",
+    	msg = "Testing export " + os.path.basename(outFile) + ": "
         expFile = prependToFile(exportPrefix, outFile)
         if os.path.isfile(expFile):
             if options.noExportTests:
-                print "SKIPPED"
+                msg = msg + "SKIPPED"
                 os.remove(expFile)
             elif filecmp.cmp(outFile, expFile):
                 # If successful, notify and delete exported file
-                print "PASS"
+                msg = msg + "PASS"
                 os.remove(expFile)
             else:
-                print "FAIL (" + os.path.basename(expFile) + " does not match)"
+                msg = msg + "FAIL (" + os.path.basename(expFile) + " does not match)"
                 print "To see difference, run:"
                 print "diff " + outFile + " " + expFile
                 result = False
         else:
             if options.noExportTests:
-                print "SKIPPED"
+                msg = msg + "SKIPPED"
             else:
-                print "FAIL (no " + os.path.basename(expFile) + " to compare to)"
+                msg = msg + "FAIL (no " + os.path.basename(expFile) + " to compare to)"
                 result = False
+    printTestResult(msg)
     return result
 
 # Run a benchmark, specified by a list of command-line args,
@@ -603,12 +638,14 @@ parser.add_option("-p", "--prog", dest="prismExec", metavar="FILE", default="pri
 parser.add_option("-n", "--non-recursive", action="store_true", dest="nonRec", default=False, help="Don't recurse into directories")
 parser.add_option("-x", "--extra", dest="extraArgs", metavar="XXX", default="", help="Pass (single string of) extra switches to PRISM")
 parser.add_option("-t", "--test", action="store_true", dest="test", default=False, help="Run in test mode")
+parser.add_option("-w", "--show-warnings", action="store_true", dest="showWarnings", default=False, help="Show warnings (as well as errors) when in test mode")
 parser.add_option("--test-all", action="store_true", dest="testAll", default=False, help="In test mode, don't stop after an error")
 parser.add_option("--no-renaming", action="store_true", dest="noRenaming", default=False, help="Don't rename files to be exported")
 parser.add_option("--debug", action="store_true", dest="debug", default=False, help="Enable debug mode: display debugging info")
 parser.add_option("--echo-full", action="store_true", dest="echoFull", default=False, help="An expanded version of -e/--echo")
-parser.add_option("--models-filename", dest="modelsFilename", default="models", help="The name of the optional 'models' file in directories, storing a list of models and parameters [default=models]")
+parser.add_option("--models-filename", dest="modelsFilename", metavar="X", default="models", help="Read in list of models/parameters for a directory from file X, if present [default=models]")
 parser.add_option("--no-export-tests", action="store_true", dest="noExportTests", default=False, help="Don't check exported files when in test mode")
+parser.add_option("--colour", dest="colourEnabled", metavar="X", type="choice", choices=["yes","no","auto"], default="auto", help="Whether to colour test results: yes, no, auto (yes iff in terminal mode) [default=auto]")
 (options, args) = parser.parse_args()
 if len(args) < 1:
     parser.print_help()

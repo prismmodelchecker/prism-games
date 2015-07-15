@@ -5,11 +5,11 @@
 	<classpathentry kind="lib" path="lib/epsgraphics.jar"/>
 	<classpathentry kind="lib" path="lib/jcommon.jar"/>
 	<classpathentry kind="lib" path="lib/jfreechart.jar" sourcepath="/jfreechart/source"/>
-	<classpathentry kind="lib" path="lib/jhoafparser-1.1.0-rc3.jar"/>
+	<classpathentry kind="lib" path="lib/jhoafparser.jar"/>
 	<classpathentry kind="lib" path="lib/colt.jar" sourcepath="/Users/dxp/colt/src"/>
 	<classpathentry kind="lib" path="lib/pepa.zip"/>
 	<classpathentry kind="lib" path="lib/lpsolve55j.jar"/>
+	<classpathentry kind="lib" path="lib/jas.jar"/>
 	<classpathentry kind="lib" path="lib/log4j.jar"/>
-	<classpathentry kind="lib" path="lib/jas-2013137.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
