@@ -399,11 +399,11 @@ public class StateModelChecker extends PrismComponent
 	// Model checking functions
 
 	/**
-	 * Model check an expression, process and return the result. Information
-	 * about states and model constants should be attached to the model. For
-	 * other required info (labels, reward structures, etc.), use the methods
-	 * {@link #setModulesFile} and {@link #setPropertiesFile} to attach the
-	 * original model/properties files.
+	 * Model check an expression, process and return the result.
+	 * Information about states and model constants should be attached to the model.
+	 * For other required info (labels, reward structures, etc.), use the methods
+	 * {@link #setModulesFile} and {@link #setPropertiesFile}
+	 * to attach the original model/properties files.
 	 */
 	public Result check(Model model, Expression expr) throws PrismException
 	{
@@ -461,11 +461,11 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Model check an expression and return a vector result values over all
-	 * states. Information about states and model constants should be attached
-	 * to the model. For other required info (labels, reward structures, etc.),
-	 * use the methods {@link #setModulesFile} and {@link #setPropertiesFile} to
-	 * attach the original model/properties files.
+	 * Model check an expression and return a vector result values over all states.
+	 * Information about states and model constants should be attached to the model.
+	 * For other required info (labels, reward structures, etc.), use the methods
+	 * {@link #setModulesFile} and {@link #setPropertiesFile}
+	 * to attach the original model/properties files.
 	 * @param statesOfInterest a set of states for which results should be calculated (null = all states).
 	 *        The calculated values for states not of interest are arbitrary and should to be ignored.
 	 */
@@ -823,6 +823,7 @@ public class StateModelChecker extends PrismComponent
 }
 
 	// Check property ref
+	
 	protected StateValues checkExpressionProp(Model model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Look up property and check recursively
@@ -884,13 +885,11 @@ public class StateModelChecker extends PrismComponent
 			}
 		}
 
-		// Remember whether filter is for the initial state and, if so, whether
-		// there's just one
+		// Remember whether filter is for the initial state and, if so, whether there's just one
 		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
 		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
 
-		// For some types of filter, store info that may be used to optimise
-		// model checking
+		// For some types of filter, store info that may be used to optimise model checking
 		op = expr.getOperatorType();
 		if (op == FilterOperator.STATE) {
 			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
@@ -915,8 +914,7 @@ public class StateModelChecker extends PrismComponent
 		case PRINTALL:
 			// Format of print-out depends on type
 			if (expr.getType() instanceof TypeBool) {
-				// NB: 'usual' case for filter(print,...) on Booleans is to use
-				// no filter
+				// NB: 'usual' case for filter(print,...) on Booleans is to use no filter
 				mainLog.print("\nSatisfying states");
 				mainLog.println(filterTrue ? ":" : " that are also in filter " + filter + ":");
 				vals.printFiltered(mainLog, bsFilter);
@@ -929,8 +927,7 @@ public class StateModelChecker extends PrismComponent
 					vals.printFiltered(mainLog, bsFilter, false, false, true, true);
 				}
 			}
-			// Result vector is unchanged; for PRINT/PRINTALL, don't store a
-			// single value (in resObj)
+			// Result vector is unchanged; for PRINT/PRINTALL, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
 			resVals = vals;
 			// Set vals to null to stop it being cleared below
@@ -944,10 +941,8 @@ public class StateModelChecker extends PrismComponent
 			// Create explanation of result and print some details to log
 			resultExpl = "Minimum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
-			// Also find states that (are close to) selected value for display
-			// to log
-			// TODO: un-hard-code precision once StateValues knows hoe precise
-			// it is
+			// Also find states that (are close to) selected value for display to log
+			// TODO: un-hard-code precision once StateValues knows hoe precise it is
 			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
 			bsMatch.and(bsFilter);
 			break;
@@ -959,10 +954,8 @@ public class StateModelChecker extends PrismComponent
 			// Create explanation of result and print some details to log
 			resultExpl = "Maximum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
-			// Also find states that (are close to) selected value for display
-			// to log
-			// TODO: un-hard-code precision once StateValues knows hoe precise
-			// it is
+			// Also find states that (are close to) selected value for display to log
+			// TODO: un-hard-code precision once StateValues knows hoe precise it is
 			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
 			bsMatch.and(bsFilter);
 			break;
@@ -971,12 +964,10 @@ public class StateModelChecker extends PrismComponent
 			resObj = vals.minOverBitSet(bsFilter);
 			mainLog.print("\nMinimum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			// TODO: un-hard-code precision once StateValues knows hoe precise
-			// it is
+			// TODO: un-hard-code precision once StateValues knows hoe precise it is
 			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
 			bsMatch.and(bsFilter);
-			// Store states in vector; for ARGMIN, don't store a single value
-			// (in resObj)
+			// Store states in vector; for ARGMIN, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
 			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
@@ -988,12 +979,10 @@ public class StateModelChecker extends PrismComponent
 			resObj = vals.maxOverBitSet(bsFilter);
 			mainLog.print("\nMaximum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			// TODO: un-hard-code precision once StateValues knows hoe precise
-			// it is
+			// TODO: un-hard-code precision once StateValues knows hoe precise it is
 			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
 			bsMatch.and(bsFilter);
-			// Store states in vector; for ARGMAX, don't store a single value
-			// (in resObj)
+			// Store states in vector; for ARGMAX, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
 			resVals = StateValues.createFromBitSet(bsMatch, model);
 			// Print out number of matching states, but not the actual states
@@ -1044,8 +1033,7 @@ public class StateModelChecker extends PrismComponent
 		case RANGE:
 			// Find range of values
 			resObj = new prism.Interval(vals.minOverBitSet(bsFilter), vals.maxOverBitSet(bsFilter));
-			// Leave result vector unchanged: for a range, result is only
-			// available from Result object
+			// Leave result vector unchanged: for a range, result is only available from Result object
 			resVals = vals;
 			// Set vals to null to stop it being cleared below
 			vals = null;
@@ -1299,8 +1287,8 @@ public class StateModelChecker extends PrismComponent
 
 	/**
 	 * Loads labels from a PRISM labels file and stores them in BitSet objects.
-	 * (Actually, it returns a map from label name Strings to BitSets.) (Note:
-	 * the size of the BitSet may be smaller than the number of states.)
+	 * (Actually, it returns a map from label name Strings to BitSets.)
+	 * (Note: the size of the BitSet may be smaller than the number of states.) 
 	 */
 	public Map<String, BitSet> loadLabelsFile(String filename) throws PrismException
 	{
