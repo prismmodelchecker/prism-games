@@ -196,7 +196,6 @@ public class STPGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known)
 			throws PrismException
 	{
-		// TODO: clean this up
 		return computeReachProbs(stpg, remain, target, min1, min2, init, known, -1);
 	}
 
