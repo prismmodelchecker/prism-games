@@ -460,93 +460,6 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Zero cummulative reward precomputation algorithm. i.e. determine the
-	 * states of an STPG which, with probability 1 get min/max reward equal to
-	 * 0.0 before (possibly) reaching a state in {@code target}, while remaining
-	 * in those in {@code remain}.
-	 * @param stpg The STPG
-	 * @param remain Remain in these states (optional: null means "all")
-	 * @param target Target states
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 */
-	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain, BitSet target, boolean min1, boolean min2)
-	{
-		int n, iters;
-		double[] soln1, soln2;
-		BitSet unknown;
-		boolean done;
-		long timer;
-
-		// Start precomputation
-		timer = System.currentTimeMillis();
-		if (verbosity >= 1)
-			mainLog.println("Starting zeroRewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
-
-		// Initialise vectors
-		n = stpg.getNumStates();
-		soln1 = new double[n];
-		soln2 = new double[n];
-
-		// Determine set of states actually need to perform computation for
-		unknown = new BitSet();
-		unknown.set(0, n);
-		if (target != null)
-			unknown.andNot(target);
-		if (remain != null)
-			unknown.and(remain);
-
-		// initialise the solution so that the forbidden states are penalised
-		for (int i = 0; i < n; i++) {
-			if (remain != null && !remain.get(i) && target != null && !target.get(i))
-				soln1[i] = Double.POSITIVE_INFINITY;
-		}
-
-		// Nested fixed point loop
-		iters = 0;
-		done = false;
-		while (!done) {
-			iters++;
-			// at every iter at least one state must go from zero to nonzero,
-			// hence we have
-			// at most n iterations
-			assert iters <= n + 1;
-
-			stpg.mvMultRewMinMax(soln1, rewards, min1, min2, soln2, unknown, false, null);
-
-			// Check termination (outer)
-			done = true;
-
-			double[] tmp = soln2;
-			soln2 = soln1;
-			soln1 = tmp;
-
-			done = true;
-			for (int i = 0; i < n; i++) {
-				if (soln1[i] > 0.0 && soln2[i] == 0.0) {
-					done = false;
-					break;
-				}
-			}
-		}
-
-		// Finished precomputation
-		timer = System.currentTimeMillis() - timer;
-		if (verbosity >= 1) {
-			mainLog.print("Zero Rewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-		}
-
-		BitSet result = new BitSet(n);
-		for (int i = 0; i < n; i++) {
-			if (soln1[i] == 0.0)
-				result.set(i);
-		}
-
-		return result;
-	}
-
-	/**
 	 * Compute reachability probabilities using value iteration.
 	 * @param stpg The STPG
 	 * @param no Probability 0 states
@@ -1920,6 +1833,93 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000;
 		res.numIters = iters;
 		return res;
+	}
+
+	/**
+	 * Zero cummulative reward precomputation algorithm. i.e. determine the
+	 * states of an STPG which, with probability 1 get min/max reward equal to
+	 * 0.0 before (possibly) reaching a state in {@code target}, while remaining
+	 * in those in {@code remain}.
+	 * @param stpg The STPG
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 */
+	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain, BitSet target, boolean min1, boolean min2)
+	{
+		int n, iters;
+		double[] soln1, soln2;
+		BitSet unknown;
+		boolean done;
+		long timer;
+
+		// Start precomputation
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("Starting zeroRewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+
+		// Initialise vectors
+		n = stpg.getNumStates();
+		soln1 = new double[n];
+		soln2 = new double[n];
+
+		// Determine set of states actually need to perform computation for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		if (target != null)
+			unknown.andNot(target);
+		if (remain != null)
+			unknown.and(remain);
+
+		// initialise the solution so that the forbidden states are penalised
+		for (int i = 0; i < n; i++) {
+			if (remain != null && !remain.get(i) && target != null && !target.get(i))
+				soln1[i] = Double.POSITIVE_INFINITY;
+		}
+
+		// Nested fixed point loop
+		iters = 0;
+		done = false;
+		while (!done) {
+			iters++;
+			// at every iter at least one state must go from zero to nonzero,
+			// hence we have
+			// at most n iterations
+			assert iters <= n + 1;
+
+			stpg.mvMultRewMinMax(soln1, rewards, min1, min2, soln2, unknown, false, null);
+
+			// Check termination (outer)
+			done = true;
+
+			double[] tmp = soln2;
+			soln2 = soln1;
+			soln1 = tmp;
+
+			done = true;
+			for (int i = 0; i < n; i++) {
+				if (soln1[i] > 0.0 && soln2[i] == 0.0) {
+					done = false;
+					break;
+				}
+			}
+		}
+
+		// Finished precomputation
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1) {
+			mainLog.print("Zero Rewards (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		BitSet result = new BitSet(n);
+		for (int i = 0; i < n; i++) {
+			if (soln1[i] == 0.0)
+				result.set(i);
+		}
+
+		return result;
 	}
 
 	/**
