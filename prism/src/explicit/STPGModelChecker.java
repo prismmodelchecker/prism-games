@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import parser.ast.Expression;
-import parser.ast.ExpressionTemporal;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -83,105 +82,6 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	// Model checking functions
-
-	/**
-	 * Computes the probability that a formula (F G target) is satisfied.
-	 * This method exploits the fact that, under any fixed strategy,
-	 * this probability is equivalent to (1 - Pr(G F !target))
-	 * @param stpg The model.
-	 * @param target The set of states satisfying the innermost subformula.
-	 * @param expr The expression to verify (including the F G part)
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 */
-	protected StateValues checkGF(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
-	{
-		BitSet b;
-		ModelCheckerResult res = null;
-
-		// check if the formula is of the FG form
-		Expression subformula = null;
-		if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprT = (ExpressionTemporal) expr;
-			// And children, if present, must be state (not path) formulas
-			if (exprT.getOperator() == ExpressionTemporal.P_G) {
-				Expression expr2 = exprT.getOperand2();
-				if (expr2 instanceof ExpressionTemporal) {
-					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
-					if (expr2T.getOperator() == ExpressionTemporal.P_F) {
-						Expression expr3 = expr2T.getOperand2();
-						if (!(expr3 instanceof ExpressionTemporal)) {
-							subformula = expr3;
-						}
-					}
-				}
-			}
-		}
-
-		if (subformula == null)
-			throw new PrismException("The expression passed to checkGF must be of the form (G F psi) where psi is a state formula");
-
-		// model check operand first, then negate it because we want 'not
-		// target'
-		b = checkExpression(model, subformula, null).getBitSet(); // TODO: should we get statesOfInterest form somewhere?
-		b.flip(0, ((STPG) model).getNumStates());
-
-		// model check using FG and swapped mins/maxes
-		res = computeFG((STPG) model, b, !min1, !min2);
-
-		// get (1 - result) and return it
-		for (int i = 0; i < res.soln.length; i++)
-			res.soln[i] = 1 - res.soln[i];
-
-		StateValues probs = StateValues.createFromDoubleArray(res.soln, model);
-		return probs;
-	}
-
-	/**
-	 * Computes a probability that a formula (FG target) is satisfied.
-	 * This method exploits the fact that this probability is equivalent to the
-	 * probability of satisfying formula (F (P=1 [ G target ])).
-	 * @param stpg The model.
-	 * @param target The set of states satisfying the innermost subformula.
-	 * @param expr The expression to verify (including the F G part)
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 */
-	protected StateValues checkFG(Model model, Expression expr, boolean min1, boolean min2) throws PrismException
-	{
-		BitSet b;
-		ModelCheckerResult res = null;
-
-		// check if the formula is of the FG form
-		Expression subformula = null;
-		if (expr instanceof ExpressionTemporal) {
-			ExpressionTemporal exprT = (ExpressionTemporal) expr;
-			// And children, if present, must be state (not path) formulas
-			if (exprT.getOperator() == ExpressionTemporal.P_F) {
-				Expression expr2 = exprT.getOperand2();
-				if (expr2 instanceof ExpressionTemporal) {
-					ExpressionTemporal expr2T = (ExpressionTemporal) expr2;
-					if (expr2T.getOperator() == ExpressionTemporal.P_G) {
-						Expression expr3 = expr2T.getOperand2();
-						if (!(expr3 instanceof ExpressionTemporal)) {
-							subformula = expr3;
-						}
-					}
-				}
-			}
-		}
-
-		if (subformula == null)
-			throw new PrismException("The expression passed to checkFG must be of the form (F G psi) where psi is a state formula");
-
-		// model check operand first
-		b = checkExpression(model, subformula, null).getBitSet(); // TODO: should we get statesOfInterest form somewhere?
-
-		res = computeFG((STPG) model, b, min1, min2);
-
-		StateValues probs = StateValues.createFromDoubleArray(res.soln, model);
-		return probs;
-	}
 
 	@Override
 	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
@@ -406,37 +306,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		return res;
 	}
-
-	/**
-	 * Computes a probability that a formula (FG target) is satisfied.
-	 * <p/>
-	 * This method exploits the fact that this probability is equivalent to the
-	 * probability of satisfying formula (F (P=1 [ G target ])).
-	 * 
-	 * @param stpg The model.
-	 * @param target The set of states satisfying the innermost subformula.
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 */
-	public ModelCheckerResult computeFG(STPG stpg, BitSet target, boolean min1, boolean min2) throws PrismException
-	{
-		// compute G=1
-		// we have G=1 target
-		// iff
-		// F=0 not target
-
-		int n = stpg.getNumStates();
-		target.flip(0, n);
-		// System.out.println(target);
-		BitSet g1 = prob0(stpg, null, target, !min1, !min2);
-
-		// System.out.println(g1);
-		// g1.flip(0,n);
-
-		// do reachability
-		return computeReachProbs(stpg, g1, min1, min2);
-	}
-
+	
 	/**
 	 * Prob0 precomputation algorithm.
 	 * i.e. determine the states of an STPG which, with min/max probability 0,
