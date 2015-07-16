@@ -157,7 +157,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * i.e. compute the min/max probability of reaching a state in {@code target}.
 	 * @param stpg The STPG
 	 * @param target Target states
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
 	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2, double bound) throws PrismException
@@ -206,7 +206,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (may be overwritten) 
 	 * @param known Optionally, a set of states for which the exact answer is known
@@ -1843,7 +1843,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
-	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
 	public BitSet zeroRewards(STPG stpg, STPGRewards rewards, BitSet remain, BitSet target, boolean min1, boolean min2)
