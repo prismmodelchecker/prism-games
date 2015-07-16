@@ -193,7 +193,6 @@ public class TypeCheck extends ASTTraverse
 			}
 			e.setType(TypePathBool.getInstance());
 			break;
-		case ExpressionTemporal.R_F:
 		case ExpressionTemporal.R_Fc:
 		case ExpressionTemporal.R_F0:
 			if (e.getOperand2() != null) {
@@ -518,7 +517,8 @@ public class TypeCheck extends ASTTraverse
 			}
 		}
 		// Check argument
-		if (!(e.getExpression().getType() instanceof TypePathDouble)) {
+		Type typeArg = e.getExpression().getType();
+		if (!(typeArg instanceof TypePathDouble || typeArg instanceof TypePathBool || typeArg instanceof TypeBool)) {
 			throw new PrismLangException("Type error: Contents of R operator is invalid", e.getExpression());
 		}
 		// Set type

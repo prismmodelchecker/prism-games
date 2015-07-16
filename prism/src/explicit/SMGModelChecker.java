@@ -150,7 +150,7 @@ public class SMGModelChecker extends STPGModelChecker
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_Fc:
 				break;
-			case ExpressionTemporal.R_F:
+			case ExpressionTemporal.P_F:
 				throw new PrismException("Only cumulative reward type is supported for exact values.");
 			case ExpressionTemporal.R_F0:
 				throw new PrismException("Only cumulative reward type is supported for exact values.");

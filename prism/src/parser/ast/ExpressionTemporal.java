@@ -41,7 +41,7 @@ public class ExpressionTemporal extends Expression
 	public static final int P_R = 6; // Release (for P operator)
 	public static final int R_C = 11; // Cumulative (for R operator)
 	public static final int R_I = 12; // Instantaneous (for R operator)
-	public static final int R_F = 13; // Reachability, where non reaching states get infty (for R operator)
+	public static final int R_F = 13; // Reachability, where non reaching states get infty (for R operator) // DEPRECATED: Use P_F
 	public static final int R_S = 14; // Steady-state (for R operator)
 	public static final int R_Fc = 15; // Reachability, where non reaching states get cumul rew  (for R operator)
 	public static final int R_F0 = 16; // Reachability, where non reaching states get 0 (for R operator)

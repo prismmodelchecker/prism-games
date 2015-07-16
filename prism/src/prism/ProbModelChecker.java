@@ -48,6 +48,9 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.PropertiesFile;
 import parser.ast.RelOp;
+import parser.type.TypeBool;
+import parser.type.TypePathBool;
+import parser.type.TypePathDouble;
 import sparse.PrismSparse;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceOmegaDD;
@@ -221,7 +224,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Compute rewards
 		StateValues rewards = null;
 		Expression expr2 = expr.getExpression();
-		if (expr2 instanceof ExpressionTemporal) {
+		if (expr2.getType() instanceof TypePathDouble) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr2;
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_C:
@@ -234,14 +237,14 @@ public class ProbModelChecker extends NonProbModelChecker
 			case ExpressionTemporal.R_I:
 				rewards = checkRewardInst(exprTemp, stateRewards, transRewards);
 				break;
-			case ExpressionTemporal.R_F:
-				rewards = checkRewardReach(exprTemp, stateRewards, transRewards);
-				break;
 			case ExpressionTemporal.R_S:
 				rewards = checkRewardSS(exprTemp, stateRewards, transRewards);
 				break;
 			}
+		} else if (expr2.getType() instanceof TypePathBool || expr2.getType() instanceof TypeBool) {
+			rewards = checkRewardPathFormula(expr2, stateRewards, transRewards);
 		}
+		
 		if (rewards == null)
 			throw new PrismException("Unrecognised operator in R operator");
 
@@ -859,6 +862,20 @@ public class ProbModelChecker extends NonProbModelChecker
 		return rewards;
 	}
 
+	/**
+	 * Compute rewards for a reachability reward operator.
+	 */
+	protected StateValues checkRewardPathFormula(Expression expr, JDDNode stateRewards, JDDNode transRewards) throws PrismException
+	{
+		if (Expression.isReach(expr)) {
+			return checkRewardReach((ExpressionTemporal) expr, stateRewards, transRewards);
+		}
+		else if (Expression.isCoSafeLTLSyntactic(expr)) {
+			throw new PrismNotSupportedException("Co-safe reward properties not yet supported for DTMCs in this engine");
+		}
+		throw new PrismException("Invalid contents for an R operator: " + expr);
+	}
+	
 	// reach reward
 
 	protected StateValues checkRewardReach(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards) throws PrismException
@@ -866,6 +883,11 @@ public class ProbModelChecker extends NonProbModelChecker
 		JDDNode b;
 		StateValues rewards = null;
 
+		// No time bounds allowed
+		if (expr.hasBounds()) {
+			throw new PrismNotSupportedException("R operator cannot contain a bounded F operator: " + expr);
+		}
+		
 		// model check operand first
 		b = checkExpressionDD(expr.getOperand2());
 
