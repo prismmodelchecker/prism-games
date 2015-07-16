@@ -74,13 +74,10 @@ public class SMGModelChecker extends STPGModelChecker
 		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		double[] res = computeUntilProbs(smg, null, terminal, true, true, 1.0).soln;
-
-		// System.out.println("Terminal states: " + terminal);
-		// System.out.println(Arrays.toString(res));
-		for (int i = 0; i < res.length; i++)
-			if (res[i] < 1.0 - 1e-6)
-				throw new PrismException("The game is not stopping. The exact probability queries only work for stopping games");
+		BitSet prob1 = prob1(smg, null, terminal, true, true);
+		if (prob1.cardinality() != smg.getNumStates()) {
+			throw new PrismException("The game is not stopping. Exact probability queries only work for stopping games");
+		}
 
 		// 2) computing minmax and maxmin values for all states
 		double[] minmax = null, maxmin = null; // see the do loop below
@@ -169,13 +166,10 @@ public class SMGModelChecker extends STPGModelChecker
 		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		double[] res = computeUntilProbs(smg, null, terminal, true, true, 1.0).soln;
-
-		// System.out.println("Terminal states: " + terminal);
-		// System.out.println(Arrays.toString(res));
-		for (int i = 0; i < res.length; i++)
-			if (res[i] < 1.0 - 1e-6)
-				throw new PrismException("The game is not stopping. The exact probability queries only work for stopping games");
+		BitSet prob1 = prob1(smg, null, terminal, true, true);
+		if (prob1.cardinality() != smg.getNumStates()) {
+			throw new PrismException("The game is not stopping. Exact reward queries only work for stopping games");
+		}
 
 		// 2) computing minmax and maxmin values for all states
 		double[] minmax = null, maxmin = null; // see the do loop below 
@@ -193,13 +187,11 @@ public class SMGModelChecker extends STPGModelChecker
 			// computing minmax and maxmin
 			MinMax minMax1 = MinMax.minMin(true, false);
 			minMax1.setCoalition(coalition);
-			minMax1.setBound(p);
 			minmax = checkRewardReach(smg, modelRewards, exprTemp, minMax1).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
 			MinMax minMax2 = MinMax.minMin(false, true);
 			minMax2.setCoalition(coalition);
-			minMax2.setBound(p);
 			maxmin = checkRewardReach(smg, modelRewards, exprTemp, minMax2).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
