@@ -30,6 +30,9 @@ package explicit.rewards;
 import java.util.ArrayList;
 import java.util.List;
 
+import explicit.Model;
+import explicit.Product;
+
 public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 {
 	/** Nested transition rewards */
@@ -46,9 +49,14 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		nestedTransRewards = null;
 	}
 
-	public STPGRewardsSimple(MDPRewardsSimple rewards)
+	/**
+	 * Constructor: copy MDP rewards, other rewards zero
+	 * @param rews MPD rewards to copy
+	 */
+	public STPGRewardsSimple(MDPRewardsSimple rews)
 	{
-		super(rewards);
+		super(rews);
+		// Initially list is just null (denoting all 0)
 		nestedTransRewards = null;
 	}
 
@@ -137,6 +145,35 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		return (list2.get(j) != 0.0) ? list2.get(j) : zeroReplacement;
 	}
 
+	// Converters
+	
+	@Override
+	public STPGRewards liftFromModel(Product<? extends Model> product)
+	{
+		// Lift MDP part
+		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) ((MDPRewardsSimple) this).liftFromModel(product);
+		STPGRewardsSimple rewardsProd = new STPGRewardsSimple(rewardsProdMDP);
+		// Lift nested transition rewards
+		Model modelProd = product.getProductModel();
+		int numStatesProd = modelProd.getNumStates();		
+		if (nestedTransRewards != null) {
+			for (int s = 0; s < numStatesProd; s++) {
+				List<List<Double>> list1 = nestedTransRewards.get(product.getModelState(s));
+				if (list1 != null) {
+					int n1 = list1.size();
+					for (int i = 0; i < n1; i++) {
+						List<Double> list2 = list1.get(i);
+						int n2 = list2.size();
+						for (int j = 0; j < n2; j++) {
+							rewardsProd.setNestedTransitionReward(s, i, j, list2.get(j));
+						}
+					}
+				}
+			}
+		}
+		return rewardsProd;
+	}
+	
 	// Other
 
 	@Override

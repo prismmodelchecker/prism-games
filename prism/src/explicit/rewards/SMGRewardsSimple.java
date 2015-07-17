@@ -25,16 +25,16 @@
 //	
 //==============================================================================
 
-
 package explicit.rewards;
 
+import explicit.Model;
+import explicit.Product;
 
 /**
  * Simple explicit-state storage of rewards for an SMG.
  */
-public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards {
-
-
+public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards
+{
 	/**
 	 * Constructor: all zero rewards.
 	 * @param numStates Number of states
@@ -43,7 +43,7 @@ public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards {
 	{
 		super(numStates);
 	}
-	
+
 	/**
 	 * Copy constructor
 	 * @param rews Rewards to copy
@@ -53,15 +53,38 @@ public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards {
 		super(rews);
 	}
 
-	@Override
-	public MDPRewards buildMDPRewards() {
-		return this;
+	/**
+	 * Copy constructor
+	 * @param rews Rewards to copy
+	 */
+	public SMGRewardsSimple(MDPRewardsSimple rews)
+	{
+		super(rews);
 	}
 
+	// Accessors
+
 	@Override
-	public double getNestedTransitionReward(int s, int i, int j) {
-		// TODO Auto-generated method stub
+	public double getNestedTransitionReward(int s, int i, int j)
+	{
 		return 0;
 	}
+
+	// Converters
 	
+	@Override
+	public SMGRewards liftFromModel(Product<? extends Model> product)
+	{
+		// Lift MDP part
+		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) ((MDPRewardsSimple) this).liftFromModel(product);
+		return new SMGRewardsSimple(rewardsProdMDP);
+	}
+	
+	// Other
+
+	@Override
+	public MDPRewards buildMDPRewards()
+	{
+		return new MDPRewardsSimple(this);
+	}
 }

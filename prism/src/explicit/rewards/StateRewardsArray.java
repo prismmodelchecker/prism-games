@@ -26,10 +26,13 @@
 
 package explicit.rewards;
 
+import explicit.Model;
+import explicit.Product;
+
 /**
  * Explicit-state storage of just state rewards (as an array).
  */
-public class StateRewardsArray implements MCRewards, MDPRewards
+public class StateRewardsArray extends StateRewards
 {
 	/** Array of state rewards **/
 	protected double stateRewards[] = null;
@@ -41,10 +44,24 @@ public class StateRewardsArray implements MCRewards, MDPRewards
 	public StateRewardsArray(int numStates)
 	{
 		stateRewards = new double[numStates];
-		for (int i = 0; i < numStates; i++)
+		for (int i = 0; i < numStates; i++) {
 			stateRewards[i] = 0.0;
+		}
 	}
 	
+	/**
+	 * Copy constructor
+	 * @param rews Rewards to copy
+	 */
+	public StateRewardsArray(StateRewardsArray rews)
+	{
+		int numStates= rews.stateRewards.length;
+		stateRewards = new double[numStates];
+		for (int i = 0; i < numStates; i++) {
+			stateRewards[i] = rews.stateRewards[i];
+		}
+	}
+
 	// Mutators
 	
 	/**
@@ -71,9 +88,25 @@ public class StateRewardsArray implements MCRewards, MDPRewards
 		return stateRewards[s];
 	}
 	
+	// Converters
+	
 	@Override
-	public double getTransitionReward(int s, int i)
+	public StateRewards liftFromModel(Product<? extends Model> product)
 	{
-		return 0.0;
+		Model modelProd = product.getProductModel();
+		int numStatesProd = modelProd.getNumStates();
+		StateRewardsArray rewardsProd = new StateRewardsArray(numStatesProd);
+		for (int s = 0; s < numStatesProd; s++) {
+			rewardsProd.setStateReward(s, stateRewards[product.getModelState(s)]);
+		}
+		return rewardsProd;
+	}
+	
+	// Other
+
+	@Override
+	public StateRewardsArray deepCopy()
+	{
+		return new StateRewardsArray(this);
 	}
 }

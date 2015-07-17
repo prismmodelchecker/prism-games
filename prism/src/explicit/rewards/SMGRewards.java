@@ -27,6 +27,9 @@
 
 package explicit.rewards;
 
+import explicit.Model;
+import explicit.Product;
+
 /**
  * Classes that provide (read) access to explicit-state rewards for an SMG.
  * See the {@link explicit.SMG} interface for details of the accompanying model.
@@ -43,4 +46,6 @@ public interface SMGRewards extends STPGRewards
 	 */
 	public abstract double getTransitionReward(int s, int i); 
 	
+	@Override
+	public abstract SMGRewards liftFromModel(Product<? extends Model> product);
 }
