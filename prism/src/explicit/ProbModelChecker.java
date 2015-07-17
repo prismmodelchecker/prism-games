@@ -1203,6 +1203,21 @@ public class ProbModelChecker extends NonProbModelChecker
 		case STPG:
 			res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2());
 			break;
+		case SMG:
+			((SMG) model).setCoalition(minMax.getCoalition());
+			switch (expr.getOperator()) {
+			case ExpressionTemporal.P_F:
+				res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2(), null, null, STPGModelChecker.R_INFINITY);
+				break;
+			case ExpressionTemporal.R_Fc:
+				res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2(), null, null, STPGModelChecker.R_CUMULATIVE);
+				break;
+			case ExpressionTemporal.R_F0:
+				res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2(), null, null, STPGModelChecker.R_ZERO);
+				break;
+			}
+			((SMG) model).setCoalition(null);
+			break;
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
