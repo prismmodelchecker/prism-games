@@ -1728,6 +1728,10 @@ void RewardIndex(ExpressionReward exprRew) :
 
 // Contents of an R operator
 
+// JavaCC warns about lookahead for this function. This is because there is a possible conflict between
+// R [ S ], where "S" is the long-run reward operator, and R [ S [ ] ], where "S [ ]" is an LTL formula
+// comprising a single atomic proposition. We use lookahead to resolve the ambiguity.
+
 Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 {
 	Expression expr = null;
@@ -1738,13 +1742,17 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 {
 	{ begin = getToken(1); }
 	(
-	// Normal reward operators
-	LOOKAHEAD(<C> <LE>) begin = <C> <LE> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_C, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
+	// First look for cases where it starts with "S" (see above)
+	LOOKAHEAD(ExpressionSS(prop, pathprop)) expr = ExpressionSS(prop, true) { ret = expr; }
+	| <S> { ret = new ExpressionTemporal(ExpressionTemporal.R_S, null, null); }
+	
+	// Normal reward operators (excluding S; see above)
+	| LOOKAHEAD(<C> <LE>) begin = <C> <LE> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_C, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
 	| <C> { ret = new ExpressionTemporal(ExpressionTemporal.R_C, null, null); }
 	| <I> <EQ> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_I, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
 	| <Fc> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_Fc, null, expr); }
 	| <F0> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_F0, null, expr); }
-	| <S> { ret = new ExpressionTemporal(ExpressionTemporal.R_S, null, null); }
+	
 	// Path formula (including F "target")
 	| expr = Expression(prop, true) { ret = expr; }
 	)
