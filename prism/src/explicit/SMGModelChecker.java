@@ -28,15 +28,23 @@ package explicit;
 
 import java.util.BitSet;
 
+import parser.VarList;
 import parser.ast.Coalition;
+import parser.ast.Declaration;
+import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionTemporal;
+import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismFileLog;
 import strat.ExactValueStrategy;
 import strat.Strategy;
+import acceptance.AcceptanceReach;
+import acceptance.AcceptanceType;
+import explicit.rewards.Rewards;
 import explicit.rewards.SMGRewards;
 
 /**
@@ -50,6 +58,75 @@ public class SMGModelChecker extends STPGModelChecker
 	public SMGModelChecker(PrismComponent parent) throws PrismException
 	{
 		super(parent);
+	}
+	
+	// Model checking functions
+	
+	/**
+	 * Compute rewards for a co-safe LTL reward operator.
+	 */
+	protected StateValues checkRewardCoSafeLTL(Model model, Rewards modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	{
+		LTLModelChecker mcLtl;
+		SMGRewards productRewards;
+		StateValues rewardsProduct, rewards;
+		SMGModelChecker mcProduct;
+		LTLModelChecker.LTLProduct<SMG> product;
+		ModelCheckerResult res;
+
+		// For LTL model checking routines
+		mcLtl = new LTLModelChecker(this);
+
+		// Build product of SMG and automaton
+		AcceptanceType[] allowedAcceptance = {
+				AcceptanceType.RABIN,
+				AcceptanceType.REACH
+		};
+		product = mcLtl.constructProductSMG(this, (SMG)model, expr, statesOfInterest, allowedAcceptance);
+		
+		// Adapt reward info to product model
+		productRewards = ((SMGRewards) modelRewards).liftFromModel(product);
+		
+		// Output product, if required
+		if (getExportProductTrans()) {
+				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
+				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
+		}
+		if (getExportProductStates()) {
+			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
+			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
+			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
+			out.close();
+		}
+		
+		// Find accepting states + compute reachability rewards
+		BitSet acc;
+		if (product.getAcceptance() instanceof AcceptanceReach) {
+			// For a DFA, just collect the accept states
+			mainLog.println("\nSkipping end component detection since DRA is a DFA...");
+			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
+		} else {
+			// Usually, we have to detect end components in the product
+			mainLog.println("\nFinding accepting end components...");
+			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
+		}
+		mainLog.println("\nComputing reachability rewards...");
+		mcProduct = new SMGModelChecker(this);
+		mcProduct.inheritSettings(this);
+		res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+		rewardsProduct = StateValues.createFromDoubleArray(res.soln, product.getProductModel());
+		
+		// Mapping rewards in the original model
+		rewards = product.projectToOriginalModel(rewardsProduct);
+		rewardsProduct.clear();
+		
+		return rewards;
 	}
 	
 	/**
@@ -187,12 +264,12 @@ public class SMGModelChecker extends STPGModelChecker
 			// computing minmax and maxmin
 			MinMax minMax1 = MinMax.minMin(true, false);
 			minMax1.setCoalition(coalition);
-			minmax = checkRewardReach(smg, modelRewards, exprTemp, minMax1).getDoubleArray();
+			minmax = checkRewardReach(smg, modelRewards, exprTemp, minMax1, null).getDoubleArray();
 			if (generateStrategy)
 				minStrat = strategy;
 			MinMax minMax2 = MinMax.minMin(false, true);
 			minMax2.setCoalition(coalition);
-			maxmin = checkRewardReach(smg, modelRewards, exprTemp, minMax2).getDoubleArray();
+			maxmin = checkRewardReach(smg, modelRewards, exprTemp, minMax2, null).getDoubleArray();
 			if (generateStrategy)
 				maxStrat = strategy;
 
@@ -229,5 +306,86 @@ public class SMGModelChecker extends STPGModelChecker
 		}
 
 		return StateValues.createFromBitSet(ret, smg);
+	}
+	
+	// Numerical computation functions
+	
+	/**
+	 * Compute next-state probabilities.
+	 * i.e. compute the probability of being in a state in {@code target} in the next step.
+	 * @param smg The SMG
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeNextProbs(SMG smg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = super.computeNextProbs(smg, target, min1, min2);
+		smg.setCoalition(null);
+		return res;
+	}
+
+	/**
+	 * Compute bounded reachability/until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * within k steps, and while remaining in states in @{code remain}.
+	 * @param smg The SMG
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param k Bound
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeBoundedUntilProbs(SMG smg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = super.computeBoundedUntilProbs(smg, remain, target, k, min1, min2);
+		smg.setCoalition(null);
+		return res;
+	}
+
+	/**
+	 * Compute until probabilities.
+	 * i.e. compute the min/max probability of reaching a state in {@code target},
+	 * while remaining in those in @{code remain}.
+	 * @param smg The SMG
+	 * @param remain Remain in these states (optional: null means "all")
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeUntilProbs(SMG smg, BitSet remain, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = super.computeUntilProbs(smg, remain, target, min1, min2, -1);
+		smg.setCoalition(null);
+		return res;
+	}
+
+	/**
+	 * Compute expected reachability rewards, where the runs that don't reach
+	 * the final state get infinity. i.e. compute the min/max reward accumulated
+	 * to reach a state in {@code target}.
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeReachRewards(SMG smg, SMGRewards rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = super.computeReachRewards(smg, rewards, target, min1, min2, null, null, unreachingSemantics);
+		smg.setCoalition(null);
+		return res;
 	}
 }

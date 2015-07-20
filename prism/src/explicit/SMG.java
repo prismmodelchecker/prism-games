@@ -127,6 +127,14 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
+	 * Copy player info from another SMG.
+	 */
+	public void copyPlayerInfo(SMG smg)
+	{
+		setPlayerMapping(new HashMap<String, Integer>(smg.getPlayerMapping()));
+	}
+
+	/**
 	 * Set a coalition of players for this SMG
 	 * (which effectively makes it an STPG with player 1 representing the coalition).
 	 * Pass null to remove any coalition info from this SMG.
@@ -171,13 +179,22 @@ public class SMG extends STPGExplicit implements STPG
 	 * Pass null to remove any coalition info from this SMG.
 	 * @param coalition List of indices of players making up the coalition 
 	 */
-	public void setCoalitionInts(List<Integer> coalitionPlayerIndices) throws PrismException
+	public void setCoalitionInts(List<Integer> coalitionPlayerIndices)
 	{
 		if (coalitionPlayerIndices == null) {
 			this.coalitionPlayerIndices = null;
 		} else {
 			this.coalitionPlayerIndices = new ArrayList<Integer>(coalitionPlayerIndices);
 		}
+	}
+
+	/**
+	 * Copy coalition info from another SMG.
+	 */
+	public void copyCoalitionInfo(SMG smg)
+	{
+		List<Integer> list = smg.getCoalition();
+		setCoalitionInts(list == null ? null : new ArrayList<Integer>(list));
 	}
 
 	/**
