@@ -50,7 +50,7 @@ import explicit.rewards.SMGRewards;
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
  */
-public class SMGModelChecker extends STPGModelChecker
+public class SMGModelChecker extends ProbModelChecker
 {
 	/**
 	 * Create a new SMGModelChecker, inherit basic state from parent (unless null).
@@ -151,7 +151,7 @@ public class SMGModelChecker extends STPGModelChecker
 		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		BitSet prob1 = prob1(smg, null, terminal, true, true);
+		BitSet prob1 = createSTPGModelChecker().prob1(smg, null, terminal, true, true);
 		if (prob1.cardinality() != smg.getNumStates()) {
 			throw new PrismException("The game is not stopping. Exact probability queries only work for stopping games");
 		}
@@ -243,7 +243,7 @@ public class SMGModelChecker extends STPGModelChecker
 		BitSet terminal = findTerminalStates(smg);
 		// 1.2) check whether the minmin prob to reach those states is
 		// 1, if not - terminate, if yes continue to 2)
-		BitSet prob1 = prob1(smg, null, terminal, true, true);
+		BitSet prob1 = createSTPGModelChecker().prob1(smg, null, terminal, true, true);
 		if (prob1.cardinality() != smg.getNumStates()) {
 			throw new PrismException("The game is not stopping. Exact reward queries only work for stopping games");
 		}
@@ -323,7 +323,7 @@ public class SMGModelChecker extends STPGModelChecker
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = super.computeNextProbs(smg, target, min1, min2);
+		ModelCheckerResult res = createSTPGModelChecker().computeNextProbs(smg, target, min1, min2);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -344,7 +344,7 @@ public class SMGModelChecker extends STPGModelChecker
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = super.computeBoundedUntilProbs(smg, remain, target, k, min1, min2);
+		ModelCheckerResult res = createSTPGModelChecker().computeBoundedUntilProbs(smg, remain, target, k, min1, min2);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -364,7 +364,7 @@ public class SMGModelChecker extends STPGModelChecker
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = super.computeUntilProbs(smg, remain, target, min1, min2, -1);
+		ModelCheckerResult res = createSTPGModelChecker().computeUntilProbs(smg, remain, target, min1, min2, -1);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -384,8 +384,20 @@ public class SMGModelChecker extends STPGModelChecker
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = super.computeReachRewards(smg, rewards, target, min1, min2, null, null, unreachingSemantics);
+		ModelCheckerResult res = createSTPGModelChecker().computeReachRewards(smg, rewards, target, min1, min2, null, null, unreachingSemantics);
 		smg.setCoalition(null);
 		return res;
+	}
+	
+	// Utility methods
+	
+	/**
+	 * Create a new STPG model checker with the same settings as this one. 
+	 */
+	private STPGModelChecker createSTPGModelChecker() throws PrismException
+	{
+		STPGModelChecker mcSTPG = new STPGModelChecker(this);
+		mcSTPG.inheritSettings(this);
+		return mcSTPG;
 	}
 }
