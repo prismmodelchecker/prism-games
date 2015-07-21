@@ -475,6 +475,9 @@ public class LTLModelChecker extends PrismComponent
 			case STPG:
 				((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
 				break;
+			case SMG:
+				((SMG) prodModel).addState(((SMG) model).getPlayer(s_0));
+				break;
 			default:
 				prodModel.addState();
 			break;
