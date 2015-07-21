@@ -338,7 +338,61 @@ public class LTLModelChecker extends PrismComponent
 
 		// Build product of model and automaton
 		mainLog.println("\nConstructing STPG-"+da.getAutomataType()+" product...");
-		LTLProduct<STPG> product = constructProductSTPG(da, model, labelBS, statesOfInterest);
+		LTLProduct<STPG> product = constructProductModel(da, model, labelBS, statesOfInterest);
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
+	}
+	
+	/**
+	 * Generate a deterministic automaton for the given LTL formula
+	 * and construct the product of this automaton with an STPG.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param model the model
+	 * @param expr a path expression
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @param allowedAcceptance the allowed acceptance conditions
+	 * @return the product with the DA
+	 * @throws PrismException
+	 */
+	public LTLProduct<SMG> constructProductSMG(ProbModelChecker mc, SMG model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		// Convert LTL formula to automaton
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet,? extends AcceptanceOmega> da;
+		da = constructDAForLTLFormula(mc, model, expr, labelBS, allowedAcceptance);
+
+		// Build product of model and automaton
+		mainLog.println("\nConstructing SMG-"+da.getAutomataType()+" product...");
+		LTLProduct<SMG> product = constructProductModel(da, model, labelBS, statesOfInterest);
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
+	}
+	
+	/**
+	 * Generate a deterministic automaton for the given LTL formula
+	 * and construct the product of this automaton with a model.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param model the model
+	 * @param expr a path expression
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @param allowedAcceptance the allowed acceptance conditions
+	 * @return the product with the DA
+	 * @throws PrismException
+	 */
+	public <M extends Model> LTLProduct<M> constructProductSTPG(ProbModelChecker mc, M model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		// Convert LTL formula to automaton
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet,? extends AcceptanceOmega> da;
+		da = constructDAForLTLFormula(mc, model, expr, labelBS, allowedAcceptance);
+
+		// Build product of model and automaton
+		mainLog.println("\nConstructing " + model.getModelType() + "-" + da.getAutomataType() + " product...");
+		LTLProduct<M> product = constructProductModel(da, model, labelBS, statesOfInterest);
 		mainLog.print("\n" + product.getProductModel().infoStringTable());
 
 		return product;
@@ -371,6 +425,12 @@ public class LTLModelChecker extends PrismComponent
 			break;
 		case MDP:
 			prodModel = new MDPSimple();
+			break;
+		case STPG:
+			prodModel = new STPGExplicit();
+			break;
+		case SMG:
+			prodModel = new SMG();
 			break;
 		default:
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
@@ -411,7 +471,14 @@ public class LTLModelChecker extends PrismComponent
 			}
 			// Add (initial) state to product
 			queue.add(new Point(s_0, q_0));
-			prodModel.addState();
+			switch (modelType) {
+			case STPG:
+				((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
+				break;
+			default:
+				prodModel.addState();
+			break;
+			}
 			prodModel.addInitialState(prodModel.getNumStates() - 1);
 			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
 			if (prodStatesList != null) {
@@ -468,7 +535,17 @@ public class LTLModelChecker extends PrismComponent
 					// Add state/transition to model
 					if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
 						queue.add(new Point(s_2, q_2));
-						prodModel.addState();
+						switch (modelType) {
+						case STPG:
+							((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_2));
+							break;
+						case SMG:
+							((SMG) prodModel).addState(((SMG) model).getPlayer(s_2));
+							break;
+						default:
+							prodModel.addState();
+							break;
+						}
 						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
 						if (prodStatesList != null) {
 							// Store state information for the product
@@ -480,6 +557,8 @@ public class LTLModelChecker extends PrismComponent
 						((DTMCSimple) prodModel).setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
 						break;
 					case MDP:
+					case STPG:
+					case SMG:
 						prodDistr.set(map[s_2 * daSize + q_2], prob);
 						break;
 					default:
@@ -490,10 +569,22 @@ public class LTLModelChecker extends PrismComponent
 				case MDP:
 					((MDPSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((MDP) model).getAction(s_1, j));
 					break;
+				case STPG:
+					((STPGExplicit) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((STPG) model).getAction(s_1, j));
+					break;
+				case SMG:
+					((SMG) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((SMG) model).getAction(s_1, j));
+					break;
 				default:
 					break;
 				}
 			}
+		}
+
+		// For SMGs, copy player/coalition info too
+		if (modelType == ModelType.SMG) {
+			((SMG) prodModel).copyPlayerInfo((SMG) model);
+			((SMG) prodModel).copyCoalitionInfo((SMG) model);
 		}
 
 		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
@@ -512,283 +603,6 @@ public class LTLModelChecker extends PrismComponent
 
 		@SuppressWarnings("unchecked")
 		LTLProduct<M> product = new LTLProduct<M>((M) prodModel, model, null, daSize, invMap);
-
-		// generate acceptance for the product model by lifting
-		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
-
-		// lift the labels
-		for (String label : model.getLabels()) {
-			BitSet liftedLabel = product.liftFromModel(model.getLabelStates(label));
-			prodModel.addLabel(label, liftedLabel);
-		}
-
-		return product;
-	}
-
-	/**
-	 * Construct the product of a DA and an STPG.
-	 * @param da The DA
-	 * @param model The STPG
-	 * @param labelBS BitSets giving the set of states for each AP in the DA
-	 * @return The product STPG
-	 */
-	public LTLProduct<STPG> constructProductSTPG(DA<BitSet,? extends AcceptanceOmega> da, STPG model, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
-	{
-		STPGExplicit prodModel = new STPGExplicit();
-
-		int daSize = da.size();
-		int numAPs = da.getAPList().size();
-		int modelNumStates = model.getNumStates();
-		int prodNumStates = modelNumStates * daSize;
-		int s_1, s_2, q_1, q_2;
-		BitSet s_labels = new BitSet(numAPs);
-		List<State> prodStatesList = null;
-		
-		// Encoding: 
-		// each state s' = <s, q> = s * daSize + q
-		// s(s') = s' / daSize
-		// q(s') = s' % daSize
-
-		LinkedList<Point> queue = new LinkedList<Point>();
-		int map[] = new int[prodNumStates];
-		Arrays.fill(map, -1);
-		
-		if (model.getStatesList() != null) {
-			prodStatesList = new ArrayList<State>();
-		}
-
-		// We need results for all states of the original model in statesOfInterest
-		// We thus explore states of the product starting from these states.
-		// These are designated as initial states of the product model
-		// (a) to ensure reachability is done for these states; and
-		// (b) to later identify the corresponding product state for the original states
-		//     of interest
-		for (int s_0 : new IterableStateSet(statesOfInterest, model.getNumStates())) {
-			// Get BitSet representing APs (labels) satisfied by state s_0
-			for (int k = 0; k < numAPs; k++) {
-				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
-			}
-			// Find corresponding initial state in DA
-			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
-			// Add (initial) state to product
-			queue.add(new Point(s_0, q_0));
-			prodModel.addState(model.getPlayer(s_0));
-			prodModel.addInitialState(prodModel.getNumStates() - 1);
-			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
-			if (prodStatesList != null) {
-				// Store state information for the product
-				prodStatesList.add(model.getStatesList().get(s_0));
-			}
-		}
-
-		// Product states
-		BitSet visited = new BitSet(prodNumStates);
-		while (!queue.isEmpty()) {
-			Point p = queue.pop();
-			s_1 = p.x;
-			q_1 = p.y;
-			visited.set(s_1 * daSize + q_1);
-
-			// Go through transitions from state s_1 in original model
-			int numChoices = model.getNumChoices(s_1);
-			for (int j = 0; j < numChoices; j++) {
-				Distribution prodDistr = new Distribution();
-				Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s_1, j);
-				while (iter.hasNext()) {
-					Map.Entry<Integer, Double> e = iter.next();
-					s_2 = e.getKey();
-					double prob = e.getValue();
-					// Get BitSet representing APs (labels) satisfied by successor state s_2
-					for (int k = 0; k < numAPs; k++) {
-						s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_2));
-					}
-					// Find corresponding successor in DA
-					q_2 = da.getEdgeDestByLabel(q_1, s_labels);
-					// Add state/transition to model
-					if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
-						queue.add(new Point(s_2, q_2));
-						prodModel.addState(model.getPlayer(s_2));
-						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
-						if (prodStatesList != null) {
-							// Store state information for the product
-							prodStatesList.add(model.getStatesList().get(s_2));
-						}
-					}
-					prodDistr.set(map[s_2 * daSize + q_2], prob);
-				}
-				prodModel.addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, model.getAction(s_1, j));
-			}
-		}
-
-		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
-		int invMap[] = new int[prodModel.getNumStates()];
-		for (int i = 0; i < map.length; i++) {
-			if (map[i] != -1) {
-				invMap[map[i]] = i;
-			}
-		}
-
-		prodModel.findDeadlocks(false);
-
-		if (prodStatesList != null) {
-			prodModel.setStatesList(prodStatesList);
-		}
-
-		LTLProduct<STPG> product = new LTLProduct<STPG>(prodModel, model, null, daSize, invMap);
-
-		// generate acceptance for the product model by lifting
-		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
-
-		// lift the labels
-		for (String label : model.getLabels()) {
-			BitSet liftedLabel = product.liftFromModel(model.getLabelStates(label));
-			prodModel.addLabel(label, liftedLabel);
-		}
-
-		return product;
-	}
-
-	/**
-	 * Generate a deterministic automaton for the given LTL formula
-	 * and construct the product of this automaton with an STPG.
-	 *
-	 * @param mc a ProbModelChecker, used for checking maximal state formulas
-	 * @param model the model
-	 * @param expr a path expression
-	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
-	 * @param allowedAcceptance the allowed acceptance conditions
-	 * @return the product with the DA
-	 * @throws PrismException
-	 */
-	public LTLProduct<SMG> constructProductSMG(ProbModelChecker mc, SMG model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
-	{
-		// Convert LTL formula to automaton
-		Vector<BitSet> labelBS = new Vector<BitSet>();
-		DA<BitSet,? extends AcceptanceOmega> da;
-		da = constructDAForLTLFormula(mc, model, expr, labelBS, allowedAcceptance);
-
-		// Build product of model and automaton
-		mainLog.println("\nConstructing SMG-"+da.getAutomataType()+" product...");
-		LTLProduct<SMG> product = constructProductSMG(da, model, labelBS, statesOfInterest);
-		mainLog.print("\n" + product.getProductModel().infoStringTable());
-
-		return product;
-	}
-	
-	/**
-	 * Construct the product of a DA and an SMG.
-	 * @param da The DA
-	 * @param model The SMG
-	 * @param labelBS BitSets giving the set of states for each AP in the DA
-	 * @return The product SMG
-	 */
-	public LTLProduct<SMG> constructProductSMG(DA<BitSet,? extends AcceptanceOmega> da, SMG model, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
-	{
-		SMG prodModel = new SMG();
-
-		int daSize = da.size();
-		int numAPs = da.getAPList().size();
-		int modelNumStates = model.getNumStates();
-		int prodNumStates = modelNumStates * daSize;
-		int s_1, s_2, q_1, q_2;
-		BitSet s_labels = new BitSet(numAPs);
-		List<State> prodStatesList = null;
-		
-		// Encoding: 
-		// each state s' = <s, q> = s * daSize + q
-		// s(s') = s' / daSize
-		// q(s') = s' % daSize
-
-		LinkedList<Point> queue = new LinkedList<Point>();
-		int map[] = new int[prodNumStates];
-		Arrays.fill(map, -1);
-		
-		if (model.getStatesList() != null) {
-			prodStatesList = new ArrayList<State>();
-		}
-
-		// We need results for all states of the original model in statesOfInterest
-		// We thus explore states of the product starting from these states.
-		// These are designated as initial states of the product model
-		// (a) to ensure reachability is done for these states; and
-		// (b) to later identify the corresponding product state for the original states
-		//     of interest
-		for (int s_0 : new IterableStateSet(statesOfInterest, model.getNumStates())) {
-			// Get BitSet representing APs (labels) satisfied by state s_0
-			for (int k = 0; k < numAPs; k++) {
-				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
-			}
-			// Find corresponding initial state in DA
-			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
-			// Add (initial) state to product
-			queue.add(new Point(s_0, q_0));
-			prodModel.addState(model.getPlayer(s_0));
-			prodModel.addInitialState(prodModel.getNumStates() - 1);
-			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
-			if (prodStatesList != null) {
-				// Store state information for the product
-				prodStatesList.add(model.getStatesList().get(s_0));
-			}
-		}
-
-		// Product states
-		BitSet visited = new BitSet(prodNumStates);
-		while (!queue.isEmpty()) {
-			Point p = queue.pop();
-			s_1 = p.x;
-			q_1 = p.y;
-			visited.set(s_1 * daSize + q_1);
-
-			// Go through transitions from state s_1 in original model
-			int numChoices = model.getNumChoices(s_1);
-			for (int j = 0; j < numChoices; j++) {
-				Distribution prodDistr = new Distribution();
-				Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s_1, j);
-				while (iter.hasNext()) {
-					Map.Entry<Integer, Double> e = iter.next();
-					s_2 = e.getKey();
-					double prob = e.getValue();
-					// Get BitSet representing APs (labels) satisfied by successor state s_2
-					for (int k = 0; k < numAPs; k++) {
-						s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_2));
-					}
-					// Find corresponding successor in DA
-					q_2 = da.getEdgeDestByLabel(q_1, s_labels);
-					// Add state/transition to model
-					if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
-						queue.add(new Point(s_2, q_2));
-						prodModel.addState(model.getPlayer(s_2));
-						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
-						if (prodStatesList != null) {
-							// Store state information for the product
-							prodStatesList.add(model.getStatesList().get(s_2));
-						}
-					}
-					prodDistr.set(map[s_2 * daSize + q_2], prob);
-				}
-				prodModel.addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, model.getAction(s_1, j));
-			}
-		}
-
-		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
-		int invMap[] = new int[prodModel.getNumStates()];
-		for (int i = 0; i < map.length; i++) {
-			if (map[i] != -1) {
-				invMap[map[i]] = i;
-			}
-		}
-
-		prodModel.findDeadlocks(false);
-
-		if (prodStatesList != null) {
-			prodModel.setStatesList(prodStatesList);
-		}
-		
-		// Copy player/coalition info too
-		prodModel.copyPlayerInfo(model);
-		prodModel.copyCoalitionInfo(model);
-
-		LTLProduct<SMG> product = new LTLProduct<SMG>(prodModel, model, null, daSize, invMap);
 
 		// generate acceptance for the product model by lifting
 		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
