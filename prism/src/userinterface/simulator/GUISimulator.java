@@ -67,7 +67,6 @@ import parser.Values;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
-import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismSettings;
@@ -115,6 +114,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private boolean strategyGenerated = false;
 	private Strategy strategy = null;
 	private Map<State, Integer> stateIds = null;
+	private boolean newPathAfterReceiveParseNotification, newPathPlotAfterReceiveParseNotification;
+	private boolean chooseInitialState;
 
 	private GUISimulatorPathTableModel pathTableModel;
 	private UpdateTableModel updateTableModel;
@@ -380,6 +381,15 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	public void a_newPath(boolean chooseInitialState)
 	{
+		// Request a parse
+		newPathAfterReceiveParseNotification = true;
+		this.chooseInitialState = chooseInitialState;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	}
+	
+	public void newPathAfterParse() 
+	{
+		newPathAfterReceiveParseNotification = false;
 		Values initialState;
 		try {
 			// Check model is simulate-able
@@ -907,6 +917,15 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	public void a_newPathPlot(boolean chooseInitialState)
 	{
+		// Request a parse
+		newPathPlotAfterReceiveParseNotification = true;
+		this.chooseInitialState = chooseInitialState;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	}
+	
+	public void newPathPlotAfterParse() 
+	{
+		newPathPlotAfterReceiveParseNotification = false;
 		Values initialState;
 		try {
 			// Check model is simulate-able
@@ -1064,33 +1083,25 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 	}
 
-	private boolean ignoreNextParse;
-
-	public void ignoreNextParse()
-	{
-		ignoreNextParse = true;
-	}
-
 	public boolean processGUIEvent(userinterface.util.GUIEvent e)
 	{
 		if (e instanceof GUIModelEvent) {
 			GUIModelEvent me = (GUIModelEvent) e;
 			if (me.getID() == me.NEW_MODEL) {
 				//New Model
-
 				a_clearModel();
-
 				doEnables();
 				//newList();
-			} else if (!ignoreNextParse && me.getID() == GUIModelEvent.MODEL_PARSED) {
-
+			} else if (me.getID() == GUIModelEvent.MODEL_PARSED) {
 				a_loadModulesFile(me.getModulesFile());
-
 				doEnables();
-
-			} else if (ignoreNextParse) {
-				ignoreNextParse = false;
-			}
+				if (newPathAfterReceiveParseNotification)
+					newPathAfterParse();
+				if (newPathPlotAfterReceiveParseNotification)
+					newPathPlotAfterParse();
+			} else if (me.getID() == GUIModelEvent.MODEL_PARSE_FAILED) {
+				newPathAfterReceiveParseNotification = false;
+				newPathPlotAfterReceiveParseNotification = false;			}
 
 		} else if (e instanceof GUIComputationEvent) {
 			if (e.getID() == GUIComputationEvent.COMPUTATION_START) {
