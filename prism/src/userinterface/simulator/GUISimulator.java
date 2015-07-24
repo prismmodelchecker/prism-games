@@ -61,6 +61,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import parser.State;
 import parser.Values;
@@ -92,7 +94,6 @@ import userinterface.properties.GUIProperty;
 import userinterface.simulator.networking.GUINetworkEditor;
 import userinterface.util.GUIComputationEvent;
 import userinterface.util.GUIExitEvent;
-import userinterface.util.GUIPrismFileFilter;
 import explicit.Distribution;
 
 @SuppressWarnings("serial")
@@ -104,7 +105,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private GUIMultiProperties guiProp; //reference to the properties information
 	private GUIMultiModel guiMultiModel; //reference to the model plugin
 	private SimulatorEngine engine;
-	private GUIPrismFileFilter[] txtFilter;
+	private FileFilter textFilter;
 	private JMenu simulatorMenu;
 	private JPopupMenu pathPopupMenu;
 
@@ -230,9 +231,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		totalTimeLabel.setText(formatDouble(0.0));
 		pathLengthLabel.setText("0");
 
-		txtFilter = new GUIPrismFileFilter[1];
-		txtFilter[0] = new GUIPrismFileFilter("Text files (*.txt)");
-		txtFilter[0].addExtension("txt");
+		textFilter =  new FileNameExtensionFilter("Plain text files (*.txt)", "txt");
 
 		displayStyleFast = true;
 		displayPathLoops = true;
@@ -891,7 +890,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	public void a_exportPath()
 	{
 		try {
-			if (showSaveFileDialog(txtFilter, txtFilter[0]) != JFileChooser.APPROVE_OPTION)
+			if (showSaveFileDialog(textFilter) != JFileChooser.APPROVE_OPTION)
 				return;
 			setComputing(true);
 			engine.exportPath(getChooserFile());
