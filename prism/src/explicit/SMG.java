@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import parser.ast.Coalition;
 import prism.ModelType;
@@ -44,14 +45,21 @@ public class SMG extends STPGExplicit implements STPG
 {
 	// NB: We re-use the existing stateOwners list in the superclass to assign states to players
 
-	// Mapping from player names to (integer) indices
-	protected Map<String, Integer> players;
-
-	// Optionally, a list of players which form a coalition.
-	// When set, this SMG effectively reduces to 2 players,
-	// i.e. an STPG in which the coalition corresponds to player 1.
-	// This is why the class implements the STPG interface.
-	protected List<Integer> coalitionPlayerIndices;
+	// A definition of the players in the game, i.e., the (integer) index and name of each one.
+	// It is stored as a mapping from indices to names.
+	// Indices can be arbitrary and do not need to be contiguous.
+	// Names are optional and can be null or "" if undefined,
+	// but all normally defined names should be unique.
+	// The size of this map defines the number of players in the game.
+	protected Map<Integer, String> playerNames;
+	
+	// Optionally, a mapping from player indices to 1 or 2,
+	// as induced by a coalition of players (those in the coalition
+	// are mapped to 1, those who are not are mapped to 2).
+	// The mapped index of the player with original index {@code p}
+	// is stored as {@code coalitionPlayerMap[p]}, regardless of the
+	// range of player indices actually used.
+	protected int[] coalitionPlayerMap;
 
 	// Constructors
 
@@ -61,8 +69,8 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG()
 	{
 		super();
-		players = new HashMap<String, Integer>();
-		coalitionPlayerIndices = null;
+		playerNames = new HashMap<Integer, String>();
+		coalitionPlayerMap = null;
 	}
 
 	/**
@@ -71,8 +79,8 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG(int numStates)
 	{
 		super(numStates);
-		players = new HashMap<String, Integer>();
-		coalitionPlayerIndices = null;
+		playerNames = new HashMap<Integer, String>();
+		coalitionPlayerMap = null;
 	}
 
 	/**
@@ -83,8 +91,8 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG(SMG smg, int permut[])
 	{
 		super(smg, permut);
-		players = new HashMap<String, Integer>(smg.players);
-		coalitionPlayerIndices = smg.coalitionPlayerIndices == null ? null : new ArrayList<Integer>(smg.coalitionPlayerIndices);
+		playerNames = new HashMap<Integer, String>(smg.playerNames);
+		coalitionPlayerMap = smg.coalitionPlayerMap == null ? null : smg.coalitionPlayerMap.clone(); 
 	}
 
 	/**
@@ -93,14 +101,14 @@ public class SMG extends STPGExplicit implements STPG
 	public SMG(SMG smg)
 	{
 		super(smg);
-		players = new HashMap<String, Integer>(smg.players);
-		coalitionPlayerIndices = smg.coalitionPlayerIndices == null ? null : new ArrayList<Integer>(smg.coalitionPlayerIndices);
+		playerNames = new HashMap<Integer, String>(smg.playerNames);
+		coalitionPlayerMap = smg.coalitionPlayerMap == null ? null : smg.coalitionPlayerMap.clone(); 
 	}
 
 	// Mutators
 
 	/**
-	 * Add a new (player 0) state and return its index.
+	 * Add a new (player 1) state and return its index.
 	 */
 	@Override
 	public int addState()
@@ -109,21 +117,26 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
-	 * Add multiple new (player 0) states.
+	 * Add multiple new (player 1) states.
 	 */
 	@Override
 	public void addStates(int numToAdd)
 	{
-		for (int i = 0; i < numToAdd; i++)
-			stateOwners.add(0);
+		for (int i = 0; i < numToAdd; i++) {
+			addState();
+		}
 	}
 
 	/**
-	 * Set the mapping from player names to (integer) indices.
+	 * Set the info about players, i.e., the (integer) index and name of each one.
+	 * This is given as a mapping from indices to names.
+	 * Indices can be arbitrary and do not need to be contiguous.
+	 * Names are optional and can be null or "" if undefined,
+	 * but all normally defined names should be unique.
 	 */
-	public void setPlayerMapping(Map<String, Integer> pl)
+	public void setPlayerInfo(Map<Integer, String> playerNames)
 	{
-		this.players = pl;
+		this.playerNames = new HashMap<Integer, String>(playerNames);
 	}
 
 	/**
@@ -131,60 +144,40 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public void copyPlayerInfo(SMG smg)
 	{
-		setPlayerMapping(new HashMap<String, Integer>(smg.getPlayerMapping()));
+		setPlayerInfo(smg.playerNames);
 	}
 
 	/**
 	 * Set a coalition of players for this SMG
-	 * (which effectively makes it an STPG with player 1 representing the coalition).
+	 * (which effectively makes it an STPG with player 1 representing the coalition and 2 the rest).
 	 * Pass null to remove any coalition info from this SMG.
+	 * 
 	 * @param coalition Coalition info object 
 	 */
 	public void setCoalition(Coalition coalition) throws PrismException
 	{
+		// Clear info if coalition is null
 		if (coalition == null) {
-			this.coalitionPlayerIndices = null;
+			coalitionPlayerMap = null;
 			return;
 		}
-			
-		coalitionPlayerIndices = new ArrayList<Integer>();
 		
-		/*int numPlayers = ...
-		for (int i = 0; i < numPlayers; i++) {
-			if (coalition.isPlayerIndexInCoalition(i, players))
-				coalitionPlayerIndices.add(i);
+		// Find max player index
+		int maxIndex = 0;
+		for (int index : playerNames.keySet()) {
+			maxIndex = Math.max(maxIndex, index);
 		}
-		*/
 		
-		for (String playerName : coalition.getPlayers()) {
-			// Look up index of each player and add to coalition
-			if (players.containsKey(playerName)) {
-				coalitionPlayerIndices.add(players.get(playerName));
-			}
-			// Failing that, try parsing it as an integer
-			else {
-				try {
-					coalitionPlayerIndices.add(Integer.parseInt(playerName));
-				} catch (NumberFormatException e) {
-					throw new PrismException("Player " + playerName + " is not present in the model");
-				}
-			}
+		// Construct mapping
+		coalitionPlayerMap = new int[maxIndex + 1];
+		for (int i = 0; i < maxIndex + 1; i++) {
+			coalitionPlayerMap[i] = -1;
 		}
-	}
-
-	/**
-	 * Set a coalition of players for this SMG
-	 * (which effectively makes it an STPG with player 1 representing the coalition).
-	 * The list of indices is copied, not stored directly.
-	 * Pass null to remove any coalition info from this SMG.
-	 * @param coalition List of indices of players making up the coalition 
-	 */
-	public void setCoalitionInts(List<Integer> coalitionPlayerIndices)
-	{
-		if (coalitionPlayerIndices == null) {
-			this.coalitionPlayerIndices = null;
-		} else {
-			this.coalitionPlayerIndices = new ArrayList<Integer>(coalitionPlayerIndices);
+		for (Entry<Integer, String> entry : playerNames.entrySet()) {
+			int playerIndex = entry.getKey();
+			boolean inCoalition = coalition.isPlayerIndexInCoalition(playerIndex, playerNames);
+			// In coalition => player 1; not in coalition (or undefined) => player 2
+			coalitionPlayerMap[playerIndex] = inCoalition ? 1 : 2;
 		}
 	}
 
@@ -193,8 +186,7 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public void copyCoalitionInfo(SMG smg)
 	{
-		List<Integer> list = smg.getCoalition();
-		setCoalitionInts(list == null ? null : new ArrayList<Integer>(list));
+		coalitionPlayerMap = smg.coalitionPlayerMap == null ? null : smg.coalitionPlayerMap.clone();
 	}
 
 	/**
@@ -225,29 +217,24 @@ public class SMG extends STPGExplicit implements STPG
 
 	// Accessors (for STPG/SMG)
 
+	//@Override
+	public int getNumPlayers()
+	{
+		return playerNames.size();
+	}
+	
 	@Override
 	public int getPlayer(int s)
 	{
-		if (coalitionPlayerIndices == null)
-			return stateOwners.get(s);
-		else
-			return coalitionPlayerIndices.contains(stateOwners.get(s)) ? 1 : 2;
-	}
-
-	/**
-	 * Get the mapping from player names to (integer) indices.
-	 */
-	public Map<String, Integer> getPlayerMapping()
-	{
-		return this.players;
-	}
-
-	/**
-	 * Get the current coalition (may be null).
-	 */
-	public List<Integer> getCoalition()
-	{
-		return coalitionPlayerIndices;
+		int playerIndex = stateOwners.get(s); 
+		if (coalitionPlayerMap == null) {
+			// No coalition: just return index
+			return playerIndex;
+		} else {
+			// Coalition defined: look up if player 1 or 2
+			// (note: undefined players are mapped to player 2)
+			return playerIndex == -1 ? 2 : coalitionPlayerMap[playerIndex];
+		}
 	}
 
 	// Standard methods

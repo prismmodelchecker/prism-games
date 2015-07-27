@@ -395,8 +395,8 @@ public class ExactValueStrategy implements Strategy
 	{
 		// construct a new STPG of size three times the original model
 		SMG smg = new SMG(3 * model.getNumStates());
-		smg.setPlayerMapping(new HashMap<String, Integer>(model.getPlayerMapping()));
-		smg.setCoalitionInts(model.getCoalition());
+		smg.copyPlayerInfo(model);
+		smg.copyCoalitionInfo(model);
 		int n = smg.getNumStates();
 
 		List<State> oldStates = model.getStatesList();

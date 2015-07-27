@@ -183,10 +183,11 @@ public class ConstructModel extends PrismComponent
 			case SMG:
 				modelSimple = smg = new SMG();
 				// Add player info
-				HashMap<String, Integer> players = new HashMap<String, Integer>();
-				for (i = 0; i < modulesFile.getNumPlayers(); i++)
-					players.put(modulesFile.getPlayer(i).getName(), i + 1);
-				smg.setPlayerMapping(players);
+				HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
+				for (i = 0; i < modulesFile.getNumPlayers(); i++) {
+					playerNames.put(i + 1, modulesFile.getPlayer(i).getName());
+				}
+				smg.setPlayerInfo(playerNames);
 				break;
 			case PTA:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
