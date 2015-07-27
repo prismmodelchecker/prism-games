@@ -243,6 +243,10 @@ public class ConstructModel extends PrismComponent
 					}
 					player = iPlayer;
 				}
+				// Assign deadlock states to player 1
+				if (nc == 0) {
+					player = 1;
+				}
 				if (modelType == ModelType.STPG) {
 					stpg.setPlayer(src, player);
 				} else if (modelType == ModelType.SMG) {
