@@ -478,8 +478,12 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		StateValues res;
 
+		// <<>> or [[]] operator
+		if (expr instanceof ExpressionStrategy) {
+			res = checkExpressionStrategy(model, (ExpressionStrategy) expr, statesOfInterest);
+		}
 		// P operator
-		if (expr instanceof ExpressionProb) {
+		else if (expr instanceof ExpressionProb) {
 			res = checkExpressionProb(model, (ExpressionProb) expr, statesOfInterest);
 		}
 		// R operator
@@ -489,10 +493,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		// S operator
 		else if (expr instanceof ExpressionSS) {
 			res = checkExpressionSteadyState(model, (ExpressionSS) expr);
-		}
-		// <<>> operator
-		else if (expr instanceof ExpressionStrategy) {
-			res = checkExpressionStrategy(model, (ExpressionStrategy) expr, statesOfInterest);
 		}
 		// Functions (for multi-objective)
 		else if (expr instanceof ExpressionFunc) {
@@ -520,16 +520,28 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (!(this instanceof MDPModelChecker || this instanceof SMGModelChecker))
 			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is only supported for MDPs and SMGs currently");
 
+		// Will we be quantifying universally or existentially over strategies/adversaries?
+		boolean forAll = !expr.isThereExists();
+		
 		// Extract coalition info
 		Coalition coalition = expr.getCoalition();
-		// Strip any parentheses (they might have been needless wrapped around a single P or R)
+		// For non-games (i.e., models with a single player), deal with the coalition operator here and then remove it
+		if (coalition != null && !model.getModelType().multiplePlayers()) {
+			if (coalition.isEmpty()) {
+				// An empty coalition negates the quantification ("*" has no effect)
+				forAll = !forAll;
+			}
+			coalition = null;
+		}
+
+		// Strip any parentheses (they might have been needlessly wrapped around a single P or R)
 		Expression exprSub = expr.getExpression();
 		while (Expression.isParenth(exprSub))
 			exprSub = ((ExpressionUnaryOp) exprSub).getOperand();
 		// Pass onto relevant method:
 		// P operator
 		if (exprSub instanceof ExpressionProb) {
-			return checkExpressionProb(model, (ExpressionProb) exprSub, false, coalition, statesOfInterest);
+			return checkExpressionProb(model, (ExpressionProb) exprSub, forAll, coalition, statesOfInterest);
 		}
 		// R operator
 		else if (exprSub instanceof ExpressionReward) {
@@ -537,7 +549,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				useDiscounting = true;
 				discountFactor = ((Expression) ((ExpressionReward) exprSub).getDiscount()).evaluateDouble();
 			}
-			return checkExpressionReward(model, (ExpressionReward) exprSub, false, coalition, statesOfInterest);
+			return checkExpressionReward(model, (ExpressionReward) exprSub, forAll, coalition, statesOfInterest);
 		}
 		// Anything else is treated as multi-objective 
 		else {
@@ -569,14 +581,15 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
-		if (model.getModelType() == ModelType.SMG) {
-			minMax.setCoalition(coalition);
-		}
+		minMax.setCoalition(coalition);
 
 		// Handle exact probabilities case (SMGs only)
 		if (opInfo.isExact()) {
 			if (model.getModelType() != ModelType.SMG){
 				throw new PrismException("Exact bounds only supported for SMGs");
+			}
+			if (forAll) {
+				throw new PrismException("You can only check for the existence of a strategy with an exact bound");
 			}
 			return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, expr, coalition, opInfo.getBound(), statesOfInterest);
 		}
@@ -868,6 +881,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
+<<<<<<< .working
 	 * Compute probabilities for an LTL path formula
 	 */
 	protected StateValues checkProbBoundedRewardFormula(Model model, ExpressionReward expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
@@ -878,9 +892,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	
 	/**
 	 * Model check a P operator expression and return the values for all states.
+=======
+	 * Model check an R operator expression and return the values for all states.
+>>>>>>> .merge-right.r10421
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr, BitSet statesOfInterest) throws PrismException
 	{
+		// Use the default semantics for a standalone R operator
+		// (i.e. quantification over all strategies, and no game-coalition info)
 		return checkExpressionReward(model, expr, true, null, statesOfInterest);
 	}
 	
@@ -892,9 +911,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Get info from R operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
-		if (model.getModelType() == ModelType.SMG) {
-			minMax.setCoalition(coalition);
-		}
+		minMax.setCoalition(coalition);
 
 		// Build rewards
 		RewardStruct rewStruct = expr.getRewardStructByIndexObject(modulesFile, constantValues);
@@ -905,6 +922,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (opInfo.isExact()) {
 			if (model.getModelType() != ModelType.SMG){
 				throw new PrismException("Exact bounds only supported for SMGs");
+			}
+			if (forAll) {
+				throw new PrismException("You can only check for the existence of a strategy with an exact bound");
 			}
 			return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, (SMGRewards) rewards, expr, coalition, opInfo.getBound());
 		}

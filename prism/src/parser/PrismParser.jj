@@ -1831,6 +1831,8 @@ void ExpressionStrategyCoalition(ExpressionStrategy exprStrat) :
 	String s;
 }
 {
+	( <TIMES> ) { exprStrat.setCoalitionAllPlayers();}
+	|
 	( s = ExpressionStrategyCoalitionPlayer() { coalition.add(s); }
 	( <COMMA> s = ExpressionStrategyCoalitionPlayer()  { coalition.add(s); } )* )?
 	{ exprStrat.setCoalition(coalition); }
