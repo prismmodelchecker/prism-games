@@ -162,6 +162,17 @@ public class SMG extends STPGExplicit implements STPG
 			return;
 		}
 		
+		// This is first time we really need the {@code playerNames} info,
+		// so if it has not been set, we tried to create it based on {@code stateOwners} 
+		if (playerNames.isEmpty()) {
+			for (int i = 0; i < numStates; i++) {
+				int p = stateOwners.get(i);
+				if (!playerNames.containsKey(p)) {
+					playerNames.put(p, null);
+				}
+			}
+		}
+		
 		// Find max player index
 		int maxIndex = 0;
 		for (int index : playerNames.keySet()) {
