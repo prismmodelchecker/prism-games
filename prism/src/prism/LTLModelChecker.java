@@ -216,7 +216,7 @@ public class LTLModelChecker extends PrismComponent
 		int i, j, n;
 		boolean before;
 
-		// Get details of old model
+		// Get details of old model (no copy, does not need to be cleaned up)
 		varDDRowVars = model.getVarDDRowVars();
 		varDDColVars = model.getVarDDColVars();
 		allDDRowVars = model.getAllDDRowVars();
@@ -240,10 +240,8 @@ public class LTLModelChecker extends PrismComponent
 			before = false;
 		}
 
-		// If passed in var lists are null, create new lists
-		// (which won't be accessible later in this case)
-		daDDRowVars = (daDDRowVarsCopy == null) ? new JDDVars() : daDDRowVarsCopy;
-		daDDColVars = (daDDColVarsCopy == null) ? new JDDVars() : daDDColVarsCopy;
+		daDDRowVars = new JDDVars();
+		daDDColVars = new JDDVars();
 		// Create the new dd variables
 		newDDVarNames = new Vector<String>();
 		newDDVarNames.addAll(ddVarNames);
@@ -262,43 +260,27 @@ public class LTLModelChecker extends PrismComponent
 		// Create/populate new lists
 		newVarDDRowVars = new JDDVars[varDDRowVars.length + 1];
 		newVarDDColVars = new JDDVars[varDDRowVars.length + 1];
-		newVarDDRowVars[before ? 0 : varDDRowVars.length] = daDDRowVars;
-		newVarDDColVars[before ? 0 : varDDColVars.length] = daDDColVars;
+		newVarDDRowVars[before ? 0 : varDDRowVars.length] = daDDRowVars.copy();
+		newVarDDColVars[before ? 0 : varDDColVars.length] = daDDColVars.copy();
 		for (i = 0; i < varDDRowVars.length; i++) {
-			newVarDDRowVars[before ? i + 1 : i] = new JDDVars();
-			newVarDDColVars[before ? i + 1 : i] = new JDDVars();
-			newVarDDRowVars[before ? i + 1 : i].addVars(varDDRowVars[i]);
-			newVarDDColVars[before ? i + 1 : i].addVars(varDDColVars[i]);
+			newVarDDRowVars[before ? i + 1 : i] = varDDRowVars[i].copy();
+			newVarDDColVars[before ? i + 1 : i] = varDDColVars[i].copy();
 		}
-		newAllDDRowVars = new JDDVars();
-		newAllDDColVars = new JDDVars();
 		if (before) {
-			newAllDDRowVars.addVars(daDDRowVars);
-			newAllDDColVars.addVars(daDDColVars);
-			newAllDDRowVars.addVars(allDDRowVars);
-			newAllDDColVars.addVars(allDDColVars);
+			newAllDDRowVars = daDDRowVars.copy();
+			newAllDDColVars = daDDColVars.copy();
+			newAllDDRowVars.copyVarsFrom(allDDRowVars);
+			newAllDDColVars.copyVarsFrom(allDDColVars);
 		} else {
-			newAllDDRowVars.addVars(allDDRowVars);
-			newAllDDColVars.addVars(allDDColVars);
-			newAllDDRowVars.addVars(daDDRowVars);
-			newAllDDColVars.addVars(daDDColVars);
+			newAllDDRowVars = allDDRowVars.copy();
+			newAllDDColVars = allDDColVars.copy();
+			newAllDDRowVars.copyVarsFrom(daDDRowVars);
+			newAllDDColVars.copyVarsFrom(daDDColVars);
 		}
 		newVarList = (VarList) varList.clone();
 		// NB: if DA only has one state, we add an extra dummy state
 		Declaration decl = new Declaration(daVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
 		newVarList.addVar(before ? 0 : varList.getNumVars(), decl, 1, model.getConstantValues());
-
-		// Extra references (because will get derefed when new model is done with)
-		allDDRowVars.refAll();
-		allDDRowVars.refAll();
-		allDDColVars.refAll();
-		allDDColVars.refAll();
-		for (i = 0; i < model.getNumModules(); i++) {
-			model.getModuleDDRowVars(i).refAll();
-			model.getModuleDDColVars(i).refAll();
-		}
-		daDDRowVars.refAll();
-		daDDColVars.refAll();
 
 		// Build transition matrix for product
 		newTrans = buildTransMask(da, labelDDs, allDDRowVars, allDDColVars, daDDRowVars, daDDColVars);
@@ -328,7 +310,10 @@ public class LTLModelChecker extends PrismComponent
 				// New list of var names
 				newDDVarNames,
 				// Module info (unchanged)
-				model.getNumModules(), model.getModuleNames(), model.getModuleDDRowVars(), model.getModuleDDColVars(),
+				model.getNumModules(),
+				model.getModuleNames(),
+				JDDVars.copyArray(model.getModuleDDRowVars()),
+				JDDVars.copyArray(model.getModuleDDColVars()),
 				// New var info
 				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
 				// Constants (no change)
@@ -349,11 +334,14 @@ public class LTLModelChecker extends PrismComponent
 		newStart = JDD.And(model.getStart(), newStart);
 		modelProd.setStart(newStart);
 
-		// Reference DA DD vars (if being returned)
+		// if possible, return copies of the DA DD variables via the method parameters
 		if (daDDRowVarsCopy != null)
-			daDDRowVarsCopy.refAll();
+			daDDRowVarsCopy.copyVarsFrom(daDDRowVars);
 		if (daDDColVarsCopy != null)
-			daDDColVarsCopy.refAll();
+			daDDColVarsCopy.copyVarsFrom(daDDColVars);
+
+		daDDRowVars.derefAll();
+		daDDColVars.derefAll();
 
 		return modelProd;
 	}
@@ -418,7 +406,7 @@ public class LTLModelChecker extends PrismComponent
 		int i, j, n;
 		boolean before;
 
-		// Get details of old model
+		// Get details of old model (no copy, does not need to be cleaned up)
 		varDDRowVars = model.getVarDDRowVars();
 		varDDColVars = model.getVarDDColVars();
 		allDDRowVars = model.getAllDDRowVars();
@@ -442,10 +430,8 @@ public class LTLModelChecker extends PrismComponent
 			before = false;
 		}
 
-		// If passed in var lists are null, create new lists
-		// (which won't be accessible later in this case)
-		daDDRowVars = (daDDRowVarsCopy == null) ? new JDDVars() : daDDRowVarsCopy;
-		daDDColVars = (daDDColVarsCopy == null) ? new JDDVars() : daDDColVarsCopy;
+		daDDRowVars = new JDDVars();
+		daDDColVars = new JDDVars();
 		// Create the new dd variables
 		newDDVarNames = new Vector<String>();
 		newDDVarNames.addAll(ddVarNames);
@@ -464,47 +450,28 @@ public class LTLModelChecker extends PrismComponent
 		// Create/populate new lists
 		newVarDDRowVars = new JDDVars[varDDRowVars.length + 1];
 		newVarDDColVars = new JDDVars[varDDRowVars.length + 1];
-		newVarDDRowVars[before ? 0 : varDDRowVars.length] = daDDRowVars;
-		newVarDDColVars[before ? 0 : varDDColVars.length] = daDDColVars;
+		newVarDDRowVars[before ? 0 : varDDRowVars.length] = daDDRowVars.copy();
+		newVarDDColVars[before ? 0 : varDDColVars.length] = daDDColVars.copy();
 		for (i = 0; i < varDDRowVars.length; i++) {
-			newVarDDRowVars[before ? i + 1 : i] = new JDDVars();
-			newVarDDColVars[before ? i + 1 : i] = new JDDVars();
-			newVarDDRowVars[before ? i + 1 : i].addVars(varDDRowVars[i]);
-			newVarDDColVars[before ? i + 1 : i].addVars(varDDColVars[i]);
+			newVarDDRowVars[before ? i + 1 : i] = varDDRowVars[i].copy();
+			newVarDDColVars[before ? i + 1 : i] = varDDColVars[i].copy();
 		}
-		newAllDDRowVars = new JDDVars();
-		newAllDDColVars = new JDDVars();
 		if (before) {
-			newAllDDRowVars.addVars(daDDRowVars);
-			newAllDDColVars.addVars(daDDColVars);
-			newAllDDRowVars.addVars(allDDRowVars);
-			newAllDDColVars.addVars(allDDColVars);
+			newAllDDRowVars = daDDRowVars.copy();
+			newAllDDColVars = daDDColVars.copy();
+			newAllDDRowVars.copyVarsFrom(allDDRowVars);
+			newAllDDColVars.copyVarsFrom(allDDColVars);
 		} else {
-			newAllDDRowVars.addVars(allDDRowVars);
-			newAllDDColVars.addVars(allDDColVars);
-			newAllDDRowVars.addVars(daDDRowVars);
-			newAllDDColVars.addVars(daDDColVars);
+			newAllDDRowVars = allDDRowVars.copy();
+			newAllDDColVars = allDDColVars.copy();
+			newAllDDRowVars.copyVarsFrom(daDDRowVars);
+			newAllDDColVars.copyVarsFrom(daDDColVars);
 		}
 		newVarList = (VarList) varList.clone();
 		// NB: if DA only has one state, we add an extra dummy state
 		Declaration decl = new Declaration(daVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
 		newVarList.addVar(before ? 0 : varList.getNumVars(), decl, 1, model.getConstantValues());
 
-		// Extra references (because will get derefed when new model is done with)
-		allDDRowVars.refAll();
-		allDDRowVars.refAll();
-		allDDColVars.refAll();
-		allDDColVars.refAll();
-		for (i = 0; i < model.getNumModules(); i++) {
-			model.getModuleDDRowVars(i).refAll();
-			model.getModuleDDColVars(i).refAll();
-		}
-		daDDRowVars.refAll();
-		daDDColVars.refAll();
-		model.getAllDDSchedVars().refAll();
-		model.getAllDDSynchVars().refAll();
-		model.getAllDDChoiceVars().refAll();
-		model.getAllDDNondetVars().refAll();
 
 		// Build transition matrix for product
 		newTrans = buildTransMask(da, labelDDs, allDDRowVars, allDDColVars, daDDRowVars, daDDColVars);
@@ -533,11 +500,17 @@ public class LTLModelChecker extends PrismComponent
 				// New list of all row/col vars
 				newAllDDRowVars, newAllDDColVars,
 				// Nondet variables (unchanged)
-				model.getAllDDSchedVars(), model.getAllDDSynchVars(), model.getAllDDChoiceVars(), model.getAllDDNondetVars(),
+				model.getAllDDSchedVars().copy(),
+				model.getAllDDSynchVars().copy(),
+				model.getAllDDChoiceVars().copy(),
+				model.getAllDDNondetVars().copy(),
 				// New list of var names
 				newDDVarNames,
 				// Module info (unchanged)
-				model.getNumModules(), model.getModuleNames(), model.getModuleDDRowVars(), model.getModuleDDColVars(),
+				model.getNumModules(),
+				model.getModuleNames(),
+				JDDVars.copyArray(model.getModuleDDRowVars()),
+				JDDVars.copyArray(model.getModuleDDColVars()),
 				// New var info
 				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
 				// Constants (no change)
@@ -571,11 +544,14 @@ public class LTLModelChecker extends PrismComponent
 		//try { prism.exportStatesToFile(modelProd, Prism.EXPORT_PLAIN, new java.io.File("prod.sta")); }
 		//catch (java.io.FileNotFoundException e) {}
 
-		// Reference DA DD vars (if being returned)
+		// return copies of the DA DD variables via the method parameters if possible
 		if (daDDRowVarsCopy != null)
-			daDDRowVarsCopy.refAll();
+			daDDRowVarsCopy.copyVarsFrom(daDDRowVars);
 		if (daDDColVarsCopy != null)
-			daDDColVarsCopy.refAll();
+			daDDColVarsCopy.copyVarsFrom(daDDColVars);
+
+		daDDRowVars.derefAll();
+		daDDColVars.derefAll();
 
 		return modelProd;
 	}

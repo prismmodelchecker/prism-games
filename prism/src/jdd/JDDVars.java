@@ -26,11 +26,21 @@
 
 package jdd;
 
+import java.util.Iterator;
 import java.util.Vector;
 
-public class JDDVars
+/**
+ * Container for MTBDD variables.
+ * Each variable is represented by a JDDNode (result of JDD.Var(), a projection function).
+ *
+ * It is assumed in general that each JDDNode held in a JDDVars container
+ * counts as a single reference and that a JDDVars object is cleared using derefAll()
+ * when no longer used. This will dereference all the variables contained in the JDDVars
+ * object.
+ */
+public class JDDVars implements Iterable<JDDNode>
 {
-	private Vector vars;
+	private Vector<JDDNode> vars;
 	private long array;
 	private boolean arrayBuilt;
 	
@@ -49,13 +59,21 @@ public class JDDVars
 		}
 	}
 
+	/**
+	 * Constructor.
+	 */
 	public JDDVars()
 	{
-		vars = new Vector();
+		vars = new Vector<JDDNode>();
 		array = 0;
 		arrayBuilt = false;
 	}
-		
+
+	/**
+	 * Appends a variable to this JDDVars container.
+	 * <br>
+	 * [ DEREFs: var (on derefAll call) ]
+	 */
 	public void addVar(JDDNode var)
 	{
 		vars.addElement(var);
@@ -63,44 +81,100 @@ public class JDDVars
 		arrayBuilt = false;
 	}
 	
+	/**
+	 * Appends the variables of another JDDVars container to this container.
+	 * Does not increase the refcount of the JDDNodes!
+	 */
 	public void addVars(JDDVars ddv)
 	{
-		int i;
-		
 		vars.addAll(ddv.vars);
 		if (arrayBuilt) DDV_FreeArray(array);
 		arrayBuilt = false;
 	}
+
+	/**
+	 * Creates a copy of this JDDVars container,
+	 * containing referenced copies of each variable JDDNode in this container.
+	 */
+	public JDDVars copy()
+	{
+		JDDVars result = new JDDVars();
+		for (JDDNode var : this) {
+			result.addVar(var.copy());
+		}
+		return result;
+	}
+
+	/**
+	 * Copies variables from another JDDVars container,
+	 * appending to this container.
+	 * Does a (referencing) copy of each of the variable JDDNodes.
+	 */
+	public void copyVarsFrom(JDDVars ddv) {
+		for (JDDNode var : ddv) {
+			addVar(var.copy());
+		}
+	}
 	
+	/**
+	 * Copy an array of JDDVars[] by copying each JDDVars container.
+	 * The copy will have fully referenced JDDNodes.
+	 */
+	public static JDDVars[] copyArray(JDDVars[] vararray)
+	{
+		JDDVars[] result = new JDDVars[vararray.length];
+		for (int i = 0;  i< vararray.length; i++) {
+			result[i] = vararray[i].copy();
+		}
+		return result;
+	}
+
+	/**
+	 * Removes the JDDNodes contained in ddv from this JDDVars container.
+	 * Does not decrease the refcount!
+	 */
 	public void removeVars(JDDVars ddv)
 	{
-		int i;
-		
 		vars.removeAll(ddv.vars);
 		if (arrayBuilt) DDV_FreeArray(array);
 		arrayBuilt = false;
 	}
-	
+
+	/** Returns the number of variables stored in this JDDVars container. */
 	public int getNumVars()
 	{
 		return vars.size();
 	}
 
+	/**
+	 * Returns the JDDNode for the i-th stored variable.
+	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
+	 */
 	public JDDNode getVar(int i)
 	{
 		return (JDDNode)vars.elementAt(i);
 	}
-	
+
+	/**
+	 * Returns the internal Cudd pointer for the i-th stored variable.
+	 */
 	public long getVarPtr(int i)
 	{
 		return ((JDDNode)vars.elementAt(i)).ptr();
 	}
-	
+
+	/**
+	 * Returns the Cudd variable index for the i-th stored variable.
+	 */
 	public int getVarIndex(int i)
 	{
 		return DDV_GetIndex(((JDDNode)vars.elementAt(i)).ptr());
 	}
-	
+
+	/**
+	 * Returns the minimal Cudd variable index for the stored variables,
+	 * or -1 if there are no stored variables.
+	 */
 	public int getMinVarIndex()
 	{
 		int i, j, n, min;
@@ -113,7 +187,11 @@ public class JDDVars
 		}
 		return min;
 	}
-	
+
+	/**
+	 * Returns the maximal Cudd variable index for the stored variables,
+	 * or -1 if there are no stored variables.
+	 */
 	public int getMaxVarIndex()
 	{
 		int i, j, n, max;
@@ -126,7 +204,10 @@ public class JDDVars
 		}
 		return max;
 	}
-	
+
+	/**
+	 * Increases the refcount of all contained JDDNodes.
+	 */
 	public void refAll()
 	{
 		int i;
@@ -135,16 +216,33 @@ public class JDDVars
 			JDD.Ref((JDDNode)vars.elementAt(i));
 		}
 	}
-	
+
+	/**
+	 * Decreases the refcount of all contained JDDNodes.
+	 */
 	public void derefAll()
 	{
 		int i;
-		
+
 		for (i = 0; i < vars.size(); i++) {
 			JDD.Deref((JDDNode)vars.elementAt(i));
 		}
 	}
-	
+
+	/**
+	 * Calls derefAll on all JDDVars elements of a JDDVars[] array.
+	 */
+	public static void derefAllArray(JDDVars[] vars)
+	{
+		for (JDDVars v : vars) {
+			v.derefAll();
+		}
+	}
+
+	/**
+	 * Constructs a JNI array for the stored variables
+	 * that can be passed to the C-based functions.
+	 */
 	public long array()
 	{
 		if (arrayBuilt) {
@@ -156,12 +254,22 @@ public class JDDVars
 			return array;
 		}
 	}
-	
+
+	/**
+	 * Returns the number of stored variables.
+	 */
 	public int n()
 	{
 		return vars.size();
 	}
-	
+
+	@Override
+	public Iterator<JDDNode> iterator()
+	{
+		return vars.iterator();
+	}
+
+	@Override
 	public String toString()
 	{
 		int i;
@@ -176,6 +284,58 @@ public class JDDVars
 		s += "}";
 		
 		return s;
+	}
+	
+	
+	/**
+	 * Converts a DD cubeset (conjunction of variables)
+	 * to a corresponding JDDVars array.<br>
+	 * <br> [ REFS: <i>the variables in the returned JDDVars container</i>, DEREFS: cubeSet ]
+	 */
+	public static JDDVars fromCubeSet(JDDNode cubeSet)
+	{
+		try {
+			JDDVars result = new JDDVars();
+
+			JDDNode current = cubeSet;
+			// We do not need to bother with reference manipulation,
+			// as we only call getThen() and getElse(), which do not increase
+			// the refcount
+			while (!current.equals(JDD.ONE)) {
+				if (current.isConstant()) {
+					// may not be any other constant than ONE
+					throw new IllegalArgumentException("JDDVars.fromCubeSet: The argument is not a cubeset");
+				}
+				if (!current.getElse().equals(JDD.ZERO)) {
+					// else always has to point to ZERO
+					throw new IllegalArgumentException("JDDVars.fromCubeSet: The argument is not a cubeset");
+				}
+
+				int index = current.getIndex();
+				JDDNode var = JDD.Var(index);
+				result.addVar(var);
+
+				current = current.getThen();
+			}
+
+			return result;
+		} finally {
+			JDD.Deref(cubeSet);
+		}
+	}
+
+	/**
+	 * Constructs a DD cubeset (conjunction of variables)
+	 * corresponding to this JDDVars container.<br>
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>none</i> ]
+	 */
+	public JDDNode toCubeSet()
+	{
+		JDDNode result = JDD.Constant(1);
+		for (JDDNode var : vars) {
+			result = JDD.And(result, var.copy());
+		}
+		return result;
 	}
 }
 
