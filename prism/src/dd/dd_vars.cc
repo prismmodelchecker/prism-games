@@ -45,7 +45,9 @@ int num_vars
 {
 	int i, *permut;
 	DdNode *res;
-		
+
+	if (dd == NULL) return NULL;
+
 	permut = new int[Cudd_ReadSize(ddman)];
 	for (i = 0; i < Cudd_ReadSize(ddman); i++) {
 		permut[i] = i;
@@ -54,6 +56,7 @@ int num_vars
 		permut[old_vars[i]->index] = new_vars[i]->index;
 	}	
 	res = Cudd_addPermute(ddman, dd, permut);	
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, dd);
 
@@ -78,9 +81,11 @@ int num_vars
 )
 {
 	DdNode *res;
-	
+
+	if (dd == NULL) return NULL;
+
 	res = Cudd_addSwapVariables(ddman, dd, old_vars, new_vars, num_vars);
-	Cudd_Ref(res);
+	if (res != NULL) Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, dd);
 	
 	return res;
@@ -108,15 +113,19 @@ int num_vars
 	y_bdd_vars = new DdNode*[num_vars];
 	for (i = 0; i < num_vars; i++) {
 		x_bdd_vars[i] = Cudd_bddIthVar(ddman, x_vars[i]->index);
+		if (x_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(x_bdd_vars[i]);
 		y_bdd_vars[i] = Cudd_bddIthVar(ddman, y_vars[i]->index);
+		if (y_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(y_bdd_vars[i]);
 	}
 	// call main function
 	tmp = Cudd_Xgty(ddman, num_vars, NULL, x_bdd_vars, y_bdd_vars);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	// convert bdd to add
 	res = Cudd_BddToAdd(ddman, tmp);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, tmp);
 	// free variables
@@ -143,7 +152,9 @@ DdNode **y_vars,
 int num_vars
 )
 {
-	return DD_Not(ddman, DD_VariablesLessThan(ddman, x_vars, y_vars, num_vars));
+	DdNode* res = DD_VariablesLessThan(ddman, x_vars, y_vars, num_vars);
+	if (res == NULL) return NULL;
+	return DD_Not(ddman, res);
 }
 
 //------------------------------------------------------------------------------
@@ -168,15 +179,19 @@ int num_vars
 	y_bdd_vars = new DdNode*[num_vars];
 	for (i = 0; i < num_vars; i++) {
 		x_bdd_vars[i] = Cudd_bddIthVar(ddman, x_vars[i]->index);
+		if (x_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(x_bdd_vars[i]);
 		y_bdd_vars[i] = Cudd_bddIthVar(ddman, y_vars[i]->index);
+		if (y_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(y_bdd_vars[i]);
 	}
 	// call main function
 	tmp = Cudd_Xgty(ddman, num_vars, NULL, y_bdd_vars, x_bdd_vars);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	// convert bdd to add
 	res = Cudd_BddToAdd(ddman, tmp);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, tmp);
 	// free variables
@@ -203,7 +218,8 @@ DdNode **y_vars,
 int num_vars
 )
 {
-	return DD_Not(ddman, DD_VariablesGreaterThan(ddman, x_vars, y_vars, num_vars));
+	DdNode* res = DD_VariablesGreaterThan(ddman, x_vars, y_vars, num_vars);
+	return DD_Not(ddman, res);
 }
 
 //------------------------------------------------------------------------------
@@ -228,15 +244,19 @@ int num_vars
 	y_bdd_vars = new DdNode*[num_vars];
 	for (i = 0; i < num_vars; i++) {
 		x_bdd_vars[i] = Cudd_bddIthVar(ddman, x_vars[i]->index);
+		if (x_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(x_bdd_vars[i]);
 		y_bdd_vars[i] = Cudd_bddIthVar(ddman, y_vars[i]->index);
+		if (y_bdd_vars[i] == NULL) return NULL;
 		Cudd_Ref(y_bdd_vars[i]);
 	}
 	// call main function
 	tmp = Cudd_Xeqy(ddman, num_vars, x_bdd_vars, y_bdd_vars);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	// convert bdd to add
 	res = Cudd_BddToAdd(ddman, tmp);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, tmp);
 	// free variables

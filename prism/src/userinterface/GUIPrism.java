@@ -31,6 +31,7 @@ package userinterface;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Toolkit;
@@ -41,6 +42,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -63,6 +65,7 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.metal.MetalTheme;
 
 import prism.Prism;
+//Prism Packages
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
@@ -121,7 +124,9 @@ public class GUIPrism extends JFrame
 			System.err.println("Error: Could not load the PRISM GUI: " + e.getMessage());
 			System.exit(1);
 		} catch (PrismException e) {
-			e.printStackTrace();
+			System.err.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (jdd.JDD.CuddOutOfMemoryException e) {
 			System.err.println("Error: " + e.getMessage());
 			System.exit(1);
 		}
@@ -397,9 +402,18 @@ public class GUIPrism extends JFrame
 	public void passCLArgs(String args[])
 	{
 		// just before we get started, pass any command-line args to all plugins
+		// we first remove the -javamaxmem argument, if present
+		List<String> argsCopy = new ArrayList<String>();
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].equals("-javamaxmem")) {
+				i++;
+			} else {
+				argsCopy.add(args[i]);
+			}
+		}
 		for (int i = 0; i < plugs.size(); i++) {
 			GUIPlugin plug = (GUIPlugin) plugs.get(i);
-			plug.takeCLArgs(args);
+			plug.takeCLArgs(argsCopy.toArray(new String[0]));
 		}
 	}
 

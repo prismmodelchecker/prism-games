@@ -29,10 +29,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <util.h>
+#include <limits>  // for NaN value
 #include <cudd.h>
 #include <cuddInt.h>
 #include "dd_matrix.h"
 #include "dd_basics.h"
+#include "dd_cudd.h"
 
 extern FILE *dd_out;
 
@@ -50,18 +52,23 @@ double value
 {
 	DdNode *tmp, *tmp2, *f, *tmp_f, *g, *res;
 	int i;
-		
+
+	if (dd == NULL) return NULL;
+
 	// build a 0-1 ADD to store position of element of the vector
 	f = DD_Constant(ddman, 1);
+	if (f == NULL) return NULL;
 	for (i = 0; i < num_vars; i++) {
 		Cudd_Ref(tmp = vars[i]);				
 		if ((index & (1l<<(num_vars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -69,9 +76,11 @@ double value
 	}
 	
 	g = DD_Constant(ddman, value);
-				
+	if (g == NULL) return NULL;
+	
 	// compute new vector
 	res = Cudd_addIte(ddman, f, g, dd);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, f);
 	Cudd_RecursiveDeref(ddman, g);
@@ -97,18 +106,23 @@ double value
 {
 	DdNode *tmp, *tmp2, *f, *tmp_f, *g, *res;
 	int i;
-		
+
+	if (dd == NULL) return NULL;
+
 	// build a 0-1 ADD to store position of element of the matrix
 	f = DD_Constant(ddman, 1);
+	if (f == NULL) return NULL;
 	for (i = 0; i < num_rvars; i++) {
 		Cudd_Ref(tmp = rvars[i]);				
 		if ((rindex & (1l<<(num_rvars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -118,11 +132,13 @@ double value
 		Cudd_Ref(tmp = cvars[i]);				
 		if ((cindex & (1l<<(num_cvars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -130,9 +146,11 @@ double value
 	}
 	
 	g = DD_Constant(ddman, value);
-				
+	if (g == NULL) return NULL;
+	
 	// compute new vector
 	res = Cudd_addIte(ddman, f, g, dd);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, f);
 	Cudd_RecursiveDeref(ddman, g);
@@ -161,18 +179,23 @@ double value
 {
 	DdNode *tmp, *tmp2, *f, *tmp_f, *g, *res;
 	int i;
-		
+
+	if (dd == NULL) return NULL;
+
 	// build a 0-1 ADD to store position of element of the matrix
 	f = DD_Constant(ddman, 1);
+	if (f == NULL) return NULL;
 	for (i = 0; i < num_rvars; i++) {
 		Cudd_Ref(tmp = rvars[i]);				
 		if ((rindex & (1l<<(num_rvars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -182,11 +205,13 @@ double value
 		Cudd_Ref(tmp = cvars[i]);				
 		if ((cindex & (1l<<(num_cvars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -196,11 +221,13 @@ double value
 		Cudd_Ref(tmp = lvars[i]);				
 		if ((lindex & (1l<<(num_lvars-i-1))) == 0) {
 			tmp2 = Cudd_addCmpl(ddman, tmp);
+			if (tmp2 == NULL) return NULL;
 			Cudd_Ref(tmp2);
 			Cudd_RecursiveDeref(ddman, tmp);
 			tmp = tmp2;
 		}
 		tmp_f = Cudd_addApply(ddman, Cudd_addTimes, tmp, f);
+		if (tmp_f == NULL) return NULL;
 		Cudd_Ref(tmp_f);
 		Cudd_RecursiveDeref(ddman, tmp);
 		Cudd_RecursiveDeref(ddman, f);
@@ -208,9 +235,11 @@ double value
 	}
 	
 	g = DD_Constant(ddman, value);
-				
+	if (g == NULL) return NULL;
+	
 	// compute new vector
 	res = Cudd_addIte(ddman, f, g, dd);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, f);
 	Cudd_RecursiveDeref(ddman, g);
@@ -235,23 +264,32 @@ long x
 	int *inputs;
 	double val;
 
+	if (dd == NULL) {
+		DD_SetErrorFlag();
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
 	// create array to store 0's & 1's used to query DD
 	inputs = new int[Cudd_ReadSize(ddman)];
-	
+
 	for (i = 0; i < Cudd_ReadSize(ddman); i++) {
 		inputs[i] = 0;
 	}
-		
-	for (i = 0; i < num_vars; i++) {			
+
+	for (i = 0; i < num_vars; i++) {
 		inputs[vars[i]->index] = ((x & (1l<<(num_vars-i-1))) == 0) ? 0 : 1;
 	}
 	node = Cudd_Eval(ddman, dd, inputs);
+	if (node == NULL) {
+		DD_SetErrorFlag();
+		return std::numeric_limits<double>::quiet_NaN();
+	}
 	val = Cudd_V(node);
-	
+
 	if (inputs != NULL) {
 		delete[] inputs;
 	}
-	
+
 	return val;
 }
 
@@ -268,6 +306,7 @@ int num_vars
 	DdNode *tmp;
 	
 	tmp = Cudd_addXeqy(ddman, num_vars, rvars, cvars);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 
 	return tmp;
@@ -286,21 +325,17 @@ int method
 )
 {
 	DdNode *res;
-	
+
+	if (dd1 == NULL) return NULL;
+	if (dd2 == NULL) return NULL;
+
 	if (method == MM_CMU) {
 		res = Cudd_addTimesPlus(ddman, dd1, dd2, vars, num_vars);
 	}
-	else if (method == MM_BOULDER) {
+	else { // (method == MM_BOULDER)
 		res = Cudd_addMatrixMultiply(ddman, dd1, dd2, vars, num_vars);
 	}
-	else {
-		printf("Error: no multiplication algorithm specified\n");
-		exit(1);
-	}
-	if (res == NULL) {
-		printf("DD_MatrixMultiply: res is NULL\n");
-		exit(1);
-	}
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, dd1);
 	Cudd_RecursiveDeref(ddman, dd2);
@@ -321,7 +356,9 @@ int num_vars
 {
 	int i, *permut;
 	DdNode *res;
-		
+
+	if (dd == NULL) return NULL;
+
 	permut = new int[Cudd_ReadSize(ddman)];
 	for (i = 0; i < Cudd_ReadSize(ddman); i++) {
 		permut[i] = i;
@@ -330,7 +367,8 @@ int num_vars
 		permut[row_vars[i]->index] = col_vars[i]->index;
 		permut[col_vars[i]->index] = row_vars[i]->index;
 	}	
-	res = Cudd_addPermute(ddman, dd, permut);	
+	res = Cudd_addPermute(ddman, dd, permut);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, dd);
 
@@ -385,6 +423,10 @@ int accuracy
 			inputs[vars[j]->index] = ((i & (1l<<(num_vars-j-1))) == 0) ? 0 : 1;
 		}
 		node = Cudd_Eval(ddman, dd, inputs);
+		if (node == NULL) {
+			DD_SetErrorFlag();
+			return;
+		}
 		val = Cudd_V(node);
 		switch (accuracy) {
 		case ACCURACY_ZERO_ONE: fprintf(dd_out, "%c", val>0?'1':'0'); break;
@@ -454,6 +496,10 @@ int accuracy
 				inputs[cvars[k]->index] = ((j & (1l<<(num_cvars-k-1))) == 0) ? 0 : 1;
 			}
 			node = Cudd_Eval(ddman, dd, inputs);
+			if (node == NULL) {
+				DD_SetErrorFlag();
+				return;
+			}
 			val = Cudd_V(node);
 			switch (accuracy) {
 			case ACCURACY_ZERO_ONE: fprintf(dd_out, "%c", val>0?'1':'0'); break;
@@ -521,6 +567,10 @@ int accuracy
 				inputs[vars[j]->index] = ((i & (1l<<(num_vars-j-1))) == 0) ? 0 : 1;
 			}
 			node = Cudd_Eval(ddman, dd, inputs);
+			if (node == NULL) {
+				DD_SetErrorFlag();
+				return;
+			}
 			val = Cudd_V(node);
 			switch (accuracy) {
 			case ACCURACY_ZERO_ONE: fprintf(dd_out, "%c", val>0?'1':'0'); break;

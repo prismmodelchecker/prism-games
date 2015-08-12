@@ -30,6 +30,8 @@
 #include "dd_basics.h"
 #include "dd_term.h"
 #include "dd_export.h"
+#include "dd_cudd.h"
+#include <limits>  // for NaN value
 
 //------------------------------------------------------------------------------
 
@@ -41,8 +43,11 @@ double threshold
 )
 {
 	DdNode *tmp, *tmp2;
-	
+
+	if (dd == NULL) return NULL;
+
 	tmp = Cudd_addBddThreshold(ddman, dd, threshold);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	Cudd_RecursiveDeref(ddman, dd);
 	tmp2 = Cudd_BddToAdd(ddman, tmp);	
@@ -62,8 +67,11 @@ double threshold
 )
 {
 	DdNode *tmp, *tmp2;
-	
+
+	if (dd == NULL) return NULL;
+
 	tmp = Cudd_addBddStrictThreshold(ddman, dd, threshold);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	Cudd_RecursiveDeref(ddman, dd);
 	tmp2 = Cudd_BddToAdd(ddman, tmp);	
@@ -106,7 +114,13 @@ DdNode *dd,
 double threshold
 )
 {
-	return DD_Not(ddman, DD_Threshold(ddman, dd, threshold));
+	DdNode* res;
+
+	if (dd == NULL) return NULL;
+
+	res = DD_Threshold(ddman, dd, threshold);
+	if (res == NULL) return NULL;
+	return DD_Not(ddman, res);
 }
 
 //------------------------------------------------------------------------------
@@ -118,7 +132,13 @@ DdNode *dd,
 double threshold
 )
 {
-	return DD_Not(ddman, DD_StrictThreshold(ddman, dd, threshold));
+	DdNode* res;
+
+	if (dd == NULL) return NULL;
+
+	res = DD_StrictThreshold(ddman, dd, threshold);
+	if (res == NULL) return NULL;
+	return DD_Not(ddman, res);
 }
 
 //------------------------------------------------------------------------------
@@ -144,14 +164,18 @@ double upper
 )
 {
 	DdNode *tmp, *tmp2;
-	
+
+	if (dd == NULL) return NULL;
+
 	tmp = Cudd_addBddInterval(ddman, dd, lower, upper);
+	if (tmp == NULL) return NULL;
 	Cudd_Ref(tmp);
 	Cudd_RecursiveDeref(ddman, dd);
-	tmp2 = Cudd_BddToAdd(ddman, tmp);	
-	Cudd_Ref(tmp2);	
+	tmp2 = Cudd_BddToAdd(ddman, tmp);
+	if (tmp2 == NULL) return NULL;
+	Cudd_Ref(tmp2);
 	Cudd_RecursiveDeref(ddman, tmp);
-	
+
 	return tmp2;
 }
 
@@ -165,8 +189,11 @@ int places
 )
 {
 	DdNode *res;
-	
+
+	if (dd == NULL) return NULL;
+
 	res = Cudd_addRoundOff(ddman, dd, places);
+	if (res == NULL) return NULL;
 	Cudd_Ref(res);
 	Cudd_RecursiveDeref(ddman, dd);
 	
@@ -213,7 +240,12 @@ DdManager *ddman,
 DdNode *dd	
 )
 {
-	return Cudd_V(Cudd_addFindMin(ddman, dd));
+	DdNode *v = Cudd_addFindMin(ddman, dd);
+	if (v == NULL) {
+		DD_SetErrorFlag();
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+	return Cudd_V(v);
 }
 
 //------------------------------------------------------------------------------
@@ -224,7 +256,12 @@ DdManager *ddman,
 DdNode *dd	
 )
 {
-	return Cudd_V(Cudd_addFindMax(ddman, dd));
+	DdNode *v = Cudd_addFindMax(ddman, dd);
+	if (v == NULL) {
+		DD_SetErrorFlag();
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+	return Cudd_V(v);
 }
 
 //------------------------------------------------------------------------------
@@ -239,20 +276,25 @@ int num_vars
 {
 	int i;
 	DdNode *ptr, *next_ptr, *filter, *res;
-	
+
+	if (dd == NULL) return NULL;
+
 	// construct filter to get first non-zero element
 	ptr = dd;
 	filter = DD_Constant(ddman, 1);
+	if (filter == NULL) return NULL;
 	for (i = 0; i < num_vars; i++) {
 		next_ptr = (ptr->index > vars[i]->index) ? ptr : Cudd_E(ptr);
 		if (next_ptr != Cudd_ReadZero(ddman)) {
 			Cudd_Ref(vars[i]);
 			filter = DD_And(ddman, filter, DD_Not(ddman, vars[i]));
+			if (filter == NULL) return NULL;
 		}
 		else {
 			next_ptr = (ptr->index > vars[i]->index) ? ptr : Cudd_T(ptr);
 			Cudd_Ref(vars[i]);
 			filter = DD_And(ddman, filter, vars[i]);
+			if (filter == NULL) return NULL;
 		}
 		ptr = next_ptr;
 	}

@@ -145,6 +145,14 @@ JNIEXPORT void JNICALL Java_jdd_JDD_DD_1PrintCacheInfo
 
 /*
  * Class:     jdd_JDD
+ * Method:    DD_GetErrorFlag
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_jdd_JDD_DD_1GetErrorFlag
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     jdd_JDD
  * Method:    DD_Create
  * Signature: ()J
  */
@@ -663,6 +671,25 @@ JNIEXPORT void JNICALL Java_jdd_JDD_DD_1ExportMatrixToMatlabFile
 JNIEXPORT void JNICALL Java_jdd_JDD_DD_1ExportMatrixToSpyFile
   (JNIEnv *, jclass, jlong, jlong, jint, jlong, jint, jint, jstring);
 
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class jdd_JDD_CuddOutOfMemoryException */
+
+#ifndef _Included_jdd_JDD_CuddOutOfMemoryException
+#define _Included_jdd_JDD_CuddOutOfMemoryException
+#ifdef __cplusplus
+extern "C" {
+#endif
+#undef jdd_JDD_CuddOutOfMemoryException_serialVersionUID
+#define jdd_JDD_CuddOutOfMemoryException_serialVersionUID -3042686055658047285LL
+#undef jdd_JDD_CuddOutOfMemoryException_serialVersionUID
+#define jdd_JDD_CuddOutOfMemoryException_serialVersionUID -3387516993124229948LL
+#undef jdd_JDD_CuddOutOfMemoryException_serialVersionUID
+#define jdd_JDD_CuddOutOfMemoryException_serialVersionUID -7034897190745766939LL
+#undef jdd_JDD_CuddOutOfMemoryException_serialVersionUID
+#define jdd_JDD_CuddOutOfMemoryException_serialVersionUID -3094099053041270477LL
 #ifdef __cplusplus
 }
 #endif

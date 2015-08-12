@@ -48,6 +48,7 @@ public class JDD
 	private static native void DD_Ref(long dd);
 	private static native void DD_Deref(long dd);
 	private static native void DD_PrintCacheInfo();
+	private static native boolean DD_GetErrorFlag();
 	// dd_basics
 	private static native long DD_Create();
 	private static native long DD_Constant(double value);
@@ -120,6 +121,23 @@ public class JDD
 	private static native void DD_Export3dMatrixToPPFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, long nvars, int num_nvars, String filename);
 	private static native void DD_ExportMatrixToMatlabFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, String name, String filename);
 	private static native void DD_ExportMatrixToSpyFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, int depth, String filename);
+
+	/**
+	 * An exception indicating that CUDD ran out of memory or that another internal error
+	 * occurred.
+	 * <br>
+	 * This exception is thrown by ptrToNode if a NULL pointer is returned by one of the native
+	 * DD methods. It is generally not safe to use the CUDD library after this error occurred,
+	 * so the program should quit as soon as feasible.
+	 */
+	public static class CuddOutOfMemoryException extends RuntimeException {
+		private static final long serialVersionUID = -3094099053041270477L;
+
+		/** Constructor */
+		CuddOutOfMemoryException() {
+			super("Out of memory (or other internal error) in the CUDD library");
+		}
+	}
 
 	static
 	{
@@ -248,9 +266,17 @@ public class JDD
 	 */
 	public static void Ref(JDDNode dd)
 	{
+		long ptr = dd.ptr();
+		// For robustness, catch NULL pointer
+		// In general, this should not happen,
+		// as constructing a JDDNode with NULL
+		// pointer should not happen...
+		if (ptr == 0) {
+			throw new CuddOutOfMemoryException();
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.increment(dd);
-		DD_Ref(dd.ptr());
+		DD_Ref(ptr);
 	}
 	
 	/**
@@ -259,9 +285,17 @@ public class JDD
 	 */
 	public static void Deref(JDDNode dd)
 	{
+		long ptr = dd.ptr();
+		// For robustness, catch NULL pointer
+		// In general, this should not happen,
+		// as constructing a JDDNode with NULL
+		// pointer should not happen...
+		if (ptr == 0) {
+			throw new CuddOutOfMemoryException();
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		DD_Deref(dd.ptr());
+		DD_Deref(ptr);
 	}
 
 	/**
@@ -281,7 +315,7 @@ public class JDD
 	 */
 	public static JDDNode Create()
 	{
-		return new JDDNode(DD_Create());
+		return ptrToNode(DD_Create());
 	}
 	
 	/**
@@ -293,7 +327,7 @@ public class JDD
 		if (Double.isInfinite(value))
 			return value > 0 ? JDD.PlusInfinity() : JDD.MinusInfinity();
 		else
-			return new JDDNode(DD_Constant(value));
+			return ptrToNode(DD_Constant(value));
 	}
 		
 	/**
@@ -302,7 +336,7 @@ public class JDD
 	 */
 	public static JDDNode PlusInfinity()
 	{
-		return new JDDNode(DD_PlusInfinity());
+		return ptrToNode(DD_PlusInfinity());
 	}
 	
 	/**
@@ -311,7 +345,7 @@ public class JDD
 	 */
 	public static JDDNode MinusInfinity()
 	{
-		return new JDDNode(DD_MinusInfinity());
+		return ptrToNode(DD_MinusInfinity());
 	}
 	
 	/**
@@ -320,7 +354,7 @@ public class JDD
 	 */
 	public static JDDNode Var(int i)
 	{
-		return new JDDNode(DD_Var(i));
+		return ptrToNode(DD_Var(i));
 	}
 	
 	/**
@@ -331,7 +365,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_Not(dd.ptr()));
+		return ptrToNode(DD_Not(dd.ptr()));
 	}
 	
 	/**
@@ -344,7 +378,7 @@ public class JDD
 			DebugJDD.decrement(dd1);
 			DebugJDD.decrement(dd2);
 		}
-		return new JDDNode(DD_Or(dd1.ptr(), dd2.ptr()));
+		return ptrToNode(DD_Or(dd1.ptr(), dd2.ptr()));
 	}
 	
 	/**
@@ -358,7 +392,7 @@ public class JDD
 			DebugJDD.decrement(dd2);
 		}
 			
-		return new JDDNode(DD_And(dd1.ptr(), dd2.ptr()));
+		return ptrToNode(DD_And(dd1.ptr(), dd2.ptr()));
 	}
 	
 	/**
@@ -371,7 +405,7 @@ public class JDD
 			DebugJDD.decrement(dd1);
 			DebugJDD.decrement(dd2);
 		}
-		return new JDDNode(DD_Xor(dd1.ptr(), dd2.ptr()));
+		return ptrToNode(DD_Xor(dd1.ptr(), dd2.ptr()));
 	}
 	
 	/**
@@ -384,7 +418,7 @@ public class JDD
 			DebugJDD.decrement(dd1);
 			DebugJDD.decrement(dd2);
 		}
-		return new JDDNode(DD_Implies(dd1.ptr(), dd2.ptr()));
+		return ptrToNode(DD_Implies(dd1.ptr(), dd2.ptr()));
 	}
 	
 	/**
@@ -397,7 +431,7 @@ public class JDD
 			DebugJDD.decrement(dd1);
 			DebugJDD.decrement(dd2);
 		}
-		return new JDDNode(DD_Apply(op, dd1.ptr(), dd2.ptr()));
+		return ptrToNode(DD_Apply(op, dd1.ptr(), dd2.ptr()));
 	}
 	
 	/**
@@ -408,7 +442,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_MonadicApply(op, dd.ptr()));
+		return ptrToNode(DD_MonadicApply(op, dd.ptr()));
 	}
 	
 	/**
@@ -421,7 +455,7 @@ public class JDD
 			DebugJDD.decrement(dd);
 			DebugJDD.decrement(cube);
 		}
-		return new JDDNode(DD_Restrict(dd.ptr(), cube.ptr()));
+		return ptrToNode(DD_Restrict(dd.ptr(), cube.ptr()));
 	}
 	
 	/**
@@ -435,7 +469,7 @@ public class JDD
 			DebugJDD.decrement(dd2);
 			DebugJDD.decrement(dd3);
 		}
-		return new JDDNode(DD_ITE(dd1.ptr(), dd2.ptr(), dd3.ptr()));
+		return ptrToNode(DD_ITE(dd1.ptr(), dd2.ptr(), dd3.ptr()));
 	}
 		
 	/**
@@ -482,7 +516,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_PermuteVariables(dd.ptr(), old_vars.array(), new_vars.array(), old_vars.n()));
+		return ptrToNode(DD_PermuteVariables(dd.ptr(), old_vars.array(), new_vars.array(), old_vars.n()));
 	}
 
 	/**
@@ -493,7 +527,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_SwapVariables(dd.ptr(), old_vars.array(), new_vars.array(), old_vars.n()));
+		return ptrToNode(DD_SwapVariables(dd.ptr(), old_vars.array(), new_vars.array(), old_vars.n()));
 	}
 
 	/**
@@ -502,7 +536,7 @@ public class JDD
 	 */
 	public static JDDNode VariablesGreaterThan(JDDVars x_vars, JDDVars y_vars)
 	{
-		return new JDDNode(DD_VariablesGreaterThan(x_vars.array(), y_vars.array(), x_vars.n()));
+		return ptrToNode(DD_VariablesGreaterThan(x_vars.array(), y_vars.array(), x_vars.n()));
 	}
 
 	/**
@@ -511,7 +545,7 @@ public class JDD
 	 */
 	public static JDDNode VariablesGreaterThanEquals(JDDVars x_vars, JDDVars y_vars)
 	{
-		return new JDDNode(DD_VariablesGreaterThanEquals(x_vars.array(), y_vars.array(), x_vars.n()));
+		return ptrToNode(DD_VariablesGreaterThanEquals(x_vars.array(), y_vars.array(), x_vars.n()));
 	}
 
 	/**
@@ -520,7 +554,7 @@ public class JDD
 	 */
 	public static JDDNode VariablesLessThan(JDDVars x_vars, JDDVars y_vars)
 	{
-		return new JDDNode(DD_VariablesLessThan(x_vars.array(), y_vars.array(), x_vars.n()));
+		return ptrToNode(DD_VariablesLessThan(x_vars.array(), y_vars.array(), x_vars.n()));
 	}
 
 	/**
@@ -529,7 +563,7 @@ public class JDD
 	 */
 	public static JDDNode VariablesLessThanEquals(JDDVars x_vars, JDDVars y_vars)
 	{
-		return new JDDNode(DD_VariablesLessThanEquals(x_vars.array(), y_vars.array(), x_vars.n()));
+		return ptrToNode(DD_VariablesLessThanEquals(x_vars.array(), y_vars.array(), x_vars.n()));
 	}
 
 	/**
@@ -538,7 +572,7 @@ public class JDD
 	 */
 	public static JDDNode VariablesEquals(JDDVars x_vars, JDDVars y_vars)
 	{
-		return new JDDNode(DD_VariablesEquals(x_vars.array(), y_vars.array(), x_vars.n()));
+		return ptrToNode(DD_VariablesEquals(x_vars.array(), y_vars.array(), x_vars.n()));
 	}
 
 	// wrapper methods for dd_abstr
@@ -551,7 +585,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_ThereExists(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_ThereExists(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	/**
@@ -562,7 +596,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_ForAll(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_ForAll(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	/**
@@ -573,7 +607,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_SumAbstract(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_SumAbstract(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	/**
@@ -584,7 +618,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_ProductAbstract(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_ProductAbstract(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	/**
@@ -595,7 +629,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_MinAbstract(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_MinAbstract(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	/**
@@ -606,7 +640,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_MaxAbstract(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_MaxAbstract(dd.ptr(), vars.array(), vars.n()));
 	}
 	
 	// wrapper methods for dd_term
@@ -619,7 +653,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_GreaterThan(dd.ptr(), threshold));
+		return ptrToNode(DD_GreaterThan(dd.ptr(), threshold));
 	}
 	
 	/**
@@ -630,7 +664,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_GreaterThanEquals(dd.ptr(), threshold));
+		return ptrToNode(DD_GreaterThanEquals(dd.ptr(), threshold));
 	}
 	
 	/**
@@ -641,7 +675,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_LessThan(dd.ptr(), threshold));
+		return ptrToNode(DD_LessThan(dd.ptr(), threshold));
 	}
 	
 	/**
@@ -652,7 +686,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_LessThanEquals(dd.ptr(), threshold));
+		return ptrToNode(DD_LessThanEquals(dd.ptr(), threshold));
 	}
 	
 	/**
@@ -663,7 +697,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_Equals(dd.ptr(), value));
+		return ptrToNode(DD_Equals(dd.ptr(), value));
 	}
 	
 	/**
@@ -674,7 +708,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_Interval(dd.ptr(), lower, upper));
+		return ptrToNode(DD_Interval(dd.ptr(), lower, upper));
 	}
 	
 	/**
@@ -685,7 +719,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_RoundOff(dd.ptr(), places));
+		return ptrToNode(DD_RoundOff(dd.ptr(), places));
 	}
 	
 	/**
@@ -694,7 +728,9 @@ public class JDD
 	 */
 	public static boolean EqualSupNorm(JDDNode dd1, JDDNode dd2, double epsilon)
 	{
-		return DD_EqualSupNorm(dd1.ptr(), dd2.ptr(), epsilon);
+		boolean rv = DD_EqualSupNorm(dd1.ptr(), dd2.ptr(), epsilon);
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -703,7 +739,9 @@ public class JDD
 	 */
 	public static double FindMin(JDDNode dd)
 	{
-		return DD_FindMin(dd.ptr());
+		double rv = DD_FindMin(dd.ptr());
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -712,7 +750,9 @@ public class JDD
 	 */
 	public static double FindMax(JDDNode dd)
 	{
-		return DD_FindMax(dd.ptr());
+		double rv = DD_FindMax(dd.ptr());
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -723,7 +763,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_RestrictToFirst(dd.ptr(), vars.array(), vars.n()));
+		return ptrToNode(DD_RestrictToFirst(dd.ptr(), vars.array(), vars.n()));
 	}
 
 	// wrapper methods for dd_info
@@ -734,7 +774,9 @@ public class JDD
 	 */
 	public static int GetNumNodes(JDDNode dd)
 	{
-		return DD_GetNumNodes(dd.ptr());
+		int rv = DD_GetNumNodes(dd.ptr());
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -743,7 +785,9 @@ public class JDD
 	 */
 	public static int GetNumTerminals(JDDNode dd)
 	{
-		return DD_GetNumTerminals(dd.ptr());
+		int rv = DD_GetNumTerminals(dd.ptr());
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -752,7 +796,9 @@ public class JDD
 	 */
 	public static double GetNumMinterms(JDDNode dd, int num_vars)
 	{
-		return DD_GetNumMinterms(dd.ptr(), num_vars);
+		double rv = DD_GetNumMinterms(dd.ptr(), num_vars);
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -779,7 +825,9 @@ public class JDD
 	 */
 	public static double GetNumPaths(JDDNode dd)
 	{
-		return DD_GetNumPaths(dd.ptr());
+		double rv = DD_GetNumPaths(dd.ptr());
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -861,7 +909,7 @@ public class JDD
 	 */
 	public static JDDNode GetSupport(JDDNode dd)
 	{
-		return new JDDNode(DD_GetSupport(dd.ptr()));
+		return ptrToNode(DD_GetSupport(dd.ptr()));
 	}
 	
 	/**
@@ -949,7 +997,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_SetVectorElement(dd.ptr(), vars.array(), vars.n(), index, value));
+		return ptrToNode(DD_SetVectorElement(dd.ptr(), vars.array(), vars.n(), index, value));
 	}
 	
 	/**
@@ -960,7 +1008,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_SetMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), rindex, cindex, value));
+		return ptrToNode(DD_SetMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), rindex, cindex, value));
 	}
 	
 	/**
@@ -971,7 +1019,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_Set3DMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), lvars.array(), lvars.n(), rindex, cindex, lindex, value));
+		return ptrToNode(DD_Set3DMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), lvars.array(), lvars.n(), rindex, cindex, lindex, value));
 	}
 	
 	/**
@@ -980,7 +1028,9 @@ public class JDD
 	 */
 	public static double GetVectorElement(JDDNode dd, JDDVars vars, long index)
 	{
-		return DD_GetVectorElement(dd.ptr(), vars.array(), vars.n(), index);
+		double rv = DD_GetVectorElement(dd.ptr(), vars.array(), vars.n(), index);
+		checkForCuddError();
+		return rv;
 	}
 	
 	/**
@@ -989,7 +1039,7 @@ public class JDD
 	 */
 	public static JDDNode Identity(JDDVars rvars, JDDVars cvars)
 	{
-		return new JDDNode(DD_Identity(rvars.array(), cvars.array(), rvars.n()));
+		return ptrToNode(DD_Identity(rvars.array(), cvars.array(), rvars.n()));
 	}
 	
 	/**
@@ -1000,7 +1050,7 @@ public class JDD
 	{
 		if (DebugJDD.debugEnabled)
 			DebugJDD.decrement(dd);
-		return new JDDNode(DD_Transpose(dd.ptr(), rvars.array(), cvars.array(), rvars.n()));
+		return ptrToNode(DD_Transpose(dd.ptr(), rvars.array(), cvars.array(), rvars.n()));
 	}
 	
 	/**
@@ -1013,7 +1063,7 @@ public class JDD
 			DebugJDD.decrement(dd1);
 			DebugJDD.decrement(dd2);
 		}
-		return new JDDNode(DD_MatrixMultiply(dd1.ptr(), dd2.ptr(), vars.array(), vars.n(), method));
+		return ptrToNode(DD_MatrixMultiply(dd1.ptr(), dd2.ptr(), vars.array(), vars.n(), method));
 	}
 
 	/**
@@ -1333,6 +1383,31 @@ public class JDD
 	{
 		DD_ExportMatrixToSpyFile(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), depth, filename);
 	}
+
+	/**
+	 * Convert a (referenced) ptr returned from Cudd into a JDDNode.
+	 * <br>Throws a CuddOutOfMemoryException if the pointer is NULL.
+	 * <br>[ REFS: <i>none</i> ]
+	 */
+	public static JDDNode ptrToNode(long ptr)
+	{
+		if (ptr == 0L) {
+			throw new CuddOutOfMemoryException();
+		}
+		return new JDDNode(ptr);
+	}
+
+	/**
+	 * Check whether the DD error flag is set, indicating an
+	 * out-of-memory situation in CUDD or another internal error.
+	 * If the flag is set, throws a {@code CuddOutOfMemoryException}.
+	 */
+	public static void checkForCuddError()
+	{
+		if (DD_GetErrorFlag())
+			throw new CuddOutOfMemoryException();
+	}
+
 }
 
 //------------------------------------------------------------------------------
