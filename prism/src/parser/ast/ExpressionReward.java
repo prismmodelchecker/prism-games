@@ -178,9 +178,7 @@ public class ExpressionReward extends ExpressionQuant
 	
 	// Methods required for Expression:
 	
-	/**
-	 * Is this expression constant?
-	 */
+	@Override
 	public boolean isConstant()
 	{
 		return false;
@@ -192,18 +190,13 @@ public class ExpressionReward extends ExpressionQuant
 		return false;
 	}
 	
-	/**
-	 * Evaluate this expression, return result.
-	 * Note: assumes that type checking has been done already.
-	 */
+	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		throw new PrismLangException("Cannot evaluate an R operator without a model");
 	}
 
-	/**
-	  * Get "name" of the result of this expression (used for y-axis of any graphs plotted)
-	  */
+	@Override
 	public String getResultName()
 	{
 		// For R=? properties, use name of reward structure where applicable
@@ -238,17 +231,32 @@ public class ExpressionReward extends ExpressionQuant
 
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
+
+	@Override
+	public Expression deepCopy()
+	{
+		ExpressionReward expr = new ExpressionReward();
+		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
+		expr.setRelOp(getRelOp());
+		expr.setBound(getBound() == null ? null : getBound().deepCopy());
+		if (rewardStructIndex != null && rewardStructIndex instanceof Expression) expr.setRewardStructIndex(((Expression)rewardStructIndex).deepCopy());
+		else expr.setRewardStructIndex(rewardStructIndex);
+		if (rewardStructIndexDiv != null && rewardStructIndexDiv instanceof Expression) expr.setRewardStructIndexDiv(((Expression)rewardStructIndexDiv).deepCopy());
+		else expr.setRewardStructIndexDiv(rewardStructIndexDiv);
+		expr.setFilter(getFilter() == null ? null : (Filter)getFilter().deepCopy());
+		expr.setType(type);
+		expr.setPosition(this);
+		return expr;
+	}
+
+	// Standard methods
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
 	public String toString()
 	{
 		String s = "";
@@ -273,23 +281,37 @@ public class ExpressionReward extends ExpressionQuant
 		return s;
 	}
 
-	/**
-	 * Perform a deep copy.
-	 */
-	public Expression deepCopy()
+	@Override
+	public int hashCode()
 	{
-		ExpressionReward expr = new ExpressionReward();
-		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
-		expr.setRelOp(getRelOp());
-		expr.setBound(getBound() == null ? null : getBound().deepCopy());
-		if (rewardStructIndex != null && rewardStructIndex instanceof Expression) expr.setRewardStructIndex(((Expression)rewardStructIndex).deepCopy());
-		else expr.setRewardStructIndex(rewardStructIndex);
-		if (rewardStructIndexDiv != null && rewardStructIndexDiv instanceof Expression) expr.setRewardStructIndexDiv(((Expression)rewardStructIndexDiv).deepCopy());
-		else expr.setRewardStructIndexDiv(rewardStructIndexDiv);
-		expr.setFilter(getFilter() == null ? null : (Filter)getFilter().deepCopy());
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((rewardStructIndex == null) ? 0 : rewardStructIndex.hashCode());
+		result = prime * result + ((rewardStructIndexDiv == null) ? 0 : rewardStructIndexDiv.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ExpressionReward other = (ExpressionReward) obj;
+		if (rewardStructIndex == null) {
+			if (other.rewardStructIndex != null)
+				return false;
+		} else if (!rewardStructIndex.equals(other.rewardStructIndex))
+			return false;
+		if (rewardStructIndexDiv == null) {
+			if (other.rewardStructIndexDiv != null)
+				return false;
+		} else if (!rewardStructIndexDiv.equals(other.rewardStructIndexDiv))
+			return false;
+		return true;
 	}
 }
 

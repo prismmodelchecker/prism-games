@@ -29,6 +29,7 @@
 package explicit;
 
 import java.awt.Point;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -40,6 +41,9 @@ import java.util.Stack;
 import java.util.Vector;
 
 import parser.State;
+import parser.VarList;
+import parser.ast.Declaration;
+import parser.ast.DeclarationInt;
 import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionLabel;
@@ -50,10 +54,9 @@ import parser.type.TypePathBool;
 import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
-import prism.PrismFileLog;
 import prism.PrismLangException;
-import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import prism.PrismUtils;
 import acceptance.AcceptanceGenRabin;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
@@ -61,6 +64,7 @@ import acceptance.AcceptanceStreett;
 import acceptance.AcceptanceType;
 import automata.DA;
 import automata.LTL2DA;
+
 import common.IterableStateSet;
 
 /**
@@ -208,8 +212,8 @@ public class LTLModelChecker extends PrismComponent
 	 * @param mc a ProbModelChecker, used for checking maximal state formulas
 	 * @param model the model
 	 * @param expr a path expression, i.e. the LTL formula
- 	 * @param labelBS empty vector to be filled with BitSets for subformulas 
- 	 * @param allowedAcceptance the allowed acceptance types
+	 * @param labelBS empty vector to be filled with BitSets for subformulas 
+	 * @param allowedAcceptance the allowed acceptance types
 	 * @return the DA
 	 */
 	public DA<BitSet,? extends AcceptanceOmega> constructDAForLTLFormula(ProbModelChecker mc, Model model, Expression expr, Vector<BitSet> labelBS, AcceptanceType... allowedAcceptance) throws PrismException
@@ -256,7 +260,7 @@ public class LTLModelChecker extends PrismComponent
 		// If required, export DA
 		if (settings.getExportPropAut()) {
 			mainLog.println("Exporting " + da.getAutomataType() + " to file \"" + settings.getExportPropAutFilename() + "\"...");
-			PrismLog out = new PrismFileLog(settings.getExportPropAutFilename());
+			PrintStream out = PrismUtils.newPrintStream(settings.getExportPropAutFilename());
 			da.print(out, settings.getExportPropAutType());
 			out.close();
 		}
@@ -417,21 +421,49 @@ public class LTLModelChecker extends PrismComponent
 		BitSet s_labels = new BitSet(numAPs);
 		List<State> prodStatesList = null, daStatesList = null;
 
+		VarList newVarList = null;
+
+		if (model.getVarList() != null) {
+			VarList varList = model.getVarList();
+			// Create a (new, unique) name for the variable that will represent DA states
+			String daVar = "_da";
+			while (varList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+
+			newVarList = (VarList) varList.clone();
+			// NB: if DA only has one state, we add an extra dummy state
+			Declaration decl = new Declaration(daVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
+			newVarList.addVar(0, decl, 1, model.getConstantValues());
+		}
+
 		// Create a (simple, mutable) model of the appropriate type
 		ModelSimple prodModel = null;
 		switch (modelType) {
-		case DTMC:
-			prodModel = new DTMCSimple();
+		case DTMC: {
+			DTMCSimple dtmcProd = new DTMCSimple();
+			dtmcProd.setVarList(newVarList);
+			prodModel = dtmcProd;
 			break;
-		case MDP:
-			prodModel = new MDPSimple();
+		}
+		case MDP: {
+			MDPSimple mdpProd = new MDPSimple();
+			mdpProd.setVarList(newVarList);
+			prodModel = mdpProd;
 			break;
-		case STPG:
-			prodModel = new STPGExplicit();
+		}
+		case STPG: {
+			STPGExplicit stpgProd = new STPGExplicit();
+			stpgProd.setVarList(newVarList);
+			prodModel = stpgProd;
 			break;
-		case SMG:
-			prodModel = new SMG();
+		}
+		case SMG: {
+			SMG smgProd = new SMG();
+			smgProd.setVarList(newVarList);
+			prodModel = smgProd;
 			break;
+		}
 		default:
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}

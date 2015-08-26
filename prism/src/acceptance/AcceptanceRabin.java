@@ -26,6 +26,7 @@
 
 package acceptance;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.BitSet;
 
@@ -261,6 +262,28 @@ public class AcceptanceRabin
 		return result;
 	}
 
+	@Override
+	public String getSignatureForStateHOA(int stateIndex)
+	{
+		String result = "";
+
+		for (int pairIndex=0; pairIndex<size(); pairIndex++) {
+			RabinPair pair = get(pairIndex);
+			if (pair.getL().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : " ") + pairIndex*2;
+			}
+			if (pair.getK().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : " ") + (pairIndex*2+1);
+			}
+		}
+
+		if (!result.isEmpty())
+			result = "{"+result+"}";
+
+		return result;
+	}
+
+	
 	/** Returns a textual representation of this acceptance condition. */
 	@Override
 	public String toString()
@@ -294,5 +317,22 @@ public class AcceptanceRabin
 	public String getTypeName()
 	{
 		return "Rabin";
+	}
+
+	@Override
+	public void outputHOAHeader(PrintStream out)
+	{
+		out.println("acc-name: Rabin "+size());
+		out.print("Acceptance: " + (size()*2)+" ");
+		if (size() == 0) {
+			out.println("f");
+			return;
+		}
+
+		for (int pair = 0; pair < size(); pair++) {
+			if (pair > 0) out.print(" | ");
+			out.print("( Fin(" + 2*pair + ") & Inf(" + (2*pair+1) +") )");
+		}
+		out.println();
 	}
 }

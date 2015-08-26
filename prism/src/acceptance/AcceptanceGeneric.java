@@ -27,7 +27,11 @@
 
 package acceptance;
 
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 import prism.PrismException;
 import prism.PrismNotSupportedException;
@@ -156,9 +160,58 @@ public class AcceptanceGeneric implements AcceptanceOmega {
 		return false;
 	}
 
+	/** Get a list of all the (non-true/false) leaf nodes in this acceptance condition */
+	public List<AcceptanceGeneric> getLeafNodes()
+	{
+		switch (getKind()) {
+		case AND:
+		case OR: {
+			List<AcceptanceGeneric> result = new ArrayList<AcceptanceGeneric>();
+			result.addAll(left.getLeafNodes());
+			result.addAll(right.getLeafNodes());
+			return result;
+		}
+		case TRUE:
+		case FALSE:
+			return Collections.emptyList();
+		case FIN:
+		case FIN_NOT:
+		case INF:
+		case INF_NOT:
+			return Collections.singletonList(this);
+		}
+		throw new UnsupportedOperationException("Unknown kind");
+	}
+
 	@Override
-	public String getSignatureForState(int i) {
-		return "";
+	public String getSignatureForState(int stateIndex) {
+		List<AcceptanceGeneric> leafNodes = getLeafNodes();
+
+		String result = "";
+		for (int i=0; i < leafNodes.size(); i++) {
+			if (leafNodes.get(i).getStates().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : ",")+i;
+			}
+		}
+
+		result = "{" + result + "}";
+		return result;
+	}
+
+	@Override
+	public String getSignatureForStateHOA(int stateIndex) {
+		List<AcceptanceGeneric> leafNodes = getLeafNodes();
+
+		String result = "";
+		for (int i=0; i < leafNodes.size(); i++) {
+			if (leafNodes.get(i).getStates().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : " ")+i;
+			}
+		}
+
+		if (!result.isEmpty())
+			result = "{" + result + "}";
+		return result;
 	}
 
 	@Override
@@ -309,6 +362,54 @@ public class AcceptanceGeneric implements AcceptanceOmega {
 			default:
 				return null;
 		}
+	}
+
+	@Override
+	public void outputHOAHeader(PrintStream out)
+	{
+		List<AcceptanceGeneric> leafNodes = getLeafNodes();
+		out.print("Acceptance: "+leafNodes.size()+" ");
+		outputHOAFormula(out, 0);
+		out.println();
+	}
+
+	private int outputHOAFormula(PrintStream out, int nextSetIndex)
+	{
+		switch (kind) {
+		case AND:
+			out.print("(");
+			nextSetIndex = left.outputHOAFormula(out, nextSetIndex);
+			out.print(")&(");
+			nextSetIndex = right.outputHOAFormula(out, nextSetIndex);
+			out.print(")");
+			return nextSetIndex;
+		case OR:
+			out.print("(");
+			nextSetIndex = left.outputHOAFormula(out, nextSetIndex);
+			out.print(")|(");
+			nextSetIndex = right.outputHOAFormula(out, nextSetIndex);
+			out.print(")");
+			return nextSetIndex;
+		case TRUE:
+			out.print("t");
+			return nextSetIndex;
+		case FALSE:
+			out.print("f");
+			return nextSetIndex;
+		case FIN:
+			out.print("Fin("+nextSetIndex+")");
+			return nextSetIndex+1;
+		case FIN_NOT:
+			out.print("Fin(!"+nextSetIndex+")");
+			return nextSetIndex+1;
+		case INF:
+			out.print("Inf("+nextSetIndex+")");
+			return nextSetIndex+1;
+		case INF_NOT:
+			out.print("Inf(!"+nextSetIndex+")");
+			return nextSetIndex+1;
+		}
+		throw new UnsupportedOperationException("Unknown kind");
 	}
 
 

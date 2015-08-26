@@ -26,6 +26,7 @@
 
 package acceptance;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.BitSet;
 
@@ -266,6 +267,27 @@ public class AcceptanceStreett
 	}
 
 	@Override
+	public String getSignatureForStateHOA(int stateIndex)
+	{
+		String result = "";
+
+		for (int pairIndex=0; pairIndex<size(); pairIndex++) {
+			StreettPair pair = get(pairIndex);
+			if (pair.getR().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : " ") + pairIndex*2;
+			}
+			if (pair.getG().get(stateIndex)) {
+				result += (result.isEmpty() ? "" : " ") + (pairIndex*2+1);
+			}
+		}
+
+		if (!result.isEmpty())
+			result = "{"+result+"}";
+
+		return result;
+	}
+
+	@Override
 	public String toString()
 	{
 		String result = "";
@@ -297,5 +319,22 @@ public class AcceptanceStreett
 	public String getTypeName()
 	{
 		return "Streett";
+	}
+
+	@Override
+	public void outputHOAHeader(PrintStream out)
+	{
+		out.println("acc-name: Streett "+size());
+		out.print("Acceptance: " + (size()*2)+" ");
+		if (size() == 0) {
+			out.println("t");
+			return;
+		}
+
+		for (int pair = 0; pair < size(); pair++) {
+			if (pair > 0) out.print(" & ");
+			out.print("( Fin(" + (2*pair) + ") | Inf(" + (2*pair+1) +") )");
+		}
+		out.println();
 	}
 }

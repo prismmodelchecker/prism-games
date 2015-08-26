@@ -32,7 +32,7 @@ import prism.PrismLangException;
 
 public class ExpressionExists extends Expression
 {
-	Expression expression = null;
+	protected Expression expression = null;
 	
 	// Constructors
 	
@@ -61,9 +61,7 @@ public class ExpressionExists extends Expression
 	
 	// Methods required for Expression:
 	
-	/**
-	 * Is this expression constant?
-	 */
+	@Override
 	public boolean isConstant()
 	{
 		return false;
@@ -75,10 +73,7 @@ public class ExpressionExists extends Expression
 		return false;
 	}
 	
-	/**
-	 * Evaluate this expression, return result.
-	 * Note: assumes that type checking has been done already.
-	 */
+	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		throw new PrismLangException("Cannot evaluate an E operator without a model");
@@ -92,17 +87,24 @@ public class ExpressionExists extends Expression
 
 	// Methods required for ASTElement:
 	
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 	
-	/**
-	 * Convert to string.
-	 */
+	@Override
+	public Expression deepCopy()
+	{
+		ExpressionExists expr = new ExpressionExists(expression.deepCopy());
+		expr.setType(type);
+		expr.setPosition(this);
+		return expr;
+	}
+
+	// Standard methods
+	
+	@Override
 	public String toString()
 	{
 		String s = "";
@@ -112,15 +114,31 @@ public class ExpressionExists extends Expression
 		return s;
 	}
 
-	/**
-	 * Perform a deep copy.
-	 */
-	public Expression deepCopy()
+	@Override
+	public int hashCode()
 	{
-		ExpressionExists expr = new ExpressionExists(expression.deepCopy());
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((expression == null) ? 0 : expression.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ExpressionExists other = (ExpressionExists) obj;
+		if (expression == null) {
+			if (other.expression != null)
+				return false;
+		} else if (!expression.equals(other.expression))
+			return false;
+		return true;
 	}
 }
 

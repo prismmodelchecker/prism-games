@@ -94,9 +94,7 @@ public class ExpressionProb extends ExpressionQuant
 	
 	// Methods required for Expression:
 
-	/**
-	 * Is this expression constant?
-	 */
+	@Override
 	public boolean isConstant()
 	{
 		return false;
@@ -108,18 +106,13 @@ public class ExpressionProb extends ExpressionQuant
 		return false;
 	}
 	
-	/**
-	 * Evaluate this expression, return result.
-	 * Note: assumes that type checking has been done already.
-	 */
+	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		throw new PrismLangException("Cannot evaluate a P operator without a model");
 	}
 
-	/**
-	  * Get "name" of the result of this expression (used for y-axis of any graphs plotted)
-	  */
+	@Override
 	public String getResultName()
 	{
 		if (getBound() != null)
@@ -140,17 +133,28 @@ public class ExpressionProb extends ExpressionQuant
 
 	// Methods required for ASTElement:
 
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 
-	/**
-	 * Convert to string.
-	 */
+	@Override
+	public Expression deepCopy()
+	{
+		ExpressionProb expr = new ExpressionProb();
+		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
+		expr.setRelOp(getRelOp());
+		expr.setBound(getBound() == null ? null : getBound().deepCopy());
+		expr.setFilter(getFilter() == null ? null : (Filter)getFilter().deepCopy());
+		expr.setType(type);
+		expr.setPosition(this);
+		return expr;
+	}
+
+	// Standard methods
+
+	@Override
 	public String toString()
 	{
 		String s = "";
@@ -163,21 +167,6 @@ public class ExpressionProb extends ExpressionQuant
 		s += " ]";
 
 		return s;
-	}
-
-	/**
-	 * Perform a deep copy.
-	 */
-	public Expression deepCopy()
-	{
-		ExpressionProb expr = new ExpressionProb();
-		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
-		expr.setRelOp(getRelOp());
-		expr.setBound(getBound() == null ? null : getBound().deepCopy());
-		expr.setFilter(getFilter() == null ? null : (Filter)getFilter().deepCopy());
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
 	}
 }
 

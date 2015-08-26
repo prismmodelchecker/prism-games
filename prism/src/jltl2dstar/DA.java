@@ -27,6 +27,7 @@ import java.util.*;
 import jltl2ba.APElement;
 import jltl2ba.APSet;
 import prism.PrismException;
+import prism.PrismNotSupportedException;
 
 public class DA {
 
@@ -261,6 +262,8 @@ public class DA {
 			throw new PrismException("No start state in DA!");
 		}
 
+		out.println(da_type+" v2 explicit");
+		
 		if (_comment != "") {
 			out.println("Comment: \"" + _comment + "\"");
 		}
@@ -289,13 +292,47 @@ public class DA {
 
 			_acceptance.outputAcceptanceForState(out, i_state);
 			
-			// the entry set isn't sorted so we need to print the transition label too
-			for (Map.Entry<APElement, DA_State> transition : cur_state.edges().entrySet()) {
-				out.println(transition.getKey().toString(_ap_set, true) + " -> " + transition.getValue().getName());
+			Iterator<APElement> it = _ap_set.elementIterator();
+			while (it.hasNext()) {
+				APElement e = it.next();
+				DA_State to = cur_state.edges().get(e);
+				out.println(to.getName());
 			}
 		}
 	}
-	
+
+	/**
+	 * Print the DA in HOA format to the output stream.
+	 * This functions expects that the DA is compact.
+	 * @param da_type a string specifying the type of automaton ("DRA", "DSA").
+	 * @param out the output stream
+	 */
+	public void printHOA(String da_type, PrintStream out) throws PrismException {
+		if (!da_type.equals("DRA")) throw new PrismNotSupportedException("HOA printing for "+da_type+" currently not supported");
+
+		out.println("HOA: v1");
+		out.println("States: "+size());
+		_ap_set.print_hoa(out);
+		out.println("Start: "+getStartState().getName());
+		_acceptance.outputAcceptanceHeaderHOA(out);
+		out.println("properties: trans-labels explicit-labels state-acc no-univ-branch deterministic");
+		out.println("--BODY--");
+		for (DA_State state : _index) {
+			out.print("State: "+state.getName()+ " ");  // id
+			_acceptance.outputAcceptanceForStateHOA(out, state.getName());
+
+			for (Map.Entry<APElement, DA_State> edge : state.edges().entrySet()) {
+				APElement label = edge.getKey();
+				String labelString = "["+label.toStringHOA(_ap_set.size())+"]";
+				DA_State to = edge.getValue();
+				out.print(labelString);
+				out.print(" ");
+				out.println(to);
+			}
+		}
+		out.println("--END--");
+	}
+
 	/**
 	 * Print the DA in dot format to the output stream.
 	 * This functions expects that the DA is compact.

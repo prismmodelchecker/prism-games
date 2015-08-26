@@ -299,7 +299,7 @@ public class PrismSettings implements Observer
 																			"Number of MTBDD levels descended for hybrid engine data structures block division with GS/SOR." },
 			{ INTEGER_TYPE,		PRISM_SOR_MAX_MEM,						"Hybrid GS memory (KB)",				"2.1",			new Integer(1024),															"0,",																						
 																			"Maximum memory usage for hybrid engine data structures block division with GS/SOR (KB)." },
-			{ STRING_TYPE,		PRISM_CUDD_MAX_MEM,						"CUDD max. memory (KB)",				"4.2.1",			new String("1g"),														"",																						
+			{ STRING_TYPE,		PRISM_CUDD_MAX_MEM,						"CUDD max. memory",				"4.2.1",			new String("1g"),														"",																						
 																			"Maximum memory available to CUDD (underlying BDD/MTBDD library), e.g. 125k, 50m, 4g. Note: Restart PRISM after changing this." },
 			{ DOUBLE_TYPE,		PRISM_CUDD_EPSILON,						"CUDD epsilon",							"2.1",			new Double(1.0E-15),														"0.0,",																						
 																			"Epsilon value used by CUDD (underlying BDD/MTBDD library) for terminal cache comparisons." },
@@ -1286,7 +1286,6 @@ public class PrismSettings implements Observer
 			if (i < args.length - 1) {
 				String filename = args[++i];
 				set(PRISM_LTL2DA_TOOL, filename);
-				System.out.println(getString(PRISM_LTL2DA_TOOL));
 			} else {
 				throw new PrismException("The -" + sw + " switch requires one argument (path to the executable)");
 			}
@@ -1505,6 +1504,8 @@ public class PrismSettings implements Observer
 						setExportPropAutType("txt");
 				    } else if (option.getKey().equals("dot")) {
 						setExportPropAutType("dot");
+				    } else if (option.getKey().equals("hoa")) {
+						setExportPropAutType("hoa");
 				    } else {
 				    		throw new PrismException("Unknown option \"" + option.getKey() + "\" for -" + sw + " switch"); 
 				    }

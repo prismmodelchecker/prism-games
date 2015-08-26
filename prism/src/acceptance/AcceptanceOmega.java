@@ -26,6 +26,7 @@
 
 package acceptance;
 
+import java.io.PrintStream;
 import java.util.BitSet;
 
 import prism.PrismException;
@@ -41,9 +42,13 @@ public interface AcceptanceOmega extends Cloneable
 	 **/
 	public boolean isBSCCAccepting(BitSet bscc_states);
 
-	/** Get the acceptance signature for state i.
+	/** Get the acceptance signature for state {@code stateIndex}.
 	 **/
-	public String getSignatureForState(int i);
+	public String getSignatureForState(int stateIndex);
+
+	/** Get the acceptance signature for state {@code stateIndex} (HOA format).
+	 */
+	public String getSignatureForStateHOA(int stateIndex);
 
 	/**
 	 * Get a string describing the acceptance condition's size,
@@ -61,6 +66,9 @@ public interface AcceptanceOmega extends Cloneable
 
 	/** Returns a full name for this acceptance condition */
 	public String getTypeName();
+
+	/** Print the appropriate Acceptance (and potentially acc-name) header */
+	public void outputHOAHeader(PrintStream out);
 
 	/** Make a copy of the acceptance condition. */
 	public AcceptanceOmega clone();

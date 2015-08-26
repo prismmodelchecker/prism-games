@@ -82,9 +82,7 @@ public class ExpressionITE extends Expression
 
 	// Methods required for Expression:
 
-	/**
-	 * Is this expression constant?
-	 */
+	@Override
 	public boolean isConstant()
 	{
 		return operand1.isConstant() && operand2.isConstant() && operand3.isConstant();
@@ -96,10 +94,7 @@ public class ExpressionITE extends Expression
 		return operand1.isProposition() && operand2.isProposition() && operand3.isProposition();
 	}
 	
-	/**
-	 * Evaluate this expression, return result. Note: assumes that type checking
-	 * has been done already.
-	 */
+	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		return operand1.evaluateBoolean(ec) ? operand2.evaluate(ec) : operand3.evaluate(ec);
@@ -113,31 +108,66 @@ public class ExpressionITE extends Expression
 
 	// Methods required for ASTElement:
 
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 
-	/**
-	 * Convert to string.
-	 */
-	public String toString()
-	{
-		return operand1 + " ? " + operand2 + " : " + operand3;
-	}
-
-	/**
-	 * Perform a deep copy.
-	 */
+	@Override
 	public Expression deepCopy()
 	{
 		ExpressionITE expr = new ExpressionITE(operand1.deepCopy(), operand2.deepCopy(), operand3.deepCopy());
 		expr.setType(type);
 		expr.setPosition(this);
 		return expr;
+	}
+
+	// Standard methods
+	
+	@Override
+	public String toString()
+	{
+		return operand1 + " ? " + operand2 + " : " + operand3;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((operand1 == null) ? 0 : operand1.hashCode());
+		result = prime * result + ((operand2 == null) ? 0 : operand2.hashCode());
+		result = prime * result + ((operand3 == null) ? 0 : operand3.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ExpressionITE other = (ExpressionITE) obj;
+		if (operand1 == null) {
+			if (other.operand1 != null)
+				return false;
+		} else if (!operand1.equals(other.operand1))
+			return false;
+		if (operand2 == null) {
+			if (other.operand2 != null)
+				return false;
+		} else if (!operand2.equals(other.operand2))
+			return false;
+		if (operand3 == null) {
+			if (other.operand3 != null)
+				return false;
+		} else if (!operand3.equals(other.operand3))
+			return false;
+		return true;
 	}
 }
 

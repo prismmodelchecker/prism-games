@@ -184,9 +184,7 @@ public class ExpressionFilter extends Expression
 	
 	// Methods required for Expression:
 
-	/**
-	 * Is this expression constant?
-	 */
+	@Override
 	public boolean isConstant()
 	{
 		// Note: In some sense, ExpressionFilters are (often) constant since they return the same
@@ -201,15 +199,13 @@ public class ExpressionFilter extends Expression
 		return false;
 	}
 	
-	/**
-	 * Evaluate this expression, return result.
-	 * Note: assumes that type checking has been done already.
-	 */
+	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		throw new PrismLangException("Cannot evaluate a filter without a model");
 	}
 
+	@Override
 	public boolean returnsSingleValue()
 	{
 		// Most filters return a single value, but there are some exceptions...
@@ -223,17 +219,28 @@ public class ExpressionFilter extends Expression
 	
 	// Methods required for ASTElement:
 
-	/**
-	 * Visitor method.
-	 */
+	@Override
 	public Object accept(ASTVisitor v) throws PrismLangException
 	{
 		return v.visit(this);
 	}
 
-	/**
-	 * Convert to string.
-	 */
+	@Override
+	public Expression deepCopy()
+	{
+		ExpressionFilter e;
+		e = new ExpressionFilter(opName, operand.deepCopy(), filter == null ? null : filter.deepCopy());
+		e.setInvisible(invisible);
+		e.setType(type);
+		e.setPosition(this);
+		e.param = this.param;
+
+		return e;
+	}
+	
+	// Standard methods
+	
+	@Override
 	public String toString()
 	{
 		String s = "";
@@ -246,19 +253,58 @@ public class ExpressionFilter extends Expression
 		return s;
 	}
 
-	/**
-	 * Perform a deep copy.
-	 */
-	public Expression deepCopy()
+	@Override
+	public int hashCode()
 	{
-		ExpressionFilter e;
-		e = new ExpressionFilter(opName, operand.deepCopy(), filter == null ? null : filter.deepCopy());
-		e.setInvisible(invisible);
-		e.setType(type);
-		e.setPosition(this);
-		e.param = this.param;
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (explanationEnabled ? 1231 : 1237);
+		result = prime * result + ((filter == null) ? 0 : filter.hashCode());
+		result = prime * result + (invisible ? 1231 : 1237);
+		result = prime * result + ((opName == null) ? 0 : opName.hashCode());
+		result = prime * result + ((opType == null) ? 0 : opType.hashCode());
+		result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+		result = prime * result + (param ? 1231 : 1237);
+		result = prime * result + (storeVector ? 1231 : 1237);
+		return result;
+	}
 
-		return e;
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ExpressionFilter other = (ExpressionFilter) obj;
+		if (explanationEnabled != other.explanationEnabled)
+			return false;
+		if (filter == null) {
+			if (other.filter != null)
+				return false;
+		} else if (!filter.equals(other.filter))
+			return false;
+		if (invisible != other.invisible)
+			return false;
+		if (opName == null) {
+			if (other.opName != null)
+				return false;
+		} else if (!opName.equals(other.opName))
+			return false;
+		if (opType != other.opType)
+			return false;
+		if (operand == null) {
+			if (other.operand != null)
+				return false;
+		} else if (!operand.equals(other.operand))
+			return false;
+		if (param != other.param)
+			return false;
+		if (storeVector != other.storeVector)
+			return false;
+		return true;
 	}
 	
 	/**

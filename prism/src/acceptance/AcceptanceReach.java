@@ -26,6 +26,7 @@
 
 package acceptance;
 
+import java.io.PrintStream;
 import java.util.BitSet;
 
 import prism.PrismException;
@@ -150,6 +151,16 @@ public class AcceptanceReach implements AcceptanceOmega
 	{
 		return goalStates.get(i) ? "!" : " ";
 	}
+	
+	@Override
+	public String getSignatureForStateHOA(int stateIndex)
+	{
+		if (goalStates.get(stateIndex)) {
+			return "{0}";
+		} else {
+			return "";
+		}
+	}
 
 	/** Returns a textual representation of this acceptance condition. */
 	@Override
@@ -182,4 +193,10 @@ public class AcceptanceReach implements AcceptanceOmega
 		return "Finite";
 	}
 
+	@Override
+	public void outputHOAHeader(PrintStream out)
+	{
+		out.println("acc-name: Buchi");
+		out.println("Acceptance: 1 Inf(0)");
+	}
 }

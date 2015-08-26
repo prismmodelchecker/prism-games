@@ -433,7 +433,25 @@ public class JDD
 		}
 		return ptrToNode(DD_Apply(op, dd1.ptr(), dd2.ptr()));
 	}
-	
+
+	/**
+	 * Multi-operand Apply(JDD.TIMES) (multiplication) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode Times(JDDNode... nodes) {
+		if (nodes.length <= 1) {
+			throw new IllegalArgumentException("JDD.Times needs at least two arguments.");
+		}
+
+		JDDNode result = nodes[0];
+		for (int i = 1; i<nodes.length; i++) {
+			result = Apply(JDD.TIMES, result, nodes[i]);
+		}
+
+		return result;
+	}
+
 	/**
 	 * generic monadic apply operation
 	 * <br>[ REFS: <i>result</i>, DEREFS: dd ]
@@ -847,7 +865,40 @@ public class JDD
 			return "" + paths;
 		}
 	}
-	
+
+	/**
+	 * Returns {@true} if the {@code dd} is is a single satisfying
+	 * assignment to the variables in {@code vars}.
+	 * <br>
+	 * This is the case if there is a single path to the ONE constant
+	 * and all variables of {@code vars} occur on the path.
+	 * @param dd the DD
+	 * @param vars the variables
+	 */
+	public static boolean isSingleton(JDDNode dd, JDDVars vars)
+	{
+		int i=0;
+		while (!dd.isConstant()) {
+			int index = dd.getIndex();
+			if (vars.getVar(i).getIndex() != index)
+				return false;
+			JDDNode t = dd.getThen();
+			JDDNode e = dd.getElse();
+
+			if (t.equals(JDD.ZERO)) {
+				dd = e;
+			} else if (e.equals(JDD.ZERO)) {
+				dd = t;
+			} else {
+				// then or else have to be ZERO
+				return false;
+			}
+			i++;
+		}
+
+		return dd.equals(JDD.ONE);
+	}
+
 	/**
 	 * prints out info for dd (nodes, terminals, minterms)
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
@@ -1393,6 +1444,9 @@ public class JDD
 	{
 		if (ptr == 0L) {
 			throw new CuddOutOfMemoryException();
+		}
+		if (DebugJDD.debugEnabled) {
+			return new DebugJDD.DebugJDDNode(ptr, true);
 		}
 		return new JDDNode(ptr);
 	}

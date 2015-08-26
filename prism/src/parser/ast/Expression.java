@@ -26,9 +26,11 @@
 
 package parser.ast;
 
+import jltl2ba.SimpleLTL;
 import parser.*;
 import parser.visitor.*;
 import prism.ModelType;
+import prism.PrismException;
 import prism.PrismLangException;
 import parser.type.*;
 
@@ -780,11 +782,12 @@ public abstract class Expression extends ASTElement
 	/**
 	 * Test if an expression is an LTL formula and is in positive normal form,
 	 * i.e. where negation only occurs at the level of state formulae.
+	 * This means that the operators => and <=> are also disallowed. 
 	 */
 	public static boolean isPositiveNormalFormLTL(Expression expr)
 	{
 		// State formulae (negated or otherwise) are OK
-		if (expr.type instanceof TypeBool)
+		if (expr.getType() instanceof TypeBool)
 			return true;
 		// Otherwise recurse, looking for negations...
 		else if (expr instanceof ExpressionUnaryOp) {
@@ -801,7 +804,15 @@ public abstract class Expression extends ASTElement
 		}
 		else if (expr instanceof ExpressionBinaryOp) {
 			ExpressionBinaryOp exprBinOp = (ExpressionBinaryOp) expr;
-			return isPositiveNormalFormLTL(exprBinOp.getOperand1()) && isPositiveNormalFormLTL(exprBinOp.getOperand2());
+			int op = exprBinOp.getOperator();
+			switch (op) {
+			// => and <=> are not allowed
+			case ExpressionBinaryOp.IMPLIES:
+			case ExpressionBinaryOp.IFF:
+				return false;
+			default:
+				return isPositiveNormalFormLTL(exprBinOp.getOperand1()) && isPositiveNormalFormLTL(exprBinOp.getOperand2());
+			}
 		}
 		else if (expr instanceof ExpressionTemporal) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
@@ -919,6 +930,43 @@ public abstract class Expression extends ASTElement
 		}
 
 		return expr;
+	}
+
+	/**
+	 * Create a property expression (an LTL formula) from the classes used by the jltl2ba (and jltl2dstar) libraries.
+	 */
+	public static Expression createFromJltl2ba(SimpleLTL ltl) throws PrismException
+	{
+		switch (ltl.kind) {
+		case AND:
+			return Expression.And(createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		case AP:
+			return new ExpressionLabel(ltl.ap);
+		case EQUIV:
+			return Expression.Iff(createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		case FALSE:
+			return Expression.False();
+		case FINALLY:
+			return new ExpressionTemporal(ExpressionTemporal.P_F, null, createFromJltl2ba(ltl.left));
+		case GLOBALLY:
+			return new ExpressionTemporal(ExpressionTemporal.P_G, null, createFromJltl2ba(ltl.left));
+		case IMPLIES:
+			return Expression.Implies(createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		case NEXT:
+			return new ExpressionTemporal(ExpressionTemporal.P_X, null, createFromJltl2ba(ltl.left));
+		case NOT:
+			return Expression.Not(createFromJltl2ba(ltl.left));
+		case OR:
+			return Expression.Or(createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		case RELEASE:
+			return new ExpressionTemporal(ExpressionTemporal.P_R, createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		case TRUE:
+			return Expression.True();
+		case UNTIL:
+			return new ExpressionTemporal(ExpressionTemporal.P_U, createFromJltl2ba(ltl.left), createFromJltl2ba(ltl.right));
+		default:
+			throw new PrismException("Cannot convert jltl2ba formula " + ltl);
+		}
 	}
 }
 

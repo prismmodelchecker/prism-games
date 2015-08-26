@@ -31,10 +31,10 @@
 
 // local function prototypes
 
-static void mtbdd_to_double_vector_rec(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, int level, ODDNode *odd, long o, double *res);
+static void mtbdd_to_double_vector_rec(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, int level, ODDNode *odd, long o, long n, double *res);
 static DdNode *double_vector_to_mtbdd_rec(DdManager *ddman, double *vec, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
 static DdNode *double_vector_to_bdd_rec(DdManager *ddman, double *vec, int rel_op, double value1, double value2, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
-static void filter_double_vector_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
+static void filter_double_vector_rec(DdManager *ddman, double *vec, DdNode *filter, double d, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
 static void max_double_vector_mtbdd_rec(DdManager *ddman, double *vec, DdNode *vec2, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
 static double get_first_from_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
 static double min_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, long o);
@@ -62,8 +62,8 @@ EXPORT double *mtbdd_to_double_vector(DdManager *ddman, DdNode *dd, DdNode **var
 
 EXPORT double *mtbdd_to_double_vector(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, ODDNode *odd, double *res)
 {
-	int i, n;
-	
+	long i, n;
+
 	// determine size
 	n = odd->eoff + odd->toff;
 	// create array (if not supplied)
@@ -73,18 +73,22 @@ EXPORT double *mtbdd_to_double_vector(DdManager *ddman, DdNode *dd, DdNode **var
 		res[i] = 0.0;
 	}
 	// build array recursively
-	mtbdd_to_double_vector_rec(ddman, dd, vars, num_vars, 0, odd, 0, res);
-	
+	mtbdd_to_double_vector_rec(ddman, dd, vars, num_vars, 0, odd, 0, n, res);
+
 	return res;
 }
 
-void mtbdd_to_double_vector_rec(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, int level, ODDNode *odd, long o, double *res)
+void mtbdd_to_double_vector_rec(DdManager *ddman, DdNode *dd, DdNode **vars, int num_vars, int level, ODDNode *odd, long o, long n, double *res)
 {
 	DdNode *e, *t;
 
 	if (dd == Cudd_ReadZero(ddman)) return;
 
 	if (level == num_vars) {
+		if (o < 0 || o >= n) {
+			printf("Internal error: Can not convert MTBDD to double vector: Value out of range of the ODD (does the MTBDD encode non-reachable states?)\n");
+			exit(1);
+		}
 		res[o] = Cudd_V(dd);
 		return;
 	}
@@ -95,10 +99,10 @@ void mtbdd_to_double_vector_rec(DdManager *ddman, DdNode *dd, DdNode **vars, int
 		e = Cudd_E(dd);
 		t = Cudd_T(dd);
 	}
-	
-	mtbdd_to_double_vector_rec(ddman, e, vars, num_vars, level+1, odd->e, o, res);
-	mtbdd_to_double_vector_rec(ddman, t, vars, num_vars, level+1, odd->t, o+odd->eoff, res);
-}	
+
+	mtbdd_to_double_vector_rec(ddman, e, vars, num_vars, level+1, odd->e, o, n, res);
+	mtbdd_to_double_vector_rec(ddman, t, vars, num_vars, level+1, odd->t, o+odd->eoff, n, res);
+}
 
 //------------------------------------------------------------------------------
 
@@ -208,33 +212,33 @@ DdNode *double_vector_to_bdd_rec(DdManager *ddman, double *vec, int rel_op, doub
 
 //------------------------------------------------------------------------------
 
-// filter vector using a bdd (set elements not in filter to 0)
+// filter vector using a bdd (set elements not in filter to constant d)
 
-EXPORT void filter_double_vector(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, ODDNode *odd)
+EXPORT void filter_double_vector(DdManager *ddman, double *vec, DdNode *filter, double d, DdNode **vars, int num_vars, ODDNode *odd)
 {
-	filter_double_vector_rec(ddman, vec, filter, vars, num_vars, 0, odd, 0);
+	filter_double_vector_rec(ddman, vec, filter, d, vars, num_vars, 0, odd, 0);
 }
 
-void filter_double_vector_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, long o)
+void filter_double_vector_rec(DdManager *ddman, double *vec, DdNode *filter, double d, DdNode **vars, int num_vars, int level, ODDNode *odd, long o)
 {
 	DdNode *dd;
 	
 	if (level == num_vars) {
 		if (Cudd_V(filter) == 0) {
-			vec[o] = 0;
+			vec[o] = d;
 		}
 	}
 	else {
 		if (odd->eoff > 0) {
 			dd = (filter->index > vars[level]->index) ? filter : Cudd_E(filter);
-			filter_double_vector_rec(ddman, vec, dd, vars, num_vars, level+1, odd->e, o);
+			filter_double_vector_rec(ddman, vec, dd, d, vars, num_vars, level+1, odd->e, o);
 		}
 		if (odd->toff > 0) {
 			dd = (filter->index > vars[level]->index) ? filter : Cudd_T(filter);
-			filter_double_vector_rec(ddman, vec, dd, vars, num_vars, level+1, odd->t, o+odd->eoff);
+			filter_double_vector_rec(ddman, vec, dd, d, vars, num_vars, level+1, odd->t, o+odd->eoff);
 		}
 	}
-}	
+}
 
 //------------------------------------------------------------------------------
 
