@@ -88,12 +88,15 @@ public class PrismParser implements PrismParserConstants {
                                 System.out.println("LTL formula: " + expr.toString());
                                 System.out.print("Tree:\u005cn=====\u005cn" + expr.toTreeString());
                                 expr.typeCheck();
-                                expr.semanticCheck();
+                                //expr.semanticCheck();
                                 System.out.println("Type: " + expr.getType().getTypeString());
                                 boolean pnf = Expression.isPositiveNormalFormLTL(expr);
                                 System.out.println("Positive normal form: " + pnf);
+                                System.out.println("Syntactically co-safe: " + Expression.isCoSafeLTLSyntactic(expr));
                                 if (!pnf) {
-                                        System.out.println("Positive normal form conversion: " + BooleanUtils.convertLTLToPositiveNormalForm(expr.deepCopy()));
+                                        Expression exprPnf = BooleanUtils.convertLTLToPositiveNormalForm(expr.deepCopy());
+                                        System.out.println("Positive normal form conversion: " + exprPnf);
+                                        System.out.println("Syntactically co-safe: " + Expression.isCoSafeLTLSyntactic(exprPnf));
                                 }
                                 Expression expr2 = (Expression) expr.deepCopy().accept(new ASTTraverseModify() {
                                         public Object visit(ExpressionVar e) throws PrismLangException
@@ -4014,22 +4017,6 @@ public class PrismParser implements PrismParserConstants {
     finally { jj_save(17, xla); }
   }
 
-  static private boolean jj_3R_143() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3R_155()) {
-    jj_scanpos = xsp;
-    if (jj_3R_156()) {
-    jj_scanpos = xsp;
-    if (jj_3R_157()) {
-    jj_scanpos = xsp;
-    if (jj_3R_158()) return true;
-    }
-    }
-    }
-    return false;
-  }
-
   static private boolean jj_3R_161() {
     if (jj_scan_token(MAX)) return true;
     return false;
@@ -5973,6 +5960,22 @@ public class PrismParser implements PrismParserConstants {
 
   static private boolean jj_3R_155() {
     if (jj_scan_token(REG_INT)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_143() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3R_155()) {
+    jj_scanpos = xsp;
+    if (jj_3R_156()) {
+    jj_scanpos = xsp;
+    if (jj_3R_157()) {
+    jj_scanpos = xsp;
+    if (jj_3R_158()) return true;
+    }
+    }
+    }
     return false;
   }
 

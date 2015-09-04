@@ -32,8 +32,10 @@ import java.util.List;
 
 import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
+import parser.ast.ExpressionLiteral;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
+import parser.type.TypeBool;
 import parser.visitor.ASTTraverseModify;
 import prism.PrismException;
 import prism.PrismLangException;
@@ -84,7 +86,7 @@ public class BooleanUtils
 	 * is not an operator used to define a Boolean expression (!, &, |, =>, <=>, ()).
 	 * The passed in expression is modified, and the result is returned. 
 	 */
-	public static Expression convertToPositiveNormalForm(Expression expr) throws PrismLangException
+	public static Expression convertToPositiveNormalForm(Expression expr)
 	{
 		// First expand implies/iff/parentheses
 		// Then do conversion to +ve normal form
@@ -97,10 +99,10 @@ public class BooleanUtils
 	 * all negation inwards so that it only occurs on "propositions".
 	 * A "proposition" is any Expression object that
 	 * is not an operator used to define a Boolean expression (!, &, |, =>, <=>, ())
-	 * or an temporal operator (X, U, F, G, R, W).
+	 * or a temporal operator (X, U, F, G, R, W).
 	 * The passed in expression is modified, and the result is returned. 
 	 */
-	public static Expression convertLTLToPositiveNormalForm(Expression expr) throws PrismLangException
+	public static Expression convertLTLToPositiveNormalForm(Expression expr)
 	{
 		// First expand implies/iff/parentheses
 		// Then do conversion to +ve normal form
@@ -110,38 +112,46 @@ public class BooleanUtils
 	/**
 	 * Remove any instances of =>, <=> or () by expanding/deleting as appropriate.
 	 */
-	private static Expression removeImpliesIffAndParentheses(Expression expr) throws PrismLangException
+	private static Expression removeImpliesIffAndParentheses(Expression expr)
 	{
-		return (Expression) expr.accept(new ASTTraverseModify() {
-			public Object visit(ExpressionUnaryOp e) throws PrismLangException
+		Expression exprMod = null;
+		try {
+			exprMod = (Expression) expr.accept(new ASTTraverseModify()
 			{
-				// Remove parentheses: (a)
-				if (Expression.isParenth(e)) {
-					Expression a = (Expression)(e.getOperand().accept(this));
-					// (a)  ==  a 
-					return a;
+				public Object visit(ExpressionUnaryOp e) throws PrismLangException
+				{
+					// Remove parentheses: (a)
+					if (Expression.isParenth(e)) {
+						Expression a = (Expression) (e.getOperand().accept(this));
+						// (a)  ==  a 
+						return a;
+					}
+					return super.visit(e);
 				}
-				return super.visit(e);
-			}
-			public Object visit(ExpressionBinaryOp e) throws PrismLangException
-			{
-				// Remove implication: a => b
-				if (Expression.isImplies(e)) {
-					Expression a = (Expression)(e.getOperand1().accept(this));
-					Expression b = (Expression)(e.getOperand2().accept(this));
-					// a => b  ==  !a | b 
-					return Expression.Or(Expression.Not(a), b);
+
+				public Object visit(ExpressionBinaryOp e) throws PrismLangException
+				{
+					// Remove implication: a => b
+					if (Expression.isImplies(e)) {
+						Expression a = (Expression) (e.getOperand1().accept(this));
+						Expression b = (Expression) (e.getOperand2().accept(this));
+						// a => b  ==  !a | b 
+						return Expression.Or(Expression.Not(a), b);
+					}
+					// Remove iff: a <=> b
+					if (Expression.isIff(e)) {
+						Expression a = (Expression) (e.getOperand1().accept(this));
+						Expression b = (Expression) (e.getOperand2().accept(this));
+						// a <=> b  ==  (a | !b) & (!a | b) 
+						return Expression.And(Expression.Or(a, Expression.Not(b)), Expression.Or(Expression.Not(a.deepCopy()), b.deepCopy()));
+					}
+					return super.visit(e);
 				}
-				// Remove iff: a <=> b
-				if (Expression.isImplies(e)) {
-					Expression a = (Expression)(e.getOperand1().accept(this));
-					Expression b = (Expression)(e.getOperand2().accept(this));
-					// a <=> b  ==  (a | !b) & (!a | b) 
-					return Expression.And(Expression.Or(a, Expression.Not(b)), Expression.Or(Expression.Not(a.deepCopy()), b.deepCopy()));
-				}
-				return super.visit(e);
-			}
-		});
+			});
+		} catch (PrismLangException e) {
+			// Shouldn't happen since we do not throw PrismLangException above
+		}
+		return exprMod;
 	}
 	
 	/**
@@ -158,7 +168,13 @@ public class BooleanUtils
 		if (Expression.isNot(expr)) {
 			Expression neg = ((ExpressionUnaryOp) expr).getOperand();
 			// Boolean operators
-			if (Expression.isNot(neg)) {
+			if (Expression.isTrue(neg)) {
+				// ! true  ==  false
+				return new ExpressionLiteral(TypeBool.getInstance(), false);
+			} else if (Expression.isFalse(neg)) {
+				// ! false  ==  true
+				return new ExpressionLiteral(TypeBool.getInstance(), true);
+			} else if (Expression.isNot(neg)) {
 				Expression a = ((ExpressionUnaryOp) neg).getOperand();
 				// !(!a)  ==  a 
 				return doConversionToPositiveNormalForm(a, ltl);
@@ -252,7 +268,7 @@ public class BooleanUtils
 	 * Convert an expression to disjunctive normal form (DNF).
 	 * The passed in expression is modified, and the result is returned. 
 	 */
-	public static Expression convertToDNF(Expression expr) throws PrismException
+	public static Expression convertToDNF(Expression expr)
 	{
 		return convertDNFListsToExpression(doConversionToDNF(convertToPositiveNormalForm(expr)));
 	}
@@ -261,7 +277,7 @@ public class BooleanUtils
 	 * Convert an expression to disjunctive normal form (DNF).
 	 * The passed in expression is modified, and the result is returned as a list of lists of Expression;
 	 */
-	public static List<List<Expression>> convertToDNFLists(Expression expr) throws PrismException
+	public static List<List<Expression>> convertToDNFLists(Expression expr)
 	{
 		return doConversionToDNF(convertToPositiveNormalForm(expr));
 	}
@@ -308,7 +324,7 @@ public class BooleanUtils
 	 * Convert an expression to conjunctive normal form (CNF).
 	 * The passed in expression is modified, and the result is returned. 
 	 */
-	public static Expression convertToCNF(Expression expr) throws PrismException
+	public static Expression convertToCNF(Expression expr)
 	{
 		return convertCNFListsToExpression(doConversionToCNF(convertToPositiveNormalForm(expr)));
 	}
@@ -317,7 +333,7 @@ public class BooleanUtils
 	 * Convert an expression to conjunctive normal form (CNF).
 	 * The passed in expression is modified, and the result is returned as a list of lists of Expression;
 	 */
-	public static List<List<Expression>> convertToCNFLists(Expression expr) throws PrismException
+	public static List<List<Expression>> convertToCNFLists(Expression expr)
 	{
 		return doConversionToCNF(convertToPositiveNormalForm(expr));
 	}

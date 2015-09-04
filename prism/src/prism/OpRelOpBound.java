@@ -83,22 +83,22 @@ public class OpRelOpBound
 		return relOp == RelOp.EQ && !numeric; 
 	}
 	
-	public MinMax getMinMax(ModelType modelType) throws PrismException
+	public MinMax getMinMax(ModelType modelType) throws PrismLangException
 	{
 		return getMinMax(modelType, true);
 	}
 
-	public MinMax getMinMax(ModelType modelType, boolean forAll) throws PrismException
+	public MinMax getMinMax(ModelType modelType, boolean forAll) throws PrismLangException
 	{
 		MinMax minMax = MinMax.blank();
 		if (modelType.nondeterministic()) {
 			if (!modelType.multiplePlayers()) {
 				if (!(modelType == ModelType.MDP || modelType == ModelType.CTMDP)) {
-					throw new PrismException("Don't know how to model check " + getTypeOfOperator() + " properties for " + modelType + "s");
+					throw new PrismLangException("Don't know how to model check " + getTypeOfOperator() + " properties for " + modelType + "s");
 				}
 				if (isNumeric()) {
 					if (relOp == RelOp.EQ) {
-						throw new PrismException("Can't use \"" + op + "=?\" for nondeterministic models; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
+						throw new PrismLangException("Can't use \"" + op + "=?\" for nondeterministic models; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
 					}
 					minMax = relOp.isMin() ? MinMax.min() : MinMax.max();
 				} else {
@@ -111,7 +111,7 @@ public class OpRelOpBound
 			} else {
 				if (modelType == ModelType.SMG) {
 					if (relOp == RelOp.EQ && isNumeric()) {
-						throw new PrismException("Can't use \"" + op + "=?\" for SMGs; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
+						throw new PrismLangException("Can't use \"" + op + "=?\" for SMGs; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
 					}
 					if (relOp.isMin() || (forAll && relOp.isLowerBound()) || (!forAll && relOp.isUpperBound())) {
 						minMax = MinMax.minMin(true, false);
@@ -120,7 +120,7 @@ public class OpRelOpBound
 					}
 				} else if (modelType == ModelType.STPG) {
 					if (relOp == RelOp.EQ && isNumeric()) {
-						throw new PrismException("Can't use \"" + op + "=?\" for STPGs; use e.g. \"" + op + "minmax=?\"");
+						throw new PrismLangException("Can't use \"" + op + "=?\" for STPGs; use e.g. \"" + op + "minmax=?\"");
 					}
 					if (relOp == RelOp.MINMIN) {
 						minMax = MinMax.minMin(true, true);
@@ -131,7 +131,7 @@ public class OpRelOpBound
 					} else if (relOp == RelOp.MAXMAX) {
 						minMax = MinMax.minMin(false, false);
 					} else {
-						throw new PrismException("Use e.g. \"Rminmax=?\" for stochastic games");
+						throw new PrismLangException("Use e.g. \"Rminmax=?\" for stochastic games");
 					}
 				}
 			}

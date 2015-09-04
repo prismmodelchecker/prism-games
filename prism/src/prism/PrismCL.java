@@ -28,6 +28,7 @@ package prism;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -915,6 +916,20 @@ public class PrismCL implements PrismModelListener
 		techLog.close();
 	}
 
+	/** Set a timeout, exit program if timeout is reached */
+	private void setTimeout(final int timeout)
+	{
+		common.Timeout.setTimeout(timeout, new Runnable() {
+			@Override
+			public void run()
+			{
+				mainLog.println("\nError: Timeout (after " + timeout + " seconds).");
+				mainLog.flush();
+				System.exit(1);
+			}
+		});
+	}
+
 	// PrismModelListener methods
 
 	@Override
@@ -975,6 +990,21 @@ public class PrismCL implements PrismModelListener
 				else if (sw.equals("javamaxmem")) {
 					i++;
 					// ignore - this is dealt with before java is launched
+				}
+				// timeout
+				else if (sw.equals("timeout")) {
+					if (i < args.length - 1) {
+						int timeout = PrismUtils.convertTimeStringtoSeconds(args[++i]);
+						if (timeout < 0) {
+							errorAndExit("Negative timeout value \"" + timeout + "\" for -" + sw + " switch");
+						}
+						if (timeout > 0) {
+							setTimeout(timeout);
+						}
+						// timeout == 0 -> no timeout
+					} else {
+						errorAndExit("Missing timeout value for -" + sw + " switch");
+					}
 				}
 				// print version
 				else if (sw.equals("version")) {
@@ -2369,7 +2399,19 @@ public class PrismCL implements PrismModelListener
 
 	public static void main(String[] args)
 	{
-		new PrismCL().go(args);
+		// Normal operation: just run PrismCL
+		if (!(args.length > 0 && "-ng".equals(args[0]))) {
+			new PrismCL().go(args);
+		}
+		// Nailgun server mode (-ng switch)
+		else {
+			try {
+				System.out.println("Starting PRISM-Nailgun server...");
+				com.martiansoftware.nailgun.NGServer.main(new String[0]);
+			} catch (NumberFormatException | UnknownHostException e) {
+				System.out.println("Failed to launch Nailgun server: " + e);
+			}
+		}
 	}
 }
 
