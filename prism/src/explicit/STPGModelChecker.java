@@ -1645,7 +1645,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		// Next, compute the value for the rich man's strategy.
 		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
-		System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
+		//System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 
 		// TODO generate rich man strategy.
 
