@@ -426,14 +426,7 @@ public class ConstructModel extends PrismComponent
 		else {
 			player = modulesFile.getPlayerForModule(engine.getTransitionModuleOrAction(i, 0));
 			if (player == -1) {
-
-				// for backwards compatibility trying to parse player from the
-				// module name (e.g., playerX)
-				try {
-					player = Integer.parseInt(engine.getTransitionModuleOrAction(i, 0).substring(6));
-				} catch (Exception e) {
-					throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
-				}
+				throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
 			}
 			// 0-indexed to 1-indexed
 			player++;
