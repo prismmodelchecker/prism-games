@@ -2316,7 +2316,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			case Prism.EXPORT_ROWS:
 				throw new PrismNotSupportedException("Export not yet supported");
 			}
-
 			tmpLog.close();
 		}
 
