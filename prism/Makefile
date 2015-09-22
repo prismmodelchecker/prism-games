@@ -1,3 +1,4 @@
+##############################################
 #  NB: This is the main Makefile for PRISM.  #
 #      It calls all the other Makefiles in   #
 #      subdirectories, passing in all the    #
@@ -236,14 +237,14 @@ endif
 # Darwin
 ifeq ($(OSTYPE),darwin)
 	ifeq ($(ARCH),x86_64)
-		CUDD_XCFLAGS = -m64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -fno-common $(DEBUG)
+		CUDD_XCFLAGS = -arch x86_64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -fno-common $(DEBUG)
 		CFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		CPPFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		LDFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE) -Wl,-search_paths_first
 		BINDISTSUFFIX = osx64
 		BIN_TARGETS=prism.darwin64 xprism.linux
 	else
-		CUDD_XCFLAGS = -m32 -DHAVE_IEEE_754 -DBSD -fno-common $(DEBUG)
+		CUDD_XCFLAGS = -arch i386 -DHAVE_IEEE_754 -DBSD -fno-common $(DEBUG)
 		CFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		CPPFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE)
 		LDFLAGS = $(CUDD_XCFLAGS) $(OPTIMISE) -Wl,-search_paths_first
@@ -336,7 +337,7 @@ parser:
 	CLASSPATHSEP="$(CLASSPATHSEP)"
 
 extpackages: checks
-	for ext in $(EXT_PACKAGES); do \
+	@for ext in $(EXT_PACKAGES); do \
 	  echo Making $$ext ...; \
 	  (cd ext/$$ext && \
 	  $(MAKE) \
