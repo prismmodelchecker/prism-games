@@ -27,11 +27,10 @@
 
 package acceptance;
 
+import common.IterableBitSet;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
-
-import common.IterableBitSet;
 
 /**
  * A reachability acceptance condition (based on JDD state sets).
