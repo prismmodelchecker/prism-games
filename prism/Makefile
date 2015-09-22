@@ -171,8 +171,6 @@ OPTIMISE = -O3
 # Place to look for (JNI) headers
 # (requires GNU make for conditional evaluation)
 
-
-
 # Linux
 ifeq ($(OSTYPE),linux)
 	ifeq ($(ARCH),amd64)
@@ -200,7 +198,7 @@ ifeq ($(OSTYPE),linux)
 	endif
 	endif
 	BIN_TARGETS=prism.linux xprism.linux
-	JFLAGS = 
+	JFLAGS = -encoding UTF8
 	SHARED = -shared
 	#SHARED = -G
 	EXE =
@@ -295,10 +293,10 @@ CUDD_DIR =		$(shell if [ -d cudd ]; then echo cudd; else echo ../cudd; fi )
 #CUDD_DIR =		cudd
 
 SRC_DIR =		src
-CLASSES_DIR =		classes
+CLASSES_DIR =	classes
 OBJ_DIR =		obj
 LIB_DIR =		lib
-INCLUDE_DIR =		include
+INCLUDE_DIR =	include
 
 # Now we locate the JNI header files jni.h and jni_md.h
 # (in fact this is the only reason we need JAVA_DIR)
