@@ -1,0 +1,35 @@
+// RESULT: 1.2  //  = 1+(0.8*0+0.1*1+0.1*1)   
+<<one>> Rmin=? [ (F "goal1") | (F "goal2") ]
+
+// RESULT: 3.5
+<<one>> Rmax=? [ (F "goal1") | (F "goal2") ]
+
+// RESULT: 1.2
+<<one>> Rmin=? [ X F ("goal1" | "goal2") ]
+
+// RESULT: 1.2
+<<one>> Rmin=? [ F X ("goal1" | "goal2") ]
+
+// RESULT: 2
+<<one>> Rmin=? [ X X ("goal1" | "goal2") ]
+
+// RESULT: Infinity
+<<one>> Rmin=? [ X X "goal2" ]
+
+// RESULT: 19/15
+<<one>> Rmin=? [ F "goal2" ]
+
+// RESULT: 19/15
+<<one>> Rmin=? [ (F "goal2") ]
+
+// RESULT: 19/15
+<<one>> Rmin=? [ s!=3 U "goal2" ]
+
+// RESULT: Error:co-safe
+<<one>> Rmin=? [ F G "goal1" ]
+
+// RESULT: Error:co-safe
+<<one>> Rmax=? [ F G "goal1" ]
+
+// RESULT: Error:co-safe
+<<one>> Rmax=? [ (G !"hazard")&(G F "goal1") ]
