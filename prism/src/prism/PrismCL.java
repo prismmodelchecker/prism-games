@@ -427,7 +427,7 @@ public class PrismCL implements PrismModelListener
 									errorAndExit("Testing failed");
 							}
 						}
-						
+
 						// iterate to next property
 						undefinedConstants[j].iterateProperty();
 					}
@@ -490,7 +490,7 @@ public class PrismCL implements PrismModelListener
 			}
 			tmpLog.close();
 		}
-		
+
 		// close down
 		closeDown();
 	}
