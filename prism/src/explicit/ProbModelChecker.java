@@ -881,7 +881,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
-<<<<<<< .working
 	 * Compute probabilities for an LTL path formula
 	 */
 	protected StateValues checkProbBoundedRewardFormula(Model model, ExpressionReward expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
@@ -891,10 +890,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 	
 	/**
-	 * Model check a P operator expression and return the values for all states.
-=======
 	 * Model check an R operator expression and return the values for all states.
->>>>>>> .merge-right.r10421
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr, BitSet statesOfInterest) throws PrismException
 	{
