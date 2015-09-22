@@ -178,7 +178,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			}
 		}
 	}
-	
+
 	//------------------------------------------------------------------------------
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
@@ -203,9 +203,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected boolean exportProductStates = false;
 	protected String exportProductStatesFilename = null;
 	// Store the final results vector after model checking?
-	protected boolean storeVector = false; 
+	protected boolean storeVector = false;
 	// Generate/store a strategy during model checking?
-	protected boolean genStrat = false; 
+	protected boolean genStrat = false;
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 
@@ -684,7 +684,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		return "PRISM-games";
 	}
-	
+
 	/**
 	 * Get current version number, as a string. 
 	 */
@@ -814,7 +814,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		return settings.getBoolean(PrismSettings.PRISM_PROB1);
 	}
-	
+
 	public boolean getPreRel()
 	{
 		return settings.getBoolean(PrismSettings.PRISM_PRE_REL);
@@ -1103,7 +1103,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		return explicit.SCCComputer.createSCCComputer(this, model);
 	}
-	
+
 	/**
 	 * Get an ECComputer object.
 	 */
@@ -1115,7 +1115,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	/**
 	 * Get an ECComputer object.
 	 */
-	public ECComputer getECComputer(JDDNode reach, JDDNode trans, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars, JDDVars allDDNondetVars) throws PrismException
+	public ECComputer getECComputer(JDDNode reach, JDDNode trans, JDDNode trans01, JDDVars allDDRowVars, JDDVars allDDColVars, JDDVars allDDNondetVars)
+			throws PrismException
 	{
 		return ECComputer.createECComputer(this, reach, trans, trans01, allDDRowVars, allDDColVars, allDDNondetVars);
 	}
@@ -1127,7 +1128,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		return explicit.ECComputer.createECComputer(this, model);
 	}
-	
+
 	//------------------------------------------------------------------------------
 	// Utility methods
 	//------------------------------------------------------------------------------
@@ -1516,7 +1517,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 		return importer;
 	}
-	
+
 	/**
 	 * Import a PRISM model from a PRISM preprocessor file
 	 * @param file File to read in
@@ -1960,7 +1961,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private void doBuildModel() throws PrismException
 	{
 		long l; // timer
-		
+
 		// Clear any existing built model(s)
 		clearBuiltModel();
 
@@ -2496,7 +2497,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(sccComputer.getBSCCs().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(sccComputer.getBSCCs().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(sccComputerExpl.getBSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
+				explicit.StateValues.createFromBitSet(sccComputerExpl.getBSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB,
+						true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -2589,7 +2591,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(ecComputer.getMECStates().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(ecComputer.getMECStates().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(ecComputerExpl.getMECStates().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
+				explicit.StateValues.createFromBitSet(ecComputerExpl.getMECStates().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB,
+						true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -2599,7 +2602,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (file != null)
 			tmpLog.close();
 	}
-	
+
 	/**
 	 * Export the (states of the) currently loaded model's strongly connected components (SCCs) to a file
 	 * @param exportType Type of export; one of: <ul>
@@ -2678,7 +2681,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(sccComputer.getSCCs().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(sccComputer.getSCCs().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(sccComputerExpl.getSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
+				explicit.StateValues.createFromBitSet(sccComputerExpl.getSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB,
+						true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -2732,7 +2736,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		for (int i = 0; i < numLabels; i++) {
 			labelNames.add(ll.getLabelName(i));
 		}
-		
+
 		// Export
 		if (getExplicit()) {
 			PrismLog out = getPrismLogForFile(file);
@@ -2902,7 +2906,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 			// Create new model checker object and do model checking
 			if (!getExplicit()) {
-				ModelChecker mc = createModelChecker(propertiesFile); 
+				ModelChecker mc = createModelChecker(propertiesFile);
 				res = mc.check(prop.getExpression());
 			} else {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
@@ -3159,7 +3163,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		Result result = mc.check(modelExpl, prop.getExpression());
-		
+
 		// Convert result of parametric model checking to just a rational
 		// There should be just one region since no parameters are used
 		RegionValues regVals = (RegionValues) result.getResult();
@@ -3170,17 +3174,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		BigRational rat = func.evaluate(new param.Point(new BigRational[] { new BigRational(0) }));
 		// Restore in result object
 		result.setResult(rat);
-		
+
 		// Print result to log
 		String resultString = "Result";
 		if (!("Result".equals(prop.getExpression().getResultName())))
 			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
 		resultString += ": " + result.getResultString();
 		mainLog.print("\n" + resultString);
-		
+
 		return result;
 	}
-	
+
 	/**
 	 * Perform parametric model checking on the currently loaded model.
 	 * @param propertiesFile parent properties file
@@ -3223,17 +3227,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		Result result = mc.check(modelExpl, prop.getExpression());
-		
+
 		// Print result to log
 		String resultString = "Result";
 		if (!("Result".equals(prop.getExpression().getResultName())))
 			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
 		resultString += ": " + result.getResultString();
 		mainLog.print("\n" + resultString);
-		
+
 		return result;
 	}
-	
+
 	/**
 	 * Export a strategy. The associated model should be attached to the strategy.
 	 * Strictly, speaking that does not need to be the currently loaded model,
@@ -3269,7 +3273,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (file != null)
 			tmpLog.close();
 	}
-	
+
 	/**
 	 * Generate a random path through the model using the simulator.
 	 * @param modulesFile The model
@@ -3376,16 +3380,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		ProbModelChecker mc;
 		if (model.getModelType() == ModelType.DTMC) {
 			mc = new ProbModelChecker(this, model, null);
-		}
-		else if (model.getModelType() == ModelType.CTMC) {
+		} else if (model.getModelType() == ModelType.CTMC) {
 			mc = new StochModelChecker(this, model, null);
-		}
-		else {
+		} else {
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
 		}
 		return mc.doSteadyState(fileIn);
 	}
-	
+
 	/**
 	 * Compute steady-state probabilities (for a DTMC or CTMC) using the explicit engine.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
@@ -3447,7 +3449,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Print message
 		mainLog.printSeparator();
 		String strTime = currentModelType.continuousTime() ? Double.toString(time) : Integer.toString((int) time);
-			mainLog.println("\nComputing transient probabilities (time = " + strTime + ")...");
+		mainLog.println("\nComputing transient probabilities (time = " + strTime + ")...");
 
 		l = System.currentTimeMillis();
 
@@ -3745,10 +3747,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		StateModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);
 		// Pass any additional local settings
 		// TODO
-		
+
 		return mc;
 	}
-	
+
 	/**
 	 * Utility method to create and initialise an (explicit) model checker based on the current model.
 	 * @param propertiesFile Optional properties file for extra info needed during model checking (can be null)
@@ -3768,10 +3770,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
 		mc.setDoBisim(doBisim);
-		
+
 		return mc;
 	}
-	
+
 	/**
 	 * Either create a new PrismFileLog for {@code file} or,
 	 * if {@code file} is null, return {@code mainLog}.
