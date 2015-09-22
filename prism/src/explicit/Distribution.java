@@ -29,12 +29,14 @@ package explicit;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import prism.PrismException;
+import parser.State;
 import prism.PrismUtils;
-
 /**
  * Explicit representation of a probability distribution.
  * Basically, a mapping from (integer-valued) state indices to (non-zero, double-valued) probabilities. 
@@ -277,4 +279,62 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 	{
 		return map.toString();
 	}
+
+	public Integer sampleFromDistribution() throws PrismException
+	{
+	    double r = Math.random();
+	    Iterator<Entry<Integer, Double>> d = this.iterator();
+	    while(d.hasNext()) {
+		Entry<Integer,Double> kv = d.next();
+		r -= kv.getValue();
+		if(r <= 0.0001) // TODO: only sample to within a certain accuracy
+		    return kv.getKey();
+	    }
+	    throw new PrismException("Distribution invalid.");
+	}
+
+	/**
+	 * Product distribution constructor
+	 **/
+	public Distribution(List<Distribution> distrs, List<State> statesList, State t, double prob, int i, int n)
+	{
+	    this();
+	    productDistribution(distrs, statesList, t, prob, i, n, this);
+	}
+	private void productDistribution(List<Distribution> distrs, List<State> statesList, State t, double prob, int i, int n, Distribution d)
+    {
+	if(i==n) { // no more components to be looked at
+	    for(State r : statesList) { // find the compound state in the list
+		//System.out.printf("LOOKING AT: %s =?= %s\n", r, t);
+		if(r.compareTo(t)==0) {
+		    int t_index = statesList.indexOf(t);
+		    //System.out.printf("ADDED: %s\n", t);
+		    d.add(t_index, prob); // add the state with given probability
+		    break;
+		}
+	    }
+	    //System.out.printf("-----\n");
+	} else { // more components to be looked at
+	    if(i < distrs.size()) { // still more distributions specified
+		if(distrs.get(i) == null) {
+		    State t_copy = new State(t); // shallow copy of the state
+		    productDistribution(distrs, statesList, t_copy, prob, i+1, n, d);
+		} else {
+		    Iterator<Entry<Integer, Double>> iter_i = distrs.get(i).iterator();
+		    while(iter_i.hasNext()) { // go through all successors of the distribution
+			Map.Entry<Integer, Double> e = iter_i.next();
+			State t_copy = new State(t); // shallow copy of the state
+			t_copy.varValues[i] = e.getKey();
+			productDistribution(distrs, statesList, t_copy, prob*e.getValue(), i+1, n, d);
+		    }
+		}
+	    } else { // no more distributions specified - stay in rest of components
+		State t_copy = new State(t); // shallow copy of the state
+		productDistribution(distrs, statesList, t_copy, prob, n, n, d);
+	    }
+	}
+    }
+
+
+
 }

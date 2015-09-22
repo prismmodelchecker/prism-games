@@ -1,0 +1,32 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Electrical Starting, Generation, Conversion and Distribution System Architecture for //
+//     a More Electric Vehicle                                                          //
+//                                                                                      //
+// Modelled after European Patent EP 1 792 379 B1, by Rodney G. Michalko                //
+//                                                                                      //
+// Author: Clemens Wiltsche, University of Oxford, 2014 (clemens.wiltsche@cs.ox.ac.uk)  //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Properties of HVAC left (210a)
+
+const double u_switch_l = 0.9; // guar: upper bound on number of switches
+const double u_fail_l = 0.2; // guar: upper bound on failures
+const double l_buses_l = 0.9; // guar: lower bound on powering the buses
+const double l_i1_l = 0.2; // guar: lower bound on the left side delivering power over I1
+
+// minimise failures
+"safe_210a" : and(R{"fail_l"}<=u_fail_l [ S ])
+
+// minimise switches
+"switch_210a" : and(R{"switches_l"}<=u_switch_l [ S ])
+
+// buses:
+// guarantee that the buses are powered (buses_l)
+"buses_210a" : and(R{"buses_l"}>=l_buses_l [ S ])
+
+// full properties of HVAC left (210a)
+"P210a_switch" : and("safe_210a", "switch_210a", "buses_210a")
+"P210a" : and("safe_210a", "buses_210a")

@@ -40,11 +40,19 @@ public class FindAllVars extends ASTTraverseModify
 {
 	private Vector<String> varIdents;
 	private Vector<Type> varTypes;
+        private boolean noErrorOnVariableNotPresent = false;
 	
 	public FindAllVars(Vector<String> varIdents, Vector<Type> varTypes)
 	{
-		this.varIdents = varIdents;
+	        this.varIdents = varIdents;
 		this.varTypes = varTypes;
+	}
+
+        // if noErrorOnVariableNotPresent is set, no error is thrown if a variable definition is not found
+        public FindAllVars(Vector<String> varIdents, Vector<Type> varTypes, boolean noErrorOnVariableNotPresent)
+	{
+	        this(varIdents, varTypes);
+		this.noErrorOnVariableNotPresent = noErrorOnVariableNotPresent;
 	}
 	
 	// Note that this is done with VisitPost, i.e. after recursively visiting children.
@@ -97,8 +105,16 @@ public class FindAllVars extends ASTTraverseModify
 			e.setIndex(i);
 			return e;
 		}
-		// Otherwise, there is a problem
-		throw new PrismLangException("Unknown variable " + e.getName() + " in ExpressionVar object", e);
+		if(noErrorOnVariableNotPresent) {
+		        // still want to parse things,
+		        // and then later prevent the broken variables to be used in the properties
+		        e.setIndex(i);
+			return e;
+		} else {
+		        // Otherwise, there is a problem
+		        throw new PrismLangException("Unknown variable " + e.getName() + " in ExpressionVar object", e);
+		}
+
 	}
 }
 

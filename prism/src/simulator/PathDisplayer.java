@@ -45,6 +45,8 @@ public abstract class PathDisplayer
 
 	/** Should we show changes in state only, or all steps? (not for snapshot mode) */
 	protected boolean showChangesOnly = true;
+        /** Should we show transition rewards? */
+	protected boolean showTransitionRewards = false;
 	
 	/** Indices of variables to show (null = all) */
 	protected List<Integer> varsToShow = null;
@@ -79,6 +81,13 @@ public abstract class PathDisplayer
 	public boolean getShowChangesOnly()
 	{
 		return showChangesOnly;
+	}
+	/**
+	 * Should we show transition rewards?
+	 */
+        public boolean getShowTransitionRewards()
+	{
+	        return showTransitionRewards;
 	}
 	
 	/**
@@ -125,6 +134,14 @@ public abstract class PathDisplayer
 	}
 
 	/**
+	 * Set whether we show transition rewards.
+	 */
+        public void setShowTransitionRewards(boolean showTransitionRewards)
+	{
+	        this.showTransitionRewards = showTransitionRewards;
+	}
+
+	/**
 	 * Set (indices of) vars to show values of (null = all).
 	 */
 	public void setVarsToShow(List<Integer> varsToShow)
@@ -166,7 +183,7 @@ public abstract class PathDisplayer
 				return;
 			} else {
 				while (timeCumul >= nextTime) {
-					displaySnapshot(nextTime, newStateIndex, newState, newStateRewards);
+				        displaySnapshot(nextTime, transitionRewards, newStateIndex, newState, newStateRewards);
 					nextTime += snapshotTimeStep;
 				}
 			}
@@ -195,7 +212,7 @@ public abstract class PathDisplayer
 	/**
 	 * Displaying a snapshot of a path at a particular time instant.
 	 */
-	public abstract void displaySnapshot(double timeCumul, long newStateIndex, State newState, double[] newStateRewards);
+        public abstract void displaySnapshot(double timeCumul, double[] transitionRewards, long newStateIndex, State newState, double[] newStateRewards);
 
 	/**
 	 * Finish displaying a path.

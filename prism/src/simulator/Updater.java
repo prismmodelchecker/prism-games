@@ -162,7 +162,6 @@ public class Updater extends PrismComponent
 		for (i = 0; i < numModules; i++) {
 			calculateUpdatesForModule(i, state);
 		}
-		//System.out.println("updateLists: " + updateLists);
 
 		// Add independent transitions for each (enabled) module to list
 		for (i = enabledModules[0].nextSetBit(0); i >= 0; i = enabledModules[0].nextSetBit(i + 1)) {

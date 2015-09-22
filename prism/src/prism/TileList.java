@@ -26,8 +26,11 @@
 
 package prism;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import parser.ast.Expression;
 
@@ -37,6 +40,8 @@ import parser.ast.Expression;
  */
 public class TileList
 {
+    protected String name = "Pareto curve";
+
 	/**
 	 * Threshold for approximation of the Pareto curve.
 	 */
@@ -53,6 +58,9 @@ public class TileList
 	{
 		return this.opsAndBoundsList;
 	}
+        protected void setOpsAndBoundsList(OpsAndBoundsList ops) {
+	        this.opsAndBoundsList = ops;
+        }
 
 	/**
 	 * This is where a TileLists are stored to be later retrieved in GUI.
@@ -92,6 +100,35 @@ public class TileList
 		return storedFormulas;
 	}
 
+        public static void addStoredTileList(TileList tileList)
+        {
+	        storedTileLists.add(tileList);
+        }
+
+        public static void addStoredFormulaX(Expression expr)
+        {
+	        storedFormulasX.add(expr);
+	}
+
+        public static void addStoredFormulaY(Expression expr)
+        {
+	        storedFormulasY.add(expr);
+	}
+
+        public static void addStoredFormula(Expression expr)
+        {
+	        storedFormulas.add(expr);
+	}
+
+    public void setName(String name)
+    {
+	this.name = name;
+    }
+    public String getName()
+    {
+	return this.name;
+    }
+
 	/** Removes all stored tile list and associated formulas */
 	public static void clearStoredTileLists()
 	{
@@ -122,6 +159,15 @@ public class TileList
 	 * Dimension of the space, determined from the initial tile.
 	 */
 	protected int dim;
+
+
+
+        public TileList(int dim, OpsAndBoundsList opsAndBounds, double tolerance)
+        {
+	        this.dim = dim;
+		this.opsAndBoundsList = opsAndBounds;
+		this.tolerance = tolerance;
+        }
 
 	/**
 	 * Creates a new instance of the TileList, originally containing only one
@@ -247,14 +293,15 @@ public class TileList
 	 */
 	public List<Point> getPoints()
 	{
-		ArrayList<Point> a = new ArrayList<Point>();
-		for (Tile t : this.list) {
-			for (Point p : t.cornerPoints)
-				if (!a.contains(p))
-					a.add(p);
-		}
-		return a;
+	    ArrayList<Point> a = new ArrayList<Point>();
+	    for (Tile t : this.list) {
+		for (Point p : t.cornerPoints)
+		    if (!a.contains(p))
+			a.add(p);
+	    }
+	    return a;
 	}
+
 
 	/**
 	 * Adds a newly discovered point to this TileList. This basically means that
@@ -263,14 +310,14 @@ public class TileList
 	 */
 	public void addNewPoint(Point point) throws PrismException
 	{
-		//first create the projection to the boundary
-		if (this.currentProjectionIndex < this.dim && point.getCoord(this.currentProjectionIndex) > 0.0) {
-			Point projectionPoint = point.clone();
-			projectionPoint.setCoord(this.currentProjectionIndex, 0.0);
-			splitTilesByPoint(projectionPoint, false);
-		} else {
-			splitTilesByPoint(point, this.currentProjectionIndex == dim);
-		}
+	    //first create the projection to the boundary
+	    if (this.currentProjectionIndex < this.dim && point.getCoord(this.currentProjectionIndex) > 0.0) {
+		Point projectionPoint = point.clone();
+		projectionPoint.setCoord(this.currentProjectionIndex, 0.0);
+		splitTilesByPoint(projectionPoint, false);
+	    } else {
+		splitTilesByPoint(point, this.currentProjectionIndex == dim);
+	    }
 	}
 
 	/**

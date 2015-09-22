@@ -1,0 +1,401 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Electrical Starting, Generation, Conversion and Distribution System Architecture for //
+//     a More Electric Vehicle                                                          //
+//                                                                                      //
+// Modelled after European Patent EP 1 792 379 B1, by Rodney G. Michalko                //
+//                                                                                      //
+// Author: Clemens Wiltsche, University of Oxford, 2014 (clemens.wiltsche@cs.ox.ac.uk)  //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// Model Assumptions:
+// * Game proceeds in rounds: generator status changes then the switch intention changes,
+//       constituting 1 + 1 time steps
+// * Only one contactor switch intention per subsystem may change at any one time
+// * Generators may fail independently, also several at a time
+// ------- // * Once a genrator fails, it cannot be reactivated by the environment
+// * Interfaces:
+//    + The component controlling the connector only switches it on if the component
+//          itself is healthy. There may be a brief interruption until the intention
+//          of switching is put into practice.
+//    + The component receiving a connector status ensures non-paralleling of sources:
+//          if the connector is on, the bus it is connected to must receive power over
+//          the interface, but if the connector is off, it can do as it wishes.
+//    + Together these assumptions imply that power only flows from the controlling
+//          component to the receiving component, i.e. is unidirectional.
+
+smg
+
+// top-level system
+system "MEV"
+	"HVAC_LEFT"
+endsystem
+
+const max_unpowered_time = 2;
+
+// delays
+const gen_time = 1; // every 1 time unit, the generator status is sampled
+
+// connector delay dynamics
+const double d0 = 1.0; // switch immediately
+const double d1 = 0.0; // switch after one time unit
+const double d2 = 1.0 - d0 - d1; // switch after two time units
+
+
+//////////////////////////// HIGH VOLATAGE AC, LEFT (210a) ///////////////////////////////
+
+system "HVAC_LEFT"
+       C1_switch || C2_switch || C3_switch || C4_switch || B2_timer || GEN_LEFT || LEFT
+endsystem
+
+const C1_init = 1;
+const C2_init = 0;
+const C3_init = 1;
+const C4_init = 0;
+
+// switches can only be used if no interface switch has to be turned off
+// in case power is no longer deliverable through the interface
+const C1_id = 1;
+const C2_id = 2;
+const C3_id = 3;
+const C4_id = 4;
+// connector 4 should only be switched on if it can deliver power
+formula conn4_left = (C4_int=1 => ((GL=1 & C1=1 & B1=1 & C3=1 & B2=1) | (AL=1 & C2=1 & B2=1)));
+// if the id of the switch is not 4, check if switch 4 has priority to turn off
+formula switch_safe = (C1_id!=4 => conn4_left);
+
+module C1_switch
+        C1 : [0..1] init C1_init; // connector status for C1
+	C1_int : [0..1] init C1_init; // intention for C1
+	C1_count : [0..2] init 0; // counter for C1 intention to be put into practice
+
+	// change intention to switch off
+	[c1] switch_safe & C1_int!=0 -> d0 : (C1_int'=0) & (C1_count'=0)
+		        + d1 : (C1_int'=0) & (C1_count'=1)
+		        + d2 : (C1_int'=0) & (C1_count'=2);
+	// change intention to switch on
+	[c1] switch_safe & C1_int!=1 -> d0 : (C1_int'=1) & (C1_count'=0)
+		        + d1 : (C1_int'=1) & (C1_count'=1)
+		        + d2 : (C1_int'=1) & (C1_count'=2);
+
+	// decrease count once per round
+	[gen_left] C1_count>0 -> (C1_count'=C1_count-1);
+
+	// count goes to zero - set connector status to intention
+	[gen_left] C1_count=0 -> (C1'=C1_int);
+
+	// cleanup
+	[arrive] true -> (C1'=0) & (C1_int'=0) & (C1_count'=0);
+	[fail_left] true -> (C1'=0) & (C1_int'=0) & (C1_count'=0);
+	[fail_right] true -> (C1'=0) & (C1_int'=0) & (C1_count'=0);
+endmodule
+module C2_switch = C1_switch [C1=C2, C1_int=C2_int, C1_count=C2_count, C1_init=C2_init, C1_id=C2_id,
+                              c1=c2, c2=c3, c3=c4, c4=c1] endmodule
+module C3_switch = C1_switch [C1=C3, C1_int=C3_int, C1_count=C3_count, C1_init=C3_init, C1_id=C3_id,
+                              c1=c3, c2=c4, c3=c1, c4=c2] endmodule
+module C4_switch = C1_switch [C1=C4, C1_int=C4_int, C1_count=C4_count, C1_init=C4_init, C1_id=C4_id,
+                              c1=c4, c2=c1, c3=c2, c4=c3] endmodule
+module B2_timer
+	// timer for critical bus
+	t2 : [0..max_unpowered_time] init 0;
+	
+	// bus unpowered - increase timer
+	[gen_left] bus2=0 -> (t2'=t2+1);
+	// bus powered - reset timer
+	[gen_left] bus2=1 -> (t2'=0);
+
+	// cleanup
+	[arrive] true -> (t2'=0);
+	[fail_left] true -> (t2'=0);
+	[fail_right] true -> (t2'=0);
+endmodule
+
+module GEN_LEFT
+	// generators
+        GL : [0..1] init 1; // 224a
+        AL : [0..1] init 1; // 252a
+
+	[gen_left] true -> (GL'=1) & (AL'=1); // both generators work
+	[gen_left] true -> (GL'=1) & (AL'=0); // AL fails
+	[gen_left] true -> (GL'=0) & (AL'=1); // GL fails
+	[gen_left] true -> (GL'=0) & (AL'=0); // both generators fail
+
+	// cleanup
+	[arrive] true -> (GL'=0) & (AL'=0);
+	[fail_left] true -> (GL'=0) & (AL'=0);
+	[fail_right] true -> (GL'=0) & (AL'=0);
+endmodule
+
+module LEFT
+	// buses - dependent
+	B1 : [0..1] init 1; // 214a-1
+	B2 : [0..1] init 1; // 214a-2
+
+	// players / stages:
+	// 1: player 1 sets connectors --------------------------------------------------------------|
+	// 2: player 2 communicates connector 4 status over interfaces                               |
+	// 3: player 2 sets generator status                                                         | main loop (go to 1 from 5 if all is ok)
+	// 4: player 2 performs tau for normal form                                                  |
+	// 5: player 2 receives communication from other interfaces (not present in this component) -|
+	// 6: failure ---------------------------------| terminals
+	// 7: vehicle arrives at intended destination -|
+	pL : [1..6] init 3;
+
+	// connectors - note, implicitly safe here, so no handling for failures required
+	[nochange!] safe_left & switch_safe & pL=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=2);
+	[c1!] safe_left & pL=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=2);
+	[c2!] safe_left & pL=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=2);
+	[c3!] safe_left & pL=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=2);
+	[c4!] safe_left & pL=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=2);
+
+	// interfaces
+	[c4_on?] safe_left & pL=2 & C4=1 & B1=1 -> (B1'=bus1) & (B2'=bus2) & (pL'=3);
+	[c4_off?] safe_left & pL=2 & (C4=0 | B1=0) -> (B1'=bus1) & (B2'=bus2) & (pL'=3);
+
+	// generators
+	[gen_left?] safe_left & pL=3 -> (B1'=bus1) & (B2'=bus2) & (pL'=5);
+	// failures of other components - can happen independent of this component's failure status
+	[fail_right?] pL=2 -> (B1'=bus1) & (B2'=bus2) & (pL'=6);
+
+	// tau for normal form
+	[tau?] safe_left & pL=5 -> (B1'=bus1) & (B2'=bus2) & (pL'=1);
+
+	// failure
+	[fail_left?] !safe_left & pL=5 -> (B1'=bus1) & (B2'=bus2) & (pL'=6);
+	[term?] pL=6 -> true;
+
+	// vehicle arrives at intended destination
+	[arrive?] safe_left & pL=2 -> (pL'=7) & (B1'=0) & (B2'=0);
+	[term?] pL=7 -> true;
+endmodule
+
+
+// SAFETY SPECIFICATIONS
+
+formula safe_left = time_safe_left & parallel_safe_left;
+
+// safety-critical timing
+formula time_safe_left = time2;
+formula time2 = (t2 <= max_unpowered_time);
+
+// no paralleling of sources
+formula parallel_safe_left = !(C1=1 & C3=1 & C2=1);
+
+// buses
+formula bus1 = (GL=1 & C1=1)
+	       | (B2=1 & AL=1 & C3=1 & C2=1)
+	       //| (B2=1 & C3=1 & C4=1) // power never delivered inside through B4
+	       ? 1 : 0;
+formula bus2 = (B1=1 & GL=1 & C1=1 & C3=1)
+	       | (AL=1 & C2=1)
+	       //| (C4=1) // power never delivered inside through B4
+               ? 1 : 0;
+
+// REWARDS - HVAC LEFT
+
+rewards "c4on"
+	[c4_on] true : gen_time;
+endrewards
+
+rewards "c4off"
+	[c4_off] true : gen_time;
+endrewards
+
+rewards "failures"
+	[fail_left] true : 1;
+endrewards
+
+rewards "arrive"
+	[arrive] true : 1;
+endrewards
+
+rewards "finish"
+	[fail_right] true : 1;
+	[arrive] true : 1;
+endrewards
+
+formula healthy_left = (GL=1 | AL=1);
+rewards "healthy_left"
+	[gen_left] healthy_left : gen_time;
+endrewards
+rewards "unhealthy_left"
+	[gen_left] !healthy_left : 1;
+endrewards
+
+const double lambda1 = 0;
+rewards "r1"
+	[gen_left] healthy_left : -gen_time - lambda1*gen_time;
+	[gen_left] !healthy_left : -lambda1*gen_time;
+endrewards
+
+const double lambda2 = -1;
+rewards "r2"
+	[fail_left] true : 1;
+	[gen_left] true : -lambda2*gen_time;
+endrewards
+
+rewards "switches_left"
+	[c1] true : 1;
+	[c2] true : 1;
+	[c3] true : 1;
+	[c4] true : 1;
+endrewards
+
+rewards "time"
+	[gen_left] true : gen_time;
+endrewards
+
+
+//////////////////////////// HIGH VOLATAGE AC, RIGHT (210b) ///////////////////////////////
+
+
+system "HVAC_RIGHT"
+       C5_switch || C6_switch || C7_switch || GEN_RIGHT || RIGHT || C4_RIGHT
+endsystem
+
+const C5_init = 1;
+const C6_init = 0;
+const C7_init = 1;
+
+module C5_switch = C1_switch [C1=C5, C1_int=C5_int, C1_count=C5_count, C1_init=C5_init, c1=c5, c2=c6, c3=c7, c1_nochange=c5_nochange, c2_nochange=c5_nochange, c3_nochange=c5_nochange, gen_left=gen_right] endmodule
+module C6_switch = C1_switch [C1=C6, C1_int=C6_int, C1_count=C6_count, C1_init=C6_init, c1=c6, c2=c7, c3=c5, c1_nochange=c6_nochange, c2_nochange=c6_nochange, c3_nochange=c6_nochange, gen_left=gen_right] endmodule
+module C7_switch = C1_switch [C1=C7, C1_int=C7_int, C1_count=C7_count, C1_init=C7_init, c1=c7, c2=c5, c3=c6, c1_nochange=c7_nochange, c2_nochange=c7_nochange, c3_nochange=c7_nochange, gen_left=gen_right] endmodule
+
+//module B4_timer
+	// timer for critical bus
+//	t4 : [0..max_unpowered_time] init 0;
+
+	// bus unpowered - increase timer
+//	[gen_right] bus4=0 -> (t4'=t4+1);
+	// bus powered - reset timer
+//	[gen_right] bus4=1 -> (t4'=0);
+
+	// cleanup
+//	[arrive] true -> (t4'=0);
+//	[failure] true -> (t4'=0);
+//endmodule
+
+module GEN_RIGHT
+	// generators
+        GR : [0..1] init 1; // 224b
+        AR : [0..1] init 1; // 252b
+
+	[gen_right] true -> (GR'=1) & (AR'=1); // both generators work
+	[gen_right] true -> (GR'=1) & (AR'=0); // AR fails
+	[gen_right] true -> (GR'=0) & (AR'=1); // GR fails
+	[gen_right] true -> (GR'=0) & (AR'=0); // both generators fail
+
+	// cleanup
+	[arrive] true -> (GR'=0) & (AR'=0);
+	[failure] true -> (GR'=0) & (AR'=0);
+endmodule
+
+
+module RIGHT
+	// buses - dependent
+	B3 : [0..1] init 1; // 214b-1
+	B4 : [0..1] init 1; // 214b-2
+
+	// players
+	pR : [1..5] init 2;
+
+	// right side sees connector 4 as an environment variable
+	[c4_on?] safe_right & pR=2 -> (B3'=bus3) & (B4'=bus4) & (pR'=3);
+	[c4_off?] safe_right & pR=2 -> (B3'=bus3) & (B4'=bus4) & (pR'=3);
+
+	// for normal form
+	[tau?] safe_right & pR=3 -> (B3'=bus3) & (B4'=bus4) & (pR'=1);
+
+	[c5!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+	[c5_nochange!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+	[c6!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+	[c6_nochange!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+	[c7!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+	[c7_nochange!] safe_right & pR=1 -> (B3'=bus3) & (B4'=bus4) & (pR'=2);
+
+	[gen_right?] safe_right & pR=2 -> (B3'=bus3) & (B4'=bus4) & (pR'=3);
+
+	// vehicle arrives
+	[arrive?] safe_right & pR=2 -> (pR'=5) & (B3'=0) & (B4'=0);
+	[term?] pR=5 -> true;
+
+	// fixing deadlock
+	[end_right!] !safe_right & pR=1 -> (pR'=2); // necessarily leads to failure
+	[failure?] !safe_right & (pR=2 | pR=3) -> (pR'=4) &(B3'=0) & (B4'=0);
+	[term?] pR=4 -> true;
+
+endmodule
+
+module C4_RIGHT
+	// uncontrolled connector
+	C4_right : [0..1] init 0; 
+
+	[c4_on] true -> (C4_right'=1);
+	[c4_off] true -> (C4_right'=0);
+
+	// cleanup
+	[arrive] true -> (C4_right'=0);
+	[failure] true -> (C4_right'=0);
+endmodule
+
+// SAFETY SPECIFICATIONS
+
+formula safe_right = time_safe_right & parallel_safe_right;
+
+// safety-critical timing
+formula time_safe_right = time4;
+formula time4 = true; //(t4 <= max_unpowered_time);
+
+// no paralleling of sources
+formula parallel_safe_right = parallel3 & parallel4;
+formula parallel3 = !(C4_right=1 & C5=1);
+formula parallel4 = !(C4_right=1 & C7=1 & C6=1) & !(C5=1 & C7=1 & C6=1);
+
+// buses
+formula bus3 = (C4_right=1) |
+	       (AR=1 & C5=1) |
+	       (B4=1 & GR=1 & C7=1 & C6=1) ? 1 : 0;
+formula bus4 = (GR=1 & C6=1) |
+	       (B3=1 & C4_right=1 & C7=1) |
+	       (B3=1 & AR=1 & C5=1 & C7=1) ? 1 : 0;
+
+// connector 4 only on if powered
+//formula conn4_left = (C4_left=1 => ((GL=1 & C1=1 & B1=1 & C3=1 & B2=1) | (AL=1 & C2=1 & B2=1)));
+//formula conn4_right = (C4_right=1 => ((GL=1 & C1=1 & B1=1 & C3=1 & B2=1) | (AL=1 & C2=1 & B2=1)));
+
+
+// REWARDS - HVAC RIGHT
+
+//rewards "c4on_right"
+//	[gen_right] C4_right=1 : gen_time;
+//	[c4_on] true : gen_time;
+//endrewards
+
+//formula healthy_right = (GR=1 | AR=1);
+//rewards "healthy_right"
+//	[gen_right] healthy_right : gen_time;
+//	[c4_on] healthy_right : c_time;
+//	[c4_off] healthy_right : c_time;
+//endrewards
+
+//rewards "switches_right"
+//	[c5] true : 1;
+//	[c6] true : 1;
+//	[c7] true : 1;
+//endrewards
+
+//rewards "time_right"
+//	[gen_right] true : gen_time;
+//endrewards
+
+
+// LABELS FOR SIMULATION
+label "parallel_safe_left" = parallel_safe_left;
+label "time_safe_left" = time_safe_left;
+label "safe_left" = safe_left;
+label "healthy_left" = healthy_left;
+//label "parallel_safe_right" = parallel_safe_right;
+//label "time_safe_right" = time_safe_right;
+//label "safe_right" = safe_right;
+

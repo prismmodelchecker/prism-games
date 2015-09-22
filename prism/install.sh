@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Installation of a compiled PRISM distribution
-# All this does is edit the "PRISM_DIR=..." lines in the program startup scripts
+# All this does is edit the "PRISM_DIR=..." and "PPL_DIR=..." lines in the program startup scripts
 # so if you have any problems, just do this manually
 # NB: This installation script should be run from within the PRISM directory
 
@@ -11,6 +11,8 @@ PRISM_DIR=`pwd`
 if [ `basename "$PRISM_DIR"` = bin ]; then
   PRISM_DIR=`cd ..;pwd`
 fi
+
+echo $2
 
 # Now start the 'installation'
 if [ ! "$1" = "silent" ] ; then
@@ -24,7 +26,7 @@ do
     if [ ! "$1" = "silent" ] ; then
         echo "Setting path in startup script $PRISM_DIR/$FILE_TO_CHANGE..."
     fi
-    if sed -e "s|PRISM_DIR=.*|PRISM_DIR=\"$PRISM_DIR\"|g" "$PRISM_DIR"/$FILE_TO_CHANGE > "$PRISM_DIR"/$TEMP_FILE ; then
+    if sed -e "s|PRISM_DIR=.*|PRISM_DIR=\"$PRISM_DIR\"|g;s|PPL_DIR=.*|PPL_DIR=\"$2\"|g" "$PRISM_DIR"/$FILE_TO_CHANGE > "$PRISM_DIR"/$TEMP_FILE ; then
       /bin/mv "$PRISM_DIR"/$TEMP_FILE "$PRISM_DIR"/$FILE_TO_CHANGE
       chmod 755 "$PRISM_DIR"/$FILE_TO_CHANGE
     else

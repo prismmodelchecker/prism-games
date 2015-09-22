@@ -38,6 +38,7 @@ import parser.type.Type;
 import parser.visitor.ASTVisitor;
 import prism.ModelType;
 import prism.PrismLangException;
+import prism.PrismException;
 import prism.PrismUtils;
 
 // Class representing parsed model file
@@ -237,6 +238,11 @@ public class ModulesFile extends ASTElement
 		players.add(p);
 	}
 
+	public void addPlayer(int index, Player p)
+	{
+		players.add(index, p);
+	}
+
 	/**
 	 * (Re)set the {@code i}th "player" definition.
 	 */
@@ -337,7 +343,25 @@ public class ModulesFile extends ASTElement
 		}
 		return systemDefns.get(0);
 	}
-	
+
+	/**
+	 * Get the name of the default "system...endsystem" construct for this model, if it exists.
+	 * If there is an un-named "system...endsystem" (there can be at most one),
+	 * null is returned. If not, the first (named) one is taken as the default.
+	 * If there are no "system...endsystem" constructs, this method returns null.
+	 */
+	public String getSystemDefnName()
+	{
+		int n = systemDefns.size();
+		if (n == 0)
+			return null;
+		for (int i = 0; i < n; i++) {
+			if (systemDefnNames.get(i) == null)
+				return null;
+		}
+		return systemDefnNames.get(0);
+	}
+
 	/**
 	 * Get the number of "system...endsystem" constructs for this model.
 	 */
@@ -372,7 +396,7 @@ public class ModulesFile extends ASTElement
 	{
 		int n = systemDefns.size();
 		for (int i = 0; i < n; i++) {
-			String s = systemDefnNames.get(i); 
+			String s = systemDefnNames.get(i);
 			if ((s == null && name == null) || (s != null && s.equals(name)))
 				return i;
 		}
@@ -666,6 +690,13 @@ public class ModulesFile extends ASTElement
 		// Perform module renaming
 		sortRenamings();
 
+		// sort modules - depends on module renaming
+		try {
+			sortModules();
+		} catch (PrismException e) {
+			throw new PrismLangException(e.getMessage());
+		}
+
 		// Check label identifiers
 		checkLabelIdents();
 
@@ -694,7 +725,7 @@ public class ModulesFile extends ASTElement
 
 		// Check "system...endsystem" constructs
 		checkSystemDefns();
-		
+
 		// Get synchronising action names
 		// (NB: Do this *after* checking for cycles in system defns above)
 		getSynchNames();
@@ -711,11 +742,10 @@ public class ModulesFile extends ASTElement
 
 		// If there are no undefined constants, set up values for constants
 		// (to avoid need for a later call to setUndefinedConstants).
-		// NB: Can't call setUndefinedConstants if there are undefined constants
-		// because semanticCheckAfterConstants may fail. 
-		if (getUndefinedConstants().isEmpty()) {
+		// If there are undefined constants, the semanticCheckAfterConstants will fail,
+		// but report the appropriate exception.
+		if (getUndefinedConstants().isEmpty())
 			setUndefinedConstants(null);
-		}
 	}
 
 	// Check formula identifiers
@@ -767,13 +797,12 @@ public class ModulesFile extends ASTElement
 			for (i2 = 0; i2 < n2; i2++) {
 				s = module.getOldName(i2);
 				if (!renamedSoFar.add(s)) {
-					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \""
-							+ module.getName() + "\"", module.getOldNameASTElement(i2));
+					throw new PrismLangException("Identifier \"" + s + "\" is renamed more than once in module \"" + module.getName() + "\"",
+							module.getOldNameASTElement(i2));
 				}
 				if (formulaList.getFormulaIndex(s) != -1) {
-					throw new PrismLangException("Formula \"" + s
-							+ "\" cannot be renamed since formulas are expanded before module renaming", module
-							.getOldNameASTElement(i2));
+					throw new PrismLangException("Formula \"" + s + "\" cannot be renamed since formulas are expanded before module renaming",
+							module.getOldNameASTElement(i2));
 				}
 			}
 			// Then rename (a copy of) base module and replace
@@ -807,6 +836,60 @@ public class ModulesFile extends ASTElement
 		}
 	}
 
+	// sort modules by their appearance in system ... endsystem constructs
+	private void sortModules() throws PrismException
+	{
+		SystemDefn sys = getSystemDefn();
+		// only relevant if system ... endsystem construct present
+		if (sys == null)
+			return;
+		// de-bracket
+		while (sys instanceof SystemBrackets) {
+			sys = ((SystemBrackets) sys).getOperand();
+		}
+
+		ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
+		extractSubsystemRefs(sys, sysRefs);
+
+		// Extract modules in each subsystem ...
+		int numComps = sysRefs.size();
+		ArrayList<List<String>> moduleNameLists = new ArrayList<List<String>>();
+		for (int i = 0; i < numComps; i++) {
+			SystemDefn subsys = getSystemDefnByName(sysRefs.get(i).getName());
+			if (subsys == null) {
+				throw new PrismException("Unknown system reference" + sysRefs.get(i));
+			}
+			ArrayList<String> moduleNames = new ArrayList<String>();
+			extractSubsystemModuleNames(subsys, moduleNames);
+			moduleNameLists.add(moduleNames);
+		}
+		// moduleNameLists now contains the module names in order
+
+		// ... to add them in order
+		Vector<Object> sorted_modules = new Vector<Object>();
+		for (int i = 0; i < numComps; i++) {
+			// this.modules contains the modules objects
+			// this.modulesNames contain the module Names ... gets sorted afterwards in tidyUp using checkModuleNames
+			for (int j = 0; j < moduleNameLists.get(i).size(); j++) {
+				int moduleIndex = getModuleIndex(moduleNameLists.get(i).get(j));
+				if (moduleIndex < 0)
+					throw new PrismException("Unknown module " + moduleNameLists.get(i).get(j));
+				sorted_modules.add(getModule(moduleIndex));
+			}
+
+		}
+
+		// add modules that are not in system ... endsystem in arbitrary order now
+		Vector<Object> new_modules = new Vector<Object>(sorted_modules);
+		for (Object m : this.modules) {
+			if (!sorted_modules.contains(m)) {
+				new_modules.add(m);
+			}
+		}
+
+		this.modules = new_modules;
+	}
+
 	// check module names
 
 	private void checkModuleNames() throws PrismLangException
@@ -827,8 +910,7 @@ public class ModulesFile extends ASTElement
 			s = getModule(i).getName();
 			for (j = 0; j < i; j++) {
 				if (s.equals(moduleNames[j])) {
-					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i)
-							.getNameASTElement());
+					throw new PrismLangException("Duplicated module name \"" + s + "\"", getModule(i).getNameASTElement());
 				}
 			}
 			moduleNames[i] = s;
@@ -877,8 +959,7 @@ public class ModulesFile extends ASTElement
 		for (i = 0; i < n; i++) {
 			s = constantList.getConstantName(i);
 			if (isIdentUsed(s)) {
-				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList
-						.getConstantNameIdent(i));
+				throw new PrismLangException("Duplicated identifier \"" + s + "\"", constantList.getConstantNameIdent(i));
 			} else {
 				constantIdents.add(s);
 			}
@@ -961,23 +1042,19 @@ public class ModulesFile extends ASTElement
 			for (String m : player.getModules()) {
 				// Check existing
 				if (getModuleIndex(m) == -1)
-					throw new PrismLangException("Module name \"" + m + "\" in player definition \"" + player.getName()
-							+ "\" does not exist", player);
+					throw new PrismLangException("Module name \"" + m + "\" in player definition \"" + player.getName() + "\" does not exist", player);
 				// Check for dupes
 				if (modulesUsed.contains(m))
-					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player definitions",
-							player);
+					throw new PrismLangException("Module name \"" + m + "\" appears in multiple player definitions", player);
 				modulesUsed.add(m);
 			}
 			for (String a : player.getActions()) {
 				// Check existing
 				if (!isSynch(a))
-					throw new PrismLangException("Action name \"" + a + "\" in player definition \"" + player.getName()
-							+ "\" does not exist", player);
+					throw new PrismLangException("Action name \"" + a + "\" in player definition \"" + player.getName() + "\" does not exist", player);
 				// Check for dupes
 				if (actionsUsed.contains(a))
-					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player definitions",
-							player);
+					throw new PrismLangException("Action name \"" + a + "\" appears in multiple player definitions", player);
 				actionsUsed.add(a);
 			}
 		}
@@ -989,9 +1066,9 @@ public class ModulesFile extends ASTElement
 	private void checkSystemDefns() throws PrismLangException
 	{
 		int n = systemDefns.size();
-		
+
 		// Check there is a most one un-named system...endsystem...
-		
+
 		// None is ok
 		if (n == 0)
 			return;
@@ -1000,7 +1077,7 @@ public class ModulesFile extends ASTElement
 		int numUnnamed = 0;
 		HashSet<String> names = new HashSet<String>();
 		for (int i = 0; i < n; i++) {
-			String s = systemDefnNames.get(i); 
+			String s = systemDefnNames.get(i);
 			if (s == null) {
 				numUnnamed++;
 			} else {
@@ -1012,7 +1089,7 @@ public class ModulesFile extends ASTElement
 		}
 
 		// Check for cyclic dependencies...
-		
+
 		// Create boolean matrix of dependencies
 		// (matrix[i][j] is true if prop i contains a ref to prop j)
 		boolean matrix[][] = new boolean[n][n];
@@ -1034,7 +1111,7 @@ public class ModulesFile extends ASTElement
 			throw new PrismLangException(s, getSystemDefn(firstCycle));
 		}
 	}
-	
+
 	/**
 	 * Get  a list of constants in the model that are undefined
 	 * ("const int x;" rather than "const int x = 1;") 
@@ -1193,9 +1270,14 @@ public class ModulesFile extends ASTElement
 	/**
 	 * Recompute all information about variables.
 	 * More precisely... TODO
-	 * Note: This does not re-compute the list of all identifiers used. 
+	 * Note: This does not re-compute the list of all identifiers used,
 	 */
 	public void recomputeVariableinformation() throws PrismLangException
+	{
+		recomputeVariableinformation(false);
+	}
+
+	public void recomputeVariableinformation(boolean noErrorOnVariableNotPresent) throws PrismLangException
 	{
 		int i, n;
 
@@ -1220,7 +1302,7 @@ public class ModulesFile extends ASTElement
 		}
 		// Find all instances of variables, replace identifiers with variables.
 		// Also check variables valid, store indices, etc.
-		findAllVars(varNames, varTypes);
+		findAllVars(varNames, varTypes, noErrorOnVariableNotPresent);
 	}
 
 	/**
@@ -1310,6 +1392,20 @@ public class ModulesFile extends ASTElement
 	@SuppressWarnings("unchecked")
 	public ASTElement deepCopy()
 	{
+		try {
+			return deepCopy(null);
+		} catch (PrismLangException e) {
+			// never occurs since null is passed to deepCopy
+			return null;
+		}
+	}
+
+	/**
+	* If modulesToAdd is null, then this is a standard deep copy,
+	* otherwise, the modules in modulesToAdd are selected.
+	**/
+	public ASTElement deepCopy(List<String> modulesToAdd) throws PrismLangException
+	{
 		int i, n;
 		ModulesFile ret = new ModulesFile();
 
@@ -1326,12 +1422,23 @@ public class ModulesFile extends ASTElement
 			ret.addGlobal((Declaration) getGlobal(i).deepCopy());
 		}
 		n = getNumModules();
-		for (i = 0; i < n; i++) {
-			ret.addModule((Module) getModule(i).deepCopy());
+		if (modulesToAdd == null) {
+			for (i = 0; i < n; i++) {
+				ret.addModule((Module) getModule(i).deepCopy());
+			}
+		} else {
+			for (String moduleName : modulesToAdd) {
+				int moduleIndex = getModuleIndex(moduleName);
+				if (moduleIndex == -1)
+					throw new PrismLangException("No module " + moduleName + " is present");
+				ret.addModule((Module) getModule(moduleIndex).deepCopy());
+			}
 		}
-		n = getNumSystemDefns();
-		for (i = 0; i < n; i++) {
-			ret.addSystemDefn(getSystemDefn(i).deepCopy(), getSystemDefnName(i));
+		if (modulesToAdd == null) {
+			n = getNumSystemDefns();
+			for (i = 0; i < n; i++) {
+				ret.addSystemDefn(getSystemDefn(i).deepCopy(), getSystemDefnName(i));
+			}
 		}
 		n = getNumRewardStructs();
 		for (i = 0; i < n; i++) {
@@ -1339,13 +1446,41 @@ public class ModulesFile extends ASTElement
 		}
 		if (initStates != null)
 			ret.setInitialStates(initStates.deepCopy());
-		for (Player player : players)
-			ret.addPlayer(player.deepCopy());
+		if (modulesToAdd == null) { // the default if noncompositional
+			for (Player player : players)
+				ret.addPlayer(player.deepCopy());
+		} else {
+			// outputs are player 1
+			Player p1 = new Player("output");
+			ret.addPlayer(p1);
+			// inputs are player 2
+			Player p2 = new Player("input");
+			ret.addPlayer(p2);
+			for (String moduleName : modulesToAdd) {
+				int moduleIndex = getModuleIndex(moduleName);
+				// adding output actions (ignore copies between modules)
+				for (String out : getModule(moduleIndex).getAllOutputActions())
+					if (!p1.getActions().contains(out))
+						p1.addAction(out);
+				// adding input actions (ignore copies between modules)
+				for (String in : getModule(moduleIndex).getAllInputActions())
+					if (!p2.getActions().contains(in))
+						p2.addAction(in);
+			}
+		}
 		// Copy other (generated) info
 		ret.formulaIdents = (formulaIdents == null) ? null : (Vector<String>) formulaIdents.clone();
 		ret.constantIdents = (constantIdents == null) ? null : (Vector<String>) constantIdents.clone();
 		ret.varIdents = (varIdents == null) ? null : (Vector<String>) varIdents.clone();
-		ret.moduleNames = (moduleNames == null) ? null : moduleNames.clone();
+		if (modulesToAdd == null) {
+			ret.moduleNames = (moduleNames == null) ? null : moduleNames.clone();
+		} else {
+			if (moduleNames != null) {
+				ret.moduleNames = modulesToAdd.toArray(new String[0]);
+			} else {
+				ret.moduleNames = null;
+			}
+		}
 		ret.synchs = (synchs == null) ? null : (Vector<String>) synchs.clone();
 		if (varDecls != null) {
 			ret.varDecls = new Vector<Declaration>();
@@ -1356,8 +1491,76 @@ public class ModulesFile extends ASTElement
 		ret.varTypes = (varTypes == null) ? null : (Vector<Type>) varTypes.clone();
 		ret.constantValues = (constantValues == null) ? null : new Values(constantValues);
 
+		if (modulesToAdd != null)
+			// no error if variable is not present, since we selected only a subset of modules,
+			// the real check was done before anyway on the full modules file
+			ret.recomputeVariableinformation(true);
+
 		return ret;
 	}
+
+	/**
+	 * Extract the top-level system references from a SystemFullParallel
+	 **/
+	public static void extractSubsystemRefs(SystemDefn sysPar, List<SystemReference> sysRefs) throws PrismException
+	{
+		if (sysPar instanceof SystemFullParallel) {
+			int n = ((SystemFullParallel) sysPar).getNumOperands();
+			for (int i = 0; i < n; i++) {
+				if (((SystemFullParallel) sysPar).getOperand(i) instanceof SystemReference) {
+					sysRefs.add((SystemReference) ((SystemFullParallel) sysPar).getOperand(i));
+				} else {
+					throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems");
+				}
+			}
+		} else if (sysPar instanceof SystemReference) {
+			sysRefs.add((SystemReference) sysPar);
+		} else {
+			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems");
+		}
+	}
+
+	/**
+	 * Extract the top-level system references from a SystemParallel
+	 **/
+	public static void extractSubsystemRefs(SystemParallel sysPar, List<SystemReference> sysRefs) throws PrismException
+	{
+		// Operand 1
+		if (sysPar.getOperand1() instanceof SystemReference) {
+			sysRefs.add((SystemReference) sysPar.getOperand1());
+		} else if (sysPar.getOperand1() instanceof SystemParallel) {
+			extractSubsystemRefs((SystemParallel) sysPar.getOperand1(), sysRefs);
+		} else {
+			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
+		}
+		// Operand 2
+		if (sysPar.getOperand2() instanceof SystemReference) {
+			sysRefs.add((SystemReference) sysPar.getOperand2());
+		} else if (sysPar.getOperand2() instanceof SystemParallel) {
+			extractSubsystemRefs((SystemParallel) sysPar.getOperand2(), sysRefs);
+		} else {
+			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
+		}
+	}
+
+	/**
+	 * Extract the modules from the SystemDefn for a component
+	 **/
+	public static void extractSubsystemModuleNames(SystemDefn sys, ArrayList<String> moduleNames) throws PrismException
+	{
+		if (sys instanceof SystemModule) {
+			moduleNames.add(((SystemModule) sys).getName());
+		} else if (sys instanceof SystemFullParallel) {
+			SystemFullParallel sysPar = (SystemFullParallel) sys;
+			int n = sysPar.getNumOperands();
+			for (int i = 0; i < n; i++) {
+				extractSubsystemModuleNames(sysPar.getOperand(i), moduleNames);
+			}
+		} else {
+			throw new PrismException("For compositional analysis, each subsystem should be a parallel composition of modules");
+		}
+	}
+
 }
 
 // ------------------------------------------------------------------------------

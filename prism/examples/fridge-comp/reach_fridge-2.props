@@ -1,0 +1,32 @@
+// objective parameters
+const double va0 = 2.0; // accept offers of trader 0
+const double va1 = 2.0; // accept offers of trader 1
+const double vq0 = 2.0; // quality of offers of trader 0
+const double vq1 = 2.0; // quality of offers of trader 1
+const double vn = 1.0; // quantity of milk obtained by fridge
+const double vm0 = 0.2; // money obtained by trader 0
+const double vm1 = 0.2; // money obtained by trader 1
+const double vo0 = 3.5; // trader 0 offers count
+const double vo1 = 3.5; // trader 1 offers count
+
+// compositional property: index 1
+comp(
+	and(60, 300,
+		or(R{"offers0"}<vo0 [ C ], R{"accept0"}>=va0 [ C ]),
+		or(R{"offers1"}<vo1 [ C ], R{"accept1"}>=va1 [ C ]),
+		or(R{"quality0"}<vq0 [ C ], R{"quality1"}<vq1 [ C ], R{"quantity"}>=vn [ C ])),
+	and(400, 20,
+		or(R{"accept0"}<va0 [ C ], R{"quality0"}>=vq0 [ C ]),
+		or(R{"accept0"}<va0 [ C ], R{"money0"}>=vm0 [ C ])),
+	and(400, 20,
+		or(R{"accept1"}<va1 [ C ], R{"quality1"}>=vq1 [ C ]),
+		or(R{"accept1"}<va1 [ C ], R{"money1"}>=vm1 [ C ])
+	)
+)
+
+// monolithic property: index 2
+and(100, 100, 
+	or(R{"offers0"}>=vo0 [ C ], R{"money0"}>=vm0 [ C ]),
+	or(R{"offers1"}>=vo1 [ C ], R{"money1"}>=vm1 [ C ]),
+	or(R{"offers0"}>=vo0 [ C ], R{"offers1"}>=vo1 [ C ], R{"quantity"}>=vn [ C ])
+)

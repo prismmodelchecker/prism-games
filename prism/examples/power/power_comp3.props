@@ -1,0 +1,30 @@
+const double h = 0;
+const double f = 0;
+const double s = 0;
+
+impl(R{"healthy_left"}/{"time"}>=0 [ C ], R{"failures"}/{"time"}<=0 [ C ])
+
+and(R{"healthy_left"}/{"time"}<=0.99 [ C ])
+
+impl(R{"healthy_left"}/{"time"}>=h [ C ], and(R{"failures"}/{"time"}<=f [ C ], R{"switches_left"}/{"time"}<=s [ C ]))
+
+and(R{"failures"}/{"time"}<=0 [ C ], R{"switches_left"}/{"time"}<=0 [ C ])
+
+impl(and(R{"c4on"}/{"time"}>=0 [ C ], R{"healthy_left"}/{"time"}>=0 [ C ]), R{"failures"}/{"time"}<=0 [ C ])
+
+impl(R{"healthy_left"}/{"time"}>=0 [ C ], R{"c4on"}/{"time"}>=0 [ C ])
+
+impl(and(R{"healthy_left"}/{"time"}>=0 [ C ], R{"finish"}/{"time"}<=0 [ C ]), R{"c4on"}/{"time"}>=0 [ C ])
+
+or(R{"healthy_left"}/{"time"}<=0 [ C ], R{"failures"}/{"time"}<=0 [ C ])
+
+impl(R{"healthy_left"}/{"time"}>=0 [ C ], R{"c4on"}/{"c4off"}>=0 [ C ])
+
+or(R{"r1"}<=0.0 [ S ], R{"r2"}<=0.0 [ S ])
+
+and(R{"r1"}>0.0 [ S ])
+
+and(R{"failures"}/{"time"}<=0.26 [ C ])
+
+and(R{"r2"}<0.0 [ S ])
+

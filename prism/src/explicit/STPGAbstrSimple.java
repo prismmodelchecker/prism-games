@@ -1172,6 +1172,13 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 
 	}
 
+	@Override
+	public boolean deadlocksAllowed()
+	{
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
 	/**
 	 * Calls default method without discount
 	 */

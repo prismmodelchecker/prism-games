@@ -27,12 +27,15 @@
 package simulator;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import parser.State;
 import parser.ast.ModulesFile;
 import prism.PrismException;
 import prism.PrismLog;
 import userinterface.graph.Graph;
+import explicit.Model;
+import explicit.STPG;
 
 /**
  * Stores and manipulates a path though a model. The full path is stored, i.e.
@@ -42,6 +45,7 @@ public class PathFull extends Path implements PathFullInfo
 {
 	// Model to which the path corresponds
 	private ModulesFile modulesFile;
+        private explicit.Model model;
 	// Does model use continuous time?
 	private boolean continuousTime;
 	// Model info/stats
@@ -58,10 +62,12 @@ public class PathFull extends Path implements PathFullInfo
 	/**
 	 * Constructor: creates a new (empty) PathFull object for a specific model.
 	 */
-	public PathFull(ModulesFile modulesFile)
+
+    public PathFull(ModulesFile modulesFile)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
+		this.model = null;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		numRewardStructs = modulesFile.getNumRewardStructs();
 		// Create list to store path
@@ -70,6 +76,24 @@ public class PathFull extends Path implements PathFullInfo
 		clear();
 		// Create loop detector
 		loopDet = new LoopDetector();
+	}
+	/**
+	 * Constructor: creates a new (empty) PathFull object for a specific model.
+	 */
+    public PathFull(ModulesFile modulesFile, explicit.Model model)
+	{
+		// Store model and info
+		this.modulesFile = modulesFile;
+	        this.model = model;
+		continuousTime = modulesFile.getModelType().continuousTime();
+		numRewardStructs = modulesFile.getNumRewardStructs();
+		// Create list to store path
+		steps = new ArrayList<Step>(100);
+		// Initialise variables
+		clear();
+		// Create loop detector
+		loopDet = new LoopDetector();
+		loopDet.setBasedOnValues(false);
 	}
 
 	/**
@@ -91,7 +115,7 @@ public class PathFull extends Path implements PathFullInfo
 		Step step = new Step();
 		steps.add(step);
 		// Add (copies of) initial state and state rewards to new step
-		step.state = new State(initialState);
+		step.state = model==null ? new State(initialState) : initialState;
 		step.stateRewards = initialStateRewards.clone();
 		// Set cumulative time/reward (up until entering this state)
 		step.timeCumul = 0.0;
@@ -111,6 +135,7 @@ public class PathFull extends Path implements PathFullInfo
 
 	public void initialiseStrat(Object stratState)
 	{
+	    if(steps.size() >= 1)
 		steps.get(steps.size() - 1).stratState = stratState;
 	}
 
@@ -125,7 +150,7 @@ public class PathFull extends Path implements PathFullInfo
 	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
 			TransitionList transitionList, Object stratState)
 	{
-		addStep(0.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList, stratState);
+		addStep(1.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList, stratState);
 	}
 
 	@Override
@@ -144,7 +169,7 @@ public class PathFull extends Path implements PathFullInfo
 		stepNew = new Step();
 		steps.add(stepNew);
 		// Add (copies of) new state and state rewards to new step
-		stepNew.state = new State(newState);
+		stepNew.state = model==null ? new State(newState) : newState;
 		stepNew.stateRewards = newStateRewards.clone();
 		// Set cumulative time/rewards (up until entering this state)
 		stepNew.timeCumul = stepOld.timeCumul + time;
@@ -163,10 +188,9 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	// Overloaded version including strategy state
-	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState,
-			double[] newStateRewards, TransitionList transitionList, Object stratState)
+    public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList, Object stratState)
 	{
-		addStep(time, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
+	    addStep(time, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
 		steps.get(steps.size() - 1).stratState = stratState;
 	}
 
@@ -254,13 +278,17 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public State getPreviousState()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).state;
+	    return null;
 	}
 
 	@Override
 	public State getCurrentState()
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).state;
+	    return null;
 	}
 
 	@Override
@@ -278,7 +306,7 @@ public class PathFull extends Path implements PathFullInfo
 		else if (i > 0)
 			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
 		else
-			return "?";
+		    return "\u03c4"; // TAU
 	}
 
 	@Override
@@ -290,55 +318,73 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public double getTotalTime()
 	{
+	    if(steps.size() >= 1)
 		return size < 1 ? 0.0 : steps.get(steps.size() - 1).timeCumul;
+	    return 0.0;
 	}
 
 	@Override
 	public double getTimeInPreviousState()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).time;
+	    return 0.0;
 	}
 
 	@Override
 	public double getTotalCumulativeReward(int rsi)
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).rewardsCumul[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double getPreviousStateReward(int rsi)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).stateRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousStateRewards()
-	{
+        {
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).stateRewards;
+	    return null;
 	}
 
 	@Override
 	public double getPreviousTransitionReward(int rsi)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousTransitionRewards()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards;
+	    return null;
 	}
 
 	@Override
 	public double getCurrentStateReward(int rsi)
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getCurrentStateRewards()
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards;
+	    return null;
 	}
 
 	@Override
@@ -468,7 +514,7 @@ public class PathFull extends Path implements PathFullInfo
 		else if (i > 0)
 			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
 		else
-			return "?";
+		    return "\u03c4"; // TAU
 	}
 
 	/**
@@ -477,7 +523,9 @@ public class PathFull extends Path implements PathFullInfo
 	 */
 	public double getProbability(int step)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).probability;
+	    return 0.0;
 	}
 
 	/**

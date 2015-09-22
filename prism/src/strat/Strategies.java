@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
+import prism.PrismException;
+
 /**
  * Class contains methods to work with strategies
  * 
@@ -12,10 +14,12 @@ import java.util.Scanner;
  */
 public class Strategies
 {
-	public static final String FORMAT_STRING_MD_STRAT = "$MD.strat-v0.1";
-	public static final String FORMAT_STRING_STEP_BOUNDED_STRAT = "$SB.strat-v0.1";
-	public static final String FORMAT_STRING_BOUNDED_REW_STRAT = "$RB.strat-v0.1";
-	public static final String FORMAT_STRING_EXACT_VALUE_MD_STRAT = "$EVMD.strat-v0.1";
+    public static final String FORMAT_STRING_MD_STRAT = "$MD.strat-v0.1";
+    public static final String FORMAT_STRING_STEP_BOUNDED_STRAT = "$SB.strat-v0.1";
+    public static final String FORMAT_STRING_BOUNDED_REW_STRAT = "$RB.strat-v0.1";
+    public static final String FORMAT_STRING_EXACT_VALUE_MD_STRAT = "$EVMD.strat-v0.1";
+    public static final String FORMAT_STRING_SU_STRAT_MONO = "$SU.strat-v0.1";
+    public static final String FORMAT_STRING_SU_STRAT_COMP = "$SU.strat.comp-v0.1";
 
 	private Strategies()
 	{
@@ -30,6 +34,7 @@ public class Strategies
 	 */
 	public static Strategy loadStrategyFromFile(String filename) throws IllegalArgumentException
 	{
+	        System.out.printf("Loading strategy \"%s\"...\n", filename);
 		try {
 			Scanner scan = new Scanner(new File(filename));
 			try {
@@ -42,13 +47,21 @@ public class Strategies
 					return new BoundedRewardDeterministicStrategy(scan);
 				} else if (type.equals(FORMAT_STRING_EXACT_VALUE_MD_STRAT)) {
 					return new ExactValueStrategy(scan);
+				} else if (type.equals(FORMAT_STRING_SU_STRAT_MONO)) {
+				        return new StochasticUpdateStrategy(scan);
+				} else if (type.equals(FORMAT_STRING_SU_STRAT_COMP)) {
+				        try {
+					        return new StochasticUpdateStrategyProduct(scan);
+				        } catch (PrismException e) {
+					        throw new IllegalArgumentException(e.getMessage());
+					}
 				}
 				throw new IllegalArgumentException("Format not supported");
 			} finally {
 				scan.close();
 			}
 		} catch (FileNotFoundException error) {
-			throw new IllegalArgumentException("File not found.");
+		        throw new IllegalArgumentException(String.format("File not found: %s", filename));
 		}
 	}
 

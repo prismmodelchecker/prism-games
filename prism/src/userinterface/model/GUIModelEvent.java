@@ -30,6 +30,7 @@ package userinterface.model;
 import parser.Values;
 import parser.ast.ModulesFile;
 import userinterface.util.GUIEvent;
+import explicit.Model;
 
 public class GUIModelEvent extends GUIEvent
 {
@@ -47,9 +48,17 @@ public class GUIModelEvent extends GUIEvent
 
 	// DATA ATTRIBUTES
 	private ModulesFile file;
+        private explicit.Model model;
 	private Values buildValues;
 
 	/** Creates a new instance of GUIModelEvent */
+        public GUIModelEvent(int id, ModulesFile file, explicit.Model model)
+	{
+		super(id);
+		this.file = file;
+		this.model = model;
+	}
+
 	public GUIModelEvent(int id, ModulesFile file)
 	{
 		super(id);
@@ -72,6 +81,11 @@ public class GUIModelEvent extends GUIEvent
 	public ModulesFile getModulesFile()
 	{
 		return file;
+	}
+
+	public explicit.Model getExplicitModel()
+	{
+	    return model;
 	}
 
 	public Values getBuildValues()

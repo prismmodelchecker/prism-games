@@ -33,6 +33,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -123,6 +124,10 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		numTransitions = mdp.numTransitions;
 		maxNumDistrs = mdp.maxNumDistrs;
 		maxNumDistrsOk = mdp.maxNumDistrsOk;
+		
+		// disabledness
+		disabledChoices = new HashMap<Integer, BitSet>(mdp.disabledChoices);
+		someChoicesDisabled = mdp.someChoicesDisabled;
 	}
 
 	/**

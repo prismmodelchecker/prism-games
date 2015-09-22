@@ -36,6 +36,16 @@ import explicit.Product;
 public interface Rewards
 {
 	/**
+	 * Get the state reward for state {@code s}.
+	 */
+	public abstract double getStateReward(int s);
+	
+	/**
+	 * Get the transition reward for the {@code i}th choice from state {@code s}.
+	 */
+	public abstract double getTransitionReward(int s, int i);
+
+	/**
 	 * Create a new reward structure that lifts this one such that it is defined over states of a
 	 * model that is a product of the one that this reward structure is defined over. 
 	 */

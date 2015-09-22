@@ -312,8 +312,12 @@ public abstract class ASTElement
 	 * check variables exist and store their index (as defined by the containing ModuleFile).
 	 */
 	public ASTElement findAllVars(Vector<String> varIdents, Vector<Type> varTypes) throws PrismLangException
+        {
+	        return findAllVars(varIdents, varTypes, false);
+        }
+        public ASTElement findAllVars(Vector<String> varIdents, Vector<Type> varTypes, boolean noErrorOnVariableNotPresent) throws PrismLangException
 	{
-		FindAllVars visitor = new FindAllVars(varIdents, varTypes);
+	        FindAllVars visitor = new FindAllVars(varIdents, varTypes, noErrorOnVariableNotPresent);
 		return (ASTElement) accept(visitor);
 	}
 

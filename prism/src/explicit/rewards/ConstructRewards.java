@@ -38,6 +38,7 @@ import parser.State;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.RewardStruct;
+import parser.ast.ModulesFile;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLangException;
@@ -52,15 +53,17 @@ import explicit.STPG;
 public class ConstructRewards
 {
 	protected PrismLog mainLog;
+        protected ModulesFile modulesFile;
 
-	public ConstructRewards()
+	public ConstructRewards(ModulesFile modulesFile)
 	{
-		this(new PrismFileLog("stdout"));
+	        this(new PrismFileLog("stdout"), modulesFile);
 	}
 
-	public ConstructRewards(PrismLog mainLog)
+        public ConstructRewards(PrismLog mainLog, ModulesFile modulesFile)
 	{
 		this.mainLog = mainLog;
+		this.modulesFile = modulesFile;
 	}
 
 	/**
@@ -256,8 +259,8 @@ public class ConstructRewards
 	}
 
 	/**
-	 * Construct the rewards for an MDP from a model and reward structure. 
-	 * @param mdp The MDP
+	 * Construct the rewards for an SMG from a model and reward structure. 
+	 * @param smg The SMG
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */

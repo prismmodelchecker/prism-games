@@ -1,0 +1,25 @@
+smg
+
+player player1 [c], [d] endplayer
+player player2 [a], [b] endplayer
+
+module M
+	s : [0..2];
+
+	[a] s=0 -> (s'=1);
+	[b] s=0 -> (s'=1);
+
+	[c] s=1 -> (s'=0);
+	[d] s=1 -> (s'=0);
+
+endmodule
+
+rewards "r1"
+	[a] true : 4;
+	[c] true : 2;
+endrewards
+
+rewards "r2"
+	[b] true : 2;
+	[d] true : 4;
+endrewards

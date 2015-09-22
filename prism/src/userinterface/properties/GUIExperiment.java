@@ -178,7 +178,7 @@ public class GUIExperiment
 	{
 		if (running && theThread != null) {
 			if (useSimulation)
-				guiProp.getPrism().getSimulator().stopSampling();
+			    guiProp.getPrism().getSimulator().stopSampling();
 			theThread.interrupt();
 		}
 	}
@@ -306,7 +306,7 @@ public class GUIExperiment
 								}
 								// Normal model checking
 								if (!useSimulation) {
-									res = prism.modelCheck(propertiesFile, propertyToCheck);
+									res = prism.modelCheck(propertiesFile, propertyToCheck, Expression.isPareto(propertyToCheck.getExpression()));
 								}
 								// Approximate (simulation-based) model checking
 								else {

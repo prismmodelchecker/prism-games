@@ -296,6 +296,8 @@ public class NondetModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionReward(ExpressionReward expr, boolean forAll) throws PrismException
 	{
 		// Get info from R operator
+	        if(expr.getRewardStructIndexDiv() != null)
+		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
 
@@ -1239,7 +1241,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// check that there is an upper time bound
 		if (expr.getUpperBound() == null) {
-			throw new PrismException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
+		        throw new PrismException("Cumulative reward operator without time bound (C) not supported");
 		}
 
 		// get info from inst reward

@@ -1,0 +1,112 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Electrical Starting, Generation, Conversion and Distribution System Architecture for //
+//     a More Electric Vehicle                                                          //
+//                                                                                      //
+// Modelled after European Patent EP 1 792 379 B1, by Rodney G. Michalko                //
+//                                                                                      //
+// Author: Clemens Wiltsche, University of Oxford, 2014 (clemens.wiltsche@cs.ox.ac.uk)  //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// Compositional top-level property of full system
+comp("P210a", "P210b");
+
+// Global top-level property of full system
+//and("safe_210a", "safe_210b", "switch_210a", "switch_210b",
+//   impl("healthy_210a", and("I1_210a", "IDC_210a")));
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Properties of HVAC left (210a)
+
+const double l_healthy_224a = 0.95; // assm: lower bound on time generator 224a is healthy
+const double l_healthy_252a = 0.95; // assm: lower bound on time generator 252a is healthy
+const double u_fail_l = 0.2; // guar: upper bound on failures
+const double u_switch_l = 0.9; // guar: upper bound on number of switches
+const double l_i1l_off = 0.1; // assm: lower bound on time left interface I1 is off
+const double l_idcl_pow = 0.9; // guar: lower bound on powering DC interfaces
+const double l_i1l_pow = 0.1; // guar: lower bound on the left side delivering power over I1
+
+// generator status healthy
+"healthy_210a" : and(R{"healthy_224a"}>=l_healthy_224a [ S ],
+	             R{"healthy_252a"}>=l_healthy_252a [ S ])
+
+// minimise failures
+"safe_210a" : and(R{"fail_l"}<=u_fail_l [ S ])
+
+// minimise switches
+"switch_210a" : and(R{"switches_l"}<=u_switch_l [ S ])
+
+// DC interface:
+// assume a response (i1r_pow) from the right hand side
+// if left hand side doesn't deliver power (i1l_off),
+// and then guarantee that the DC interface is powered (idcl_pow)
+"IDC_210a" : impl(
+	       impl(
+	         R{"i1l_off"}>=l_i1l_off [ S ],
+	   	 R{"i1r_pow"}>=l_i1r_pow [ S ]),
+	       R{"idcl_pow"}>=l_idcl_pow [ S ])
+
+// interface I1:
+// assume the right side doesn't deliver power (i1r_off),
+// and guarantee that the interface I1 is powered (i1l_pow)
+"I1_210a" : impl(
+              R{"i1r_off"}>=l_i1r_off [ S ],
+              R{"i1l_pow"}>=l_i1l_pow [ S ])
+
+// full property of HVAC left (210a)
+"P210a" : and("safe_210a", "switch_210a", impl("healthy_210a", and("I1_210a", "IDC_210a")));
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Properties of HVAC right (210b)
+
+const double l_healthy_224b = 0.95; // assm: lower bound on time generator 224b is healthy
+const double l_healthy_252b = 0.95; // assm: lower bound on time generator 252b is healthy
+const double u_fail_r = 0.2; // guar: upper bound on failures
+const double u_switch_r = 0.9; // guar: upper bound on number of switches
+const double l_i1r_off = 0.1; // assm: lower bound on the time the right interface I1 is off
+const double l_idcr_pow = 0.9; // guar: lower bound on powering DC interfaces
+const double l_i1r_pow = 0.1; // guar: lower bound on the right side delivering power over I1
+
+// generator status healthy
+"healthy_210b" : and(R{"healthy_224b"}>=l_healthy_224b [ S ],
+	             R{"healthy_252b"}>=l_healthy_252b [ S ])
+
+// minimise failures
+"safe_210b" : and(R{"fail_r"}<=u_fail_r [ S ])
+
+// minimise switches
+"switch_210b" : and(R{"switches_r"}<=u_switch_r [ S ])
+
+// DC interface:
+// assume a response (i1l_pow) from the left hand side
+// if right hand side doesn't deliver power (i1r_off),
+// and then guarantee that the DC interface is powered (idcr_pow)
+"IDC_210b" : impl(
+	       impl(
+	         R{"i1r_off"}>=l_i1r_off [ S ],
+	   	 R{"i1l_pow"}>=l_i1l_pow [ S ]),
+	       R{"idcr_pow"}>=l_idcr_pow [ S ])
+
+// interface I1:
+// assume the left side doesn't deliver power (i1l_off),
+// and guarantee that the interface I1 is powered (i1r_pow)
+"I1_210b" : impl(
+              R{"i1l_off"}>=l_i1l_off [ S ],
+              R{"i1r_pow"}>=l_i1r_pow [ S ])
+
+// full property of HVAC right (210b)
+"P210b" : and("safe_210b", "switch_210b", impl("healthy_210b", and("I1_210b", "IDC_210b")));
+
+
+
+
+
+// temporary testing properties
+and("safe_210b", "switch_210b", "I1_210b")
+and("safe_210b", "switch_210b", "IDC_210b")
+and("safe_210b", "switch_210b")
+and("I1_210b", "safe_210b", "IDC_210b")
+
+comp("P210b","P210b")

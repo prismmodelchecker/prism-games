@@ -53,7 +53,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
@@ -165,6 +164,7 @@ public class GUIPrism extends JFrame
 		plugs.add(nw);
 		// Make some plugins aware of others
 		sim.setGUIMultiModel(model);
+		model.setGUISimulator(sim);
 		// Return list
 		return plugs;
 	}
@@ -186,7 +186,7 @@ public class GUIPrism extends JFrame
 	private GUIEventHandler eventHandle;
 	private GUIOptionsDialog options;
 	private JFileChooser choose;
-	private JProgressBar progress;
+	private GUIProgressBar progress;
 	private GUITaskBar taskbar;
 	private String taskbarText = "";
 	private Action prismOptions;
@@ -371,8 +371,7 @@ public class GUIPrism extends JFrame
 
 		JPanel bottomPanel = new JPanel();
 		{
-			progress = new JProgressBar(0, 100);
-			progress.setBorder(null);
+		        progress = new GUIProgressBar(0, 100, this);
 			taskbar = new GUITaskBar();
 			taskbar.setText("Welcome to PRISM...");
 			bottomPanel.setBorder(new javax.swing.border.EtchedBorder());
@@ -653,13 +652,13 @@ public class GUIPrism extends JFrame
 		}
 	}
 
-	/** Utility update method to set the JProgressBar to an indeterminate state. */
+	/** Utility update method to set the GUIProgressBar to an indeterminate state. */
 	public void startProgress()
 	{
 		progress.setIndeterminate(true);
 	}
 
-	/** Utility update method to set the state of the JProgressBar to stopped. */
+	/** Utility update method to set the state of the GUIProgressBar to stopped. */
 	public void stopProgress()
 	{
 		progress.setIndeterminate(false);

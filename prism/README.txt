@@ -5,6 +5,18 @@ README
 This is PRISM (Probabilistic Symbolic Model Checker).
 
 ------------
+DEPENDENCIES
+------------
+
+The multi-objective strategy synthesis methods for stochastic games
+depend on the PPL (Parma Polyhedra Library) of version at least 1.1 of
+Roberto Bagnara, Patricia M. Hill, Enea Zaffanella and Abramo Bagnara,
+which is freely available. For more information about this
+library, including download and installation instructions, see:
+
+  http://bugseng.com/products/ppl/
+
+------------
 INSTALLATION
 ------------
 
@@ -82,6 +94,7 @@ PRISM was created and is still actively maintained by:
 We gratefully acknowledge contributions to the PRISM code-base from various sources,
 including (in approximately reverse chronological order):
 
+ * Clemens Wiltsche: Multi-objective and compositional synthesis for stochastic games
  * Joachim Klein: Various bug fixes, especially related to LTL
  * Ernst Moritz Hahn: Parametric model checking, fast adaptive uniformisation + various other features
  * Frits Dannenberg: Fast adaptive uniformisation

@@ -114,6 +114,27 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_MULTI_MAX_POINTS				= "prism.multiMaxIters";
 	public static final	String PRISM_PARETO_EPSILON					= "prism.paretoEpsilon";
 	public static final	String PRISM_EXPORT_PARETO_FILENAME			= "prism.exportParetoFileName";
+
+    // multi-objective synthesis for games
+	public static final     String PRISM_MULTI_COMP					= "prism.multiComp";
+	public static final     String PRISM_MULTI_GAUSS_SEIDEL					= "prism.multiGaussSeidel";
+        // iteration control
+        public static final	String PRISM_MULTI_MAX_C_ITER			= "prism.multiMaxCIter";
+        public static final	String PRISM_MULTI_MAX_R_ITER			= "prism.multiMaxRIter";
+        public static final	String PRISM_MULTI_MAX_D_ITER			= "prism.multiMaxDIter";
+        public static final	String PRISM_MULTI_D_ITER_OFFSET       		= "prism.multiDIterOffset";
+        public static final	String PRISM_MULTI_MIN_M         		= "prism.multiMinM";
+        public static final	String PRISM_MULTI_MAX_M         		= "prism.multiMaxM";
+        // rounding
+	public static final     String PRISM_MULTI_ROUNDING					= "prism.multiRounding";
+        public static final	String PRISM_MULTI_BASELINE_ACCURACY 		= "prism.baselineAccuracy";
+        public static final	String PRISM_MULTI_INCREASE_FACTOR		= "prism.increaseFactor";
+        // logging
+        public static final	String LOG_MULTI_C_PARETO			= "log.multiCPareto";
+        public static final	String LOG_MULTI_D_PARETO			= "log.multiDPareto";
+        public static final	String LOG_MULTI_R_PARETO			= "log.multiRPareto";
+        public static final	String LOG_MULTI_STRATEGY			= "log.multiStrategy";
+
 	
 	public static final String PRISM_LTL2DA_TOOL					= "prism.ltl2daTool";
 	public static final String PRISM_LTL2DA_SYNTAX					= "prism.ltl2daSyntax";
@@ -277,10 +298,35 @@ public class PrismSettings implements Observer
 			// MULTI-OBJECTIVE MODEL CHECKING OPTIONS:
 			{ INTEGER_TYPE,		PRISM_MULTI_MAX_POINTS,					"Max. multi-objective corner points",			"4.0.3",			new Integer(50),															"0,",																						
 																			"Maximum number of corner points to explore if (value iteration based) multi-objective model checking does not converge." },
-			{ DOUBLE_TYPE,		PRISM_PARETO_EPSILON,					"Pareto approximation threshold",			"4.0.3",			new Double(1.0E-2),															"0.0,",																						
+			{ DOUBLE_TYPE,		PRISM_PARETO_EPSILON,					"Pareto approximation threshold",			"4.0.3",			new Double(1.0E-3),															"0.0,",																						
 																			"Determines to what precision the Pareto curve will be approximated." },
 			{ STRING_TYPE,		PRISM_EXPORT_PARETO_FILENAME,			"Pareto curve export filename",			"4.0.3",			"",															"0,",																						
 																			"If non-empty, any Pareto curve generated will be exported to this file." },
+			// MULTI-OBJECTIVE SYNTHESIS:
+			{ BOOLEAN_TYPE,		PRISM_MULTI_COMP,							"Check compatibility",				"4.0.3",		new Boolean(false),															"",																							
+																			"Whether to check compatibility of components automatically." },
+			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		new Boolean(true),															"",																							
+																			"Use Gauss-Seidel value iteration for solving multi-objective SGs. Only used for cumulative total rewards (Pareto set computation and strategy synthesis), and for strategy synthesis of average and ratio rewards." },
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			new Integer(500),															"0,",																						
+																			"Maximum number of iterations performed to solve conjunctive queries using value iteration. The same value is used for computing the conjunctions involved in mixed queries." },
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			new Integer(500),															"0,",																						
+																			"Maximum number of iterations performed to compute the Pareto sets for ratio rewards using value iteration." },
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			new Integer(100),															"0,",																						
+																			"Maximum number of iterations performed to solve disjunctive queries using value iteration. The same value is used for computing the disjunctions involved in mixed queries." },
+			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			new Integer(1),															"0,",																						
+																			"Start the disjunctive iteration at this iteration." },
+			{ INTEGER_TYPE,		PRISM_MULTI_MIN_M,					"Minimum Box Size (M)",			"4.0.3",			new Integer(2),															"0,",																						
+																			"Set the minimum size for the box for multi-objective mean-payoff objectives." },
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_M,					"Maximum Box Size (M)",			"4.0.3",			new Integer(16),															"0,",																						
+																			"Set the maximum size for the box for multi-objective mean-payoff objectives." },
+			{ BOOLEAN_TYPE,		PRISM_MULTI_ROUNDING,							"Use rounding in multi-objective engine",				"4.0.3",		new Boolean(false),															"",																							
+																			"Whether to use rounding in the multi-objective games engine" },
+			{ INTEGER_TYPE,		PRISM_MULTI_BASELINE_ACCURACY,					"Baseline accuracy for conjunctive query value iteration",			"4.0.3",			new Integer(200),															"0,",																						
+																			"Value iteration starts computing points rounded to the maximum reward in each dimension divided by the baseline accuracy, and this accuracy is increased by the increase factor after every iteration." },
+			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			new Double(1.01),															"0,",																						
+																			"Accuracy of conjunctive query value iteration is increased by the increase factor after every iteration." },
+
+
 			// OUTPUT OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_VERBOSE,							"Verbose output",						"2.1",		new Boolean(false),															"",																							
 																			"Display verbose output to log." },
@@ -310,8 +356,9 @@ public class PrismSettings implements Observer
 																			"Name of file for MDP adversary export (if enabled)" },
 			{ BOOLEAN_TYPE,		PRISM_GENERATE_STRATEGY,				"Generate Strategy",			"4.1",			new Boolean(false),																	"",															
 																			"Generate an optimal strategy when model checking an MDP/game" },
-			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.1",			new Boolean(false),																	"",															
-																			"Model checks the property with respect to strategy." },																		
+			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.1",			new Boolean(false),																	"",
+
+																			"Use composition verification/synythesis methods." },																		
 			// LTL2DA TOOLS
 			{ STRING_TYPE,		PRISM_LTL2DA_TOOL,						"Use external LTL->DA tool",		"4.2.1",			"",		null,
 																			"If non-empty, the path to the executable for the external LTL->DA tool."},
@@ -408,7 +455,12 @@ public class PrismSettings implements Observer
 		{
 			{ FONT_COLOUR_TYPE,	LOG_FONT,								"Display font",							"2.1",			new FontColorPair(new Font("monospaced", Font.PLAIN, 12), Color.black),		"",																							"Font used for the log display." },
 			{ COLOUR_TYPE,		LOG_BG_COLOUR,							"Background colour",					"2.1",			new Color(255,255,255),														"",																							"Background colour for the log display." },
-			{ INTEGER_TYPE,		LOG_BUFFER_LENGTH,						"Buffer length",						"2.1",			new Integer(10000),															"1,",																						"Length of the buffer for the log display." }
+			{ INTEGER_TYPE,		LOG_BUFFER_LENGTH,						"Buffer length",						"2.1",			new Integer(10000),															"1,",																						"Length of the buffer for the log display." },
+			{ BOOLEAN_TYPE,		LOG_MULTI_C_PARETO,			"Log Pareto sets for conjunctions",			"4.0.3",			new Boolean(false),															"",																							"Log the Pareto sets for conjunctions." },
+			{ BOOLEAN_TYPE,		LOG_MULTI_D_PARETO,			"Log Pareto sets for disjunctions",			"4.0.3",			new Boolean(false),															"",																							"Log the Pareto sets for disjunctions." },
+			{ BOOLEAN_TYPE,		LOG_MULTI_R_PARETO,			"Log Pareto sets for ratio objectives",			"4.0.3",			new Boolean(false),															"",																							"Log the Pareto sets for ratio objectives. Only applies when computing the Pareto sets, not for verification or strategy computation." },
+			{ BOOLEAN_TYPE,		LOG_MULTI_STRATEGY,			"Log Strategy Construction",    			"4.0.3",			new Boolean(false),															"",																							"Log details during strategy construction." }
+
 		}
 	};
 	
@@ -943,6 +995,7 @@ public class PrismSettings implements Observer
 			set(PRISM_LIN_EQ_METHOD, "Gauss-Seidel");
 			set(PRISM_MDP_SOLN_METHOD, "Gauss-Seidel");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Gauss-Seidel");
+			set(PRISM_MULTI_GAUSS_SEIDEL, "true");
 		} else if (sw.equals("bgaussseidel") || sw.equals("bgs")) {
 			set(PRISM_LIN_EQ_METHOD, "Backwards Gauss-Seidel");
 		} else if (sw.equals("pgaussseidel") || sw.equals("pgs")) {
@@ -1117,7 +1170,6 @@ public class PrismSettings implements Observer
 		}
 		
 		// MULTI-OBJECTIVE MODEL CHECKING OPTIONS:
-		
 		// Max different corner points that will be generated when performing
 		// target driven multi-obj verification.
 		else if (sw.equals("multimaxpoints")) {
@@ -1154,6 +1206,141 @@ public class PrismSettings implements Observer
 				set(PRISM_EXPORT_PARETO_FILENAME, args[++i]);
 			} else {
 				throw new PrismException("No file specified for -" + sw + " switch");
+			}
+		}
+
+		// MULTI-OBJECTIVE SYNTHESIS OPTIONS:
+		else if (sw.equals("nocompatibility")) {
+			set(PRISM_MULTI_COMP, false);
+		}
+		else if (sw.equals("compatibility")) {
+			set(PRISM_MULTI_COMP, true);
+		}
+		else if (sw.equals("multimaxciter")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_MAX_C_ITER, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multimaxriter")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_MAX_R_ITER, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multimaxditer")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_MAX_D_ITER, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multiditeroffset")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_D_ITER_OFFSET, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multiminm")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_MIN_M, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multimaxm")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_MAX_M, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("multirounding")) {
+			set(PRISM_MULTI_ROUNDING, true);
+		}
+		else if (sw.equals("logcpareto")) {
+			set(LOG_MULTI_C_PARETO, true);
+		}
+		else if (sw.equals("logdpareto")) {
+			set(LOG_MULTI_D_PARETO, true);
+		}
+		else if (sw.equals("logrpareto")) {
+			set(LOG_MULTI_R_PARETO, true);
+		}
+		else if (sw.equals("logstrategy")) {
+			set(LOG_MULTI_STRATEGY, true);
+		}
+		else if (sw.equals("baselineaccuracy")) {
+			if (i < args.length - 1) {
+				try {
+					j = Integer.parseInt(args[++i]);
+					if (j < 0)
+						throw new NumberFormatException("");
+					set(PRISM_MULTI_BASELINE_ACCURACY, j);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
+		else if (sw.equals("increasefactor")) {
+			if (i < args.length - 1) {
+				try {
+					d = Double.parseDouble(args[++i]);
+					if (d < 0)
+						throw new PrismException("Value for -" + sw + " switch must be non-negative");
+					set(PRISM_MULTI_INCREASE_FACTOR, d);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
 			}
 		}
 		
@@ -1628,6 +1815,20 @@ public class PrismSettings implements Observer
 		mainLog.println("-paretoepsilon <x> ............. Threshold for Pareto curve approximation");
 		mainLog.println("-exportpareto <file> ........... When computing Pareto curves, export points to a file");
 		mainLog.println();
+		mainLog.println("MULTI-OBJECTIVE SYNTHESIS:");
+		mainLog.println("-nocompatibility ............... Do not check compatibility of components.");
+		mainLog.println("-compatibility ............... Force compatibility check of components (requires composition).");
+		mainLog.println("-gaussseidel (or -gs) .......... Use Gauss-Seidel value iteration for solving multi-objective SGs");
+		mainLog.println("-multimaxciter <n> ............. Maximal number of iterations to solve CQs using value iteration.");
+		mainLog.println("-multimaxriter <n> ............. Maximal number of iterations to solve Ratios using value iteration.");
+		mainLog.println("-multimaxditer <n> ............. Maximal number of iterations to solve DQs using value iteration.");
+		mainLog.println("-multiditeroffset <n> .......... Start disjunctive iteration at this count.");
+		mainLog.println("-multiminm <n> ................. Set the minimum box size (M) for mean-payoff objectives.");
+		mainLog.println("-multimaxm <n> ................. Set the maximum box size (M) for mean-payoff objectives.");
+		mainLog.println("-multirounding ................. Enable rounding for the multi-objective engine.");
+		mainLog.println("-baselineaccuracy <n> .......... Baseline accuracy for CQs.");
+		mainLog.println("-increasefactor <x> ............ Factor by which accuracy is increased every iteration for CQs.");
+		mainLog.println();
 		mainLog.println("OUTPUT OPTIONS:");
 		mainLog.println("-verbose (or -v) ............... Verbose mode: print out state lists and probability vectors");
 		mainLog.println("-extraddinfo ................... Display extra info about some (MT)BDDs");
@@ -1831,6 +2032,12 @@ public class PrismSettings implements Observer
 		else return DEFAULT_FILE;
 	}
 	
+        public synchronized String getSettingName(String key)
+        {
+	    Setting set = settingFromHash(key);
+	    return set.getName();
+	}
+
 	public boolean isModified()
 	{
 		return modified;

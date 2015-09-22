@@ -92,8 +92,9 @@ public abstract class ModelExplicit implements Model
 		for (int dl : model.deadlocks) {
 			addDeadlockState(dl);
 		}
-		// Shallow copy of read-only stuff
-		statesList = model.statesList;
+		for (State state : model.statesList) {
+		    statesList.add(state);
+		}
 		constantValues = model.constantValues;
 		labels = model.labels;
 		varList = model.varList;
@@ -131,7 +132,7 @@ public abstract class ModelExplicit implements Model
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
 		deadlocks = new TreeSet<Integer>();
-		statesList = null;
+		statesList = new ArrayList<State>(numStates);
 		constantValues = null;
 		varList = null;
 		labels = new TreeMap<String, BitSet>();

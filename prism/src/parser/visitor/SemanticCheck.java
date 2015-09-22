@@ -115,9 +115,6 @@ public class SemanticCheck extends ASTTraverse
 			n = e.getNumModules();
 			for (i = 0; i < n; i++) {
 				int k = v.indexOf(e.getModuleName(i));
-				if (k == -1) {
-					throw new PrismLangException("Module " + e.getModuleName(i) + " does not appear in the \"system\" construct", e.getSystemDefn());
-				}
 				if (v.indexOf(e.getModuleName(i), k + 1) != -1) {
 					throw new PrismLangException("Module " + e.getModuleName(i) + " appears more than once in the \"system\" construct", e.getSystemDefn());
 				}

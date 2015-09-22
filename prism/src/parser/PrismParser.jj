@@ -848,7 +848,11 @@ Command Command() :
 }
 {
 	// Synchronisation action-label
-	begin = <LBRACKET> ( synch = Identifier() { comm.setSynch(synch); } )? <RBRACKET>
+	begin = <LBRACKET> (
+		synch = Identifier() { comm.setSynch(synch); }
+		(<NOT> { comm.setSynchType(Command.ActionType.OUTPUT); }
+		|<QMARK> { comm.setSynchType(Command.ActionType.INPUT); })?
+	)? <RBRACKET>
 	// Guard/updates
 	guard = Expression(false, false) { comm.setGuard(guard); } <RARROW> updates = Updates() { comm.setUpdates(updates); } <SEMICOLON>
 	{ comm.setPosition(begin, getToken(0)); return comm; }

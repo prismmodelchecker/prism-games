@@ -28,6 +28,7 @@ package parser.ast;
 
 import java.util.*;
 
+import parser.ast.Command.ActionType;
 import parser.visitor.*;
 import prism.PrismLangException;
 
@@ -207,6 +208,48 @@ public class Module extends ASTElement
 			if (!s.equals("") && !allSynchs.contains(s)) allSynchs.add(s);
 		}
 		return allSynchs;
+	}
+	
+	/**
+	 * Get the set of input actions of this module, i.e. a! actions in its alphabet.
+	 * Note that the definition of alphabet is syntactic: if an action labels some command,
+	 * it is included in the alphabet, regardless of whether the guard is true.
+	 */
+	public Vector<String> getAllInputActions()
+	{
+		int i, n;
+		String s;
+		Vector<String> inputSynchs = new Vector<String>();
+		n = getNumCommands();
+		for (i = 0; i < n; i++) {
+			Command c = getCommand(i);
+			if (c.getSynchType() == ActionType.INPUT) {
+				s = c.getSynch();
+				if (!s.equals("") && !inputSynchs.contains(s)) inputSynchs.add(s);
+			}
+		}
+		return inputSynchs;
+	}
+	
+	/**
+	 * Get the set of input actions of this module, i.e. a? actions in its alphabet.
+	 * Note that the definition of alphabet is syntactic: if an action labels some command,
+	 * it is included in the alphabet, regardless of whether the guard is true.
+	 */
+	public Vector<String> getAllOutputActions()
+	{
+		int i, n;
+		String s;
+		Vector<String> inputSynchs = new Vector<String>();
+		n = getNumCommands();
+		for (i = 0; i < n; i++) {
+			Command c = getCommand(i);
+			if (c.getSynchType() == ActionType.OUTPUT) {
+				s = c.getSynch();
+				if (!s.equals("") && !inputSynchs.contains(s)) inputSynchs.add(s);
+			}
+		}
+		return inputSynchs;
 	}
 	
 	/**

@@ -50,7 +50,7 @@ public class GUIPropertyResultDialog extends javax.swing.JDialog
 		
 		propertyLabel.setText(gp.getPropString());
 		constantsLabel.setText(gp.getConstantsString());
-		methodLabel.setText(gp.getMethodString());
+		methodLabel.setText("<html>" + gp.getMethodString().replaceAll("\n", "<br/>").replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;") + "</html>");
 		resultLabel.setText("<html>" + gp.getResultString().replaceAll("\n", "<br/>") + "</html>");
 		if (gp.getNumberOfWarnings() == 0) {
 			warningLabel.setText("");

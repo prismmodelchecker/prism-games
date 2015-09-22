@@ -57,6 +57,7 @@ public class PathToText extends PathDisplayer
 	private State lastState;
 	/** Last state rewards */
 	private double[] lastStateRewards;
+	private double[] lastTransitionRewards;
 	/** Did the displayed info change in the current step? */
 	private boolean changed;
 
@@ -159,6 +160,7 @@ public class PathToText extends PathDisplayer
 		displayState(initialState);
 		if (getShowRewards()) {
 			lastStateRewards = explicit.Utils.cloneDoubleArray(initialStateRewards);
+			lastTransitionRewards = new double[initialStateRewards.length]; // all zeros
 		}
 		if (getShowSnapshots()) {
 			log.println();
@@ -184,6 +186,10 @@ public class PathToText extends PathDisplayer
 
 		// if required, check whether the info to be displayed changed
 		if (showChangesOnly) {
+		    if(showTransitionRewards)
+			changed = stateChanged(lastState, newState) || rewardsChanged(lastTransitionRewards, newStateRewards)
+			    || rewardsChanged(newStateRewards, transitionRewards);
+		    else
 			changed = stateChanged(lastState, newState) || rewardsChanged(lastStateRewards, newStateRewards);
 			if (!changed)
 				return;
@@ -206,11 +212,12 @@ public class PathToText extends PathDisplayer
 		// store state rewards
 		if (getShowRewards()) {
 			explicit.Utils.copyDoubleArray(newStateRewards, lastStateRewards);
+			explicit.Utils.copyDoubleArray(transitionRewards, lastTransitionRewards);
 		}
 	}
 
 	@Override
-	public void displaySnapshot(double timeCumul, long newStateIndex, State newState, double[] newStateRewards)
+	public void displaySnapshot(double timeCumul, double[] transitionRewards, long newStateIndex, State newState, double[] newStateRewards)
 	{
 		firstCol = true;
 
@@ -225,6 +232,7 @@ public class PathToText extends PathDisplayer
 		if (getShowRewards()) {
 			for (int j = 0; j < numRewardStructs; j++) {
 				log.print(getColSep() + newStateRewards[j]);
+				log.print(getColSep() + transitionRewards[j]);
 			}
 		}
 		log.println();

@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Scanner;
 
 import parser.State;
+import parser.Values;
 import prism.PrismException;
 import prism.PrismLog;
 import explicit.Distribution;
@@ -24,6 +25,9 @@ import explicit.STPGExplicit;
 
 public class ExactValueStrategy implements Strategy
 {
+	// model info
+	protected Values lastConstants;
+	
 	// strategy info
 	protected String info = "No information available.";
 	protected double[] minValues;
@@ -771,5 +775,17 @@ public class ExactValueStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 		
-	};
+	}
+
+	@Override
+	public void setConstants(Values lastConstants) {
+		// TODO Auto-generated method stub
+		this.lastConstants = lastConstants;
+	}
+
+	@Override
+	public Values getConstants() {
+		// TODO Auto-generated method stub
+		return lastConstants;
+	}
 }

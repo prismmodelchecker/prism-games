@@ -4,6 +4,7 @@ import prism.PrismException;
 import prism.PrismLog;
 import explicit.Distribution;
 import explicit.Model;
+import parser.Values;
 
 /**
  * 
@@ -31,6 +32,19 @@ public interface Strategy
 	public enum Choice {
 		INDEX, ACTION, UNKNOWN, ARBITRARY, UNREACHABLE;
 	};
+	
+	
+	/**
+	 * Store constants used to build model for this strategy.
+	 * 
+	 * @param lastConstants
+	 */
+	public void setConstants(Values lastConstants);
+	
+	/**
+	 * Retrieve constants used to build model for this strategy.
+	 */
+	public Values getConstants();
 	
 	/**
 	 * Initialises memory based on a state

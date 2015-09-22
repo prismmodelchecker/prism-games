@@ -46,12 +46,18 @@ public class GUISimPathFormulaeList extends JList
 	public GUISimPathFormulaeList(GUISimulator guiSim)
 	{
 		this.guiSim = guiSim;
-		this.engine = guiSim.getPrism().getSimulator();
+		this.engine = guiSim.getSimulator();
 		listModel = new DefaultListModel();
 		setModel(listModel);
 
 		setCellRenderer(new SimPathFormulaRenderer());
 	}
+
+    public void setEngine(SimulatorEngine engine)
+    {
+	this.engine = engine;
+    }
+
 
 	public void clearList()
 	{

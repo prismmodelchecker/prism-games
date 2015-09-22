@@ -28,11 +28,14 @@ package explicit;
 
 import java.io.File;
 import java.util.BitSet;
+import java.util.List;
 
+import parser.BooleanUtils;
 import parser.ast.Coalition;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionProb;
+import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
 import parser.ast.ExpressionStrategy;
@@ -553,7 +556,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// Anything else is treated as multi-objective 
 		else {
-			return checkExpressionMulti(model, exprSub, false, coalition);
+			return checkExpressionMultiObjective(model, expr, forAll, coalition);
 		}
 	}
 
@@ -578,6 +581,26 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
+
+	        // for now, need separate handling of S and C operator for SMGs
+		if(expr.getExpression() instanceof ExpressionReward) {
+		    Expression e = ((ExpressionReward) expr.getExpression()).getExpression();
+		    if(e.getType() instanceof TypePathDouble) {
+			ExpressionTemporal eTemp = (ExpressionTemporal) e;
+			if (model.getModelType() == ModelType.SMG) {
+			    switch (eTemp.getOperator()) {
+			    case ExpressionTemporal.R_S: // average rewards
+				return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
+			    case ExpressionTemporal.R_C: // total or ratio rewards
+				if(!eTemp.hasBounds()) {
+				    return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
+				}
+			    }
+			}
+		    }
+		}
+
+
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
@@ -904,7 +927,26 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
-		// Get info from R operator
+		
+	        // for now, need separate handling of S and C operator for SMGs
+		Expression e = expr.getExpression();
+		if(e.getType() instanceof TypePathDouble) {
+		    ExpressionTemporal eTemp = (ExpressionTemporal) e;
+		    if (model.getModelType() == ModelType.SMG) {
+			switch (eTemp.getOperator()) {
+			case ExpressionTemporal.R_S: // average rewards
+			    return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
+			case ExpressionTemporal.R_C: // total or ratio rewards
+			    if(!eTemp.hasBounds()) {
+				return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
+			    }
+			}
+		    }
+		}
+
+		// Check if ratio reward
+	        if(expr.getRewardStructDivByIndexObject(modulesFile, constantValues) != null)
+		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
 		minMax.setCoalition(coalition);
@@ -924,7 +966,9 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 			return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, (SMGRewards) rewards, expr, coalition, opInfo.getBound());
 		}
-		
+
+		// otherwise, use traditional methods
+
 		// Compute rewards
 		StateValues rews = checkRewardFormula(model, rewards, expr.getExpression(), minMax, statesOfInterest);
 
@@ -952,7 +996,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected Rewards constructRewards(Model model, RewardStruct rewStruct) throws PrismException
 	{
 		Rewards rewards;
-		ConstructRewards constructRewards = new ConstructRewards(mainLog);
+		ConstructRewards constructRewards = new ConstructRewards(mainLog, modulesFile);
 		switch (model.getModelType()) {
 		case CTMC:
 		case DTMC:
@@ -1236,18 +1280,92 @@ public class ProbModelChecker extends NonProbModelChecker
 			double multProbs[] = Utils.bitsetToDoubleArray(b, model.getNumStates());
 			res = ((DTMCModelChecker) this).computeSteadyStateBackwardsProbs((DTMC) model, multProbs);
 			break;
-		default:
-			throw new PrismNotSupportedException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
+		default: 
+		    throw new PrismNotSupportedException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
 		}
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
 
+	protected StateValues checkExpressionMultiObjective(Model model, ExpressionStrategy expr, boolean forAll, Coalition coalition) throws PrismException
+	{
+		// Copy expression because we will modify it
+		expr = (ExpressionStrategy) expr.deepCopy();
+		
+		// Strip any outer parentheses in operand
+		Expression exprSub = expr.getExpression();
+		while (Expression.isParenth(exprSub)) {
+			exprSub = ((ExpressionUnaryOp) exprSub).getOperand();
+		}
+
+		// Boolean
+		if (exprSub.getType() instanceof TypeBool) {
+			// We will solve an existential query, so negate if universal
+			if (forAll) {
+				exprSub = Expression.Not(exprSub);
+			}
+			// Convert to CNF
+			List<List<Expression>> cnf = BooleanUtils.convertToCNFLists(exprSub);
+			// Check all "propositions" of CNF are valid
+			for (List<Expression> disjunction : cnf) {
+				for (Expression prop : disjunction) {
+					if (Expression.isNot(prop)) {
+						prop = ((ExpressionUnaryOp) prop).getOperand();
+					}
+					if (!(prop instanceof ExpressionQuant)) {
+						throw new PrismException("Expression " + prop.getClass() + " is not allowed in a multi-objective query");
+					}
+				}
+			}
+			// Push negation inside objectives
+			for (List<Expression> disjunction : cnf) {
+				for (int j = 0; j < disjunction.size(); j++) {
+					Expression prop = disjunction.get(j);
+					if (Expression.isNot(prop)) {
+						ExpressionQuant exprQuant = (ExpressionQuant) ((ExpressionUnaryOp) prop).getOperand();
+						exprQuant.setRelOp(exprQuant.getRelOp().negate());
+						disjunction.set(j, exprQuant);
+					}
+				}
+			}
+			// Print reduced query
+			mainLog.println("\nReducing multi-objective query to CNF: " + BooleanUtils.convertCNFListsToExpression(cnf));
+
+			// TODO: handle negation for 'forall'
+			return checkExpressionMultiObjective(model, cnf, coalition);
+		}
+		else if (exprSub.getType() instanceof TypeDouble) {
+			throw new PrismException("Multi-objective model checking not supported for: " + exprSub);
+		} else {
+			throw new PrismException("Multi-objective model checking not supported for: " + exprSub);
+		}
+	}
+	
+	public StateValues checkExpressionMultiObjective(Model model, List<List<Expression>> cnf, Coalition coalition) throws PrismException
+	{
+		throw new PrismException("Not implemented");
+	}
+	
 	/**
-	 * Model check a P operator expression and return the values for all states.
+	 * Model check a multi-objective expression and return the values for all states.
 	 */
 	protected StateValues checkExpressionMulti(Model model, Expression expr, boolean forAll, Coalition coalition) throws PrismException
 	{
-		throw new PrismException("Multi-objective model checking is not yet supported for SMGs");
+		// Assume "there exists" for now
+		if (forAll)
+			throw new PrismException("Nor support for forall in multi-objective queries yet");
+		
+		// For now, assume this is a function
+		if (!(expr instanceof ExpressionFunc))
+			throw new PrismException("Unsupported format for multi-objective query");
+		
+		switch (((ExpressionFunc) expr).getNameCode()) {
+		case ExpressionFunc.MULTI:
+			throw new PrismException("Properties with \"multi\" no longer supported.");
+		case ExpressionFunc.COMP:
+			throw new PrismException("Cannot evaluate \"comp\" property on an atomic model.");
+		default:
+			throw new PrismException("Unsupported format for multi-objective query");
+		}
 	}
 	
 	/**
@@ -1255,9 +1373,12 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
-		if (expr.getNameCode() == ExpressionFunc.MULTI && model.getModelType() == ModelType.SMG) {
-			throw new PrismException("Multi-objective model checking is not yet supported for SMGs");
-		} else {
+		switch (expr.getNameCode()) {
+		case ExpressionFunc.MULTI:
+			throw new PrismException("Properties with \"multi\" not supported.");
+		case ExpressionFunc.COMP:
+			throw new PrismException("Cannot evaluate \"comp\" property on an atomic model.");
+		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
 	}

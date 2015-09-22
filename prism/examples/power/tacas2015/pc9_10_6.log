@@ -1,0 +1,191 @@
+PRISM-games
+===========
+
+Version: 4.2.beta1
+Date: Wed Jan 07 15:26:01 GMT 2015
+Hostname: qavbench.comlab
+Command line: prism ../prism-examples/power/power_comp9.smg ../prism-examples/power/power_comp9.props -prop 8 -const 'I1_health=0.6,max_gc=0,max_delay=0,u_fail_l=0.01,u_fail_r=0.02,l_buses_l=0.95,l_buses_r=0.95,l_i1_l=0.0,l_i1_r=0.0' -logcpareto -nocompatibility -multirounding -increasefactor 1.0 -baselineaccuracy 100 -multimaxciter 1000 -paretoepsilon 0.01 -exportstrat pc9_10_6.strat -gs
+
+Parsing model file "../prism-examples/power/power_comp9.smg"...
+
+Parsing properties file "../prism-examples/power/power_comp9.props"...
+
+15 properties:
+(1) comp("P210a", "P210b")
+(2) comp("P210a_int", "P210b_int")
+(3) comp("P210a_AGint", "P210b_AGint")
+(4) "safe_210a": and(R{"fail_l"}<=u_fail_l [ S ])
+(5) "buses_210a": and(R{"buses_l"}>=l_buses_l [ S ])
+(6) "I1_210a": and(R{"i1_l"}>=l_i1_l [ S ])
+(7) "P210a": and("safe_210a", "buses_210a")
+(8) "P210a_int": and("safe_210a", "buses_210a", "I1_210a")
+(9) "P210a_AGint": impl("I1_210b", and("safe_210a", "buses_210a"))
+(10) "safe_210b": and(R{"fail_r"}<=u_fail_r [ S ])
+(11) "buses_210b": and(R{"buses_r"}>=l_buses_r [ S ])
+(12) "I1_210b": and(R{"i1_r"}>=l_i1_r [ S ])
+(13) "P210b": and("safe_210b", "I1_210b", "buses_210b")
+(14) "P210b_int": and("safe_210b", "buses_210b", "I1_210b")
+(15) "P210b_AGint": impl("I1_210a", and("safe_210b", "buses_210b"))
+
+Type:        SMG
+Modules:     C1_switch C2_switch C3_switch C4_switch GEN_LEFT HVAC_LEFT GEN_COUNTER_LEFT C5_switch C6_switch C7_switch C8_switch GEN_COUNTER_RIGHT GEN_RIGHT HVAC_RIGHT 
+Variables:   C1 C1_int C1_del C2 C2_int C2_del C3 C3_int C3_del C4 C4_int C4_del G224a G252a I1_left pL GC_left C5 C5_int C5_del C6 C6_int C6_del C7 C7_int C7_del C8 C8_int C8_del GC_right G224b G252b I1_right pR 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: "P210a_int": and("safe_210a", "buses_210a", "I1_210a")
+Model constants: max_gc=0,I1_health=0.6,max_delay=0
+Property constants: u_fail_l=0.01,l_buses_l=0.95,l_i1_l=0
+
+Building model...
+Model constants: max_gc=0,I1_health=0.6,max_delay=0
+
+Computing reachable states... 2432 states
+Reachable states exploration and model construction done in 0.975 secs.
+Sorting reachable states list...
+
+Time for model construction: 1.042 seconds.
+
+Type:        SMG
+States:      2432 (1 initial)
+Transitions: 4480
+Choices:     3968
+Max/avg:     16/1.63
+Property converted to CNF: and(R{"fail_l"}<=u_fail_l [ S ], R{"buses_l"}>=l_buses_l [ S ], R{"i1_l"}>=l_i1_l [ S ])
+/////////////////   NEW (DIRECT) MODEL CHECKING TASK     /////////////////////
+Property:
+	and(R{"fail_l"}<=u_fail_l [ S ], R{"buses_l"}>=l_buses_l [ S ], R{"i1_l"}>=l_i1_l [ S ])
+
+initial state: 42
+operation: Strategy generation
+C-ITER (1/1000)	with baseline accuracy = 100
+maxgenerators: 4;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -2.5900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 4;
+0: [r:[-1.0000, 0.0000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000][0.0000, 0.0000, 0.0000]]
+maxgenerators: 4;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -1.9000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (2/1000)	with baseline accuracy = 100
+maxgenerators: 4;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -4.4900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 4;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -1.9000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 4;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -3.8000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (3/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -6.3900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 4;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -3.8000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -5.7000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (4/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -7.9800, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -5.7000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -7.6000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (5/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -7.6000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.5900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (6/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7800, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.5900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (7/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.8500, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7000, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7800, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (8/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9300, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.7800, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.8500, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (9/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.8500, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9300, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (10/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0100, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9300, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (11/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0100, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 0 not converged yet.
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -8.9900, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+0: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0100, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (12/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0200, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 1 not converged yet.
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.1500, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.1700, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (13/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0200, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 1 not converged yet.
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.1700, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.2100, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (14/1000)	with baseline accuracy = 100
+maxgenerators: 5;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0200, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+state 1 not converged yet.
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.2100, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+maxgenerators: 5;
+1: [r:[-1.0000, 0.0000, 0.0000][0.0000, -18.2300, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+C-ITER (15/1000)	with baseline accuracy = 100
+maxgenerators: 4;
+42: [r:[-1.0000, 0.0000, 0.0000][0.0000, -9.0200, 0.0000]r:[0.0000, -1.0000, 0.0000]r:[0.0000, 0.0000, -1.0000]]
+CQ value iteration converged.
+Strategy construction took 0.459959 s
+Synthesis took 49.012127 s
+
+Number of states satisfying and(and(R{"fail_l"}<=u_fail_l [ S ]), and(R{"buses_l"}>=l_buses_l [ S ]), and(R{"i1_l"}>=l_i1_l [ S ])): 653
+
+Property satisfied in 1 of 1 initial states.
+
+Time for model checking: 49.091 seconds.
+
+Result: true (property satisfied in the initial state)
+
+Exporting strategy as actions to file "pc9_10_6.strat"...
+

@@ -124,9 +124,12 @@ public class TransitionList
 	/**
 	 * Get the choice containing a transition of a given index.
 	 */
-	public Choice getChoiceOfTransition(int index)
+	public Choice getChoiceOfTransition(int index) throws PrismLangException
 	{
-		return choices.get(transitionIndices.get(index));
+	    int i = transitionIndices.get(index);
+	    if(i < 0)
+		throw new PrismLangException("Transition with index " + index + " not present");
+	    return choices.get(transitionIndices.get(index));
 	}
 
 	// Get index/offset info
@@ -134,9 +137,12 @@ public class TransitionList
 	/**
 	 * Get the index of the choice containing a transition of a given index.
 	 */
-	public int getChoiceIndexOfTransition(int index)
+	public int getChoiceIndexOfTransition(int index) throws PrismLangException
 	{
-		return transitionIndices.get(index);
+	    int i = transitionIndices.get(index);
+	    if(i < 0)
+		throw new PrismLangException("Transition with index " + index + " not present");
+	    return transitionIndices.get(index);
 	}
 
 	/**
@@ -190,7 +196,7 @@ public class TransitionList
 	 * Get a string describing the action/module of a transition, specified by its index.
 	 * (form is "module" or "[action]")
 	 */
-	public String getTransitionModuleOrAction(int index)
+	public String getTransitionModuleOrAction(int index) throws PrismException
 	{
 		return getChoiceOfTransition(index).getModuleOrAction();
 	}
@@ -200,7 +206,7 @@ public class TransitionList
 	 * (-i for independent in ith module, i for synchronous on ith action)
 	 * (in both cases, modules/actions are 1-indexed)
 	 */
-	public int getTransitionModuleOrActionIndex(int index)
+	public int getTransitionModuleOrActionIndex(int index) throws PrismLangException
 	{
 		return getChoiceOfTransition(index).getModuleOrActionIndex();
 	}
@@ -208,7 +214,7 @@ public class TransitionList
 	/**
 	 * Get the probability/rate of a transition, specified by its index.
 	 */
-	public double getTransitionProbability(int index)
+	public double getTransitionProbability(int index) throws PrismLangException
 	{
 		return getChoiceOfTransition(index).getProbability(transitionOffsets.get(index));
 	}
@@ -231,7 +237,7 @@ public class TransitionList
 	 * Only variables updated are included in list.
 	 * Note that expressions may have been simplified from original model. 
 	 */
-	public String getTransitionUpdateStringFull(int index)
+	public String getTransitionUpdateStringFull(int index) throws PrismLangException
 	{
 		return getChoiceOfTransition(index).getUpdateStringFull(transitionOffsets.get(index));
 	}
@@ -267,7 +273,11 @@ public class TransitionList
 	/**
 	 * Is there a deterministic self-loop, i.e. do all transitions go to the current state.
 	 */
-	public boolean isDeterministicSelfLoop(State currentState)
+    public boolean isDeterministicSelfLoop(State currentState)
+    {
+	return isDeterministicSelfLoop(currentState, true); // default is to look at values of states, not instance of State class identity
+    }
+    public boolean isDeterministicSelfLoop(State currentState, boolean basedOnValues)
 	{
 		// TODO: make more efficient, and also limit calls to it
 		// (e.g. only if already stayed in state twice?)
@@ -277,11 +287,19 @@ public class TransitionList
 			for (Choice ch : choices) {
 				n = ch.size();
 				for (i = 0; i < n; i++) {
+				    if(basedOnValues) {
 					ch.computeTarget(i, currentState, newState);
 					if (!currentState.equals(newState)) {
 						// Found a non-loop
 						return false;
 					}
+				    } else {
+					newState = ch.computeTarget(i, currentState);
+					if(currentState!=newState) {
+					    // Found a non-loop
+					    return false;
+					}
+				    }
 				}
 			}
 		} catch (PrismLangException e) {

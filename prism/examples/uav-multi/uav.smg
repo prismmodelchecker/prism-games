@@ -1,0 +1,245 @@
+smg
+
+// operator parameters
+const double p=0.5; // probability of increasing workload due to other uncertain tasks
+const double accu_load1; // accuracy at workload level 1 (low)
+const double accu_load2; // accuracy at workload level 2 (high)
+const double fd; // accuracy discount due to fatigue
+const int COUNTER; // fatigue threshold
+const double del; // probability of operator to delegate
+
+// uav variables
+global stop : bool init false; // done visiting all waypoints
+global c:[0..3] init 0; // choices at the check point
+formula roz = (r=8) | (w=3&a=1) | (w=3&a=2) | (w=5&a=2); // restricted operating zones
+
+//players
+global pl : [1..2] init 1; // 1 ... UAV, 2 ... operator
+player p1
+	UAV, [camera], [fly], [delegated], [uav_stop]
+endplayer
+
+player p2
+	operator, [image], [process], [wait], [delegate], [prescribe], [operator_stop]
+endplayer
+
+// OPERATOR MODEL
+module operator
+	k:[0..100] init 0; // fatigue level measured by completed tasks
+	t:[0..2] init 0; // workload level
+	s:[0..2] init 0; // status of image processing, 0: init, 1: good, 2: bad
+	q:[0..2] init 2; // delegation status: don't care if 2, delegation if 0, no delegation if 1
+
+	// image processing, the workload may increase due to other unknown tasks
+	[image] !stop & t=0 & s=0 -> (1-p):(t'=1) & (s'=0) + p:(t'=2) & (s'=0);
+	// not fatigue, workload level 1
+	[process] !stop & pl=2 & t=1 & s=0 & k<=COUNTER -> accu_load1:(s'=1)&(k'=k+1) + (1-accu_load1):(s'=2)&(k'=k+1);
+	// fatigue, workload level 1
+	[process] !stop & pl=2 & t=1 & s=0 & k>COUNTER -> accu_load1*fd:(s'=1) + (1-accu_load1*fd):(s'=2);
+	// not fatigue, workload level 2
+	[process] !stop & pl=2 & t=2 & s=0 & k<=COUNTER -> accu_load2:(s'=1)&(k'=k+1) + (1-accu_load2):(s'=2)&(k'=k+1);
+	// fatigue, workload level 2
+	[process] !stop & pl=2 & t=2 & s=0 & k>COUNTER -> accu_load2*fd:(s'=1) + (1-accu_load2*fd):(s'=1);
+
+	// image analysis is bad, UAV needs to wait at the waypoint and take another image
+	[wait] !stop & pl=2 & s=2 -> (pl'=1) & (t'=0) & (s'=0); 
+
+	// if image analysis is good, UAV can continue flying 
+	// at check points, operator may suggest route for the UAV
+
+	// with probability del, the operator delegates the decision of the next cornerpoint to the UAV,
+	[] !stop & pl=2 & s=1 & (w=2 | w=5 | w=6) & (q=2) -> del : (q'=0) + (1-del) : (q'=1);
+
+	[delegate] !stop & pl=2 & s=1 & (w=2 | w=5 | w=6) & (q=0) -> (pl'=1) & (t'=0) & (s'=0) & (q'=2); // allow UAV to choose
+
+	// w2 -> r5 (c=0) |r6 (c=1) |r7 (c=2)|r9 (c=3)
+	[prescribe] !stop & pl=2 & s=1 & w=2 & (q=1) -> (pl'=1) & (c'=3) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=2 & (q=1) -> (pl'=1) & (c'=2) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=2 & (q=1)-> (pl'=1) & (c'=1) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=2 & (q=1)-> (pl'=1) & (c'=0) & (t'=0) & (s'=0)& (q'=2);
+
+	// w5 -> r3 (c=0)| r4  (c=1)| w4 (c=2)
+	[prescribe] !stop & pl=2 & s=1 & w=5 & (q=1)-> (pl'=1) & (c'=2) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=5 & (q=1)-> (pl'=1) & (c'=1) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=5 & (q=1)-> (pl'=1) & (c'=0) & (t'=0) & (s'=0)& (q'=2);
+
+	// w6 -> r2 (c=0)| r3 (c=1) |r8 (c=2)
+	[prescribe] !stop & pl=2 & s=1 & w=6 & (q=1)-> (pl'=1) & (c'=2) & (t'=0) & (s'=0)& (q'=2);
+ 	[prescribe] !stop & pl=2 & s=1 & w=6 & (q=1)-> (pl'=1) & (c'=1) & (t'=0) & (s'=0)& (q'=2);
+	[prescribe] !stop & pl=2 & s=1 & w=6 & (q=1)-> (pl'=1) & (c'=0) & (t'=0) & (s'=0)& (q'=2);
+
+	// at non-check-points, UAV has full autonomy to choose flying route
+	[delegate] !stop & pl=2 & s=1 & (w!=2 & w!=5 & w!=6) -> (pl'=1) & (t'=0) & (s'=0); 
+	
+	// operator stops
+	[operator_stop] stop & pl=2 -> true;
+
+endmodule
+
+// UAV MODEL
+module UAV
+	// UAV positions:
+	// inside a waypoint: w!=0, a=0, r=0
+	// fly through certain angle of a waypoint: w!=0, a!=0, r=0
+	// fly through a road point: w=0, a=0, r!=0
+	w:[0..6] init 1; // waypoint 
+	r:[0..9] init 0; // road points
+        send: bool init true;
+	in: bool init true;
+	// flag which waypoints were visited
+	w1: bool init true;
+	w2: bool init false;
+	w3: bool init false;
+	w4: bool init false;
+	w5: bool init false;
+	w6: bool init false;
+	// if operator delegated decision at checkpoint
+	delegated: bool init false;
+	
+	// at any waypoint:
+	// send image to operator for analysis
+	[image] pl=1 & w!=0 & a=0 & r=0 & send -> (pl'=2) & (send'=false); 
+	// wait at the waypoint and send another image
+	[wait] !send -> (send'=true);
+	// fly into a waypoint and take an image
+	// also, if done is true, then reset the waypoints
+	[camera] pl=1 & w=1 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w1'=true);
+	[camera] pl=1 & w=2 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w2'=true);
+	[camera] pl=1 & w=3 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w3'=true);
+	[camera] pl=1 & w=4 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w4'=true);
+	[camera] pl=1 & w=5 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w5'=true);
+	[camera] pl=1 & w=6 & a!=0 & r=0 & in & !delegated -> (send'=true) & (w6'=true);
+	// fly out of the waypoint via any angle point
+	[prescribe] w!=0 & a=0 & r=0 -> (in'=false);
+	[delegate] w!=0 & a=0 & r=0 & (w=2 | w=5 | w=6) -> (delegated'=true);
+	[delegate] w!=0 & a=0 & r=0 & !(w=2 | w=5 | w=6) -> (in'=false);
+	// UAV flying plans (based on the road map)
+	// check points: receiving commands from the operator
+	// w2 -> r5 |r6 |r7 |r9
+	[delegated] pl=1 & w=2 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=0) & (delegated'=false);
+	[delegated] pl=1 & w=2 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=1) & (delegated'=false);
+	[delegated] pl=1 & w=2 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=2) & (delegated'=false);
+	[delegated] pl=1 & w=2 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=3) & (delegated'=false);
+	[fly] pl=1 & c=0 & w=2 & (a!=0) & r=0 & !in -> (r'=5);
+	[fly] pl=1 & c=1 & w=2 & (a!=0) & r=0 & !in -> (r'=6);
+	[fly] pl=1 & c=2 & w=2 & (a!=0) & r=0 & !in -> (r'=7);
+	[fly] pl=1 & c=3 & w=2 & (a!=0) & r=0 & !in -> (r'=9);
+
+	// w5 -> r3 | r4 | w4 (at any angle point)
+	[delegated] pl=1 & w=5 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=0) & (delegated'=false);
+	[delegated] pl=1 & w=5 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=1) & (delegated'=false);
+	[delegated] pl=1 & w=5 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=2) & (delegated'=false);
+	[fly] pl=1 & c=0 & w=5 & (a!=0) & r=0 & !in -> (r'=3);
+	[fly] pl=1 & c=1 & w=5 & (a!=0) & r=0 & !in -> (r'=4);
+	[fly] pl=1 & c=2 & w=5 & (a!=0) & r=0 & !in -> (w'=4) & (r'=0) & (in'=true); // set angle
+
+	// w6 -> r2 | r3 |r8
+	[delegated] pl=1 & w=6 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=0) & (delegated'=false);
+	[delegated] pl=1 & w=6 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=1) & (delegated'=false);
+	[delegated] pl=1 & w=6 & a!=0 & r=0 & delegated=true -> (in'=false) & (c'=2) & (delegated'=false);
+	[fly] pl=1 & c=0 & w=6 & (a!=0) & r=0 & !in -> (r'=2);
+	[fly] pl=1 & c=1 & w=6 & (a!=0) & r=0 & !in -> (r'=3);
+	[fly] pl=1 & c=2 & w=6 & (a!=0) & r=0 & !in -> (r'=8);
+
+	// non check points: fly autonomously
+	// w1 -> r1 | r9
+	[fly] pl=1 & w=1 & (a!=0) & r=0 & !in -> (r'=1);
+	[fly] pl=1 & w=1 & (a!=0) & r=0 & !in -> (r'=9);
+
+	// w3 -> r6 | w4 (any angle point)
+	[fly] pl=1 & w=3 & (a!=0) & r=0 & !in -> (r'=6);
+	[fly] pl=1 & w=3 & (a!=0) & r=0 & !in -> (w'=4) & (r'=0) & (in'=true); // set angle
+
+	// w4 -> w3 | w5
+	[fly] pl=1 & w=4 & (a!=0) & r=0 & !in -> (w'=3) & (r'=0) & (in'=true); // set angle
+	[fly] pl=1 & w=4 & (a!=0) & r=0 & !in -> (w'=5) & (r'=0) & (in'=true); // set angle
+
+	// r1 -> r2 | w1
+	[fly] pl=1 & r=1 -> (r'=2);
+	[fly] pl=1 & r=1 -> (w'=1) & (r'=0) & (in'=true); // set angle
+
+	// r2 -> r1 | w6
+	[fly] pl=1 & r=2 -> (r'=1);
+	[fly] pl=1 & r=2 -> (w'=6) & (r'=0) & (in'=true); // set angle
+
+	// r3 -> w5 | w6
+	[fly] pl=1 & r=3 -> (w'=5) & (r'=0) & (in'=true); // set angle
+
+	[fly] pl=1 & r=3 -> (w'=6) & (r'=0) & (in'=true); // set angle
+
+	// r4 -> r5 | w5
+	[fly] pl=1 & r=4 -> (r'=5);
+	[fly] pl=1 & r=4 -> (w'=5) & (r'=0) & (in'=true); // set angle
+
+	// r5 -> r4 | w2
+	[fly] pl=1 & r=5 -> (r'=4);
+	[fly] pl=1 & r=5 -> (w'=2) & (r'=0) & (in'=true); // set angle
+
+	// r6 -> w2 | w3
+	[fly] pl=1 & r=6 -> (w'=2) & (r'=0) & (in'=true); // set angle
+	[fly] pl=1 & r=6 -> (w'=3) & (r'=0) & (in'=true); // set angle
+
+	// r7 -> w2 | r8
+	[fly] pl=1 & r=7 -> (w'=2) & (r'=0) & (in'=true); // set angle
+	[fly] pl=1 & r=7 -> (r'=8);
+
+	// r8 -> w6 | r7
+	[fly] pl=1 & r=8 -> (w'=6) & (r'=0) & (in'=true); // set angle
+	[fly] pl=1 & r=8 -> (r'=7);
+
+	// r9 -> w1 | w2
+	[fly] pl=1 & r=9 -> (w'=1) & (r'=0) & (in'=true); // set angle
+	[fly] pl=1 & r=9 -> (w'=2) & (r'=0) & (in'=true); // set angle
+
+	// stop if target reached
+	[uav_stop] stop & pl=1 -> true;
+
+endmodule
+
+// CHOICE OF ANGLE POINTS
+module angle_choice
+	a:[0..8] init 0; // angle points
+
+	// 3 -- 4 -- 5
+	// |    |    |
+	// 2    o    6
+	// |    |    |
+	// 1 -- 8 -- 7
+
+	[prescribe] true -> (a'=1);
+	[prescribe] true -> (a'=2);
+	[prescribe] true -> (a'=3);
+	[prescribe] true -> (a'=4);
+	[prescribe] true -> (a'=5);
+	[prescribe] true -> (a'=6);
+	[prescribe] true -> (a'=7);
+	[prescribe] true -> (a'=8);
+	[delegate] true -> (a'=1);
+	[delegate] true -> (a'=2);
+	[delegate] true -> (a'=3);
+	[delegate] true -> (a'=4);
+	[delegate] true -> (a'=5);
+	[delegate] true -> (a'=6);
+	[delegate] true -> (a'=7);
+	[delegate] true -> (a'=8);
+
+	[camera] true -> (a'=0);
+endmodule
+
+// MISSION OBJECTIVE
+module waypoint_check
+	// check if waypoints w1, w2 and w6 have been visited
+	[fly] w1 & w2 & w6 -> (stop'=true);
+	[camera] w1 & w2 & w6 -> (stop'=true);
+	[camera] !(w1 & w2 & w6) -> true;
+	[fly] !(w1 & w2 & w6) -> true;
+endmodule
+
+rewards "time" // flight time
+        [wait] true: 10;
+        [fly] true: 60;
+endrewards
+
+rewards "ROZ" // ROZ occupancy
+	[fly] roz : 1;
+endrewards

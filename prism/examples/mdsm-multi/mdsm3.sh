@@ -1,0 +1,1 @@
+../../prism/bin/prism mdsm3.prism mdsm3.props -prop 1 -multirounding -multimaxciter 500 -baselineaccuracy 200 -increasefactor 1.01 -paretoepsilon 0.01 -gs -exportstrat mdsm3.strat 2>&1 | tee mdsm3.log

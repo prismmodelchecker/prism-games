@@ -68,6 +68,8 @@ public class EvaluateContextSubstate implements EvaluateContext
 		int newIndex;
 		if (index == -1 || (newIndex = varMap[index]) == -1)
 			return null;
+		if (newIndex >= varValues.length)
+		        return null;
 		return varValues[newIndex];
 	}
 }

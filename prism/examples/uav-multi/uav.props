@@ -1,0 +1,7 @@
+const double v_ROZ = 0;
+const double v_time = 0;
+
+<<p1>> R{"time"}min=? [ Fc w1&w2&w6 ]
+
+<<p1>> (R{"ROZ"}<=v_ROZ [ C ] & R{"time"}<=v_time [ C ])
+

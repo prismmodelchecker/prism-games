@@ -28,11 +28,17 @@
 
 package userinterface.graph;
 
-import param.BigRational;
-import parser.*;
-import prism.*;
+import org.jfree.data.xy.XYDataItem;
 
-import org.jfree.data.xy.*;
+import param.BigRational;
+import parser.Values;
+import prism.Interval;
+import prism.PointList;
+import prism.PrismException;
+import prism.ResultListener;
+import prism.ResultsCollection;
+import prism.TileList;
+import explicit.Pareto;
 
 // TODO: When either the graph or the resultset seizes to exist, then so should this listener.
 
@@ -112,6 +118,17 @@ public class GraphResultListener implements ResultListener
 					y = ((Integer) interval.upper).intValue();
 					graph.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
 				}
+			} else if (result instanceof Pareto[]) {
+				//synchronized (TileList.getStoredTileLists()) {
+					for (int i = 0; i < TileList.getStoredTileLists().size(); i++) {
+						TileList tl = TileList.getStoredTileLists().get(i);
+						if(tl != null && tl instanceof PointList && tl.getDimension() == 2) { // add sliders to graph
+							graph.addPointListSeries((PointList) tl);
+						}
+					}
+
+					TileList.clearStoredTileLists();
+				//}
 			}
 		}
 	}

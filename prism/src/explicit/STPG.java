@@ -247,4 +247,9 @@ public interface STPG extends NondetModel
 	 * Enables all choices that have been disabled previously
 	 */
 	public void enableAllChoices();
+
+    /**
+     * If this returns true, the probabilistic reachability model checking does not check for deadlocks first
+     **/
+    public boolean deadlocksAllowed();
 }

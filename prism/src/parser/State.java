@@ -116,6 +116,16 @@ public class State implements Comparable<State>, Serializable
 			varValues[i] = null;
 	}
 
+	public void intersect(State s)
+	{
+	    int n = varValues.length;
+	    for(int i = 0; i < n; i++) {
+		if(varValues[i] == null || !varValues[i].equals(s.varValues[i])) {
+		    varValues[i] = null;
+		}
+	    }
+	}
+
 	/**
 	 * Set the {@code i}th value to {@code val}.
 	 */
@@ -166,7 +176,7 @@ public class State implements Comparable<State>, Serializable
 	@Override
 	public int compareTo(State s)
 	{
-		return compareTo(s, 0);
+	    return compareTo(s, 0);
 	}
 	
 	/**
@@ -186,8 +196,10 @@ public class State implements Comparable<State>, Serializable
 		// States of different size are incomparable 
 		svv = s.varValues;
 		n = varValues.length;
-		if (n != svv.length)
-			throw new ClassCastException("States are different sizes");
+		if (varValues.length  != svv.length)
+			throw new ClassCastException("States are of different size");
+		if (n > svv.length)
+		        throw new ClassCastException("States do not contain enough values");
 		
 		if (j > n-1)
 			throw new ClassCastException("Variable index is incorrect");
@@ -306,4 +318,5 @@ public class State implements Comparable<State>, Serializable
 		s += ")";
 		return s;
 	}
+
 }

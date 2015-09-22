@@ -286,7 +286,6 @@ public class ConstantList extends ASTElement
 				allValues.addValue(cl.getConstantName(i), val);
 			}
 		}
-		
 		return allValues;
 	}
 
@@ -345,7 +344,7 @@ public class ConstantList extends ASTElement
 		}
 		
 		// Store final expressions for each constant in a map and return
-		Map<String,Expression> constExprs = new HashMap<>();
+		Map<String,Expression> constExprs = new HashMap<String,Expression>();
 		for (i = 0; i < numToEvaluate; i++) {
 			if (cl.getConstant(i) != null) {
 				constExprs.put(cl.getConstantName(i), cl.getConstant(i).deepCopy());

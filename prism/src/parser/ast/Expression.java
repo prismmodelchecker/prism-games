@@ -688,6 +688,14 @@ public abstract class Expression extends ASTElement
 	}
 
 	/**
+	 * Test if an expression yields Pareto set {@code nameCode}.
+	 */
+	public static boolean isPareto(Expression expr)
+	{
+		return expr instanceof ExpressionFunc && ((ExpressionFunc) expr).isPareto();
+	}
+	
+	/**
 	 * Test if an expression is a quantitative property (P=?, R=? or S=?) 
 	 */
 	public static boolean isQuantitative(Expression expr)

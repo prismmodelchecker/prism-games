@@ -58,6 +58,8 @@ public class GUIComputationThread extends Thread
 		} else if (e instanceof PrismException) {
 			error(e.getMessage());
 		} else {
+		    Thread.dumpStack();
+		    e.printStackTrace();
 			error(e.toString()+"\nThis is an unexpected error, it might be a good idea to restart PRISM");
 		}
 	}

@@ -1,0 +1,207 @@
+smg
+
+const max_unpowered_time = 10;
+
+module LEFT
+	C4_left : [0..1] init 0; // uncontrolled
+
+	// environment turns power on or off
+	[gl?] safe_left -> true;
+	[al?] safe_left -> true;
+
+	// left side sees connector 4 as an environment variable
+	[c4_a?] safe_left & pL=2 -> (C4_left'=0);
+	[c4_b?] safe_left & pL=2 -> (C4_left'=1);
+
+	// controller switches connectors
+	[c1!] safe_left -> true;
+	[c2!] safe_left -> true;
+	[c3!] safe_left -> true;
+
+	// fixing deadlock
+	[term?] !safe_left -> true;
+endmodule
+
+module RIGHT
+	C4_right : [0..1] init 0; // controlled
+	B2_right : [0..1] init 0; // uncontrolled
+
+	// environment turns power on or off
+	[gr?] safe_right -> true;
+	[ar?] safe_right -> true;
+
+	// controller switches connectors
+	[c4_a!] safe_right & pR=1 -> (C4_right'=0);
+	[c4_b!] safe_right & pR=1 -> (C4_right'=1);
+	[c5!] safe_right -> true;
+	[c6!] safe_right -> true;
+	[c7!] safe_right -> true;
+
+	// fixing deadlock
+	[term?] !safe_right -> true;
+endmodule
+
+// connector switches
+module c1_switch
+       C1 : [0..1] init 0;
+       [c1?] pL=1 -> (C1'=0);
+       [c1?] pL=1 -> (C1'=1);
+endmodule
+module c2_switch = c1_switch [c1=c2, C1=C2] endmodule
+module c3_switch = c1_switch [c1=c3, C1=C3] endmodule
+module c5_switch = c1_switch [pL=pR, c1=c5, C1=C5] endmodule
+module c6_switch = c1_switch [pL=pR, c1=c6, C1=C6] endmodule
+module c7_switch = c1_switch [pL=pR, c1=c7, C1=C7] endmodule
+
+module gl_switch
+       GL : [0..1] init 1;
+       [gl?] pL=2 -> 0.9 : (GL'=1) + 0.1 : (GL'=0);
+endmodule
+module al_switch = gl_switch [gl=al, GL=AL] endmodule
+module ar_switch = gl_switch [pL=pR, gl=ar, GL=AR] endmodule
+module gr_switch = gl_switch [pL=pR, gl=gr, GL=GR] endmodule
+
+module players_left
+        // player
+	pL : [1..2] init 1;
+
+       [gl?] true -> (pL'=3-pL);
+       [al?] true -> (pL'=3-pL);
+       [c1?] true -> (pL'=3-pL);
+       [c2?] true -> (pL'=3-pL);
+       [c3?] true -> (pL'=3-pL);
+       [c4_a?] true -> (pL'=3-pL);
+       [c4_b?] true -> (pL'=3-pL);
+endmodule
+module players_right
+        // player
+	pR : [1..2] init 1;
+
+       [ar?] true -> (pR'=3-pR);
+       [gr?] true -> (pR'=3-pR);
+       [c4_a?] true -> (pR'=3-pR);
+       [c4_b?] true -> (pR'=3-pR);
+       [c5?] true -> (pR'=3-pR);
+       [c6?] true -> (pR'=3-pR);
+       [c7?] true -> (pR'=3-pR);
+endmodule
+
+module buses_left
+	// dependent variables - buses
+	B1 : [0..1];
+	B2 : [0..1];
+
+       [gl?] true -> (B1'=bus1) & (B2'=bus2);
+       [al?] true -> (B1'=bus1) & (B2'=bus2);
+       [c1?] true -> (B1'=bus1) & (B2'=bus2);
+       [c2?] true -> (B1'=bus1) & (B2'=bus2);
+       [c3?] true -> (B1'=bus1) & (B2'=bus2);
+       [c4_a?] true -> (B1'=bus1) & (B2'=bus2);
+       [c4_b?] true -> (B1'=bus1) & (B2'=bus2);
+endmodule
+
+module buses_right
+	// dependent variables - buses
+	B3 : [0..1];
+	B4 : [0..1];
+
+       [ar?] true -> (B3'=bus3) & (B4'=bus4);
+       [gr?] true -> (B3'=bus3) & (B4'=bus4);
+       [c4_a?] true -> (B3'=bus3) & (B4'=bus4);
+       [c4_b?] true -> (B3'=bus3) & (B4'=bus4);
+       [c5?] true -> (B3'=bus3) & (B4'=bus4);
+       [c6?] true -> (B3'=bus3) & (B4'=bus4);
+       [c7?] true -> (B3'=bus3) & (B4'=bus4);
+endmodule
+
+module timer1
+       t1 : [0..max_unpowered_time];
+       [gl?] B1=0 -> (t1'=t1+1);
+       [gl?] B1=1 -> (t1'=0);
+       [al?] B1=0 -> (t1'=t1+1);
+       [al?] B1=1 -> (t1'=0);
+       [c1?] B1=0 -> (t1'=t1+1);
+       [c1?] B1=1 -> (t1'=0);
+       [c2?] B1=0 -> (t1'=t1+1);
+       [c2?] B1=1 -> (t1'=0);
+       [c3?] B1=0 -> (t1'=t1+1);
+       [c3?] B1=1 -> (t1'=0);
+       [c4_a?] B1=0 -> (t1'=t1+1);
+       [c4_a?] B1=1 -> (t1'=0);
+       [c4_b?] B1=0 -> (t1'=t1+1);
+       [c4_b?] B1=1 -> (t1'=0);
+       [c4_c?] B1=0 -> (t1'=t1+1);
+       [c4_c?] B1=1 -> (t1'=0);
+endmodule
+module timer4 = timer1 [gl=ar, al=gr, c1=c7, c2=c5, c3=c6, B1=B4, t1=t4] endmodule
+
+system "S1"
+       LEFT || c1_switch || c2_switch || c3_switch || gl_switch || al_switch || players_left || buses_left || timer1
+endsystem
+
+system "S2"
+       RIGHT || c5_switch || c6_switch || c7_switch || ar_switch || gr_switch || players_right || buses_right || timer4
+endsystem
+
+system
+	"S1" || "S2"
+endsystem
+
+// time to unsafe state
+rewards "time"
+	[gl] true : 1;
+	[al] true : 1;
+	[c1] true : 1;
+	[c2] true : 1;
+	[c3] true : 1;
+	[c4_a] true : 1;
+	[c4_b] true : 1;
+	[c4_c] true : 1;
+endrewards
+
+// buses
+formula bus1 = (GL=1 & C1=1) |
+	       (B2=1 & AL=1 & C3=1 & C2=1) |
+	       (B2=1 & C3=1 & C4_left=1) ? 1 : 0;
+formula bus2 = (B1=1 & GL=1 & C1=1 & C3=1) |
+	       (AL=1 & C2=1) |
+	       (C4_left=1) ? 1 : 0;
+formula bus3 = (C4_right=1) |
+	       (AR=1 & C5=1) |
+	       (B4=1 & GR=1 & C7=1 & C6=1) ? 1 : 0;
+formula bus4 = (GR=1 & C6=1) |
+	       (B3=1 & C4_right=1 & C7=1) |
+	       (B3=1 & AR=1 & C5=1 & C7=1) ? 1 : 0;
+
+// safety specs
+formula safe_left = time_safe_left & parallel_safe_left;
+formula safe_right = time_safe_right & parallel_safe_right;
+
+formula source_left = (GL=0 => C1=0) & (AL=0 => C2=0);
+formula parallel1 = !(C1=1 & C3=1 & C2=1) & !(C1=1 & C3=1 & C4_left=1);
+formula parallel2 = !(C2=1 & C4_left=1);
+formula parallel_safe_left = source_left & parallel1 & parallel2;
+
+formula source_right = (AR=0 => C5=0) & (GR=0 => C6=0);
+formula parallel3 = !(C4_right=1 & C5=1);
+formula parallel4 = !(C4_right=1 & C7=1 & C6=1) & !(C5=1 & C7=1 & C6=1);
+formula parallel_safe_right = source_right & parallel3 & parallel4;
+
+// connector 4 only on if powered
+formula conn4_left = (C4_left=1 => ((GL=1 & C1=1 & B1=1 & C3=1 & B2=1) | (AL=1 & C2=1 & B2=1)));
+formula conn4_right = (C4_right=1 => ((GL=1 & C1=1 & B1=1 & C3=1 & B2=1) | (AL=1 & C2=1 & B2=1)));
+
+
+// safety-critical timing
+formula time1 = (t1 <= max_unpowered_time);
+formula time_safe_left = time1;
+formula time4 = (t4 <= max_unpowered_time);
+formula time_safe_right = time4;
+
+// labels for simulation
+label "parallel_safe_left" = parallel_safe_left;
+label "time_safe_left" = time_safe_left;
+label "safe_left" = safe_left;
+label "parallel_safe_right" = parallel_safe_right;
+label "time_safe_right" = time_safe_right;
+label "safe_right" = safe_right;

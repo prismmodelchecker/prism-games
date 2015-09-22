@@ -59,7 +59,7 @@ public class ExpressionReward extends ExpressionQuant
 	{
 		rewardStructIndex = o;
 	}
-
+    
 	public void setRewardStructIndexDiv(Object o)
 	{
 		rewardStructIndexDiv = o;
@@ -122,14 +122,13 @@ public class ExpressionReward extends ExpressionQuant
 	 * Throws an exception (with explanatory message) if it cannot be found.
 	 * This means that, the method always returns a valid index if it finishes.
 	 */
-	public int getRewardStructIndexByIndexObject(ModulesFile modulesFile, Values constantValues) throws PrismException
+	private int getRewardStructIndexByIndexObject(ModulesFile modulesFile, Values constantValues, Object rsi) throws PrismException
 	{
 		int rewStruct = -1;
-		Object rsi = rewardStructIndex;
 		// Recall: the index is an Object which is either an Integer, denoting the index (starting from 0) directly,
 		// or an expression, which can be evaluated (possibly using the passed in constants) to an index. 
 		if (modulesFile == null)
-			throw new PrismException("No model file to obtain reward structures");
+			throw new PrismException("No modules file to obtain reward structures");
 		if (modulesFile.getNumRewardStructs() == 0)
 			throw new PrismException("Model has no rewards specified");
 		// No index specified - use the first one
@@ -158,10 +157,18 @@ public class ExpressionReward extends ExpressionQuant
 	 */
 	public RewardStruct getRewardStructByIndexObject(ModulesFile modulesFile, Values constantValues) throws PrismException
 	{
-		int rewardStructIndex = getRewardStructIndexByIndexObject(modulesFile, constantValues);
-		return modulesFile.getRewardStruct(rewardStructIndex);
+		int rewardStructIndex2 = getRewardStructIndexByIndexObject(modulesFile, constantValues, rewardStructIndex);
+		return modulesFile.getRewardStruct(rewardStructIndex2);
 	}
 	
+	public RewardStruct getRewardStructDivByIndexObject(ModulesFile modulesFile, Values constantValues) throws PrismException
+	{
+		if (rewardStructIndexDiv == null)
+			return null;
+		int rewardStructIndex2 = getRewardStructIndexByIndexObject(modulesFile, constantValues, rewardStructIndexDiv);
+		return modulesFile.getRewardStruct(rewardStructIndex2);
+	}
+
 	/**
 	 * Get info about the operator and bound.
 	 * @param constantValues Values for constants in order to evaluate any bound

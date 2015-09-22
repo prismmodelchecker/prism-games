@@ -29,19 +29,28 @@ package explicit;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 import parser.State;
 import parser.Values;
 import parser.VarList;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
+import parser.ast.SystemBrackets;
+import parser.ast.SystemDefn;
+import parser.ast.SystemFullParallel;
+import parser.ast.SystemModule;
+import parser.ast.SystemParallel;
+import parser.ast.SystemReference;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
 import prism.PrismNotSupportedException;
@@ -59,6 +68,8 @@ public class ConstructModel extends PrismComponent
 	protected boolean findDeadlocks = true;
 	// Automatically fix deadlocks?
 	protected boolean fixDeadlocks = true;
+        // Automatically check compatibility?
+        protected boolean checkCompatibility = false;
 
 	// Details of built model
 	protected List<State> statesList;
@@ -74,6 +85,11 @@ public class ConstructModel extends PrismComponent
 		return statesList;
 	}
 
+	public void setCheckCompatibility(boolean b)
+	{
+	        checkCompatibility = b;
+	}
+
 	public void setFixDeadlocks(boolean b)
 	{
 		fixDeadlocks = b;
@@ -83,9 +99,9 @@ public class ConstructModel extends PrismComponent
 	 * Build the set of reachable states for a PRISM model language description and return.
 	 * @param modulesFile The PRISM model
 	 */
-	public List<State> computeReachableStates(ModulesFile modulesFile) throws PrismException
+    public List<State> computeReachableStates(ModulesFile modulesFile, boolean[] cancel_computation) throws PrismException
 	{
-		constructModel(modulesFile, true, false);
+	    constructModel(modulesFile, true, false, cancel_computation);
 		return statesList;
 	}
 
@@ -93,9 +109,9 @@ public class ConstructModel extends PrismComponent
 	 * Construct an explicit-state model from a PRISM model language description and return.
 	 * @param modulesFile The PRISM model
 	 */
-	public Model constructModel(ModulesFile modulesFile) throws PrismException
+    public Model constructModel(ModulesFile modulesFile, boolean[] cancel_computation) throws PrismException
 	{
-		return constructModel(modulesFile, false, true);
+	    return constructModel(modulesFile, false, true, cancel_computation);
 	}
 
 	/**
@@ -106,9 +122,9 @@ public class ConstructModel extends PrismComponent
 	 * @param justReach If true, just build the reachable state set, not the model
 	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 */
-	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse) throws PrismException
+    public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean[] cancel_computation) throws PrismException
 	{
-		return constructModel(modulesFile, justReach, buildSparse, true);
+	    return constructModel(modulesFile, justReach, buildSparse, true, false, cancel_computation);
 	}
 
 	/**
@@ -119,8 +135,10 @@ public class ConstructModel extends PrismComponent
 	 * @param justReach If true, just build the reachable state set, not the model
 	 * @param buildSparse Build a sparse version of the model (if possible)?
 	 * @param distinguishActions True if actions should be attached to distributions (and used to distinguish them)
+	 * @param compositional True if called for compositional model building (affects action assignments)
+	 *
 	 */
-	public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions) throws PrismException
+    public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions, boolean compositional, boolean[] cancel_computation) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -145,6 +163,12 @@ public class ConstructModel extends PrismComponent
 		// Get model info
 		modelType = modulesFile.getModelType();
 		
+		// For SMGs with a system definition, we build compositionally
+		if (modelType == ModelType.SMG && modulesFile.getSystemDefn() != null) {
+		    // default is to not check compatibility
+		    return constructSMGModelCompositionally(modulesFile, justReach, buildSparse, distinguishActions, cancel_computation);
+		}
+		
 		// Display a warning if there are unbounded vars
 		VarList varList = modulesFile.createVarList();
 		if (varList.containsUnboundedVariables())
@@ -158,7 +182,6 @@ public class ConstructModel extends PrismComponent
 		timer = System.currentTimeMillis();
 
 		// Initialise simulator for this model
-
 		engine.createNewOnTheFlyPath(modulesFile);
 
 		// Create model storage
@@ -185,7 +208,14 @@ public class ConstructModel extends PrismComponent
 				modelSimple = stpg = new STPGExplicit();
 				break;
 			case SMG:
-				modelSimple = smg = new SMG();
+			        if(modelType == ModelType.SMG && modulesFile.getSystemDefn() !=  null && modulesFile.getSystemDefnName() != null) {
+				        // get top-level system definition name
+				        modelSimple = smg = new SMG(modulesFile.getSystemDefnName());
+				} else if(modulesFile.getModuleNames() != null && modulesFile.getModuleNames().length > 0) {
+				        modelSimple = smg = new SMG(modulesFile.getModuleName(0));
+				} else {
+				        modelSimple = smg = new SMG();
+				}
 				// Add player info
 				HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
 				for (i = 0; i < modulesFile.getNumPlayers(); i++) {
@@ -241,7 +271,7 @@ public class ConstructModel extends PrismComponent
 			if (modelType.multiplePlayers()) {
 				player = -1;
 				for (i = 0; i < nc; i++) {
-					int iPlayer = determinePlayerForChoice(modulesFile, modelType, i);
+				        int iPlayer = determinePlayerForChoice(modulesFile, modelType, i, compositional);
 					if (player != -1 && iPlayer != player) {
 						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
@@ -393,8 +423,6 @@ public class ConstructModel extends PrismComponent
 			}
 			model.setStatesList(statesList);
 			model.setConstantValues(new Values(modulesFile.getConstantValues()));
-			// System.out.println(model);
-			//mainLog.println("Model: " + model);
 		}
 
 		// Discard permutation
@@ -407,39 +435,154 @@ public class ConstructModel extends PrismComponent
 	 * For game models, determine the player who owns the {@code i}th choice in
 	 * the state currently being explored by the simulator. Returns the index
 	 * (starting from 1) of the player.
+	 * @param compositional True if called for compositional model building (affects action assignments)
+	 *
 	 */
-	private int determinePlayerForChoice(ModulesFile modulesFile, ModelType modelType, int i) throws PrismException
+    private int determinePlayerForChoice(ModulesFile modulesFile, ModelType modelType, int i, boolean compositional) throws PrismException
 	{
 		int modAct, player;
 
-		modAct = engine.getTransitionModuleOrActionIndex(i, 0);
+		try {
+		    modAct = engine.getTransitionModuleOrActionIndex(i, 0);
+		} catch (PrismLangException e) {
+		    throw new PrismException(String.format("%s. Did you forget to assign an action to a player?"));
+		}
 		// Synchronous action
 		if (modAct > 0) {
-			player = modulesFile.getPlayerForAction(modulesFile.getSynch(modAct - 1));
+		    // first try to get action from player specifications
+		    String action_name = modulesFile.getSynch(modAct - 1);
+		    if(compositional) {
+			// get inputs and outputs of subsystem
+			Vector<String> inputs = new Vector<String>();
+			Vector<String> outputs = new Vector<String>();
+			for(int n = 0; n < modulesFile.getNumModules(); n++) {
+			    inputs.addAll(modulesFile.getModule(n).getAllInputActions());
+			    outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
+			}
+
+			if(action_name == null || "".equals(action_name)) {
+			    player = 2; // tau controlled by player 2
+			} else if(inputs.contains(action_name)) {
+			    player = 2; // inputs controlled by player 2
+			} else if(outputs.contains(action_name)) {
+			    player = 1; // outputs controlled by player 1
+			} else {
+			    throw new PrismException("Action \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
+			}
+		    } else {
+			player = modulesFile.getPlayerForAction(action_name);
 			if (player == -1) {
-				throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
+			    throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
 			}
 			// 0-indexed to 1-indexed
 			player++;
+		    }
 		}
 		// Asynchronous action
 		else {
-			player = modulesFile.getPlayerForModule(engine.getTransitionModuleOrAction(i, 0));
-			if (player == -1) {
-				throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
+			if (compositional) {
+			    player = 2; // tau controlled by player 2
+			} else {
+				player = modulesFile.getPlayerForModule(engine.getTransitionModuleOrAction(i, 0));
+				if (player == -1) {
+					throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
+				}
+				// 0-indexed to 1-indexed
+				player++;
 			}
-			// 0-indexed to 1-indexed
-			player++;
 		}
-
 		return player;
 	}
+
+	/**
+	 * Construct an explicit-state model for an SMG with a system definition (done compositionally).
+	 * If {@code justReach} is true, no model is built and null is returned;
+	 * the set of reachable states can be obtained with {@link #getStatesList()}.
+	 * @param modulesFile The PRISM model
+	 * @param justReach If true, just build the reachable state set, not the model
+	 * @param buildSparse Build a sparse version of the model (if possible)?
+	 * @param distinguishActions True if actions should be attached to distributions (and used to distinguish them)
+	 */
+    public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions, boolean[] cancel_computation) throws PrismException
+        {
+	    return constructSMGModelCompositionally(modulesFile, justReach, buildSparse, distinguishActions, null, null, true, cancel_computation);
+	}
+        /**
+	 * Compositionally constructs the explicit-state model for an SMG with a system definition.
+	 * Returns the component games in {@code subsystems} and the corresponding modules files in
+	 * {@code subsystemModulesFiles}. If {@code buildFullModel} or {@code checkCompatibility} is
+	 * {@code true}, the full model is constructed. Otherwise, the full model is not constructed
+	 * and and only the components are returned.
+	 **/
+        public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions,
+						      List<SMG> subsystems, List<ModulesFile> subsystemModulesFiles, boolean buildFullModel, boolean[] cancel_computation) throws PrismException
+	{
+	        // if compatibility check or full model build is requested, need to build full model in any case
+	        if((checkCompatibility || buildFullModel) && subsystems==null)
+		        subsystems = new ArrayList<SMG>();
+	        if((checkCompatibility || buildFullModel) && subsystemModulesFiles==null)
+		        subsystemModulesFiles = new ArrayList<ModulesFile>();
+
+		// Extract subsystems from system definition
+		SystemDefn sys = modulesFile.getSystemDefn();
+		if (sys == null) {
+			throw new PrismException("Can only construct the model compositionally if there is a system definition");
+		}
+		while (sys instanceof SystemBrackets) {
+			sys = ((SystemBrackets) sys).getOperand();
+		}
+
+		ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
+		ModulesFile.extractSubsystemRefs(sys, sysRefs);
+		
+		// Extract modules in each subsystem ...
+		int numComps = sysRefs.size();
+		ArrayList<List<String>> moduleNameLists = new ArrayList<List<String>>();
+		for (int i = 0; i < numComps; i++) {
+		        SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
+			if (subsys == null) {
+			        throw new PrismException("Unknown system reference" + sysRefs.get(i));
+			}
+			ArrayList<String> moduleNames = new ArrayList<String>();
+			ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
+			moduleNameLists.add(moduleNames);
+		}
+		
+		// ... to build the subsystems individually.
+		setFixDeadlocks(false); // deadlocks not fixed
+		SMG m = null;
+		for (int i = 0; i < numComps; i++) {
+		        // extract and store modules files for the composition later
+		        ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
+			if(subsystemModulesFiles != null) subsystemModulesFiles.add(modulesFile_i);
+			// construct the models
+			m = (SMG) constructModel(modulesFile_i, justReach, buildSparse, distinguishActions, true, cancel_computation);
+			// convert to normal form if necessary
+			if(m != null) m.toNormalForm();
+			// add model to subsystem list
+			if(subsystems != null) subsystems.add(m);
+		}
+		if(!justReach && (checkCompatibility || buildFullModel) &&
+		       sys instanceof SystemFullParallel) {
+		        // form composition and check compatibility (if requested)
+		        double t0 = (double)System.nanoTime();
+			SMG smg_compositional = new SMG(modulesFile, subsystemModulesFiles, subsystems, mainLog, checkCompatibility, cancel_computation);
+			
+			mainLog.print(String.format("product construction took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
+			return smg_compositional;
+		} else {
+		        return m;
+		}
+	}
+
 
 	/**
 	 * Test method.
 	 */
 	public static void main(String[] args)
 	{
+		boolean[] cancel_computation = new boolean[1]; // false by default
+
 		try {
 			// Simple example: parse a PRISM file from a file, construct the model and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
@@ -450,7 +593,7 @@ public class ConstructModel extends PrismComponent
 				undefinedConstants.defineUsingConstSwitch(args[2]);
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism, prism.getSimulator());
-			Model model = constructModel.constructModel(modulesFile);
+			Model model = constructModel.constructModel(modulesFile, cancel_computation);
 			model.exportToPrismExplicitTra(args[1]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());

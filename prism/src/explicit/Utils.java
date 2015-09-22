@@ -123,7 +123,7 @@ public class Utils
 		return arrayNew;
 	}
 
-	/**
+ 	/**
 	 * Clone a double array.
 	 * @param array The array to be cloned
 	 * @return The new array
@@ -143,6 +143,28 @@ public class Utils
 		}
 		return arrayNew;
 	}
+
+	/**
+	 * Clone a Pareto array (deep copy).
+	 * @param array The array to be cloned
+	 * @return The new array
+	 */
+	public static Pareto[] cloneParetoArray(Pareto array[])
+	{
+		int i, n;
+		Pareto[] arrayNew;
+		// Do nothing for null pointers
+		if (array == null)
+			return null;
+		// Otherwise copy and return
+		n = array.length;
+		arrayNew = new Pareto[n];
+		for (i = 0; i < n; i++) {
+		    arrayNew[i] = new Pareto(array[i]); // deep copy
+		}
+		return arrayNew;
+	}
+
 
 	/**
 	 * Clone an integer array.

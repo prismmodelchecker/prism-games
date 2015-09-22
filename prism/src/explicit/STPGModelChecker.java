@@ -235,7 +235,8 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println("\nStarting probabilistic reachability...");
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
-		stpg.checkForDeadlocks(target);
+		if (!stpg.deadlocksAllowed())
+			stpg.checkForDeadlocks(target); // CLEMENS: don't see what breaks yet ...
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -1021,7 +1022,15 @@ public class STPGModelChecker extends ProbModelChecker
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
-			//mainLog.println(soln);
+			
+		        //mainLog.println(soln);
+			//mainLog.println(rewards);
+			//mainLog.println(min1);
+			//mainLog.println(min2);
+			//mainLog.println(soln2);
+			//mainLog.println(unknown);
+			//mainLog.println(genAdv);
+			
 			iters++;
 			// Matrix-vector multiply and min/max ops
 			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, genAdv ? adv : null, useDiscounting ? discountFactor : 1.0);

@@ -1,0 +1,125 @@
+smg
+
+// model parameters - prior probabilities
+const double spoilt = 0.1; // milk spoilt
+const double full = 0.4; // fridge full
+const double out_of_stock0 = 0.05; // trader 0 out of stock
+
+system
+	"Fridge" || "T0"
+endsystem
+
+system "Fridge" fridge endsystem
+system "T0" trader0 endsystem
+
+//////////////// FRIDGE ////////////////////
+
+const int traders = 1;
+const int actions_per_trader = 2;
+const int finished = traders*actions_per_trader*3 + 1;
+const int shut_down = finished + 9;
+
+module fridge
+	
+	s : [0..finished+3] init 0;
+
+	// offers (P2)
+	[o0?] s=0 -> (s'=0*3+1);
+	[o1?] s=0 -> (s'=1*3+1);
+	// also, listen for a termination signal, if no milk available (P2)
+	[term?] s=0 -> (s'=shut_down); // synchronised between all traders
+
+	// accept offers (P1)
+	[a0!] s=0*3+1 -> 1-spoilt : (s'=0*3+2) + spoilt : (s'=0*3+3);
+	[a1!] s=1*3+1 -> 1-spoilt : (s'=1*3+2) + spoilt : (s'=1*3+3);
+
+	// signal whether milk is good or bad (dummy P2)
+	[good0?] s=0*3+2 -> (s'=finished);
+	[good1?] s=1*3+2 -> (s'=finished);
+
+	[spoilt0?] s=0*3+3 -> (s'=0);
+	[spoilt0?] s=1*3+3 -> (s'=0);
+
+	// decline offers (P1)
+	[d0!] s=0*3+1 -> (s'=finished);
+	[d1!] s=1*3+1 -> (s'=finished);
+
+	[transaction_finished0?] s=finished -> 1-full : (s'=finished+1) + full : (s'=finished+2);
+
+	// continue (dummy P2)
+	[continue0?] s=finished+1 -> (s'=0);
+
+	[term?] s=finished+2 -> (s'=shut_down);
+
+	// terminal (P2)
+	[term?] s>=shut_down-> true;
+
+endmodule
+
+//////////////// TRADER 0 ////////////////////
+
+module trader0
+       
+	t0 : [-1..5] init -1;
+       
+	// check supply (P1)
+	[check_supply0!] t0=-1 -> 1-out_of_stock0 : (t0'=0) + out_of_stock0 : (t0'=5);
+
+	// offers (P1)
+	[o0!] t0=0 -> (t0'=1);
+	[o1!] t0=0 -> (t0'=2);
+
+	// accept offers (P2)
+	[a0?] t0=1 -> (t0'=3);
+	[a1?] t0=2 -> (t0'=3);
+
+	// decline offers (P2)
+	[d0?] t0=1 -> (t0'=3);
+	[d1?] t0=2 -> (t0'=3);
+
+	// P2 decides on stopping
+	[spoilt0?] t0=3 -> (t0'=-1);
+	[transaction_finished0?] t0=3 -> (t0'=4);
+
+	[term?] t0=4 -> (t0'=5);
+	[continue0?] t0=4 -> (t0'=-1);
+
+	// terminal (P2)
+	[term?] t0>=5-> true;
+
+endmodule
+
+
+// count how often an offer is accepted by the fridge (A_i)
+rewards "accept0"
+	[a0] true : 1;
+	[a1] true : 1;
+endrewards
+
+
+// quantity of milk obtained by the fridge (N)
+rewards "quantity"
+	[good0] true : 1.5;
+	[good1] true : 6;
+endrewards
+
+
+// the money obtained by the traders (per unit of milk) (M_i)
+rewards "money0"
+	[a0] true : 1;
+	[a1] true : 0.5;
+endrewards
+
+
+// the quality of the offers made by the traders (Q_i)
+rewards "quality0"
+	[o0] true : 0.5;
+	[o1] true : 2;
+endrewards
+
+
+// counting the offers made by the traders (O_i)
+rewards "offers0"
+	[o0] true : 1;
+	[o1] true : 1;
+endrewards

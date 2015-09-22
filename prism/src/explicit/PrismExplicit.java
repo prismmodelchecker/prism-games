@@ -59,6 +59,7 @@ public class PrismExplicit extends PrismComponent
 		long l; // timer
 		Model modelExpl;
 		ConstructModel constructModel;
+		boolean[] cancel_computation = new boolean[1]; // false by default
 
 		if (modulesFile.getModelType() == ModelType.PTA) {
 			throw new PrismNotSupportedException("You cannot build a PTA model explicitly, only perform model checking");
@@ -71,11 +72,11 @@ public class PrismExplicit extends PrismComponent
 
 		// build model
 		l = System.currentTimeMillis();
-		modelExpl = constructModel.constructModel(modulesFile, false, true);
+		modelExpl = constructModel.constructModel(modulesFile, false, true, cancel_computation);
 		l = System.currentTimeMillis() - l;
 
 		mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
-
+		
 		return modelExpl;
 	}
 
