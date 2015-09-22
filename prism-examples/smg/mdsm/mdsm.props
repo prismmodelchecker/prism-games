@@ -1,8 +1,0 @@
-<<1>> R{"value1"}max=? [F time=max_time]
-<<1,2>> R{"value12"}max=? [F time=max_time]
-<<1,2,3>> R{"value123"}max=? [F time=max_time]
-<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]
-<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]
-<<1,2,3,4,5,6>> R{"value123456"}max=? [F time=max_time]
-<<1,2,3,4,5,6,7>> R{"value1234567"}max=? [F time=max_time]
-
