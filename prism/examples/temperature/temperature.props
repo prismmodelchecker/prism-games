@@ -1,6 +1,0 @@
-const double t1 = 0.0;
-
-and(R{"temperature1"}>=t1 [ S ])
-
-and(R{"temperature1_deviation"}<=t1 [ S ])
-

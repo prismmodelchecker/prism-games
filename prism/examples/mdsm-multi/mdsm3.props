@@ -1,1 +1,0 @@
-<<p1>> and(R{"upfront_cost1"}<=2.9 [ C ], R{"value1"}>=18.6 [ C ])
