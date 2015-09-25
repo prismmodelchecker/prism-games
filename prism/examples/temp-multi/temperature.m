@@ -143,7 +143,7 @@ error3 = h_c3*delta(r) + h_c3*(abs(alpha2)*delta(2) + abs(alpha3)*delta(r))/(1-a
 %=======================Export to PRISM==========================
 
 % MODEL FILE
-fid = fopen('temperature.smg','w');
+fid = fopen('temperature.prism','w');
 
 % smg preamble
 fprintf(fid,'smg\r\n');
@@ -212,7 +212,7 @@ fprintf(sid, '{\n'); % sequencing
 for j = 1:2
     for i = 1:3
         fprintf(sid, '$TO $((TIMEOUT))m \\\n'); % timeout
-        fprintf(sid, '../../prism/bin/prism temperature{.smg,.props} \\\n'); % model and properties
+        fprintf(sid, '../../prism/bin/prism temperature{.prism,.props} \\\n'); % model and properties
         fprintf(sid, '\t-prop %u \\\n', 6+j); % property index
         fprintf(sid, '\t-multimaxciter %u -multimaxditer %u -gs \\\n', citer(j), diter(j)); % iteration bounds and Gauss-Seidel
         fprintf(sid, '\t-multiminm 2 -multimaxm 10000 \\\n'); % box size

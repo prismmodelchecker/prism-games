@@ -1,6 +1,6 @@
 This case study is concerned with controlling the temperature in multiple rooms in a building. The specific problem formulation is inspired by [FI04] and [SGA15]. The model is formulated as stochastic differential equations, and we use formal discretisation methods similar to those in [SGA15] to obtain a stochastic game model in PRISM-games.
 
-The model is in temperature.smg, and the properties are in temperature.props. The discretisation can be re-run using the MATLAB script temperature.m, where also the model parameters can be changed.
+The model is in temperature.prism, and the properties are in temperature.props. The discretisation can be re-run using the MATLAB script temperature.m, where also the model parameters can be changed.
 
 
 For more information, see: http://www.prismmodelchecker.org/games/examples.php

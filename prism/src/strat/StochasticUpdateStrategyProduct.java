@@ -146,10 +146,6 @@ public class StochasticUpdateStrategyProduct implements Strategy
 	}
     }
 
-
-    /** Each strategy is exportet to a separate file, with additional extension
-     * {@code .i} after the file name.
-     **/
     @Override
     public void exportToFile(String filename)
     {
@@ -307,14 +303,7 @@ public class StochasticUpdateStrategyProduct implements Strategy
 	@Override
 	public void exportActions(PrismLog out)
 	{
-	    if(out instanceof prism.PrismFileLog) {
-		out.close();
-		for(int i = 0; i < strategies.size(); i++)
-		    strategies.get(i).exportToFile(((prism.PrismFileLog) out).getFileName() + "." + i);
-	    } else {
-		for(int i = 0; i < strategies.size(); i++)
-		    out.println(strategies.get(i).toString());
-	    }
+	    out.print(this.toString());
 	}
 
 

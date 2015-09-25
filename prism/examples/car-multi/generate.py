@@ -26,7 +26,7 @@ if(len(sys.argv)>=2):
         print "If n is not specified, islip is taken as default."
         sys.exit(1);
 
-smg = open("%s.smg" % (filename), "w");
+smg = open("%s.prism" % (filename), "w");
 prop = open("%s.props" % (filename), "w");
 bash = open("%s.sh" % (filename), "w");
 
@@ -549,7 +549,7 @@ else: # islip is default
 
 # write the command to execute
 bash.write("#!/bin/bash\n\n")
-bash.write("../../bin/prism %s{.smg,.props} -prop 1 -multirounding -multimaxciter 500 -baselineaccuracy 200 -increasefactor 1.01 -paretoepsilon 0.001 -logcpareto -gs -exportstrat %s.strat 2>&1 1> %s.log &\n" % (filename, filename, filename))
+bash.write("../../bin/prism %s{.prism,.props} -prop 1 -multirounding -multimaxciter 500 -baselineaccuracy 200 -increasefactor 1.01 -paretoepsilon 0.001 -logcpareto -gs -exportstrat %s.strat 2>&1 1> %s.log &\n" % (filename, filename, filename))
 
 #########################################################################
 # Wrap up                                                               #

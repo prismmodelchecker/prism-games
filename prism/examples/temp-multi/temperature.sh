@@ -9,7 +9,7 @@ fi
 
 {
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 7 \
 	-multimaxciter 100 -multimaxditer 20 -gs \
 	-multiminm 2 -multimaxm 10000 \
@@ -20,7 +20,7 @@ $TO $((TIMEOUT))m \
 	2>&1 1> temp_phi_1.log ; 
 
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 7 \
 	-multimaxciter 100 -multimaxditer 20 -gs \
 	-multiminm 2 -multimaxm 10000 \
@@ -31,7 +31,7 @@ $TO $((TIMEOUT))m \
 	2>&1 1> temp_phi_2.log ; 
 
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 7 \
 	-multimaxciter 100 -multimaxditer 20 -gs \
 	-multiminm 2 -multimaxm 10000 \
@@ -42,7 +42,7 @@ $TO $((TIMEOUT))m \
 	2>&1 1> temp_phi_3.log ; 
 
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 8 \
 	-multimaxciter 250 -multimaxditer 10 -gs \
 	-multiminm 2 -multimaxm 10000 \
@@ -53,7 +53,7 @@ $TO $((TIMEOUT))m \
 	2>&1 1> temp_psi_1.log ; 
 
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 8 \
 	-multimaxciter 250 -multimaxditer 10 -gs \
 	-multiminm 2 -multimaxm 10000 \
@@ -64,7 +64,7 @@ $TO $((TIMEOUT))m \
 	2>&1 1> temp_psi_2.log ; 
 
 $TO $((TIMEOUT))m \
-../../bin/prism temperature{.smg,.props} \
+../../bin/prism temperature{.prism,.props} \
 	-prop 8 \
 	-multimaxciter 250 -multimaxditer 10 -gs \
 	-multiminm 2 -multimaxm 10000 \

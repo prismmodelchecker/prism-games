@@ -4,7 +4,7 @@ export GREP_COLORS="ms=0;37:mc=01;37:sl=01;32:cx=0;37:fn=35:ln=:bn=32:se=36"
 
 echo -e "\e[1mPOWER CASE STUDY TIMING RESULTS\e[0m"
 PROPS="1 2 3 4 5 6 7 8 9 10 11 12"
-FILES="power.smg power.props power.sh"
+FILES="power.prism power.props power.sh"
 for f in $PROPS
 do
 	echo -e "\e[1m----\e[0m"

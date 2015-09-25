@@ -48,7 +48,7 @@ PROP_INTERFACE=2
 
 # Experiment 1
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=0,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC1)) \
@@ -57,7 +57,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 2
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=1,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC2)) \
@@ -66,7 +66,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 3
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=1,del_max=1,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC3)) \
@@ -75,7 +75,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 4
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=2,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC4)) \
@@ -84,7 +84,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 5
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=2,del_max=1,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC5)) \
@@ -93,7 +93,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 6
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_NO_INTERFACE \
   -const I1_health=0.0,N=2,del_max=2,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.0,l_i1_r=0.0 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC6)) \
@@ -102,7 +102,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 7
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=0,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC7)) \
@@ -111,7 +111,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 8
 timeout $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=1,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.95,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC8)) \
@@ -120,7 +120,7 @@ timeout $((TIMEOUT))m \
 
 # Experiment 9
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=1,del_max=1,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC9)) \
@@ -129,7 +129,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 10
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=2,del_max=0,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC10)) \
@@ -138,7 +138,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 11
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=2,del_max=1,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC11)) \
@@ -147,7 +147,7 @@ $TO $((TIMEOUT))m \
 
 # Experiment 12
 $TO $((TIMEOUT))m \
-../../bin/prism power{.smg,.props} \
+../../bin/prism power{.prism,.props} \
   -prop $PROP_INTERFACE \
   -const I1_health=0.6,N=2,del_max=2,u_fail_l=0.01,u_fail_r=0.01,l_buses_l=0.9,l_buses_r=0.9,l_i1_l=0.6,l_i1_r=0.6 \
   -logcpareto -nocompatibility -multirounding  -increasefactor 1.0  -baselineaccuracy $((BACC12)) \
