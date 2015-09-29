@@ -1,1 +1,1 @@
--ex -verbose -exporstrat ratio.strat
+-ex -verbose -exportstrat ratio.strat
