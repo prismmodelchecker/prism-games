@@ -1,1 +1,1 @@
--ex -verbose
+-ex -verbose -exportstrat cumulative.strat
