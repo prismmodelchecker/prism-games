@@ -3,7 +3,7 @@
 export GREP_COLORS="ms=0;37:mc=01;32:sl=01;32:cx=01;31:fn=35:ln=:bn=32:se=36"
 
 PROPS="phi_1 phi_2 phi_3 psi_1 psi_2 psi_3"
-FILES="temperature.smg temperature.props temperature.sh"
+FILES="temperature.prism temperature.props temperature.sh"
 echo -e "\e[1mTEMPERATURE CASE STUDY TIMING RESULTS\e[0m"
 for f in $PROPS
 do
