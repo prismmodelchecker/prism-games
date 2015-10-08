@@ -368,11 +368,11 @@ public class PPLSupport
         public static void printReachabilityPolyhedra(Pareto[] polyhedra, List<Pareto>[] stochasticStates, int dim, PrismLog mainLog) throws PrismException
 	{
 		for (int s = 0; s < polyhedra.length; s++) {
-		        mainLog.print("state=%d: ", s);
-		        mainLog.print(reachabilityPolyhedronToString(polyhedra[s].get(), dim));
+		        mainLog.print(String.format("state=%d: ", s));
+		        mainLog.print(reachabilityPolyhedronToString(polyhedra[s].get(), dim) + "\n");
 			if(stochasticStates != null && stochasticStates[s] != null) {
 			        for (int t = 0; t < stochasticStates[s].size(); t++) {
-				    mainLog.print(String.format("    -> %d:" + reachabilityPolyhedronToString(stochasticStates[s].get(t).get(), dim) + "\n"), t);
+				    mainLog.print(String.format("    -> %d:" + reachabilityPolyhedronToString(stochasticStates[s].get(t).get(), dim) + "\n", t));
 				}
 			}
 		}

@@ -811,11 +811,10 @@ public class SMGModelChecker extends ProbModelChecker
 				case MultiParameters.PAR: // probability (satisfaction) average reward
 				case MultiParameters.ERCR: // expected ratio cumulative reward
 				case MultiParameters.PRCR: // probability (satisfaction) ratio reward
-					// cannot round for average- (and, by extension, ratio-) rewards
+					// default value for average- (and, by extension, ratio-) rewards
 					if (params.rounding) {
-						baseline_biggest_reward[i] = 100;
+					        baseline_biggest_reward[i] = 100;
 						baseline_smallest_reward[i] = 0;
-						//throw new PrismException("Rounding not supported for expected average reward and expected ratio cumulative reward.");
 					}
 					break;
 				default:
@@ -2198,13 +2197,17 @@ public class SMGModelChecker extends ProbModelChecker
 	**/
 	private List<Double> initialCreditVector(Pareto Pxt) throws PrismException
 	{
-		for (Generator g : Pxt.get().generators())
+	        List<Generator> gens = Pxt.get().generators();
+	    
+		for(int gi = gens.size()-1; gi >= 0; gi--) {
+		        Generator g = gens.get(gi);
 			if (g.type() == Generator_Type.POINT) {
 				List<Double> result = PPLSupport.getGeneratorAsVector(g, (int) Pxt.get().space_dimension());
 				for (int i = 0; i < result.size(); i++)
 					result.set(i, result.get(i) - varepsilon); // can be lenient since already converged
 				return result;
 			}
+		}
 		return null;
 	}
 
@@ -2616,7 +2619,8 @@ public class SMGModelChecker extends ProbModelChecker
 			System.arraycopy(temp, 0, Px, 0, temp.length); // copy to result
 
 			if (logCPareto)
-				PPLSupport.printReachabilityPolyhedron(Px, params.CONJUNCTS, init, mainLog);
+			    PPLSupport.printReachabilityPolyhedron(Px, params.CONJUNCTS, init, mainLog);
+			    //PPLSupport.printReachabilityPolyhedra(Px, stochasticStates, params.CONJUNCTS, mainLog);
 
 			// test varepsilon-convergence
 			if (convergeNorm(Px, Qx, n, step, energy_objective, init)) {

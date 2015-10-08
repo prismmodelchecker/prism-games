@@ -1144,14 +1144,13 @@ public class StochasticUpdateStrategy implements Strategy
 
 							PointValuePair solution = null;
 							try {
-							        /*
+							    if(log_problem)
 							        mainLog.print(String.format("----\ngoal: %s\n\nbounds: %s\n\ncoeffs: %s\n\ncoeffs_indiv: %s\n\nonlyone: %s\n----\n",
 											    Arrays.toString(coeffs_gamma),
 											    Arrays.toString(bounds),
 											    Arrays.deepToString(coeffs_q),
 											    "",
 											    Arrays.deepToString(onlyone)));
-							        */
 								solution = solver.optimize(f, new LinearConstraintSet(constraints), GoalType.MAXIMIZE, new MaxIter(10000));	
 								/*
 								mainLog.print(String.format("solution: %s\n----\n",
@@ -1439,7 +1438,14 @@ public class StochasticUpdateStrategy implements Strategy
 								PointValuePair solution = null;
 								// TODO: MaxIter?
 								try {
-									solution = solver.optimize(f, new LinearConstraintSet(constraints), GoalType.MAXIMIZE, new MaxIter(10000));
+								    if(log_problem)
+									mainLog.print(String.format("----\ngoal: %s\n\nbounds: %s\n\ncoeffs: %s\n\ncoeffs_indiv: %s\n\nonlyone: %s\n----\n",
+												    Arrays.toString(coeffs_beta),
+												    Arrays.toString(bounds),
+												    Arrays.deepToString(coeffs_q),
+												    "",
+												    Arrays.deepToString(onlyone)));
+								        solution = solver.optimize(f, new LinearConstraintSet(constraints), GoalType.MAXIMIZE, new MaxIter(10000));
 								} catch (NoFeasibleSolutionException e) {
 									// tuple not feasible, try a different one
 									continue iteration_through_tuples;
@@ -1665,13 +1671,14 @@ public class StochasticUpdateStrategy implements Strategy
 
 			PointValuePair solution = null;
 			try {
-				/*System.out.printf("----\ngoal: %s\n\nbounds: %s\n\ncoeffs: %s\n\ncoeffs_indiv: %s\n\nonlyone: %s\n\nsolution: %s\n----\n",
+			    if(log_problem)
+				System.out.printf("----\ngoal: %s\n\nbounds: %s\n\ncoeffs: %s\n\ncoeffs_indiv: %s\n\nonlyone: %s\n\nsolution: %s\n----\n",
 						  Arrays.toString(coeffs_beta),
 						  Arrays.toString(bounds),
 						  Arrays.deepToString(coeffs_q),
 						  Arrays.deepToString(coeffs_beta_indiv),
 						  Arrays.deepToString(onlyone),
-						  solution==null?"null":Arrays.toString(solution.getPoint()));*/
+						  solution==null?"null":Arrays.toString(solution.getPoint()));
 				solution = solver.optimize(f, new LinearConstraintSet(constraints), GoalType.MAXIMIZE, new MaxIter(10000));
 			} catch (NoFeasibleSolutionException e) {
 				// tuple not feasible, try a different one
