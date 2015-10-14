@@ -823,7 +823,7 @@ public class SMGModelChecker extends ProbModelChecker
 			}
 		} catch (PrismException e) {
 			// if minmin or maxmin reward diverges, treat set of solutions as empty
-			throw new PrismException("Could not initialise value iteration, because the reward for objective " + i + " does not converge. Pareto set empty.");
+			throw new PrismException("Could not initialise value iteration, because the reward for objective " + i + " does not converge. Pareto set empty");
 		} finally { // do "cleanup" by switching logger on again, and set strategy generation to previous setting
 			generateStrategy = genStrat;
 			this.setVerbosity(tmpverbosity);
