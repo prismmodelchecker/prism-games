@@ -654,7 +654,7 @@ public class PrismSettings implements Observer
 	
 	public File getLocationForSettingsFile()
 	{
-		return new File(System.getProperty("user.home")+File.separator+".prism");
+		return new File(System.getProperty("user.home")+File.separator+".prism-games");
 	}
 	
 	public synchronized void saveSettingsFile() throws PrismException
