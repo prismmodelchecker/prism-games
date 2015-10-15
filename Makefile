@@ -29,6 +29,7 @@ do_build:
 	echo "mv prism-examples prism/examples"; mv prism-examples prism/examples
 	@if [ -e prism/examples-distr ]; then \
 	  echo "mv prism/examples-distr/* prism/examples"; mv prism/examples-distr/* prism/examples; \
+	  echo "mv prism/examples-distr dontcopy"; mv prism/examples-distr dontcopy; \
 	fi
 	mv cudd prism
 	mv prism "prism-games-$(VERSION)-src"
