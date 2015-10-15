@@ -442,7 +442,7 @@ bin_scripts:
 	done;
 	@echo Copying "$(OBJ_DIR)/prism/ngprism$(EXE) -> bin/ngprism$(EXE)" && \
 	cp $(OBJ_DIR)/prism/ngprism$(EXE) bin/ngprism$(EXE)
-	@./install.sh silent $(PPL_DIR)
+	@PPL_DIR=$(PPL_DIR) ./install.sh silent
 
 # Unless VERSION has been passed in (as VERSION=xxx),
 # extract version number from Java code using printversion
