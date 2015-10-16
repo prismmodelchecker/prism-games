@@ -51,7 +51,7 @@ PRISM_JAVASTACKSIZE="-Xss4M"
 #  - top-level directory (for images, dtds)
 #  - lib/pepa.zip (PEPA stuff)
 #  - lib/*.jar (all other jars)
-PRISM_CLASSPATH="$PRISM_DIR"/lib/prism.jar:"$PRISM_DIR"/classes:"$PRISM_DIR":"$PRISM_DIR"/lib/pepa.zip:"$PRISM_DIR"/lib/*:"$PPL_DIR"/ppl/*
+PRISM_CLASSPATH="$PRISM_DIR"/lib/prism.jar:"$PRISM_DIR"/classes:"$PRISM_DIR":"$PRISM_DIR"/lib/pepa.zip:"$PPL_DIR"/ppl/*:"$PRISM_DIR"/lib/*
 
 # Set up pointers to libraries
 PRISM_LIB_PATH="$PRISM_DIR"/lib:"$PPL_DIR"/ppl
