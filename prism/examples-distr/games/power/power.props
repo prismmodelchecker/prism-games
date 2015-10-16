@@ -25,13 +25,13 @@ const double l_buses_l; // guar: lower bound on powering the buses
 const double l_i1_l; // guar: lower bound on the left side delivering power over I1
 
 // minimise failures
-"safe_210a" : P>=1 [ R(path){"fail_l"}/{"time"}<=u_fail_l [ C ] ]
+"safe_210a" : P>=1 [ R(path){"fail_l"}/{"time"}<=u_fail_l [ S ] ]
 
 // maximise uptime for buses
-"buses_210a" : P>=1 [ R(path){"buses_l"}/{"time"}>=l_buses_l [ C ] ]
+"buses_210a" : P>=1 [ R(path){"buses_l"}/{"time"}>=l_buses_l [ S ] ]
 
 // maximise power over interface
-"I1_210a" : P>=1 [ R(path){"i1_l"}/{"time"}>=l_i1_l [ C ] ]
+"I1_210a" : P>=1 [ R(path){"i1_l"}/{"time"}>=l_i1_l [ S ] ]
 
 // full property of HVAC left (210a) without interface
 "P210a" : <<1>> ("safe_210a" & "buses_210a")
@@ -48,13 +48,13 @@ const double l_buses_r; // guar: lower bound on powering the buses
 const double l_i1_r; // guar: lower bound on the right side delivering power over I1
 
 // minimise failures
-"safe_210b" : P>=1 [ R(path){"fail_r"}/{"time"}<=u_fail_r [ C ] ]
+"safe_210b" : P>=1 [ R(path){"fail_r"}/{"time"}<=u_fail_r [ S ] ]
 
 // maximise uptime for buses
-"buses_210b" : P>=1 [ R(path){"buses_r"}/{"time"}>=l_buses_r [ C ] ]
+"buses_210b" : P>=1 [ R(path){"buses_r"}/{"time"}>=l_buses_r [ S ] ]
 
 // maximise power over interface
-"I1_210b" : P>=1 [ R{"i1_r"}/{"time"}>=l_i1_r [ C ] ]
+"I1_210b" : P>=1 [ R{"i1_r"}/{"time"}>=l_i1_r [ S ] ]
 
 // full property of HVAC right (210b) without interface
 "P210b" : <<1>> ("safe_210b" & "buses_210b")

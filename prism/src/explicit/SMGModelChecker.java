@@ -1047,10 +1047,7 @@ public class SMGModelChecker extends ProbModelChecker
 				    else
 					params.reward_types.add(MultiParameters.ETCR); // expected total
 				else
-				    if(nested)
-					params.reward_types.add(MultiParameters.PRCR); // satisfaction ratio
-				    else
-					params.reward_types.add(MultiParameters.ERCR); // ratio expectation
+				    throw new PrismException("Transient ratio rewards not supported");
 				break;
 			case ExpressionTemporal.R_S: // expected average reward
 				if (divisor == null)
@@ -1059,7 +1056,10 @@ public class SMGModelChecker extends ProbModelChecker
 				    else
 				        params.reward_types.add(MultiParameters.EAR); // expected mean
 				else
-					throw new PrismException("Average ratio rewards not supported.");
+				    if(nested)
+					params.reward_types.add(MultiParameters.PRCR); // satisfaction ratio
+				    else
+					params.reward_types.add(MultiParameters.ERCR); // ratio expectation
 				break;
 			default:
 				throw new PrismException("Only total, average and ratio rewards supported so far.");
@@ -1078,9 +1078,9 @@ public class SMGModelChecker extends ProbModelChecker
 			}
 		}
 
-		// if it is an average reward, need to evaluate a shift as well
+		// if it is an long-run average reward, need to evaluate a shift as well
 		// note: always non-positive: this is what needs to be added after completion
-		if (((ExpressionTemporal) e).getOperator() == ExpressionTemporal.R_S)
+		if (((ExpressionTemporal) e).getOperator() == ExpressionTemporal.R_S && divisor==null)
 			params.shifts.add(getShiftFromReward(model, reward));
 		else
 			params.shifts.add(0.0);

@@ -184,14 +184,14 @@ end
 fprintf(pid, '\r\n');
 
 % room 1
-fprintf(pid, '"phi1" : <<1>> ((R{"window1"}/{"time"}<=wi1 [ C ] & R{"tempdev2"}/{"time"}<=tw2 [ C ]) => R{"tempdev1"}/{"time"}<=tw1 [ C ])\r\n');
-fprintf(pid, '"psi1" : <<1>> (R{"valve1"}/{"time"}<=va1 [ C ] & (R{"tempdev2"}/{"time"}<=tv2 [ C ] => R{"tempdev1"}/{"time"}<=tv1 [ C ]))\r\n');
+fprintf(pid, '"phi1" : <<1>> ((R{"window1"}/{"time"}<=wi1 [ S ] & R{"tempdev2"}/{"time"}<=tw2 [ S ]) => R{"tempdev1"}/{"time"}<=tw1 [ S ])\r\n');
+fprintf(pid, '"psi1" : <<1>> (R{"valve1"}/{"time"}<=va1 [ S ] & (R{"tempdev2"}/{"time"}<=tv2 [ S ] => R{"tempdev1"}/{"time"}<=tv1 [ S ]))\r\n');
 % room 2
-fprintf(pid, '"phi2" : <<1>> (R{"window2"}/{"time"}<=wi2 [ C ] => R{"tempdev2"}/{"time"}<=tw2 [ C ])\r\n');
-fprintf(pid, '"psi2" : <<1>> (R{"valve2"}/{"time"}<=va2 [ C ] & R{"tempdev2"}/{"time"}<=tv2 [ C ])\r\n');
+fprintf(pid, '"phi2" : <<1>> (R{"window2"}/{"time"}<=wi2 [ S ] => R{"tempdev2"}/{"time"}<=tw2 [ S ])\r\n');
+fprintf(pid, '"psi2" : <<1>> (R{"valve2"}/{"time"}<=va2 [ S ] & R{"tempdev2"}/{"time"}<=tv2 [ S ])\r\n');
 % room 3
-fprintf(pid, '"phi3" : <<1>> ((R{"window3"}/{"time"}<=wi3 [ C ] & R{"tempdev2"}/{"time"}<=tw2 [ C ]) => R{"tempdev3"}/{"time"}<=tw3 [ C ])\r\n');
-fprintf(pid, '"psi3" : <<1>> (R{"valve3"}/{"time"}<=va3 [ C ] & (R{"tempdev2"}/{"time"}<=tv2 [ C ] => R{"tempdev3"}/{"time"}<=tv3 [ C ]))\r\n');
+fprintf(pid, '"phi3" : <<1>> ((R{"window3"}/{"time"}<=wi3 [ S ] & R{"tempdev2"}/{"time"}<=tw2 [ S ]) => R{"tempdev3"}/{"time"}<=tw3 [ S ])\r\n');
+fprintf(pid, '"psi3" : <<1>> (R{"valve3"}/{"time"}<=va3 [ S ] & (R{"tempdev2"}/{"time"}<=tv2 [ S ] => R{"tempdev3"}/{"time"}<=tv3 [ S ]))\r\n');
 
 % compositional
 fprintf(pid, '\r\n"phi" : comp("phi1", "phi2", "phi3")\r\n');
