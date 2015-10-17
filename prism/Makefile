@@ -615,6 +615,7 @@ checks:
 	  echo "Alternatively, if you wish, you can set the environment"; \
 	  echo "variable yourself (using setenv or export) or you"; \
 	  echo "can edit the value of OSTYPE directly in the Makefile."; \
+	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
 	if [ "$(JAVA_DIR)" = "" ]; then \
@@ -630,6 +631,7 @@ checks:
 	  echo "Alternatively, if you wish, you can set the environment"; \
 	  echo "variable yourself (using setenv or export) or you"; \
 	  echo "can edit the value of JAVA_DIR directly in the Makefile."; \
+	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
 	if [ "$(PPL_DIR)" = "" ]; then \
@@ -648,16 +650,19 @@ checks:
 	fi; \
 	if [ ! -d "$(JAVA_DIR)" ]; then \
 	  echo "\033[33mJava directory \"$(JAVA_DIR)\" does not exist."; \
+	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
 	if [ ! -f "$(JAVA_JNI_H_DIR)"/jni.h ]; then \
 	  echo "\033[33mCould not locate JNI header jni.h within \"$(JAVA_DIR)\"."; \
 	  echo "You may need to set JAVA_DIR by hand. See the PRISM manual for details."; \
+	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
 	if [ ! -f "$(JAVA_JNI_MD_H_DIR)"/jni_md.h ]; then \
 	  echo "\033[33mCould not locate JNI header jni_md.h within \"$(JAVA_DIR)\"."; \
 	  echo "You may need to set JAVA_DIR by hand. See the PRISM manual for details."; \
+	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
 	echo "VERSION: $(VERSION)"; \
