@@ -123,12 +123,12 @@ JAVA_DIR_BACKUP = $(shell \
 #JAVA_DIR =	/cygdrive/c/java/j2sdk1.4.2
 #JAVA_DIR =	/System/Library/Frameworks/JavaVM.framework
 
-
 ########
 # PPL  #
 ########
 
 # PPL_DIR needs to be set to the location of the Parma Polyhedra Library installation.
+# (More precisely PPL_DIR should contain a directory 'ppl' containing libppl_java.* and ppl_java.jar)
 # This makefile will try to detect this automatically based on the information provided by the ppl-config command.
 # If this detection does not work, or you wish to override it,
 # either set the variable yourself by uncommenting and/or modifying one of the lines below
@@ -136,11 +136,9 @@ JAVA_DIR_BACKUP = $(shell \
 
 # Find PPL
 PPL_DIR = $(shell src/scripts/findppl.sh)
-$(info $$PPL_DIR is ${PPL_DIR})
 
 #PPL_DIR = 		/usr/local/ppl/lib
 #PPL_DIR = 		/usr/local/lib
-
 
 ##################
 # Compilers etc. #
@@ -669,7 +667,8 @@ checks:
 	echo "OSTYPE/ARCH: $(OSTYPE) $(ARCH)"; \
 	echo "JAVA_DIR: $(JAVA_DIR)"; \
 	echo "JAVA_DIR_BACKUP: $(JAVA_DIR_BACKUP)"; \
-	echo "JAVAC: "`which $(JAVAC)` \
+	echo "JAVAC: "`which $(JAVAC)`; \
+	echo "PPL_DIR: $(PPL_DIR)" \
 	)
 
 #################################################
