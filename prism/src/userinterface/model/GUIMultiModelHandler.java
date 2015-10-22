@@ -550,6 +550,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 				}
 				int parseDelay = theModel.getPrism().getSettings().getInteger(PrismSettings.MODEL_PARSE_DELAY);
 				waiter = new WaitParseThread(parseDelay, this);
+
 				waiter.start();
 				//Funky thread waiting stuff
 			}
@@ -937,6 +938,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 	 */
 	public synchronized void updateAutoParse()
 	{
+	        boolean autoParse_old = autoParse;
 		// Is auto-parse switched on?
 		autoParse = theModel.getPrism().getSettings().getBoolean(PrismSettings.MODEL_AUTO_PARSE);
 		
@@ -951,7 +953,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		}
 
 		// If the flag has just been switched ON, do a parse...
-		if (autoParse) {
+		if (!autoParse_old && autoParse) {
 			tree.makeNotUpToDate();
 			theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODIFIED_SINCE_SAVE));
 			if (!parsing) {
