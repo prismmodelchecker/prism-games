@@ -36,27 +36,27 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
 
-import acceptance.AcceptanceRabin;
-import automata.DA;
-import automata.LTL2DA;
-import parser.ast.Expression;
-import parser.ast.RelOp;
-import dv.DoubleVector;
-import mtbdd.PrismMTBDD;
-import sparse.NDSparseMatrix;
-import sparse.PrismSparse;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
+import mtbdd.PrismMTBDD;
+import parser.ast.Expression;
+import parser.ast.RelOp;
+import sparse.NDSparseMatrix;
+import sparse.PrismSparse;
+import acceptance.AcceptanceRabin;
+import automata.DA;
+import automata.LTL2DA;
+import dv.DoubleVector;
 
 /**
  * Multi-objective model checking functionality
  */
 public class MultiObjModelChecker extends PrismComponent
 {
-	protected Prism prism; 
+	protected Prism prism;
 	protected boolean verbose;
-	
+
 	/**
 	 * Create a new MultiObjModelChecker, inherit basic state from parent (unless null).
 	 */
@@ -64,12 +64,13 @@ public class MultiObjModelChecker extends PrismComponent
 	{
 		super(parent);
 		this.prism = prism;
-		this.verbose = prism.getVerbose();
+		this.verbose = settings.getBoolean(PrismSettings.PRISM_VERBOSE);
 	}
 
 	//TODO: dra's element is changed here, not neat.
-	protected NondetModel constructDRAandProductMulti(NondetModel model, LTLModelChecker mcLtl, ModelChecker modelChecker, Expression ltl, int i, DA<BitSet,AcceptanceRabin> dra[], Operator operator,
-			Expression targetExpr, JDDVars draDDRowVars, JDDVars draDDColVars, JDDNode ddStateIndex) throws PrismException
+	protected NondetModel constructDRAandProductMulti(NondetModel model, LTLModelChecker mcLtl, ModelChecker modelChecker, Expression ltl, int i,
+			DA<BitSet, AcceptanceRabin> dra[], Operator operator, Expression targetExpr, JDDVars draDDRowVars, JDDVars draDDColVars, JDDNode ddStateIndex)
+			throws PrismException
 	{
 
 		// TODO (JK): Adapt to support simple path formulas with bounds via DRA construction
@@ -85,14 +86,14 @@ public class MultiObjModelChecker extends PrismComponent
 			ltl = Expression.Not(Expression.Parenth(ltl));
 		mainLog.println("\nBuilding deterministic Rabin automaton (for " + ltl + ")...");
 		long l = System.currentTimeMillis();
-		LTL2DA ltl2da = new LTL2DA(prism);
+		LTL2DA ltl2da = new LTL2DA(this);
 		dra[i] = ltl2da.convertLTLFormulaToDRA(ltl, modelChecker.getConstantValues());
-		mainLog.print("DRA has " + dra[i].size() + " states, " + ", " + dra[i].getAcceptance().getSizeStatistics()+".");
+		mainLog.print("DRA has " + dra[i].size() + " states, " + ", " + dra[i].getAcceptance().getSizeStatistics() + ".");
 		l = System.currentTimeMillis() - l;
 		mainLog.println("Time for Rabin translation: " + l / 1000.0 + " seconds.");
 		// If required, export DRA 
-		if (prism.getSettings().getExportPropAut()) {
-			String exportPropAutFilename = PrismUtils.addCounterSuffixToFilename(prism.getSettings().getExportPropAutFilename(), i + 1);
+		if (settings.getExportPropAut()) {
+			String exportPropAutFilename = PrismUtils.addCounterSuffixToFilename(settings.getExportPropAutFilename(), i + 1);
 			mainLog.println("Exporting DRA to file \"" + exportPropAutFilename + "\"...");
 			PrintStream out = PrismUtils.newPrintStream(exportPropAutFilename);
 			dra[i].print(out, settings.getExportPropAutType());
@@ -169,7 +170,7 @@ public class MultiObjModelChecker extends PrismComponent
 	//computes accepting end component for the Rabin automaton dra.
 	//Vojta: in addition to calling a method which does the computation
 	//there are some other bits which I don't currently understand
-	protected JDDNode computeAcceptingEndComponent(DA<BitSet,AcceptanceRabin> dra, NondetModel modelProduct, JDDVars draDDRowVars, JDDVars draDDColVars,
+	protected JDDNode computeAcceptingEndComponent(DA<BitSet, AcceptanceRabin> dra, NondetModel modelProduct, JDDVars draDDRowVars, JDDVars draDDColVars,
 			List<JDDNode> allecs, List<JDDNode> statesH, List<JDDNode> statesL, //Vojta: at the time of writing this I have no idea what these two parameters do, so I don't know how to call them
 			LTLModelChecker mcLtl, boolean conflictformulaeGtOne, String name) throws PrismException
 	{
@@ -190,7 +191,7 @@ public class MultiObjModelChecker extends PrismComponent
 	}
 
 	protected void removeNonZeroMecsForMax(NondetModel modelProduct, LTLModelChecker mcLtl, List<JDDNode> rewardsIndex, OpsAndBoundsList opsAndBounds,
-			int numTargets, DA<BitSet,AcceptanceRabin> dra[], JDDVars draDDRowVars[], JDDVars draDDColVars[]) throws PrismException
+			int numTargets, DA<BitSet, AcceptanceRabin> dra[], JDDVars draDDRowVars[], JDDVars draDDColVars[]) throws PrismException
 	{
 		List<JDDNode> mecs = mcLtl.findMECStates(modelProduct, modelProduct.getReach());
 		JDDNode removedActions = JDD.Constant(0);
@@ -234,7 +235,7 @@ public class MultiObjModelChecker extends PrismComponent
 				Vector<JDDNode> tmptargetDDs = new Vector<JDDNode>();
 				List<JDDNode> tmpmultitargetDDs = new ArrayList<JDDNode>();
 				List<Integer> tmpmultitargetIDs = new ArrayList<Integer>();
-				ArrayList<DA<BitSet,AcceptanceRabin>> tmpdra = new ArrayList<DA<BitSet,AcceptanceRabin>>();
+				ArrayList<DA<BitSet, AcceptanceRabin>> tmpdra = new ArrayList<DA<BitSet, AcceptanceRabin>>();
 				ArrayList<JDDVars> tmpdraDDRowVars = new ArrayList<JDDVars>();
 				ArrayList<JDDVars> tmpdraDDColVars = new ArrayList<JDDVars>();
 				int count = 0;
@@ -248,7 +249,7 @@ public class MultiObjModelChecker extends PrismComponent
 					}
 				if (count > 0) {
 					// TODO: distinguish whether rtarget is empty
-					DA<BitSet,AcceptanceRabin> newdra[] = new DA[count];
+					DA<BitSet, AcceptanceRabin> newdra[] = new DA[count];
 					tmpdra.toArray(newdra);
 					JDDVars newdraDDRowVars[] = new JDDVars[count];
 					tmpdraDDRowVars.toArray(newdraDDRowVars);
@@ -262,7 +263,8 @@ public class MultiObjModelChecker extends PrismComponent
 
 					for (int i = 0; i < opsAndBounds.probSize(); i++) {
 						if (opsAndBounds.getProbOperator(i) != Operator.P_MAX) {
-							tmpOpsAndBounds.add(opsAndBounds.getOpRelOpBound(i), opsAndBounds.getProbOperator(i), opsAndBounds.getProbBound(i), opsAndBounds.getProbStepBound(i));
+							tmpOpsAndBounds.add(opsAndBounds.getOpRelOpBound(i), opsAndBounds.getProbOperator(i), opsAndBounds.getProbBound(i),
+									opsAndBounds.getProbStepBound(i));
 						}
 					}
 					tmpOpsAndBounds.add(new OpRelOpBound("R", RelOp.MAX, -1.0), Operator.R_MAX, -1.0, -1);
@@ -302,11 +304,11 @@ public class MultiObjModelChecker extends PrismComponent
 
 	//TODO is conflictformulae actually just no of prob?
 	protected void checkConflictsInObjectives(NondetModel modelProduct, LTLModelChecker mcLtl, int conflictformulae, int numTargets,
-			OpsAndBoundsList opsAndBounds, DA<BitSet,AcceptanceRabin> dra[], JDDVars draDDRowVars[], JDDVars draDDColVars[], List<JDDNode> targetDDs,
+			OpsAndBoundsList opsAndBounds, DA<BitSet, AcceptanceRabin> dra[], JDDVars draDDRowVars[], JDDVars draDDColVars[], List<JDDNode> targetDDs,
 			List<ArrayList<JDDNode>> allstatesH, List<ArrayList<JDDNode>> allstatesL, List<JDDNode> multitargetDDs, List<Integer> multitargetIDs)
 			throws PrismException
 	{
-		DA<BitSet,AcceptanceRabin>[] tmpdra = new DA[conflictformulae];
+		DA<BitSet, AcceptanceRabin>[] tmpdra = new DA[conflictformulae];
 		JDDVars[] tmpdraDDRowVars = new JDDVars[conflictformulae];
 		JDDVars[] tmpdraDDColVars = new JDDVars[conflictformulae];
 		List<JDDNode> tmptargetDDs = new ArrayList<JDDNode>(conflictformulae);
@@ -354,9 +356,9 @@ public class MultiObjModelChecker extends PrismComponent
 			}
 	}
 
-	protected void findTargetStates(NondetModel modelProduct, LTLModelChecker mcLtl, int numTargets, int conflictformulae, boolean reachExpr[], DA<BitSet,AcceptanceRabin> dra[],
-			JDDVars draDDRowVars[], JDDVars draDDColVars[], List<JDDNode> targetDDs, List<JDDNode> multitargetDDs, List<Integer> multitargetIDs)
-			throws PrismException
+	protected void findTargetStates(NondetModel modelProduct, LTLModelChecker mcLtl, int numTargets, int conflictformulae, boolean reachExpr[],
+			DA<BitSet, AcceptanceRabin> dra[], JDDVars draDDRowVars[], JDDVars draDDColVars[], List<JDDNode> targetDDs, List<JDDNode> multitargetDDs,
+			List<Integer> multitargetIDs) throws PrismException
 	{
 		int i, j;
 		long l;
@@ -459,7 +461,7 @@ public class MultiObjModelChecker extends PrismComponent
 
 		// check if there are conflicts in objectives
 		if (conflictformulae > 1) {
-			DA<BitSet,AcceptanceRabin>[] tmpdra = new DA[conflictformulae];
+			DA<BitSet, AcceptanceRabin>[] tmpdra = new DA[conflictformulae];
 			JDDVars[] tmpdraDDRowVars = new JDDVars[conflictformulae];
 			JDDVars[] tmpdraDDColVars = new JDDVars[conflictformulae];
 			List<JDDNode> tmptargetDDs = new ArrayList<JDDNode>(conflictformulae);
@@ -533,7 +535,7 @@ public class MultiObjModelChecker extends PrismComponent
 		Object value;
 		int i, j, n;
 		// Local copy of setting
-		int engine = prism.getEngine();
+		int engine = settings.getChoice(PrismSettings.PRISM_ENGINE);
 
 		//JDDNode maybe_r = null; // maybe states for the reward formula
 		//JDDNode trr = null; // transition rewards
@@ -638,19 +640,19 @@ public class MultiObjModelChecker extends PrismComponent
 			engine = Prism.SPARSE;
 		}
 		mainLog.println("Engine: " + Prism.getEngineString(engine));
-		
+
 		int method = prism.getMDPMultiSolnMethod();
-		
+
 		try {
 			if (engine != Prism.SPARSE)
 				throw new PrismNotSupportedException("Currently only sparse engine supports multi-objective properties");
-		
+
 			if (method == Prism.MDP_MULTI_LP) {
 				//LP currently does not support Pareto
 				if (opsAndBounds.numberOfNumerical() > 1) {
 					throw new PrismNotSupportedException("Linear programming method currently does not support generating of Pareto curves.");
 				}
-				
+
 				if (opsAndBounds.rewardSize() > 0) {
 					if (hasconflictobjectives) {
 						value = PrismSparse.NondetMultiReachReward1(modelProduct.getTrans(), modelProduct.getTransActions(), modelProduct.getSynchs(),
@@ -679,8 +681,7 @@ public class MultiObjModelChecker extends PrismComponent
 				double time = ((double) (timePost - timePre)) / 1000.0;
 				mainLog.println("Multi-objective value iterations took " + time + " s.");
 			} else {
-				throw new PrismException("Don't know how to model-check using the method: "
-						+ method);
+				throw new PrismException("Don't know how to model-check using the method: " + method);
 			}
 		} catch (PrismException e) {
 			throw e;
@@ -697,12 +698,12 @@ public class MultiObjModelChecker extends PrismComponent
 				JDD.Deref(rewards.get(i));
 			}
 		}
-		
+
 		return value;
 	}
 
-	protected Object weightedMultiReachProbs(NondetModel modelProduct, JDDNode yes_ones, JDDNode maybe, JDDNode st, JDDNode[] targets, List<JDDNode> rewards, OpsAndBoundsList opsAndBounds)
-			throws PrismException
+	protected Object weightedMultiReachProbs(NondetModel modelProduct, JDDNode yes_ones, JDDNode maybe, JDDNode st, JDDNode[] targets, List<JDDNode> rewards,
+			OpsAndBoundsList opsAndBounds) throws PrismException
 	{
 		int numberOfMaximizing = opsAndBounds.numberOfNumerical();
 
@@ -710,14 +711,14 @@ public class MultiObjModelChecker extends PrismComponent
 			throw new PrismException("Number of maximizing objectives must be at most 2");
 
 		if (numberOfMaximizing >= 2 && opsAndBounds.probSize() + opsAndBounds.rewardSize() > numberOfMaximizing)
-				throw new PrismException("Number of maximizing objectives can be 2 or 3 only if there are no other (i.e. bounded) objectives present");
-			
+			throw new PrismException("Number of maximizing objectives can be 2 or 3 only if there are no other (i.e. bounded) objectives present");
+
 		if (numberOfMaximizing >= 2) {
 			return generateParetoCurve(modelProduct, yes_ones, maybe, st, targets, rewards, opsAndBounds);
 		} else
 			return targetDrivenMultiReachProbs(modelProduct, yes_ones, maybe, st, targets, rewards, opsAndBounds);
 	}
-	
+
 	protected TileList generateParetoCurve(NondetModel modelProduct, JDDNode yes_ones, JDDNode maybe, final JDDNode st, JDDNode[] targets,
 			List<JDDNode> rewards, OpsAndBoundsList opsAndBounds) throws PrismException
 	{
@@ -725,12 +726,11 @@ public class MultiObjModelChecker extends PrismComponent
 		int rewardStepBounds[] = new int[rewards.size()];
 		for (int i = 0; i < rewardStepBounds.length; i++)
 			rewardStepBounds[i] = opsAndBounds.getRewardStepBound(i);
-		
+
 		int probStepBounds[] = new int[targets.length];
 		for (int i = 0; i < probStepBounds.length; i++)
 			probStepBounds[i] = opsAndBounds.getProbStepBound(i);
-		
-		
+
 		double timer = System.currentTimeMillis();
 		boolean min = false;
 
@@ -742,7 +742,7 @@ public class MultiObjModelChecker extends PrismComponent
 				rewards.set(i, negated);
 				//boundsRewards.set(i, -1 * boundsRewards.get(i));
 			}
-			
+
 			if (opsAndBounds.getRewardOperator(i) == Operator.R_MIN) {
 				JDDNode negated = JDD.Apply(JDD.TIMES, JDD.Constant(-1), rewards.get(i));
 				//JDD.Ref(negated);
@@ -750,9 +750,9 @@ public class MultiObjModelChecker extends PrismComponent
 				//boundsRewards.set(i, -1 * boundsRewards.get(i));
 			}
 		}
-		
-		double tolerance = prism.getSettings().getDouble(PrismSettings.PRISM_PARETO_EPSILON);
-		int maxIters = prism.getSettings().getInteger(PrismSettings.PRISM_MULTI_MAX_POINTS);
+
+		double tolerance = settings.getDouble(PrismSettings.PRISM_PARETO_EPSILON);
+		int maxIters = settings.getInteger(PrismSettings.PRISM_MULTI_MAX_POINTS);
 
 		NativeIntArray adversary = new NativeIntArray((int) modelProduct.getNumStates());
 		int dimProb = targets.length;
@@ -797,30 +797,19 @@ public class MultiObjModelChecker extends PrismComponent
 
 		for (int i = 0; i < dimProb; i++) {
 			double[] result;
-			
+
 			double[] weights = new double[dimProb + dimReward];
 			weights[i] = 1.0;
-			/*if (prism.getMDPMultiSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				//System.out.println("Doing GS");
-					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, new DoubleVector[] {probDoubleVectors[i]}, new int[] {probStepBounds[i]}, null,
-							new double[] { 1.0 }, null);
-			} else {
-				//System.out.println("Not doing GS");
+			if (settings.getChoice(PrismSettings.PRISM_MDP_SOLN_METHOD) == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, new DoubleVector[] {probDoubleVectors[i]}, new int[] {probStepBounds[i]}, null,
-						new double[] { 1.0 }, null);
-			}*/
-			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			} else {
-				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-					 	trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			}
-			
+
 			//The following is thrown because in this case the i-th dimension is
 			//zero and we might have problems when getting an separating hyperplane.
 			/*if (result[0] == 0)
@@ -838,49 +827,37 @@ public class MultiObjModelChecker extends PrismComponent
 			double[] result;
 			double[] weights = new double[dimProb + dimReward];
 			weights[i] = 1.0;
-			/*System.out.println(prism.getMDPSolnMethod());
-			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				//System.out.println("Doing GS");
-					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[i] },
-							new double[] { 1.0 }, new int[] { rewardStepBounds[i] });
+			if (settings.getChoice(PrismSettings.PRISM_MDP_SOLN_METHOD) == Prism.MDP_MULTI_GAUSSSEIDEL) {
+				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			} else {
-				//System.out.println("Not doing GS");
-					result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[i] },
-							new double[] { 1.0 }, new int[] { rewardStepBounds[i] });
-			}*/
-			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
-			} else {
-				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-					 	trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			}
-			
+
 			numberOfPoints++;
 			targetPoint = new Point(result);
 			pointsForInitialTile.add(targetPoint);
-			
+
 			if (verbose) {
 				mainLog.println("Upper bound is " + Arrays.toString(result));
 			}
 		}
-		
+
 		if (verbose)
 			mainLog.println("Points for initial tile: " + pointsForInitialTile);
-		
+
 		Tile initialTile = new Tile(pointsForInitialTile);
 		TileList tileList = new TileList(initialTile, opsAndBounds, tolerance);
-		
+
 		Point direction = tileList.getCandidateHyperplane();
-		
+
 		if (verbose) {
 			mainLog.println("The initial direction is " + direction);
 		}
-		
+
 		boolean decided = false;
 		int iters = 0;
 		while (iters < maxIters) {
@@ -894,24 +871,24 @@ public class MultiObjModelChecker extends PrismComponent
 
 			double[] result;
 			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			} else {
-				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-					 	trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			}
-			
-		/*	//Minimizing operators are negated, and for Pareto we need to maximize.
-			for (int i = 0; i < dimProb; i++) {
-				if (opsAndBounds.getOperator(i) == Operator.P_MIN) {
-					result[i] = -(1-result[i]);
-				}
-			} */
-			
+
+			/*	//Minimizing operators are negated, and for Pareto we need to maximize.
+				for (int i = 0; i < dimProb; i++) {
+					if (opsAndBounds.getOperator(i) == Operator.P_MIN) {
+						result[i] = -(1-result[i]);
+					}
+				} */
+
 			numberOfPoints++;
-			
+
 			//collect the numbers obtained from methods executed above.
 			Point newPoint = new Point(result);
 
@@ -931,7 +908,7 @@ public class MultiObjModelChecker extends PrismComponent
 			if (verbose) {
 				mainLog.println("New direction is " + direction);
 				//mainLog.println("TileList: " + tileList);
-				
+
 			}
 
 			if (direction == null) {
@@ -949,19 +926,19 @@ public class MultiObjModelChecker extends PrismComponent
 			throw new PrismException("The computation did not finish in " + maxIters
 					+ " target point iterations, try increasing this number using the -multimaxpoints switch.");
 		else {
-			String paretoFile = prism.getSettings().getString(PrismSettings.PRISM_EXPORT_PARETO_FILENAME);
-			
+			String paretoFile = settings.getString(PrismSettings.PRISM_EXPORT_PARETO_FILENAME);
+
 			//export to file if required
 			if (paretoFile != null && !paretoFile.equals("")) {
 				MultiObjUtils.exportPareto(tileList, paretoFile);
 				mainLog.println("Exported Pareto curve. To see it, run\n etc/scripts/prism-pareto.py " + paretoFile);
 			}
-			
+
 			mainLog.println("Computed " + tileList.getNumberOfDifferentPoints() + " points altogether:\n");
-			mainLog.println(tileList.getPoints().toString());			
-			
+			mainLog.println(tileList.getPoints().toString());
+
 			return tileList;
-		}	
+		}
 	}
 
 	protected double targetDrivenMultiReachProbs(NondetModel modelProduct, JDDNode yes_ones, JDDNode maybe, final JDDNode st, JDDNode[] targets,
@@ -971,12 +948,11 @@ public class MultiObjModelChecker extends PrismComponent
 		int rewardStepBounds[] = new int[rewards.size()];
 		for (int i = 0; i < rewardStepBounds.length; i++)
 			rewardStepBounds[i] = opsAndBounds.getRewardStepBound(i);
-		
+
 		int probStepBounds[] = new int[targets.length];
 		for (int i = 0; i < probStepBounds.length; i++)
 			probStepBounds[i] = opsAndBounds.getProbStepBound(i);
-		
-		
+
 		double timer = System.currentTimeMillis();
 		boolean min = false;
 
@@ -988,7 +964,7 @@ public class MultiObjModelChecker extends PrismComponent
 				rewards.set(i, negated);
 				//boundsRewards.set(i, -1 * boundsRewards.get(i));
 			}
-			
+
 			if (opsAndBounds.getRewardOperator(i) == Operator.R_MIN) {
 				JDDNode negated = JDD.Apply(JDD.TIMES, JDD.Constant(-1), rewards.get(i));
 				//JDD.Ref(negated);
@@ -996,12 +972,13 @@ public class MultiObjModelChecker extends PrismComponent
 				//boundsRewards.set(i, -1 * boundsRewards.get(i));
 			}
 		}
-		
+
 		boolean maximizingProb = (opsAndBounds.probSize() > 0 && (opsAndBounds.getProbOperator(0) == Operator.P_MAX || opsAndBounds.getProbOperator(0) == Operator.P_MIN));
 		boolean maximizingReward = (opsAndBounds.rewardSize() > 0 && (opsAndBounds.getRewardOperator(0) == Operator.R_MAX || opsAndBounds.getRewardOperator(0) == Operator.R_MIN));
-		boolean maximizingNegated = (maximizingProb && opsAndBounds.getProbOperator(0) == Operator.P_MIN) || (maximizingReward && opsAndBounds.getRewardOperator(0) == Operator.R_MIN);
+		boolean maximizingNegated = (maximizingProb && opsAndBounds.getProbOperator(0) == Operator.P_MIN)
+				|| (maximizingReward && opsAndBounds.getRewardOperator(0) == Operator.R_MIN);
 
-		int maxIters = prism.getSettings().getInteger(PrismSettings.PRISM_MULTI_MAX_POINTS);
+		int maxIters = settings.getInteger(PrismSettings.PRISM_MULTI_MAX_POINTS);
 
 		NativeIntArray adversary = new NativeIntArray((int) modelProduct.getNumStates());
 		int dimProb = targets.length;
@@ -1062,19 +1039,19 @@ public class MultiObjModelChecker extends PrismComponent
 			}
 
 			double[] result;
-			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
+			if (settings.getChoice(PrismSettings.PRISM_MDP_SOLN_METHOD) == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				//System.out.println("Doing GS");
-					result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
-							new double[] { 1.0 }, new int[] { rewardStepBounds[0] });
+				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
+						new double[] { 1.0 }, new int[] { rewardStepBounds[0] });
 			} else {
 				//System.out.println("Not doing GS");
-					result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-							modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
-							new double[] { 1.0 }, new int[] { rewardStepBounds[0] });
+				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
+						new double[] { 1.0 }, new int[] { rewardStepBounds[0] });
 			}
 			numberOfPoints++;
-				
+
 			targetPoint.setCoord(dimProb, result[0]);
 
 			if (verbose) {
@@ -1083,7 +1060,7 @@ public class MultiObjModelChecker extends PrismComponent
 		}
 
 		Point direction = MultiObjUtils.getWeights(targetPoint, computedPoints);
-		
+
 		if (verbose) {
 			mainLog.println("The initial target point is " + targetPoint);
 			mainLog.println("The initial direction is " + direction);
@@ -1103,16 +1080,16 @@ public class MultiObjModelChecker extends PrismComponent
 
 			double[] result;
 			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
-				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-						trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			} else {
-				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(),
-						modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), false, st, adversary,
-					 	trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights, rewardStepBounds);
+				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						rewardStepBounds);
 			}
 			numberOfPoints++;
-			
+
 			//collect the numbers obtained from methods executed above.
 			Point newPoint = new Point(result);
 
@@ -1123,7 +1100,6 @@ public class MultiObjModelChecker extends PrismComponent
 			computedPoints.add(newPoint);
 			computedDirections.add(direction);
 
-			
 			//if (prism.getExportMultiGraphs())
 			//	MultiObjUtils.printGraphFileDebug(targetPoint, computedPoints, computedDirections, prism.getExportMultiGraphsDir(), output++);
 
