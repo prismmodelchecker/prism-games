@@ -311,7 +311,7 @@ public class PrismSettings implements Observer
 																			"Maximum number of iterations performed to solve conjunctive queries using value iteration. The same value is used for computing the conjunctions involved in mixed queries." },
 			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			new Integer(500),															"0,",																						
 																			"Maximum number of iterations performed to compute the Pareto sets for ratio rewards using value iteration." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			new Integer(100),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			new Integer(500),															"0,",																						
 																			"Maximum number of iterations performed to solve disjunctive queries using value iteration. The same value is used for computing the disjunctions involved in mixed queries." },
 			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			new Integer(1),															"0,",																						
 																			"Start the disjunctive iteration at this iteration." },
@@ -427,7 +427,7 @@ public class PrismSettings implements Observer
 																			"File specifying the network profile used by the distributed PRISM simulator." }
 		},
 		{
-			{ BOOLEAN_TYPE,		MODEL_AUTO_PARSE,						"Auto parse",							"2.1",			new Boolean(true),															"",																							"Parse PRISM models automatically as they are loaded/edited in the text editor." },
+		    { BOOLEAN_TYPE,		MODEL_AUTO_PARSE,						"Auto parse",							"2.1",			new Boolean(false),															"",																							"Parse PRISM models automatically as they are loaded/edited in the text editor." },
 			{ BOOLEAN_TYPE,		MODEL_AUTO_MANUAL,						"Manual parse for large models",		"2.1",			new Boolean(true),															"",																							"Disable automatic model parsing when loading large PRISM models." },
 			{ INTEGER_TYPE,		MODEL_PARSE_DELAY,						"Parse delay (ms)",						"2.1",			new Integer(1000),															"0,",																						"Time delay (after typing has finished) before an automatic re-parse of the model is performed." },
 			{ FONT_COLOUR_TYPE,	MODEL_PRISM_EDITOR_FONT,				"PRISM editor font",					"2.1",			new FontColorPair(new Font("monospaced", Font.PLAIN, 12), Color.black),		"",																							"Font used in the PRISM model text editor." },
