@@ -5,6 +5,6 @@ const double v3 = 3/4;
 // compositional (assume-guarantee) synthesis
 // RESULT: True
 "psi" : comp(
-    <<1>> (R{"r1"}/{"c"}<=v1 [ C ]=>R{"r2"}/{"c"}>=v2 [ C ]),
-    <<1>> (R{"r1"}/{"c"}<=v1 [ C ]&R{"r3"}/{"c"}<=v3 [ C ])
+    <<1>> (R{"r1"}/{"c"}<=v1 [ S ]=>R{"r2"}/{"c"}>=v2 [ S ]),
+    <<1>> (R{"r1"}/{"c"}<=v1 [ S ]&R{"r3"}/{"c"}<=v3 [ S ])
             )
