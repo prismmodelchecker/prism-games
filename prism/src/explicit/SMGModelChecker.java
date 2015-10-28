@@ -792,16 +792,31 @@ public class SMGModelChecker extends ProbModelChecker
 							minminreward[s] = 0.0;
 					}
 					if (params.rounding) {
-						maxminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG) model, reward, new BitSet(gameSize), new BitSet(gameSize), false, true, null,
+					        // defaults
+					        double tmp_biggest = 1;
+						double tmp_smallest = 0;
+
+						try {
+						        maxminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG) model, reward, new BitSet(gameSize), new BitSet(gameSize), false, true, null,
 								null).soln;
-						double tmp_biggest = Double.NEGATIVE_INFINITY;
-						double tmp_smallest = Double.POSITIVE_INFINITY;
-						for (int s = 0; s < gameSize; s++) {
-							if (tmp_biggest < maxminreward[s])
-								tmp_biggest = maxminreward[s];
-							if (tmp_smallest > minminreward[s])
-								tmp_smallest = minminreward[s];
+							tmp_biggest = Double.NEGATIVE_INFINITY;
+							tmp_smallest = Double.POSITIVE_INFINITY;
+							for (int s = 0; s < gameSize; s++) {
+							    if (tmp_biggest < maxminreward[s])
+								    tmp_biggest = maxminreward[s];
+							    if (tmp_smallest > minminreward[s])
+								    tmp_smallest = minminreward[s];
+							}
+						} catch (PrismException e) {
+						    // value iteration did not converge
+						    // retain default values
+						    // and issue a warning
+						    tmp_biggest = 1;
+						    tmp_smallest = 0;
+						    mainLog.printWarning("Could not initialise value iteration, because the reward for objective " + i
+									 + " does not converge. Rounding not sensitive to maximal rewards in the dimension " + i + ".");
 						}
+
 						baseline_biggest_reward[i] = tmp_biggest;
 						baseline_smallest_reward[i] = tmp_smallest;
 					}
