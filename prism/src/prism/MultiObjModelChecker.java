@@ -69,7 +69,7 @@ public class MultiObjModelChecker extends PrismComponent
 
 	//TODO: dra's element is changed here, not neat.
 	protected NondetModel constructDRAandProductMulti(NondetModel model, LTLModelChecker mcLtl, ModelChecker modelChecker, Expression ltl, int i,
-			DA<BitSet, AcceptanceRabin> dra[], Operator operator, Expression targetExpr, JDDVars draDDRowVars, JDDVars draDDColVars, JDDNode ddStateIndex)
+			DA<BitSet, AcceptanceRabin> dra[], Operator operator, Expression pathFormula, JDDVars draDDRowVars, JDDVars draDDColVars, JDDNode ddStateIndex)
 			throws PrismException
 	{
 
@@ -77,7 +77,7 @@ public class MultiObjModelChecker extends PrismComponent
 
 		// Model check maximal state formulas
 		Vector<JDDNode> labelDDs = new Vector<JDDNode>();
-		ltl = mcLtl.checkMaximalStateFormulas(modelChecker, model, targetExpr.deepCopy(), labelDDs);
+		ltl = mcLtl.checkMaximalStateFormulas(modelChecker, model, pathFormula.deepCopy(), labelDDs);
 
 		// Convert LTL formula to deterministic Rabin automaton (DRA)
 		// For min probabilities, need to negate the formula
@@ -172,9 +172,8 @@ public class MultiObjModelChecker extends PrismComponent
 	//there are some other bits which I don't currently understand
 	protected JDDNode computeAcceptingEndComponent(DA<BitSet, AcceptanceRabin> dra, NondetModel modelProduct, JDDVars draDDRowVars, JDDVars draDDColVars,
 			List<JDDNode> allecs, List<JDDNode> statesH, List<JDDNode> statesL, //Vojta: at the time of writing this I have no idea what these two parameters do, so I don't know how to call them
-			LTLModelChecker mcLtl, boolean conflictformulaeGtOne, String name) throws PrismException
+			LTLModelChecker mcLtl, boolean conflictformulaeGtOne) throws PrismException
 	{
-		mainLog.println("\nFinding accepting end components for " + name + "...");
 		long l = System.currentTimeMillis();
 		// increase ref count for checking conflict formulas
 		if (conflictformulaeGtOne) {
@@ -754,6 +753,8 @@ public class MultiObjModelChecker extends PrismComponent
 		double tolerance = settings.getDouble(PrismSettings.PRISM_PARETO_EPSILON);
 		int maxIters = settings.getInteger(PrismSettings.PRISM_MULTI_MAX_POINTS);
 
+		int exportAdvSetting = settings.getChoice(PrismSettings.PRISM_EXPORT_ADV);
+		
 		NativeIntArray adversary = new NativeIntArray((int) modelProduct.getNumStates());
 		int dimProb = targets.length;
 		int dimReward = rewards.size();
@@ -781,6 +782,12 @@ public class MultiObjModelChecker extends PrismComponent
 		NDSparseMatrix trans_matrix = NDSparseMatrix.BuildNDSparseMatrix(a, modelProduct.getODD(), modelProduct.getAllDDRowVars(),
 				modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars());
 
+		// If adversary generation is enabled, we build/store action info
+		if (settings.getChoice(PrismSettings.PRISM_EXPORT_ADV) != Prism.EXPORT_ADV_NONE) {
+			NDSparseMatrix.AddActionsToNDSparseMatrix(a, modelProduct.getTransActions(), modelProduct.getODD(), modelProduct.getAllDDRowVars(),
+					modelProduct.getAllDDColVars(), modelProduct.getAllDDNondetVars(), trans_matrix);
+		}
+		
 		//create double vectors for probabilistic objectives
 		for (int i = 0; i < dimProb; i++) {
 			probDoubleVectors[i] = new DoubleVector(targets[i], modelProduct.getAllDDRowVars(), modelProduct.getODD());
@@ -795,6 +802,9 @@ public class MultiObjModelChecker extends PrismComponent
 
 		JDD.Deref(a);
 
+		// Disable adversary generation (if it was switched on) for these initial computations
+		PrismNative.setExportAdv(Prism.EXPORT_ADV_NONE);
+		
 		for (int i = 0; i < dimProb; i++) {
 			double[] result;
 
@@ -806,7 +816,7 @@ public class MultiObjModelChecker extends PrismComponent
 						rewardStepBounds);
 			} else {
 				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, modelProduct.getSynchs(), probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
 						rewardStepBounds);
 			}
 
@@ -833,7 +843,7 @@ public class MultiObjModelChecker extends PrismComponent
 						rewardStepBounds);
 			} else {
 				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, modelProduct.getSynchs(), probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
 						rewardStepBounds);
 			}
 
@@ -846,6 +856,9 @@ public class MultiObjModelChecker extends PrismComponent
 			}
 		}
 
+		// Reinstate temporarily-disabled adversary generation setting
+		PrismNative.setExportAdv(exportAdvSetting);
+		
 		if (verbose)
 			mainLog.println("Points for initial tile: " + pointsForInitialTile);
 
@@ -869,6 +882,12 @@ public class MultiObjModelChecker extends PrismComponent
 				weights[i] = direction.getCoord(i);
 			}
 
+			// If adversary generation is enabled, we amend the filename so that multiple adversaries can be exported
+			String advFileName = settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME);
+			if (settings.getChoice(PrismSettings.PRISM_EXPORT_ADV) != Prism.EXPORT_ADV_NONE) {
+				PrismNative.setExportAdvFilename(PrismUtils.addCounterSuffixToFilename(advFileName, iters));
+			}
+			
 			double[] result;
 			if (prism.getMDPSolnMethod() == Prism.MDP_MULTI_GAUSSSEIDEL) {
 				result = PrismSparse.NondetMultiObjGS(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
@@ -876,7 +895,7 @@ public class MultiObjModelChecker extends PrismComponent
 						rewardStepBounds);
 			} else {
 				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, modelProduct.getSynchs(), probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
 						rewardStepBounds);
 			}
 
@@ -1047,7 +1066,7 @@ public class MultiObjModelChecker extends PrismComponent
 			} else {
 				//System.out.println("Not doing GS");
 				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, modelProduct.getSynchs(), null, null, new NDSparseMatrix[] { rewSparseMatrices[0] },
 						new double[] { 1.0 }, new int[] { rewardStepBounds[0] });
 			}
 			numberOfPoints++;
@@ -1085,7 +1104,7 @@ public class MultiObjModelChecker extends PrismComponent
 						rewardStepBounds);
 			} else {
 				result = PrismSparse.NondetMultiObj(modelProduct.getODD(), modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars(),
-						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
+						modelProduct.getAllDDNondetVars(), false, st, adversary, trans_matrix, modelProduct.getSynchs(), probDoubleVectors, probStepBounds, rewSparseMatrices, weights,
 						rewardStepBounds);
 			}
 			numberOfPoints++;

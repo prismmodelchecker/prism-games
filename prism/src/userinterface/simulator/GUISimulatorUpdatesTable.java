@@ -166,11 +166,7 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 
 		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
 		{
-		        if(value!=null) {
-			    renderer.setText(value.toString());
-		        } else {
-			    renderer.setText("null");
-		        }
+			renderer.setText(value == null ? "" : value.toString());
 
 			// first see if the row is disabled 
 			lsm.refresh(); // TODO: may not be required

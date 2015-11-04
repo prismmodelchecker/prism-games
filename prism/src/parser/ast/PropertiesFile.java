@@ -241,7 +241,7 @@ public class PropertiesFile extends ASTElement
 	    } else if (e instanceof ExpressionProp) {
 		return resolvePropertyReferences(getPropertyObjectByName(((ExpressionProp)e).getName()).getExpression());
 	    } else if (e instanceof ExpressionStrategy) {
-		((ExpressionStrategy)f).setExpression(resolvePropertyReferences(((ExpressionStrategy)e).getExpression()));
+		((ExpressionStrategy)f).setOperand(0, resolvePropertyReferences(((ExpressionStrategy)e).getOperand(0)));
 	    } else if (e instanceof ExpressionForAll) {
 		((ExpressionForAll)f).setExpression(resolvePropertyReferences(((ExpressionForAll)e).getExpression()));
 	    } else if (e instanceof ExpressionITE) {

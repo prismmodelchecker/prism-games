@@ -2887,11 +2887,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 			// before building do a quick check whether the comp-operator is used with coalition
 			if (e instanceof ExpressionStrategy) {
-				Expression ee = ((ExpressionStrategy) e).getExpression();
-				while (Expression.isParenth(ee))
-					ee = ((ExpressionUnaryOp) ee).getOperand();
-				if (ee instanceof ExpressionFunc && ((ExpressionFunc) ee).getNameCode() == ExpressionFunc.COMP)
-					throw new PrismException("Cannot use the coalition operator outside the \"comp\" operator");
+				for (Expression ee : ((ExpressionStrategy) e).getOperands()) {
+					while (Expression.isParenth(ee))
+						ee = ((ExpressionUnaryOp) ee).getOperand();
+					if (ee instanceof ExpressionFunc && ((ExpressionFunc) ee).getNameCode() == ExpressionFunc.COMP)
+						throw new PrismException("Cannot use the coalition operator outside the \"comp\" operator");
+				}
 			}
 
 			// Build model, if necessary
