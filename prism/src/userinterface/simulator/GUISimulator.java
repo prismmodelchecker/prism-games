@@ -48,6 +48,18 @@ import java.text.NumberFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.awt.Font;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -66,8 +78,23 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JFileChooser;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 
 import parser.State;
 import parser.Values;
@@ -92,6 +119,23 @@ import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.OptionsPanel;
+import parser.Values;
+import parser.ast.LabelList;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import prism.PrismException;
+import prism.PrismLangException;
+import prism.PrismSettings;
+import prism.PrismSettingsListener;
+import prism.PrismUtils;
+import prism.UndefinedConstants;
+import simulator.PathFullInfo;
+import simulator.SimulatorEngine;
+import simulator.networking.SimulatorNetworkHandler;
+import userinterface.GUIConstantsPicker;
+import userinterface.GUIPlugin;
+import userinterface.GUIPrism;
+import userinterface.OptionsPanel;
 import userinterface.graph.Graph;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModel;
@@ -105,6 +149,15 @@ import userinterface.util.GUIExitEvent;
 import explicit.Distribution;
 import explicit.SMG;
 import explicit.STPG;
+import userinterface.model.GUIModelEvent;
+import userinterface.model.GUIMultiModel;
+import userinterface.properties.GUIMultiProperties;
+import userinterface.properties.GUIPropertiesEvent;
+import userinterface.properties.GUIPropertiesList;
+import userinterface.properties.GUIProperty;
+import userinterface.simulator.networking.GUINetworkEditor;
+import userinterface.util.GUIComputationEvent;
+import userinterface.util.GUIExitEvent;
 
 @SuppressWarnings("serial")
 public class GUISimulator extends GUIPlugin implements MouseListener, ListSelectionListener, PrismSettingsListener
@@ -255,7 +308,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		totalTimeLabel.setText(formatDouble(0.0));
 		pathLengthLabel.setText("0");
 
-		textFilter =  new FileNameExtensionFilter("Plain text files (*.txt)", "txt");
+		textFilter = new FileNameExtensionFilter("Plain text files (*.txt)", "txt");
 
 		displayStyleFast = true;
 		displayPathLoops = true;
@@ -411,16 +464,19 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		this.chooseInitialState = chooseInitialState;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
 	}
-	
-	public void newPathAfterParse() 
+
+	public void newPathAfterParse()
 	{
 		newPathAfterReceiveParseNotification = false;
 		Values initialState;
 		try {
-
 		        // update engine
 		        ((GUISimLabelList)stateLabelList).setEngine(engine);
 			((GUISimPathFormulaeList)pathFormulaeList).setEngine(engine);
+
+			// Check model is simulate-able
+			// (bail out now else causes problems below)
+			engine.checkModelForSimulation(parsedModel);
 
 			// get properties constants/labels
 			PropertiesFile pf;
@@ -1012,8 +1068,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		this.chooseInitialState = chooseInitialState;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
 	}
-	
-	public void newPathPlotAfterParse() 
+
+	public void newPathPlotAfterParse()
 	{
 		newPathPlotAfterReceiveParseNotification = false;
 		Values initialState;
@@ -1022,7 +1078,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		        // update engine
 		        ((GUISimLabelList)stateLabelList).setEngine(engine);
 			((GUISimPathFormulaeList)pathFormulaeList).setEngine(engine);
-			
+
 			// if necessary, get values for undefined constants from user
 			UndefinedConstants uCon = new UndefinedConstants(parsedModel, null);
 			if (uCon.getMFNumUndefined() > 0) {
@@ -1101,7 +1157,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			if (simPathDetails == null)
 				return;
 			long maxPathLength = pathPlotDialog.getMaxPathLength();
-						
+
 			// Create a new path in the simulator and plot it 
 			a_clearPath();
 			setComputing(true);
@@ -1126,7 +1182,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			// store initial state for next time
 			lastInitialState = initialState;
-			
+
 		} catch (PrismException e) {
 			this.error(e.getMessage());
 			if (e instanceof PrismLangException) {
@@ -1248,7 +1304,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					newPathPlotAfterParse();
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSE_FAILED) {
 				newPathAfterReceiveParseNotification = false;
-				newPathPlotAfterReceiveParseNotification = false;			}
+				newPathPlotAfterReceiveParseNotification = false;
+			}
 
 		} else if (e instanceof GUIComputationEvent) {
 			if (e.getID() == GUIComputationEvent.COMPUTATION_START) {
@@ -2342,8 +2399,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			if (e.getClickCount() == 2 && (e.getSource() == pathTablePlaceHolder || e.getSource() == tableScroll)) {
 				if (newPath.isEnabled())
 					a_newPath(false);
-			}
-			else if (e.isPopupTrigger()
+			} else if (e.isPopupTrigger()
 					&& (e.getSource() == pathTablePlaceHolder || e.getSource() == pathTable || e.getSource() == pathTable.getTableHeader() || e.getSource() == tableScroll)) {
 				randomExploration
 						.setEnabled(!(e.getSource() == pathTable.getTableHeader() || e.getSource() == pathTablePlaceHolder || e.getSource() == tableScroll));
