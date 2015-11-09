@@ -212,15 +212,16 @@ public class SimulatorEngine extends PrismComponent
 			throw new PrismException("Sorry - the simulator does not currently handle the system...endsystem construct");
 		}
 	}
-        public void checkModelForSimulation(explicit.Model model) throws PrismException
+
+	public void checkModelForSimulation(explicit.Model model) throws PrismException
 	{
-	    if (!(model instanceof MDPSimple)) {
+		if (!(model instanceof MDPSimple)) {
 			throw new PrismException("The explicit model simulator only supports explicit probabilistic models");
-	    }
-	    // No support for PTAs yet
-	    if (modulesFile.getModelType() == ModelType.PTA) {
-		throw new PrismException("Sorry - the explicit simulator does not currently support PTAs");
-	    }
+		}
+		// No support for PTAs yet
+		if (modulesFile.getModelType() == ModelType.PTA) {
+			throw new PrismException("Sorry - the explicit simulator does not currently support PTAs");
+		}
 	}
 
 	/**
