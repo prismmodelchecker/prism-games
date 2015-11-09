@@ -572,16 +572,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		}
 	}
 
-	private <T> int indexOf(List<T> list, T o)
-	{ // indexOf based on reference, not equals(o) function
-		for (int i = 0; i < list.size(); i++) {
-			if (list.get(i) == o) {
-				return i;
-			}
-		}
-		return -1; // not in list
-	}
-
 	public Values a_chooseInitialState() throws PrismLangException
 	{
 		// first, pick default values for chooser dialog
