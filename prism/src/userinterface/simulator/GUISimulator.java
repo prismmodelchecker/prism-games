@@ -420,10 +420,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			((GUISimLabelList) stateLabelList).setEngine(engine);
 			((GUISimPathFormulaeList) pathFormulaeList).setEngine(engine);
 
-			// Check model is simulate-able
-			// (bail out now else causes problems below)
-			engine.checkModelForSimulation(parsedModel);
-
 			// get properties constants/labels
 			PropertiesFile pf;
 			try {
