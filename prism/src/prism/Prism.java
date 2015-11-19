@@ -2857,7 +2857,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			compoMC.setComputeParetoSet(computePareto);
 			this.setCancel(false);
 			compoMC.setCancel(cancel_computation);
-			Expression e = propertiesFile.resolvePropertyReferences(prop.getExpression());
+			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
 			res = compoMC.check(e);
 
 			// saving strategy if it was generated.

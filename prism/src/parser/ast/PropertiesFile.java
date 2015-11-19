@@ -206,61 +206,6 @@ public class PropertiesFile extends ASTElement
 		return null;
 	}
 
-        /** 
-	 * Resolves (recursively) named references in a property.
-	 **/
-        public Expression resolvePropertyReferences(Expression e)
-        {
-	    // TODO: can probably be resolved using a visitor as well
-
-	    if(e == null) return null;
-
-	    Expression f = e.deepCopy();
-
-	    if(e instanceof ExpressionExists) {
-		((ExpressionExists)f).setExpression(resolvePropertyReferences(((ExpressionExists)e).getExpression()));
-	    } else if (e instanceof ExpressionFormula) {
-		((ExpressionFormula)f).setDefinition(resolvePropertyReferences(((ExpressionFormula)e).getDefinition()));
-	    } else if (e instanceof ExpressionProb) {
-		((ExpressionProb)f).setExpression(resolvePropertyReferences(((ExpressionProb)e).getExpression()));
-		((ExpressionProb)f).setProb(resolvePropertyReferences(((ExpressionProb)e).getProb()));
-	    } else if (e instanceof ExpressionSS) {
-		((ExpressionSS)f).setExpression(resolvePropertyReferences(((ExpressionSS)e).getExpression()));
-		((ExpressionSS)f).setProb(resolvePropertyReferences(((ExpressionSS)e).getProb()));		
-	    } else if (e instanceof ExpressionUnaryOp) {
-		((ExpressionUnaryOp)f).setOperand(resolvePropertyReferences(((ExpressionUnaryOp)e).getOperand()));
-	    } else if (e instanceof ExpressionBinaryOp) {
-		((ExpressionBinaryOp)f).setOperand1(resolvePropertyReferences(((ExpressionBinaryOp)e).getOperand1()));
-		((ExpressionBinaryOp)f).setOperand2(resolvePropertyReferences(((ExpressionBinaryOp)e).getOperand2()));
-	    } else if (e instanceof ExpressionFilter) {
-		((ExpressionFilter)f).setOperand(resolvePropertyReferences(((ExpressionFilter)e).getOperand()));
-		((ExpressionFilter)f).setFilter(resolvePropertyReferences(((ExpressionFilter)e).getFilter()));
-	    } else if (e instanceof ExpressionFunc) {
-		for(int i = 0; i < ((ExpressionFunc)e).getNumOperands(); i++)
-		    ((ExpressionFunc)f).setOperand(i, resolvePropertyReferences(((ExpressionFunc)e).getOperand(i)));
-	    } else if (e instanceof ExpressionProp) {
-		return resolvePropertyReferences(getPropertyObjectByName(((ExpressionProp)e).getName()).getExpression());
-	    } else if (e instanceof ExpressionStrategy) {
-		((ExpressionStrategy)f).setOperand(0, resolvePropertyReferences(((ExpressionStrategy)e).getOperand(0)));
-	    } else if (e instanceof ExpressionForAll) {
-		((ExpressionForAll)f).setExpression(resolvePropertyReferences(((ExpressionForAll)e).getExpression()));
-	    } else if (e instanceof ExpressionITE) {
-		((ExpressionITE)f).setOperand1(resolvePropertyReferences(((ExpressionITE)e).getOperand1()));
-		((ExpressionITE)f).setOperand2(resolvePropertyReferences(((ExpressionITE)e).getOperand2()));
-		((ExpressionITE)f).setOperand3(resolvePropertyReferences(((ExpressionITE)e).getOperand3()));
-	    } else if (e instanceof ExpressionReward) {
-		((ExpressionReward)f).setReward(resolvePropertyReferences(((ExpressionReward)e).getReward()));
-		((ExpressionReward)f).setExpression(resolvePropertyReferences(((ExpressionReward)e).getExpression()));
-	    } else if (e instanceof ExpressionTemporal) {
-		((ExpressionTemporal)f).setOperand1(resolvePropertyReferences(((ExpressionTemporal)e).getOperand1()));
-		((ExpressionTemporal)f).setOperand2(resolvePropertyReferences(((ExpressionTemporal)e).getOperand2()));
-		((ExpressionTemporal)f).setLowerBound(resolvePropertyReferences(((ExpressionTemporal)e).getLowerBound()));
-		((ExpressionTemporal)f).setUpperBound(resolvePropertyReferences(((ExpressionTemporal)e).getUpperBound()));
-	    }
-
-	    return f;
-        }
-
 	/**
 	 * Look up the index of a property by name from those listed in this properties file.
 	 * Returns -1 if not found.
