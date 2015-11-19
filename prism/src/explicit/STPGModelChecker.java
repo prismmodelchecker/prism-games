@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import common.IterableBitSet;
+
 import parser.ast.Expression;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -168,7 +170,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * while remaining in those in @{code remain}.
+	 * while remaining in those in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -183,7 +185,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute reachability/until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * while remaining in those in @{code remain}.
+	 * while remaining in those in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -217,7 +219,7 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = null;
 		BitSet no, yes;
-		int i, n, numYes, numNo;
+		int n, numYes, numNo;
 		long timer, timerProb0, timerProb1;
 		boolean genAdv;
 
@@ -242,10 +244,12 @@ public class STPGModelChecker extends ProbModelChecker
 		n = stpg.getNumStates();
 
 		// Optimise by enlarging target set (if more info is available)
-		if (init != null && known != null) {
-			BitSet targetNew = new BitSet(n);
-			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 1.0));
+		if (init != null && known != null && !known.isEmpty()) {
+			BitSet targetNew = (BitSet) target.clone();
+			for (int i : new IterableBitSet(known)) {
+				if (init[i] == 1.0) {
+					targetNew.set(i);
+				}
 			}
 			target = targetNew;
 		}
@@ -310,7 +314,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Prob0 precomputation algorithm.
 	 * i.e. determine the states of an STPG which, with min/max probability 0,
-	 * reach a state in {@code target}, while remaining in those in @{code remain}.
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
 	 * {@code min}=true gives Prob0E, {@code min}=false gives Prob0A. 
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
@@ -383,7 +387,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Prob1 precomputation algorithm.
 	 * i.e. determine the states of an STPG which, with min/max probability 1,
-	 * reach a state in {@code target}, while remaining in those in @{code remain}.
+	 * reach a state in {@code target}, while remaining in those in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -720,7 +724,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute bounded until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * within k steps, and while remaining in states in @{code remain}.
+	 * within k steps, and while remaining in states in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -736,7 +740,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Compute bounded reachability/until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
-	 * within k steps, and while remaining in states in @{code remain}.
+	 * within k steps, and while remaining in states in {@code remain}.
 	 * @param stpg The STPG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -930,9 +934,8 @@ public class STPGModelChecker extends ProbModelChecker
 		default:
 			throw new PrismException("Unknown semantics for runs unreaching the target in STPGModelChecker: " + unreachingSemantics);
 		}
-
 	}
-
+	
 	/**
 	 * Compute expected reachability rewards using value iteration.
 	 * @param stpg The STPG
@@ -1098,7 +1101,7 @@ public class STPGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = null;
 		BitSet inf;
-		int i, n, numTarget, numInf;
+		int n, numTarget, numInf;
 		long timer, timerProb1, timerApprox;
 
 		// Start expected reachability
@@ -1113,10 +1116,12 @@ public class STPGModelChecker extends ProbModelChecker
 		n = stpg.getNumStates();
 
 		// Optimise by enlarging target set (if more info is available)
-		if (init != null && known != null) {
-			BitSet targetNew = new BitSet(n);
-			for (i = 0; i < n; i++) {
-				targetNew.set(i, target.get(i) || (known.get(i) && init[i] == 0.0));
+		if (init != null && known != null && !known.isEmpty()) {
+			BitSet targetNew = (BitSet) target.clone();
+			for (int i : new IterableBitSet(known)) {
+				if (init[i] == 1.0) {
+					targetNew.set(i);
+				}
 			}
 			target = targetNew;
 		}
@@ -1148,7 +1153,7 @@ public class STPGModelChecker extends ProbModelChecker
 		double maximumReward = 0.0;
 		boolean allNonzero = true;
 		double r;
-		for (i = 0; i < n; i++) {
+		for (int i = 0; i < n; i++) {
 			r = rewards.getStateReward(i);
 			if (r > 0.0 && r < minimumReward)
 				minimumReward = r;

@@ -27,11 +27,14 @@
 
 package jltl2ba;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import common.PlainObjectReference;
 import jltl2dstar.APMonom;
 import jltl2dstar.NBA;
 import prism.PrismException;
@@ -194,24 +197,38 @@ public class SimpleLTL {
 						left.implies(b.left) && right.implies(b.right)));
 	}
 
-	// simplified PNF form
+	/**
+	 * Construct simplified PNF form.
+	 *
+	 * Currently, this requires that the SimpleLTL formula is a tree, i.e., that
+	 * subtrees are not shared. If this is not the case,
+	 * an {@code IllegalArgumentException} is thrown.
+	 */
 	public SimpleLTL simplify()
+	{
+		if (!this.isTree()) {
+			throw new IllegalArgumentException("Implementation error: SimpleLTL.simplify() requires that the formula is a tree, not a DAG");
+		}
+		return this.simplified();
+	}
+	
+	private SimpleLTL simplified()
 	{
 		SimpleLTL tmp, tmp2, a, b;
 		SimpleLTL rv = this;
 		
 		switch (kind) {
 		case AND: case OR: case IMPLIES: case EQUIV: case UNTIL: case RELEASE:
-			right = right.simplify();
+			right = right.simplified();
 		case NOT: case NEXT: case FINALLY: case GLOBALLY:
-			left = left.simplify();
+			left = left.simplified();
 		}
 
 		switch (kind) {
 		case NOT:
 			tmp = this.pushNegation();
 			if (tmp.kind != LTLType.NOT)
-				rv = tmp.simplify();
+				rv = tmp.simplified();
 			else rv = tmp;
 			break;
 			
@@ -229,7 +246,7 @@ public class SimpleLTL {
 				/* fall thru */
 			}
 			tmp = new SimpleLTL(LTLType.UNTIL, new SimpleLTL(true), left);
-			rv = tmp.simplify();
+			rv = tmp.simplified();
 			break;
 
 		case GLOBALLY:
@@ -246,7 +263,7 @@ public class SimpleLTL {
 				/* fall thru */
 			}
 			tmp = new SimpleLTL(LTLType.RELEASE, new SimpleLTL(false), left);
-			rv = tmp.simplify();
+			rv = tmp.simplified();
 			break;
 
 		case UNTIL:
@@ -888,6 +905,42 @@ public class SimpleLTL {
 		return false;
 	}
 
+	/**
+	 * Returns true if this SimpleLTL structure is a tree, i.e., not a
+	 * directed acyclical graph (DAG) where sharing of subtrees is allowed.
+	 */
+	public boolean isTree()
+	{
+		HashSet<PlainObjectReference<SimpleLTL>> seen = new HashSet<PlainObjectReference<SimpleLTL>>();
+		return isTree(seen);
+	}
+
+	/**
+	 * Recursive function for checking if this SimpleLTL structure is a tree, i.e., not a
+	 * directed acyclical graph (DAG) where sharing of subtrees is allowed.
+	 *
+	 * The already seen SimpleLTL subtrees are tracked in {@code seen}.
+	 */
+	private boolean isTree(HashSet<PlainObjectReference<SimpleLTL>> seen)
+	{
+		PlainObjectReference<SimpleLTL> ref = new PlainObjectReference<SimpleLTL>(this);
+		if (seen.contains(ref)) {
+			return false;
+		}
+		seen.add(ref);
+
+		if (left != null && !left.isTree(seen)) {
+			// left child exists and is not a tree
+			return false;
+		}
+		if (right != null && !right.isTree(seen)) {
+			// right child exists and is not a tree
+			return false;
+		}
+
+		return true;
+	}
+
 	public SimpleLTL toDNF() throws PrismException
 	{
 		switch (kind) {
@@ -1299,4 +1352,65 @@ public class SimpleLTL {
 	{
 		return this.toNBA(new APSet());
 	}
+
+	/** Print a DOT representation of the syntax tree of this SimpleLTL formula */
+	public void toDot(PrintStream out) {
+		HashMap<PlainObjectReference<SimpleLTL>, String> map = new HashMap<PlainObjectReference<SimpleLTL>, String>();
+
+		out.println("digraph {");
+		toDot(out, map);
+		out.println("}");
+	}
+
+	/**
+	 * Print a DOT representation of the syntax tree of this SimpleLTL formula.
+	 *
+	 * @param out the output print stream
+	 * @param seen a map storing an identifier for each subformula that has already been seen / printed
+	 */
+	private String toDot(PrintStream out, HashMap<PlainObjectReference<SimpleLTL>, String> seen)
+	{
+		PlainObjectReference<SimpleLTL> ref = new PlainObjectReference<SimpleLTL>(this);
+		if (seen.containsKey(ref)) {
+			return seen.get(ref);
+		}
+
+		String id = Integer.toString(seen.size());
+		seen.put(ref, id);
+		out.println(id + " [label=\""+toStringLBT()+"\"]");
+
+		switch (kind) {
+		case AND:
+		case EQUIV:
+		case OR:
+		case UNTIL:
+		case RELEASE:
+		case IMPLIES: {
+			String leftID = left.toDot(out, seen);
+			String rightID = right.toDot(out, seen);
+			out.println(id + " -> " + leftID);
+			out.println(id + " -> " + rightID);
+			break;
+		}
+		case FINALLY:
+		case GLOBALLY:
+		case NEXT:
+		case NOT: {
+			String leftID = left.toDot(out, seen);
+			out.println(id + " -> " + leftID);
+			break;
+		}
+
+		case AP:
+		case TRUE:
+		case FALSE:
+			break;
+
+		default:
+			break;
+		}
+
+		return id;
+	}
+
 }
