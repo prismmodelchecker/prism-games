@@ -2883,7 +2883,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		try {
 
 			// resolve property references in the property
-			Expression e = propertiesFile.resolvePropertyReferences(prop.getExpression());
+			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
 
 			// before building do a quick check whether the comp-operator is used with coalition
 			if (e instanceof ExpressionStrategy) {
