@@ -101,6 +101,7 @@ import userinterface.properties.GUIPropertiesList;
 import userinterface.properties.GUIProperty;
 import userinterface.simulator.networking.GUINetworkEditor;
 import userinterface.util.GUIComputationEvent;
+import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
 import explicit.Distribution;
 import explicit.SMG;
@@ -114,13 +115,23 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	// text formatting
 	NumberFormat df;
 
-	//ATTRIBUTES
-	private GUIMultiProperties guiProp; //reference to the properties information
-	private GUIMultiModel guiMultiModel; //reference to the model plugin
+	// Links to other parts of the GUI
+	private GUIMultiProperties guiProp;
+	private GUIMultiModel guiMultiModel;
+	
+	/** Underlying simulator */
 	private SimulatorEngine engine;
-	private FileFilter textFilter;
+	
+	// GUI components
+	private UpdateTableModel updateTableModel;
+	private GUISimulatorPathTableModel pathTableModel;
+	
+	// Menus/actions/etc.
 	private JMenu simulatorMenu;
 	private JPopupMenu pathPopupMenu;
+	private FileFilter textFilter;
+	private Action randomExploration, backtrack, backtrackToHere, removeToHere, newPath, newPathFromState, newPathPlot, newPathPlotFromState, resetPath,
+	exportPath, plotPath, configureView;
 
 	//Current State
 	private boolean pathActive;
@@ -133,21 +144,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private boolean newPathAfterReceiveParseNotification, newPathPlotAfterReceiveParseNotification;
 	private boolean chooseInitialState;
 
-	private GUISimulatorPathTableModel pathTableModel;
-	private UpdateTableModel updateTableModel;
-
 	private Values lastConstants, lastPropertyConstants, lastInitialState, markedState;
 	private boolean computing;
-
+	
+	// Config/options
 	private boolean displayStyleFast;
 	private boolean displayPathLoops;
 	private SimulationView view;
 
-	//Actions
-	private Action randomExploration, backtrack, backtrackToHere, removeToHere, newPath, newPathFromState, newPathPlot, newPathPlotFromState, resetPath,
-			exportPath, plotPath, configureView;
-
-	/** Creates a new instance of GUISimulator */
+	/**
+	 * Creates a new instance of GUISimulator
+	 */
 	public GUISimulator(GUIPrism gui)
 	{
 		super(gui, true);
@@ -339,6 +346,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		pathFormulaeList.repaint();
 	}
 
+	/**
+	 * React to a new model being loaded into the GUI.
+	 */
 	public void a_clearModel() throws PrismException
 	{
 		// Blank out path table
@@ -1212,16 +1222,14 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 	}
 
-	public boolean processGUIEvent(userinterface.util.GUIEvent e)
+	@Override
+	public boolean processGUIEvent(GUIEvent e)
 	{
 		try {
 			if (e instanceof GUIModelEvent) {
 				GUIModelEvent me = (GUIModelEvent) e;
-				if (me.getID() == me.NEW_MODEL) {
-					//New Model
+				if (me.getID() == GUIModelEvent.NEW_MODEL) {
 					a_clearModel();
-					doEnables();
-					//newList();
 				} else if (me.getID() == GUIModelEvent.MODEL_PARSED) {
 					a_loadModulesFile(me.getModulesFile(), me.getExplicitModel());
 					doEnables();

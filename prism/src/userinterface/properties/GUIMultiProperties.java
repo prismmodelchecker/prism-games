@@ -141,7 +141,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	// Current model (gets updated only by event listening to GUIModel)
 	private ModulesFile parsedModel;
-        private explicit.Model model;
 	// Constants for model (updated by events or locally)
 	private Values mfConstants;
 
@@ -199,7 +198,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		simulator.setGUIProb(this); // link required
 		initComponents();
 		a_newList();
-		setParsedModel(null, null);
+		setParsedModel(null);
 		doEnables();
 		// options = new GUIPropertiesOptions(this);
 	}
@@ -217,12 +216,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	{
 		return parsedModel;
 	}
-
-	public explicit.Model getExplicitModel()
-	{
-	    return model;
-	}
-
 
 	public String getConstantsString()
 	{
@@ -669,10 +662,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		fileTextField.setText("Properties list: " + ((activeFile == null) ? "<Untitled>" : activeFile.getPath()) + (modified ? "*" : ""));
 	}
 
-    protected void setParsedModel(ModulesFile m, explicit.Model model)
+    protected void setParsedModel(ModulesFile m)
 	{
 		parsedModel = m;
-		this.model = model;
 		consTable.validateConstants();
 		propList.validateProperties();
 		doEnables();
@@ -1554,7 +1546,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			GUIModelEvent me = (GUIModelEvent) e;
 			if (me.getID() == GUIModelEvent.NEW_MODEL) {
 				// New Model
-			    setParsedModel(null, null);
+			    setParsedModel(null);
 				doEnables();
 				// newList();
 			} else if (me.getID() == GUIModelEvent.MODEL_BUILT) {
@@ -1562,7 +1554,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					mfConstants = me.getBuildValues();
 				doEnables();
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSED) {
-			    setParsedModel(me.getModulesFile(), me.getExplicitModel());
+			    setParsedModel(me.getModulesFile());
 				checkForPropertiesToLoad();
 				if (verifyAfterReceiveParseNotification)
 					verifyAfterParse();

@@ -3703,7 +3703,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// nullify the strategy
 		strategy = null;
 		getSimulator().setStrategy(null);
-		// if (currentModelExpl != null) currentModelExpl.clear();
 	}
 
 	/**
