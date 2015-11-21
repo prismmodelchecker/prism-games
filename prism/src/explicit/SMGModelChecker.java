@@ -616,9 +616,8 @@ public class SMGModelChecker extends ProbModelChecker
 			mainLog.print(String.format("%s took %f s\n", generateStrategy ? "Synthesis" : "Verification", ((double) (System.nanoTime() - t0)) / 1e9));
 
 			parsed_params = params; // register parameters
-			strategy = SvS.getValue(); // register strategy
-
-			mainLog.print(String.format("strategy: %s\n", strategy));
+			result.setStrategy(SvS.getValue()); // register strategy
+			mainLog.print(String.format("strategy: %s\n", result.getStrategy()));
 
 			// optional: simulate strategy
 			//testStrategy_QEST((SMG) model, strategy, params);
@@ -1391,13 +1390,13 @@ public class SMGModelChecker extends ProbModelChecker
 			minMax1.setBound(p);
 			minmax = checkProbPathFormula(smg, expr.getExpression(), minMax1, statesOfInterest).getDoubleArray();
 			if (generateStrategy)
-				minStrat = strategy;
+				minStrat = result.getStrategy();
 			MinMax minMax2 = MinMax.minMin(false, true);
 			minMax2.setCoalition(coalition);
 			minMax2.setBound(p);
 			maxmin = checkProbPathFormula(smg, expr.getExpression(), minMax2, statesOfInterest).getDoubleArray();
 			if (generateStrategy)
-				maxStrat = strategy;
+				maxStrat = result.getStrategy();
 
 			repeat = false;
 			// checking which states are marked for removal
@@ -1428,7 +1427,7 @@ public class SMGModelChecker extends ProbModelChecker
 		stpg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) smg);
+			result.setStrategy(new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, (STPG) smg));
 		}
 
 		return StateValues.createFromBitSet(ret, smg);
@@ -1483,12 +1482,12 @@ public class SMGModelChecker extends ProbModelChecker
 			minMax1.setCoalition(coalition);
 			minmax = checkRewardReach(smg, modelRewards, exprTemp, minMax1, null).getDoubleArray();
 			if (generateStrategy)
-				minStrat = strategy;
+				minStrat = result.getStrategy();
 			MinMax minMax2 = MinMax.minMin(false, true);
 			minMax2.setCoalition(coalition);
 			maxmin = checkRewardReach(smg, modelRewards, exprTemp, minMax2, null).getDoubleArray();
 			if (generateStrategy)
-				maxStrat = strategy;
+				maxStrat = result.getStrategy();
 
 			repeat = false;
 			// checking which states are marked for removal
@@ -1519,7 +1518,7 @@ public class SMGModelChecker extends ProbModelChecker
 		smg.enableAllChoices();
 
 		if (generateStrategy) {
-			strategy = new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, smg);
+			result.setStrategy(new ExactValueStrategy(minStrat, minmax, maxStrat, maxmin, p, smg));
 		}
 
 		return StateValues.createFromBitSet(ret, smg);

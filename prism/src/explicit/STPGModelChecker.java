@@ -28,15 +28,12 @@
 package explicit;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import common.IterableBitSet;
 
 import parser.ast.Expression;
 import prism.PrismComponent;
@@ -48,6 +45,9 @@ import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
+
+import common.IterableBitSet;
+
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
@@ -130,14 +130,15 @@ public class STPGModelChecker extends ProbModelChecker
 		// Next-step probabilities 
 		stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, adv);
 
-		if (generateStrategy)
-			strategy = new MemorylessDeterministicStrategy(adv);
-
-		// Return results
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln2;
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(adv);
+		}
+
 		return res;
 	}
 
@@ -574,12 +575,13 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		//
+		// Store results/strategy
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
 		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(adv);
-			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
-			// new File(exportAdvFilename + "_"));
-			// strategy.exportToFile(exportAdvFilename + "_adv");
+			res.strat = new MemorylessDeterministicStrategy(adv);
 		}
 
 		// Print adversary
@@ -592,11 +594,6 @@ public class STPGModelChecker extends ProbModelChecker
 			out.close();
 		}
 
-		// Return results
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		res.numIters = iters;
-		res.timeTaken = timer / 1000.0;
 		return res;
 	}
 
@@ -846,32 +843,31 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Creating strategy object
+		int[][] choices = null;
 		if (generateStrategy) {
 			// converting list into array
-			int[][] choices = new int[n][];
+			choices = new int[n][];
 			for (i = 0; i < n; i++) {
 				choices[i] = new int[stratChoices.get(i).size()];
-
 				// reversing the list
 				for (int j = stratChoices.get(i).size() - 2, x = 0; j >= 0; j -= 2, x += 2) {
 					choices[i][x] = stratChoices.get(i).get(j);
 					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
 				}
 			}
-			//
-			// for (int[] arr : choices)
-			// System.out.println(Arrays.toString(arr));
-
-			strategy = new StepBoundedDeterministicStrategy(choices, k);
 		}
 
-		// Return results
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.lastSoln = soln2;
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
+		if (generateStrategy) {
+			res.strat = new StepBoundedDeterministicStrategy(choices, k);
+		}
+		
 		return res;
 	}
 
@@ -1053,10 +1049,6 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
-		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(adv);
-		}
-
 		// Print adversary
 		if (genAdv) {
 			PrismLog out = new PrismFileLog(exportAdvFilename);
@@ -1074,11 +1066,15 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		// Return results
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(adv);
+		}
+
 		return res;
 	}
 
@@ -1824,9 +1820,10 @@ public class STPGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 
 		// Creating strategy object
+		int[][] choices = null;
 		if (generateStrategy) {
 			// converting list into array
-			int[][] choices = new int[n][];
+			choices = new int[n][];
 			for (i = 0; i < n; i++) {
 				choices[i] = new int[stratChoices.get(i).size()];
 
@@ -1836,16 +1833,19 @@ public class STPGModelChecker extends ProbModelChecker
 					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
 				}
 			}
-
-			strategy = new BoundedRewardDeterministicStrategy(choices, lastSwitch, rewards);
 		}
 
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = (rews.length > 1) ? rews[1] : rews[0];
 		res.lastSoln = (rews.length > 2) ? rews[2] : null;
 		res.numIters = lastSwitch;
 		res.timeTaken = timer / 1000;
 		res.numIters = iters;
+		if (generateStrategy) {
+			res.strat = new BoundedRewardDeterministicStrategy(choices, lastSwitch, rewards);
+		}
+		
 		return res;
 	}
 

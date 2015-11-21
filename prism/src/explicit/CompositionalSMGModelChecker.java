@@ -219,7 +219,7 @@ public class CompositionalSMGModelChecker extends PrismComponent
 			mc.setModulesFileAndPropertiesFile(subsystemModulesFiles.get(i), propertiesFile);
 			Result result_i = mc.check(subsystems.get(i), expr.getOperand(i));
 			subsystemResults.add(result_i);
-			subsystemStrategies.add(mc.strategy);
+			subsystemStrategies.add(result_i.getStrategy());
 			subsystemParetos.add(mc.pareto_set);
 			subsystemParams.add(mc.parsed_params);
 		}

@@ -1172,7 +1172,6 @@ public class StateModelChecker extends PrismComponent
 
 		// Store result
 		result.setResult(resObj);
-		result.setStrategy(strategy);
 		result.setParameterString(parsed_params != null ? parsed_params.getParameterString() : null);
 		// Set result explanation (if none or disabled, clear)
 		if (expr.getExplanationEnabled() && resultExpl != null) {
