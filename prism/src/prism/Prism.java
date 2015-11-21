@@ -2931,7 +2931,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				// saving strategy if it was generated.
 				if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
 					// one strategy
-					strategy = mc.getStrategy();
+					strategy = res.getStrategy();
 					if (strategy != null)
 						strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: "
 								+ strategy.getMemorySize());
