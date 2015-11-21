@@ -446,16 +446,12 @@ public class MDPModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
-		// Create strategy object
-		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(strat);
-			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
-			// new File(exportAdvFilename + "_"));
-			// strategy.exportToFile(exportAdvFilename + "_adv");
-		}
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray(mdp, strat);
+		}
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(strat);
 		}
 		// Export adversary
 		if (exportAdv) {
@@ -936,11 +932,9 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Policy iteration");
 		mainLog.println(" took " + iters + " cycles (" + totalIters + " iterations in total) and " + timer / 1000.0 + " seconds.");
 
-		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(strat);
-		}
-
 		// Return results
+		// (Note we don't add the strategy - the one passed in is already there
+		// and might have some existing choices stored for other states).
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.numIters = totalIters;
@@ -1036,11 +1030,9 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Modified policy iteration");
 		mainLog.println(" took " + iters + " cycles (" + totalIters + " iterations in total) and " + timer / 1000.0 + " seconds.");
 
-		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(strat);
-		}
-
 		// Return results
+		// (Note we don't add the strategy - the one passed in is already there
+		// and might have some existing choices stored for other states).
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.numIters = totalIters;
@@ -1126,7 +1118,7 @@ public class MDPModelChecker extends ProbModelChecker
 		soln = new double[n];
 		soln2 = (init == null) ? new double[n] : init;
 
-		// create strategy vectors
+		// Create strategy storage
 		if (generateStrategy) {
 			stratChoices = new ArrayList<List<Integer>>(n);
 			for (i = 0; i < n; i++)
@@ -1200,9 +1192,10 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Creating strategy object
+		int[][] choices = null;
 		if (generateStrategy) {
 			// converting list into array
-			int[][] choices = new int[n][];
+			choices = new int[n][];
 			for (i = 0; i < n; i++) {
 				choices[i] = new int[stratChoices.get(i).size()];
 
@@ -1212,20 +1205,19 @@ public class MDPModelChecker extends ProbModelChecker
 					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
 				}
 			}
-			//
-			//			for (int[] arr : choices)
-			//				System.out.println(Arrays.toString(arr));
-
-			strategy = new StepBoundedDeterministicStrategy(choices, k);
 		}
 
-		// Return results
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.lastSoln = soln2;
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
+		if (generateStrategy) {
+			res.strat = new StepBoundedDeterministicStrategy(choices, k);
+		}
+		
 		return res;
 	}
 
@@ -1262,8 +1254,7 @@ public class MDPModelChecker extends ProbModelChecker
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			int strat[] = new int[n];
-			mdp.mvMultRewMinMax(soln, mdpRewards, min, soln2, null, false, strat);
+			mdp.mvMultRewMinMax(soln, mdpRewards, min, soln2, null, false, null);
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -1399,7 +1390,7 @@ public class MDPModelChecker extends ProbModelChecker
 				for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
 					int numChoices = mdp.getNumChoices(i);
 					for (int k = 0; k < numChoices; k++) {
-						if (mdp.allSuccessorsInSet(i, k, inf)) {
+						if (mdp.someSuccessorsInSet(i, k, inf)) {
 							strat[i] = k;
 							continue;
 						}
@@ -1426,6 +1417,9 @@ public class MDPModelChecker extends ProbModelChecker
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray(mdp, strat);
+		}
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(strat);
 		}
 		// Export adversary
 		if (exportAdv) {
@@ -1465,7 +1459,7 @@ public class MDPModelChecker extends ProbModelChecker
 			throws PrismException
 	{
 		ModelCheckerResult res;
-		BitSet unknown, notInf;
+		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		boolean done;
@@ -1505,28 +1499,6 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
-		// constructing not infinity set
-		notInf = (BitSet) inf.clone();
-		notInf.flip(0, n);
-
-		if (genStrat || generateStrategy || exportAdv) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = -1;
-			}
-
-			int s;
-			for (i = 0; i < inf.length(); i++) {
-				s = inf.nextSetBit(i);
-				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
-						strat[i] = c;
-						break;
-					}
-				}
-			}
-		}
-
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -1555,16 +1527,6 @@ public class MDPModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		if (genStrat || generateStrategy || exportAdv) {
-			// extracting strategy from the MDP
-			for (i = 0; i < n; i++) {
-				if (inf.get(i))
-					continue;
-				// get the first choice of the available ones
-				strat[i] = mdp.mvMultRewMinMaxSingleChoices(i, soln, mdpRewards, min, soln[i] == 0 ? 0 : soln[i] - mdpRewards.getStateReward(i)).get(0);
-			}
-			strategy = new MemorylessDeterministicStrategy(strat);
-		}
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;
@@ -1590,7 +1552,7 @@ public class MDPModelChecker extends ProbModelChecker
 			BitSet known, int strat[]) throws PrismException
 	{
 		ModelCheckerResult res;
-		BitSet unknown, notInf;
+		BitSet unknown;
 		int i, n, iters;
 		double soln[], maxDiff;
 		boolean done;
@@ -1629,28 +1591,6 @@ public class MDPModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
-		// constructing not infinity set
-		notInf = (BitSet) inf.clone();
-		notInf.flip(0, n);
-
-		if (genStrat || generateStrategy || exportAdv) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = -1;
-			}
-
-			int s;
-			for (i = 0; i < inf.length(); i++) {
-				s = inf.nextSetBit(i);
-				for (int c = 0; c < mdp.getNumChoices(s); c++) {
-					if (!mdp.allSuccessorsInSet(s, c, notInf)) {
-						strat[i] = c;
-						break;
-					}
-				}
-			}
-		}
-
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -1673,10 +1613,6 @@ public class MDPModelChecker extends ProbModelChecker
 			String msg = "Iterative method did not converge within " + iters + " iterations.";
 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
-		}
-
-		if (generateStrategy) {
-			strategy = new MemorylessDeterministicStrategy(strat);
 		}
 
 		// Return results
