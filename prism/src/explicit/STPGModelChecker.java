@@ -575,7 +575,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		//
-		if (genAdv) {
+		if (generateStrategy) {
 			strategy = new MemorylessDeterministicStrategy(adv);
 			// strategy.buildProduct(mdp).exportToPrismExplicitTra(
 			// new File(exportAdvFilename + "_"));
