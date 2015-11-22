@@ -110,9 +110,9 @@ public class SimulatorEngine extends PrismComponent
 	// The current parsed model + info
 	private ModulesFile modulesFile;
 	private ModelType modelType;
-        // for explicit simulation
-        private explicit.Model model;
-        private List<Rewards> rewards;
+	// for explicit simulation
+	private explicit.Model model;
+	private List<Rewards> rewards;
 	// Variable info
 	private VarList varList;
 	private int numVars;
@@ -150,8 +150,8 @@ public class SimulatorEngine extends PrismComponent
 	// strategy information
 	private Strategy strategy;
 	private Map<State, Integer> stateIds;
-        private List<State> states;
-	
+	private List<State> states;
+
 	// TODO: remove this (not in trunk any more)
 	private Prism prism;
 
@@ -228,23 +228,24 @@ public class SimulatorEngine extends PrismComponent
 	public void createNewPath(ModulesFile modulesFile) throws PrismException
 	{
 		// Store model
-	        model = null;
+		model = null;
 		loadModulesFile(modulesFile);
 		// Create empty (full) path object associated with this model
 		path = new PathFull(modulesFile);
 		onTheFly = false;
 	}
-        public void createNewPath(ModulesFile modulesFile, explicit.Model model) throws PrismException
+
+	public void createNewPath(ModulesFile modulesFile, explicit.Model model) throws PrismException
 	{
-	        if(model == null) {
-		        createNewPath(modulesFile);
+		if (model == null) {
+			createNewPath(modulesFile);
 			return;
 		}
 
 		// Store model
-	        loadModelExplicit(modulesFile, model);
+		loadModelExplicit(modulesFile, model);
 		// Create empty (full) path object associated with this model
-	        path = new PathFull(modulesFile, model);
+		path = new PathFull(modulesFile, model);
 		onTheFly = false;
 	}
 
@@ -256,23 +257,24 @@ public class SimulatorEngine extends PrismComponent
 	public void createNewOnTheFlyPath(ModulesFile modulesFile) throws PrismException
 	{
 		// Store model
-	        model = null;
+		model = null;
 		loadModulesFile(modulesFile);
 		// Create empty (on-the-fly_ path object associated with this model
 		path = new PathOnTheFly(modulesFile);
 		onTheFly = true;
 	}
-        public void createNewOnTheFlyPath(ModulesFile modulesFile, explicit.Model model) throws PrismException
+
+	public void createNewOnTheFlyPath(ModulesFile modulesFile, explicit.Model model) throws PrismException
 	{
-	    if(model == null) {
-		createNewOnTheFlyPath(modulesFile);
-		return;
-	    }
-	    // Store model
-	    loadModelExplicit(modulesFile, model);
-	    // Create empty (on-the-fly_ path object associated with this model
-	    path = new PathOnTheFly(modulesFile, model);
-	    onTheFly = true;
+		if (model == null) {
+			createNewOnTheFlyPath(modulesFile);
+			return;
+		}
+		// Store model
+		loadModelExplicit(modulesFile, model);
+		// Create empty (on-the-fly_ path object associated with this model
+		path = new PathOnTheFly(modulesFile, model);
+		onTheFly = true;
 	}
 
 	/**
@@ -283,30 +285,30 @@ public class SimulatorEngine extends PrismComponent
 	{
 		// Store passed in state as current state
 		if (initialState != null) {
-		    if(model == null) { // implicit simulation
-			currentState.copy(initialState);
-			updater.calculateStateRewards(currentState, tmpStateRewards);
-		    } else { // explicit simulation
-			currentState = initialState;
-		    }
+			if (model == null) { // implicit simulation
+				currentState.copy(initialState);
+				updater.calculateStateRewards(currentState, tmpStateRewards);
+			} else { // explicit simulation
+				currentState = initialState;
+			}
 		}
 		// Or pick default/random one
 		else {
-		        if(model == null) { // implicit simulation
-			    if (modulesFile.getInitialStates() == null) {
-				currentState.copy(modulesFile.getDefaultInitialState());
-			    } else {
-				throw new PrismException("Random choice of multiple initial states not yet supported");
-			    }
-			    updater.calculateStateRewards(currentState, tmpStateRewards);
+			if (model == null) { // implicit simulation
+				if (modulesFile.getInitialStates() == null) {
+					currentState.copy(modulesFile.getDefaultInitialState());
+				} else {
+					throw new PrismException("Random choice of multiple initial states not yet supported");
+				}
+				updater.calculateStateRewards(currentState, tmpStateRewards);
 			} else { // explicit simulation
-			    if (model.getNumInitialStates()==1) {
-				currentState = states.get(model.getFirstInitialState());
-			    } else if (model.getInitialStates() == null) {
-				throw new PrismException("No initial state provided");
-			    } else {
-				throw new PrismException("Random choice of multiple initial states not yet supported");
-			    }
+				if (model.getNumInitialStates() == 1) {
+					currentState = states.get(model.getFirstInitialState());
+				} else if (model.getInitialStates() == null) {
+					throw new PrismException("No initial state provided");
+				} else {
+					throw new PrismException("Random choice of multiple initial states not yet supported");
+				}
 			}
 		}
 
@@ -316,14 +318,14 @@ public class SimulatorEngine extends PrismComponent
 		if (strategy != null && path instanceof PathFull) {
 			// initialising the strategy
 			try {
-			    if(model==null) { // implicit
-				if (stateIds == null || stateIds.isEmpty())
+				if (model == null) { // implicit
+					if (stateIds == null || stateIds.isEmpty())
+						this.setStrategy(strategy);
+					strategy.init(stateIds.get(currentState));
+				} else { // explicit
 					this.setStrategy(strategy);
-				strategy.init(stateIds.get(currentState));
-			    } else { // explicit
-			        this.setStrategy(strategy);
-				strategy.init(indexOf(states, currentState));
-			    }
+					strategy.init(indexOf(states, currentState));
+				}
 			} catch (InvalidStrategyStateException error) {
 				// TODO Auto-generated catch block
 				error.printStackTrace();
@@ -403,23 +405,23 @@ public class SimulatorEngine extends PrismComponent
 		case MDP:
 		case STPG:
 		case SMG:
-		        if(model==null) { // implicit simulation
-			    // Pick a random choice
-			    i = rng.randomUnifInt(numChoices);
-			} else { // explicit simulation
-			    if(path instanceof PathFull && (model.getModelType()==ModelType.STPG || model.getModelType()==ModelType.SMG) &&
-			       strategy!=null && ((STPG)model).getPlayer(indexOf(states, currentState)) == 1) {
-				// Pick a random choice allowed by the Player 1 strategy
-				try {
-				    Distribution next = strategy.getNextMove(indexOf(states, currentState));
-				    i = next.sampleFromDistribution();
-				} catch (InvalidStrategyStateException e) {
-				    throw new PrismException(e.getMessage());
-				}
-			    } else {
+			if (model == null) { // implicit simulation
 				// Pick a random choice
 				i = rng.randomUnifInt(numChoices);
-			    }
+			} else { // explicit simulation
+				if (path instanceof PathFull && (model.getModelType() == ModelType.STPG || model.getModelType() == ModelType.SMG) && strategy != null
+						&& ((STPG) model).getPlayer(indexOf(states, currentState)) == 1) {
+					// Pick a random choice allowed by the Player 1 strategy
+					try {
+						Distribution next = strategy.getNextMove(indexOf(states, currentState));
+						i = next.sampleFromDistribution();
+					} catch (InvalidStrategyStateException e) {
+						throw new PrismException(e.getMessage());
+					}
+				} else {
+					// Pick a random choice
+					i = rng.randomUnifInt(numChoices);
+				}
 			}
 			choice = transitions.getChoice(i);
 			// Pick a random transition from this choice
@@ -471,7 +473,7 @@ public class SimulatorEngine extends PrismComponent
 	public int automaticTransitions(double time, boolean stopOnLoops) throws PrismException
 	{
 		// For discrete-time models, this just results in ceil(time) steps being executed.
-	        if (!modelType.continuousTime()) {
+		if (!modelType.continuousTime()) {
 			return automaticTransitions((int) Math.ceil(time), false);
 		} else {
 			int i = 0;
@@ -504,10 +506,10 @@ public class SimulatorEngine extends PrismComponent
 		// Back track in path
 		((PathFull) path).backtrack(step);
 		// Update current state
-		if(model==null) { // implicit
-		    currentState.copy(path.getCurrentState());
+		if (model == null) { // implicit
+			currentState.copy(path.getCurrentState());
 		} else { // explicit
-		    currentState = path.getCurrentState();
+			currentState = path.getCurrentState();
 		}
 		// Reset transition list 
 		transitionListBuilt = false;
@@ -579,10 +581,10 @@ public class SimulatorEngine extends PrismComponent
 	{
 		updater.calculateTransitions(((PathFull) path).getState(step), transitionList);
 		transitionListBuilt = true;
-		if(model==null) { // implicit
-		    transitionListState = new State(((PathFull) path).getState(step));
+		if (model == null) { // implicit
+			transitionListState = new State(((PathFull) path).getState(step));
 		} else { // explicit
-		    transitionListState = ((PathFull) path).getState(step);
+			transitionListState = ((PathFull) path).getState(step);
 		}
 	}
 
@@ -604,18 +606,20 @@ public class SimulatorEngine extends PrismComponent
 	 * @param newPath Path to match
 	 */
 	public void loadPath(ModulesFile modulesFile, PathFullInfo newPath) throws PrismException
-        {
-	    loadPath(modulesFile, null, newPath);
-        }
-        public void loadPath(ModulesFile modulesFile, explicit.Model model, PathFullInfo newPath) throws PrismException
+	{
+		loadPath(modulesFile, null, newPath);
+	}
+
+	public void loadPath(ModulesFile modulesFile, explicit.Model model, PathFullInfo newPath) throws PrismException
 	{
 		int i, j, numSteps, numTrans;
 		boolean found;
 		State state, nextState;
-		if(model==null) // implicit simulation
-		    createNewPath(modulesFile);
-		else // explicit simulation
-		    createNewPath(modulesFile, model);
+		if (model == null) // implicit simulation
+			createNewPath(modulesFile);
+		else
+			// explicit simulation
+			createNewPath(modulesFile, model);
 		long numStepsLong = newPath.size();
 		if (numStepsLong > Integer.MAX_VALUE)
 			throw new PrismException("PathFull cannot deal with paths over length " + Integer.MAX_VALUE);
@@ -746,13 +750,13 @@ public class SimulatorEngine extends PrismComponent
 	public boolean queryIsInitial() throws PrismLangException
 	{
 		// Currently init...endinit is not supported so this is easy to check]
-	        State current = path.getCurrentState();
-	        if(model==null && current != null) {
-		    return current.equals(modulesFile.getDefaultInitialState());
+		State current = path.getCurrentState();
+		if (model == null && current != null) {
+			return current.equals(modulesFile.getDefaultInitialState());
 		} else if (current != null) {
-		    return current.equals(model.getStatesList().get(model.getFirstInitialState()));
+			return current.equals(model.getStatesList().get(model.getFirstInitialState()));
 		} else {
-		    return false;
+			return false;
 		}
 	}
 
@@ -764,13 +768,13 @@ public class SimulatorEngine extends PrismComponent
 	public boolean queryIsInitial(int step) throws PrismLangException
 	{
 		// Currently init...endinit is not supported so this is easy to check
-	        State state = ((PathFull) path).getState(step);
-	        if(model==null && state != null) {
-		    return state.equals(modulesFile.getDefaultInitialState());
+		State state = ((PathFull) path).getState(step);
+		if (model == null && state != null) {
+			return state.equals(modulesFile.getDefaultInitialState());
 		} else if (state != null) {
-		    return state.equals(model.getStatesList().get(model.getFirstInitialState()));
+			return state.equals(model.getStatesList().get(model.getFirstInitialState()));
 		} else {
-		    return false;
+			return false;
 		}
 	}
 
@@ -817,51 +821,53 @@ public class SimulatorEngine extends PrismComponent
 	 * @param modulesFile The parsed PRISM model
 	 */
 	private void loadModulesFile(ModulesFile modulesFile) throws PrismException
-        {
-	    loadModel(modulesFile, null);
-        }
+	{
+		loadModel(modulesFile, null);
+	}
+
 	/**
 	 * Loads a new explicit PRISM model into the simulator.
 	 * @param modulesFile The parsed PRISM model
 	 * @param model The explicit PRISM model
 	 */
-        private void loadModelExplicit(ModulesFile modulesFile, explicit.Model model) throws PrismException
-        {
-	        loadModel(modulesFile, model);
-        }    
-        private void loadModel(ModulesFile modulesFile, explicit.Model model) throws PrismException
+	private void loadModelExplicit(ModulesFile modulesFile, explicit.Model model) throws PrismException
 	{
-	        // check if model is of correct type for explicit simulator
-	        if(model!=null && !(model instanceof MDP)) {
-		    throw new PrismException("Explicit model not supported");
-	        }
+		loadModel(modulesFile, model);
+	}
+
+	private void loadModel(ModulesFile modulesFile, explicit.Model model) throws PrismException
+	{
+		// check if model is of correct type for explicit simulator
+		if (model != null && !(model instanceof MDP)) {
+			throw new PrismException("Explicit model not supported");
+		}
 
 		// Store model, some info and constants
 		this.modulesFile = modulesFile;
-		if(model!=null) {
-		    this.model = model;
-		    this.states = model.getStatesList();
-		    modelType = model.getModelType();
-		    // evaluate Rewards
-		    rewards = new ArrayList<Rewards>();
-		    ConstructRewards constructRewards = new ConstructRewards(mainLog, modulesFile);
-		    for(int i = 0; i < modulesFile.getNumRewardStructs(); i++) {
-			try {
-			    Rewards reward = constructRewards.buildRewardStructure(model, modulesFile.getRewardStruct(i), this.mfConstants);
-			    rewards.add(reward);
-			} catch (Exception e) {
-			    // if something went wrong (e.g. variable not found), ignore reward
+		if (model != null) {
+			this.model = model;
+			this.states = model.getStatesList();
+			modelType = model.getModelType();
+			// evaluate Rewards
+			rewards = new ArrayList<Rewards>();
+			ConstructRewards constructRewards = new ConstructRewards(mainLog, modulesFile);
+			for (int i = 0; i < modulesFile.getNumRewardStructs(); i++) {
+				try {
+					Rewards reward = constructRewards.buildRewardStructure(model, modulesFile.getRewardStruct(i), this.mfConstants);
+					rewards.add(reward);
+				} catch (Exception e) {
+					// if something went wrong (e.g. variable not found), ignore reward
+				}
 			}
-		    }
 		} else {
-		    modelType = modulesFile.getModelType();
+			modelType = modulesFile.getModelType();
 		}
 		this.mfConstants = modulesFile.getConstantValues();
 		// Check model is simulate-able
-		if(model!=null)
-		    checkModelForSimulation(model);
+		if (model != null)
+			checkModelForSimulation(model);
 		else
-		    checkModelForSimulation(modulesFile);
+			checkModelForSimulation(modulesFile);
 
 		// Get variable list (symbol table) for model 
 		varList = modulesFile.createVarList();
@@ -871,17 +877,17 @@ public class SimulatorEngine extends PrismComponent
 		modulesFile = (ModulesFile) modulesFile.deepCopy().replaceConstants(mfConstants).simplify();
 
 		// Create state/transition/rewards storage
-		if(model!=null)
-		    currentState = states.get(model.getFirstInitialState());
+		if (model != null)
+			currentState = states.get(model.getFirstInitialState());
 		else
-		    currentState = new State(numVars);
+			currentState = new State(numVars);
 		tmpStateRewards = new double[modulesFile.getNumRewardStructs()];
 		tmpTransitionRewards = new double[modulesFile.getNumRewardStructs()];
 		transitionList = new TransitionList();
 
 		// Create updater for model
-		if(model==null)
-		    updater = new Updater(modulesFile, varList, this);
+		if (model == null)
+			updater = new Updater(modulesFile, varList, this);
 
 		// Create storage for labels/properties
 		labels = new ArrayList<Expression>();
@@ -970,7 +976,7 @@ public class SimulatorEngine extends PrismComponent
 	{
 		if (model != null)
 			throw new PrismException("Timed models not supported yet for explicit simulation");
-		
+
 		TransitionList transitions = getTransitionList();
 		// Get corresponding choice and, if required (for full paths), calculate transition index
 		Choice choice = transitions.getChoice(i);
@@ -1100,33 +1106,34 @@ public class SimulatorEngine extends PrismComponent
 	{
 		// Compute the current transition list, if required
 		if (!transitionListBuilt) {
-		        if(model!=null) { // explicit
-			    transitionList = getTransitionList(currentState);
+			if (model != null) { // explicit
+				transitionList = getTransitionList(currentState);
 			} else { // implicit
-			    updater.calculateTransitions(currentState, transitionList);
+				updater.calculateTransitions(currentState, transitionList);
 			}
 			transitionListBuilt = true;
 		}
 		return transitionList;
 	}
+
 	private TransitionList getTransitionList(State state) throws PrismException
 	{
-	    TransitionList tl = new TransitionList();
-	    for(int i = 0; i < ((MDP)model).getNumChoices(indexOf(states, state)); i++) {
-		Choice ch = new ChoiceExplicit(modulesFile, ((MDP)model), indexOf(states, state), i);
-		tl.add(ch);
-	    }
-	    return tl;
+		TransitionList tl = new TransitionList();
+		for (int i = 0; i < ((MDP) model).getNumChoices(indexOf(states, state)); i++) {
+			Choice ch = new ChoiceExplicit(modulesFile, ((MDP) model), indexOf(states, state), i);
+			tl.add(ch);
+		}
+		return tl;
 	}
 
-        private <T> int indexOf(List<T> list, T o)
-        { // indexOf based on reference, not equals(o) function
-	    for(int i = 0; i < list.size(); i++) {
-		if(list.get(i)==o) {
-		    return i;
+	private <T> int indexOf(List<T> list, T o)
+	{ // indexOf based on reference, not equals(o) function
+		for (int i = 0; i < list.size(); i++) {
+			if (list.get(i) == o) {
+				return i;
+			}
 		}
-	    }
-	    return -1; // not in list
+		return -1; // not in list
 	}
 
 	/**
@@ -1324,56 +1331,57 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public State getState()
 	{
-	        return (transitionListState == null) ? path.getCurrentState() : transitionListState;
+		return (transitionListState == null) ? path.getCurrentState() : transitionListState;
 	}
 
 	/**
 	 * Returns the player of the state viewed by the simulator.
 	 */
-        public String getPlayer(int index) throws PrismException
-        {
-	        return (model==null) ? getImplicitPlayer(index) : getExplicitPlayer(index);
+	public String getPlayer(int index) throws PrismException
+	{
+		return (model == null) ? getImplicitPlayer(index) : getExplicitPlayer(index);
 	}
-        private String getImplicitPlayer(int index)
-        {
-	    String modAct = null;
-	    try {
-		modAct = getTransitionModuleOrAction(index);
-	    } catch (PrismException e) {
-		return "";
-	    }
-	    int player = modulesFile.getPlayerForModule(modAct);
-	    if (player == -1)
-		player = modulesFile.getPlayerForAction(modAct);
-	    if (player == -1)
-		return "";
-	    return modulesFile.getPlayer(player).getName();
-        }
-        private String getExplicitPlayer(int index) throws PrismException
-        { // index being ignored - assume all choices are controlled by the same player
-	    State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
-	    int player = -1;
-	    if(model instanceof STPG) { // has a getPlayer function
-		player = ((STPG)model).getPlayer(indexOf(states, state));
-		player--; // (1-indexed to 0-indexed, cf. ConstructModel.determinePlayerForChoice)
-	    }
-	    if(player < 0)
-		throw new PrismException("Player in state " + state + " not found");
-	    String pstring = "";
-	    if(player < modulesFile.getNumPlayers()) {
-		pstring = modulesFile.getPlayer(player).getName();
-	    } else {
-		pstring = String.format("P%d", player+1);
-	    }
-	    if(model instanceof STPG) { // contains controlled-by information
-		int p = ((SMG)model).getControlledBy().get(indexOf(states, state));
-		if(p >= 0) {
-		    pstring += String.format("(%d)", p);
-		}
-	    }
-	    return pstring;
-        }
 
+	private String getImplicitPlayer(int index)
+	{
+		String modAct = null;
+		try {
+			modAct = getTransitionModuleOrAction(index);
+		} catch (PrismException e) {
+			return "";
+		}
+		int player = modulesFile.getPlayerForModule(modAct);
+		if (player == -1)
+			player = modulesFile.getPlayerForAction(modAct);
+		if (player == -1)
+			return "";
+		return modulesFile.getPlayer(player).getName();
+	}
+
+	private String getExplicitPlayer(int index) throws PrismException
+	{ // index being ignored - assume all choices are controlled by the same player
+		State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
+		int player = -1;
+		if (model instanceof STPG) { // has a getPlayer function
+			player = ((STPG) model).getPlayer(indexOf(states, state));
+			player--; // (1-indexed to 0-indexed, cf. ConstructModel.determinePlayerForChoice)
+		}
+		if (player < 0)
+			throw new PrismException("Player in state " + state + " not found");
+		String pstring = "";
+		if (player < modulesFile.getNumPlayers()) {
+			pstring = modulesFile.getPlayer(player).getName();
+		} else {
+			pstring = String.format("P%d", player + 1);
+		}
+		if (model instanceof STPG) { // contains controlled-by information
+			int p = ((SMG) model).getControlledBy().get(indexOf(states, state));
+			if (p >= 0) {
+				pstring += String.format("(%d)", p);
+			}
+		}
+		return pstring;
+	}
 
 	/**
 	 * Returns the previous state of the current path in the simulator.
@@ -1648,11 +1656,11 @@ public class SimulatorEngine extends PrismComponent
 						return "Simulator cannot handle cumulative reward properties without time bounds";
 					}
 				} else if (((ExpressionTemporal) exprTemp).getOperator() == ExpressionTemporal.R_S) {
-				        return "Simulator cannot handle average reward properties";
+					return "Simulator cannot handle average reward properties";
 				}
 			}
-			if (((ExpressionReward)expr).getRewardStructIndexDiv() != null)
-			        return "Ratio rewards not supported for ratio rewards.";
+			if (((ExpressionReward) expr).getRewardStructIndexDiv() != null)
+				return "Ratio rewards not supported for ratio rewards.";
 		}
 		// No errors
 		return null;
@@ -1671,7 +1679,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-    // CLEMENS: TODO
+	// CLEMENS: TODO
 	public Object modelCheckSingleProperty(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
 	{
@@ -1688,11 +1696,13 @@ public class SimulatorEngine extends PrismComponent
 		else
 			return res[0];
 	}
-    // CLEMENS: TODO
-    public Object modelCheckSingleProperty(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException
-    {
-	throw new PrismException("Explicit models not supported by simulator engine");
-    }
+
+	// CLEMENS: TODO
+	public Object modelCheckSingleProperty(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, Expression expr, State initialState,
+			long maxPathLength, SimulationMethod simMethod) throws PrismException
+	{
+		throw new PrismException("Explicit models not supported by simulator engine");
+	}
 
 	/**
 	 * Perform approximate model checking of properties on a model, using the simulator.
@@ -1801,10 +1811,13 @@ public class SimulatorEngine extends PrismComponent
 
 		return results;
 	}
-    public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, List<Expression> exprs, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException
-    {
-	throw new PrismException("Explicit models not supported by simulator engine");
-    }
+
+	public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, List<Expression> exprs,
+			State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException
+	{
+		throw new PrismException("Explicit models not supported by simulator engine");
+	}
+
 	/**
 	 * Perform an approximate model checking experiment on a model, using the simulator
 	 * (specified by values for undefined constants from the property only).
@@ -1918,10 +1931,13 @@ public class SimulatorEngine extends PrismComponent
 		mainLog.println("\nResults:");
 		mainLog.print(resultsCollection.toStringPartial(undefinedConstants.getMFConstantValues(), true, " ", " : ", false));
 	}
-    public void modelCheckExperiment(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants, ResultsCollection resultsCollection, Expression expr, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException, InterruptedException
-    {
-	throw new PrismException("Explicit models not supported by simulator engine");
-    }
+
+	public void modelCheckExperiment(ModulesFile modulesFile, explicit.Model model, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants,
+			ResultsCollection resultsCollection, Expression expr, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException,
+			InterruptedException
+	{
+		throw new PrismException("Explicit models not supported by simulator engine");
+	}
 
 	/**
 	 * Execute sampling for the set of currently loaded properties.
@@ -2077,13 +2093,13 @@ public class SimulatorEngine extends PrismComponent
 	public void setStrategy(Strategy strategy)
 	{
 		this.strategy = strategy;
-		if(model == null) {
-		        if (strategy != null && prism.getBuiltModelExplicit() != null) {
-			        stateIds = new HashMap<State, Integer>();
+		if (model == null) {
+			if (strategy != null && prism.getBuiltModelExplicit() != null) {
+				stateIds = new HashMap<State, Integer>();
 				java.util.List<State> stateslist = prism.getBuiltModelExplicit().getStatesList();
 				int i = 0;
 				for (State s : stateslist)
-				        stateIds.put(s, i++);
+					stateIds.put(s, i++);
 			}
 		}
 	}
