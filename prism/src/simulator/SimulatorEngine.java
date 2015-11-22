@@ -59,16 +59,12 @@ import simulator.sampler.Sampler;
 import strat.InvalidStrategyStateException;
 import strat.Strategy;
 import userinterface.graph.Graph;
-
-import explicit.Model;
-import explicit.MDPSimple;
-import explicit.MDP;
-import explicit.STPG;
-import explicit.SMG;
-import explicit.STPGExplicit;
 import explicit.Distribution;
+import explicit.MDP;
+import explicit.MDPSimple;
+import explicit.SMG;
+import explicit.STPG;
 import explicit.rewards.ConstructRewards;
-import explicit.NondetModel;
 import explicit.rewards.Rewards;
 
 /**
@@ -911,52 +907,46 @@ public class SimulatorEngine extends PrismComponent
 			index = transitions.getTotalIndexOfTransition(i, offset);
 		// Get probability for transition
 		double p = choice.getProbability(offset);
-
-		if(model!=null) { // explicit
-		    // Compute its transition rewards
-		    for(int r = 0; r < rewards.size(); r++) {
-			tmpTransitionRewards[r] = rewards.get(r).getTransitionReward(indexOf(states, currentState), i);
-		    }
-		    // Compute next state. Note use of path.getCurrentState() because currentState
-		    // will be overwritten during the call to computeTarget().
-		    currentState = choice.computeTarget(offset, path.getCurrentState());
-
-		    // Compute state rewards for new state 
-		    for(int r = 0; r < rewards.size(); r++) {
-			tmpStateRewards[r] = rewards.get(r).getStateReward(indexOf(states, currentState));
-		    }
-
-		} else { // implicit
-		    // Compute its transition rewards
-		    updater.calculateTransitionRewards(path.getCurrentState(), choice, tmpTransitionRewards);
-		    
-		    // Compute next state. Note use of path.getCurrentState() because currentState
-		    // will be overwritten during the call to computeTarget().
-		    choice.computeTarget(offset, path.getCurrentState(), currentState);
-		    
-		    // Compute state rewards for new state 
-		    updater.calculateStateRewards(currentState, tmpStateRewards);
-
+		if (model != null) { // explicit
+			// Compute its transition rewards
+			for (int r = 0; r < rewards.size(); r++) {
+				tmpTransitionRewards[r] = rewards.get(r).getTransitionReward(indexOf(states, currentState), i);
+			}
+			// Compute next state. Note use of path.getCurrentState() because currentState
+			// will be overwritten during the call to computeTarget().
+			currentState = choice.computeTarget(offset, path.getCurrentState());
+			// Compute state rewards for new state 
+			for (int r = 0; r < rewards.size(); r++) {
+				tmpStateRewards[r] = rewards.get(r).getStateReward(indexOf(states, currentState));
+			}
+		} else {
+			// Compute its transition rewards
+			updater.calculateTransitionRewards(path.getCurrentState(), choice, tmpTransitionRewards);
+			// Compute next state. Note use of path.getCurrentState() because currentState
+			// will be overwritten during the call to computeTarget().
+			choice.computeTarget(offset, path.getCurrentState(), currentState);
+			// Compute state rewards for new state 
+			updater.calculateStateRewards(currentState, tmpStateRewards);
 		}
-
-		// Update path
-		if (strategy != null && path instanceof PathFull) {
-			// update strategy
+		// Update strategy
+		if (strategy != null) {
 			try {
-			    if(model!=null) { // explicit
-				strategy.updateMemory(i, indexOf(states, currentState));
-			    } else {
-				strategy.updateMemory(i, stateIds.get(currentState));
-			    }
+				if (model != null) { // explicit
+					strategy.updateMemory(i, indexOf(states, currentState));
+				} else {
+					strategy.updateMemory(i, stateIds.get(currentState));
+				}
 			} catch (InvalidStrategyStateException error) {
-				//error.printStackTrace();
 				throw new PrismException("Strategy update failed");
 			}
+		}
+		// Update path
+		if (strategy != null && path instanceof PathFull) {
 			((PathFull) path).addStep(index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions,
 					strategy.getCurrentMemoryElement());
-		} else
+		} else {
 			path.addStep(index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
-
+		}
 		// Reset transition list 
 		transitionListBuilt = false;
 		transitionListState = null;
@@ -978,7 +968,9 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	private void executeTimedTransition(int i, int offset, double time, int index) throws PrismException
 	{
-	        if(model!=null) throw new PrismException("Timed models not supported yet for explicit simulation");
+		if (model != null)
+			throw new PrismException("Timed models not supported yet for explicit simulation");
+		
 		TransitionList transitions = getTransitionList();
 		// Get corresponding choice and, if required (for full paths), calculate transition index
 		Choice choice = transitions.getChoice(i);
@@ -993,19 +985,21 @@ public class SimulatorEngine extends PrismComponent
 		choice.computeTarget(offset, path.getCurrentState(), currentState);
 		// Compute state rewards for new state 
 		updater.calculateStateRewards(currentState, tmpStateRewards);
-		// Update path
-		if (strategy != null && path instanceof PathFull) {
-			// update strategy
+		// Update strategy
+		if (strategy != null) {
 			try {
 				strategy.updateMemory(i, stateIds.get(currentState));
 			} catch (InvalidStrategyStateException error) {
-				//error.printStackTrace();
 				throw new PrismException("Strategy update failed");
 			}
+		}
+		// Update path
+		if (strategy != null && path instanceof PathFull) {
 			((PathFull) path).addStep(time, index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions,
 					strategy.getCurrentMemoryElement());
-		} else
+		} else {
 			path.addStep(time, index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		}
 		// Reset transition list 
 		transitionListBuilt = false;
 		transitionListState = null;
