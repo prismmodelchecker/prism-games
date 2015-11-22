@@ -118,20 +118,20 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	// Links to other parts of the GUI
 	private GUIMultiProperties guiProp;
 	private GUIMultiModel guiMultiModel;
-	
+
 	/** Underlying simulator */
 	private SimulatorEngine engine;
-	
+
 	// GUI components
 	private UpdateTableModel updateTableModel;
 	private GUISimulatorPathTableModel pathTableModel;
-	
+
 	// Menus/actions/etc.
 	private JMenu simulatorMenu;
 	private JPopupMenu pathPopupMenu;
 	private FileFilter textFilter;
 	private Action randomExploration, backtrack, backtrackToHere, removeToHere, newPath, newPathFromState, newPathPlot, newPathPlotFromState, resetPath,
-	exportPath, plotPath, configureView;
+			exportPath, plotPath, configureView;
 
 	//Current State
 	private boolean pathActive;
@@ -146,7 +146,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 	private Values lastConstants, lastPropertyConstants, lastInitialState, markedState;
 	private boolean computing;
-	
+
 	// Config/options
 	private boolean displayStyleFast;
 	private boolean displayPathLoops;
