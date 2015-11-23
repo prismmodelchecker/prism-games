@@ -2678,7 +2678,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 						}
 						// Player
 					case 1:
-						return engine.getPlayer(rowIndex);
+						return engine.getPlayerName(engine.getChoiceIndexOfTransition(rowIndex));
 						// Module/action
 					case 2:
 						return engine.getTransitionModuleOrAction(rowIndex);
@@ -2917,14 +2917,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			try {
 				if (strategyGenerated && strategy != null) {
 					if (parsedModel.getModelType() == ModelType.STPG || parsedModel.getModelType() == ModelType.SMG) {
-						int stateIndex = stateIndex(engine.getTransitionListState());
-						int player = -1;
-						if (model == null) {
-							player = engine.getPlayerIndex(0);
-						} else {
-							player = ((STPG) model).getPlayer(stateIndex);
-						}
-						if (player == 0) { // player 1 (0-indexed)
+						if (engine.getPlayerNumber(0) == 1) {
 							Distribution next = strategy.getNextMove(stateIndex(engine.getTransitionListState()));
 							enabled = next.getSupport();
 						}

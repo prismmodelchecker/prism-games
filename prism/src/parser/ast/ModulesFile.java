@@ -541,6 +541,16 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+	 * Get the (index of the) player that owns module/action {@code a},
+	 * which is either of the form "[act]" or " module" for an action or module, respectively.
+	 * Players are 0-indexed; returns -1 if no owner found.
+	 */
+	public int getPlayerForModuleOrAction(String a)
+	{
+		return (a.charAt(0) == '[') ? getPlayerForAction(a) : getPlayerForModule(a);
+	}
+
+	/**
 	 * Look up a property by name.
 	 * Returns null if not found.
 	 * Currently only exists for forwards compatibility.

@@ -1315,6 +1315,65 @@ public class SimulatorEngine extends PrismComponent
 		return getTransitionList().computeTransitionTarget(index, getTransitionListState());
 	}
 
+	/**
+	 * Get (the number of) the player owning choice i. Returns -1 if unknown.
+	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
+	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
+	 */
+	public int getPlayerNumber(int i) throws PrismException
+	{
+		return (model == null) ? getImplicitPlayerNumber(i) : getExplicitPlayerNumber(i);
+	}
+
+	/**
+	 * Get the name of the player owning choice i. Returns null if unknown.
+	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
+	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
+	 * Returns the name of the player owning choice {@index} in the state viewed by the simulator.
+	 */
+	public String getPlayerName(int i) throws PrismException
+	{
+		return (model == null) ? getImplicitPlayer(i) : getExplicitPlayer(i);
+	}
+
+	private int getImplicitPlayerNumber(int i) throws PrismException
+	{
+		String modAct = getTransitionModuleOrAction(i, 0);
+		return modulesFile.getPlayerForModuleOrAction(modAct) + 1;
+	}
+
+	private String getImplicitPlayer(int i) throws PrismException
+	{
+		int player = getImplicitPlayerNumber(i);
+		return (player == -1) ? null : modulesFile.getPlayer(player - 1).getName();
+	}
+
+	private int getExplicitPlayerNumber(int i) throws PrismException
+	{
+		return (model instanceof STPG) ? ((STPG) model).getPlayer(indexOf(states, getTransitionListState())) : -1;
+	}
+	
+	private String getExplicitPlayer(int index) throws PrismException
+	{
+		int player = getExplicitPlayerNumber(index);
+		if (player == -1) {
+			return null;
+		}
+		String pstring = "";
+		if (player < modulesFile.getNumPlayers()) {
+			pstring = modulesFile.getPlayer(player - 1).getName();
+		} else {
+			pstring = String.format("P%d", player);
+		}
+		if (model instanceof STPG) { // contains controlled-by information
+			int p = ((SMG) model).getControlledBy().get(indexOf(states, getTransitionListState()));
+			if (p >= 0) {
+				pstring += String.format("(%d)", p);
+			}
+		}
+		return pstring;
+	}
+
 	// ------------------------------------------------------------------------------
 	// Querying of current path (full or on-the-fly)
 	// ------------------------------------------------------------------------------
@@ -1342,72 +1401,6 @@ public class SimulatorEngine extends PrismComponent
 	public State getCurrentState()
 	{
 		return path.getCurrentState();
-	}
-
-	/**
-	 * Returns the index of the player owning choice {@index} in the state viewed by the simulator.
-	 */
-	public int getPlayerIndex(int index) throws PrismException
-	{
-		return (model == null) ? getImplicitPlayerIndex(index) : getExplicitPlayerIndex(index);
-	}
-
-	/**
-	 * Returns the name of the player owning choice {@index} in the state viewed by the simulator.
-	 */
-	public String getPlayer(int index) throws PrismException
-	{
-		return (model == null) ? getImplicitPlayer(index) : getExplicitPlayer(index);
-	}
-
-	private int getImplicitPlayerIndex(int index) throws PrismException
-	{
-		String modAct = getTransitionModuleOrAction(index);
-		int player = modulesFile.getPlayerForModule(modAct);
-		if (player == -1) {
-			player = modulesFile.getPlayerForAction(modAct);
-		}
-		return player;
-	}
-
-	private String getImplicitPlayer(int index) throws PrismException
-	{
-		int player = getImplicitPlayerIndex(index);
-		if (player == -1) {
-			throw new PrismException("No player owns state " + getTransitionListState()); 
-		}
-		return modulesFile.getPlayer(player).getName();
-	}
-
-	private int getExplicitPlayerIndex(int index) throws PrismException
-	{
-		// index being ignored - assume all choices are controlled by the same player
-		int player = -1;
-		if (model instanceof STPG) { // has a getPlayer function
-			player = ((STPG) model).getPlayer(indexOf(states, getTransitionListState()));
-			player--; // (1-indexed to 0-indexed, cf. ConstructModel.determinePlayerForChoice)
-		}
-		if (player < 0)
-			throw new PrismException("Player in state " + getTransitionListState() + " not found");
-		return player;
-	}
-	
-	private String getExplicitPlayer(int index) throws PrismException
-	{
-		int player = getExplicitPlayerIndex(index);
-		String pstring = "";
-		if (player < modulesFile.getNumPlayers()) {
-			pstring = modulesFile.getPlayer(player).getName();
-		} else {
-			pstring = String.format("P%d", player + 1);
-		}
-		if (model instanceof STPG) { // contains controlled-by information
-			int p = ((SMG) model).getControlledBy().get(indexOf(states, getTransitionListState()));
-			if (p >= 0) {
-				pstring += String.format("(%d)", p);
-			}
-		}
-		return pstring;
 	}
 
 	/**
