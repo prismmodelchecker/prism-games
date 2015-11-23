@@ -1345,14 +1345,6 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
-	 * Returns the state viewed by the simulator.
-	 */
-	public State getState()
-	{
-		return (transitionListState == null) ? path.getCurrentState() : transitionListState;
-	}
-
-	/**
 	 * Returns the index of the player owning choice {@index} in the state viewed by the simulator.
 	 */
 	public int getPlayerIndex(int index) throws PrismException
@@ -1382,7 +1374,7 @@ public class SimulatorEngine extends PrismComponent
 	{
 		int player = getImplicitPlayerIndex(index);
 		if (player == -1) {
-			throw new PrismException("No player owns state " + getState()); 
+			throw new PrismException("No player owns state " + getTransitionListState()); 
 		}
 		return modulesFile.getPlayer(player).getName();
 	}
@@ -1392,11 +1384,11 @@ public class SimulatorEngine extends PrismComponent
 		// index being ignored - assume all choices are controlled by the same player
 		int player = -1;
 		if (model instanceof STPG) { // has a getPlayer function
-			player = ((STPG) model).getPlayer(indexOf(states, getState()));
+			player = ((STPG) model).getPlayer(indexOf(states, getTransitionListState()));
 			player--; // (1-indexed to 0-indexed, cf. ConstructModel.determinePlayerForChoice)
 		}
 		if (player < 0)
-			throw new PrismException("Player in state " + getState() + " not found");
+			throw new PrismException("Player in state " + getTransitionListState() + " not found");
 		return player;
 	}
 	
@@ -1410,7 +1402,7 @@ public class SimulatorEngine extends PrismComponent
 			pstring = String.format("P%d", player + 1);
 		}
 		if (model instanceof STPG) { // contains controlled-by information
-			int p = ((SMG) model).getControlledBy().get(indexOf(states, getState()));
+			int p = ((SMG) model).getControlledBy().get(indexOf(states, getTransitionListState()));
 			if (p >= 0) {
 				pstring += String.format("(%d)", p);
 			}
