@@ -440,55 +440,51 @@ public class ConstructModel extends PrismComponent
 	 */
     private int determinePlayerForChoice(ModulesFile modulesFile, ModelType modelType, int i, boolean compositional) throws PrismException
 	{
-		int modAct, player;
+		int player;
 
-		try {
-		    modAct = engine.getTransitionModuleOrActionIndex(i, 0);
-		} catch (PrismLangException e) {
-		    throw new PrismException(String.format("%s. Did you forget to assign an action to a player?"));
-		}
+		// Get index of module/action (all transitions within choice have same action, so use offset 0)
+		int modAct = engine.getTransitionModuleOrActionIndex(i, 0);
+
 		// Synchronous action
 		if (modAct > 0) {
-		    // first try to get action from player specifications
-		    String action_name = modulesFile.getSynch(modAct - 1);
-		    if(compositional) {
-			// get inputs and outputs of subsystem
-			Vector<String> inputs = new Vector<String>();
-			Vector<String> outputs = new Vector<String>();
-			for(int n = 0; n < modulesFile.getNumModules(); n++) {
-			    inputs.addAll(modulesFile.getModule(n).getAllInputActions());
-			    outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
-			}
-
-			if(action_name == null || "".equals(action_name)) {
-			    player = 2; // tau controlled by player 2
-			} else if(inputs.contains(action_name)) {
-			    player = 2; // inputs controlled by player 2
-			} else if(outputs.contains(action_name)) {
-			    player = 1; // outputs controlled by player 1
+			String actionName = modulesFile.getSynch(modAct - 1);
+			if (!compositional) {
+				player = modulesFile.getPlayerForAction(actionName);
+				if (player == -1) {
+					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
+				}
+				// 0-indexed to 1-indexed
+				player++;
 			} else {
-			    throw new PrismException("Action \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
+				// get inputs and outputs of subsystem
+				Vector<String> inputs = new Vector<String>();
+				Vector<String> outputs = new Vector<String>();
+				for (int n = 0; n < modulesFile.getNumModules(); n++) {
+					inputs.addAll(modulesFile.getModule(n).getAllInputActions());
+					outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
+				}
+				if (actionName == null || "".equals(actionName)) {
+					player = 2; // tau controlled by player 2
+				} else if (inputs.contains(actionName)) {
+					player = 2; // inputs controlled by player 2
+				} else if (outputs.contains(actionName)) {
+					player = 1; // outputs controlled by player 1
+				} else {
+					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
+				}
 			}
-		    } else {
-			player = modulesFile.getPlayerForAction(action_name);
-			if (player == -1) {
-			    throw new PrismException("Action \"" + modulesFile.getSynch(modAct - 1) + "\" is not assigned to any player");
-			}
-			// 0-indexed to 1-indexed
-			player++;
-		    }
 		}
 		// Asynchronous action
 		else {
-			if (compositional) {
-			    player = 2; // tau controlled by player 2
-			} else {
+			if (!compositional) {
 				player = modulesFile.getPlayerForModule(engine.getTransitionModuleOrAction(i, 0));
 				if (player == -1) {
 					throw new PrismException("Module \"" + engine.getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
 				}
 				// 0-indexed to 1-indexed
 				player++;
+			} else {
+				player = 2; // tau controlled by player 2
 			}
 		}
 		return player;
