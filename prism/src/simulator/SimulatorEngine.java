@@ -1137,6 +1137,17 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
+	 * Get the state for which the simulator is currently supplying information about its transitions. 
+	 * Usually, this is the current (final) state of the path.
+	 * But if the user called {@link #computeTransitionsForStep(int step)}, it will be this state instead.
+	 */
+	public State getTransitionListState()
+	{
+		return (transitionListState == null) ? path.getCurrentState() : transitionListState;
+		
+	}
+	
+	/**
 	 * Returns the current number of available choices.
 	 */
 	public int getNumChoices() throws PrismException
@@ -1257,10 +1268,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public String getTransitionUpdateString(int index) throws PrismException
 	{
-		// We need the state containing the transitions. Usually, this is the current (final) state
-		// of the path. But if the user called computeTransitionsForStep(int step), this is not so. 
-		State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
-		return getTransitionList().getTransitionUpdateString(index, state);
+		return getTransitionList().getTransitionUpdateString(index, getTransitionListState());
 	}
 
 	/**
@@ -1280,10 +1288,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public State computeTransitionTarget(int i, int offset) throws PrismException
 	{
-		// We need the state containing the transitions. Usually, this is the current (final) state
-		// of the path. But if the user called computeTransitionsForStep(int step), this is not so. 
-		State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
-		return getTransitionList().getChoice(i).computeTarget(offset, state);
+		return getTransitionList().getChoice(i).computeTarget(offset, getTransitionListState());
 	}
 
 	/**
@@ -1291,10 +1296,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public State computeTransitionTarget(int index) throws PrismException
 	{
-		// We need the state containing the transitions. Usually, this is the current (final) state
-		// of the path. But if the user called computeTransitionsForStep(int step), this is not so. 
-		State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
-		return getTransitionList().computeTransitionTarget(index, state);
+		return getTransitionList().computeTransitionTarget(index, getTransitionListState());
 	}
 
 	// ------------------------------------------------------------------------------
