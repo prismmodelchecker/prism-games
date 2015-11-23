@@ -1335,39 +1335,56 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
-	 * Returns the player of the state viewed by the simulator.
+	 * Returns the index of the player owning choice {@index} in the state viewed by the simulator.
+	 */
+	public int getPlayerIndex(int index) throws PrismException
+	{
+		return (model == null) ? getImplicitPlayerIndex(index) : getExplicitPlayerIndex(index);
+	}
+
+	/**
+	 * Returns the name of the player owning choice {@index} in the state viewed by the simulator.
 	 */
 	public String getPlayer(int index) throws PrismException
 	{
 		return (model == null) ? getImplicitPlayer(index) : getExplicitPlayer(index);
 	}
 
-	private String getImplicitPlayer(int index)
+	private int getImplicitPlayerIndex(int index) throws PrismException
 	{
-		String modAct = null;
-		try {
-			modAct = getTransitionModuleOrAction(index);
-		} catch (PrismException e) {
-			return "";
-		}
+		String modAct = getTransitionModuleOrAction(index);
 		int player = modulesFile.getPlayerForModule(modAct);
-		if (player == -1)
+		if (player == -1) {
 			player = modulesFile.getPlayerForAction(modAct);
-		if (player == -1)
-			return "";
+		}
+		return player;
+	}
+
+	private String getImplicitPlayer(int index) throws PrismException
+	{
+		int player = getImplicitPlayerIndex(index);
+		if (player == -1) {
+			throw new PrismException("No player owns state " + getState()); 
+		}
 		return modulesFile.getPlayer(player).getName();
 	}
 
-	private String getExplicitPlayer(int index) throws PrismException
-	{ // index being ignored - assume all choices are controlled by the same player
-		State state = (transitionListState == null) ? path.getCurrentState() : transitionListState;
+	private int getExplicitPlayerIndex(int index) throws PrismException
+	{
+		// index being ignored - assume all choices are controlled by the same player
 		int player = -1;
 		if (model instanceof STPG) { // has a getPlayer function
-			player = ((STPG) model).getPlayer(indexOf(states, state));
+			player = ((STPG) model).getPlayer(indexOf(states, getState()));
 			player--; // (1-indexed to 0-indexed, cf. ConstructModel.determinePlayerForChoice)
 		}
 		if (player < 0)
-			throw new PrismException("Player in state " + state + " not found");
+			throw new PrismException("Player in state " + getState() + " not found");
+		return player;
+	}
+	
+	private String getExplicitPlayer(int index) throws PrismException
+	{
+		int player = getExplicitPlayerIndex(index);
 		String pstring = "";
 		if (player < modulesFile.getNumPlayers()) {
 			pstring = modulesFile.getPlayer(player).getName();
@@ -1375,7 +1392,7 @@ public class SimulatorEngine extends PrismComponent
 			pstring = String.format("P%d", player + 1);
 		}
 		if (model instanceof STPG) { // contains controlled-by information
-			int p = ((SMG) model).getControlledBy().get(indexOf(states, state));
+			int p = ((SMG) model).getControlledBy().get(indexOf(states, getState()));
 			if (p >= 0) {
 				pstring += String.format("(%d)", p);
 			}
