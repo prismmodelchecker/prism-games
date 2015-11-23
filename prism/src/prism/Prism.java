@@ -4107,11 +4107,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		loadBuiltModel(model);
 		doTransient(time, exportType, file, fileIn);
 	}
-
-	public boolean doExplicitSimulation()
-	{
-		return explicitSimulation;
-	}
 }
 
 //------------------------------------------------------------------------------

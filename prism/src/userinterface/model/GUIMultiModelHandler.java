@@ -567,14 +567,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		}
 		tree.repaint();
 		theModel.doEnables();
-
-		if(prism.doExplicitSimulation()) { // use explicit models if compositional
-		        if(modifiedSinceParse || buildAfterReceiveParseNotification)
-			    theModel.getGUISimulator().setStrategyGenerated(false);
-			theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODEL_PARSED, parsedModel, prism.getBuiltModelExplicit()));
-		} else {
-		    theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODEL_PARSED, parsedModel));
-		}
+	    theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODEL_PARSED, parsedModel));
 	}
 
 	public synchronized void modelParseFailed(PrismException parserError, boolean background)
