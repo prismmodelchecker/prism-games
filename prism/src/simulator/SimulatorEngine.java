@@ -580,14 +580,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForStep(int step) throws PrismException
 	{
-		if (model == null) { // implicit
-			updater.calculateTransitions(((PathFull) path).getState(step), transitionList);
-			transitionListState = new State(((PathFull) path).getState(step));
-		} else { // explicit
-			transitionList = buildExplicitTransitionList(((PathFull) path).getState(step));
-			transitionListState = ((PathFull) path).getState(step);
-		}
-		transitionListBuilt = true;
+		computeTransitionsForState(((PathFull) path).getState(step));
 	}
 
 	/**
@@ -595,13 +588,22 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForCurrentState() throws PrismException
 	{
+		computeTransitionsForState(path.getCurrentState());
+	}
+
+	/**
+	 * Re-compute the transition table for a particular state.
+	 */
+	private void computeTransitionsForState(State state) throws PrismException
+	{
 		if (model == null) { // implicit
-			updater.calculateTransitions(currentState, transitionList);
+			updater.calculateTransitions(state, transitionList);
+			transitionListState = new State(state);
 		} else { // explicit
-			transitionList = buildExplicitTransitionList(currentState);
+			transitionList = buildExplicitTransitionList(state);
+			transitionListState = state;
 		}
 		transitionListBuilt = true;
-		transitionListState = null;
 	}
 
 	private TransitionList buildExplicitTransitionList(State state) throws PrismException
