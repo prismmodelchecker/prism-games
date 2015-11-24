@@ -580,13 +580,14 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForStep(int step) throws PrismException
 	{
-		updater.calculateTransitions(((PathFull) path).getState(step), transitionList);
-		transitionListBuilt = true;
 		if (model == null) { // implicit
+			updater.calculateTransitions(((PathFull) path).getState(step), transitionList);
 			transitionListState = new State(((PathFull) path).getState(step));
 		} else { // explicit
+			transitionList = buildExplicitTransitionList(((PathFull) path).getState(step));
 			transitionListState = ((PathFull) path).getState(step);
 		}
+		transitionListBuilt = true;
 	}
 
 	/**
@@ -594,13 +595,23 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForCurrentState() throws PrismException
 	{
-		if (model != null) { // explicit
-			transitionList = getTransitionList(currentState);
-		} else { // implicit
+		if (model == null) { // implicit
 			updater.calculateTransitions(currentState, transitionList);
+		} else { // explicit
+			transitionList = buildExplicitTransitionList(currentState);
 		}
 		transitionListBuilt = true;
 		transitionListState = null;
+	}
+
+	private TransitionList buildExplicitTransitionList(State state) throws PrismException
+	{
+		TransitionList tl = new TransitionList();
+		for (int i = 0; i < ((MDP) model).getNumChoices(indexOf(states, state)); i++) {
+			Choice ch = new ChoiceExplicit(modulesFile, ((MDP) model), indexOf(states, state), i);
+			tl.add(ch);
+		}
+		return tl;
 	}
 
 	/**
@@ -1119,16 +1130,6 @@ public class SimulatorEngine extends PrismComponent
 			computeTransitionsForCurrentState();
 		}
 		return transitionList;
-	}
-
-	private TransitionList getTransitionList(State state) throws PrismException
-	{
-		TransitionList tl = new TransitionList();
-		for (int i = 0; i < ((MDP) model).getNumChoices(indexOf(states, state)); i++) {
-			Choice ch = new ChoiceExplicit(modulesFile, ((MDP) model), indexOf(states, state), i);
-			tl.add(ch);
-		}
-		return tl;
 	}
 
 	private <T> int indexOf(List<T> list, T o)
