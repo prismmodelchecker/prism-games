@@ -44,7 +44,6 @@ import prism.PrismLangException;
 
 public class ChoiceExplicit implements Choice
 {
-
 	private explicit.MDP model;
 	private int state;
 	private int choice;
@@ -93,9 +92,7 @@ public class ChoiceExplicit implements Choice
 
 	}
 
-	/**
-	 * Scale probability/rate of all transitions, multiplying by d.
-	 */
+	@Override
 	public void scaleProbabilitiesBy(double d)
 	{
 		for (int i = 0; i < probabilities.size(); i++) {
@@ -103,39 +100,25 @@ public class ChoiceExplicit implements Choice
 		}
 	}
 
-	/**
-	 * Get the module/action for this choice, as an integer index
-	 * (-i for independent in ith module, i for synchronous on ith action)
-	 * (in both cases, modules/actions are 1-indexed)
-	 */
+	@Override
 	public int getModuleOrActionIndex()
 	{
 		return moduleOrActionIndex;
 	}
 
-	/**
-	 * Get the module/action for this choice, as a string
-	 * (form is "module" or "[action]")
-	 */
+	@Override
 	public String getModuleOrAction()
 	{
 		return action;
 	}
 
-	/**
-	 * Get the number of transitions in this choice.
-	 */
+	@Override
 	public int size()
 	{
 		return model.getNumTransitions(state, choice);
 	}
 
-	/**
-	 * Get the updates of the ith transition, as a string.
-	 * This is in abbreviated form, i.e. x'=1, rather than x'=x+1.
-	 * Format is: x'=1, y'=0, with empty string for empty update.
-	 * Only variables updated are included in list (even if unchanged).
-	 */
+	@Override
 	public String getUpdateString(int i, State currentState) throws PrismLangException
 	{
 		String s = "";
@@ -167,13 +150,7 @@ public class ChoiceExplicit implements Choice
 		return s;
 	}
 
-	/**
-	 * Get the updates of the ith transition, as a string.
-	 * This is in full, i.e. of the form x'=x+1, rather than x'=1.
-	 * Format is: (x'=x+1) & (y'=y-1), with empty string for empty update.
-	 * Only variables updated are included in list.
-	 * Note that expressions may have been simplified from original model. 
-	 */
+	@Override
 	public String getUpdateStringFull(int i)
 	{
 		String s = "";
@@ -194,10 +171,7 @@ public class ChoiceExplicit implements Choice
 		return s;
 	}
 
-	/**
-	 * Compute the target for the ith transition, based on a current state,
-	 * returning the result as a new State object copied from the existing one.
-	 */
+	@Override
 	public State computeTarget(int i, State currentState) throws PrismLangException
 	{
 		if (i < 0 || i >= size())
@@ -208,27 +182,19 @@ public class ChoiceExplicit implements Choice
 		return successors.get(i);
 	}
 
-	/**
-	 * Compute the target for the ith transition, based on a current state.
-	 * Apply changes in variables to a provided copy of the State object.
-	 * (i.e. currentState and newState should be equal when passed in.) 
-	 */
+	@Override
 	public void computeTarget(int i, State currentState, State newState) throws PrismLangException
 	{
 		newState.varValues = computeTarget(i, currentState).varValues;
 	}
 
-	/**
-	 * Get the probability/rate for the ith transition.
-	 */
+	@Override
 	public double getProbability(int i)
 	{
 		return probabilities.get(i);
 	}
 
-	/**
-	 * Get the sum of probabilities/rates for all transitions.
-	 */
+	@Override
 	public double getProbabilitySum()
 	{
 		double sum = 0.0;
@@ -238,11 +204,7 @@ public class ChoiceExplicit implements Choice
 		return sum;
 	}
 
-	/**
-	 * Return the index of a transition according to a probability (or rate) sum, x.
-	 * i.e. return the index of the first transition in this choice for which the
-	 * sum of probabilities/rates for that and all prior transitions exceeds x.
-	 */
+	@Override
 	public int getIndexByProbabilitySum(double x)
 	{
 		int i, n;
@@ -261,12 +223,7 @@ public class ChoiceExplicit implements Choice
 		// TODO
 	}
 
-	/**
-	 * Check whether the transitions in this choice (from a particular state)
-	 * would cause any errors, mainly variable overflows.
-	 * Variable ranges are specified in the passed in VarList.
-	 * Throws an exception if such an error occurs.
-	 */
+	@Override
 	public void checkForErrors(State currentState, VarList varList) throws PrismException
 	{
 		if (indexOf(model.getStatesList(), currentState) != state) {
@@ -274,6 +231,7 @@ public class ChoiceExplicit implements Choice
 		}
 	}
 
+	@Override
 	public String toString()
 	{
 		int i, n;
