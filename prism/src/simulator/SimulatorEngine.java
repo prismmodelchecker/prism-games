@@ -594,8 +594,12 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForCurrentState() throws PrismException
 	{
-		updater.calculateTransitions(path.getCurrentState(), transitionList);
-		transitionListBuilt = false;
+		if (model != null) { // explicit
+			transitionList = getTransitionList(currentState);
+		} else { // implicit
+			updater.calculateTransitions(currentState, transitionList);
+		}
+		transitionListBuilt = true;
 		transitionListState = null;
 	}
 
@@ -1112,12 +1116,7 @@ public class SimulatorEngine extends PrismComponent
 	{
 		// Compute the current transition list, if required
 		if (!transitionListBuilt) {
-			if (model != null) { // explicit
-				transitionList = getTransitionList(currentState);
-			} else { // implicit
-				updater.calculateTransitions(currentState, transitionList);
-			}
-			transitionListBuilt = true;
+			computeTransitionsForCurrentState();
 		}
 		return transitionList;
 	}
