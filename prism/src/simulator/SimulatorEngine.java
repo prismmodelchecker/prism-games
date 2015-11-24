@@ -604,6 +604,14 @@ public class SimulatorEngine extends PrismComponent
 			transitionListState = state;
 		}
 		transitionListBuilt = true;
+		// if there is a strategy loaded, stored probabilities assigned to choices
+		if (strategy != null) {
+			try {
+				transitionList.addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
+			} catch (InvalidStrategyStateException e) {
+				// Don't add info if there is a problem with the strategy
+			}
+		}
 	}
 
 	private TransitionList buildExplicitTransitionList(State state) throws PrismException
@@ -1134,16 +1142,6 @@ public class SimulatorEngine extends PrismComponent
 		return transitionList;
 	}
 
-	private <T> int indexOf(List<T> list, T o)
-	{ // indexOf based on reference, not equals(o) function
-		for (int i = 0; i < list.size(); i++) {
-			if (list.get(i) == o) {
-				return i;
-			}
-		}
-		return -1; // not in list
-	}
-
 	/**
 	 * Get the state for which the simulator is currently supplying information about its transitions. 
 	 * Usually, this is the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be this state instead.
@@ -1379,6 +1377,15 @@ public class SimulatorEngine extends PrismComponent
 			}
 		}
 		return pstring;
+	}
+
+	/**
+	 * Get the probability assigned to choice by the currently loaded strategy.
+	 * This will return 0.0 if no strategy is loaded (i.e., if {@link #getStrategy()} returns null. 
+	 */
+	public double getStrategyProbabilityForChoice(int i) throws PrismException
+	{
+		return (strategy == null) ? 0.0 : getTransitionList().getStrategyProbabilityForChoice(i);
 	}
 
 	// ------------------------------------------------------------------------------
@@ -2129,5 +2136,24 @@ public class SimulatorEngine extends PrismComponent
 					stateIds.put(s, i++);
 			}
 		}
+	}
+	
+	private int getStateIndex(State state)
+	{
+		if (model != null) {
+			return indexOf(states, currentState);
+		} else {
+			return stateIds.get(currentState);
+		}
+	}
+
+	private <T> int indexOf(List<T> list, T o)
+	{ // indexOf based on reference, not equals(o) function
+		for (int i = 0; i < list.size(); i++) {
+			if (list.get(i) == o) {
+				return i;
+			}
+		}
+		return -1; // not in list
 	}
 }

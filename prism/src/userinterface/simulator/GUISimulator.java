@@ -2657,7 +2657,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 								}
 								return label + "]";
 							} else {
-								return df.format(dist.get(choice)); // display probability
+								return df.format(engine.getStrategyProbabilityForChoice(engine.getChoiceIndexOfTransition(rowIndex))); // display probability
 							}
 						} catch (InvalidStrategyStateException e) {
 							// happens if no memory update is available
