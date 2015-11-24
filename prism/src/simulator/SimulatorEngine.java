@@ -315,7 +315,8 @@ public class SimulatorEngine extends PrismComponent
 		// Initialise stored path
 		path.initialise(currentState, tmpStateRewards);
 		strategy = prism.getStrategy();
-		if (strategy != null && path instanceof PathFull) {
+		path.storesStrategyMemory(strategy != null && strategy.getMemorySize() > 0);
+		if (strategy != null) {
 			// initialising the strategy
 			try {
 				if (model == null) { // implicit
@@ -330,7 +331,7 @@ public class SimulatorEngine extends PrismComponent
 				// TODO Auto-generated catch block
 				error.printStackTrace();
 			}
-			((PathFull) path).initialiseStrat(strategy.getCurrentMemoryElement());
+			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
 
 		// Reset transition list
@@ -947,11 +948,9 @@ public class SimulatorEngine extends PrismComponent
 			}
 		}
 		// Update path
-		if (strategy != null && path instanceof PathFull) {
-			((PathFull) path).addStep(index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions,
-					strategy.getCurrentMemoryElement());
-		} else {
-			path.addStep(index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		path.addStep(index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		if (strategy != null) {
+			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
 		// Reset transition list 
 		transitionListBuilt = false;
@@ -1000,11 +999,9 @@ public class SimulatorEngine extends PrismComponent
 			}
 		}
 		// Update path
-		if (strategy != null && path instanceof PathFull) {
-			((PathFull) path).addStep(time, index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions,
-					strategy.getCurrentMemoryElement());
-		} else {
-			path.addStep(time, index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		path.addStep(time, index, choice.getModuleOrActionIndex(), p, tmpTransitionRewards, currentState, tmpStateRewards, transitions);
+		if (strategy != null) {
+			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
 		// Reset transition list 
 		transitionListBuilt = false;
@@ -1095,6 +1092,14 @@ public class SimulatorEngine extends PrismComponent
 		return varList.getIndex(name);
 	}
 
+	/**
+	 * Get the currently loaded strategy (null if none loaded).
+	 */
+	public Strategy getStrategy()
+	{
+		return strategy;
+	}
+	
 	// ------------------------------------------------------------------------------
 	// Querying of current state and its available choices/transitions
 	// ------------------------------------------------------------------------------

@@ -125,7 +125,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		} else {
 			int groupCount = 0;
 
-			if (view.showActions() || view.showMemory() || view.showSteps()) {
+			if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
 				groupCount++;
 			}
 
@@ -200,7 +200,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		} else {
 			int groupCount = 0;
 
-			if (view.showActions() || view.showMemory() || view.showSteps()) {
+			if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
 				if (groupCount == groupIndex) {
 					return "Step";
 				}
@@ -293,7 +293,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 
 		int groupCount = 0;
 
-		if (view.showActions() || view.showMemory() || view.showSteps()) {
+		if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
 			if (groupCount == groupIndex) {
 				return null;
 			}
@@ -368,15 +368,15 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	public int getLastColumnOfGroup(int groupIndex)
 	{
 		int stepStart = 0;
-		int timeStart = stepStart + (view.showActions() ? 1 : 0) + (view.showMemory() ? 1 : 0) + (view.showSteps() ? 1 : 0);
+		int timeStart = stepStart + (view.showActions() ? 1 : 0) + (view.showMemory() && path.storesStrategyMemory() ? 1 : 0) + (view.showSteps() ? 1 : 0);
 		int varStart = timeStart + (canShowTime() && view.showCumulativeTime() ? 1 : 0) + (canShowTime() && view.showTime() ? 1 : 0);
 		int rewardStart = varStart + view.getVisibleVariables().size();
 
 		int groupCount = 0;
 
-		if (view.showActions() || view.showMemory() || view.showSteps()) {
+		if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
 			if (groupCount == groupIndex) {
-			        if (view.showActions() && view.showMemory() && view.showSteps())
+			        if (view.showActions() && view.showMemory() && path.storesStrategyMemory() && view.showSteps())
 					return stepStart + 2;
 				else
 					return stepStart;
@@ -504,7 +504,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			int colCount = 0;
 
 			colCount += (view.showActions() ? 1 : 0);
-			colCount += (view.showMemory() ? 1 : 0);
+			colCount += (view.showMemory() && path.storesStrategyMemory() ? 1 : 0);
 			colCount += (view.showSteps() ? 1 : 0);
 			colCount += (canShowTime() && view.showCumulativeTime() ? 1 : 0) + (canShowTime() && view.showTime() ? 1 : 0);
 			colCount += view.getVisibleVariables().size();
@@ -546,7 +546,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		if (pathActive) {
 			int actionStart = 0;
 			int memoryStart = actionStart + (view.showActions() ? 1 : 0);
-			int stepStart = memoryStart + (view.showMemory() ? 1 : 0);
+			int stepStart = memoryStart + (view.showMemory() && path.storesStrategyMemory() ? 1 : 0);
 			int cumulativeTimeStart = stepStart + (view.showSteps() ? 1 : 0);
 			int timeStart = cumulativeTimeStart + (canShowTime() && view.showCumulativeTime() ? 1 : 0);
 			int varStart = timeStart + (canShowTime() && view.showTime() ? 1 : 0);
@@ -581,7 +581,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		if (pathActive) {
 			int actionStart = 0;
 			int memoryStart = actionStart + (view.showActions() ? 1 : 0);
-			int stepStart = memoryStart + (view.showMemory() ? 1 : 0);
+			int stepStart = memoryStart + (view.showMemory() && path.storesStrategyMemory() ? 1 : 0);
 			int cumulativeTimeStart = stepStart + (view.showSteps() ? 1 : 0);
 			int timeStart = cumulativeTimeStart + (canShowTime() && view.showCumulativeTime() ? 1 : 0);
 			int varStart = timeStart + (canShowTime() && view.showTime() ? 1 : 0);
@@ -624,7 +624,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		if (pathActive) {
 			int actionStart = 0;
 			int memoryStart = actionStart + (view.showActions() ? 1 : 0);
-			int stepStart = memoryStart + (view.showMemory() ? 1 : 0);
+			int stepStart = memoryStart + (view.showMemory() && path.storesStrategyMemory() ? 1 : 0);
 			int cumulativeTimeStart = stepStart + (view.showSteps() ? 1 : 0);
 			int timeStart = cumulativeTimeStart + (canShowTime() && view.showCumulativeTime() ? 1 : 0);
 			int varStart = timeStart + (canShowTime() && view.showTime() ? 1 : 0);
@@ -639,7 +639,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			// The memory column
 			else if (memoryStart <= columnIndex && columnIndex < stepStart) {
 			    if(path instanceof PathFull) { // strategy state stored
-				Object stratmem = ((PathFull)path).getStrategyState(rowIndex);
+				Object stratmem = ((PathFull)path).getStrategyMemory(rowIndex);
 				if(stratmem instanceof SimpleEntry) {
 				    return String.format("(%d, %d)", ((SimpleEntry)stratmem).getKey(), ((SimpleEntry)stratmem).getValue());
 				} else if (stratmem instanceof List) {
@@ -652,7 +652,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				    }
 				    return mem + "]";
 				} else {
-				    return String.format("%s", ((PathFull)path).getStrategyState(rowIndex));
+				    return String.format("%s", ((PathFull)path).getStrategyMemory(rowIndex));
 				}
 				
 			    }

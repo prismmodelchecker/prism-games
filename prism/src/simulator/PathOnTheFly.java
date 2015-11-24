@@ -26,12 +26,8 @@
 
 package simulator;
 
-import java.util.List;
-
-import parser.*;
-import parser.ast.*;
-import explicit.Model;
-import explicit.rewards.Rewards;
+import parser.State;
+import parser.ast.ModulesFile;
 
 /**
  * Stores and manipulates a path though a model.
@@ -59,6 +55,7 @@ public class PathOnTheFly extends Path
 	protected double previousStateRewards[];
 	protected double previousTransitionRewards[];
 	protected double currentStateRewards[];
+	protected Object strategyMemory;
     	
 	// Loop detector for path
 	protected LoopDetector loopDet;
@@ -135,6 +132,8 @@ public class PathOnTheFly extends Path
 			previousTransitionRewards[i] = 0.0;
 			currentStateRewards[i] = 0.0;
 		}
+		// Initialise strategy info (absent by default)
+		strategyMemory = null;
 	}
 
 	// MUTATORS (for Path)
@@ -157,7 +156,7 @@ public class PathOnTheFly extends Path
 	@Override
 	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transRewards, State newState, double[] newStateRewards, TransitionList transitionList)
 	{
-	    addStep(1.0, choice, moduleOrActionIndex, probability, transRewards, newState, newStateRewards, transitionList);
+		addStep(1.0, choice, moduleOrActionIndex, probability, transRewards, newState, newStateRewards, transitionList);
 	}
 
 	@Override
@@ -190,6 +189,12 @@ public class PathOnTheFly extends Path
 		loopDet.addStep(this, transitionList);
 	}
 
+	@Override
+	public void setStrategyMemoryForCurrentState(Object memory)
+	{
+		strategyMemory = memory;
+	}
+	
 	// ACCESSORS (for Path)
 
 	@Override
@@ -225,7 +230,7 @@ public class PathOnTheFly extends Path
 	@Override
 	public String getPreviousModuleOrAction()
 	{
-	        int i = getPreviousModuleOrActionIndex();
+		int i = getPreviousModuleOrActionIndex();
 		if (i < 0)
 			return modulesFile.getModuleName(-i - 1);
 		else if (i > 0)
@@ -311,4 +316,10 @@ public class PathOnTheFly extends Path
 	{
 		return loopDet.loopEnd();
 	}
+	
+	@Override
+	public Object getStrategyMemoryForCurrentState()
+	{
+		return strategyMemory;
+	}	
 }

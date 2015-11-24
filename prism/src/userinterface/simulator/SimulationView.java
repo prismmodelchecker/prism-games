@@ -68,7 +68,7 @@ public class SimulationView extends Observable
 		this.rewards = new ArrayList<RewardStructure>();
 
 		this.stepsVisible = true;
-		this.memoryVisible = false;
+		this.memoryVisible = true;
 		this.actionsVisible = true;
 		this.showTime = false;
 		this.showCumulativeTime = true;

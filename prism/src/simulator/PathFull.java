@@ -27,15 +27,12 @@
 package simulator;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import parser.State;
 import parser.ast.ModulesFile;
 import prism.PrismException;
 import prism.PrismLog;
 import userinterface.graph.Graph;
-import explicit.Model;
-import explicit.STPG;
 
 /**
  * Stores and manipulates a path though a model. The full path is stored, i.e.
@@ -126,31 +123,11 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.initialise();
 	}
 
-	// Overloaded method including strategy state
-	public void initialise(State initialState, double[] initialStateRewards, Object stratState)
-	{
-		initialise(initialState, initialStateRewards);
-		// steps.get(steps.size() - 1).stratState = stratState;
-	}
-
-	public void initialiseStrat(Object stratState)
-	{
-	    if(steps.size() >= 1)
-		steps.get(steps.size() - 1).stratState = stratState;
-	}
-
 	@Override
 	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
 			TransitionList transitionList)
 	{
 		addStep(1.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
-	}
-
-	// Overloaded version with strategy state
-	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
-			TransitionList transitionList, Object stratState)
-	{
-		addStep(1.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList, stratState);
 	}
 
 	@Override
@@ -187,13 +164,12 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.addStep(this, transitionList);
 	}
 
-	// Overloaded version including strategy state
-    public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards, TransitionList transitionList, Object stratState)
+    @Override
+	public void setStrategyMemoryForCurrentState(Object memory)
 	{
-	    addStep(time, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
-		steps.get(steps.size() - 1).stratState = stratState;
+		steps.get(steps.size() - 1).strategyMemory = memory;
 	}
-
+	
 	// MUTATORS (additional)
 
 	/**
@@ -405,6 +381,12 @@ public class PathFull extends Path implements PathFullInfo
 		return loopDet.loopEnd();
 	}
 
+	@Override
+	public Object getStrategyMemoryForCurrentState()
+	{
+		return steps.get(steps.size() - 1).strategyMemory;
+	}
+
 	// ACCESSORS (for PathFullInfo)
 
 	/**
@@ -550,6 +532,14 @@ public class PathFull extends Path implements PathFullInfo
 		return steps.get(step).transitionRewards;
 	}
 
+	/**
+	 * Get the strategy memory for the state at a given step of the path (if stored; null if not).
+	 */
+	public Object getStrategyMemory(int step)
+	{
+		return steps.get(step).strategyMemory;
+	}
+
 	@Override
 	public boolean hasRewardInfo()
 	{
@@ -578,11 +568,6 @@ public class PathFull extends Path implements PathFullInfo
 	public boolean hasLoopInfo()
 	{
 		return true;
-	}
-
-	public Object getStrategyState(int step)
-	{
-		return steps.get(step).stratState;
 	}
 
 	// Other methods
@@ -680,7 +665,7 @@ public class PathFull extends Path implements PathFullInfo
 			moduleOrActionIndex = 0;
 			probability = 0.0;
 			transitionRewards = new double[numRewardStructs];
-			stratState = null;
+			strategyMemory = null;
 		}
 
 		// Current state (before transition)
@@ -704,8 +689,8 @@ public class PathFull extends Path implements PathFullInfo
 		public double probability;
 		// Transition rewards associated with step
 		public double transitionRewards[];
-		// Strategy state
-		public Object stratState;
+		// Strategy memory
+		public Object strategyMemory;
 	}
 
 	class DisplayThread extends Thread
