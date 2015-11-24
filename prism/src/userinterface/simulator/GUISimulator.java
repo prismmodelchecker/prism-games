@@ -271,7 +271,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		getPrism().getSettings().setFileSelector(PrismSettings.SIMULATOR_NETWORK_FILE, netEdit);
 
 		autoTimeCheck.setSelected(true);
-		showStrategyCheck.setSelected(false);
+		showStrategyCheck.setSelected(true);
 		currentUpdatesTable.requestFocus();
 
 		manualUpdateTableScrollPane.setToolTipText("Double-click or right-click below to create a new path");
@@ -1767,25 +1767,13 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			public void itemStateChanged(ItemEvent itemEvent)
 			{
-				int state = itemEvent.getStateChange();
-				if (state == ItemEvent.SELECTED) {
-					updateTableModel.fireTableStructureChanged();
-					try {
-						updateTableModel.updateUpdatesTable();
-					} catch (PrismException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-
-				} else if (state == ItemEvent.DESELECTED) {
-					updateTableModel.fireTableStructureChanged();
-					try {
-						updateTableModel.updateUpdatesTable();
-					} catch (PrismException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
+				updateTableModel.fireTableStructureChanged();
+				try {
+					updateTableModel.updateUpdatesTable();
+				} catch (PrismException e) {
+					error(e.getMessage());
+				} 
+				//if (itemEvent.getStateChange() == ItemEvent.SELECTED) { ... }
 			}
 		});
 		autoTimeCheckPanel.add(showStrategyCheck, java.awt.BorderLayout.WEST);
