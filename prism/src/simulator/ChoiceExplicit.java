@@ -128,23 +128,11 @@ public class ChoiceExplicit implements Choice
 			Object c_vj = currentState.varValues[j];
 			Object s_vj = successors.get(i).varValues[j];
 			if (!(s_vj.equals(c_vj))) { // value changed
-				// evaluate difference
-				Object diff = null;
-				if (varList.getType(j) instanceof TypeDouble)
-					diff = ((Double) s_vj) - ((Double) c_vj);
-				else if (varList.getType(j) instanceof TypeInt)
-					diff = ((Integer) s_vj) - ((Integer) c_vj);
-				else if (varList.getType(j) instanceof TypeBool)
-					diff = ((Boolean) s_vj);
-				else
-					throw new PrismLangException(String.format("Invalid type in update: %s", varList.getType(j).getTypeString()));
-
-				// append string
 				if (first)
 					first = false;
 				else
 					s += ", ";
-				s += String.format("%s'=%s", varList.getName(j), diff);
+				s += String.format("%s'=%s", varList.getName(j), s_vj);
 			}
 		}
 		return s;
@@ -153,6 +141,7 @@ public class ChoiceExplicit implements Choice
 	@Override
 	public String getUpdateStringFull(int i)
 	{
+		// not done quite right because we do not have access to the source model
 		String s = "";
 		boolean first = true;
 		// assume the variables are in order
@@ -165,7 +154,7 @@ public class ChoiceExplicit implements Choice
 					first = false;
 				else
 					s += ", ";
-				s += String.format("%1$s'=%1$s+%2$s", varList.getName(j), s_vj);
+				s += String.format("%1$s'=%2$s", varList.getName(j), s_vj);
 			}
 		}
 		return s;
