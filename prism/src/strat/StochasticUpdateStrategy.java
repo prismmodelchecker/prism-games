@@ -553,7 +553,7 @@ public class StochasticUpdateStrategy implements Strategy
 	}
 
 	@Override
-	public String getStateDescription()
+	public String getDescription()
 	{
 		String desc = "";
 		desc += "Stochastic update strategy\n";

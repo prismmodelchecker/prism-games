@@ -324,7 +324,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private void updateStrategyInfoPanel()
 	{
 		if (strategyGenerated && strategy != null)
-			stratMemElem.setText(strategy.getStateDescription());
+			stratMemElem.setText(strategy.getDescription());
 		stratMemElem.repaint();
 	}
 

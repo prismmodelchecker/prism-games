@@ -188,13 +188,13 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public String getStateDescription()
+	public String getDescription()
 	{
 		String desc = "";
 		desc += "Finite memory deterministic strategy\n";
 		desc += "Size of memory: " + bound + "\n";
 		desc += "Size of next move function: " + chSize + " \n";
-		desc += "Memory state: " + memory;
+		//desc += "Memory state: " + memory;
 		return desc;
 	}
 

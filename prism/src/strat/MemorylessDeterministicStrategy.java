@@ -355,7 +355,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 	 * @return
 	 */
 	@Override
-	public String getStateDescription()
+	public String getDescription()
 	{
 		String desc = "";
 		desc += "Memoryless deterministic strategy\n";

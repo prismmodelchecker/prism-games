@@ -196,7 +196,7 @@ public abstract class MDStrategy implements Strategy
 	}
 
 	@Override
-	public String getStateDescription()
+	public String getDescription()
 	{
 		// TODO Auto-generated method stub
 		return null;

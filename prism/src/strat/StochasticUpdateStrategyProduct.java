@@ -263,7 +263,7 @@ public class StochasticUpdateStrategyProduct implements Strategy
     }
 
     @Override
-    public String getStateDescription()
+    public String getDescription()
     {
 	String desc = "";
 	desc += "Product of stochastic update strategies\n";

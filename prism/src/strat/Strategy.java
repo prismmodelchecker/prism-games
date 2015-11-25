@@ -157,12 +157,9 @@ public interface Strategy
 	public void setMemory(Object memory) throws InvalidStrategyStateException;
 
 	/**
-	 * Returns the textual description of the current state of the strategy
-	 * (ideally, human readable)
-	 * 
-	 * @return textual description of the current state of the strategy
+	 * Returns a textual description giving key information about the strategy (ideally, human readable).
 	 */
-	public String getStateDescription();
+	public String getDescription();
 
 	/**
 	 * Returns the initial memory state of the strategy for the state. It is

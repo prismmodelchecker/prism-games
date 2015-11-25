@@ -678,7 +678,7 @@ public class ExactValueStrategy implements Strategy
 	private DecimalFormat df = new DecimalFormat("#.###");
 
 	@Override
-	public String getStateDescription()
+	public String getDescription()
 	{
 		String desc = "";
 		desc += "Stochastic update strategy\n";
@@ -687,14 +687,14 @@ public class ExactValueStrategy implements Strategy
 		desc += "Size of initial dist. function: " + initSize + "\n";
 		desc += "Size of memory update function: " + updateSize + "\n";
 		desc += "Size of next move function: " + nextSize + "\n";
-		desc += "Current target expectation: "
+		/*desc += "Current target expectation: "
 				+ (lastState < 0 ? initTargetValue : df.format(min ? minValues[lastState] : maxValues[lastState]))
 				+ "\n";
 		desc += "Last memory update: "
 				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(minValues[lastState])) + "->"
 				+ df.format(probMin) + ", "
 				+ (lastState < 0 ? initialDistributionFunction[0] : df.format(maxValues[lastState])) + "->"
-				+ df.format((1 - probMin)) + "\n";
+				+ df.format((1 - probMin)) + "\n";*/
 
 		return desc;
 	}
