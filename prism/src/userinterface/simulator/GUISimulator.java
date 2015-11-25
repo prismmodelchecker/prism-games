@@ -2606,63 +2606,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 						offset++;
 
 					switch (columnIndex + offset) {
-
-					// Strategy choice
+						// Strategy choice
 					case 0:
-						//try {
-						State state = oldUpdate ? engine.getStateOfPathStep(oldStep) : engine.getTransitionListState();
-						Distribution dist = strategy.getNextMove(stateIndex(state));
-						int choice = engine.getChoiceIndexOfTransition(rowIndex);
-						int next = stateIndex(engine.computeTransitionTarget(rowIndex));
-						try {
-							if (strategy instanceof StochasticUpdateStrategy) {
-								// display probability and memory update
-								Distribution mu = ((StochasticUpdateStrategy) strategy).memoryUpdate(choice, next);
-								String label = df.format(dist.get(choice)) + " mu: {";
-								boolean first = true;
-								for (Integer m : mu.getSupport()) {
-									if (first)
-										first = false;
-									else
-										label += ", ";
-									label += String.format("(%d, %d)=", next, m) + df.format(mu.get(m));
-								}
-								label += "}";
-								return label;
-							} else if (strategy instanceof StochasticUpdateStrategyProduct) {
-								List<Distribution> mus = ((StochasticUpdateStrategyProduct) strategy).memoryUpdate(choice, next);
-								String label = df.format(dist.get(choice)) + " [";
-								boolean first1 = true;
-								for (int d = 0; d < mus.size(); d++) {
-									Distribution mu = mus.get(d);
-									int l_next = ((StochasticUpdateStrategyProduct) strategy).getLocalState(next, d); // local next state
-									if (first1)
-										first1 = false;
-									else
-										label += ", ";
-									if (mu == null) {
-										label += "\u2013";
-									} else {
-										label += String.format("mu(%d): {", d);
-										boolean first2 = true;
-										for (Integer m : mu.getSupport()) {
-											if (first2)
-												first2 = false;
-											else
-												label += ", ";
-											label += String.format("(%d, %d)=", l_next, m) + df.format(mu.get(m));
-										}
-										label += "}";
-									}
-								}
-								return label + "]";
-							} else {
-								return df.format(engine.getStrategyProbabilityForChoice(engine.getChoiceIndexOfTransition(rowIndex))); // display probability
-							}
-						} catch (InvalidStrategyStateException e) {
-							// happens if no memory update is available
-							return df.format(dist.get(choice)); // display probability
-						}
+						return engine.getStrategyUpdateString(rowIndex, df);
 						// Player
 					case 1:
 						return engine.getPlayerName(engine.getChoiceIndexOfTransition(rowIndex));
@@ -2680,9 +2626,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					}
 				} catch (PrismException e) {
 					return "";
-				} catch (InvalidStrategyStateException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
 			}
 			return "";

@@ -27,6 +27,7 @@
 package simulator;
 
 import java.io.File;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +58,8 @@ import prism.UndefinedConstants;
 import simulator.method.SimulationMethod;
 import simulator.sampler.Sampler;
 import strat.InvalidStrategyStateException;
+import strat.StochasticUpdateStrategy;
+import strat.StochasticUpdateStrategyProduct;
 import strat.Strategy;
 import userinterface.graph.Graph;
 import explicit.Distribution;
@@ -580,7 +583,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForStep(int step) throws PrismException
 	{
-		computeTransitionsForState(((PathFull) path).getState(step));
+		computeTransitionsForState(((PathFull) path).getState(step), ((PathFull) path).getStrategyMemory(step));
 	}
 
 	/**
@@ -588,13 +591,13 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForCurrentState() throws PrismException
 	{
-		computeTransitionsForState(path.getCurrentState());
+		computeTransitionsForState(path.getCurrentState(), path.getStrategyMemoryForCurrentState());
 	}
 
 	/**
 	 * Re-compute the transition table for a particular state.
 	 */
-	private void computeTransitionsForState(State state) throws PrismException
+	private void computeTransitionsForState(State state, Object stratMem) throws PrismException
 	{
 		if (model == null) { // implicit
 			updater.calculateTransitions(state, transitionList);
@@ -607,6 +610,7 @@ public class SimulatorEngine extends PrismComponent
 		// if there is a strategy loaded, stored probabilities assigned to choices
 		if (strategy != null) {
 			try {
+				strategy.setMemory(stratMem);
 				transitionList.addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
 			} catch (InvalidStrategyStateException e) {
 				// Don't add info if there is a problem with the strategy
@@ -1388,6 +1392,33 @@ public class SimulatorEngine extends PrismComponent
 		return (strategy == null) ? 0.0 : getTransitionList().getStrategyProbabilityForChoice(i);
 	}
 
+	/**
+	 * Get a string describing the updates to be made by the current loaded strategy
+	 * with respect to a transition, specified by its index.
+	 * This will return "" if no strategy is loaded (i.e., if {@link #getStrategy()} returns null. 
+	 */
+	public String getStrategyUpdateString(int index, NumberFormat df) throws PrismException
+	{
+		int choice = getChoiceIndexOfTransition(index);
+		int stateIndex = getStateIndex(getTransitionListState());
+		State next = getTransitionList().computeTransitionTarget(index, getTransitionListState());
+		int nextIndex = getStateIndex(next);
+		try {
+			if (strategy == null) {
+				return "";
+			} else if (strategy instanceof StochasticUpdateStrategy) {
+				return ((StochasticUpdateStrategy) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
+			} else if (strategy instanceof StochasticUpdateStrategyProduct) {
+				return ((StochasticUpdateStrategyProduct) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
+			} else {
+				return df.format(getStrategyProbabilityForChoice(choice));
+			}
+		} catch (InvalidStrategyStateException e) {
+			// happens if no memory update is available
+			return df.format(getStrategyProbabilityForChoice(choice));
+		}
+	}
+
 	// ------------------------------------------------------------------------------
 	// Querying of current path (full or on-the-fly)
 	// ------------------------------------------------------------------------------
@@ -2141,9 +2172,9 @@ public class SimulatorEngine extends PrismComponent
 	private int getStateIndex(State state)
 	{
 		if (model != null) {
-			return indexOf(states, currentState);
+			return indexOf(states, state);
 		} else {
-			return stateIds.get(currentState);
+			return stateIds.get(state);
 		}
 	}
 

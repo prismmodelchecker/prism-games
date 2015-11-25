@@ -26,63 +26,54 @@
 
 package strat;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.BitSet;
-import java.util.HashSet;
+import java.io.ByteArrayOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
+import java.text.NumberFormat;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map.Entry;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
-import java.io.FileWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.IOException;
-import java.util.AbstractMap.SimpleEntry;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import org.apache.commons.math3.fraction.BigFraction;
+import org.apache.commons.math3.optim.MaxIter;
+import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.optim.linear.LinearConstraint;
+import org.apache.commons.math3.optim.linear.LinearConstraintSet;
+import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
+import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
+import org.apache.commons.math3.optim.linear.Relationship;
+import org.apache.commons.math3.optim.linear.SimplexSolver;
+import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+
+import parma_polyhedra_library.Generator;
+import parma_polyhedra_library.Generator_System;
+import parma_polyhedra_library.Generator_Type;
+import parma_polyhedra_library.Linear_Expression;
+import parma_polyhedra_library.Variable;
+import parser.Values;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
-import explicit.Pareto;
-import explicit.SMG;
 import explicit.Distribution;
 import explicit.Model;
-import explicit.ModelExplicit;
-import explicit.STPGExplicit;
-import explicit.MDP;
-import explicit.MDPSimple;
-import explicit.SMGModelChecker;
 import explicit.PPLSupport;
+import explicit.Pareto;
+import explicit.SMG;
 import explicit.rewards.SMGRewards;
-import explicit.rewards.MDPRewards;
-import prism.PrismUtils;
-import parser.ast.ModulesFile;
-import parser.State;
-import parser.Values;
-import parser.VarList;
-
-import org.apache.commons.math3.optim.linear.SimplexSolver;
-import org.apache.commons.math3.optim.linear.Relationship;
-import org.apache.commons.math3.optim.linear.LinearConstraintSet;
-import org.apache.commons.math3.optim.linear.LinearConstraint;
-import org.apache.commons.math3.optim.linear.NonNegativeConstraint;
-import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.MaxIter;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
-import org.apache.commons.math3.fraction.BigFraction;
-import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
-import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
-
-import parma_polyhedra_library.*;
 
 public class StochasticUpdateStrategy implements Strategy
 {
@@ -236,6 +227,24 @@ public class StochasticUpdateStrategy implements Strategy
 		return result;
 	}
 
+    public String memoryUpdateString(int state, int choice, int next, NumberFormat df) throws InvalidStrategyStateException
+    {
+		// display probability and memory update
+		Distribution dist = getNextMove(state);
+		Distribution mu = memoryUpdate(choice, next);
+		String label = df.format(dist.get(choice)) + " mu: {";
+		boolean first = true;
+		for (Integer m : mu.getSupport()) {
+			if (first)
+				first = false;
+			else
+				label += ", ";
+			label += String.format("(%d, %d)=", next, m) + df.format(mu.get(m));
+		}
+		label += "}";
+		return label;
+    }
+    
 	@Override
 	public void reset()
 	{

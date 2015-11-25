@@ -27,25 +27,19 @@
 
 package strat;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Scanner;
 import java.io.FileWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.io.IOException;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
-import parser.State;
 import parser.Values;
-import explicit.SMG;
-import explicit.Model;
-import explicit.Distribution;
 import prism.PrismException;
 import prism.PrismLog;
+import explicit.Distribution;
+import explicit.Model;
+import explicit.SMG;
 
 public class StochasticUpdateStrategyProduct implements Strategy
 {
@@ -136,6 +130,37 @@ public class StochasticUpdateStrategyProduct implements Strategy
 	    }
 	}
 	return result;
+    }
+
+    public String memoryUpdateString(int state, int choice, int next, NumberFormat df) throws InvalidStrategyStateException
+    {
+		Distribution dist = getNextMove(state);
+		List<Distribution> mus = memoryUpdate(choice, next);
+		String label = df.format(dist.get(choice)) + " [";
+		boolean first1 = true;
+		for (int d = 0; d < mus.size(); d++) {
+			Distribution mu = mus.get(d);
+			int l_next = getLocalState(next, d); // local next state
+			if (first1)
+				first1 = false;
+			else
+				label += ", ";
+			if (mu == null) {
+				label += "\u2013";
+			} else {
+				label += String.format("mu(%d): {", d);
+				boolean first2 = true;
+				for (Integer m : mu.getSupport()) {
+					if (first2)
+						first2 = false;
+					else
+						label += ", ";
+					label += String.format("(%d, %d)=", l_next, m) + df.format(mu.get(m));
+				}
+				label += "}";
+			}
+		}
+		return label + "]";
     }
 
     @Override
