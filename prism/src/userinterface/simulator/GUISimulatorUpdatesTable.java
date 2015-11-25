@@ -169,8 +169,7 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 			renderer.setText(value == null ? "" : value.toString());
 
 			// first see if the row is disabled 
-			lsm.refresh(); // TODO: may not be required
-			if(!lsm.isEnabled(row)) {
+			if (!lsm.isEnabled(row)) {
 			    renderer.setBackground(new Color(100, 100, 100));
 			} else {
 			    int dist;

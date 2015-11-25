@@ -2826,57 +2826,39 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	// inner class to avoid selecting disabled rows
 	public class DisabledItemSelectionModel extends DefaultListSelectionModel
 	{
-		private Set<Integer> enabled;
-
 		public boolean isEnabled(int index)
 		{
 			try {
-				if (enabled == null)
-					return true;
-				else
-					return enabled.contains(engine.getChoiceIndexOfTransition(index));
+				return (engine.getStrategy() == null || engine.getStrategyProbabilityForChoice(engine.getChoiceIndexOfTransition(index)) > 0);
 			} catch (PrismException e) {
 				return false;
-			}
-		}
-
-		public void refresh()
-		{
-			enabled = null;
-			// first see which rows the strategy allows
-			try {
-				if (strategyGenerated && strategy != null) {
-					if (parsedModel.getModelType() == ModelType.STPG || parsedModel.getModelType() == ModelType.SMG) {
-						if (engine.getPlayerNumber(0) == 1) {
-							Distribution next = strategy.getNextMove(stateIndex(engine.getTransitionListState()));
-							enabled = next.getSupport();
-						}
-					}
-				}
-			} catch (PrismException e) {
-				enabled = new HashSet<Integer>(0); // disable all choices
-			} catch (InvalidStrategyStateException e) {
-				enabled = new HashSet<Integer>(0); // disable all choices
 			}
 		}
 
 		@Override
 		public void setSelectionInterval(int index0, int index1)
 		{
-			// assumes single selection mode, i.e. only index1 is used
-
-			refresh(); // recompute enabled list (TODO: set this only when updating state, but fine for now)
-
+			// Assumes single selection mode, i.e. only index1 is used
 			if (isEnabled(index1)) {
 				super.setSelectionInterval(index1, index1);
-			} else if (getAnchorSelectionIndex() < index1) { // The previously selected index is before this one, so walk forward to find the next selectable item
-				for (int i = index1; i < enabled.size(); i++) {
+			}
+			// The previously selected index is before this one, so walk forward to find the next selectable item
+			else if (getAnchorSelectionIndex() < index1) {
+				int numTransitions = 0;
+				try {
+					numTransitions = engine.getNumTransitions();
+				} catch (PrismException e) {
+					return;
+				}
+				for (int i = index1; i < numTransitions; i++) {
 					if (isEnabled(i)) {
 						super.setSelectionInterval(i, i);
 						return;
 					}
 				}
-			} else { // Otherwise, walk backward to find the next selectable item
+			}
+			// Otherwise, walk backward to find the next selectable item
+			else {
 				for (int i = index1; i >= 0; i--) {
 					if (isEnabled(i)) {
 						super.setSelectionInterval(i, i);
