@@ -45,9 +45,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -69,7 +66,6 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import parser.State;
 import parser.Values;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
@@ -103,9 +99,7 @@ import userinterface.simulator.networking.GUINetworkEditor;
 import userinterface.util.GUIComputationEvent;
 import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
-import explicit.Distribution;
 import explicit.SMG;
-import explicit.STPG;
 
 @SuppressWarnings("serial")
 public class GUISimulator extends GUIPlugin implements MouseListener, ListSelectionListener, PrismSettingsListener
@@ -139,8 +133,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	private explicit.Model model; // for explicit simulation
 	private boolean strategyGenerated = false;
 	private Strategy strategy = null;
-	private java.util.Map<State, Integer> stateIds = null;
-	private java.util.List<State> states = null;
 	private boolean newPathAfterReceiveParseNotification, newPathPlotAfterReceiveParseNotification;
 	private boolean chooseInitialState;
 
@@ -505,10 +497,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				// get reference to the strategy
 				strategy = getPrism().getStrategy();
 				// store indices of states
-				if (model == null) {
-					states = getPrism().getBuiltModelExplicit().getStatesList();
-				} else {
-					states = model.getStatesList();
+				if (model != null) {
 					if (strategy instanceof StochasticUpdateStrategyProduct)
 						((StochasticUpdateStrategyProduct) strategy).setComposition((SMG) model);
 				}
@@ -1057,10 +1046,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				// get reference to the strategy
 				strategy = getPrism().getStrategy();
 				// store indices of states
-				if (model == null) {
-					states = getPrism().getBuiltModelExplicit().getStatesList();
-				} else {
-					states = model.getStatesList();
+				if (model != null) {
 					if (strategy instanceof StochasticUpdateStrategyProduct)
 						((StochasticUpdateStrategyProduct) strategy).setComposition((SMG) model);
 				}
@@ -2240,15 +2226,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	}
 
 	/**
-	 * Setter for property states.
-	 * @param states New value of property states.
-	 */
-	public void setStates(java.util.List<State> states)
-	{
-		this.states = states;
-	}
-
-	/**
 	 * Setter for property parsedModel.
 	 * @param pathActive New value of property pathActive.
 	 */
@@ -2796,31 +2773,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	public SimulatorEngine getSimulator()
 	{
 		return engine;
-	}
-
-	private int stateIndex(State state)
-	{
-		if (model == null) { // indexOf based on equals function (no value duplicates in states assumed)
-			if (stateIds == null) { // fill hash map for efficient access
-				stateIds = new java.util.HashMap<State, Integer>();
-				java.util.List<State> stateslist = getPrism().getBuiltModelExplicit().getStatesList();
-				for (int i = 0; i < stateslist.size(); i++) {
-					stateIds.put(stateslist.get(i), i);
-				}
-			}
-			return stateIds.get(state);
-		} else { // indexOf based on reference, not equals function (value duplicates of states allowed)
-			if (states == null) {
-				Thread.dumpStack();
-				return -1;
-			}
-			for (int i = 0; i < states.size(); i++) {
-				if (states.get(i) == state) {
-					return i;
-				}
-			}
-			return -1; // not in list
-		}
 	}
 
 	// inner class to avoid selecting disabled rows
