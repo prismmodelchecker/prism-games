@@ -63,6 +63,7 @@ public class TransitionList
 		numChoices = 0;
 		numTransitions = 0;
 		probSum = 0.0;
+		strategyProbabilities = null;
 	}
 
 	public void add(Choice tr)
@@ -270,12 +271,20 @@ public class TransitionList
 	}
 	
 	/**
+	 * Check whether or not there is strategy choice info stored for these transitions.
+	 */
+	public boolean hasStrategyChoiceInfo()
+	{
+		return strategyProbabilities != null;
+	}
+	
+	/**
 	 * Get the probability assigned by a strategy to a choice, specified by its index.
-	 * This will return 0.0 if no strategy info has been attached. 
+	 * This will return 1.0 if no strategy info has been attached (see {@link #hasStrategyChoiceInfo()}) 
 	 */
 	public double getStrategyProbabilityForChoice(int i)
 	{
-		return strategyProbabilities == null ? 0.0 : strategyProbabilities[i];
+		return strategyProbabilities == null ? 1.0 : strategyProbabilities[i];
 	}
 	
 	// Other checks and queries

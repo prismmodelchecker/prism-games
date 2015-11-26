@@ -2622,7 +2622,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public boolean isEnabled(int index)
 		{
 			try {
-				return (engine.getStrategy() == null || engine.getStrategyProbabilityForChoice(engine.getChoiceIndexOfTransition(index)) > 0);
+				return (!engine.hasStrategyChoiceInfo() ? true : engine.getStrategyProbabilityForChoice(engine.getChoiceIndexOfTransition(index)) > 0);
 			} catch (PrismException e) {
 				return false;
 			}

@@ -409,15 +409,14 @@ public class SimulatorEngine extends PrismComponent
 		case MDP:
 		case STPG:
 		case SMG:
-			if (model == null) { // implicit simulation
-				// Pick a random choice
+			if (strategy == null) {
+				// Resolve nondeterminism randomly
 				i = rng.randomUnifInt(numChoices);
-			} else { // explicit simulation
-				if (path instanceof PathFull && (model.getModelType() == ModelType.STPG || model.getModelType() == ModelType.SMG) && strategy != null
-						&& ((STPG) model).getPlayer(indexOf(states, currentState)) == 1) {
-					// Pick a random choice allowed by the Player 1 strategy
+			} else {
+				if ((modulesFile.getModelType() == ModelType.STPG || modulesFile.getModelType() == ModelType.SMG) && getPlayerNumber(0) == 1) {
+					// Pick a random choice as specified by the player 1 strategy
 					try {
-						Distribution next = strategy.getNextMove(indexOf(states, currentState));
+						Distribution next = strategy.getNextMove(getStateIndex(currentState));
 						i = next.sampleFromDistribution();
 					} catch (InvalidStrategyStateException e) {
 						throw new PrismException(e.getMessage());
@@ -608,7 +607,7 @@ public class SimulatorEngine extends PrismComponent
 		}
 		transitionListBuilt = true;
 		// if there is a strategy loaded, stored probabilities assigned to choices
-		if (strategy != null) {
+		if (strategy != null && getPlayerNumber(0) == 1) {
 			try {
 				strategy.setMemory(stratMem);
 				transitionList.addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
@@ -1384,12 +1383,20 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
-	 * Get the probability assigned to choice by the currently loaded strategy.
-	 * This will return 0.0 if no strategy is loaded (i.e., if {@link #getStrategy()} returns null. 
+	 * Check whether or not there is strategy choice info stored for the transitions in the current state.
+	 */
+	public boolean hasStrategyChoiceInfo() throws PrismException
+	{
+		return getTransitionList().hasStrategyChoiceInfo();
+	}
+
+	/**
+	 * Get the probability assigned to a choice of the current state by the currently loaded strategy.
+	 * This will return 1.0 if no strategy information is available (i.e., if {@link #hasStrategyChoiceInfo()} returns false. 
 	 */
 	public double getStrategyProbabilityForChoice(int i) throws PrismException
 	{
-		return (strategy == null) ? 0.0 : getTransitionList().getStrategyProbabilityForChoice(i);
+		return getTransitionList().getStrategyProbabilityForChoice(i);
 	}
 
 	/**
@@ -1401,10 +1408,10 @@ public class SimulatorEngine extends PrismComponent
 	{
 		int choice = getChoiceIndexOfTransition(index);
 		int stateIndex = getStateIndex(getTransitionListState());
-		State next = getTransitionList().computeTransitionTarget(index, getTransitionListState());
+		State next = computeTransitionTarget(index);
 		int nextIndex = getStateIndex(next);
 		try {
-			if (strategy == null) {
+			if (!hasStrategyChoiceInfo()) {
 				return "";
 			} else if (strategy instanceof StochasticUpdateStrategy) {
 				return ((StochasticUpdateStrategy) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
