@@ -319,6 +319,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		totalTimeLabel.setText(pathActive ? formatDouble(engine.getTotalTimeForPath()) : "0");
 	}
 
+	/**
+	 * Update path info in the "Strategy information" box.
+	 */
 	private void updateStrategyInfoPanel()
 	{
 		if (strategyGenerated && strategy != null)
