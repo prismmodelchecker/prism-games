@@ -317,8 +317,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		pathLengthLabel.setText(pathActive ? "" + engine.getPathSize() : "0");
 		totalTimeLabel.setText(pathActive ? formatDouble(engine.getTotalTimeForPath()) : "0");
-		if (strategyGenerated && strategy != null)
-			updateStrategyInfoPanel();
 	}
 
 	private void updateStrategyInfoPanel()
@@ -2534,7 +2532,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			doEnables();
 			fireTableDataChanged();
-			updateStrategyInfoPanel();
 
 			currentUpdatesTable.setEnabled(true);
 			currentUpdatesTable.setToolTipText("Double click on an update to manually execute it");
@@ -2558,7 +2555,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				doEnables();
 				engine.computeTransitionsForStep(oldStep);
 				fireTableDataChanged();
-				updateStrategyInfoPanel();
 
 				currentUpdatesTable.setEnabled(false);
 				currentUpdatesTable.setToolTipText(null);
