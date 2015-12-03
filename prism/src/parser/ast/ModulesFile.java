@@ -36,9 +36,11 @@ import parser.Values;
 import parser.VarList;
 import parser.type.Type;
 import parser.visitor.ASTVisitor;
+import parser.visitor.ModulesFileSemanticCheck;
+import parser.visitor.ModulesFileSemanticCheckAfterConstants;
 import prism.ModelType;
-import prism.PrismLangException;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismUtils;
 
 // Class representing parsed model file
