@@ -746,7 +746,7 @@ public class ModulesFile extends ASTElement
 		checkPlayerDefns();
 
 		// Various semantic checks 
-		semanticCheck(this);
+		doSemanticChecks();
 		// Type checking
 		typeCheck();
 
@@ -1123,6 +1123,27 @@ public class ModulesFile extends ASTElement
 	}
 
 	/**
+	  * Perform any required semantic checks.
+	  * These checks are done *before* any undefined constants have been defined.
+	 */
+	private void doSemanticChecks() throws PrismLangException
+	{
+		ModulesFileSemanticCheck visitor = new ModulesFileSemanticCheck(this);
+		accept(visitor);
+		
+	}
+	
+	/**
+	 * Perform further semantic checks that can only be done once values
+	 * for any undefined constants have been defined.
+	 */
+	public void doSemanticChecksAfterConstants() throws PrismLangException
+	{
+		ModulesFileSemanticCheckAfterConstants visitor = new ModulesFileSemanticCheckAfterConstants(this);
+		accept(visitor);
+	}
+
+	/**
 	 * Get  a list of constants in the model that are undefined
 	 * ("const int x;" rather than "const int x = 1;") 
 	 */
@@ -1143,7 +1164,7 @@ public class ModulesFile extends ASTElement
 	{
 		undefinedConstantValues = someValues == null ? null : new Values(someValues);
 		constantValues = constantList.evaluateConstants(someValues, null);
-		semanticCheckAfterConstants(this, null);
+		doSemanticChecksAfterConstants();
 	}
 
 	/**
@@ -1156,7 +1177,7 @@ public class ModulesFile extends ASTElement
 	{
 		undefinedConstantValues = someValues == null ? null : new Values(someValues);
 		constantValues = constantList.evaluateSomeConstants(someValues, null);
-		semanticCheckAfterConstants(this, null);
+		doSemanticChecksAfterConstants();
 	}
 
 	/**
