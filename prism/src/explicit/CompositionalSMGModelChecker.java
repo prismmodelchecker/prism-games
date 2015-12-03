@@ -254,11 +254,11 @@ public class CompositionalSMGModelChecker extends PrismComponent
 	 **/
 	private void buildSubsystems(boolean buildFullModel) throws PrismException
 	{
-	    ConstructModel constructModel = new ConstructModel(this, engine);
+	    ConstructModel constructModel = new ConstructModel(this);
 	    constructModel.setCheckCompatibility(checkCompatibility);
 	    subsystems = new ArrayList<SMG>();
 	    subsystemModulesFiles = new ArrayList<ModulesFile>();
-   	    currentModelExpl = (SMG) constructModel.constructSMGModelCompositionally(modulesFile, false, true, true, subsystems, subsystemModulesFiles, buildFullModel, cancel_computation);
+   	    currentModelExpl = (SMG) constructModel.constructSMGModelCompositionally(modulesFile, false, subsystems, subsystemModulesFiles, buildFullModel, cancel_computation);
 
 	    currentModelExpl.findDeadlocks(false); // do not fix deadlocks in composition
 	    checkForDeadlocksExpl(currentModelExpl); // check for deadlocks - if found, abort

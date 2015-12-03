@@ -62,6 +62,7 @@ import parser.ast.Property;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
+import simulator.ModulesFileModelGenerator;
 import simulator.PrismModelExplorer;
 import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
@@ -1990,11 +1991,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					currentModel = mod2mtbdd.translate();
 					currentModelExpl = null;
 				} else {
-					ConstructModel constructModel = new ConstructModel(this, getSimulator());
+					ConstructModel constructModel = new ConstructModel(this);
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					constructModel.setCheckCompatibility(getCheckCompatibility());
 					currentModel = null;
-					currentModelExpl = constructModel.constructModel(currentModulesFile, false, true, cancel_computation);
+					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false, false, cancel_computation);
 				}
 				// if (...) ... currentModel = buildModelExplicit(currentModulesFile);
 				break;
@@ -2152,8 +2153,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (currentDefinedMFConstants != null && currentDefinedMFConstants.getNumValues() > 0)
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
-		constructModel = new ConstructModel(this, getSimulator());
-		modelExpl = constructModel.constructModel(modulesFile, cancel_computation);
+		constructModel = new ConstructModel(this);
+		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false, false, cancel_computation);
 		statesList = constructModel.getStatesList();
 
 		// create Explicit2MTBDD object

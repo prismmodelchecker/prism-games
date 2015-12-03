@@ -40,12 +40,14 @@ import parser.visitor.ModulesFileSemanticCheck;
 import parser.visitor.ModulesFileSemanticCheckAfterConstants;
 import prism.ModelType;
 import prism.PrismException;
+import prism.ModelInfo;
+import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismUtils;
 
 // Class representing parsed model file
 
-public class ModulesFile extends ASTElement
+public class ModulesFile extends ASTElement implements ModelInfo
 {
 	// Model type (enum)
 	private ModelType modelType;
@@ -260,6 +262,24 @@ public class ModulesFile extends ASTElement
 		return formulaList;
 	}
 
+	@Override
+	public int getNumLabels()
+	{
+		return labelList.size();
+	}
+
+	@Override
+	public String getLabelName(int i) throws PrismException
+	{
+		return labelList.getLabelName(i);
+	}
+
+	@Override
+	public int getLabelIndex(String label)
+	{
+		return labelList.getLabelIndex(label);
+	}
+	
 	public LabelList getLabelList()
 	{
 		return labelList;
@@ -270,6 +290,7 @@ public class ModulesFile extends ASTElement
 		return constantList;
 	}
 
+	@Override
 	public ModelType getModelType()
 	{
 		return modelType;
@@ -672,6 +693,19 @@ public class ModulesFile extends ASTElement
 		return false;
 	}
 
+	@Override
+	public boolean containsUnboundedVariables()
+	{
+		int n = getNumVars();
+		for (int i = 0; i < n; i++) {
+			DeclarationType declType = getVarDeclaration(i).getDeclType();
+			if (declType instanceof DeclarationClock || declType instanceof DeclarationIntUnbounded) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	/**
 	 * Method to "tidy up" after parsing (must be called)
 	 * (do some checks and extract some information)
