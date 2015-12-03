@@ -63,9 +63,6 @@ import simulator.ModulesFileModelGenerator;
  */
 public class ConstructModel extends PrismComponent
 {
-	// The model generator
-	protected ModelGenerator modelGen;
-
 	// Options:
 
 	/** Find deadlocks during model construction? */
