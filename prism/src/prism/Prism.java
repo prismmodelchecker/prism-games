@@ -1995,7 +1995,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					constructModel.setCheckCompatibility(getCheckCompatibility());
 					currentModel = null;
-					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false, false, cancel_computation);
+					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false, cancel_computation);
 				}
 				// if (...) ... currentModel = buildModelExplicit(currentModulesFile);
 				break;
@@ -2154,7 +2154,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
 		constructModel = new ConstructModel(this);
-		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false, false, cancel_computation);
+		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false, cancel_computation);
 		statesList = constructModel.getStatesList();
 
 		// create Explicit2MTBDD object

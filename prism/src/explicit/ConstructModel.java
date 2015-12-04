@@ -34,7 +34,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 import parser.State;
 import parser.Values;
@@ -146,7 +145,7 @@ public class ConstructModel extends PrismComponent
 	 */
 	public List<State> computeReachableStates(ModelGenerator modelGen) throws PrismException
 	{
-		constructModel(modelGen, true, false, null);
+		constructModel(modelGen, true, null);
 		return getStatesList();
 	}
 
@@ -156,11 +155,9 @@ public class ConstructModel extends PrismComponent
 	 */
 	public Model constructModel(ModelGenerator modelGen) throws PrismException
 	{
-		return constructModel(modelGen, false, false, null);
+		return constructModel(modelGen, false, null);
 	}
 
-    //public Model constructModel(ModulesFile modulesFile, boolean justReach, boolean buildSparse, boolean distinguishActions, boolean compositional, boolean[] cancel_computation) throws PrismException
-    
 	/**
 	 * Construct an explicit-state model and return it.
 	 * If {@code justReach} is true, no model is built and null is returned;
@@ -169,7 +166,7 @@ public class ConstructModel extends PrismComponent
 	 * @param justReach If true, just build the reachable state set, not the model
 	 *
 	 */
-	public Model constructModel(ModelGenerator modelGen, boolean justReach, boolean compositional, boolean[] cancel_computation) throws PrismException
+	public Model constructModel(ModelGenerator modelGen, boolean justReach, boolean[] cancel_computation) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -281,7 +278,7 @@ public class ConstructModel extends PrismComponent
 			if (modelType.multiplePlayers()) {
 				player = -1;
 				for (i = 0; i < nc; i++) {
-				        int iPlayer = determinePlayerForChoice(modelGen, ((ModulesFileModelGenerator) modelGen).getModulesFile(), modelType, i, compositional);
+					int iPlayer = modelGen.getPlayerNumberForChoice(i);
 					if (player != -1 && iPlayer != player) {
 						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
@@ -472,64 +469,6 @@ public class ConstructModel extends PrismComponent
 	}
 
 	/**
-	 * For game models, determine the player who owns the {@code i}th choice in
-	 * the state currently being explored by the simulator. Returns the index
-	 * (starting from 1) of the player.
-	 * @param compositional True if called for compositional model building (affects action assignments)
-	 */
-    private int determinePlayerForChoice(ModelGenerator modelGen, ModulesFile modulesFile, ModelType modelType, int i, boolean compositional) throws PrismException
-	{
-		int player;
-
-		// Get index of module/action (all transitions within choice have same action, so use offset 0)
-		int modAct = ((ModulesFileModelGenerator) modelGen).getTransitionModuleOrActionIndex(i, 0);
-
-		// Synchronous action
-		if (modAct > 0) {
-			String actionName = modulesFile.getSynch(modAct - 1);
-			if (!compositional) {
-				player = modulesFile.getPlayerForAction(actionName);
-				if (player == -1) {
-					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
-				}
-				// 0-indexed to 1-indexed
-				player++;
-			} else {
-				// get inputs and outputs of subsystem
-				Vector<String> inputs = new Vector<String>();
-				Vector<String> outputs = new Vector<String>();
-				for (int n = 0; n < modulesFile.getNumModules(); n++) {
-					inputs.addAll(modulesFile.getModule(n).getAllInputActions());
-					outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
-				}
-				if (actionName == null || "".equals(actionName)) {
-					player = 2; // tau controlled by player 2
-				} else if (inputs.contains(actionName)) {
-					player = 2; // inputs controlled by player 2
-				} else if (outputs.contains(actionName)) {
-					player = 1; // outputs controlled by player 1
-				} else {
-					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
-				}
-			}
-		}
-		// Asynchronous action
-		else {
-			if (!compositional) {
-				player = modulesFile.getPlayerForModule(((ModulesFileModelGenerator) modelGen).getTransitionModuleOrAction(i, 0));
-				if (player == -1) {
-					throw new PrismException("Module \"" + ((ModulesFileModelGenerator) modelGen).getTransitionModuleOrAction(i, 0) + "\" is not assigned to any player");
-				}
-				// 0-indexed to 1-indexed
-				player++;
-			} else {
-				player = 2; // tau controlled by player 2
-			}
-		}
-		return player;
-	}
-
-	/**
 	 * Construct an explicit-state model for an SMG with a system definition (done compositionally).
 	 * If {@code justReach} is true, no model is built and null is returned;
 	 * the set of reachable states can be obtained with {@link #getStatesList()}.
@@ -587,7 +526,9 @@ public class ConstructModel extends PrismComponent
 		        ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
 			if(subsystemModulesFiles != null) subsystemModulesFiles.add(modulesFile_i);
 			// construct the models
-			m = (SMG) constructModel(new ModulesFileModelGenerator(modulesFile_i, this), justReach, true, cancel_computation);
+			ModulesFileModelGenerator modelGen = new ModulesFileModelGenerator(modulesFile_i, this);
+			modelGen.setCompositional(true);
+			m = (SMG) constructModel(modelGen, justReach, cancel_computation);
 			// convert to normal form if necessary
 			if(m != null) m.toNormalForm();
 			// add model to subsystem list
@@ -625,7 +566,7 @@ public class ConstructModel extends PrismComponent
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism);
 			simulator.ModulesFileModelGenerator modelGen = new simulator.ModulesFileModelGenerator(modulesFile, constructModel);
-			Model model = constructModel.constructModel(modelGen, false, false, cancel_computation);
+			Model model = constructModel.constructModel(modelGen, false, cancel_computation);
 			model.exportToPrismExplicitTra(args[1]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());

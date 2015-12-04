@@ -2,6 +2,7 @@ package simulator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import parser.State;
 import parser.Values;
@@ -29,6 +30,9 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	private VarList varList;
 	private LabelList labelList;
 	
+	// Wwhether to use the "compositional" system construction (for SMGSs)
+	private boolean compositional = false;
+
 	// Model exploration info
 	
 	// State currently being explored
@@ -104,6 +108,14 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	public ModulesFile getModulesFile()
 	{
 		return modulesFile;
+	}
+	
+	/**
+	 * Set whether to use the "compositional" system construction (for SMGSs) 
+	 */
+	public void setCompositional(boolean compositional)
+	{
+		this.compositional = compositional;
 	}
 	
 	// Model info
@@ -300,6 +312,49 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		return getTransitionList().computeTransitionTarget(index, exploreState);
 	}
 	
+	@Override
+    public int getPlayerNumberForChoice(int i) throws PrismException
+	{
+    		// Normal game
+		if (!compositional) {
+			String modAct = getTransitionModuleOrAction(i, 0);
+			// NB: 0-indexed to 1-indexed
+			return modulesFile.getPlayerForModuleOrAction(modAct) + 1;
+		}
+		// Compositional game
+		else {
+			// Get index of module/action (all transitions within choice have same action, so use offset 0)
+			int modAct = getTransitionModuleOrActionIndex(i, 0);
+
+			// Synchronous action
+			int player = -1;
+			if (modAct > 0) {
+				String actionName = modulesFile.getSynch(modAct - 1);
+				// get inputs and outputs of subsystem
+				Vector<String> inputs = new Vector<String>();
+				Vector<String> outputs = new Vector<String>();
+				for (int n = 0; n < modulesFile.getNumModules(); n++) {
+					inputs.addAll(modulesFile.getModule(n).getAllInputActions());
+					outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
+				}
+				if (actionName == null || "".equals(actionName)) {
+					player = 2; // tau controlled by player 2
+				} else if (inputs.contains(actionName)) {
+					player = 2; // inputs controlled by player 2
+				} else if (outputs.contains(actionName)) {
+					player = 1; // outputs controlled by player 1
+				} else {
+					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
+				}
+			}
+			// Asynchronous action
+			else {
+				player = 2; // tau controlled by player 2
+			}
+			return player;
+		}
+	}
+
 	//@Override
 	public void calculateStateRewards(State state, double[] store) throws PrismLangException
 	{

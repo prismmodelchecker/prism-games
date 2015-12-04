@@ -73,7 +73,7 @@ public class PrismExplicit extends PrismComponent
 
 		// build model
 		l = System.currentTimeMillis();
-		modelExpl = constructModel.constructModel(simEngine, false, false, cancel_computation);
+		modelExpl = constructModel.constructModel(simEngine, false, cancel_computation);
 		l = System.currentTimeMillis() - l;
 
 		mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
