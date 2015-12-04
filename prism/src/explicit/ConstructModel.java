@@ -74,11 +74,11 @@ public class ConstructModel extends PrismComponent
 	/** Should actions be attached to distributions (and used to distinguish them)? */
 	protected boolean distinguishActions = true;
 	/** Should labels be processed and attached to the model? */
-	protected boolean attachLabels = true; 
+	protected boolean attachLabels = true;
 
-    /** Automatically check compatibility? */
-    protected boolean checkCompatibility = false;
-    
+	/** Automatically check compatibility? */
+	protected boolean checkCompatibility = false;
+
 	// Details of built model:
 
 	/** Reachable states */
@@ -136,7 +136,7 @@ public class ConstructModel extends PrismComponent
 	 */
 	public void setCheckCompatibility(boolean checkCompatibility)
 	{
-	        this.checkCompatibility = checkCompatibility;
+		this.checkCompatibility = checkCompatibility;
 	}
 
 	/**
@@ -190,13 +190,14 @@ public class ConstructModel extends PrismComponent
 
 		// Get model info
 		modelType = modelGen.getModelType();
-		
+
 		// For PRISM SMGs with a system definition, we build compositionally
-		if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG && ((ModulesFileModelGenerator) modelGen).getModulesFile().getSystemDefn() != null) {
-		    // default is to not check compatibility
-		    return constructSMGModelCompositionally(((ModulesFileModelGenerator) modelGen).getModulesFile(), justReach, cancel_computation);
+		if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG
+				&& ((ModulesFileModelGenerator) modelGen).getModulesFile().getSystemDefn() != null) {
+			// default is to not check compatibility
+			return constructSMGModelCompositionally(((ModulesFileModelGenerator) modelGen).getModulesFile(), justReach, cancel_computation);
 		}
-		
+
 		// Display a warning if there are unbounded vars
 		VarList varList = modelGen.createVarList();
 		if (modelGen.containsUnboundedVariables())
@@ -437,14 +438,14 @@ public class ConstructModel extends PrismComponent
 
 		if (attachLabels)
 			attachLabels(modelGen, model);
-		
+
 		return model;
 	}
 
 	private void attachLabels(ModelGenerator modelGen, ModelExplicit model) throws PrismException
 	{
 		// Get state info
-		List <State> statesList = model.getStatesList();
+		List<State> statesList = model.getStatesList();
 		int numStates = statesList.size();
 		// Create storage for labels
 		int numLabels = modelGen.getNumLabels();
@@ -474,24 +475,26 @@ public class ConstructModel extends PrismComponent
 	 * the set of reachable states can be obtained with {@link #getStatesList()}.
 	 * @param modulesFile The PRISM model
 	 */
-    public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, boolean[] cancel_computation) throws PrismException
-        {
-	    return constructSMGModelCompositionally(modulesFile, justReach, null, null, true, cancel_computation);
-	}
-        /**
-	 * Compositionally constructs the explicit-state model for an SMG with a system definition.
-	 * Returns the component games in {@code subsystems} and the corresponding modules files in
-	 * {@code subsystemModulesFiles}. If {@code buildFullModel} or {@code checkCompatibility} is
-	 * {@code true}, the full model is constructed. Otherwise, the full model is not constructed
-	 * and and only the components are returned.
-	 **/
-        public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, List<SMG> subsystems, List<ModulesFile> subsystemModulesFiles, boolean buildFullModel, boolean[] cancel_computation) throws PrismException
+	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, boolean[] cancel_computation) throws PrismException
 	{
-	        // if compatibility check or full model build is requested, need to build full model in any case
-	        if((checkCompatibility || buildFullModel) && subsystems==null)
-		        subsystems = new ArrayList<SMG>();
-	        if((checkCompatibility || buildFullModel) && subsystemModulesFiles==null)
-		        subsystemModulesFiles = new ArrayList<ModulesFile>();
+		return constructSMGModelCompositionally(modulesFile, justReach, null, null, true, cancel_computation);
+	}
+
+	/**
+	* Compositionally constructs the explicit-state model for an SMG with a system definition.
+	* Returns the component games in {@code subsystems} and the corresponding modules files in
+	* {@code subsystemModulesFiles}. If {@code buildFullModel} or {@code checkCompatibility} is
+	* {@code true}, the full model is constructed. Otherwise, the full model is not constructed
+	* and and only the components are returned.
+	**/
+	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, List<SMG> subsystems, List<ModulesFile> subsystemModulesFiles,
+			boolean buildFullModel, boolean[] cancel_computation) throws PrismException
+	{
+		// if compatibility check or full model build is requested, need to build full model in any case
+		if ((checkCompatibility || buildFullModel) && subsystems == null)
+			subsystems = new ArrayList<SMG>();
+		if ((checkCompatibility || buildFullModel) && subsystemModulesFiles == null)
+			subsystemModulesFiles = new ArrayList<ModulesFile>();
 
 		// Extract subsystems from system definition
 		SystemDefn sys = modulesFile.getSystemDefn();
@@ -504,49 +507,50 @@ public class ConstructModel extends PrismComponent
 
 		ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
 		ModulesFile.extractSubsystemRefs(sys, sysRefs);
-		
+
 		// Extract modules in each subsystem ...
 		int numComps = sysRefs.size();
 		ArrayList<List<String>> moduleNameLists = new ArrayList<List<String>>();
 		for (int i = 0; i < numComps; i++) {
-		        SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
+			SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
 			if (subsys == null) {
-			        throw new PrismException("Unknown system reference" + sysRefs.get(i));
+				throw new PrismException("Unknown system reference" + sysRefs.get(i));
 			}
 			ArrayList<String> moduleNames = new ArrayList<String>();
 			ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
 			moduleNameLists.add(moduleNames);
 		}
-		
+
 		// ... to build the subsystems individually.
 		setFixDeadlocks(false); // deadlocks not fixed
 		SMG m = null;
 		for (int i = 0; i < numComps; i++) {
-		        // extract and store modules files for the composition later
-		        ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
-			if(subsystemModulesFiles != null) subsystemModulesFiles.add(modulesFile_i);
+			// extract and store modules files for the composition later
+			ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
+			if (subsystemModulesFiles != null)
+				subsystemModulesFiles.add(modulesFile_i);
 			// construct the models
 			ModulesFileModelGenerator modelGen = new ModulesFileModelGenerator(modulesFile_i, this);
 			modelGen.setCompositional(true);
 			m = (SMG) constructModel(modelGen, justReach, cancel_computation);
 			// convert to normal form if necessary
-			if(m != null) m.toNormalForm();
+			if (m != null)
+				m.toNormalForm();
 			// add model to subsystem list
-			if(subsystems != null) subsystems.add(m);
+			if (subsystems != null)
+				subsystems.add(m);
 		}
-		if(!justReach && (checkCompatibility || buildFullModel) &&
-		       sys instanceof SystemFullParallel) {
-		        // form composition and check compatibility (if requested)
-		        double t0 = (double)System.nanoTime();
+		if (!justReach && (checkCompatibility || buildFullModel) && sys instanceof SystemFullParallel) {
+			// form composition and check compatibility (if requested)
+			double t0 = (double) System.nanoTime();
 			SMG smg_compositional = new SMG(modulesFile, subsystemModulesFiles, subsystems, mainLog, checkCompatibility, cancel_computation);
-			
+
 			mainLog.print(String.format("product construction took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
 			return smg_compositional;
 		} else {
-		        return m;
+			return m;
 		}
 	}
-
 
 	/**
 	 * Test method.
