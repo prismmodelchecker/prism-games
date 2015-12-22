@@ -11,14 +11,15 @@ import jltl2ba.SimpleLTL;
 import parser.BooleanUtils;
 import parser.ast.*;
 import parser.type.*;
+import prism.ModelInfo;
 import parser.visitor.*;
 import prism.ModelType;
 import prism.PrismLangException;
 
 @SuppressWarnings({"unused", "static-access", "serial"})
 public class PrismParser implements PrismParserConstants {
-        // The modules file associated with properties file being parsed
-        private static ModulesFile modulesFile;
+        // The model associated with the properties file being parsed
+        private static ModelInfo modelInfo;
 
         // List of keyword strings
         private static ArrayList<String> keywordList = new ArrayList<String>();
@@ -159,16 +160,16 @@ public class PrismParser implements PrismParserConstants {
 
         // Parse properties file (pass ModulesFile in to get at its constants)
 
-        public PropertiesFile parsePropertiesFile(ModulesFile mf, InputStream str) throws PrismLangException
-        { return parsePropertiesFile(mf, str, false); }
+        public PropertiesFile parsePropertiesFile(ModelInfo modelInfo, InputStream str) throws PrismLangException
+        { return parsePropertiesFile(modelInfo, str, false); }
 
-        public PropertiesFile parsePropertiesFile(ModulesFile mf, InputStream str, boolean strict) throws PrismLangException
+        public PropertiesFile parsePropertiesFile(ModelInfo modelInfo, InputStream str, boolean strict) throws PrismLangException
         {
                 PropertiesFile pf = null;
 
                 // (Re)start parser
                 ReInit(str);
-                modulesFile = mf;
+                this.modelInfo = modelInfo;
                 // Parse
                 try {
                         pf = strict ? PropertiesFile() : PropertiesFileSemicolonless();
@@ -505,7 +506,7 @@ public class PrismParser implements PrismParserConstants {
 
 // Properties file
   static final public PropertiesFile PropertiesFile() throws ParseException, PrismLangException {
-        PropertiesFile pf = new PropertiesFile(modulesFile);
+        PropertiesFile pf = new PropertiesFile(modelInfo);
         Property prop;
         Token begin = null;
           begin = getToken(1);
@@ -623,7 +624,7 @@ public class PrismParser implements PrismParserConstants {
 
 // Properties file with optional semicolons - beware of potential ambiguities
   static final public PropertiesFile PropertiesFileSemicolonless() throws ParseException, PrismLangException {
-        PropertiesFile pf = new PropertiesFile(modulesFile);
+        PropertiesFile pf = new PropertiesFile(modelInfo);
         Property prop;
         Token begin = null;
           begin = getToken(1);

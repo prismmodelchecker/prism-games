@@ -30,6 +30,7 @@ import java.util.*;
 
 import parser.*;
 import parser.visitor.*;
+import prism.ModelInfo;
 import prism.PrismLangException;
 import prism.PrismUtils;
 
@@ -39,6 +40,7 @@ public class PropertiesFile extends ASTElement
 {
 	// Associated ModulesFile (for constants, ...)
 	private ModulesFile modulesFile;
+	private ModelInfo modelInfo;
 
 	// Components
 	private FormulaList formulaList;
@@ -55,9 +57,9 @@ public class PropertiesFile extends ASTElement
 
 	// Constructor
 
-	public PropertiesFile(ModulesFile mf)
+	public PropertiesFile(ModelInfo modelInfo)
 	{
-		setModulesFile(mf);
+		setModelInfo(modelInfo);
 		formulaList = new FormulaList();
 		labelList = new LabelList();
 		combinedLabelList = new LabelList();
@@ -69,10 +71,22 @@ public class PropertiesFile extends ASTElement
 
 	// Set methods
 
-	/** Attach to a ModulesFile (so can access labels/constants etc.) */
-	public void setModulesFile(ModulesFile mf)
+	/** Attach model information (so can access labels/constants etc.) */
+	public void setModelInfo(ModelInfo modelInfo)
 	{
-		this.modulesFile = mf;
+		// Store ModelInfo. Need a ModulesFile too for now. Create a dummy one if needed.
+		if (modelInfo  == null) {
+			this.modelInfo = this.modulesFile = new ModulesFile();
+			this.modulesFile.setFormulaList(new FormulaList());
+			this.modulesFile.setConstantList(new ConstantList());
+		} else if (modelInfo instanceof ModulesFile) {
+			this.modelInfo = this.modulesFile = (ModulesFile) modelInfo;
+		} else {
+			this.modelInfo = modelInfo;
+			this.modulesFile = new ModulesFile();
+			this.modulesFile.setFormulaList(new FormulaList());
+			this.modulesFile.setConstantList(new ConstantList());
+		}
 	}
 
 	public void setFormulaList(FormulaList fl)
@@ -277,13 +291,13 @@ public class PropertiesFile extends ASTElement
 		checkPropertyNames();
 
 		// Find all instances of variables (i.e. locate idents which are variables).
-		findAllVars(modulesFile.getVarNames(), modulesFile.getVarTypes());
+		findAllVars(modelInfo.getVarNames(), modelInfo.getVarTypes());
 
 		// Find all instances of property refs
 		findAllPropRefs(null, this);
 		// Check property references for cyclic dependencies
 		findCyclesInPropertyReferences();
-		
+
 		// Various semantic checks 
 		doSemanticChecks();
 		// Type checking
@@ -448,10 +462,10 @@ public class PropertiesFile extends ASTElement
 	 */
 	private void doSemanticChecks() throws PrismLangException
 	{
-		PropertiesSemanticCheck visitor = new PropertiesSemanticCheck(this, modulesFile);
+		PropertiesSemanticCheck visitor = new PropertiesSemanticCheck(this, modelInfo);
 		accept(visitor);
 	}
-	
+
 	/**
 	 * Get a list of all undefined constants in the properties files
 	 * ("const int x;" rather than "const int x = 1;") 
@@ -615,7 +629,7 @@ public class PropertiesFile extends ASTElement
 	public ASTElement deepCopy()
 	{
 		int i, n;
-		PropertiesFile ret = new PropertiesFile(modulesFile);
+		PropertiesFile ret = new PropertiesFile(modelInfo);
 		// Copy ASTElement stuff
 		ret.setPosition(this);
 		// Deep copy main components

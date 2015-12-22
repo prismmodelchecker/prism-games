@@ -88,7 +88,7 @@ public class MultiObjModelChecker extends PrismComponent
 		long l = System.currentTimeMillis();
 		LTL2DA ltl2da = new LTL2DA(this);
 		dra[i] = ltl2da.convertLTLFormulaToDRA(ltl, modelChecker.getConstantValues());
-		mainLog.print("DRA has " + dra[i].size() + " states, " + ", " + dra[i].getAcceptance().getSizeStatistics() + ".");
+		mainLog.print("DRA has " + dra[i].size() + " states, " + dra[i].getAcceptance().getSizeStatistics() + ".");
 		l = System.currentTimeMillis() - l;
 		mainLog.println("Time for Rabin translation: " + l / 1000.0 + " seconds.");
 		// If required, export DRA 
@@ -742,6 +742,7 @@ public class MultiObjModelChecker extends PrismComponent
 	protected TileList generateParetoCurve(NondetModel modelProduct, JDDNode yes_ones, JDDNode maybe, final JDDNode st, JDDNode[] targets,
 			List<JDDNode> rewards, OpsAndBoundsList opsAndBounds) throws PrismException
 	{
+		//TODO this method does not work for more than 2 objectives
 		int numberOfPoints = 0;
 		int rewardStepBounds[] = new int[rewards.size()];
 		for (int i = 0; i < rewardStepBounds.length; i++)
@@ -801,7 +802,7 @@ public class MultiObjModelChecker extends PrismComponent
 		//create a sparse matrix for transitions
 		JDDNode a = JDD.Apply(JDD.TIMES, modelProduct.getTrans(), modelProduct.getReach());
 
-		if (!min) {
+		if (!min && dimReward == 0) {
 			JDD.Ref(a);
 			JDDNode tmp = JDD.And(JDD.Equals(a, 1.0), JDD.Identity(modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars()));
 			a = JDD.ITE(tmp, JDD.Constant(0), a);
@@ -929,7 +930,7 @@ public class MultiObjModelChecker extends PrismComponent
 		PrismNative.setExportAdv(exportAdvSetting);
 
 		if (verbose)
-			mainLog.println("Points for initial tile: " + pointsForInitialTile);
+			mainLog.println("Points for the initial tile: " + pointsForInitialTile);
 
 		Tile initialTile = new Tile(pointsForInitialTile);
 		TileList tileList = new TileList(initialTile, opsAndBounds, tolerance);
@@ -1016,8 +1017,10 @@ public class MultiObjModelChecker extends PrismComponent
 				mainLog.println("Exported Pareto curve. To see it, run\n etc/scripts/prism-pareto.py " + paretoFile);
 			}
 
-			mainLog.println("Computed " + tileList.getNumberOfDifferentPoints() + " points altogether:\n");
-			mainLog.println(tileList.getPoints().toString());
+			if (verbose) {
+				mainLog.print("Computed " + tileList.getNumberOfDifferentPoints() + " points altogether: ");
+				mainLog.println(tileList.getPoints().toString());
+			}
 
 			return tileList;
 		}
@@ -1086,7 +1089,7 @@ public class MultiObjModelChecker extends PrismComponent
 		//create a sparse matrix for transitions
 		JDDNode a = JDD.Apply(JDD.TIMES, modelProduct.getTrans(), modelProduct.getReach());
 
-		if (!min) {
+		if (!min && dimReward == 0) {
 			JDD.Ref(a);
 			JDDNode tmp = JDD.And(JDD.Equals(a, 1.0), JDD.Identity(modelProduct.getAllDDRowVars(), modelProduct.getAllDDColVars()));
 			a = JDD.ITE(tmp, JDD.Constant(0), a);

@@ -33,9 +33,43 @@ import prism.PrismLangException;
 
 public class ExpressionFilter extends Expression
 {
-	// Enums for  types of filter
+	/**
+	 * Types of filter, for expressions of the form "filter(op, prop, states)",
+	 * with filter states "states" being optional (denoting "true").
+	 */ 
 	public enum FilterOperator {
-		MIN, MAX, ARGMIN, ARGMAX, COUNT, SUM, AVG, FIRST, RANGE, FORALL, EXISTS, PRINT, PRINTALL, STATE;
+		/** Minimum value of prop over all filter states */
+		MIN ("min"),
+		/** Maximum value of prop over all filter states */
+		MAX ("max"),
+		/** True for the filter states that yield the minimum value of prop */
+		ARGMIN ("argmin"),
+		/** True for the filter states that yield the maximum value of prop */
+		ARGMAX ("argmax"),
+		/** Number of filter states for which prop is true */
+		COUNT ("count"),
+		/** Sum of the value of prop for all filter states */
+		SUM ("sum"),
+		/** Average of the value of prop over all filter states */
+		AVG ("avg"),
+		/** Value of prop for the first (lowest-indexed) filter state */
+		FIRST ("first"),
+		/** Range (interval) of values of prop over all filter states */
+		RANGE ("range"),
+		/** True iff prop is true for all filter states */
+		FORALL ("forall"),
+		/** True iff prop is true for some filter states */
+		EXISTS ("exists"),
+		/** Print the (non-zero) values to the log */
+		PRINT ("print"),
+		/** Print all (including zero) values to the log */
+		PRINTALL ("printall"),
+		/** Value for the single filter state (if there is more than one, this is an error) */
+		STATE ("state");
+		public final String keyword;
+		FilterOperator(final String keyword) {
+			this.keyword = keyword;
+		}
 	};
 
 	// Operator used in filter
@@ -79,37 +113,24 @@ public class ExpressionFilter extends Expression
 	public void setOperator(String opName)
 	{
 		this.opName = opName;
-		if (opName.equals("min"))
-			opType = FilterOperator.MIN;
-		else if (opName.equals("max"))
-			opType = FilterOperator.MAX;
-		else if (opName.equals("argmin"))
-			opType = FilterOperator.ARGMIN;
-		else if (opName.equals("argmax"))
-			opType = FilterOperator.ARGMAX;
-		else if (opName.equals("count"))
-			opType = FilterOperator.COUNT;
-		else if (opName.equals("sum") || opName.equals("+"))
+		for (FilterOperator op : FilterOperator.values()) {
+			if (op.keyword.equals(opName)) {
+				opType = op;
+				return;
+			}
+		}
+		// handle shorthands
+		if ("+".equals(opName)) {
 			opType = FilterOperator.SUM;
-		else if (opName.equals("avg"))
-			opType = FilterOperator.AVG;
-		else if (opName.equals("first"))
-			opType = FilterOperator.FIRST;
-		else if (opName.equals("range"))
-			opType = FilterOperator.RANGE;
-		else if (opName.equals("forall") || opName.equals("&"))
+		} else if ("&".equals(opName)) {
 			opType = FilterOperator.FORALL;
-		else if (opName.equals("exists") || opName.equals("|"))
+		} else if ("|".equals(opName)) {
 			opType = FilterOperator.EXISTS;
-		else if (opName.equals("print"))
-			opType = FilterOperator.PRINT;
-		else if (opName.equals("printall"))
-			opType = FilterOperator.PRINTALL;
-		else if (opName.equals("state"))
-			opType = FilterOperator.STATE;
-		else opType = null;
+		} else {
+			opType = null;
+		}
 	}
-	
+
 	public void setOperand(Expression operand)
 	{
 		this.operand = operand;

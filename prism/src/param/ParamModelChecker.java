@@ -449,14 +449,14 @@ final public class ParamModelChecker extends PrismComponent
 		int i;
 		
 		// treat special cases
-		if (expr.getName().equals("deadlock")) {
+		if (expr.isDeadlockLabel()) {
 			int numStates = model.getNumStates();
 			StateValues stateValues = new StateValues(numStates, model.getFirstInitialState());
 			for (i = 0; i < numStates; i++) {
 				stateValues.setStateValue(i, model.isDeadlockState(i));
 			}
 			return regionFactory.completeCover(stateValues);
-		} else if (expr.getName().equals("init")) {
+		} else if (expr.isInitLabel()) {
 			int numStates = model.getNumStates();
 			StateValues stateValues = new StateValues(numStates, model.getFirstInitialState());
 			for (i = 0; i < numStates; i++) {
@@ -491,7 +491,6 @@ final public class ParamModelChecker extends PrismComponent
 
 	protected RegionValues checkExpressionFilter(ParamModel model, ExpressionFilter expr, BitSet needStates) throws PrismException
 	{
-		RegionValues resVals = null;
 		Expression filter = expr.getFilter();
 		if (filter == null) {
 			filter = Expression.True();
@@ -505,6 +504,17 @@ final public class ParamModelChecker extends PrismComponent
 			throw new PrismException("currently, parameter-dependent filters are not supported");
 		}
 		BitSet bsFilter = rvFilter.getStateValues().toBitSet();
+		// Check filter satisfied by exactly one state
+		FilterOperator op = expr.getOperatorType();
+		if (op == FilterOperator.STATE && bsFilter.cardinality() != 1) {
+			String s = "Filter should be satisfied in exactly 1 state";
+			s += " (but \"" + filter + "\" is true in " + bsFilter.cardinality() + " states)";
+			throw new PrismException(s);
+		}
+		if (op == FilterOperator.FIRST) {
+			// only first state is of interest
+			bsFilter.clear(bsFilter.nextSetBit(0) + 1, bsFilter.length());
+		}
 		RegionValues vals = checkExpression(model, expr.getOperand(), bsFilter);
 
 		// Check if filter state set is empty; we treat this as an error
@@ -513,14 +523,14 @@ final public class ParamModelChecker extends PrismComponent
 		}
 		
 		// Remember whether filter is for the initial state and, if so, whether there's just one
-		boolean filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
+		boolean filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).isInitLabel());
 		// Print out number of states satisfying filter
 		if (!filterInit) {
 			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
 		}
 			
 		// Compute result according to filter type
-		FilterOperator op = expr.getOperatorType();
+		RegionValues resVals = null;
 		switch (op) {
 		case PRINT:
 			// Format of print-out depends on type
@@ -564,12 +574,6 @@ final public class ParamModelChecker extends PrismComponent
 			resVals = vals.op(Region.EXISTS, bsFilter);
 			break;
 		case STATE:
-			// Check filter satisfied by exactly one state
-			if (bsFilter.cardinality() != 1) {
-				String s = "Filter should be satisfied in exactly 1 state";
-				s += " (but \"" + filter + "\" is true in " + bsFilter.cardinality() + " states)";
-				throw new PrismException(s);
-			}
 			resVals = vals.op(Region.FIRST, bsFilter);
 			break;
 		default:
@@ -599,7 +603,7 @@ final public class ParamModelChecker extends PrismComponent
 
 		/*
 		// Remember whether filter is for the initial state and, if so, whether there's just one
-		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
+		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).isInitLabel());
 		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
 		// Print out number of states satisfying filter
 		if (!filterInit)

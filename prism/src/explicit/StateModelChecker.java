@@ -61,6 +61,7 @@ import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.visitor.ASTTraverseModify;
 import prism.Filter;
+import prism.ModelInfo;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
@@ -124,8 +125,9 @@ public class StateModelChecker extends PrismComponent
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 
-	// Model file (for reward structures, etc.)
+	// Model info (for reward structures, etc.)
 	protected ModulesFile modulesFile = null;
+	protected ModelInfo modelInfo = null;
 
 	// Properties file (for labels, constants, etc.)
 	protected PropertiesFile propertiesFile = null;
@@ -212,7 +214,7 @@ public class StateModelChecker extends PrismComponent
 	 */
 	public void inheritSettings(StateModelChecker other)
 	{
-		setModulesFileAndPropertiesFile(other.modulesFile, other.propertiesFile);
+		setModulesFileAndPropertiesFile(other.modelInfo, other.propertiesFile);
 		setLog(other.getLog());
 		setVerbosity(other.getVerbosity());
 		setExportTarget(other.getExportTarget());
@@ -410,14 +412,17 @@ public class StateModelChecker extends PrismComponent
 	 * Set the attached model file (for e.g. reward structures when model checking)
 	 * and the attached properties file (for e.g. constants/labels when model checking)
 	 */
-	public void setModulesFileAndPropertiesFile(ModulesFile modulesFile, PropertiesFile propertiesFile)
+	public void setModulesFileAndPropertiesFile(ModelInfo modelInfo, PropertiesFile propertiesFile)
 	{
-		this.modulesFile = modulesFile;
+		this.modelInfo = modelInfo;
+		if (modelInfo instanceof ModulesFile) {
+			this.modulesFile = (ModulesFile) modelInfo;
+		}
 		this.propertiesFile = propertiesFile;
 		// Get combined constant values from model/properties
 		constantValues = new Values();
-		if (modulesFile != null)
-			constantValues.addValues(modulesFile.getConstantValues());
+		if (modelInfo != null)
+			constantValues.addValues(modelInfo.getConstantValues());
 		if (propertiesFile != null)
 			constantValues.addValues(propertiesFile.getConstantValues());
 	}
@@ -812,14 +817,14 @@ public class StateModelChecker extends PrismComponent
 		int i;
 
 		// treat special cases
-		if (expr.getName().equals("deadlock")) {
+		if (expr.isDeadlockLabel()) {
 			int numStates = model.getNumStates();
 			BitSet bs = new BitSet(numStates);
 			for (i = 0; i < numStates; i++) {
 				bs.set(i, model.isDeadlockState(i));
 			}
 			return StateValues.createFromBitSet(bs, model);
-		} else if (expr.getName().equals("init")) {
+		} else if (expr.isInitLabel()) {
 			int numStates = model.getNumStates();
 			BitSet bs = new BitSet(numStates);
 			for (i = 0; i < numStates; i++) {
@@ -872,33 +877,18 @@ public class StateModelChecker extends PrismComponent
 
 	protected StateValues checkExpressionFilter(Model model, ExpressionFilter expr, BitSet statesOfInterest) throws PrismException
 	{
-		// Filter info
-		Expression filter;
-		FilterOperator op;
-		String filterStatesString;
-		boolean filterInit, filterInitSingle, filterTrue;
-		BitSet bsFilter = null;
-		// Result info
-		StateValues vals = null, resVals = null;
-		BitSet bsMatch = null, bs;
-		StateValues states;
-		boolean b = false;
-		int count = 0;
-		String resultExpl = null;
-		Object resObj = null;
-
 		// Translate filter
-		filter = expr.getFilter();
+		Expression filter = expr.getFilter();
 		// Create default filter (true) if none given
 		if (filter == null)
 			filter = Expression.True();
 		// Remember whether filter is "true"
-		filterTrue = Expression.isTrue(filter);
+		boolean filterTrue = Expression.isTrue(filter);
 		// Store some more info
-		filterStatesString = filterTrue ? "all states" : "states satisfying filter";
+		String filterStatesString = filterTrue ? "all states" : "states satisfying filter";
 
 		// get the BitSet of states matching the filter, without taking statesOfInterest into account
-		bsFilter = checkExpression(model, filter, null).getBitSet();
+		BitSet bsFilter = checkExpression(model, filter, null).getBitSet();
 
 		// Check if filter state set is empty; we treat this as an error
 		if (bsFilter.isEmpty()) {
@@ -918,12 +908,26 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		// Remember whether filter is for the initial state and, if so, whether there's just one
-		filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).getName().equals("init"));
-		filterInitSingle = filterInit & model.getNumInitialStates() == 1;
+		boolean filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).isInitLabel());
+		boolean filterInitSingle = filterInit & model.getNumInitialStates() == 1;
+		// Print out number of states satisfying filter
+		if (!filterInit) {
+			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
+		}
+		// Possibly optimise filter
+		FilterOperator op = expr.getOperatorType();
+		if (op == FilterOperator.FIRST) {
+			bsFilter.clear(bsFilter.nextSetBit(0) + 1, bsFilter.length());
+		}
 
 		// For some types of filter, store info that may be used to optimise model checking
-		op = expr.getOperatorType();
 		if (op == FilterOperator.STATE) {
+			// Check filter satisfied by exactly one state
+			if (bsFilter.cardinality() != 1) {
+				String s = "Filter should be satisfied in exactly 1 state";
+				s += " (but \"" + filter + "\" is true in " + bsFilter.cardinality() + " states)";
+				throw new PrismException(s);
+			}
 			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
 		} else if (op == FilterOperator.FORALL && filterInit && filterInitSingle) {
 			currentFilter = new Filter(Filter.FilterOperator.STATE, bsFilter.nextSetBit(0));
@@ -932,15 +936,15 @@ public class StateModelChecker extends PrismComponent
 		} else {
 			currentFilter = null;
 		}
-
 		// Check operand recursively, using bsFilter as statesOfInterest
-		vals = checkExpression(model, expr.getOperand(), bsFilter);
-
-		// Print out number of states satisfying filter
-		if (!filterInit)
-			mainLog.println("\nStates satisfying filter " + filter + ": " + bsFilter.cardinality());
+		StateValues vals = checkExpression(model, expr.getOperand(), bsFilter);
 
 		// Compute result according to filter type
+		StateValues resVals = null;
+		BitSet bsMatch = null, bs = null;
+		boolean b = false;
+		String resultExpl = null;
+		Object resObj = null;
 		switch (op) {
 		case PRINT:
 		case PRINTALL:
@@ -1023,7 +1027,7 @@ public class StateModelChecker extends PrismComponent
 			break;
 		case COUNT:
 			// Compute count
-			count = vals.countOverBitSet(bsFilter);
+			int count = vals.countOverBitSet(bsFilter);
 			// Store as object/vector
 			resObj = new Integer(count);
 			resVals = new StateValues(expr.getType(), resObj, model);
@@ -1132,12 +1136,6 @@ public class StateModelChecker extends PrismComponent
 			mainLog.println("\n" + resultExpl);
 			break;
 		case STATE:
-			// Check filter satisfied by exactly one state
-			if (bsFilter.cardinality() != 1) {
-				String s = "Filter should be satisfied in exactly 1 state";
-				s += " (but \"" + filter + "\" is true in " + bsFilter.cardinality() + " states)";
-				throw new PrismException(s);
-			}
 			// Find first (only) value
 			// Store as object/vector
 			resObj = vals.firstFromBitSet(bsFilter);
@@ -1157,7 +1155,7 @@ public class StateModelChecker extends PrismComponent
 
 		// For some operators, print out some matching states
 		if (bsMatch != null) {
-			states = StateValues.createFromBitSet(bsMatch, model);
+			StateValues states = StateValues.createFromBitSet(bsMatch, model);
 			mainLog.print("\nThere are " + bsMatch.cardinality() + " states with ");
 			mainLog.print((expr.getType() instanceof TypeDouble ? "(approximately) " : "") + "this value");
 			boolean verbose = verbosity > 0; // TODO

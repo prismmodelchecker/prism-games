@@ -12,6 +12,7 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.Player;
 import parser.ast.RewardStruct;
+import parser.type.Type;
 import prism.DefaultModelGenerator;
 import prism.ModelType;
 import prism.PrismComponent;
@@ -127,12 +128,6 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	}
 	
 	@Override
-	public boolean containsUnboundedVariables()
-	{
-		return modulesFile.containsUnboundedVariables();
-	}
-	
-	@Override
 	public void setSomeUndefinedConstants(Values someValues) throws PrismException
 	{
 		modulesFile.setSomeUndefinedConstants(someValues);
@@ -146,6 +141,30 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		return mfConstants;
 	}
 	
+	@Override
+	public boolean containsUnboundedVariables()
+	{
+		return modulesFile.containsUnboundedVariables();
+	}
+	
+	@Override
+	public int getNumVars()
+	{
+		return modulesFile.getNumVars();
+	}
+	
+	@Override
+	public List<String> getVarNames()
+	{
+		return modulesFile.getVarNames();
+	}
+
+	@Override
+	public List<Type> getVarTypes()
+	{
+		return modulesFile.getVarTypes();
+	}
+
 	@Override
 	public int getNumLabels()
 	{
@@ -182,12 +201,24 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		return varList;
 	}
 	
-	//@Override
+	@Override
 	public int getNumRewardStructs()
 	{
 		return modulesFile.getNumRewardStructs();
 	}
 	
+	@Override
+	public int getRewardStructIndex(String name)
+	{
+		return modulesFile.getRewardStructIndex(name);
+	}
+	
+	@Override
+	public RewardStruct getRewardStruct(int i)
+	{
+		return modulesFile.getRewardStruct(i);
+	}
+
 	@Override
 	public boolean hasSingleInitialState() throws PrismException
 	{

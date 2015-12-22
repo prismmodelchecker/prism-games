@@ -26,10 +26,12 @@
 
 package parser.visitor;
 
-import java.util.Vector;
+import java.util.List;
 
-import parser.ast.*;
-import parser.type.*;
+import parser.ast.ExpressionIdent;
+import parser.ast.ExpressionVar;
+import parser.ast.Update;
+import parser.type.Type;
 import prism.PrismLangException;
 
 /**
@@ -38,23 +40,23 @@ import prism.PrismLangException;
  */
 public class FindAllVars extends ASTTraverseModify
 {
-	private Vector<String> varIdents;
-	private Vector<Type> varTypes;
-        private boolean noErrorOnVariableNotPresent = false;
+	private List<String> varIdents;
+	private List<Type> varTypes;
+	private boolean noErrorOnVariableNotPresent = false;
 	
-	public FindAllVars(Vector<String> varIdents, Vector<Type> varTypes)
+	public FindAllVars(List<String> varIdents, List<Type> varTypes)
 	{
-	        this.varIdents = varIdents;
+		this.varIdents = varIdents;
 		this.varTypes = varTypes;
 	}
 
-        // if noErrorOnVariableNotPresent is set, no error is thrown if a variable definition is not found
-        public FindAllVars(Vector<String> varIdents, Vector<Type> varTypes, boolean noErrorOnVariableNotPresent)
+	// if noErrorOnVariableNotPresent is set, no error is thrown if a variable definition is not found
+	public FindAllVars(List<String> varIdents, List<Type> varTypes, boolean noErrorOnVariableNotPresent)
 	{
-	        this(varIdents, varTypes);
+		this(varIdents, varTypes);
 		this.noErrorOnVariableNotPresent = noErrorOnVariableNotPresent;
 	}
-	
+
 	// Note that this is done with VisitPost, i.e. after recursively visiting children.
 	// This is ok because we can modify rather than create a new object so don't need to return it.
 	public void visitPost(Update e) throws PrismLangException
@@ -71,7 +73,7 @@ public class FindAllVars extends ASTTraverseModify
 				throw new PrismLangException(s, e.getVarIdent(i));
 			}
 			// Store the type
-			e.setType(i, varTypes.elementAt(j));
+			e.setType(i, varTypes.get(j));
 			// And store the variable index
 			e.setVarIndex(i, j);
 		}
@@ -84,7 +86,7 @@ public class FindAllVars extends ASTTraverseModify
 		i = varIdents.indexOf(e.getName());
 		if (i != -1) {
 			// If so, replace it with an ExpressionVar object
-			ExpressionVar expr = new ExpressionVar(e.getName(), varTypes.elementAt(i));
+			ExpressionVar expr = new ExpressionVar(e.getName(), varTypes.get(i));
 			expr.setPosition(e);
 			// Store variable index
 			expr.setIndex(i);

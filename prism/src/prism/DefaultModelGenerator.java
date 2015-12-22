@@ -32,6 +32,8 @@ import java.util.List;
 
 import parser.State;
 import parser.Values;
+import parser.ast.RewardStruct;
+import parser.type.Type;
 
 /**
  * Default implementation of the {@link ModelGenerator} interface
@@ -43,12 +45,6 @@ public abstract class DefaultModelGenerator implements ModelGenerator
 	@Override
 	public abstract ModelType getModelType();
 	
-	@Override
-	public boolean containsUnboundedVariables()
-	{
-		return false;
-	}
-
 	@Override
 	public void setSomeUndefinedConstants(Values someValues) throws PrismException
 	{
@@ -62,6 +58,21 @@ public abstract class DefaultModelGenerator implements ModelGenerator
 		// Empty values
 		return new Values();
 	}
+	
+	@Override
+	public boolean containsUnboundedVariables()
+	{
+		return false;
+	}
+
+	@Override
+	public abstract int getNumVars();
+	
+	@Override
+	public abstract List<String> getVarNames();
+	
+	@Override
+	public abstract List<Type> getVarTypes();
 	
 	@Override
 	public int getNumLabels()
@@ -78,6 +89,24 @@ public abstract class DefaultModelGenerator implements ModelGenerator
 	public int getLabelIndex(String label)
 	{
 		return -1;
+	}
+	
+	@Override
+	public int getNumRewardStructs()
+	{
+		return 0;
+	}
+	
+	@Override
+	public int getRewardStructIndex(String name)
+	{
+		return -1;
+	}
+	
+	@Override
+	public RewardStruct getRewardStruct(int i)
+	{
+		return null;
 	}
 	
 	// Methods for ModelGenerator interface

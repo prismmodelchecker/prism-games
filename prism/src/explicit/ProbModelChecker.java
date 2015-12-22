@@ -948,14 +948,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		// Check if ratio reward
-	        if(expr.getRewardStructDivByIndexObject(modulesFile, constantValues) != null)
+	        if(expr.getRewardStructDivByIndexObject(modelInfo, constantValues) != null)
 		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
 		minMax.setCoalition(coalition);
 
 		// Build rewards
-		RewardStruct rewStruct = expr.getRewardStructByIndexObject(modulesFile, constantValues);
+		RewardStruct rewStruct = expr.getRewardStructByIndexObject(modelInfo, constantValues);
 		mainLog.println("Building reward structure...");
 		Rewards rewards = constructRewards(model, rewStruct);
 
@@ -1150,6 +1150,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((DTMCModelChecker) this).computeTotalRewards((DTMC) model, (MCRewards) modelRewards);
 			break;
 		case CTMC:
+			res = ((CTMCModelChecker) this).computeTotalRewards((CTMC) model, (MCRewards) modelRewards);
 			break;
 		case MDP:
 			break;
