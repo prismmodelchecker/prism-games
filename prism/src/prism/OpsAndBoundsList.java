@@ -55,7 +55,7 @@ public class OpsAndBoundsList
 	protected List<OpRelOpBound> opInfos;
 	protected List<Operator> relOps, relOpsProb, relOpsReward;
 	protected List<Double> bounds,  boundsProb, boundsReward;
-	protected List<Integer> stepBounds,  stepBoundsProb, stepBoundsReward;
+	protected List<Integer> stepBounds,  stepBoundsProb, stepBoundsReward, origPositionsReward, origPositionsProb;
 	
 	/**
 	 * The default constructor which allocates the lists with size 1.
@@ -83,6 +83,8 @@ public class OpsAndBoundsList
 		relOpsReward = new ArrayList<Operator>();
 		boundsReward = new ArrayList<Double>();
 		stepBoundsReward = new ArrayList<Integer>(numObjectives);
+		origPositionsReward = new ArrayList<Integer>(numObjectives);
+		origPositionsProb = new ArrayList<Integer>(numObjectives);
 	}
 	
 	/**
@@ -90,14 +92,15 @@ public class OpsAndBoundsList
 	 * @param op
 	 * @param quantityBound
 	 * @param stepBound
+	 * @param origPosition What was the position of this operator in the user's call to the multi(...) function.
 	 */
-	public void add(OpRelOpBound opInfo, Operator op, double quantityBound, int stepBound)
+	public void add(OpRelOpBound opInfo, Operator op, double quantityBound, int stepBound, int origPosition)
 	{
 		opInfos.add(opInfo);
 		relOps.add(op);
 		bounds.add(quantityBound);
 		stepBounds.add(stepBound);
-		
+
 		switch (op)
 		{
 			case P_MAX:
@@ -107,6 +110,7 @@ public class OpsAndBoundsList
 			    relOpsProb.add(op);
 			    boundsProb.add(quantityBound);
 			    stepBoundsProb.add(stepBound);
+				origPositionsProb.add(origPosition);
 				break;
 			case R_MAX:
 			case R_MIN:
@@ -115,6 +119,7 @@ public class OpsAndBoundsList
 			    relOpsReward.add(op);
 			    boundsReward.add(quantityBound);
 			    stepBoundsReward.add(stepBound);
+				origPositionsReward.add(origPosition);
 				break;
 			default:
 				throw new UnsupportedOperationException("Don't know how to add" +
@@ -123,6 +128,22 @@ public class OpsAndBoundsList
 
 	}
 
+	/**
+	 * Returns the original position (starting from 0) of the operator that is now at i-th position among the reward properties.
+	 */
+	public int getOrigPositionReward(int i)
+	{
+		return origPositionsReward.get(i);
+	}
+
+	/**
+	 * Returns the original position (starting from 0) of the operator that is now at i-th position among the probabilistic properties.
+	 */
+	public int getOrigPositionProb(int i)
+	{
+		return origPositionsProb.get(i);
+	}
+	
 	/**
 	 * Returns the operator at i-th position.
 	 */

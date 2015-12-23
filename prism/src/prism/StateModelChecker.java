@@ -41,12 +41,10 @@ import parser.type.*;
 
 // Base class for model checkers - does state-based evaluations (no temporal/probabilistic)
 
-public class StateModelChecker implements ModelChecker
+public class StateModelChecker extends PrismComponent implements ModelChecker
 {
 	// PRISM stuff
 	protected Prism prism;
-	protected PrismLog mainLog;
-	protected PrismLog techLog;
 
 	// Properties file
 	protected PropertiesFile propertiesFile;
@@ -90,10 +88,11 @@ public class StateModelChecker implements ModelChecker
 
 	public StateModelChecker(Prism prism, Model m, PropertiesFile pf) throws PrismException
 	{
+		// Initialise PrismComponent
+		super(prism);
+
 		// Initialise
 		this.prism = prism;
-		mainLog = prism.getMainLog();
-		techLog = prism.getTechLog();
 		model = m;
 		propertiesFile = pf;
 		constantValues = new Values();
@@ -130,10 +129,11 @@ public class StateModelChecker implements ModelChecker
 	 */
 	public StateModelChecker(Prism prism, VarList varList, JDDVars allDDRowVars, JDDVars[] varDDRowVars, Values constantValues) throws PrismException
 	{
+		// Initialise PrismComponent
+		super(prism);
+
 		// Initialise
 		this.prism = prism;
-		mainLog = prism.getMainLog();
-		techLog = prism.getTechLog();
 		this.varList = varList;
 		this.varDDRowVars = varDDRowVars;
 		this.constantValues = constantValues;
@@ -328,7 +328,7 @@ public class StateModelChecker implements ModelChecker
 	 * It is always possible to convert between these two forms but this will not always be
 	 * efficient. In particular, we want to avoid creating: (a) explicit vectors for very large
 	 * models where the vector can only be feasibly stored as an MTBDD; (b) and symbolic
-	 * vectors for irregular vectors which ar small enough to be stored explicitly but would
+	 * vectors for irregular vectors which are small enough to be stored explicitly but would
 	 * blow up as an MTBDD.
 	 * 
 	 * Various schemes (and user preferences/configurations) are possible. Currently:

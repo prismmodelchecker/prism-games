@@ -119,7 +119,6 @@ public class PrismCL implements PrismModelListener
 
 	// files/filenames
 	private String mainLogFilename = "stdout";
-	private String techLogFilename = "stdout";
 	private String settingsFilename = null;
 	private String modelFilename = null;
 	private String importStatesFilename = null;
@@ -146,7 +145,6 @@ public class PrismCL implements PrismModelListener
 
 	// logs
 	private PrismLog mainLog = null;
-	private PrismLog techLog = null;
 
 	// prism object
 	private Prism prism = null;
@@ -510,15 +508,14 @@ public class PrismCL implements PrismModelListener
 	{
 		try {
 			// prepare storage for parametric model checking
-			// default to logs going to stdout
+			// default to log going to stdout
 			// this means all errors etc. can be safely sent to the log
 			// even if a new log is created shortly
 		    
 			mainLog = new PrismFileLog("stdout");
-			techLog = new PrismFileLog("stdout");
 
 			// create prism object(s)
-			prism = new Prism(mainLog, techLog);
+			prism = new Prism(mainLog);
 			prism.addModelListener(this);
 
 			// parse command line arguments
@@ -943,7 +940,6 @@ public class PrismCL implements PrismModelListener
 		mainLog.println();
 		// Close logs (in case they are files)
 		mainLog.close();
-		techLog.close();
 	}
 
 	/** Set a timeout, exit program if timeout is reached */
@@ -1666,20 +1662,6 @@ public class PrismCL implements PrismModelListener
 						}
 						mainLog = log;
 						prism.setMainLog(mainLog);
-					} else {
-						errorAndExit("No file specified for -" + sw + " switch");
-					}
-				}
-				// specify mtbdd log (hidden option)
-				else if (sw.equals("techlog")) {
-					if (i < args.length - 1) {
-						techLogFilename = args[++i];
-						log = new PrismFileLog(techLogFilename);
-						if (!log.ready()) {
-							errorAndExit("Couldn't open log file \"" + techLogFilename + "\"");
-						}
-						techLog = log;
-						prism.setTechLog(techLog);
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
@@ -2407,6 +2389,7 @@ public class PrismCL implements PrismModelListener
 		}
 		// Normal case: just display error message, but don't exit
 		mainLog.println("\nError: " + s + ".");
+		mainLog.flush();
 	}
 
 	/**
@@ -2416,6 +2399,7 @@ public class PrismCL implements PrismModelListener
 	{
 		prism.closeDown(false);
 		mainLog.println("\nError: " + s + ".");
+		mainLog.flush();
 		System.exit(1);
 	}
 
