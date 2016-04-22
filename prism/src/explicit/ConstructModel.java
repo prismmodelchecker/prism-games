@@ -281,7 +281,7 @@ public class ConstructModel extends PrismComponent
 				for (i = 0; i < nc; i++) {
 					int iPlayer = modelGen.getPlayerNumberForChoice(i);
 					if (player != -1 && iPlayer != player) {
-						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
+						throw new PrismException("PRISM-games only supports turn-based stochastic games, but there are choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
 					player = iPlayer;
 				}
