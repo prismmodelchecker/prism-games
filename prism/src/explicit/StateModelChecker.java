@@ -3,6 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -35,6 +36,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import parser.State;
 import parser.Values;
@@ -60,6 +62,7 @@ import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.visitor.ASTTraverseModify;
+import parser.visitor.ReplaceLabels;
 import prism.Filter;
 import prism.ModelInfo;
 import prism.ModelType;
@@ -99,6 +102,8 @@ public class StateModelChecker extends PrismComponent
 	protected String exportProductTransFilename = null;
 	protected boolean exportProductStates = false;
 	protected String exportProductStatesFilename = null;
+	protected boolean exportProductVector = false;
+	protected String exportProductVectorFilename = null;
 	
 	// Store the final results vector after model checking?
 	protected boolean storeVector = false;
@@ -223,6 +228,8 @@ public class StateModelChecker extends PrismComponent
 		setExportProductTransFilename(other.getExportProductTransFilename());
 		setExportProductStates(other.getExportProductStates());
 		setExportProductStatesFilename(other.getExportProductStatesFilename());
+		setExportProductVector(other.getExportProductVector());
+		setExportProductVectorFilename(other.getExportProductVectorFilename());
 		setStoreVector(other.getStoreVector());
 		setGenStrat(other.getGenStrat());
 		setDoBisim(other.getDoBisim());
@@ -287,6 +294,16 @@ public class StateModelChecker extends PrismComponent
 	public void setExportProductStatesFilename(String s)
 	{
 		exportProductStatesFilename = s;
+	}
+
+	public void setExportProductVector(boolean b)
+	{
+		exportProductVector = b;
+	}
+
+	public void setExportProductVectorFilename(String s)
+	{
+		exportProductVectorFilename = s;
 	}
 
 	/**
@@ -374,6 +391,16 @@ public class StateModelChecker extends PrismComponent
 	public String getExportProductStatesFilename()
 	{
 		return exportProductStatesFilename;
+	}
+
+	public boolean getExportProductVector()
+	{
+		return exportProductVector;
+	}
+
+	public String getExportProductVectorFilename()
+	{
+		return exportProductVectorFilename;
 	}
 
 	/**
@@ -1185,6 +1212,42 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		return resVals;
+	}
+
+	
+	/**
+	 * Method for handling the recursive part of PCTL* checking, i.e.,
+	 * recursively checking maximal state subformulas and replacing them
+	 * with labels and the corresponding satisfaction sets.
+	 * <br>
+	 * Extracts maximal state formula from an LTL path formula,
+	 * model checks them (with the current model checker) and
+	 * replaces them with ExpressionLabel objects that correspond
+	 * to freshly generated labels attached to the model.
+	 * <br>
+	 * Returns the modified Expression.
+	 */
+	public Expression handleMaximalStateFormulas(ModelExplicit model, Expression expr) throws PrismException
+	{
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+
+		LTLModelChecker ltlMC = new LTLModelChecker(this);
+		// check the maximal state subformulas and gather
+		// the satisfaction sets in labelBS, with index i
+		// in the vector corresponding to label Li in the
+		// returned formula
+		Expression exprNew = ltlMC.checkMaximalStateFormulas(this, model, expr.deepCopy(), labelBS);
+
+		HashMap<String, String> labelReplacements = new HashMap<String, String>();
+		for (int i=0; i < labelBS.size(); i++) {
+			String currentLabel = "L"+i;
+			// Attach satisfaction set for Li to the model, record necessary
+			// label renaming
+			String newLabel = model.addUniqueLabel("phi", labelBS.get(i));
+			labelReplacements.put(currentLabel, newLabel);
+		}
+		// rename the labels
+		return (Expression) exprNew.accept(new ReplaceLabels(labelReplacements));
 	}
 
 	/**

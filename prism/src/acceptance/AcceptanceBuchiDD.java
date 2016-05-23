@@ -1,6 +1,6 @@
 //==============================================================================
 //
-//Copyright (c) 2014-
+//Copyright (c) 2016-
 //Authors:
 //	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
@@ -33,94 +33,96 @@ import jdd.JDDNode;
 import jdd.JDDVars;
 
 /**
- * A reachability acceptance condition (based on JDD state sets).
- * The acceptance is defined via a set of goal states and
- * has to be "upward-closed", i.e., once a goal state has been reached,
- * all successor states are goal states as well.
+ * A Büchi acceptance condition (based on JDD state sets).
+ * The acceptance is defined via a set of "accepting" states
+ * (sometimes also called final states) and is accepting if
+ *  "infinitely often an accepting state is visited"
  */
-public class AcceptanceReachDD implements AcceptanceOmegaDD
+public class AcceptanceBuchiDD implements AcceptanceOmegaDD
 {
-	/** The goal states */
-	private JDDNode goalStates;
+	/** The accepting states */
+	private JDDNode acceptingStates;
 
 	/**
-	 * Constructor, set goalStates.
-	 * Becomes owner of the references of goalStates.
+	 * Constructor, set acceptingStates.
+	 * Becomes owner of the references of acceptingStates.
 	 */
-	public AcceptanceReachDD(JDDNode goalStates)
+	public AcceptanceBuchiDD(JDDNode acceptingStates)
 	{
-		this.goalStates = goalStates;
+		this.acceptingStates = acceptingStates;
 	}
 	
 	/**
-	 * Constructor, from a BitSet-based AcceptanceReach.
+	 * Constructor, from a BitSet-based AcceptanceBuchi.
 	 *
 	 * @param acceptance the BitSet-based acceptance condition
 	 * @param ddRowVars JDDVars of the row variables corresponding to the bits in the bit set
 	 */
-	public AcceptanceReachDD(AcceptanceReach acceptance, JDDVars ddRowVars)
+	public AcceptanceBuchiDD(AcceptanceBuchi acceptance, JDDVars ddRowVars)
 	{
-		goalStates = JDD.Constant(0);
-		// get BDD based on the goalState bit set
-		for (int i : IterableBitSet.getSetBits(acceptance.getGoalStates())) {
-			goalStates = JDD.SetVectorElement(goalStates, ddRowVars, i, 1.0);
+		acceptingStates = JDD.Constant(0);
+		// get BDD based on the acceptingState bit set
+		for (int i : IterableBitSet.getSetBits(acceptance.getAcceptingStates())) {
+			acceptingStates = JDD.SetVectorElement(acceptingStates, ddRowVars, i, 1.0);
 		}
 	}
 
-	/** Get a referenced copy of the state set of the goal states.
+	/** Get a referenced copy of the state set of the accepting states.
 	 * <br>[ REFS: <i>result</i>, DEREFS: <i>none</i> ]
 	 */
-	public JDDNode getGoalStates()
+	public JDDNode getAcceptingStates()
 	{
-		JDD.Ref(goalStates);
-		return goalStates;
+		JDD.Ref(acceptingStates);
+		return acceptingStates;
 	}
 
 	/**
-	 * Set the goal states.
-	 * Becomes owner of the reference to goalStates.
+	 * Set the accepting states.
+	 * Becomes owner of the reference to acceptingStates.
 	 */
-	public void setGoalStates(JDDNode goalStates)
+	public void setAcceptingStates(JDDNode acceptingStates)
 	{
 		clear();
-		this.goalStates = goalStates;
+		this.acceptingStates = acceptingStates;
 	}
 
 	@Override
 	public boolean isBSCCAccepting(JDDNode bscc_states)
 	{
-		return JDD.AreIntersecting(goalStates, bscc_states);
+		return JDD.AreIntersecting(acceptingStates, bscc_states);
 	}
 
 	@Override
 	public String getSizeStatistics()
 	{
-		return "one set of goal states";
+		return "one set of accepting states";
 	}
 
 	@Override
 	public AcceptanceType getType()
 	{
-		return AcceptanceType.REACH;
+		return AcceptanceType.BUCHI;
 	}
 
 	@Override
 	@Deprecated
-	public String getTypeAbbreviated() {
+	public String getTypeAbbreviated()
+	{
 		return getType().getNameAbbreviated();
 	}
 
 	@Override
 	@Deprecated
-	public String getTypeName() {
+	public String getTypeName()
+	{
 		return getType().getName();
 	}
 
 	@Override
 	public void clear()
 	{
-		if (goalStates != null) {
-			JDD.Deref(goalStates);
+		if (acceptingStates != null) {
+			JDD.Deref(acceptingStates);
 		}
 	}
 

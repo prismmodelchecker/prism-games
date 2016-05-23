@@ -299,6 +299,18 @@ public class JDD
 	}
 
 	/**
+	 * Dereference dds, multi-argument variant.
+	 * The dds have to be non-{@code null}.
+	 * <br>[ REFS: <i>none</i>, DEREFS: <i>all argument dds</i> ]
+	 */
+	public static void Deref(JDDNode... dds)
+	{
+		for (JDDNode d : dds) {
+			JDD.Deref(d);
+		}
+	}
+
+	/**
 	 * print cudd cache info
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
 	 */
@@ -380,6 +392,30 @@ public class JDD
 		}
 		return ptrToNode(DD_Or(dd1.ptr(), dd2.ptr()));
 	}
+
+	/**
+	 * Multi-operand Or (0/1-MTBDD disjunction) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>
+	 * Returns JDD.Constant(0) for empty argument list
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode Or(JDDNode... nodes)
+	{
+		if (nodes.length == 0)
+			return JDD.Constant(0);
+
+		JDDNode result = nodes[0];
+		for (int i = 1; i < nodes.length; i++) {
+			// note: Java overloading rules ensure that fixed arity
+			// methods take precedence. So, for two-operand Or,
+			// the Or(JDDNode,JDDNode) method above is called and we don't
+			// run into an infinite recursion
+			result = Or(result, nodes[i]);
+		}
+
+		return result;
+	}
 	
 	/**
 	 * and of dd1, dd2
@@ -394,7 +430,31 @@ public class JDD
 			
 		return ptrToNode(DD_And(dd1.ptr(), dd2.ptr()));
 	}
-	
+
+	/**
+	 * Multi-operand And (0/1-MTBDD conjunction) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>
+	 * Returns JDD.Constant(1) for empty argument list
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode And(JDDNode... nodes)
+	{
+		if (nodes.length == 0)
+			return JDD.Constant(1);
+
+		JDDNode result = nodes[0];
+		for (int i = 1; i < nodes.length; i++) {
+			// note: Java overloading rules ensure that fixed arity
+			// methods take precedence. So, for two-operand And,
+			// the And(JDDNode,JDDNode) method above is called and we don't
+			// run into an infinite recursion
+			result = And(result, nodes[i]);
+		}
+
+		return result;
+	}
+
 	/**
 	 * xor of dd1, dd2
 	 * <br>[ REFS: <i>result</i>, DEREFS: dd1, dd2 ]
@@ -422,6 +482,15 @@ public class JDD
 	}
 	
 	/**
+	 * equivalence of dd1, dd2 (have to be 0/1-MTBDDs)
+	 * [ REFS: <i>result</i>, DEREFS: dd1, dd2 ]
+	 */
+	public static JDDNode Equiv(JDDNode dd1, JDDNode dd2)
+	{
+		return Not(Xor(dd1, dd2));
+	}
+	
+	/**
 	 * generic apply operation
 	 * <br>[ REFS: <i>result</i>, DEREFS: dd1, dd2 ]
 	 */
@@ -439,14 +508,52 @@ public class JDD
 	 * Operands are processed from left-to-right.
 	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
 	 */
-	public static JDDNode Times(JDDNode... nodes) {
-		if (nodes.length <= 1) {
-			throw new IllegalArgumentException("JDD.Times needs at least two arguments.");
+	public static JDDNode Times(JDDNode node, JDDNode... nodes) {
+		JDDNode result = node;
+		for (JDDNode n : nodes) {
+			result = Apply(JDD.TIMES, result, n);
 		}
 
-		JDDNode result = nodes[0];
-		for (int i = 1; i<nodes.length; i++) {
-			result = Apply(JDD.TIMES, result, nodes[i]);
+		return result;
+	}
+
+	/**
+	 * Multi-operand Apply(JDD.PLUS) (addition) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode Plus(JDDNode node, JDDNode... nodes) {
+		JDDNode result = node;
+		for (JDDNode n : nodes) {
+			result = Apply(JDD.PLUS, result, n);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Multi-operand Apply(JDD.MAX) (maximum) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode Max(JDDNode node, JDDNode... nodes) {
+		JDDNode result = node;
+		for (JDDNode n : nodes) {
+			result = Apply(JDD.MAX, result, n);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Multi-operand Apply(JDD.MIN) (minimum) operation.
+	 * Operands are processed from left-to-right.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>all arguments</i> ]
+	 */
+	public static JDDNode Min(JDDNode node, JDDNode... nodes) {
+		JDDNode result = node;
+		for (JDDNode n : nodes) {
+			result = Apply(JDD.MIN, result, n);
 		}
 
 		return result;

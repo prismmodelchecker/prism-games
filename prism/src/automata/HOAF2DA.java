@@ -50,12 +50,15 @@ import jltl2ba.APElement;
 import jltl2ba.APSet;
 import jltl2dstar.APMonom;
 import jltl2dstar.APMonom2APElements;
+import acceptance.AcceptanceBuchi;
 import acceptance.AcceptanceGenRabin;
 import acceptance.AcceptanceGenRabin.GenRabinPair;
 import acceptance.AcceptanceGeneric;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceRabin.RabinPair;
+import acceptance.AcceptanceStreett;
+import acceptance.AcceptanceStreett.StreettPair;
 
 /**
  * A HOAConsumer for jhoafparser that constructs a prism.DA from the parsed automaton.
@@ -279,6 +282,10 @@ public class HOAF2DA implements HOAConsumer {
 				return prepareAcceptanceRabin();
 			} else if (accName.equals("generalized-Rabin")) {
 				return prepareAcceptanceGenRabin();
+			} else if (accName.equals("Streett")) {
+				return prepareAcceptanceStreett();
+			} else if (accName.equals("Buchi")) {
+				return prepareAcceptanceBuchi();
 			}
 		}
 
@@ -338,6 +345,23 @@ public class HOAF2DA implements HOAConsumer {
 	}
 
 	/**
+	 * Prepare a Buchi acceptance condition from the acc-name header.
+	 */
+	private AcceptanceBuchi prepareAcceptanceBuchi() throws HOAConsumerException
+	{
+		if (extraInfo.size() != 0) {
+			throw new HOAConsumerException("Invalid acc-name: Buchi header");
+		}
+
+		acceptanceSets = new ArrayList<BitSet>(1);
+		BitSet acceptingStates = new BitSet();
+		AcceptanceBuchi acceptanceBuchi = new AcceptanceBuchi(acceptingStates);
+		acceptanceSets.add(acceptingStates);  // Inf(0)
+
+		return acceptanceBuchi;
+	}
+
+	/**
 	 * Prepare a Rabin acceptance condition from the acc-name header.
 	 */
 	private AcceptanceRabin prepareAcceptanceRabin() throws HOAConsumerException
@@ -361,6 +385,32 @@ public class HOAF2DA implements HOAConsumer {
 		}
 
 		return acceptanceRabin;
+	}
+
+	/**
+	 * Prepare a Streett acceptance condition from the acc-name header.
+	 */
+	private AcceptanceStreett prepareAcceptanceStreett() throws HOAConsumerException
+	{
+		if (extraInfo.size() != 1 ||
+		    !(extraInfo.get(0) instanceof Integer)) {
+			throw new HOAConsumerException("Invalid acc-name: Streett header");
+		}
+
+		int numberOfPairs = (Integer)extraInfo.get(0);
+		AcceptanceStreett acceptanceStreett = new AcceptanceStreett();
+		acceptanceSets = new ArrayList<BitSet>(numberOfPairs*2);
+		for (int i = 0; i< numberOfPairs; i++) {
+			BitSet R = new BitSet();
+			BitSet G = new BitSet();
+
+			acceptanceSets.add(R);   // 2*i
+			acceptanceSets.add(G);   // 2*i+1
+
+			acceptanceStreett.add(new StreettPair(R,G));
+		}
+
+		return acceptanceStreett;
 	}
 
 	/**
@@ -420,6 +470,7 @@ public class HOAF2DA implements HOAConsumer {
 			for (int index : accSignature) {
 				if (index >= acceptanceSets.size()) {
 					// acceptance set index not used in acceptance condition, ignore
+					continue;
 				}
 				BitSet accSet = acceptanceSets.get(index);
 				if (accSet == null) {

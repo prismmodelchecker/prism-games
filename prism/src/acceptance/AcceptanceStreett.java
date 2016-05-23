@@ -197,14 +197,23 @@ public class AcceptanceStreett
 		}
 		return accRabin;
 	}
-	
+
+	/** Complement this acceptance condition, return as AcceptanceGeneric. */
+	public AcceptanceGeneric complementToGeneric()
+	{
+		return toAcceptanceGeneric().complementToGeneric();
+	}
+
 	@Override
 	public AcceptanceOmega complement(int numStates, AcceptanceType... allowedAcceptance) throws PrismException
 	{
 		if (AcceptanceType.contains(allowedAcceptance, AcceptanceType.RABIN)) {
 			return complementToRabin();
 		}
-		throw new PrismNotSupportedException("Can not complement " + getTypeName() + " acceptance to a supported acceptance type");
+		if (AcceptanceType.contains(allowedAcceptance, AcceptanceType.GENERIC)) {
+			return complementToGeneric();
+		}
+		throw new PrismNotSupportedException("Can not complement " + getType() + " acceptance to a supported acceptance type");
 	}
 
 
@@ -310,15 +319,15 @@ public class AcceptanceStreett
 	}
 
 	@Override
-	public String getTypeAbbreviated()
-	{
-		return "S";
+	@Deprecated
+	public String getTypeAbbreviated() {
+		return getType().getNameAbbreviated();
 	}
 
 	@Override
-	public String getTypeName()
-	{
-		return "Streett";
+	@Deprecated
+	public String getTypeName() {
+		return getType().getName();
 	}
 
 	@Override

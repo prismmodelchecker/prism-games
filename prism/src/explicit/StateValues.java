@@ -182,6 +182,21 @@ public class StateValues implements StateVector
 
 
 	/**
+	 * Create a new (int-valued) state values vector from an existing array of ints.
+	 * The array is stored directly, not copied.
+	 * Also set associated model (whose state space size should match vector size).
+	 */
+	public static StateValues createFromIntegerArray(int[] array, Model model)
+	{
+		StateValues sv = new StateValues();
+		sv.type = TypeInt.getInstance();
+		sv.size = array.length;
+		sv.valuesI = array;
+		sv.statesList = model.getStatesList();
+		return sv;
+	}
+
+	/**
 	 * Create a new (double-valued) state values vector from an existing array of doubles.
 	 * The array is stored directly, not copied.
 	 * Also set associated model (whose state space size should match vector size).
@@ -492,6 +507,18 @@ public class StateValues implements StateVector
 		valuesB.and(sv.valuesB);
 	}
 
+	/**
+	 * Complement the (boolean) vector.
+	 */
+	public void complement() throws PrismException
+	{
+		if (!(type instanceof TypeBool)) {
+			throw new PrismException("Can only complement Boolean vectors");
+		}
+
+		valuesB.flip(0, size);
+	}
+	
 	/**
 	 * Modify the vector by applying 'equals' with operand {@code sv}.
 	 */

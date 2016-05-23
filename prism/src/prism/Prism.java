@@ -200,6 +200,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected String exportProductTransFilename = null;
 	protected boolean exportProductStates = false;
 	protected String exportProductStatesFilename = null;
+	protected boolean exportProductVector = false;
+	protected String exportProductVectorFilename = null;
 	// Store the final results vector after model checking?
 	protected boolean storeVector = false;
 	// Generate/store a strategy during model checking?
@@ -586,6 +588,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		exportProductStatesFilename = s;
 	}
 
+	public void setExportProductVector(boolean b) throws PrismException
+	{
+		exportProductVector = b;
+	}
+
+	public void setExportProductVectorFilename(String s) throws PrismException
+	{
+		exportProductVectorFilename = s;
+	}
+
 	/**
 	 * Specify whether or not to store the final results vector after model checking.
 	 */
@@ -915,6 +927,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public String getExportProductStatesFilename()
 	{
 		return exportProductStatesFilename;
+	}
+
+	public boolean getExportProductVector()
+	{
+		return exportProductVector;
+	}
+
+	public String getExportProductVectorFilename()
+	{
+		return exportProductVectorFilename;
 	}
 
 	/**
@@ -1288,7 +1310,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	/**
 	 * Get access to the list of all PRISM language keywords.
 	 */
-	public static List<String> getListOfKeyords()
+	public static List<String> getListOfKeywords()
 	{
 		return PrismParser.getListOfKeywords();
 	}
@@ -1983,6 +2005,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					currentModel = mod2mtbdd.translate();
 					currentModelExpl = null;
 				} else {
+					if (currentModulesFile.getSystemDefn() != null) {
+						throw new PrismNotSupportedException("Explicit engine does not currently support the system...endsystem construct");
+					}
 					ConstructModel constructModel = new ConstructModel(this);
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					constructModel.setCheckCompatibility(getCheckCompatibility());
@@ -3782,6 +3807,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setExportProductTransFilename(exportProductTransFilename);
 		mc.setExportProductStates(exportProductStates);
 		mc.setExportProductStatesFilename(exportProductStatesFilename);
+		mc.setExportProductVector(exportProductVector);
+		mc.setExportProductVectorFilename(exportProductVectorFilename);
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
 		mc.setDoBisim(doBisim);

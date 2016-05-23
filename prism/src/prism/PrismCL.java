@@ -1482,6 +1482,15 @@ public class PrismCL implements PrismModelListener
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
 				}
+				// export product vector to file (hidden option)
+				else if (sw.equals("exportprodvector")) {
+					if (i < args.length - 1) {
+						prism.setExportProductVector(true);
+						prism.setExportProductVectorFilename(args[++i]);
+					} else {
+						errorAndExit("No file specified for -" + sw + " switch");
+					}
+				}
 				// export model to plain text file (deprecated option so hidden)
 				else if (sw.equals("exportplain")) {
 					if (i < args.length - 1) {
@@ -2361,7 +2370,7 @@ public class PrismCL implements PrismModelListener
 	 */
 	private void printListOfKeywords()
 	{
-		List<String> list = Prism.getListOfKeyords();
+		List<String> list = Prism.getListOfKeywords();
 		mainLog.print("PRISM keywords:");
 		for (String s : list) {
 			mainLog.print(" " + s);

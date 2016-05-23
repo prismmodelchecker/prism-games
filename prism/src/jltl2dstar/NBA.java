@@ -21,7 +21,10 @@
 package jltl2dstar;
 
 import java.util.*;
+
 import prism.PrismException;
+import prism.PrismNotSupportedException;
+
 import java.io.PrintStream;
 
 import jltl2ba.APElement;
@@ -30,11 +33,11 @@ import jltl2ba.MyBitSet;
 
 
 /** @file
- * Provides class NBA to store a nondeterministic B�chi automaton.
+ * Provides class NBA to store a nondeterministic Büchi automaton.
  */
 
 /**
- * A nondeterministic B�chi automaton.
+ * A nondeterministic Büchi automaton.
  * See class DA for description of template parameters.
  */
 
@@ -234,6 +237,28 @@ public class NBA implements Iterable<NBA_State> {
 	}
 
 	/**
+	 * Print automaton to a PrintStream in a specified format ("dot", "txt", "lbtt" or "hoa").
+	 */
+	public void print(PrintStream out, String type) throws PrismException
+	{
+		switch (type) {
+		case "txt":
+			print(out);
+			break;
+		case "dot":
+			print_dot(out);
+			break;
+		case "lbtt":
+			print_lbtt(out);
+		case "hoa":
+			print_hoa(out);
+			break;
+		default:
+			throw new PrismNotSupportedException("Can not print NBA in '"+type+"' format");
+		}
+	}
+
+	/**
 	 * Print the NBA on the output stream.
 	 */
 	public void print(PrintStream out) {
@@ -303,11 +328,38 @@ public class NBA implements Iterable<NBA_State> {
 					out.println(to);
 				}
 			}
-			out.println("--END--");
 		}
+		out.println("--END--");
 	}
 
-	// public void print_dot(std::ostream& out);
+	/** Print the NBA as a Graphviz (DOT) graph to out */
+	public void print_dot(PrintStream out) {
+		out.println("digraph nba {");
+		out.println(" node [fontname=Helvetica]");
+		out.println(" edge [constraints=false, fontname=Helvetica]");
+
+		for (NBA_State state : _index) {
+			out.print(" " + state.getName());  // id
+			out.print(" [shape=");
+			out.print((state.isFinal() ? "box" : "circle"));
+			if (state == getStartState()) {
+				out.print(", style=filled, color=black, fillcolor=grey");
+			}
+			out.println("]");
+
+			for (Map.Entry<APElement, MyBitSet> edge : state) {
+				APElement label = edge.getKey();
+				//String labelString = "["+label.toStringHOA(_apset.size())+"]";
+				String labelString = label.toString(getAPSet(),true);
+				MyBitSet to_states = edge.getValue();
+				for (Integer to : to_states) {
+					out.print("  " + state.getName() + " -> " + to);
+					out.println(" [label=\"" + labelString + "\"]");
+				}
+			}
+		}
+		out.println("}");
+	}
 
 	/** Return number of states. */
 	public int getStateCount()

@@ -183,16 +183,22 @@ public class AcceptanceRabin
 	 */
 	public AcceptanceStreett complementToStreett()
 	{
-		AcceptanceStreett accRabin = new AcceptanceStreett();
+		AcceptanceStreett accStreett = new AcceptanceStreett();
 
 		for (RabinPair accPairRabin : this) {
 			BitSet R = (BitSet) accPairRabin.getK().clone();
 			BitSet G = (BitSet) accPairRabin.getL().clone();
 			AcceptanceStreett.StreettPair accPairStreett = new AcceptanceStreett.StreettPair(R, G);
-			accRabin.add(accPairStreett);
+			accStreett.add(accPairStreett);
 		}
 
-		return accRabin;
+		return accStreett;
+	}
+
+	/** Complement this acceptance condition, return as AcceptanceGeneric. */
+	public AcceptanceGeneric complementToGeneric()
+	{
+		return toAcceptanceGeneric().complementToGeneric();
 	}
 
 	@Override
@@ -201,7 +207,10 @@ public class AcceptanceRabin
 		if (AcceptanceType.contains(allowedAcceptance, AcceptanceType.STREETT)) {
 			return complementToStreett();
 		}
-		throw new PrismNotSupportedException("Can not complement " + getTypeName() + " acceptance to a supported acceptance type");
+		if (AcceptanceType.contains(allowedAcceptance, AcceptanceType.GENERIC)) {
+			return complementToGeneric();
+		}
+		throw new PrismNotSupportedException("Can not complement " + getType() + " acceptance to a supported acceptance type");
 	}
 
 	/**
@@ -308,15 +317,15 @@ public class AcceptanceRabin
 	}
 
 	@Override
-	public String getTypeAbbreviated()
-	{
-		return "R";
+	@Deprecated
+	public String getTypeAbbreviated() {
+		return getType().getNameAbbreviated();
 	}
 
 	@Override
-	public String getTypeName()
-	{
-		return "Rabin";
+	@Deprecated
+	public String getTypeName() {
+		return getType().getName();
 	}
 
 	@Override
