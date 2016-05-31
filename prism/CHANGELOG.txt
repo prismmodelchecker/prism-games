@@ -1,6 +1,6 @@
 This file contains details of the changes in each new version of PRISM.
 
-Recent changes: (up to svn rev 10687)
+Recent changes: (up to svn rev 10893)
 
 * Timeout feature (-timeout switch)
 * Built-in support for Nailgun client/server
@@ -14,6 +14,14 @@ Recent changes: (up to svn rev 10687)
 * Performance improvements in explicit engine
 * prism-auto: new options (--show-warnings, --nailgun, --ngprism), multiple -x switches
 * Bug fixes
+
+-----------------------------------------------------------------------------
+Version 4.3.1 (first released 26/5/2015)
+-----------------------------------------------------------------------------
+
+* Bug fixes:
+- launch scripts on OS X (especially El Capitan)
+- lpsolve compile fix for recent Linux distributions
 
 -----------------------------------------------------------------------------
 Version 4.3 (first released 14/7/2015)
