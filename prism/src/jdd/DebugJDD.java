@@ -37,6 +37,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import prism.Prism;
+import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 
 /**
  * Framework for debugging JDDNode and CUDD reference counting.
@@ -67,16 +71,19 @@ import java.util.TreeMap;
  * JDDNode.getElse(), a different handling applies. As these are
  * generally only used for traversing an MTBDD and are not referenced
  * (beyond the internal CUDD references that are there due to the
- * fact that they are internal nodes of some MTBDD), they are not
- * wrapped in a DebugJDDNode. They are not fully functional and
- * should never be used for JDD.Ref, JDD.Deref, JDDNode.copy() or
- * as the argument of a JDD method, except to compare for equality,
+ * fact that they are internal nodes of some MTBDD), they are
+ * wrapped in a "light-weight" variant of DebugJDDNode called
+ * DebugJDDNodeLight. They are not fully functional and
+ * should never be used for JDD.Ref, JDD.Deref or as the argument
+ * of a JDD method, except to compare for equality,
  * getting the variable index, getThen() and getElse() and obtaining
- * constant value of a terminal node.
+ * constant value of a terminal node. You can also call copy() on
+ * them to obtain a "proper" node.
  */
 public class DebugJDD
 {
 	private static native int DebugJDD_GetRefCount(long dd);
+
 	private static native long[] DebugJDD_GetExternalRefCounts();
 
 	static {
@@ -92,7 +99,8 @@ public class DebugJDD
 	 * A DebugJDDNode extends a JDDNode with additional information
 	 * useful for tracking refs/derefs and tracing.
 	 */
-	protected static class DebugJDDNode extends JDDNode {
+	protected static class DebugJDDNode extends JDDNode
+	{
 
 		/** A static counter that is used to provide a unique ID for each JDDNode */
 		private static long nextId = 0;
@@ -181,16 +189,37 @@ public class DebugJDD
 
 		public String toStringVerbose()
 		{
-			return "ID = " + getID() +
-			       ", CUDD ptr = " + ptrAsHex() +
-			       ", refs for this JDDNode = " + getNodeRefs() +
-			       ", refs from Java = " + getJavaRefCount(ptr()) +
-			       ", refs from CUDD (including internal MTBDD refs) = "+DebugJDD_GetRefCount(ptr());
+			return "ID = " + getID()
+			       + ", CUDD ptr = " + ptrAsHex()
+			       + ", refs for this JDDNode = " + getNodeRefs()
+			       + ", refs from Java = " + getJavaRefCount(ptr())
+			       + ", refs from CUDD (including internal MTBDD refs) = "
+			       + DebugJDD_GetRefCount(ptr());
 		}
 
 		public String ptrAsHex()
 		{
-			return "0x"+Long.toHexString(ptr());
+			return "0x" + Long.toHexString(ptr());
+		}
+	}
+
+	
+	/**
+	 * A "light-weight" DebugJDDNode, for marking JDDNodes
+	 * that have been obtained by a call from getThen()/getElse()
+	 * and thus don't take part in the usual reference counting
+	 * scheme.
+	 */
+	protected static class DebugJDDNodeLight extends JDDNode {
+		/**
+		 * Constructor, with DdNode* ptr.
+		 * <br>
+		 * @param ptr the DdNode pointer in CUDD
+		 */
+		public DebugJDDNodeLight(long ptr)
+		{
+			// instantiate underlying JDDNode
+			super(ptr);
 		}
 	}
 
@@ -228,7 +257,6 @@ public class DebugJDD
 	 */
 	public static boolean warningsOff = false;
 
-
 	/**
 	 * Map from DebugJDDNode IDs to DebugJDDNode.
 	 * LinkedHashMap to ensure that iterating over the map returns the
@@ -255,8 +283,8 @@ public class DebugJDD
 			traceIDs = new HashSet<Long>();
 		}
 		traceIDs.add(id);
-		System.out.println("DebugJDD: Enable tracing for ID "+id);
-		enable();  // tracing implies debugging
+		System.out.println("DebugJDD: Enable tracing for ID " + id);
+		enable(); // tracing implies debugging
 	}
 
 	/** Returns true if this node should be traced */
@@ -277,7 +305,7 @@ public class DebugJDD
 	{
 		if (nodes.put(node.getID(), node) != null) {
 			// implementation error, should not happen
-			throw new RuntimeException("DebugJDD: Internal error, adding the same JDDNode multiple times, ID="+node.getID());
+			throw new RuntimeException("DebugJDD: Internal error, adding the same JDDNode multiple times, ID=" + node.getID());
 		}
 	}
 
@@ -301,28 +329,29 @@ public class DebugJDD
 		for (Entry<Long, Integer> extRef : externalRefCounts.entrySet()) {
 			long ptr = extRef.getKey();
 			List<DebugJDDNode> matchingNodes = new ArrayList<DebugJDDNode>();
-			List<DebugJDDNode> posRewNodes = new ArrayList<DebugJDDNode>();
+			List<DebugJDDNode> posRefNodes = new ArrayList<DebugJDDNode>();
 			for (DebugJDDNode node : nodes.values()) {
 				if (node.ptr() == ptr) {
 					// node matches
 					matchingNodes.add(node);
 					// node still has positive reference count
 					if (node.getNodeRefs() > 0) {
-						posRewNodes.add(node);
+						posRefNodes.add(node);
 					}
 				}
 			}
 
-			System.out.println("DdNode ptr=0x" + Long.toHexString(ptr)+", "+nodeInfo(ptr)+" has "+extRef.getValue()+" remaining external references.");
-			if (posRewNodes.size() > 0) {
+			System.out.println("DdNode ptr=0x" + Long.toHexString(ptr)
+			                   + ", " + nodeInfo(ptr) + " has " + extRef.getValue() + " remaining external references.");
+			if (posRefNodes.size() > 0) {
 				System.out.println(" Candidates:");
-				for (DebugJDDNode node : posRewNodes) {
-					System.out.println("  ID="+node.getID()+" with "+node.getNodeRefs()+" references  (" + node.toStringVerbose() + ")");
+				for (DebugJDDNode node : posRefNodes) {
+					System.out.println("  ID=" + node.getID() + " with " + node.getNodeRefs() + " references  (" + node.toStringVerbose() + ")");
 				}
 			} else {
 				System.out.println(" No candidates, here are all JDDNodes for that DdNode:");
 				for (DebugJDDNode node : matchingNodes) {
-					System.out.println("  ID="+node.getID()+" with "+node.getNodeRefs()+" references  (" + node.toStringVerbose() + ")");
+					System.out.println("  ID=" + node.getID() + " with " + node.getNodeRefs() + " references  (" + node.toStringVerbose() + ")");
 				}
 			}
 		}
@@ -332,21 +361,24 @@ public class DebugJDD
 		javaRefs.clear();
 		// reset ID counter
 		DebugJDDNode.nextId = 0;
-		
+
 		if (warningsAreFatal) {
 			throw new RuntimeException("DebugJDD: Leaked references");
 		}
 	}
 
 	/** Get the CUDD reference count for the pointer of the JDDNode */
-	public static int getRefCount(JDDNode n) {
+	public static int getRefCount(JDDNode n)
+	{
 		return DebugJDD_GetRefCount(n.ptr());
 	}
 
 	/** Get the number of DebugJDDNodes that reference the pointer */
-	public static int getJavaRefCount(long ptr) {
+	public static int getJavaRefCount(long ptr)
+	{
 		Integer jrefs = javaRefs.get(ptr);
-		if (jrefs == null) return 0;
+		if (jrefs == null)
+			return 0;
 		return jrefs;
 	}
 
@@ -356,10 +388,10 @@ public class DebugJDD
 		Map<Long, Integer> result = new TreeMap<Long, Integer>();
 		// Array consists of (pointer, count) pairs
 		long[] externalRefCounts = DebugJDD_GetExternalRefCounts();
-		int i=0;
-		while (i<externalRefCounts.length) {
+		int i = 0;
+		while (i < externalRefCounts.length) {
 			long node = externalRefCounts[i++];
-			int count = (int)externalRefCounts[i++];
+			int count = (int) externalRefCounts[i++];
 			result.put(node, count);
 
 		}
@@ -371,16 +403,18 @@ public class DebugJDD
 	private static String nodeInfo(long ptr)
 	{
 		if (JDDNode.DDN_IsConstant(ptr)) {
-			return "constant("+JDDNode.DDN_GetValue(ptr)+"), CUDD refs="+DebugJDD_GetRefCount(ptr);
+			return "constant(" + JDDNode.DDN_GetValue(ptr) + "), CUDD refs=" + DebugJDD_GetRefCount(ptr);
 		} else {
-			return "var("+JDDNode.DDN_GetIndex(ptr)+"), CUDD refs="+DebugJDD_GetRefCount(ptr);
+			return "var(" + JDDNode.DDN_GetIndex(ptr) + "), CUDD refs=" + DebugJDD_GetRefCount(ptr);
 		}
 	}
 
 	/** Log information about the action performed on the DebugJDDNode */
 	private static void trace(String action, DebugJDDNode dNode)
 	{
-		System.out.println("\ntrace("+action+", ID="+dNode.getID()+") => " + dNode.getNodeRefs() + " refs for this JDDNode\n " + dNode.toStringVerbose());
+		System.out.println("\ntrace(" + action
+		                   + ", ID=" + dNode.getID() + ") => " + dNode.getNodeRefs()
+		                   + " refs for this JDDNode\n " + dNode.toStringVerbose());
 		printStack(0);
 	}
 
@@ -422,11 +456,16 @@ public class DebugJDD
 	 */
 	protected static void Ref(JDDNode node)
 	{
-		if (!(node instanceof DebugJDDNode)) {
-			// ref of a node that is not wrapped in a DebugJDDNode
-			//  -> probably came from JDDNode.getThen()/getElse(), should not be refed
-			throw new RuntimeException("DebugJDD: Illegal operation, trying to Ref a plain JDDNode (obtained from getThen()/getElse()?)");
+		if (node instanceof DebugJDDNodeLight) {
+			throw new RuntimeException("DebugJDD: Illegal operation, trying to reference a light-weight JDDNode (obtained from getThen()/getElse()) directly. Use copy() instead");			
 		}
+
+		if (!(node instanceof DebugJDDNode)) {
+			// using a node that is not wrapped in a DebugJDDNode, but when debugging is
+			// enabled all nodes should be either DebugJDDNodeLight or DebugJDDNode
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
 		DebugJDDNode dNode = (DebugJDDNode) node;
 
 		// increment reference in DebugJDD
@@ -447,11 +486,16 @@ public class DebugJDD
 	 */
 	protected static void Deref(JDDNode node)
 	{
-		if (!(node instanceof DebugJDDNode)) {
-			// deref of a node that is not wrapped in a DebugJDDNode
-			//  -> probably came from JDDNode.getThen()/getElse(), should not be derefed
-			throw new RuntimeException("DebugJDD: Illegal operation, trying to Deref a plain JDDNode (obtained from getThen()/getElse()?)");
+		if (node instanceof DebugJDDNodeLight) {
+			throw new RuntimeException("DebugJDD: Illegal operation, trying to dereference a light-weight JDDNode (obtained from getThen()/getElse()) directly");			
 		}
+
+		if (!(node instanceof DebugJDDNode)) {
+			// using a node that is not wrapped in a DebugJDDNode, but when debugging is
+			// enabled all nodes should be either DebugJDDNodeLight or DebugJDDNode
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
 		DebugJDDNode dNode = (DebugJDDNode) node;
 		if (dNode.getNodeRefs() <= 0 && getJavaRefCount(node.ptr()) > 0) {
 			// This is only a warning as currently there are places
@@ -493,10 +537,21 @@ public class DebugJDD
 	 */
 	protected static JDDNode Copy(JDDNode node)
 	{
+		if (node instanceof DebugJDDNodeLight) {
+			// copy from a light-weight node (result of getThen()/getElse())
+			DebugJDDNode result = new DebugJDD.DebugJDDNode(node.ptr(), true);
+			JDD.DD_Ref(result.ptr());
+
+			if (isTraced(result)) {
+				trace("Copied from light-weight node", result);
+			}
+			return result;
+		}
+
 		if (!(node instanceof DebugJDDNode)) {
-			// copy of a node that is not wrapped in a DebugJDDNode
-			//  -> probably came from JDDNode.getThen()/getElse(), should not be copied
-			throw new RuntimeException("DebugJDD: Illegal operation, trying to copy a plain JDDNode (obtained from getThen()/getElse()?)");
+			// using a node that is not wrapped in a DebugJDDNode, but when debugging is
+			// enabled all nodes should be either DebugJDDNodeLight or DebugJDDNode
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
 		}
 
 		DebugJDDNode dNode = (DebugJDDNode) node;
@@ -509,11 +564,11 @@ public class DebugJDD
 			throw new RuntimeException("DebugJDD: Trying to copy a JDDNode with non-positive CUDD ref count:\n " + dNode.toStringVerbose());
 		}
 
-		DebugJDDNode result = new DebugJDD.DebugJDDNode(dNode.ptr(), false);
-		JDD.Ref(result);
+		DebugJDDNode result = new DebugJDD.DebugJDDNode(dNode.ptr(), true);
+		JDD.DD_Ref(result.ptr());
 
 		if (isTraced(dNode)) {
-			trace("Copy to "+result.getID(), dNode);
+			trace("Copy to " + result.getID(), dNode);
 		}
 
 		if (!traceAll && traceFollowCopies && isTraced(dNode)) {
@@ -523,7 +578,7 @@ public class DebugJDD
 		}
 
 		if (isTraced(result)) {
-			trace("Copied", result);
+			trace("Copied from " + dNode.getID(), result);
 		}
 
 		return result;
@@ -546,21 +601,12 @@ public class DebugJDD
 	}
 
 	/**
-	 * DebugJDD handling of passing JDDNodes as arguments to the
-	 * DD_* layer, where they will be ultimately dereferenced.
-	 * <br>
-	 * As the actual dereferencing in CUDD will only happen
-	 * after the given MTBDD method is finished, we only
-	 * decrement the reference counter on the DebugJDD side.
+	 * Common checks for the case where a DebugJDDNode is used (passed as a method
+	 * argument or with getThen(), getElse() or getValue()).
+	 * @throws RuntimeException in case of a problem
 	 */
-	protected static void DD_Method_Argument(JDDNode node)
+	private static void useNode(DebugJDDNode node)
 	{
-		if (!(node instanceof DebugJDDNode)) {
-			// using a node that is not wrapped in a DebugJDDNode in a DD_* method call
-			//  -> probably came from JDDNode.getThen()/getElse(), should not be used like this
-			throw new RuntimeException("DebugJDD: Illegal operation, trying to use a plain JDDNode (obtained from getThen()/getElse()?) in a method call");
-		}
-
 		DebugJDDNode dNode = (DebugJDDNode) node;
 		if (dNode.getNodeRefs() <= 0 && getJavaRefCount(node.ptr()) > 0) {
 			// This is only a warning as currently there are places
@@ -584,6 +630,30 @@ public class DebugJDD
 		if (cuddRefCount <= 0) {
 			throw new RuntimeException("DebugJDD: Trying to use a JDDNode with a non-positive CUDD ref count in a method call:\n " + dNode.toStringVerbose());
 		}
+	}
+
+	/**
+	 * DebugJDD handling of passing JDDNodes as arguments to the
+	 * DD_* layer, where they will be ultimately dereferenced.
+	 * <br>
+	 * As the actual dereferencing in CUDD will only happen
+	 * after the given MTBDD method is finished, we only
+	 * decrement the reference counter on the DebugJDD side.
+	 */
+	protected static void DD_Method_Argument(JDDNode node)
+	{
+		if (node instanceof DebugJDDNodeLight) {
+			throw new RuntimeException("DebugJDD: Illegal operation, trying to use a light-weight JDDNode (obtained from getThen()/getElse()) in a method call");			
+		}
+		if (!(node instanceof DebugJDDNode)) {
+			// using a node that is not wrapped in a DebugJDDNode, but when debugging is
+			// enabled all nodes should be either DebugJDDNodeLight or DebugJDDNode
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
+		DebugJDDNode dNode = (DebugJDDNode) node;
+		// do standard "use node" checks
+		useNode(dNode);
 
 		// decrement reference in DebugJDD
 		dNode.decRef();
@@ -595,6 +665,359 @@ public class DebugJDD
 
 		if (isTraced(dNode)) {
 			trace("Deref (as method argument)", dNode);
+		}
+	}
+
+	/**
+	 * DebugJDD handling of JDDNode.getThen().
+	 * Returns a DebugJDDNodeLight wrapper around the result.
+	 */
+	protected static JDDNode nodeGetThen(JDDNode node)
+	{
+		if (node instanceof DebugJDDNode) {
+			DebugJDDNode dNode = (DebugJDDNode) node;
+			useNode(dNode);
+		} else if (node instanceof DebugJDDNodeLight) {
+			// nothing to do
+		} else {
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
+		long ptr = JDDNode.DDN_GetThen(node.ptr());
+		if (ptr == 0) {
+			if (node.isConstant()) {
+				throw new RuntimeException("Trying to access the 'then' child of a constant MTBDD node");
+			} else {
+				throw new RuntimeException("getThen: CUDD returned NULL, but node is not a constant node. Out of memory or corrupted MTBDD?");
+			}
+		}
+ 		return new DebugJDDNodeLight(ptr);
+	}
+
+	/**
+	 * DebugJDD handling of JDDNode.getElse().
+	 * Returns a DebugJDDNodeLight wrapper around the result.
+	 */
+	protected static JDDNode nodeGetElse(JDDNode node)
+	{
+		if (node instanceof DebugJDDNode) {
+			DebugJDDNode dNode = (DebugJDDNode) node;
+			useNode(dNode);
+		} else if (node instanceof DebugJDDNodeLight) {
+			// nothing to do
+		} else {
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
+		long ptr = JDDNode.DDN_GetElse(node.ptr());
+		if (ptr == 0) {
+			if (node.isConstant()) {
+				throw new RuntimeException("Trying to access the 'else' child of a constant MTBDD node");
+			} else {
+				throw new RuntimeException("getElse: CUDD returned NULL, but node is not a constant node. Out of memory or corrupted MTBDD?");
+			}
+		}
+ 		return new DebugJDDNodeLight(ptr);
+	}
+
+	/**
+	 * DebugJDD handling of JDDNode.getValue().
+	 * Performs check to ensure that the reference counting
+	 * is fine and that the node is actually a constant node.
+	 */
+	protected static double nodeGetValue(JDDNode node)
+	{
+		if (node instanceof DebugJDDNode) {
+			DebugJDDNode dNode = (DebugJDDNode) node;
+			useNode(dNode);
+		} else if (node instanceof DebugJDDNodeLight) {
+			// nothing to do
+		} else {
+			throw new RuntimeException("DebugJDD: Internal error, encountered a node object of type " + node.getClass().getName() + " in debug mode");
+		}
+
+		if (node.isConstant()) {
+			return JDDNode.DDN_GetValue(node.ptr());
+		} else {
+			throw new RuntimeException("Trying to get value of MTBDD node, but is not a constant node");
+		}
+	}
+
+	/* --------------------- TESTING --------------------------------------------
+	 *
+	 * The methods below provide simple test cases that can be executed from
+	 * the command line to study the behaviour of the debugging functionality
+	 * and of the tracing mechanism.
+	 */
+
+	@SuppressWarnings("unused")
+	private static void test_1()
+	{
+		// test case: missing dereference
+		JDDNode const2 = JDD.Constant(2.0);
+	}
+
+	private static void test_2()
+	{
+		// test case: additional dereference
+		JDDNode const2 = JDD.Constant(2.0);
+		JDD.Deref(const2);
+		JDD.Deref(const2);
+	}
+
+	private static void test_3()
+	{
+		// test case: use of a JDDNode with 0 references
+		JDDNode const2 = JDD.Constant(2.0);
+		JDD.Deref(const2);
+		JDDNode t = JDD.ITE(JDD.Constant(1), const2, JDD.Constant(0));
+		JDD.Deref(t);
+	}
+
+	@SuppressWarnings("unused")
+	private static void test_4()
+	{
+		// test case: use of a JDDNode with 0 references, but which has other
+		// Java references
+		JDDNode const2 = JDD.Constant(2.0);
+		JDDNode copy = const2.copy();
+		JDD.Deref(const2);
+		JDDNode t = JDD.ITE(JDD.Constant(1), const2, JDD.Constant(0));
+		JDD.Deref(t);
+	}
+
+	private static void test_5()
+	{
+		// test case: more complex example with no problems
+		// can be used with -ddtraceall to look at tracing
+		JDDNode v = JDD.Var(0);
+		JDDVars vars = new JDDVars();
+		vars.addVar(v);
+
+		JDDNode t = JDD.ITE(v.copy(), JDD.Constant(2.0), JDD.Constant(1.0));
+		JDDNode c = JDD.Constant(2.0);
+
+		t = JDD.Times(t, c);
+		t = JDD.SumAbstract(t, vars);
+
+		JDD.Deref(t);
+		vars.derefAll();
+	}
+
+	@SuppressWarnings("unused")
+	private static void test_6()
+	{
+		// test case: getThen of a constant
+		JDDNode const2 = JDD.Constant(2);
+		JDDNode t = const2.getThen();
+	}
+
+	@SuppressWarnings("unused")
+	private static void test_7()
+	{
+		// test case: getElse of a constant
+		JDDNode const2 = JDD.Constant(2);
+		JDDNode t = const2.getElse();
+	}
+
+	@SuppressWarnings("unused")
+	private static void test_8()
+	{
+		// test case: getValue of an internal node
+		JDDNode v = JDD.Var(0);
+		double value = v.getValue();
+	}
+
+	private static void test_9()
+	{
+		// test case: use of a light-weight node as a
+		// method argument
+		JDDNode v = JDD.Var(0);
+		JDDNode result = JDD.Apply(JDD.MAX, v.getThen(), v.getElse());
+		JDD.Deref(result);
+	}
+
+	private static void test_10()
+	{
+		// test case: deref of a light-weight node as a
+		// method argument
+		JDDNode v = JDD.Var(0);
+		JDD.Deref(v.getThen());
+		JDD.Deref(v);
+	}
+
+	private static void test_11()
+	{
+		// test case: ref of a light-weight node as a
+		// method argument
+		JDDNode v = JDD.Var(0);
+		JDDNode t = v.getThen();
+		JDD.Ref(t);
+		JDD.Deref(t);
+		JDD.Deref(v);
+	}
+
+	private static void test_12()
+	{
+		// test case: proper use of a light-weight node as a
+		// method argument by using copy()
+		JDDNode v = JDD.Var(0);
+		JDDNode result = JDD.Apply(JDD.MAX, v.getThen().copy(), v.getElse().copy());
+		JDD.Deref(result);
+		JDD.Deref(v);
+	}
+
+	private static void usage()
+	{
+		System.out.println("\nUsage: PRISM_MAINCLASS=jdd.DebugJDD prism [arguments] [test cases]");
+		System.out.println("\nExample: PRISM_MAINCLASS=jdd.DebugJDD prism -dddebug 1 4");
+		System.out.println("   Run test cases 1 and 4, with debugging enabled");
+		System.out.println("\nArguments:");
+		System.out.println(" -dddebug                 Enabled JDD debugging");
+		System.out.println(" -ddtraceall              Trace all JDD nodes");
+		System.out.println(" -ddtracefollowcopies     Trace copies of traced JDD nodes as well");
+		System.out.println(" -dddebugwarnfatal        Treat warnings as errors");
+		System.out.println(" -dddebugwarnoff          Turn off warnings");
+		System.out.println(" -ddtrace n               Trace JDDNode with ID=n");
+		System.out.println("\nFor the test cases, look at the source code in jdd/DebugJDD.java");
+	}
+
+	private static void errorAndExit(String error)
+	{
+		System.out.println(error);
+		usage();
+		System.exit(1);
+	}
+
+	/** Command-line entry point */
+	public static void main(String[] args)
+	{
+		System.out.println("PRISM [jdd.DebugJDD test bed / demonstrator]");
+		System.out.println("============================================\n");
+
+		ArrayList<String> testCases = new ArrayList<String>();
+
+		// Parse the arguments
+		for (int i = 0; i < args.length; i++) {
+
+			// if is a switch...
+			if (args[i].length() > 0 && args[i].charAt(0) == '-') {
+
+				// Remove "-"
+				String sw = args[i].substring(1);
+				if (sw.length() == 0) {
+					errorAndExit("Invalid empty switch");
+				}
+				// Remove optional second "-" (i.e. we allow switches of the form --sw too)
+				if (sw.charAt(0) == '-')
+					sw = sw.substring(1);
+
+				// DD Debugging options
+				if (sw.equals("dddebug")) {
+					jdd.DebugJDD.enable();
+				} else if (sw.equals("ddtraceall")) {
+					jdd.DebugJDD.traceAll = true;
+				} else if (sw.equals("ddtracefollowcopies")) {
+					jdd.DebugJDD.traceFollowCopies = true;
+				} else if (sw.equals("dddebugwarnfatal")) {
+					jdd.DebugJDD.warningsAreFatal = true;
+				} else if (sw.equals("dddebugwarnoff")) {
+					jdd.DebugJDD.warningsOff = true;
+				} else if (sw.equals("ddtrace")) {
+					if (i < args.length - 1) {
+						String idString = args[++i];
+						try {
+							int id = Integer.parseInt(idString);
+							jdd.DebugJDD.enableTracingForID(id);
+						} catch (NumberFormatException e) {
+							errorAndExit("The -" + sw + " switch requires an integer argument (JDDNode ID)");
+						}
+					} else {
+						errorAndExit("The -" + sw + " switch requires an additional argument (JDDNode ID)");
+					}
+				} else {
+					errorAndExit("Unknown switch: -" + sw);
+				}
+			} else {
+				// not a switch, assume is a test case
+				testCases.add(args[i]);
+			}
+		}
+
+		try {
+			// initialise Prism/CUDD
+			PrismLog mainLog = new PrismFileLog("stdout");
+
+			mainLog.println("\n[Initializing PRISM]\n");
+
+			// create prism object(s)
+			Prism prism = new Prism(mainLog);
+
+			prism.initialise();
+
+			int i = 1;
+			for (String testCase : testCases) {
+				mainLog.print("\n[Running test case " + testCase);
+				if (testCases.size() > 1) {
+					mainLog.print(" (" + i + "/" + testCases.size() + ")");
+				}
+				mainLog.println("]\n");
+				i++;
+
+				switch (testCase) {
+				case "1":
+					test_1();
+					break;
+				case "2":
+					test_2();
+					break;
+				case "3":
+					test_3();
+					break;
+				case "4":
+					test_4();
+					break;
+				case "5":
+					test_5();
+					break;
+				case "6":
+					test_6();
+					break;
+				case "7":
+					test_7();
+					break;
+				case "8":
+					test_8();
+					break;
+				case "9":
+					test_9();
+					break;
+				case "10":
+					test_10();
+					break;
+				case "11":
+					test_11();
+					break;
+				case "12":
+					test_12();
+					break;
+
+				default:
+					errorAndExit("Unknown test case: " + testCase);
+				}
+			}
+
+			mainLog.println("\n[Closing down PRISM/CUDD]\n");
+
+			// clear up and close down
+			prism.closeDown(true);
+
+			mainLog.println();
+			// Close logs (in case they are files)
+			mainLog.close();
+		} catch (PrismException e) {
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 

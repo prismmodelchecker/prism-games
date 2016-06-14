@@ -4,6 +4,7 @@
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
 //	* Christian von Essen <christian.vonessen@imag.fr> (VERIMAG)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -75,7 +76,10 @@ public class JDDNode
 	}
 
 	public double getValue()
-	{	
+	{
+		if (DebugJDD.debugEnabled) {
+			return DebugJDD.nodeGetValue(this);
+		}
 		return DDN_GetValue(ptr);
 	}
 
@@ -84,16 +88,27 @@ public class JDDNode
 	 * <br>
 	 * This method does NOT increase the reference count of the returned
 	 * node, it is therefore illegal to call JDD.Deref on the result.
+	 * Additionally, it is recommended to not use the returned node
+	 * as the argument to the JDD methods or call JDD.Ref on it.
+	 * Instead, if you need to obtain a "proper" node, call copy()
+	 * on the returned node.
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
 	 */
 	public JDDNode getThen()
 	{
-		assert !this.isConstant();
+		if (DebugJDD.debugEnabled) {
+			return DebugJDD.nodeGetThen(this);
+		}
 
-		// just return the node, even if DebugJDD is enabled
-		// DDN_GetThen will return NULL if the current node is a
-		// constant, raising an Exception in the JDDNode constructor
-		return new JDDNode(DDN_GetThen(ptr));
+		long thenPtr = DDN_GetThen(ptr);
+		if (thenPtr == 0) {
+			if (isConstant()) {
+				throw new RuntimeException("Trying to access the 'then' child of a constant MTBDD node");
+			} else {
+				throw new RuntimeException("getThen: CUDD returned NULL, but node is not a constant node. Out of memory or corrupted MTBDD?");
+			}
+		}
+		return new JDDNode(thenPtr);
 	}
 
 	/**
@@ -101,19 +116,30 @@ public class JDDNode
 	 * <br>
 	 * This method does NOT increase the reference count of the returned
 	 * node, it is therefore illegal to call JDD.Deref on the result.
+	 * Additionally, it is recommended to not use the returned node
+	 * as the argument to the JDD methods or call JDD.Ref on it.
+	 * Instead, if you need to obtain a "proper" node, call copy()
+	 * on the returned node.
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
 	 */
 	public JDDNode getElse()
 	{
-		assert !this.isConstant();
+		if (DebugJDD.debugEnabled) {
+			return DebugJDD.nodeGetElse(this);
+		}
 
-		// just return the node, even if DebugJDD is enabled
-		// DDN_GetElse will return NULL if the current node is a
-		// constant, raising an Exception in the JDDNode constructor
- 		return new JDDNode(DDN_GetElse(ptr));
+		long elsePtr = DDN_GetElse(ptr);
+		if (elsePtr == 0) {
+			if (isConstant()) {
+				throw new RuntimeException("Trying to access the 'else' child of a constant MTBDD node");
+			} else {
+				throw new RuntimeException("getElse: CUDD returned NULL, but node is not a constant node. Out of memory or corrupted MTBDD?");
+			}
+		}
+		return new JDDNode(elsePtr);
 	}
 
-	public boolean equals(Object o)        
+	public boolean equals(Object o)
 	{
 		return (o instanceof JDDNode) && (((JDDNode) o).ptr == ptr);
 	}

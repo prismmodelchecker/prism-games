@@ -156,6 +156,6 @@ public class OpRelOpBound
 	@Override
 	public String toString()
 	{
-		return op + relOp.toString() + bound;
+		return op + relOp.toString() + (isNumeric() ? "?" : bound);
 	}
 }
