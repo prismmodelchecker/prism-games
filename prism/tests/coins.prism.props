@@ -13,6 +13,9 @@
 // RESULT: 0.25
 <<1>> Pmax=? [F "correct"]
 
+// RESULT: 0.75
+Pmax=? [F "correct"]
+
 // RESULT: Infinity
 <<1,2,3>> R{"correct_guess"}max=? [F "correct"]
 
@@ -27,6 +30,9 @@
 
 // RESULT: Infinity
 <<1>> R{"correct_guess"}max=? [F "correct"]
+
+// RESULT: Infinity
+R{"correct_guess"}max=? [F "correct"]
 
 // RESULT: 3.75
 <<2,3>> R{"correct_guess"}max=? [F0 "correct"]
