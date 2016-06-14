@@ -322,8 +322,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
-	 * Set termination criteria parameter (epsilon) for numerical iterative
-	 * methods.
+	 * Set termination criteria parameter (epsilon) for numerical iterative methods.
 	 */
 	public void setTermCritParam(double termCritParam)
 	{
@@ -584,24 +583,25 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
 
-	        // for now, need separate handling of S and C operator for SMGs
-		if(expr.getExpression() instanceof ExpressionReward) {
-		    Expression e = ((ExpressionReward) expr.getExpression()).getExpression();
-		    if(e.getType() instanceof TypePathDouble) {
-			ExpressionTemporal eTemp = (ExpressionTemporal) e;
-			if (model.getModelType() == ModelType.SMG) {
-			    switch (eTemp.getOperator()) {
-			    case ExpressionTemporal.R_S: // average rewards
-				return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
-			    case ExpressionTemporal.R_C: // total or ratio rewards
-				if(!eTemp.hasBounds()) {
-				    return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
+		// For now, need separate handling of S and C operator for SMGs
+		if (expr.getExpression() instanceof ExpressionReward) {
+			Expression e = ((ExpressionReward) expr.getExpression()).getExpression();
+			if (e.getType() instanceof TypePathDouble) {
+				ExpressionTemporal eTemp = (ExpressionTemporal) e;
+				if (model.getModelType() == ModelType.SMG) {
+					switch (eTemp.getOperator()) {
+					case ExpressionTemporal.R_S: // average rewards
+						return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
+								BooleanUtils.convertToCNFLists(expr), coalition);
+					case ExpressionTemporal.R_C: // total or ratio rewards
+						if (!eTemp.hasBounds()) {
+							return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
+									BooleanUtils.convertToCNFLists(expr), coalition);
+						}
+					}
 				}
-			    }
 			}
-		    }
 		}
-
 
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
@@ -810,7 +810,6 @@ public class ProbModelChecker extends NonProbModelChecker
 			// A trivial case: windowSize=0 (prob is 1 in target states, 0 otherwise)
 			sv = StateValues.createFromBitSetAsDoubles(target, model);
 		} else {
-				
 			// Otherwise: numerical solution
 			ModelCheckerResult res = null;
 
@@ -930,21 +929,23 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
-		
-	        // for now, need separate handling of S and C operator for SMGs
+
+		// For now, need separate handling of S and C operator for SMGs
 		Expression e = expr.getExpression();
-		if(e.getType() instanceof TypePathDouble) {
-		    ExpressionTemporal eTemp = (ExpressionTemporal) e;
-		    if (model.getModelType() == ModelType.SMG) {
-			switch (eTemp.getOperator()) {
-			case ExpressionTemporal.R_S: // average rewards
-			    return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
-			case ExpressionTemporal.R_C: // total or ratio rewards
-			    if(!eTemp.hasBounds()) {
-				return ((SMGModelChecker) this).checkExpressionMultiObjective(model, BooleanUtils.convertToCNFLists(expr), coalition);
-			    }
+		if (e.getType() instanceof TypePathDouble) {
+			ExpressionTemporal eTemp = (ExpressionTemporal) e;
+			if (model.getModelType() == ModelType.SMG) {
+				switch (eTemp.getOperator()) {
+				case ExpressionTemporal.R_S: // average rewards
+					return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
+							BooleanUtils.convertToCNFLists(expr), coalition);
+				case ExpressionTemporal.R_C: // total or ratio rewards
+					if (!eTemp.hasBounds()) {
+						return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
+								BooleanUtils.convertToCNFLists(expr), coalition);
+					}
+				}
 			}
-		    }
 		}
 
 		// Check if ratio reward
