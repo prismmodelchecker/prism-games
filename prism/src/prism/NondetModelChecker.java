@@ -238,7 +238,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	{
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, null);
 		
 		// Check for trivial (i.e. stupid) cases
 		if (opInfo.isTriviallyTrue()) {
@@ -297,7 +297,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	        if(expr.getRewardStructIndexDiv() != null)
 		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, null);
 
 		// Get rewards
 		Object rs = expr.getRewardStructIndex();
