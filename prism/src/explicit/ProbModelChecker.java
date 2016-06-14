@@ -605,8 +605,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
-		minMax.setCoalition(coalition);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, coalition);
 
 		// Handle exact probabilities case (SMGs only)
 		if (opInfo.isExact()) {
@@ -952,8 +951,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	        if(expr.getRewardStructDivByIndexObject(modelInfo, constantValues) != null)
 		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
-		minMax.setCoalition(coalition);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, coalition);
 
 		// Build rewards
 		RewardStruct rewStruct = expr.getRewardStructByIndexObject(modelInfo, constantValues);
@@ -1249,7 +1247,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		// Get info from S operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), true);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), true, null);
 
 		// Compute probabilities
 		StateValues probs = checkSteadyStateFormula(model, expr.getExpression(), minMax);

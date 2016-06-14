@@ -1,5 +1,6 @@
 package prism;
 
+import parser.ast.Coalition;
 import parser.ast.RelOp;
 import explicit.MinMax;
 
@@ -85,10 +86,10 @@ public class OpRelOpBound
 	
 	public MinMax getMinMax(ModelType modelType) throws PrismLangException
 	{
-		return getMinMax(modelType, true);
+		return getMinMax(modelType, true, null);
 	}
 
-	public MinMax getMinMax(ModelType modelType, boolean forAll) throws PrismLangException
+	public MinMax getMinMax(ModelType modelType, boolean forAll, Coalition coalition) throws PrismLangException
 	{
 		MinMax minMax = MinMax.blank();
 		if (modelType.nondeterministic()) {
@@ -114,10 +115,11 @@ public class OpRelOpBound
 						throw new PrismLangException("Can't use \"" + op + "=?\" for SMGs; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
 					}
 					if (relOp.isMin() || (forAll && relOp.isLowerBound()) || (!forAll && relOp.isUpperBound())) {
-						minMax = MinMax.minMin(true, false);
+						minMax = (coalition != null) ? MinMax.minMin(true, false) : MinMax.minMin(true, true);
 					} else {
-						minMax = MinMax.minMin(false, true);
+						minMax = (coalition != null) ? MinMax.minMin(false, true) : MinMax.minMin(false, false);
 					}
+					minMax.setCoalition(coalition);
 				} else if (modelType == ModelType.STPG) {
 					if (relOp == RelOp.EQ && isNumeric()) {
 						throw new PrismLangException("Can't use \"" + op + "=?\" for STPGs; use e.g. \"" + op + "minmax=?\"");
@@ -136,7 +138,6 @@ public class OpRelOpBound
 				}
 			}
 		}
-
 		return minMax;
 	}
 
