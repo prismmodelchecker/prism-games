@@ -33,6 +33,7 @@ import parser.ast.ExpressionLabel;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
+import parser.ast.ExpressionStrategy;
 import parser.ast.ExpressionTemporal;
 import parser.ast.FormulaList;
 import parser.ast.LabelList;
@@ -202,6 +203,36 @@ public class PropertiesSemanticCheck extends SemanticCheck
 		}
 	}
 
+	public void visitPost(ExpressionStrategy e) throws PrismLangException
+	{
+		// Make sure any player names in a coalition operator are valid
+		if (e.getCoalition() != null) {
+			for (String player : e.getCoalitionPlayers()) {
+				int numPlayers = modelInfo.getNumPlayers();
+				// Valid player references are either integers
+				// in the range 1..numPlayers or a name of player from the model
+				try {
+					int playerNum = Integer.parseInt(player);
+					if (playerNum < 1 || playerNum > numPlayers) {
+						throw new PrismLangException("Invalid player index \"" + player + "\"");
+					}
+				}
+				catch (NumberFormatException ex) {
+					boolean found = false;
+					for (int i = 0; i < numPlayers; i++) {
+						if (player.equals(modelInfo.getPlayer(i).getName())) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						throw new PrismLangException("Unknown player \"" + player + "\"");
+					}
+				}
+			}
+		}
+	}
+	
 	public void visitPost(ExpressionLabel e) throws PrismLangException
 	{
 		String name = e.getName();
