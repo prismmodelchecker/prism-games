@@ -1019,6 +1019,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				// Fail silently if memory string is invalid 
 			}
 		}
+		jdd.SanityJDD.enabled = settings.getBoolean(PrismSettings.PRISM_JDD_SANITY_CHECKS);
 	}
 
 	//------------------------------------------------------------------------------

@@ -250,6 +250,33 @@ DdNode *dd
 
 //------------------------------------------------------------------------------
 
+// Find minimal terminal node (constant) that is greater than zero
+double DD_FindMinPositive
+(
+DdManager *ddman,
+DdNode *dd
+)
+{
+	DdGen *gen;
+	DdNode *node;
+	bool rv = true;
+
+	double min_v = std::numeric_limits<double>::infinity();
+
+	Cudd_ForeachNode(ddman, dd, gen, node) {
+		if (Cudd_IsConstant(node)) {
+			double v = Cudd_V(node);
+			if (v > 0 && v < min_v) {
+				min_v = v;
+			}
+		}
+	}
+
+	return min_v;
+}
+
+//------------------------------------------------------------------------------
+
 double DD_FindMax
 (
 DdManager *ddman,
@@ -262,6 +289,33 @@ DdNode *dd
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 	return Cudd_V(v);
+}
+
+
+//------------------------------------------------------------------------------
+
+bool DD_IsZeroOneMTBDD
+(
+DdManager *ddman,
+DdNode *dd
+)
+{
+	DdGen *gen;
+	DdNode *node;
+	bool rv = true;
+
+	Cudd_ForeachNode(ddman, dd, gen, node) {
+		if (Cudd_IsConstant(node)) {
+			if (node != Cudd_ReadOne(ddman) && node != Cudd_ReadZero(ddman)) {
+				rv = false;
+				// we could break here, as it's clear that we are done
+				// however, it looks like CUDD would then not free the
+				// DdGen* gen
+			}
+		}
+	}
+
+	return rv;
 }
 
 //------------------------------------------------------------------------------

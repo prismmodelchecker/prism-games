@@ -441,6 +441,14 @@ JNIEXPORT jdouble JNICALL Java_jdd_JDD_DD_1FindMin
 
 /*
  * Class:     jdd_JDD
+ * Method:    DD_FindMinPositive
+ * Signature: (J)D
+ */
+JNIEXPORT jdouble JNICALL Java_jdd_JDD_DD_1FindMinPositive
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     jdd_JDD
  * Method:    DD_FindMax
  * Signature: (J)D
  */
@@ -454,6 +462,14 @@ JNIEXPORT jdouble JNICALL Java_jdd_JDD_DD_1FindMax
  */
 JNIEXPORT jlong JNICALL Java_jdd_JDD_DD_1RestrictToFirst
   (JNIEnv *, jclass, jlong, jlong, jint);
+
+/*
+ * Class:     jdd_JDD
+ * Method:    DD_IsZeroOneMTBDD
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_jdd_JDD_DD_1IsZeroOneMTBDD
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     jdd_JDD
@@ -670,6 +686,22 @@ JNIEXPORT void JNICALL Java_jdd_JDD_DD_1ExportMatrixToMatlabFile
  */
 JNIEXPORT void JNICALL Java_jdd_JDD_DD_1ExportMatrixToSpyFile
   (JNIEnv *, jclass, jlong, jlong, jint, jlong, jint, jint, jstring);
+
+/*
+ * Class:     jdd_JDD
+ * Method:    DebugJDD_GetRefCount
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_jdd_JDD_DebugJDD_1GetRefCount
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     jdd_JDD
+ * Method:    DebugJDD_GetExternalRefCounts
+ * Signature: ()[J
+ */
+JNIEXPORT jlongArray JNICALL Java_jdd_JDD_DebugJDD_1GetExternalRefCounts
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

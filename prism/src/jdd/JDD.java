@@ -89,8 +89,10 @@ public class JDD
 	private static native long DD_RoundOff(long dd, int places);
 	private static native boolean DD_EqualSupNorm(long dd1, long dd2, double epsilon);
 	private static native double DD_FindMin(long dd);
+	private static native double DD_FindMinPositive(long dd);
 	private static native double DD_FindMax(long dd);
 	private static native long DD_RestrictToFirst(long dd, long vars, int num_vars);
+	private static native boolean DD_IsZeroOneMTBDD(long dd);
 	// dd_info
 	private static native int DD_GetNumNodes(long dd);
 	private static native int DD_GetNumTerminals(long dd);
@@ -121,6 +123,10 @@ public class JDD
 	private static native void DD_Export3dMatrixToPPFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, long nvars, int num_nvars, String filename);
 	private static native void DD_ExportMatrixToMatlabFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, String name, String filename);
 	private static native void DD_ExportMatrixToSpyFile(long dd, long rvars, int num_rvars, long cvars, int num_cvars, int depth, String filename);
+
+	// helpers for DebugJDD, package visibility
+	static native int DebugJDD_GetRefCount(long dd);
+	static native long[] DebugJDD_GetExternalRefCounts();
 
 	/**
 	 * An exception indicating that CUDD ran out of memory or that another internal error
@@ -379,6 +385,9 @@ public class JDD
 	 */
 	public static JDDNode Not(JDDNode dd)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_Not(dd.ptr()));
@@ -390,6 +399,10 @@ public class JDD
 	 */
 	public static JDDNode Or(JDDNode dd1, JDDNode dd2)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+			SanityJDD.checkIsZeroOneMTBDD(dd2);
+		}
 		if (DebugJDD.debugEnabled) {
 			DebugJDD.DD_Method_Argument(dd1);
 			DebugJDD.DD_Method_Argument(dd2);
@@ -427,6 +440,10 @@ public class JDD
 	 */
 	public static JDDNode And(JDDNode dd1, JDDNode dd2)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+			SanityJDD.checkIsZeroOneMTBDD(dd2);
+		}
 		if (DebugJDD.debugEnabled) {
 			DebugJDD.DD_Method_Argument(dd1);
 			DebugJDD.DD_Method_Argument(dd2);
@@ -465,6 +482,10 @@ public class JDD
 	 */
 	public static JDDNode Xor(JDDNode dd1, JDDNode dd2)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+			SanityJDD.checkIsZeroOneMTBDD(dd2);
+		}
 		if (DebugJDD.debugEnabled) {
 			DebugJDD.DD_Method_Argument(dd1);
 			DebugJDD.DD_Method_Argument(dd2);
@@ -580,6 +601,9 @@ public class JDD
 	 */
 	public static JDDNode Restrict(JDDNode dd, JDDNode cube)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd);
+		}
 		if (DebugJDD.debugEnabled) {
 			DebugJDD.DD_Method_Argument(dd);
 			DebugJDD.DD_Method_Argument(cube);
@@ -593,6 +617,9 @@ public class JDD
 	 */
 	public static JDDNode ITE(JDDNode dd1, JDDNode dd2, JDDNode dd3)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+		}
 		if (DebugJDD.debugEnabled) {
 			DebugJDD.DD_Method_Argument(dd1);
 			DebugJDD.DD_Method_Argument(dd2);
@@ -607,6 +634,10 @@ public class JDD
 	 */
 	public static boolean AreIntersecting(JDDNode dd1, JDDNode dd2)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+			SanityJDD.checkIsZeroOneMTBDD(dd2);
+		}
 		JDDNode tmp;
 		boolean res;
 		JDD.Ref(dd1);
@@ -623,6 +654,10 @@ public class JDD
 	 */
 	public static boolean IsContainedIn(JDDNode dd1, JDDNode dd2)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd1);
+			SanityJDD.checkIsZeroOneMTBDD(dd2);
+		}
 		JDDNode tmp;
 		boolean res;
 		JDD.Ref(dd1);
@@ -712,6 +747,9 @@ public class JDD
 	 */
 	public static JDDNode ThereExists(JDDNode dd, JDDVars vars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_ThereExists(dd.ptr(), vars.array(), vars.n()));
@@ -723,6 +761,9 @@ public class JDD
 	 */
 	public static JDDNode ForAll(JDDNode dd, JDDVars vars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_ForAll(dd.ptr(), vars.array(), vars.n()));
@@ -861,7 +902,16 @@ public class JDD
 		checkForCuddError();
 		return rv;
 	}
-	
+
+	/**
+	 * returns true if dd is a 0/1-MTBDD, i.e., all terminal nodes are either 0 or 1
+	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
+	 */
+	public static boolean IsZeroOneMTBDD(JDDNode dd)
+	{
+		return DD_IsZeroOneMTBDD(dd.ptr());
+	}
+
 	/**
 	 * returns minimum terminal in dd
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
@@ -872,7 +922,20 @@ public class JDD
 		checkForCuddError();
 		return rv;
 	}
-	
+
+	/**
+	 * Returns minimal positive terminal in dd, i.e.,
+	 * the smallest constant greater than zero.
+	 * If there is none, returns +infinity.
+	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
+	 */
+	public static double FindMinPositive(JDDNode dd)
+	{
+		double rv = DD_FindMinPositive(dd.ptr());
+		checkForCuddError();
+		return rv;
+	}
+
 	/**
 	 * returns maximum terminal in dd
 	 * <br>[ REFS: <i>none</i>, DEREFS: <i>none</i> ]
@@ -988,6 +1051,11 @@ public class JDD
 	 */
 	public static boolean isSingleton(JDDNode dd, JDDVars vars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsZeroOneMTBDD(dd);
+			SanityJDD.checkVarsAreSorted(vars);
+		}
+		
 		int i=0;
 		while (!dd.isConstant()) {
 			int index = dd.getIndex();
@@ -1157,6 +1225,9 @@ public class JDD
 	 */
 	public static JDDNode SetVectorElement(JDDNode dd, JDDVars vars, long index, double value)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_SetVectorElement(dd.ptr(), vars.array(), vars.n(), index, value));
@@ -1168,6 +1239,9 @@ public class JDD
 	 */
 	public static JDDNode SetMatrixElement(JDDNode dd, JDDVars rvars, JDDVars cvars, long rindex, long cindex, double value)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_SetMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), rindex, cindex, value));
@@ -1179,6 +1253,9 @@ public class JDD
 	 */
 	public static JDDNode Set3DMatrixElement(JDDNode dd, JDDVars rvars, JDDVars cvars, JDDVars lvars, long rindex, long cindex, long lindex, double value)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars, lvars);
+		}
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_Set3DMatrixElement(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), lvars.array(), lvars.n(), rindex, cindex, lindex, value));
@@ -1190,6 +1267,9 @@ public class JDD
 	 */
 	public static double GetVectorElement(JDDNode dd, JDDVars vars, long index)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+		}
 		double rv = DD_GetVectorElement(dd.ptr(), vars.array(), vars.n(), index);
 		checkForCuddError();
 		return rv;
@@ -1201,6 +1281,9 @@ public class JDD
 	 */
 	public static JDDNode Identity(JDDVars rvars, JDDVars cvars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.check(rvars.n() == cvars.n(), "Mismatch of JDDVars sizes");
+		}
 		return ptrToNode(DD_Identity(rvars.array(), cvars.array(), rvars.n()));
 	}
 	
@@ -1210,6 +1293,10 @@ public class JDD
 	 */
 	public static JDDNode Transpose(JDDNode dd, JDDVars rvars, JDDVars cvars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+		}
+
 		if (DebugJDD.debugEnabled)
 			DebugJDD.DD_Method_Argument(dd);
 		return ptrToNode(DD_Transpose(dd.ptr(), rvars.array(), cvars.array(), rvars.n()));
@@ -1382,6 +1469,9 @@ public class JDD
 	 */
 	public static void PrintVector(JDDNode dd, JDDVars vars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+		}
 		DD_PrintVector(dd.ptr(), vars.array(), vars.n(), NORMAL);
 	}
 	
@@ -1391,6 +1481,9 @@ public class JDD
 	 */
 	public static void PrintVector(JDDNode dd, JDDVars vars, int accuracy)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+		}
 		DD_PrintVector(dd.ptr(), vars.array(), vars.n(), accuracy);
 	}
 	
@@ -1400,6 +1493,9 @@ public class JDD
 	 */
 	public static void PrintMatrix(JDDNode dd, JDDVars rvars, JDDVars cvars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+		}
 		DD_PrintMatrix(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), NORMAL);
 	}
 	
@@ -1409,6 +1505,9 @@ public class JDD
 	 */
 	public static void PrintMatrix(JDDNode dd, JDDVars rvars, JDDVars cvars, int accuracy)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+		}
 		DD_PrintMatrix(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), accuracy);
 	}
 	
@@ -1418,6 +1517,10 @@ public class JDD
 	 */
 	public static void PrintVectorFiltered(JDDNode dd, JDDNode filter, JDDVars vars)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+			SanityJDD.checkIsDDOverVars(filter, vars);
+		}
 		DD_PrintVectorFiltered(dd.ptr(), filter.ptr(), vars.array(), vars.n(), NORMAL);
 	}
 	
@@ -1427,6 +1530,10 @@ public class JDD
 	 */
 	public static void PrintVectorFiltered(JDDNode dd, JDDNode filter, JDDVars vars, int accuracy)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+			SanityJDD.checkIsDDOverVars(filter, vars);
+		}
 		DD_PrintVectorFiltered(dd.ptr(), filter.ptr(), vars.array(), vars.n(), accuracy);
 	}
 	
@@ -1436,6 +1543,9 @@ public class JDD
 	 */
 	public static void TraverseVector(JDDNode dd, JDDVars vars, JDDVectorConsumer vc, int code)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, vars);
+		}
 		TraverseVectorRec(dd, vars, 0, 0, vc, code);
 	}
 	
@@ -1495,6 +1605,10 @@ public class JDD
 	 */
 	public static void ExportMatrixToPPFile(JDDNode dd, JDDVars rvars, JDDVars cvars, String filename)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+			SanityJDD.check(rvars.n() == cvars.n(), "Mismatch of JDDVars sizes");
+		}
 		DD_ExportMatrixToPPFile(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), filename);
 	}
 	
@@ -1525,6 +1639,10 @@ public class JDD
 	 */
 	public static void Export3dMatrixToPPFile(JDDNode dd, JDDVars rvars, JDDVars cvars, JDDVars nvars, String filename)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars, nvars);
+			SanityJDD.check(rvars.n() == cvars.n(), "Mismatch of JDDVars sizes");
+		}
 		DD_Export3dMatrixToPPFile(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), nvars.array(), nvars.n(), filename);
 	}
 
@@ -1534,6 +1652,10 @@ public class JDD
 	 */
 	public static void ExportMatrixToMatlabFile(JDDNode dd, JDDVars rvars, JDDVars cvars, String name, String filename)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+			SanityJDD.check(rvars.n() == cvars.n(), "Mismatch of JDDVars sizes");
+		}
 		DD_ExportMatrixToMatlabFile(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), name, filename);
 	}
 
@@ -1543,6 +1665,10 @@ public class JDD
 	 */
 	public static void ExportMatrixToSpyFile(JDDNode dd, JDDVars rvars, JDDVars cvars, int depth, String filename)
 	{
+		if (SanityJDD.enabled) {
+			SanityJDD.checkIsDDOverVars(dd, rvars, cvars);
+			SanityJDD.check(rvars.n() == cvars.n(), "Mismatch of JDDVars sizes");
+		}
 		DD_ExportMatrixToSpyFile(dd.ptr(), rvars.array(), rvars.n(), cvars.array(), cvars.n(), depth, filename);
 	}
 
