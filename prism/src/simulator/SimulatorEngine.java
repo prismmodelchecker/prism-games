@@ -2059,7 +2059,7 @@ public class SimulatorEngine extends PrismComponent
 				break;
 
 			// Display progress (of slowest property)
-			percentageDone = 0;
+			percentageDone = 100;
 			for (Sampler sampler : propertySamplers) {
 				percentageDone = Math.min(percentageDone, sampler.getSimulationMethod().getProgress(iters, sampler));
 			}
