@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -26,11 +26,25 @@
 
 package simulator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Vector;
 
-import parser.*;
-import parser.ast.*;
-import prism.*;
+import parser.State;
+import parser.VarList;
+import parser.ast.Command;
+import parser.ast.Module;
+import parser.ast.ModulesFile;
+import parser.ast.RewardStruct;
+import parser.ast.Update;
+import parser.ast.Updates;
+import prism.ModelType;
+import prism.PrismComponent;
+import prism.PrismException;
+import prism.PrismLangException;
+import prism.PrismSettings;
 
 public class Updater extends PrismComponent
 {
@@ -40,7 +54,7 @@ public class Updater extends PrismComponent
 	// The precision to which we check probabilities sum to 1
 	protected double sumRoundOff = 1e-5;
 	
-	// Model to which the path corresponds
+	// Info on model being explored
 	protected ModulesFile modulesFile;
 	protected ModelType modelType;
 	protected int numModules;
@@ -71,14 +85,11 @@ public class Updater extends PrismComponent
 	
 	public Updater(ModulesFile modulesFile, VarList varList, PrismComponent parent)
 	{
-		int i, j;
-		String s;
-
 		// Store some settings
 		doProbChecks = parent.getSettings().getBoolean(PrismSettings.PRISM_DO_PROB_CHECKS);
 		sumRoundOff = parent.getSettings().getDouble(PrismSettings.PRISM_SUM_ROUND_OFF);
 		
-		// Get info from simulator/model
+		// Get info from model
 		this.modulesFile = modulesFile;
 		modelType = modulesFile.getModelType();
 		numModules = modulesFile.getNumModules();
@@ -90,15 +101,15 @@ public class Updater extends PrismComponent
 		// Compute count of number of modules using each synch action
 		// First, compute and cache the synch actions for each of the modules
 		List<HashSet<String>> synchsPerModule = new ArrayList<HashSet<String>>(numModules);
-		for (i = 0; i < numModules; i++) {
+		for (int i = 0; i < numModules; i++) {
 			synchsPerModule.add(new HashSet<String>(modulesFile.getModule(i).getAllSynchs()));
 		}
 		// Second, do the counting
 		synchModuleCounts = new int[numSynchs];
-		for (j = 0; j < numSynchs; j++) {
+		for (int j = 0; j < numSynchs; j++) {
 			synchModuleCounts[j] = 0;
-			s = synchs.get(j);
-			for (i = 0; i < numModules; i++) {
+			String s = synchs.get(j);
+			for (int i = 0; i < numModules; i++) {
 				if (synchsPerModule.get(i).contains(s))
 					synchModuleCounts[j]++;
 			}
@@ -106,15 +117,15 @@ public class Updater extends PrismComponent
 
 		// Build lists/bitsets for later use
 		updateLists = new ArrayList<List<List<Updates>>>(numModules);
-		for (i = 0; i < numModules; i++) {
+		for (int i = 0; i < numModules; i++) {
 			updateLists.add(new ArrayList<List<Updates>>(numSynchs + 1));
-			for (j = 0; j < numSynchs + 1; j++) {
+			for (int j = 0; j < numSynchs + 1; j++) {
 				updateLists.get(i).add(new ArrayList<Updates>());
 			}
 		}
 		enabledSynchs = new BitSet(numSynchs + 1);
 		enabledModules = new BitSet[numSynchs + 1];
-		for (j = 0; j < numSynchs + 1; j++) {
+		for (int j = 0; j < numSynchs + 1; j++) {
 			enabledModules[j] = new BitSet(numModules);
 		}
 	}

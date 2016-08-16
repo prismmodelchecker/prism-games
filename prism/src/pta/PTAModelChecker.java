@@ -215,6 +215,10 @@ public class PTAModelChecker extends PrismComponent
 			// Get time bound info (is always of form <=T or <T)
 			timeBound = exprTemp.getUpperBound().evaluateInt(constantValues);
 			timeBoundStrict = exprTemp.upperBoundIsStrict();
+			// Check for non-allowed time bounds (negative)
+			if (timeBound < (timeBoundStrict ? 1 : 0)) {
+				throw new PrismLangException("Negative bound in " + exprTemp);
+			}
 			// Modify PTA to include time bound; get new target
 			targetLocs = buildTimeBoundIntoPta(pta, targetLocs, timeBound, timeBoundStrict);
 			mainLog.println("New PTA: " + pta.infoString());
@@ -290,8 +294,12 @@ public class PTAModelChecker extends PrismComponent
 			}
 		}
 		// Re-generate set of target locations
+		// (newly added target location, plus initial location (always 0) is this is a target)
 		targetLocsNew = new BitSet(pta.getNumLocations());
 		targetLocsNew.set(newTargetLoc);
+		if (targetLocs.get(0)) {
+			targetLocsNew.set(0);
+		}
 
 		return targetLocsNew;
 	}
@@ -301,6 +309,12 @@ public class PTAModelChecker extends PrismComponent
 	 */
 	private double computeProbabilisticReachability(BitSet targetLocs, boolean min) throws PrismException
 	{
+		// Catch the special case where the initial state is already a target - just return 1.0 directly
+		if (targetLocs.get(0)) {
+			mainLog.println("Skipping numerical computation since initial state is a target...");
+			return 1.0;
+		}
+		
 		// Determine which method to use for computation
 		String ptaMethod = settings.getString(PrismSettings.PRISM_PTA_METHOD);
 

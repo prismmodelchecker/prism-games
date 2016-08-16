@@ -28,9 +28,11 @@ package param;
 
 import java.math.BigInteger;
 
+import prism.PrismLangException;
+
 /**
  * Provides a class to store big rational numbers.
- * Nominator and denominator of a number stored using this class are not
+ * Numerator and denominator of a number stored using this class are not
  * necessarily coprime. However, cancellation is applied by default.
  * The special values infinity (INF), minus infinity (MINF) and not a number
  * (NAN)are provided. For them, the usual rules apply (INF * INF = INF,
@@ -234,6 +236,31 @@ public final class BigRational implements Comparable<BigRational>
 			this.den = r.den;
 			return;
 		}
+	}
+
+	/**
+	 * Construct a BigRational from the given object.
+	 * Throws an IllegalArgumentException if there is no
+	 * known conversion.
+	 */
+	public static BigRational from(Object value)
+	{
+		if (value instanceof BigRational) {
+			BigRational v = (BigRational)value;
+			return new BigRational(v.num, v.den);
+		} else if (value instanceof Integer) {
+			return new BigRational((int) value);
+		} else if (value instanceof Long) {
+			return new BigRational((long) value);
+		} else if (value instanceof Boolean) {
+			boolean v = (Boolean)value;
+			return new BigRational(v ? 1 : 0);
+		} else if (value instanceof Double) {
+			// TODO: ? might be imprecise, perhaps there
+			// is a way to get the full precision?
+			return new BigRational(((Double)value).toString());
+		}
+		throw new IllegalArgumentException("Can not convert from " + value.getClass() + " to BigRational");
 	}
 
 	// helper functions
@@ -611,6 +638,51 @@ public final class BigRational implements Comparable<BigRational>
 	}
 
 	/**
+	 * Return ceil(value), i.e., the smallest integer >= value.
+	 * @throws PrismLangException for special values (NaN, infinity)
+	 */
+	public BigRational ceil() throws PrismLangException
+	{
+		if (isSpecial()) {
+			throw new PrismLangException("Can not compute ceil of " + this);
+		}
+
+		BigInteger[] divideAndRemainder = getNum().divideAndRemainder(getDen());
+
+		switch (divideAndRemainder[1].compareTo(BigInteger.ZERO)) {
+		case 0:   // no remainder
+		case -1:  // negative remainder: value was negative, so we ignore the remainder
+			return new BigRational(divideAndRemainder[0]);
+		case 1:   // positive remainder: return next-largest integer
+			return new BigRational(divideAndRemainder[0].add(BigInteger.ONE));
+		default:
+			throw new IllegalStateException("Should not be reached");
+		}
+	}
+
+	/**
+	 * Return floor(value), i.e., the largest integer <= value.
+	 * @throws PrismLangException for special values (NaN, infinity)
+	 */
+	public BigRational floor() throws PrismLangException
+	{
+		if (isSpecial()) {
+			throw new PrismLangException("Can not compute floor of " + this);
+		}
+
+		BigInteger[] divideAndRemainder = getNum().divideAndRemainder(getDen());
+		switch (divideAndRemainder[1].compareTo(BigInteger.ZERO)) {
+		case 0:   // no remainder
+		case 1:   // positive remainder: value was positive, so we ignore the remainder
+			return new BigRational(divideAndRemainder[0]);
+		case -1:  // negative remainder: value was negative, return next-smallest integer
+			return new BigRational(divideAndRemainder[0].subtract(BigInteger.ONE));
+		default:
+			throw new IllegalStateException("Should not be reached");
+		}
+	}
+
+	/**
 	 * Returns larger value of {@code this} and {@code other}.
 	 * 
 	 * @param other rational number to compare to
@@ -703,6 +775,18 @@ public final class BigRational implements Comparable<BigRational>
 	}
 
 	/**
+	 * Returns true iff this object represents an integer, i.e.,
+	 * is not not-a-number, positive, or negative infinity and
+	 * the denominator is 1.
+	 *
+	 * @return true iff this object represents an integer
+	 */
+	public boolean isInteger()
+	{
+		return isRational() && getDen().equals(BigInteger.ONE);
+	}
+
+	/**
 	 * Returns true iff this value represents a special number.
 	 * This is the case if this is either not-a-number, positive or
 	 * negative infinity.
@@ -712,5 +796,36 @@ public final class BigRational implements Comparable<BigRational>
 	public boolean isSpecial()
 	{
 		return isNaN() || isInf() || isMInf();
+	}
+
+	/**
+	 * Returns true if this value equals 1 or false if this value
+	 * equals 0. In all other cases, a PrismLangException is thrown.
+	 */
+	public boolean toBoolean() throws PrismLangException
+	{
+		if (isOne())
+			return true;
+		if (isZero())
+			return false;
+		throw new PrismLangException("Conversion from BigRational to Boolean not possible, invalid value: " + this);
+	}
+
+	/**
+	 * Returns the int representation of this value,
+	 * if this value is an integer and if the integer can
+	 * be represented by an int variable.
+	 * In all other cases, a PrismLangException is thrown.
+	 */
+	public int toInt() throws PrismLangException
+	{
+		if (!isInteger()) {
+			throw new PrismLangException("Can not convert fractional number to int");
+		}
+		int value = getNum().intValue();
+		if (!getNum().equals(new BigInteger(Integer.toString(value)))) {
+			throw new PrismLangException("Can not convert BigInteger to int, value out of range");
+		}
+		return value;
 	}
 }

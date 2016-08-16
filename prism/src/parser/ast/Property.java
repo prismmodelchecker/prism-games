@@ -41,6 +41,7 @@ import prism.PrismLangException;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import prism.Point;
+import prism.Prism;
 import prism.TileList;
 
 /**
@@ -140,7 +141,7 @@ public class Property extends ASTElement
 	public boolean checkAgainstExpectedResult(Object result, Values constValues) throws PrismException
 	{
 		String strExpected = getExpectedResultString(constValues);
-		return checkAgainstExpectedResultString(strExpected, result);
+		return checkAgainstExpectedResultString(strExpected, constValues, result);
 	}
 
 	/**
@@ -175,7 +176,14 @@ public class Property extends ASTElement
 					// Make sure constant/value is in constValues list and matches
 					String constName = pair[0].trim();
 					String constVal = pair[1].trim();
-					Object constValToMatch = constValues.getValueOf(constName);
+
+					Object constValToMatch;
+					if (constValues.getIndexOf(constName) == -1) {
+						// there is no constant of that name, might be a parametric constant
+						constValToMatch = null;
+					} else {
+						constValToMatch = constValues.getValueOf(constName);
+					}
 					if (constValToMatch == null)
 						match = false;
 					// Check doubles numerically
@@ -184,13 +192,16 @@ public class Property extends ASTElement
 					// Otherwise just check for exact string match for now
 					else
 						match = constValToMatch.toString().equals(constVal);
+
 					// We need all constants to match
 					allMatch &= match;
 				}
 				// Found it...
 				if (allMatch) {
 					strExpected = matcher.group(3);
-					continue;
+					// we return the expected answer for the first RESULT that matches
+					// the constants
+					break;
 				}
 			}
 		}
@@ -252,7 +263,7 @@ public class Property extends ASTElement
 	 * @param result The actual result
 	 * @return Whether or not the check was performed
 	 */
-	private boolean checkAgainstExpectedResultString(String strExpected, Object result) throws PrismException
+	private boolean checkAgainstExpectedResultString(String strExpected, Values constValues, Object result) throws PrismException
 	{
 		// Check for special "don't case" case
 		if (strExpected.equals("?")) {
@@ -293,30 +304,53 @@ public class Property extends ASTElement
 		if (type instanceof TypeBool) {
 			// Parse expected result
 			boolean boolExp;
+			boolean simple = true;  // is the expectation string a simple expression?
 			strExpected = strExpected.toLowerCase();
 			if (strExpected.equals("true"))
 				boolExp = true;
 			else if (strExpected.equals("false"))
 				boolExp = false;
-			else
-				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for boolean-valued property");
+			else {
+				// complex expression?
+				Expression expectedExpr = null;
+				try {
+					expectedExpr = Prism.parseSingleExpressionString(strExpected);
+					expectedExpr.findAllConstants(new ConstantList(constValues));
+					expectedExpr.typeCheck();
+					boolExp = expectedExpr.evaluateBoolean(constValues);
+					simple = false;  // complex expression
+				} catch (PrismLangException e2) {
+					throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for boolean-valued property: " + e2.getMessage());
+				}
+			}
 			// Parse actual result
 			boolean boolRes;
 			if (!(result instanceof Boolean))
 				throw new PrismException("Result is wrong type for (boolean-valued) property");
 			boolRes = ((Boolean) result).booleanValue();
 			if (boolRes != boolExp)
-				throw new PrismException("Wrong result (expected " + boolExp + ", got " + boolRes + ")");
+				throw new PrismException("Wrong result (expected " + (simple ? "" : strExpected + " = ") + boolExp + ", got " + boolRes + ")");
 		}
 
-		// Integer-valued properties
-		else if (type instanceof TypeInt) {
+		// Integer-valued properties (non-exact mode)
+		else if (type instanceof TypeInt && !(result instanceof BigRational)) {
 			// Parse expected result
 			int intExp;
+			boolean simple = true;  // is the expectation string a simple expression?
 			try {
 				intExp = Integer.parseInt(strExpected);
 			} catch (NumberFormatException e) {
-				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for integer-valued property");
+				// complex expression?
+				Expression expectedExpr = null;
+				try {
+					expectedExpr = Prism.parseSingleExpressionString(strExpected);
+					expectedExpr.findAllConstants(new ConstantList(constValues));
+					expectedExpr.typeCheck();
+					intExp = expectedExpr.evaluateInt(constValues);
+					simple = false;  // complex expression
+				} catch (PrismLangException e2) {
+					throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for integer-valued property: " + e2.getMessage());
+				}
 			}
 			// Parse actual result
 			int intRes;
@@ -324,13 +358,14 @@ public class Property extends ASTElement
 				throw new PrismException("Result is wrong type for (integer-valued) property");
 			intRes = ((Integer) result).intValue();
 			if (intRes != intExp)
-				throw new PrismException("Wrong result (expected " + intExp + ", got " +intRes + ")");
+				throw new PrismException("Wrong result (expected " + (simple ? "" : strExpected + " = ") + intExp + ", got " +intRes + ")");
 		}
 
 		// Double-valued properties (non-exact mode)
 		else if (type instanceof TypeDouble && !(result instanceof BigRational)) {
 			// Parse expected result
 			double doubleExp;
+			boolean simple = true;  // is the expectation string a simple expression?
 			try {
 				// See if it's NaN
 				if (strExpected.equals("NaN")) {
@@ -341,13 +376,24 @@ public class Property extends ASTElement
 					int numer = Integer.parseInt(strExpected.substring(0, strExpected.indexOf('/')));
 					int denom = Integer.parseInt(strExpected.substring(strExpected.indexOf('/') + 1));
 					doubleExp = ((double) numer) / denom;
+					simple = false;  // complex expression
 				}
-				// Otherwise, just a double
+				// Otherwise, see if it's just a double
 				else {
 					doubleExp = Double.parseDouble(strExpected);
 				}
 			} catch (NumberFormatException e) {
-				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for double-valued property");
+				// complex expression?
+				Expression expectedExpr = null;
+				try {
+					expectedExpr = Prism.parseSingleExpressionString(strExpected);
+					expectedExpr.findAllConstants(new ConstantList(constValues));
+					expectedExpr.typeCheck();
+					doubleExp = expectedExpr.evaluateDouble(constValues);
+					simple = false;  // complex expression
+				} catch (PrismLangException e2) {
+					throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for double-valued property: " + e2.getMessage());
+				}
 			}
 			// Parse actual result
 			if (!(result instanceof Double))
@@ -356,34 +402,45 @@ public class Property extends ASTElement
 			// Compare results
 			if (Double.isNaN(doubleRes)) {
 				if (!Double.isNaN(doubleExp))
-					throw new PrismException("Wrong result (expected " + doubleExp + ", got NaN)");
+					throw new PrismException("Wrong result (expected " + (simple ? "" : strExpected + " = ") + doubleExp + ", got NaN)");
 			} else {
 				if (!PrismUtils.doublesAreCloseRel(doubleExp, doubleRes, 1e-5))
-					throw new PrismException("Wrong result (expected " + doubleExp + ", got " + doubleRes + ")");
+					throw new PrismException("Wrong result (expected " + (simple ? "" : strExpected + " = ") + doubleExp + ", got " + doubleRes + ")");
 			}
 		}
 
-		// Double-valued properties (exact mode)
-		else if (type instanceof TypeDouble && result instanceof BigRational) {
+		// Double- and Int-valued properties (exact mode)
+		else if ((type instanceof TypeDouble || type instanceof TypeInt) && result instanceof BigRational) {
 			// Parse expected result
 			BigRational rationalRes = (BigRational) result;
 			BigRational rationalExp = null;
+			boolean simple = true;  // is the expectation string a simple expression?
 			try {
 				// See if it's NaN
 				if (strExpected.equals("NaN")) {
 					if (!rationalRes.isNaN())
 						throw new PrismException("Wrong result (expected NaN, got " + rationalRes + ")");
 				}
-				// For integers/rationals/doubles, parse with BigRational if it's an integer
+				// For integers/rationals/doubles, parse with BigRational
 				else {
 					rationalExp = new BigRational(strExpected);
 				}
 			} catch (NumberFormatException e) {
-				throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for rational-valued property");
+				// complex expression?
+				Expression expectedExpr = null;
+				try {
+					expectedExpr = Prism.parseSingleExpressionString(strExpected);
+					expectedExpr.findAllConstants(new ConstantList(constValues));
+					expectedExpr.typeCheck();
+					rationalExp = expectedExpr.evaluateExact(constValues);
+					simple = false;  // complex expression
+				} catch (PrismLangException e2) {
+					throw new PrismException("Invalid RESULT specification \"" + strExpected + "\" for rational-valued property: " + e2.getMessage());
+				}
 			}
 			// Compare results
 			if (!rationalRes.equals(rationalExp))
-				throw new PrismException("Wrong result (expected " + rationalExp + ", got " + rationalRes + ")");
+				throw new PrismException("Wrong result (expected " + (simple ? "" : strExpected + " = ") + rationalExp + ", got " + rationalRes + ")");
 		}
 		else if (type instanceof TypeVoid && result instanceof TileList) { //Pareto curve
 

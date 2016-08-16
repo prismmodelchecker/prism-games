@@ -29,6 +29,8 @@ package prism;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -217,6 +219,19 @@ public class PrismCL implements PrismModelListener
 				mainLog.println(st);
 			}
 			errorAndExit(e.getMessage() + ".\nTip: Try using the -cuddmaxmem switch to increase the memory available to CUDD");
+		} catch (com.martiansoftware.nailgun.NGExitException e) {
+			// we don't want to catch the nailgun exception below,
+			// so we catch it and rethrow
+			throw e;
+		} catch (Exception e) {
+			// We catch Exceptions here ourself to ensure that we actually exit
+			// In the presence of thread pools (e.g., in the JAS library when using -exact),
+			// the main thread dying does not necessarily quit the program...
+			StringWriter sw = new StringWriter();
+			sw.append("\n");
+			e.printStackTrace(new PrintWriter(sw));
+			mainLog.print(sw.toString());
+			errorAndExit("Caught unhandled exception, aborting...");
 		}
 	}
 
@@ -236,6 +251,10 @@ public class PrismCL implements PrismModelListener
 
 		// Sort out properties to check
 		sortProperties();
+
+		if (param && numPropertiesToCheck == 0) {
+			errorAndExit("Parametric model checking requires at least one property to check");
+		}
 
 		// process info about undefined constants
 		try {
@@ -1871,6 +1890,9 @@ public class PrismCL implements PrismModelListener
 			} else if (ext.equals("lab")) {
 				exportlabels = true;
 				exportLabelsFilename = basename.equals("stdout") ? "stdout" : basename + ".lab";
+			} else if (ext.equals("dot")) {
+				exporttransdotstates = true;
+				exportTransDotStatesFilename = basename.equals("stdout") ? "stdout" : basename + ".dot";
 			}
 			// Unknown extension
 			else {
@@ -2088,6 +2110,8 @@ public class PrismCL implements PrismModelListener
 				exportStatesFilename = exportStatesFilename.replaceFirst("modelFileBasename", modelFileBasename);
 			if (exportlabels)
 				exportLabelsFilename = exportLabelsFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exporttransdotstates)
+				exportTransDotStatesFilename = exportTransDotStatesFilename.replaceFirst("modelFileBasename", modelFileBasename);
 		}
 	}
 
@@ -2350,8 +2374,8 @@ public class PrismCL implements PrismModelListener
 			mainLog.println("Export the built model to file(s) (or to the screen if <file>=\"stdout\").");
 			mainLog.println("Use a list of file extensions to indicate which files should be generated, e.g.:");
 			mainLog.println("\n -exportmodel out.tra,sta\n");
-			mainLog.println("Possible extensions are: .tra, .srew, .trew, .sta, .lab");
-			mainLog.println("Use extension .all to export all and .rew to export both .srew/.trew, e.g.:");
+			mainLog.println("Possible extensions are: .tra, .srew, .trew, .sta, .lab, .dot");
+			mainLog.println("Use extension .all to export all (except .dot) and .rew to export both .srew/.trew, e.g.:");
 			mainLog.println("\n -exportmodel out.all\n");
 			mainLog.println("Omit the file basename to use the basename of the model file, e.g.:");
 			mainLog.println("\n -exportmodel .all\n");

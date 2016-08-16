@@ -249,6 +249,7 @@ public class ConstructModel extends PrismComponent
 				smg.setPlayerInfo(playerNames);
 				break;
 			case PTA:
+			case LTS:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 		}
@@ -333,6 +334,7 @@ public class ConstructModel extends PrismComponent
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
 						case PTA:
+						case LTS:
 							throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 						}
 					}
@@ -341,13 +343,13 @@ public class ConstructModel extends PrismComponent
 				if (!justReach) {
 					if (modelType == ModelType.MDP) {
 						if (distinguishActions) {
-							mdp.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
+							mdp.addActionLabelledChoice(src, distr, modelGen.getChoiceAction(i));
 						} else {
 							mdp.addChoice(src, distr);
 						}
 					} else if (modelType == ModelType.CTMDP) {
 						if (distinguishActions) {
-							ctmdp.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
+							ctmdp.addActionLabelledChoice(src, distr, modelGen.getChoiceAction(i));
 						} else {
 							ctmdp.addChoice(src, distr);
 						}
@@ -427,6 +429,7 @@ public class ConstructModel extends PrismComponent
 				model = sort ? new SMG(smg, permut) : smg;
 				break;
 			case PTA:
+			case LTS:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 			model.setStatesList(statesList);
@@ -436,7 +439,7 @@ public class ConstructModel extends PrismComponent
 		// Discard permutation
 		permut = null;
 
-		if (attachLabels)
+		if (!justReach && attachLabels)
 			attachLabels(modelGen, model);
 
 		return model;
