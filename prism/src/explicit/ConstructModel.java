@@ -232,6 +232,7 @@ public class ConstructModel extends PrismComponent
 				break;
 			case STPG:
 				modelSimple = stpg = new STPGExplicit();
+				stpg.setVarList(varList);
 				break;
 			case SMG:
 				if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG
@@ -241,6 +242,7 @@ public class ConstructModel extends PrismComponent
 				} else {
 					modelSimple = smg = new SMG();
 				}
+				smg.setVarList(varList);
 				// Add player info
 				HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
 				for (i = 0; i < modelGen.getNumPlayers(); i++) {
