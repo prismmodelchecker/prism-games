@@ -398,6 +398,7 @@ public class PrismCL implements PrismModelListener
 						// in case of build failure during model checking, store as result for any const values and continue
 						if (modelBuildFail) {
 							results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
+							doResultTest(propertiesToCheck.get(j), new Result(modelBuildException));
 							break;
 						}
 
@@ -436,21 +437,7 @@ public class PrismCL implements PrismModelListener
 
 						// if required, check result against expected value
 						if (test) {
-							try {
-								mainLog.println();
-								Values allConsts = new Values(modulesFile.getConstantValues(), propertiesFile.getConstantValues());
-								if (propertiesToCheck.get(j).checkAgainstExpectedResult(res.getResult(), allConsts)) {
-									mainLog.println("Testing result: PASS");
-								} else {
-									mainLog.println("Testing result: NOT TESTED");
-								}
-							} catch (PrismNotSupportedException e) {
-								mainLog.println("Testing result: UNSUPPORTED: " + e.getMessage());
-							} catch (PrismException e) {
-								mainLog.println("Testing result: FAIL: " + e.getMessage());
-								if (testExitsOnFail)
-									errorAndExit("Testing failed");
-							}
+							doResultTest(propertiesToCheck.get(j), res);
 						}
 
 						// iterate to next property
@@ -462,6 +449,7 @@ public class PrismCL implements PrismModelListener
 				if (modelBuildFail) {
 					for (j++; j < numPropertiesToCheck; j++) {
 						results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
+						doResultTest(propertiesToCheck.get(j), new Result(modelBuildException));
 					}
 					break;
 				}
@@ -935,6 +923,39 @@ public class PrismCL implements PrismModelListener
 			catch (PrismException e) {
 				error(e.getMessage());
 			}
+		}
+	}
+
+	/**
+	 * Test a model checking result against the RESULT specifications attached
+	 * to the property (test mode).
+	 * <br>
+	 * Note: This method should only be called directly after the model checking (i.e.,
+	 * from {@code run()}, as it relies on the fact that the constant values in
+	 * the {@code modulesFile} and {@propertiesFile} reflect the values used for
+	 * model checking.
+	 * <br>
+	 * Test results are output to the log. If a test fails and {@code testExitsOnFail}
+	 * is {@code true} then {@code errorAndExit} is called.
+	 * @param prop the property
+	 * @param res the result
+	 */
+	private void doResultTest(Property prop, Result res)
+	{
+		try {
+			mainLog.println();
+			Values allConsts = new Values(modulesFile.getConstantValues(), propertiesFile.getConstantValues());
+			if (prop.checkAgainstExpectedResult(res.getResult(), allConsts)) {
+				mainLog.println("Testing result: PASS");
+			} else {
+				mainLog.println("Testing result: NOT TESTED");
+			}
+		} catch (PrismNotSupportedException e) {
+			mainLog.println("Testing result: UNSUPPORTED: " + e.getMessage());
+		} catch (PrismException e) {
+			mainLog.println("Testing result: FAIL: " + e.getMessage());
+			if (testExitsOnFail)
+				errorAndExit("Testing failed");
 		}
 	}
 

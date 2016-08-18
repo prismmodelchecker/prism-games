@@ -1108,41 +1108,37 @@ public class StateModelChecker extends PrismComponent
 		case FORALL:
 			// Get access to BitSet for this
 			bs = vals.getBitSet();
-			if(bs==null) { // happens if Pareto set computation is used
-			    // Print some info to log
-			    mainLog.print("\nPareto set computation result evaluated");
-			    // default is true
-			    resObj = vals.getParetoArray();
-			    resVals = new StateValues(expr.getType(), new Boolean(true), model);
+			if (bs == null) { // happens if Pareto set computation is used
+				// Print some info to log
+				mainLog.print("\nPareto set computation result evaluated");
+				// default is true
+				resObj = vals.getParetoArray();
+				resVals = new StateValues(expr.getType(), new Boolean(true), model);
 			} else {
-			    // Print some info to log
-			    mainLog.print("\nNumber of states satisfying " + expr.getOperand() + ": ");
-			    mainLog.print(bs.cardinality());
-			    mainLog.println(bs.cardinality() == model.getNumStates() ? " (all in model)" : "");
-			    // Check "for all" over filter
-			    b = vals.forallOverBitSet(bsFilter);
-			    // Store as object/vector
-			    resObj = new Boolean(b);
-			    resVals = new StateValues(expr.getType(), resObj, model);
-			    // Create explanation of result and print some details to log
-			    resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
-			    mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
-			    if (filterInit) {
-				if (filterInitSingle) {
-				    resultExpl += "the initial state";
+				// Check "for all" over filter
+				b = vals.forallOverBitSet(bsFilter);
+				// Store as object/vector
+				resObj = new Boolean(b);
+				resVals = new StateValues(expr.getType(), resObj, model);
+				// Create explanation of result and print some details to log
+				resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
+				mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
+				if (filterInit) {
+					if (filterInitSingle) {
+						resultExpl += "the initial state";
+					} else {
+						resultExpl += "all initial states";
+					}
+					mainLog.println(" of " + model.getNumInitialStates() + " initial states.");
 				} else {
-				    resultExpl += "all initial states";
+					if (filterTrue) {
+						resultExpl += "all states";
+						mainLog.println(" of all " + model.getNumStates() + " states.");
+					} else {
+						resultExpl += "all filter states";
+						mainLog.println(" of " + bsFilter.cardinality() + " filter states.");
+					}
 				}
-				mainLog.println(" of " + model.getNumInitialStates() + " initial states.");
-			    } else {
-				if (filterTrue) {
-				    resultExpl += "all states";
-				    mainLog.println(" of all " + model.getNumStates() + " states.");
-				} else {
-				    resultExpl += "all filter states";
-				    mainLog.println(" of " + bsFilter.cardinality() + " filter states.");
-				}
-			    }
 			}
 			break;
 		case EXISTS:
