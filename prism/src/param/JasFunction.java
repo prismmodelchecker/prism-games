@@ -343,4 +343,22 @@ final class JasFunction extends Function {
 		}
 		return jas.isZERO();
 	}
+
+	@Override
+	public boolean isConstant()
+	{
+		// inf, NaN are constant
+		if (type != NORMAL)
+			return true;
+
+		// special handling for ZERO, as jas.isConstant() returns false
+		// for zero...
+		if (jas.isZERO()) {
+			return true;
+		}
+
+		return jas.isConstant();
+	}
+
+
 }

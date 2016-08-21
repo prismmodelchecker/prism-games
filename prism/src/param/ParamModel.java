@@ -30,6 +30,7 @@ import java.io.File;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import parser.Values;
@@ -141,6 +142,58 @@ final class ParamModel extends ModelExplicit
 		throw new UnsupportedOperationException();
 	}
 
+	/**
+	 * Get an iterator over the transitions from choice {@code i} of state {@code s}.
+	 * <br>
+	 * For DTMC/CTMCs, there is only a single choice.
+	 */
+	public Iterator<Entry<Integer, Function>> getTransitionsIterator(final int s, final int i)
+	{
+		return new Iterator<Entry<Integer, Function>>()
+		{
+			final int start = choiceBegin(stateBegin(s) + i);
+			int col = start;
+			final int end = choiceBegin(stateBegin(s) + i + 1);
+
+			@Override
+			public boolean hasNext()
+			{
+				return col < end;
+			}
+
+			@Override
+			public Entry<Integer, Function> next()
+			{
+				assert (col < end);
+				final int i = col;
+				col++;
+				return new Entry<Integer, Function>()
+				{
+					int key = cols[i];
+					Function value = nonZeros[i];
+
+					@Override
+					public Integer getKey()
+					{
+						return key;
+					}
+
+					@Override
+					public Function getValue()
+					{
+						return value;
+					}
+
+					@Override
+					public Function setValue(Function arg0)
+					{
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+
 	@Override
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
@@ -183,34 +236,44 @@ final class ParamModel extends ModelExplicit
 		throw new UnsupportedOperationException();
 	}
 
-	@Override
-	public void exportToDotFile(String filename) throws PrismException
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void exportToDotFile(String filename, BitSet mark) throws PrismException
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void exportToDotFile(PrismLog out)
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void exportToDotFile(PrismLog out, BitSet mark)
-	{
-		throw new UnsupportedOperationException();
-	}
 
 	@Override
 	protected void exportTransitionsToDotFile(int i, PrismLog out)
 	{
-		throw new UnsupportedOperationException();
+		int numChoices = getNumChoices(i);
+		for (int j = 0; j < numChoices; j++) {
+			// action = getAction(i, j);
+			String nij = null;
+			if (modelType.nondeterministic()) {
+				nij = "n" + i + "_" + j;
+				out.print(i + " -> " + nij + " [ arrowhead=none,label=\"" + j);
+				out.print("\" ];\n");
+				out.print(nij + " [ shape=point,width=0.1,height=0.1,label=\"\" ];\n");
+			}
+
+			Iterator<Entry<Integer, Function>> it = getTransitionsIterator(i, j);
+			while (it.hasNext()) {
+				Entry<Integer, Function> e = it.next();
+
+				// Note: For CTMCs, param stores the embedded DTMC, so we output that
+
+				if (!modelType.nondeterministic()) {
+					out.print(i + " -> " + e.getKey() + " ");
+				} else {
+					out.print(nij + " -> " + e.getKey() + " ");
+				}
+
+				String value;
+				if (e.getValue().isConstant()) {
+					value = e.getValue().asBigRational().toString();
+				} else {
+					value = e.getValue().toString();
+				}
+
+				
+				out.print("[ label=\"" + value + "\" ];\n");
+			}
+		}
 	}
 	
 	@Override

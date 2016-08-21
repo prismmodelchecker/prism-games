@@ -67,9 +67,17 @@ public class SymbolicEngine
 	// Element j of enabledModules is a BitSet showing modules which enable action j
 	// (where j=0 denotes independent, otherwise 1-indexed action label)
 	protected BitSet enabledModules[];
+	protected ModelBuilder modelBuilder;
+	protected FunctionFactory functionFactory;
 
-	public SymbolicEngine(ModulesFile modulesFile)
+	//  flag that suppresses warnings during calculateTransitions
+	private boolean noWarnings = false;
+
+	public SymbolicEngine(ModulesFile modulesFile, ModelBuilder modelBuilder, FunctionFactory functionFactory)
 	{
+		this.modelBuilder = modelBuilder;
+		this.functionFactory = functionFactory;
+
 		// Get info from model
 		this.modulesFile = modulesFile;
 		modelType = modulesFile.getModelType();
@@ -132,11 +140,13 @@ public class SymbolicEngine
 		}
 	}
 	
-	public TransitionList calculateTransitions(State state) throws PrismException
+	public TransitionList calculateTransitions(State state, boolean noWarnings) throws PrismException
 	{
 		List<ChoiceListFlexi> chs;
 		int i, j, k, l, n, count;
 		TransitionList transitionList = new TransitionList();
+
+		this.noWarnings = noWarnings;
 
 		// Clear lists/bitsets
 		transitionList.clear();
@@ -285,7 +295,19 @@ public class SymbolicEngine
 			p = (Expression) p.deepCopy().evaluatePartially(state, varMap);
 			list = new ArrayList<Update>();
 			list.add(ups.getUpdate(i));
-			ch.add(p, list);
+
+			try {
+				Function pFn = modelBuilder.expr2function(functionFactory, p);
+				if (pFn.isZero()) {
+					// function for probability / rate is zero, don't add the corresponding transition
+					if (!noWarnings)
+						modelBuilder.getLog().printWarning("Update has zero " + (modelType.continuousTime() ? "rate" : "probability") + " (" + p + (p.hasPosition() ? ", " + p.getBeginString() : "") +")");
+					continue;
+				}
+				ch.add(pFn, list);
+			} catch (PrismException e) {
+				throw new PrismLangException(e.getMessage());
+			}
 		}
 
 		return ch;

@@ -322,7 +322,7 @@ public final class ModelBuilder extends PrismComponent
 
 		while (!explore.isEmpty()) {
 			state = explore.removeFirst();
-			TransitionList tranlist = engine.calculateTransitions(state);
+			TransitionList tranlist = engine.calculateTransitions(state, true);  // Suppress warnings
 			int numChoices = tranlist.getNumChoices();
 			if (isNonDet) {
 				numTotalChoices += numChoices;
@@ -367,6 +367,8 @@ public final class ModelBuilder extends PrismComponent
 			throw new PrismNotSupportedException("Cannot do explicit-state reachability if there are multiple initial states");
 		}
 
+		boolean doProbChecks = getSettings().getBoolean(PrismSettings.PRISM_DO_PROB_CHECKS);
+
 		mainLog.print("\nComputing reachable states...");
 		mainLog.flush();
 		long timer = System.currentTimeMillis();
@@ -376,7 +378,7 @@ public final class ModelBuilder extends PrismComponent
 		if (modelType != ModelType.DTMC && modelType != ModelType.CTMC && modelType != ModelType.MDP) {
 			throw new PrismNotSupportedException("Unsupported model type: " + modelType);
 		}
-		SymbolicEngine engine = new SymbolicEngine(modulesFile);
+		SymbolicEngine engine = new SymbolicEngine(modulesFile, this, functionFactory);
 
 		if (modulesFile.getInitialStates() != null) {
 			throw new PrismNotSupportedException("Explicit model construction does not support multiple initial states");
@@ -392,31 +394,44 @@ public final class ModelBuilder extends PrismComponent
 		model.addInitialState(permut[0]);
 		int stateNr = 0;
 		for (State state : statesList) {
-			TransitionList tranlist = engine.calculateTransitions(state);
+			TransitionList tranlist = engine.calculateTransitions(state, false);
 			int numChoices = tranlist.getNumChoices();
-			Function sumOut;
-			if (isNonDet) {
-				sumOut = functionFactory.getOne();
-			} else {
-				sumOut = functionFactory.getZero();
-				for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
-					ChoiceListFlexi choice = tranlist.getChoice(choiceNr);
-					int numSuccessors = choice.size();
-					for (int succNr = 0; succNr < numSuccessors; succNr++) {
-						ChoiceListFlexi succ = tranlist.getChoice(choiceNr);
-						Expression probExpr = succ.getProbability(succNr);
-						sumOut = sumOut.add(expr2function(functionFactory, probExpr));
+
+			boolean computeSumOut = !isNonDet;
+			boolean checkChoiceSumEqualsOne = doProbChecks && model.getModelType().choicesSumToOne();
+
+			// sumOut = the sum over all outgoing choices from this state
+			Function sumOut = functionFactory.getZero();
+			for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
+				ChoiceListFlexi choice = tranlist.getChoice(choiceNr);
+				int numSuccessors = choice.size();
+
+				// sumOutForChoice = the sum over all outgoing transitions for this choice
+				Function sumOutForChoice = functionFactory.getZero();
+				for (int succNr = 0; succNr < numSuccessors; succNr++) {
+					ChoiceListFlexi succ = tranlist.getChoice(choiceNr);
+					Function probFunc = succ.getProbability(succNr);
+					if (computeSumOut)
+						sumOut = sumOut.add(probFunc);
+					if (checkChoiceSumEqualsOne)
+						sumOutForChoice = sumOutForChoice.add(probFunc);
+				}
+				if (checkChoiceSumEqualsOne) {
+					if (!sumOutForChoice.equals(functionFactory.getOne())) {
+						if (sumOutForChoice.isConstant()) {
+							// as the sum is constant, we know that it is really not 1
+							throw new PrismLangException("Probabilities sum to " + sumOutForChoice.asBigRational() + " instead of 1 in state "
+									+ state.toString(modulesFile) + " for some command");
+						} else {
+							throw new PrismLangException("In state " + state.toString(modulesFile) + " the probabilities sum to "
+									+ sumOutForChoice + " for some command, which can not be determined to be equal to 1 (to ignore, use -noprobchecks option)");
+						}
 					}
 				}
 			}
-			/*
-			if (modelType == ModelType.DTMC && !sumOut.equals(functionFactory.getOne())) {
-				throw new PrismException("parametric analysis only supports "
-						+ "DTMC in which in each state exactly one command is activated "
-						+ "and in which probabilities add up to exactly 1.");
-			}
-			*/
+
 			if (sumOut.isZero()) {
+				// set sumOut to 1 for deadlock state or if we are in nonDet model
 				sumOut = functionFactory.getOne();
 			}
 			for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
@@ -427,8 +442,12 @@ public final class ModelBuilder extends PrismComponent
 				for (int succNr = 0; succNr < numSuccessors; succNr++) {
 					ChoiceListFlexi succ = tranlist.getChoice(choiceNr);
 					State stateNew = succ.computeTarget(succNr, state);
-					Expression probExpr = succ.getProbability(succNr);
-					Function probFn = expr2function(functionFactory, probExpr).divide(sumOut);
+					Function probFn = succ.getProbability(succNr);
+					// divide by sumOut
+					// for DTMC, this normalises over the choices
+					// for CTMC this builds the embedded DTMC
+					// for MDP this does nothing (sumOut is set to 1)
+					probFn = probFn.divide(sumOut);
 					model.addTransition(permut[states.get(stateNew)], probFn, action);
 				}
 				if (isNonDet) {
