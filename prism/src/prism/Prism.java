@@ -26,8 +26,6 @@
 
 package prism;
 
-import hybrid.PrismHybrid;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,16 +33,24 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dv.DoubleVector;
+import explicit.CTMC;
+import explicit.CTMCModelChecker;
+import explicit.CompositionalSMGModelChecker;
+import explicit.ConstructModel;
+import explicit.DTMC;
+import explicit.DTMCModelChecker;
+import explicit.FastAdaptiveUniformisation;
+import explicit.FastAdaptiveUniformisationModelChecker;
+import hybrid.PrismHybrid;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
-import param.BigRational;
 import param.ModelBuilder;
 import param.ParamModelChecker;
 import param.ParamResult;
-import param.RegionValues;
 import parser.ExplicitFiles2ModulesFile;
 import parser.PrismParser;
 import parser.State;
@@ -58,7 +64,6 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
-import parser.type.TypeBool;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
@@ -67,15 +72,6 @@ import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
 import strat.Strategy;
-import dv.DoubleVector;
-import explicit.CTMC;
-import explicit.CTMCModelChecker;
-import explicit.CompositionalSMGModelChecker;
-import explicit.ConstructModel;
-import explicit.DTMC;
-import explicit.DTMCModelChecker;
-import explicit.FastAdaptiveUniformisation;
-import explicit.FastAdaptiveUniformisationModelChecker;
 
 /**
  * Main class for all PRISM's core functionality.
@@ -677,6 +673,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public static String getToolName()
 	{
 		return "PRISM-games";
+	}
+
+	/**
+	 * Get the name of the command-line version of this tool.
+	 * ("prism" by default, extensions might override) 
+	 */
+	public static String getCommandLineName()
+	{
+		return "prism-games";
 	}
 
 	/**
