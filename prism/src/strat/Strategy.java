@@ -163,21 +163,6 @@ public interface Strategy
 	 */
 	public int getInitialStateOfTheProduct(int s);
 
-	//	/**
-	//	 * Retrieve the expected value that this strategy will achieve from it's
-	//	 * current state
-	//	 * @return the expect value of the function, return -1 if exp values are not defined
-	//	 */
-	//	public double getExpectedValue();
-	//	
-	//	/**
-	//	 * Get expected value if a given action was taken and given state turned out to be a successor
-	//	 * @param action action
-	//	 * @param state state
-	//	 * @return expectation
-	//	 */
-	//	public double getExpectedValue(int action, int state);
-
 	// NEW METHODS:
 
 	/**

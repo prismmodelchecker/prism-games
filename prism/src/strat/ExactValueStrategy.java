@@ -705,20 +705,6 @@ public class ExactValueStrategy implements Strategy
 		return 0;
 	}
 
-	//	@Override
-	//	public double getExpectedValue()
-	//	{
-	//		// TODO Auto-generated method stub
-	//		return 0;
-	//	}
-	//
-	//	@Override
-	//	public double getExpectedValue(int a, int s)
-	//	{
-	//		// TODO Auto-generated method stub
-	//		return 0;
-	//	}
-
 	public void export(PrismLog out) {}
 
 	@Override

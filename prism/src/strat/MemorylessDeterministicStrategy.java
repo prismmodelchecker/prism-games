@@ -367,20 +367,6 @@ public class MemorylessDeterministicStrategy implements Strategy
 		return -1;
 	}
 
-	//	@Override
-	//	public double getExpectedValue() {
-	//		if (expValues == null)
-	//			return -1;
-	//		return expValues[currentState];
-	//	}
-	//	
-	//	@Override
-	//	public double getExpectedValue(int a, int s) {
-	//		if (expValues == null)
-	//			return -1;
-	//		return expValues[s];
-	//	}
-
 	public void export(PrismLog out) {}
 
 	@Override

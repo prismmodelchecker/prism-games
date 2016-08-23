@@ -559,18 +559,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		return bound;
 	}
 
-	//	@Override
-	//	public double getExpectedValue() {
-	//		throw new UnsupportedOperationException(
-	//				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
-	//	}
-	//	
-	//	@Override
-	//	public double getExpectedValue(int a, int s) {
-	//		throw new UnsupportedOperationException(
-	//				"Expected value retrieval is not implemented for efficiency reasons. If you would like to use it, please extend this class.");
-	//	}
-
 	public void export(PrismLog out) {}
 
 	@Override
