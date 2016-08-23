@@ -776,16 +776,4 @@ public class ExactValueStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	}
-
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
-	}
 }

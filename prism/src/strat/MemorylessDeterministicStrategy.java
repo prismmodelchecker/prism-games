@@ -28,9 +28,6 @@ import explicit.STPGExplicit;
  */
 public class MemorylessDeterministicStrategy implements Strategy
 {
-	// model info
-	protected Values lastConstants;
-	
 	private Distribution[] choices;
 	private String info = "No information available.";
 
@@ -441,16 +438,4 @@ public class MemorylessDeterministicStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	};
-	
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
-	}
 }

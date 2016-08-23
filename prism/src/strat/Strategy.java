@@ -33,19 +33,6 @@ public interface Strategy
 		INDEX, ACTION, UNKNOWN, ARBITRARY, UNREACHABLE;
 	};
 	
-	
-	/**
-	 * Store constants used to build model for this strategy.
-	 * 
-	 * @param lastConstants
-	 */
-	public void setConstants(Values lastConstants);
-	
-	/**
-	 * Retrieve constants used to build model for this strategy.
-	 */
-	public Values getConstants();
-	
 	/**
 	 * Initialises memory based on a state
 	 * 

@@ -43,9 +43,6 @@ import explicit.SMG;
 
 public class StochasticUpdateStrategyProduct implements Strategy
 {
-	// model info
-	protected Values lastConstants;
-	
 	// strategy info
     protected String info = "No information available.";
   
@@ -380,17 +377,4 @@ public class StochasticUpdateStrategyProduct implements Strategy
 		// TODO Auto-generated method stub
 		
 	}
-	
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
-	}
-
 }

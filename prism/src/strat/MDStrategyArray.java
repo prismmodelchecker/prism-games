@@ -36,9 +36,6 @@ import explicit.Model;
  */
 public class MDStrategyArray extends MDStrategy
 {
-	// model info
-	protected Values lastConstants;
-	
 	// Model associated with the strategy
 	private explicit.NondetModel model;
 	// Index of choice taken in each state (wrt model above) 
@@ -116,17 +113,5 @@ public class MDStrategyArray extends MDStrategy
 	public void clear()
 	{
 		choices = null;
-	}
-
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
 	}
 }

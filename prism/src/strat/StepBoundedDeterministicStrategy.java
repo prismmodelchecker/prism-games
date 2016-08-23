@@ -21,9 +21,6 @@ import explicit.STPGExplicit;
 
 public class StepBoundedDeterministicStrategy implements Strategy
 {
-	// model info
-	protected Values lastConstants;
-	
 	// memory: the number of steps currently made
 	protected int memory;
 
@@ -631,16 +628,4 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	};
-	
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
-	}
 }

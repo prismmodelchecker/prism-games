@@ -77,9 +77,6 @@ import explicit.rewards.SMGRewards;
 
 public class StochasticUpdateStrategy implements Strategy
 {
-	// model info
-	protected Values lastConstants;
-
 	// turn on for specific debugging
         private boolean log_problem = false;
         // logging for user
@@ -1850,19 +1847,5 @@ public class StochasticUpdateStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public void setConstants(Values lastConstants)
-	{
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants()
-	{
-		// TODO Auto-generated method stub
-		return lastConstants;
 	}
 }

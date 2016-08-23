@@ -41,9 +41,6 @@ import dv.IntegerVector;
  */
 public class MDStrategyIV extends MDStrategy
 {
-	// model info
-	protected Values lastConstants;
-	
 	// Model associated with the strategy
 	private Model model;
 	// Other model info
@@ -133,18 +130,5 @@ public class MDStrategyIV extends MDStrategy
 	{
 		iv.clear();
 		iv = null;
-	}
-	
-
-	@Override
-	public void setConstants(Values lastConstants) {
-		// TODO Auto-generated method stub
-		this.lastConstants = lastConstants;
-	}
-
-	@Override
-	public Values getConstants() {
-		// TODO Auto-generated method stub
-		return lastConstants;
 	}
 }
