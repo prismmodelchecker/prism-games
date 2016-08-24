@@ -606,13 +606,16 @@ public class SimulatorEngine extends PrismComponent
 			transitionListState = state;
 		}
 		transitionListBuilt = true;
-		// if there is a strategy loaded, stored probabilities assigned to choices
-		if (strategy != null && getPlayerNumber(0) == 1) {
-			try {
-				strategy.setMemory(stratMem);
-				transitionList.addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
-			} catch (InvalidStrategyStateException e) {
-				// Don't add info if there is a problem with the strategy
+		// If there is a strategy loaded, stored probabilities assigned to choices
+		if (strategy != null) {
+			// For games, we just show player 1
+			if (!modelType.multiplePlayers() || getPlayerNumber(0) == 1) {
+				try {
+					strategy.setMemory(stratMem);
+					transitionList.addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
+				} catch (InvalidStrategyStateException e) {
+					// Don't add info if there is a problem with the strategy
+				}
 			}
 		}
 	}
