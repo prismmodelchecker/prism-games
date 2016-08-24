@@ -113,15 +113,9 @@ public interface Strategy
 	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	/**
-	 * Next action function
-	 * 
-	 * @param state
-	 *            current state
-	 * @return the distribution on actions prescribed by the strategy in a
-	 *         state.
-	 * @throws InvalidStrategyStateException
-	 *             if next action function is undefined for the given state in
-	 *             current strategy's memory state.
+	 * Get the next move (distribution over actions) for a given model state.
+	 * @param state Current model state
+	 * @throws InvalidStrategyStateException if next move function is undefined for the given state in current strategy's memory state
 	 */
 	public HashMap<String,Double> getNextAction(int state) throws InvalidStrategyStateException;
 	
