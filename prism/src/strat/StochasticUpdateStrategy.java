@@ -27,6 +27,7 @@
 package strat;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -68,6 +69,7 @@ import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.PPLSupport;
@@ -1847,5 +1849,26 @@ public class StochasticUpdateStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// TODO Auto-generated method stub
+		throw new PrismException("Reach option is not supported for this strategy type");
+	}
+
+	@Override
+	public void exportStratToFile(File file, StrategyExportType exportType)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

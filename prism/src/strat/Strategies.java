@@ -80,7 +80,7 @@ public class Strategies
 
 		String sbfn = "sb.adv";
 		String sbfn2 = "sb2.adv";
-		Strategy sbstrat = new StepBoundedDeterministicStrategy(choices, bound);
+		Strategy sbstrat = new StepBoundedDeterministicStrategy(null, choices, bound);
 		sbstrat.exportToFile(sbfn);
 		Strategy sbstrat2 = Strategies.loadStrategyFromFile(sbfn);
 		sbstrat2.exportToFile(sbfn2);

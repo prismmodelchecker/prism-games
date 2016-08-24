@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -12,15 +13,20 @@ import parser.State;
 import parser.Values;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
+import explicit.NondetModel;
 import explicit.SMG;
 import explicit.STPGExplicit;
 
 public class StepBoundedDeterministicStrategy implements Strategy
 {
+	// Model associated with the strategy
+	private NondetModel model;
+	
 	// memory: the number of steps currently made
 	protected int memory;
 
@@ -37,14 +43,19 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	/**
 	 * Initialises the strategy
 	 * 
+	 * @param model
+	 *            Model associated with the strategy
 	 * @param choices
 	 *            strategy choice table: for every state contains an array of
 	 *            integers structured as follows {bk, ck, bk-1, ck-1,..., b0 c0}
 	 *            where ck represents the choice to be made by the strategy when
 	 *            B-k steps have elapsed.
+	 * @param bound
+	 *            maximum number of steps to be made
 	 */
-	public StepBoundedDeterministicStrategy(int[][] choices, int bound)
+	public StepBoundedDeterministicStrategy(NondetModel model, int[][] choices, int bound)
 	{
+		this.model = model;
 		this.choices = choices;
 
 		if (bound < 0)
@@ -239,7 +250,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		int[][] choices = { { 30, 1, 28, 2 }, { 25, 1, 24, 2 } };
 		int bound = 25;
 
-		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(choices, bound);
+		StepBoundedDeterministicStrategy strat = new StepBoundedDeterministicStrategy(null, choices, bound);
 		strat.init(0);
 
 		for (int i = 0; i < 25; i++) {
@@ -564,8 +575,14 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	@Override
 	public void exportActions(PrismLog out)
 	{
-		// TODO Auto-generated method stub
-		
+		int n = (int) model.getNumStates();
+		for (int s = 0; s < n; s++) {
+			for (int m = 0; m <= bound; m++) {
+				Object action = getChoiceAction(s, m);
+				if (action!=null)
+					out.println(s + "," + m + ":" + action.toString() + "," + (m<bound ? m+1 : m));
+			}
+		}
 	}
 
 	@Override
@@ -588,6 +605,25 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	public int getChoiceIndex(int state, int mode)
+	{
+		int[] actions = choices[state];
+		int c = -1;
+		for (int i = 0; i < actions.length; i += 2)
+			if (actions[i] >= memory)
+				c = actions[i + 1];
+			else
+				break;
+		
+		return c;
+	}
+	
+	public Object getChoiceAction(int state, int mode)
+	{
+		int c = getChoiceIndex(state, mode);
+		return c >= 0 ? model.getAction(state, c) : null;
+	}
 
 	@Override
 	public void clear()
@@ -599,8 +635,14 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	@Override
 	public void exportIndices(PrismLog out)
 	{
-		// TODO Auto-generated method stub
-		
+		int n = (int) model.getNumStates();
+		for (int s = 0; s < n; s++) {
+			for (int m = 0; m <= bound; m++) {
+				int c = getChoiceIndex(s, m);
+				if (c>=0)
+					out.println(s + "," + m + ":" + c + "," + (m<bound ? m+1 : m));
+			}
+		}
 	}
 
 	@Override
@@ -616,4 +658,25 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	};
+
+	@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// TODO Auto-generated method stub
+		throw new PrismException("Reach option is not supported for this strategy type");
+	}
+
+	@Override
+	public void exportStratToFile(File file, StrategyExportType exportType)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

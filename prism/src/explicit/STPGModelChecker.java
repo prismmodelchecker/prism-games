@@ -865,7 +865,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 		if (generateStrategy) {
-			res.strat = new StepBoundedDeterministicStrategy(choices, k);
+			res.strat = new StepBoundedDeterministicStrategy(stpg, choices, k);
 		}
 		
 		return res;
@@ -1843,7 +1843,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000;
 		res.numIters = iters;
 		if (generateStrategy) {
-			res.strat = new BoundedRewardDeterministicStrategy(choices, lastSwitch, rewards);
+			res.strat = new BoundedRewardDeterministicStrategy(stpg, choices, lastSwitch, rewards);
 		}
 		
 		return res;

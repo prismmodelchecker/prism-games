@@ -17,6 +17,7 @@ import parser.State;
 import parser.Values;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.SMG;
@@ -762,4 +763,26 @@ public class ExactValueStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// TODO Auto-generated method stub
+		throw new PrismException("Reach option is not supported for this strategy type");
+	}
+
+	@Override
+	public void exportStratToFile(File file, StrategyExportType exportType)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

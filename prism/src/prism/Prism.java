@@ -148,6 +148,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public static final int EXPORT_ADV_DTMC = 2;
 	public static final int EXPORT_ADV_MDP = 3;
 
+	// options for strategy export (for sparse engine)
+	public static final int EXPORT_STRAT_ACTIONS = 1;
+	public static final int EXPORT_STRAT_INDICES = 2;
+	public static final int EXPORT_STRAT_INDUCED = 3;
+	public static final int EXPORT_STRAT_DOT = 4;
+		
 	// methods for SCC decomposition
 	public static final int XIEBEEREL = 1;
 	public static final int LOCKSTEP = 2;

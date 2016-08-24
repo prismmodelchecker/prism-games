@@ -27,8 +27,12 @@
 
 package strat;
 
+import java.io.File;
+import java.util.HashMap;
+
 import explicit.Distribution;
 import explicit.Model;
+import prism.Prism.StrategyExportType;
 import prism.PrismException;
 import prism.PrismLog;
 
@@ -109,6 +113,19 @@ public interface Strategy
 	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	/**
+	 * Next action function
+	 * 
+	 * @param state
+	 *            current state
+	 * @return the distribution on actions prescribed by the strategy in a
+	 *         state.
+	 * @throws InvalidStrategyStateException
+	 *             if next action function is undefined for the given state in
+	 *             current strategy's memory state.
+	 */
+	public HashMap<String,Double> getNextAction(int state) throws InvalidStrategyStateException;
+	
+	/**
 	 * Get the current memory status of the strategy.
 	 */
 	public Object getCurrentMemoryElement();
@@ -174,6 +191,17 @@ public interface Strategy
 	public void exportDotFile(PrismLog out);
 
 	// Other new methods
+	
+	/**
+	 * Export the strategy to a file.
+	 */
+	public void exportStratToFile(File file, StrategyExportType exportType);
+	
+	/**
+	 * Restrict the strategy to the states that are reachable under the strategy.  
+	 * @throws PrismException 
+	 */
+	public void restrictStrategyToReachableStates() throws PrismException;
 	
 	/**
 	 * Initialise the strategy, based on an initial model state.

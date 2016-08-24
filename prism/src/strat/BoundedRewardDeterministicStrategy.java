@@ -11,6 +11,7 @@ import parser.State;
 import prism.PrismException;
 import explicit.Distribution;
 import explicit.Model;
+import explicit.NondetModel;
 import explicit.SMG;
 import explicit.rewards.STPGRewards;
 
@@ -22,15 +23,18 @@ import explicit.rewards.STPGRewards;
 public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministicStrategy
 {
 
+	// Model associated with the strategy
+	private NondetModel model;
+		
 	// rewards
 	private double[] rewards;
 
 	// number of states in the game for which the strategy is defined
 	private int nStates;
 
-	public BoundedRewardDeterministicStrategy(int[][] choices, int bound, STPGRewards rewards)
+	public BoundedRewardDeterministicStrategy(NondetModel model, int[][] choices, int bound, STPGRewards rewards)
 	{
-		super(choices, bound);
+		super(model, choices, bound);
 		nStates = choices.length;
 		this.rewards = new double[nStates];
 		for (int i = 0; i < nStates; i++)

@@ -1234,7 +1234,7 @@ public class MDPModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 		if (generateStrategy) {
-			res.strat = new StepBoundedDeterministicStrategy(choices, k);
+			res.strat = new StepBoundedDeterministicStrategy(mdp, choices, k);
 		}
 		
 		return res;
