@@ -44,6 +44,7 @@ import explicit.MDP;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
+import explicit.NondetModel;
 import explicit.SMG;
 import explicit.STPGExplicit;
 import prism.Prism.StrategyExportType;
@@ -55,7 +56,7 @@ import prism.PrismLog;
 public class MDStrategyArray extends MDStrategy
 {
 	// Model associated with the strategy
-	private explicit.NondetModel model;
+	private NondetModel model;
 	// Index of choice taken in each state (wrt model above) 
 	// Other possible values: -1 (unknown), -2 (arbitrary), -3 (unreachable)
 	private int choices[];
@@ -64,7 +65,7 @@ public class MDStrategyArray extends MDStrategy
 	 * Creates an MDStrategyArray from an integer array of choices.
 	 * The array may later be modified/delete - take a copy if you want to keep it.
 	 */
-	public MDStrategyArray(explicit.NondetModel model, int choices[])
+	public MDStrategyArray(NondetModel model, int choices[])
 	{
 		this.model = model;
 		this.choices = choices;

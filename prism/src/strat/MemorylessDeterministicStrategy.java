@@ -3,13 +3,16 @@ package strat;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
 import parser.Values;
+import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import prism.Prism.StrategyExportType;
 
 import java.util.Arrays;
 
@@ -424,4 +427,25 @@ public class MemorylessDeterministicStrategy implements Strategy
 		// TODO Auto-generated method stub
 		
 	};
+
+	//@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// TODO Auto-generated method stub
+		throw new PrismException("Reach option is not supported for this strategy type");
+	}
+
+	//@Override
+	public void exportStratToFile(File file, StrategyExportType exportType)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	//@Override
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
