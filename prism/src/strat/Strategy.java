@@ -106,14 +106,18 @@ public interface Strategy
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException;
 
 	/**
-	 * Get the next move (distribution over actions) for a given model state.
+	 * Get the move of the strategy in model state {@code state}
+	 * as a distribution over indices of choices that are available in that state,
+	 * i.e., which specifies the probability with which each choice should be taken.  
 	 * @param state Current model state
 	 * @throws InvalidStrategyStateException if next move function is undefined for the given state in current strategy's memory state
 	 */
 	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
 
 	/**
-	 * Get the next move (distribution over actions) for a given model state.
+	 * Get the move of the strategy in model state {@code state}
+	 * as a distribution over indices of actions that are available in that state,
+	 * i.e., which specifies the probability with which each action should be taken.  
 	 * @param state Current model state
 	 * @throws InvalidStrategyStateException if next move function is undefined for the given state in current strategy's memory state
 	 */
