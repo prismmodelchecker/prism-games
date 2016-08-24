@@ -2477,11 +2477,16 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					// First 2 columns are optional, so adjust index
 					int offset = 0;
 					// Strategy choice
-					if (!(showStrategyCheck.isSelected() && strategyGenerated & strategy != null))
+					boolean showStrat = showStrategyCheck.isSelected() && strategyGenerated & strategy != null; 
+					if (!showStrat)
 						offset++;
 					// Player
-					if (!(parsedModel.getModelType().multiplePlayers()))
+					boolean showPlayer = parsedModel.getModelType().multiplePlayers();
+					if (!showPlayer)
 						offset++;
+					// Might have strategy but not player
+					if (showStrat && !showPlayer && columnIndex == 0)
+						offset--;
 
 					switch (columnIndex + offset) {
 						// Strategy choice
@@ -2516,11 +2521,16 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				// First 2 columns are optional, so adjust index
 				int offset = 0;
 				// Strategy choice
-				if (!(showStrategyCheck.isSelected() && strategyGenerated & strategy != null))
+				boolean showStrat = showStrategyCheck.isSelected() && strategyGenerated & strategy != null; 
+				if (!showStrat)
 					offset++;
 				// Player
-				if (!(parsedModel.getModelType().multiplePlayers()))
+				boolean showPlayer = parsedModel.getModelType().multiplePlayers();
+				if (!showPlayer)
 					offset++;
+				// Might have strategy but not player
+				if (showStrat && !showPlayer && column == 0)
+					offset--;
 
 				switch (column + offset) {
 				case 0:
