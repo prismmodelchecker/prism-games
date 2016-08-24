@@ -125,45 +125,33 @@ public interface Strategy
 	 */
 	public void reset();
 
-	// Export methods
+	// Product methods
 	
 	/**
-	 * Exports adversary to a given file
-	 * 
-	 * @param file
-	 *            file name to which adversary will be exported
-	 */
-	public void exportToFile(String file);
-
-	// Other methods
-	
-	/**
-	 * Builds the product of the model and the strategy. The product is built by
-	 * adding extra integer variable to the state to represent the memory state
+	 * Build the product the strategy and a model. The product is built by
+	 * adding an extra integer variable to the state to represent the memory state
 	 * of the strategy. The initial states are the first N states of the product
 	 * where N is the size of the original model.
-	 * 
-	 * @param model
-	 *            The model for which the strategy is defined.
-	 * @throws PrismException
-	 * 
+	 * @param model The model for which the strategy is defined.
 	 */
 	public Model buildProduct(Model model) throws PrismException;
 
 	/**
-	 * Returns the initial memory state of the strategy for the state. It is
-	 * required by the model checker to determine which states can be treated as
-	 * initial in the product.
-	 * 
-	 * @param s
-	 *            the state for which to return initial memory element
-	 * 
-	 * @return non negative integer or -1 if product does not contain extra
-	 *         variables
+	 * Get the initial memory state of the strategy for a state.
+	 * It is required by the model checker to determine which states can be treated as initial in the product.
+	 * Returns -1 if the product does not contain extra variables  
+	 * @param s The state for which to return initial memory element
 	 */
 	public int getInitialStateOfTheProduct(int s);
 
-	// NEW METHODS:
+	// Export methods
+	
+	/**
+	 * Export the strategy to a file.
+	 */
+	public void exportToFile(String file);
+	
+	// New export methods
 
 	/**
 	 * Export the strategy to a PrismLog, displaying strategy choices as action names.
@@ -185,6 +173,8 @@ public interface Strategy
 	 */
 	public void exportDotFile(PrismLog out);
 
+	// Other new methods
+	
 	/**
 	 * Initialise the strategy, based on an initial model state.
 	 * @param s Initial state of the model
