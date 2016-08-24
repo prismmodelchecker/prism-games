@@ -27,18 +27,15 @@
 package strat;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 
-import parser.Values;
-import prism.Model;
-import prism.Prism;
-import prism.PrismException;
-import prism.PrismLog;
-import prism.Prism.StrategyExportType;
 import dv.IntegerVector;
 import explicit.Distribution;
+import prism.Model;
+import prism.Prism.StrategyExportType;
+import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Class to store a memoryless deterministic (MD) strategy, as an IntegerVector (i.e. stored natively as an array).
@@ -204,15 +201,15 @@ public class MDStrategyIV extends MDStrategy
 	}
 
 	@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// Nothing to do here. It is already done in 'sparse/PS_NondetUntil.cc'
+	}
+
+	@Override
 	public void clear()
 	{
 		iv.clear();
 		iv = null;
-	}
-	
-	@Override
-	public void restrictStrategyToReachableStates() throws PrismException
-	{
-		// Nothing to do here. It is already done in 'sparse/PS_NondetUntil.cc'
 	}
 }

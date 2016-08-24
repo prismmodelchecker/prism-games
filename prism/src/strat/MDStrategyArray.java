@@ -62,7 +62,7 @@ public class MDStrategyArray extends MDStrategy
 	private int choices[];
 
 	/**
-	 * Creates an MDStrategyArray from an integer array of choices.
+	 * Create an MDStrategyArray from an integer array of choices.
 	 * The array may later be modified/delete - take a copy if you want to keep it.
 	 */
 	public MDStrategyArray(NondetModel model, int choices[])
@@ -72,8 +72,7 @@ public class MDStrategyArray extends MDStrategy
 	}
 	
 	/**
-	 * Creates a MDStrategyArray from the input stream provided by the scanner.
-	 * @param scan
+	 * Create an MDStrategyArray from an input stream provided by a scanner.
 	 */
 	public MDStrategyArray(Scanner scan)
 	{
@@ -94,12 +93,6 @@ public class MDStrategyArray extends MDStrategy
 	    }
 	}
 	
-	@Override
-	public String toString()
-	{
-		return Arrays.toString(choices);
-	}
-
 	// Methods for MDStrategy
 
 	@Override
@@ -159,97 +152,10 @@ public class MDStrategyArray extends MDStrategy
 	}
 	
 	@Override
-	public void exportToFile(String file)
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
 	{
-		// Print adversary
-		//PrismLog out = new PrismFileLog(file);
-		FileWriter out=null;
-		try {
-			out = new FileWriter(new File(file));
-			out.write(Strategies.FORMAT_STRING_MD_STRAT);
-			out.write("\n");
-			out.write("Adv:");
-			out.write("\n");
-			for (int i = 0; i < choices.length; i++) {
-				out.write(i + " " + choices[i]);
-				out.write("\n");
-			}
-			out.flush();
-		
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		finally{
-			try {
-				if(out!=null)
-				out.close();
-			} catch (IOException e) {
-				// nothing we can do
-			}
-		}
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out)
-	{
-		Model dtmcInd = model.constructInducedModel(this);
-		dtmcInd.exportToPrismExplicitTra(out);
-	}
-
-	@Override
-	public void exportDotFile(PrismLog out)
-	{
-		model.exportToDotFileWithStrat(out, null, choices);
-	}
-
-	@Override
-	public void clear()
-	{
-		choices = null;
-	}
-	
-	//@Override
-	public void restrictStrategyToReachableStates()
-	{
-		MDP mdp = null;
-		if (model instanceof MDP)
-			mdp = (MDP) model;
-		else
-			return;
-		BitSet restrict = new BitSet();
-		BitSet explore = new BitSet();
-		// Get initial states
-		for (int is : mdp.getInitialStates()) {
-			restrict.set(is);
-			explore.set(is);
-		}
-		// Compute reachable states (store in 'restrict') 
-		boolean foundMore = true;
-		while (foundMore) {
-			foundMore = false;
-			for (int s = explore.nextSetBit(0); s >= 0; s = explore.nextSetBit(s + 1)) {
-				explore.set(s, false);
-				int choiceIndex = getChoiceIndex(s);
-				if (choiceIndex >= 0) {
-					Iterator<Map.Entry<Integer, Double>> iter = mdp.getTransitionsIterator(s, choiceIndex);
-					while (iter.hasNext()) {
-						Map.Entry<Integer, Double> e = iter.next();
-						int dest = e.getKey();
-						if (!restrict.get(dest)) {
-							foundMore = true;
-							restrict.set(dest);
-							explore.set(dest);
-						}
-					}
-				}
-			}
-		}
-		// Set strategy choice for non-reachable state to -3
-		int n = mdp.getNumStates();
-		for (int s = restrict.nextClearBit(0); s < n; s = restrict.nextClearBit(s + 1)) {
-			choices[s] = -3;
-		}
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	@Override
@@ -382,18 +288,110 @@ public class MDStrategyArray extends MDStrategy
 		return smg;
 	}
 
-	//@Override
+	@Override
+	public void exportToFile(String file)
+	{
+		// Print adversary
+		//PrismLog out = new PrismFileLog(file);
+		FileWriter out=null;
+		try {
+			out = new FileWriter(new File(file));
+			out.write(Strategies.FORMAT_STRING_MD_STRAT);
+			out.write("\n");
+			out.write("Adv:");
+			out.write("\n");
+			for (int i = 0; i < choices.length; i++) {
+				out.write(i + " " + choices[i]);
+				out.write("\n");
+			}
+			out.flush();
+		
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally{
+			try {
+				if(out!=null)
+				out.close();
+			} catch (IOException e) {
+				// nothing we can do
+			}
+		}
+	}
+
+	@Override
+	public void exportInducedModel(PrismLog out)
+	{
+		Model dtmcInd = model.constructInducedModel(this);
+		dtmcInd.exportToPrismExplicitTra(out);
+	}
+
+	@Override
+	public void exportDotFile(PrismLog out)
+	{
+		model.exportToDotFileWithStrat(out, null, choices);
+	}
+
+	@Override
 	public void exportStratToFile(File file, StrategyExportType exportType)
 	{
 		// TODO Auto-generated method stub
 		
 	}
 
-	//@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	@Override
+	public void restrictStrategyToReachableStates()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		MDP mdp = null;
+		if (model instanceof MDP)
+			mdp = (MDP) model;
+		else
+			return;
+		BitSet restrict = new BitSet();
+		BitSet explore = new BitSet();
+		// Get initial states
+		for (int is : mdp.getInitialStates()) {
+			restrict.set(is);
+			explore.set(is);
+		}
+		// Compute reachable states (store in 'restrict') 
+		boolean foundMore = true;
+		while (foundMore) {
+			foundMore = false;
+			for (int s = explore.nextSetBit(0); s >= 0; s = explore.nextSetBit(s + 1)) {
+				explore.set(s, false);
+				int choiceIndex = getChoiceIndex(s);
+				if (choiceIndex >= 0) {
+					Iterator<Map.Entry<Integer, Double>> iter = mdp.getTransitionsIterator(s, choiceIndex);
+					while (iter.hasNext()) {
+						Map.Entry<Integer, Double> e = iter.next();
+						int dest = e.getKey();
+						if (!restrict.get(dest)) {
+							foundMore = true;
+							restrict.set(dest);
+							explore.set(dest);
+						}
+					}
+				}
+			}
+		}
+		// Set strategy choice for non-reachable state to -3
+		int n = mdp.getNumStates();
+		for (int s = restrict.nextClearBit(0); s < n; s = restrict.nextClearBit(s + 1)) {
+			choices[s] = -3;
+		}
 	}
 	
+	@Override
+	public void clear()
+	{
+		choices = null;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return Arrays.toString(choices);
+	}
 }
