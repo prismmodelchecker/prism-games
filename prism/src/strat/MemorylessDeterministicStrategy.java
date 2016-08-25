@@ -54,9 +54,6 @@ public class MemorylessDeterministicStrategy implements Strategy
 	private Distribution[] choices;
 	private String info = "No information available.";
 
-	//private double[] expValues;
-	//private int currentState;
-
 	public MemorylessDeterministicStrategy(int[] choices)
 	{
 		this.choices = new Distribution[choices.length];
@@ -66,20 +63,7 @@ public class MemorylessDeterministicStrategy implements Strategy
 			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
 			this.choices[i] = dist;
 		}
-		//expValues = null;
 	}
-
-	//	public MemorylessDeterministicStrategy(int[] choices, double[] expValues)
-	//	{
-	//		this.choices = new Distribution[choices.length];
-	//		Distribution dist;
-	//		for (int i = 0; i < choices.length; i++) {
-	//			dist = new Distribution();
-	//			dist.add(choices[i] < 0 ? 0 : choices[i], 1);
-	//			this.choices[i] = dist;
-	//		}
-	//		this.expValues = expValues;
-	//	}
 
 	/**
 	 * Creates a MemorylessDeterministicStrategy from the input stream provided by the scanner.
