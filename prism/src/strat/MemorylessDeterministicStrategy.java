@@ -1,20 +1,40 @@
+//==============================================================================
+//	
+//	Copyright (c) 2002-
+//	Authors:
+//	* Aistis Simaitis <aistis.aimaitis@cs.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package strat;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-
-import parser.Values;
-import prism.PrismException;
-import prism.PrismFileLog;
-import prism.PrismLog;
-import prism.Prism.StrategyExportType;
-
-import java.util.Arrays;
 
 import explicit.Distribution;
 import explicit.MDPSimple;
@@ -22,12 +42,12 @@ import explicit.MDPSparse;
 import explicit.Model;
 import explicit.SMG;
 import explicit.STPGExplicit;
+import prism.Prism.StrategyExportType;
+import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Implementation of the memoryless deterministic strategy
- * 
- * @author aistis
- * 
  */
 public class MemorylessDeterministicStrategy implements Strategy
 {
@@ -84,6 +104,40 @@ public class MemorylessDeterministicStrategy implements Strategy
 	}
 
 	@Override
+	public String getInfo()
+	{
+		return info;
+	}
+
+	@Override
+	public int getMemorySize()
+	{
+		return 0;
+	}
+
+	@Override
+	public String getType()
+	{
+		return "Memoryless deterministic";
+	}
+
+	@Override
+	public String getDescription()
+	{
+		String desc = "";
+		desc += "Memoryless deterministic strategy\n";
+		desc += "Size of memory: 0\n";
+		desc += "Size of next move function: " + choices.length + "\n";
+		return desc;
+	}
+
+	@Override
+	public void setInfo(String info)
+	{
+		this.info = info;
+	}
+
+	@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
 		// do nothing
@@ -103,6 +157,27 @@ public class MemorylessDeterministicStrategy implements Strategy
 			throw new InvalidStrategyStateException("Strategy not defined for state " + state + ".");
 
 		return choices[state];
+	}
+
+	@Override
+	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Object getCurrentMemoryElement()
+	{
+		// System.out.println("Memory element requested");
+		return null;
+	}
+
+	@Override
+	public void setMemory(Object memory) throws InvalidStrategyStateException
+	{
+		// do nothing
+		// System.out.println("Set memory element");
 	}
 
 	@Override
@@ -133,49 +208,8 @@ public class MemorylessDeterministicStrategy implements Strategy
 
 	}
 
-	@Override
-	public void exportToFile(String file)
-	{
-		// Print adversary
-		//PrismLog out = new PrismFileLog(file);
-		FileWriter out=null;
-		try {
-			out = new FileWriter(new File(file));
-		out.write(Strategies.FORMAT_STRING_MD_STRAT);
-		out.write("\n");
-		out.write("Adv:");
-		out.write("\n");
-		for (int i = 0; i < choices.length; i++) {
-			out.write(i + " " + choices[i].keySet().iterator().next());
-			out.write("\n");
-		}
-		out.flush();
-		
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		finally{
-			try {
-				if(out!=null)
-				out.close();
-			} catch (IOException e) {
-				// nothing we can do
-			}
-		}
-	}
-
-	@Override
-	public String toString()
-	{
-		return Arrays.toString(choices);
-	}
-
 	/**
 	 * Builds product of MDPSimple and a given strategy
-	 * 
-	 * @param model
-	 *            model
 	 */
 	public MDPSimple buildProductMDPSimple(MDPSimple model)
 	{
@@ -303,80 +337,83 @@ public class MemorylessDeterministicStrategy implements Strategy
 		return smg;
 	}
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args)
-	{
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public String getInfo()
-	{
-		return info;
-	}
-
-	@Override
-	public void setInfo(String info)
-	{
-		this.info = info;
-	}
-
-	@Override
-	public int getMemorySize()
-	{
-		return 0;
-	}
-
-	@Override
-	public String getType()
-	{
-		return "Memoryless deterministic";
-	}
-
-	@Override
-	public Object getCurrentMemoryElement()
-	{
-		// System.out.println("Memory element requested");
-		return null;
-	}
-
-	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException
-	{
-		// do nothing
-		// System.out.println("Set memory element");
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public String getDescription()
-	{
-		String desc = "";
-		desc += "Memoryless deterministic strategy\n";
-		desc += "Size of memory: 0\n";
-		desc += "Size of next move function: " + choices.length + "\n";
-		return desc;
-	}
-
 	@Override
 	public int getInitialStateOfTheProduct(int s)
 	{
 		return -1;
 	}
 
-	public void export(PrismLog out) {}
+	@Override
+	public void exportToFile(String file)
+	{
+		// Print adversary
+		//PrismLog out = new PrismFileLog(file);
+		FileWriter out=null;
+		try {
+			out = new FileWriter(new File(file));
+		out.write(Strategies.FORMAT_STRING_MD_STRAT);
+		out.write("\n");
+		out.write("Adv:");
+		out.write("\n");
+		for (int i = 0; i < choices.length; i++) {
+			out.write(i + " " + choices[i].keySet().iterator().next());
+			out.write("\n");
+		}
+		out.flush();
+		
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally{
+			try {
+				if(out!=null)
+				out.close();
+			} catch (IOException e) {
+				// nothing we can do
+			}
+		}
+	}
 
 	@Override
 	public void exportActions(PrismLog out)
 	{
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void exportIndices(PrismLog out)
+	{
+		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void exportInducedModel(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void exportDotFile(PrismLog out)
+	{
+		// TODO Auto-generated method stub
+		
+	};
+	
+	@Override
+	public void exportStratToFile(File file, StrategyExportType exportType)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void restrictStrategyToReachableStates() throws PrismException
+	{
+		// TODO Auto-generated method stub
+		throw new PrismException("Reach option is not supported for this strategy type");
 	}
 
 	@Override
@@ -404,48 +441,11 @@ public class MemorylessDeterministicStrategy implements Strategy
 	public void clear()
 	{
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public String toString()
 	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void exportDotFile(PrismLog out)
-	{
-		// TODO Auto-generated method stub
-		
-	};
-
-	//@Override
-	public void restrictStrategyToReachableStates() throws PrismException
-	{
-		// TODO Auto-generated method stub
-		throw new PrismException("Reach option is not supported for this strategy type");
-	}
-
-	//@Override
-	public void exportStratToFile(File file, StrategyExportType exportType)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	//@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
+		return Arrays.toString(choices);
 	}
 }
