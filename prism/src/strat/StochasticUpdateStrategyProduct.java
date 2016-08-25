@@ -36,13 +36,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
-import parser.Values;
-import prism.PrismException;
-import prism.PrismLog;
-import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.SMG;
+import prism.Prism.StrategyExportType;
+import prism.PrismException;
+import prism.PrismLog;
 
 public class StochasticUpdateStrategyProduct implements Strategy
 {
@@ -344,27 +343,6 @@ public class StochasticUpdateStrategyProduct implements Strategy
 	{
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public void initialise(int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void update(Object action, int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Object getChoiceAction()
-	{
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override

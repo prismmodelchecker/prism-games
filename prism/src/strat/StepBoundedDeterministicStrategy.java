@@ -9,11 +9,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
-import parser.State;
-import parser.Values;
-import prism.PrismException;
-import prism.PrismLog;
-import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.MDPSparse;
@@ -21,6 +16,10 @@ import explicit.Model;
 import explicit.NondetModel;
 import explicit.SMG;
 import explicit.STPGExplicit;
+import parser.State;
+import prism.Prism.StrategyExportType;
+import prism.PrismException;
+import prism.PrismLog;
 
 public class StepBoundedDeterministicStrategy implements Strategy
 {
@@ -585,27 +584,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		}
 	}
 
-	@Override
-	public void initialise(int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void update(Object action, int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Object getChoiceAction()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public int getChoiceIndex(int state, int mode)
 	{
 		int[] actions = choices[state];

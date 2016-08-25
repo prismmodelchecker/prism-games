@@ -114,14 +114,13 @@ public abstract class MDStrategy implements Strategy
 	@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
-		// TODO Auto-generated method stub
+		currentState = state;
 	}
 
 	@Override
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
-		// TODO Auto-generated method stub
-		
+		currentState = state;
 	}
 
 	@Override
@@ -206,24 +205,6 @@ public abstract class MDStrategy implements Strategy
 	@Override
 	public abstract void restrictStrategyToReachableStates() throws PrismException;
 	
-	@Override
-	public void initialise(int s)
-	{
-		currentState = s;
-	}
-	
-	@Override
-	public void update(Object action, int s)
-	{
-		currentState = s;
-	}
-	
-	@Override
-	public Object getChoiceAction()
-	{
-		return getChoiceAction(currentState);
-	}
-
 	@Override
 	public abstract void clear();
 }

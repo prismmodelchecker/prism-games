@@ -401,27 +401,6 @@ public class MemorylessDeterministicStrategy implements Strategy
 	}
 
 	@Override
-	public void initialise(int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void update(Object action, int s)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Object getChoiceAction()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void clear()
 	{
 		// TODO Auto-generated method stub

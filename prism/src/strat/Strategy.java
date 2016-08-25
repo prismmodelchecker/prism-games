@@ -202,24 +202,6 @@ public interface Strategy
 	public void restrictStrategyToReachableStates() throws PrismException;
 	
 	/**
-	 * Initialise the strategy, based on an initial model state.
-	 * @param s Initial state of the model
-	 */
-	public void initialise(int s);
-
-	/**
-	 * Update the strategy, based on the next step in a model's history.
-	 * @param action The action taken in the previous state of the model
-	 * @param s The new state of the model
-	 */
-	public void update(Object action, int s);
-
-	/**
-	 * Get the action chosen by the strategy in the current state (assuming it is deterministic). 
-	 */
-	public Object getChoiceAction();
-
-	/**
 	 * Clear storage of the strategy.
 	 */
 	public void clear();
