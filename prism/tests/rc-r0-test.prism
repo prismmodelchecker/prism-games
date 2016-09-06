@@ -13,7 +13,6 @@ player p1
 	foo, [p1a], [p1b]
 endplayer
 
-
 player p2
 	[p2a], [p2b]
 endplayer
