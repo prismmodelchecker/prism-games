@@ -76,7 +76,7 @@ public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards
 	public SMGRewards liftFromModel(Product<? extends Model> product)
 	{
 		// Lift MDP part
-		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) ((MDPRewardsSimple) this).liftFromModel(product);
+		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) super.liftFromModel(product);
 		return new SMGRewardsSimple(rewardsProdMDP);
 	}
 	
