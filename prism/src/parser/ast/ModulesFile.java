@@ -41,7 +41,6 @@ import parser.visitor.ModulesFileSemanticCheckAfterConstants;
 import prism.ModelType;
 import prism.PrismException;
 import prism.ModelInfo;
-import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismUtils;
 
@@ -902,7 +901,7 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	}
 
 	// sort modules by their appearance in system ... endsystem constructs
-	private void sortModules() throws PrismException
+	private void sortModules() throws PrismLangException
 	{
 		SystemDefn sys = getSystemDefn();
 		// only relevant if system ... endsystem construct present
@@ -922,10 +921,10 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		for (int i = 0; i < numComps; i++) {
 			SystemDefn subsys = getSystemDefnByName(sysRefs.get(i).getName());
 			if (subsys == null) {
-				throw new PrismException("Unknown system reference" + sysRefs.get(i));
+				throw new PrismLangException("Unknown system reference" + sysRefs.get(i));
 			}
 			ArrayList<String> moduleNames = new ArrayList<String>();
-			extractSubsystemModuleNames(subsys, moduleNames);
+			extractSubsystemModuleNames(subsys, moduleNames, false);
 			moduleNameLists.add(moduleNames);
 		}
 		// moduleNameLists now contains the module names in order
@@ -938,7 +937,7 @@ public class ModulesFile extends ASTElement implements ModelInfo
 			for (int j = 0; j < moduleNameLists.get(i).size(); j++) {
 				int moduleIndex = getModuleIndex(moduleNameLists.get(i).get(j));
 				if (moduleIndex < 0)
-					throw new PrismException("Unknown module " + moduleNameLists.get(i).get(j));
+					throw new PrismLangException("Unknown module " + moduleNameLists.get(i).get(j));
 				sorted_modules.add(getModule(moduleIndex));
 			}
 
@@ -1174,6 +1173,15 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		if (firstCycle != -1) {
 			String s = "Cyclic dependency from references in system...endsystem definition \"" + getSystemDefnName(firstCycle) + "\"";
 			throw new PrismLangException(s, getSystemDefn(firstCycle));
+		}
+
+		// SMG stuff
+		if (modelType == ModelType.SMG) {
+			SystemDefn sys = getSystemDefn();
+			while (sys instanceof SystemBrackets) {
+				sys = ((SystemBrackets) sys).getOperand();
+			}
+			extractSubsystemRefs(sys, new ArrayList<SystemReference>(), true);
 		}
 	}
 
@@ -1588,51 +1596,75 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	/**
 	 * Extract the top-level system references from a SystemFullParallel
 	 **/
-	public static void extractSubsystemRefs(SystemDefn sysPar, List<SystemReference> sysRefs) throws PrismException
+	public static void extractSubsystemRefs(SystemDefn sysPar, List<SystemReference> sysRefs) throws PrismLangException
+	{
+		extractSubsystemRefs(sysPar, sysRefs, false);
+	}
+	
+	/**
+	 * Extract the top-level system references from a SystemFullParallel
+	 **/
+	public static void extractSubsystemRefs(SystemDefn sysPar, List<SystemReference> sysRefs, boolean check) throws PrismLangException
 	{
 		if (sysPar instanceof SystemFullParallel) {
 			int n = ((SystemFullParallel) sysPar).getNumOperands();
 			for (int i = 0; i < n; i++) {
 				if (((SystemFullParallel) sysPar).getOperand(i) instanceof SystemReference) {
 					sysRefs.add((SystemReference) ((SystemFullParallel) sysPar).getOperand(i));
-				} else {
-					throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems");
+				} else if (check) {
+					throw new PrismLangException("For compositional analysis, the system definition should be a parallel composition of subsystems");
 				}
 			}
 		} else if (sysPar instanceof SystemReference) {
 			sysRefs.add((SystemReference) sysPar);
-		} else {
-			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems");
+		} else if (check) {
+			throw new PrismLangException("For compositional analysis, the system definition should be a parallel composition of subsystems");
 		}
 	}
 
 	/**
 	 * Extract the top-level system references from a SystemParallel
 	 **/
-	public static void extractSubsystemRefs(SystemParallel sysPar, List<SystemReference> sysRefs) throws PrismException
+	public static void extractSubsystemRefs(SystemParallel sysPar, List<SystemReference> sysRefs) throws PrismLangException
+	{
+		extractSubsystemRefs(sysPar, sysRefs, false);
+	}
+	
+	/**
+	 * Extract the top-level system references from a SystemParallel
+	 **/
+	public static void extractSubsystemRefs(SystemParallel sysPar, List<SystemReference> sysRefs, boolean check) throws PrismLangException
 	{
 		// Operand 1
 		if (sysPar.getOperand1() instanceof SystemReference) {
 			sysRefs.add((SystemReference) sysPar.getOperand1());
 		} else if (sysPar.getOperand1() instanceof SystemParallel) {
-			extractSubsystemRefs((SystemParallel) sysPar.getOperand1(), sysRefs);
-		} else {
-			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
+			extractSubsystemRefs((SystemParallel) sysPar.getOperand1(), sysRefs, check);
+		} else if (check) {
+			throw new PrismLangException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
 		}
 		// Operand 2
 		if (sysPar.getOperand2() instanceof SystemReference) {
 			sysRefs.add((SystemReference) sysPar.getOperand2());
 		} else if (sysPar.getOperand2() instanceof SystemParallel) {
-			extractSubsystemRefs((SystemParallel) sysPar.getOperand2(), sysRefs);
-		} else {
-			throw new PrismException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
+			extractSubsystemRefs((SystemParallel) sysPar.getOperand2(), sysRefs, check);
+		} else if (check) {
+			throw new PrismLangException("For compositional analysis, the system definition should be a parallel composition of subsystems.");
 		}
 	}
 
 	/**
 	 * Extract the modules from the SystemDefn for a component
 	 **/
-	public static void extractSubsystemModuleNames(SystemDefn sys, ArrayList<String> moduleNames) throws PrismException
+	public static void extractSubsystemModuleNames(SystemDefn sys, ArrayList<String> moduleNames) throws PrismLangException
+	{
+		extractSubsystemModuleNames(sys, moduleNames, false);
+	}
+	
+	/**
+	 * Extract the modules from the SystemDefn for a component
+	 **/
+	public static void extractSubsystemModuleNames(SystemDefn sys, ArrayList<String> moduleNames, boolean check) throws PrismLangException
 	{
 		if (sys instanceof SystemModule) {
 			moduleNames.add(((SystemModule) sys).getName());
@@ -1640,13 +1672,12 @@ public class ModulesFile extends ASTElement implements ModelInfo
 			SystemFullParallel sysPar = (SystemFullParallel) sys;
 			int n = sysPar.getNumOperands();
 			for (int i = 0; i < n; i++) {
-				extractSubsystemModuleNames(sysPar.getOperand(i), moduleNames);
+				extractSubsystemModuleNames(sysPar.getOperand(i), moduleNames, check);
 			}
-		} else {
-			throw new PrismException("For compositional analysis, each subsystem should be a parallel composition of modules");
+		} else if (check) {
+			throw new PrismLangException("For compositional analysis, each subsystem should be a parallel composition of modules");
 		}
 	}
-
 }
 
 // ------------------------------------------------------------------------------
