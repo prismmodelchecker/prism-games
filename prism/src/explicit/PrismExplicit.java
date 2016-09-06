@@ -237,7 +237,7 @@ public class PrismExplicit extends PrismComponent
 		mc.setVerbosity(settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1);
 
 		// Do model checking
-		mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile);
+		mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, null);
 		result = mc.check(model, expr);
 
 		// Return result
@@ -470,6 +470,7 @@ public class PrismExplicit extends PrismComponent
 			prism.exportLabelsToFile(null, Prism.EXPORT_PLAIN, new File("tmp.lab"));
 			DTMCSimple modelExplicit = new DTMCSimple();
 			modelExplicit.buildFromPrismExplicit("tmp.tra");
+			modelExplicit.addInitialState(0);
 			PrismExplicit pe = new PrismExplicit(prism.getMainLog(), prism.getSettings());
 			pe.modelCheck(modelExplicit, null, propertiesFile, propertiesFile.getProperty(0));
 		} catch (PrismException e) {

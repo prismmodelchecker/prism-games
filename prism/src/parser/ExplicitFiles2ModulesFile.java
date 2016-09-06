@@ -30,40 +30,39 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import parser.ast.Declaration;
 import parser.ast.DeclarationBool;
 import parser.ast.DeclarationInt;
 import parser.ast.DeclarationType;
 import parser.ast.Expression;
+import parser.ast.ExpressionIdent;
+import parser.ast.ExpressionLiteral;
+import parser.ast.LabelList;
 import parser.ast.Module;
 import parser.ast.ModulesFile;
 import parser.type.Type;
 import parser.type.TypeBool;
 import parser.type.TypeInt;
 import prism.ModelType;
-import prism.Prism;
+import prism.PrismComponent;
 import prism.PrismException;
-import prism.PrismLog;
 
 /**
  * Class to build a (partial) ModulesFile corresponding to imported explicit-state file storage of a model.
  * Basically, the ModulesFile just stores the model type and variable info.
  * The number of states in the model is also extracted.
  */
-public class ExplicitFiles2ModulesFile
+public class ExplicitFiles2ModulesFile extends PrismComponent
 {
-	// Prism stuff
-	private Prism prism;
-	private PrismLog mainLog;
-
 	// Num states
 	private int numStates = 0;
 
-	public ExplicitFiles2ModulesFile(Prism prism)
+	public ExplicitFiles2ModulesFile(PrismComponent parent)
 	{
-		this.prism = prism;
-		mainLog = prism.getMainLog();
+		super(parent);
 	}
 
 	/**
@@ -76,10 +75,14 @@ public class ExplicitFiles2ModulesFile
 	}
 
 	/**
-	 * Build a ModulesFile corresponding to the passed in states/transitions files.
+	 * Build a ModulesFile corresponding to the passed in states/transitions/labels files.
 	 * If {@code typeOverride} is null, we assume model is an MDP.
+	 *
+	 * @param statesFile states file (may be {@code null})
+	 * @param transFile transitions file
+	 * @param labelsFile labels file (may be {@code null})
 	 */
-	public ModulesFile buildModulesFile(File statesFile, File transFile, ModelType typeOverride) throws PrismException
+	public ModulesFile buildModulesFile(File statesFile, File transFile, File labelsFile, ModelType typeOverride) throws PrismException
 	{
 		ModulesFile modulesFile;
 		ModelType modelType;
@@ -89,6 +92,12 @@ public class ExplicitFiles2ModulesFile
 			modulesFile = createVarInfoFromStatesFile(statesFile);
 		} else {
 			modulesFile = createVarInfoFromTransFile(transFile);
+		}
+
+		// Generate and store a label list from the labelsFile, if available.
+		// This way, expressions can refer to the labels later on.
+		if (labelsFile != null) {
+			modulesFile.setLabelList(createLabelListFromLabelsFile(labelsFile));
 		}
 
 		// Set model type: if no preference stated, assume default of MDP
@@ -103,7 +112,6 @@ public class ExplicitFiles2ModulesFile
 	 */
 	private ModulesFile createVarInfoFromStatesFile(File statesFile) throws PrismException
 	{
-		BufferedReader in;
 		String s, ss[];
 		int i, j, lineNum = 0;
 		Module m;
@@ -118,9 +126,8 @@ public class ExplicitFiles2ModulesFile
 		Type varTypes[];
 		ModulesFile modulesFile;
 
-		try {
-			// open file for reading
-			in = new BufferedReader(new FileReader(statesFile));
+		// open file for reading, automatic close when done
+		try (BufferedReader in = new BufferedReader(new FileReader(statesFile))) {
 			// read first line and extract var names
 			s = in.readLine();
 			lineNum = 1;
@@ -188,8 +195,6 @@ public class ExplicitFiles2ModulesFile
 						varMaxs[i]++;
 				}
 			}
-			// close file
-			in.close();
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + statesFile + "\"");
 		} catch (NumberFormatException e) {
@@ -223,7 +228,6 @@ public class ExplicitFiles2ModulesFile
 	 */
 	private ModulesFile createVarInfoFromTransFile(File transFile) throws PrismException
 	{
-		BufferedReader in;
 		String s, ss[];
 		int lineNum = 0;
 		Module m;
@@ -231,9 +235,8 @@ public class ExplicitFiles2ModulesFile
 		DeclarationType dt;
 		ModulesFile modulesFile;
 
-		try {
-			// open file for reading
-			in = new BufferedReader(new FileReader(transFile));
+		// open file for reading, automatic close when done
+		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
 			// read first line and extract num states
 			s = in.readLine();
 			lineNum = 1;
@@ -244,8 +247,6 @@ public class ExplicitFiles2ModulesFile
 			if (ss.length < 2)
 				throw new PrismException("");
 			numStates = Integer.parseInt(ss[0]);
-			// close file
-			in.close();
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
 		} catch (NumberFormatException e) {
@@ -265,4 +266,51 @@ public class ExplicitFiles2ModulesFile
 
 		return modulesFile;
 	}
+	
+
+	/**
+	 * Create a LabelList from a labels file, i.e., a label definition per
+	 * label that is encountered in the file.
+	 * <br>
+	 * In the label definitions, the label expression is set to "false",
+	 * the actual information about the states belonging to the label
+	 * is later on directly stored in the model.
+	 * <br>
+	 * The "init" and "deadlock" labels are skipped, as they have special
+	 * meaning and are implicitly defined for all models.
+	 */
+	private LabelList createLabelListFromLabelsFile(File labelsFile) throws PrismException
+	{
+		LabelList list = new LabelList();
+
+		try (BufferedReader in = new BufferedReader(new FileReader(labelsFile))) {
+			// read first line (label names)
+			String labelNames = in.readLine();
+			// split
+			Pattern label = Pattern.compile("(\\d+)=\"([^\"]+)\"\\s*");
+			Matcher matcher = label.matcher(labelNames);
+			while (matcher.find()) {
+				String labelName = matcher.group(2);
+
+				if (labelName.equals("init") || labelName.equals("deadlock")) {
+					// "init" and "deadlock" are special labels that exist
+					// in every model, so we don't need to add them to the ModulesFile
+					continue;
+				}
+
+				// TODO: Check that label name is valid identifier
+
+				if (list.getLabelIndex(labelName) != -1) {
+					throw new PrismException("duplicate label \"" + labelName + "\"");
+				}
+
+				Expression falseExpression = new ExpressionLiteral(TypeBool.getInstance(), false);
+				list.addLabel(new ExpressionIdent(labelName), falseExpression);
+			}
+		} catch (IOException e) {
+			throw new PrismException("File I/O error reading from \"" + labelsFile + "\"");
+		}
+		return list;
+	}
+
 }

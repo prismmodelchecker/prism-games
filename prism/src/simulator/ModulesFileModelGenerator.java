@@ -33,6 +33,7 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	private Values mfConstants;
 	private VarList varList;
 	private LabelList labelList;
+	private List<String> labelNames;
 	
 	// Wwhether to use the "compositional" system construction (for SMGSs)
 	private boolean compositional = false;
@@ -99,6 +100,7 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		// Get info
 		varList = modulesFile.createVarList();
 		labelList = modulesFile.getLabelList();
+		labelNames = labelList.getLabelNames();
 		
 		// Create data structures for exploring model
 		updater = new Updater(modulesFile, varList, parent);
@@ -123,7 +125,7 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		this.compositional = compositional;
 	}
 	
-	// Model info
+	// Methods for ModelInfo interface
 	
 	@Override
 	public ModelType getModelType()
@@ -181,6 +183,12 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	{
 		return labelList.size();	
 	}
+
+	@Override
+	public List<String> getLabelNames()
+	{
+		return labelNames;
+	}
 	
 	@Override
 	public String getLabelName(int i) throws PrismException
@@ -195,27 +203,15 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	}
 	
 	@Override
-	public int getNumPlayers()
-	{
-		return modulesFile.getNumPlayers();
-	}
-
-	@Override
-	public Player getPlayer(int i)
-	{
-		return modulesFile.getPlayer(i);
-	}
-	
-	//@Override
-	public VarList getVarList()
-	{
-		return varList;
-	}
-	
-	@Override
 	public int getNumRewardStructs()
 	{
 		return modulesFile.getNumRewardStructs();
+	}
+	
+	@Override
+	public List<String> getRewardStructNames()
+	{
+		return modulesFile.getRewardStructNames();
 	}
 	
 	@Override
@@ -230,6 +226,26 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		return modulesFile.getRewardStruct(i);
 	}
 
+	@Override
+	public int getNumPlayers()
+	{
+		return modulesFile.getNumPlayers();
+	}
+
+	@Override
+	public Player getPlayer(int i)
+	{
+		return modulesFile.getPlayer(i);
+	}
+	
+	@Override
+	public VarList createVarList()
+	{
+		return varList;
+	}
+	
+	// Methods for ModelGenerator interface
+	
 	@Override
 	public boolean hasSingleInitialState() throws PrismException
 	{
@@ -405,22 +421,6 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 		}
 	}
 
-	//@Override
-	public void calculateStateRewards(State state, double[] store) throws PrismLangException
-	{
-		updater.calculateStateRewards(state, store);
-	}
-	
-	//@Override
-	public void getRandomInitialState(RandomNumberGenerator rng, State initialState) throws PrismException
-	{
-		if (modulesFile.getInitialStates() == null) {
-			initialState.copy(modulesFile.getDefaultInitialState());
-		} else {
-			throw new PrismException("Random choice of multiple initial states not yet supported");
-		}
-	}
-
 	@Override
 	public boolean isLabelTrue(int i) throws PrismException
 	{
@@ -429,18 +429,43 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 	}
 	
 	@Override
-	public double getStateReward(int index, State state) throws PrismException
+	public double getStateReward(int r, State state) throws PrismException
 	{
-		RewardStruct rewStr = modulesFile.getRewardStruct(index);
+		RewardStruct rewStr = modulesFile.getRewardStruct(r);
 		int n = rewStr.getNumItems();
 		double d = 0;
 		for (int i = 0; i < n; i++) {
-			Expression guard = rewStr.getStates(i);
-			if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
-				double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
-				if (Double.isNaN(rew))
-					throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
-				d += rew;
+			if (!rewStr.getRewardStructItem(i).isTransitionReward()) {
+				Expression guard = rewStr.getStates(i);
+				if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
+					double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
+					if (Double.isNaN(rew))
+						throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+					d += rew;
+				}
+			}
+		}
+		return d;
+	}
+
+	@Override
+	public double getStateActionReward(int r, State state, Object action) throws PrismException
+	{
+		RewardStruct rewStr = modulesFile.getRewardStruct(r);
+		int n = rewStr.getNumItems();
+		double d = 0;
+		for (int i = 0; i < n; i++) {
+			if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+				Expression guard = rewStr.getStates(i);
+				String cmdAction = rewStr.getSynch(i);
+				if (action == null ? (cmdAction.isEmpty()) : action.equals(cmdAction)) {
+					if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
+						double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
+						if (Double.isNaN(rew))
+							throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+						d += rew;
+					}
+				}
 			}
 		}
 		return d;
@@ -459,11 +484,5 @@ public class ModulesFileModelGenerator extends DefaultModelGenerator
 			transitionListBuilt = true;
 		}
 		return transitionList;
-	}
-
-	@Override
-	public VarList createVarList()
-	{
-		return varList;
 	}
 }

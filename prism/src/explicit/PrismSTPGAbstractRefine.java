@@ -28,6 +28,7 @@ package explicit;
 
 import java.util.*;
 
+import common.IterableStateSet;
 import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -116,11 +117,16 @@ public class PrismSTPGAbstractRefine extends QuantAbstractRefine
 		}
 
 		// Get initial/target (concrete) states
-		labels = new StateModelChecker(null).loadLabelsFile(labFile);
+		labels = StateModelChecker.loadLabelsFile(labFile);
 		initialConcrete = labels.get("init");
 		targetConcrete = labels.get(targetLabel);
 		if (targetConcrete == null)
 			throw new PrismException("Unknown label \"" + targetLabel + "\"");
+
+		// set the initial states from the set initialConcrete
+		for (int state : new IterableStateSet(initialConcrete, modelConcrete.getNumStates())) {
+			modelConcrete.addInitialState(state);
+		}
 
 		// If the 'exact' flag is set, just do model checking on the concrete model (no abstraction)
 		if (exact) {

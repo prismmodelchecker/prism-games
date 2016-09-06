@@ -1951,10 +1951,11 @@ public class STPGModelChecker extends ProbModelChecker
 			mc = new STPGModelChecker(null);
 			stpg = new STPGAbstrSimple();
 			stpg.buildFromPrismExplicit(args[0]);
-			// System.out.println(stpg);
-			// labels = mc.loadLabelsFile(args[1]);
-			// System.out.println(labels);
-			// target = labels.get(args[2]);
+			stpg.addInitialState(0);
+			//System.out.println(stpg);
+			labels = StateModelChecker.loadLabelsFile(args[1]);
+			//System.out.println(labels);
+			target = labels.get(args[2]);
 			if (target == null)
 				throw new PrismException("Unknown label \"" + args[2] + "\"");
 			for (int i = 3; i < args.length; i++) {

@@ -61,6 +61,7 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	private ArrayList<SystemDefn> systemDefns; // System definitions (system...endsystem constructs)
 	private ArrayList<String> systemDefnNames; // System definition names (system...endsystem constructs)
 	private ArrayList<RewardStruct> rewardStructs; // Rewards structures
+	private List<String> rewardStructNames; // Names of reward structures
 	private Expression initStates; // Initial states specification
 	private List<Player> players; // Player definitions
 
@@ -95,6 +96,7 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		systemDefns = new ArrayList<SystemDefn>();
 		systemDefnNames = new ArrayList<String>();
 		rewardStructs = new ArrayList<RewardStruct>();
+		rewardStructNames = new ArrayList<String>();
 		initStates = null;
 		players = new ArrayList<Player>();
 		formulaIdents = new Vector<String>();
@@ -210,23 +212,26 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	public void clearRewardStructs()
 	{
 		rewardStructs.clear();
+		rewardStructNames.clear();
 	}
 
 	public void addRewardStruct(RewardStruct r)
 	{
 		rewardStructs.add(r);
+		rewardStructNames.add(r.getName());
 	}
 
 	public void setRewardStruct(int i, RewardStruct r)
 	{
 		rewardStructs.set(i, r);
+		rewardStructNames.set(i, r.getName());
 	}
 
 	// this method is included for backwards compatibility only
 	public void setRewardStruct(RewardStruct r)
 	{
-		rewardStructs.clear();
-		rewardStructs.add(r);
+		clearRewardStructs();
+		addRewardStruct(r);
 	}
 
 	public void setInitialStates(Expression e)
@@ -266,6 +271,12 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	public int getNumLabels()
 	{
 		return labelList.size();
+	}
+
+	@Override
+	public List<String> getLabelNames()
+	{
+		return labelList.getLabelNames();
 	}
 
 	@Override
@@ -445,6 +456,14 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		return rewardStructs.size();
 	}
 
+	/**
+	 * Get a list of the names of the reward structures in the model.
+	 */
+	public List<String> getRewardStructNames()
+	{
+		return rewardStructNames;
+	}
+	
 	/**
 	 * Get a reward structure by its index
 	 * (indexed from 0, not from 1 like at the user (property language) level).

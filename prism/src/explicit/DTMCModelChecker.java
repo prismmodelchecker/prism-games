@@ -1622,8 +1622,9 @@ public class DTMCModelChecker extends ProbModelChecker
 				mc = new DTMCModelChecker(null);
 				dtmc = new DTMCSimple();
 				dtmc.buildFromPrismExplicit(args[0]);
+				dtmc.addInitialState(0);
 				//System.out.println(dtmc);
-				Map<String, BitSet> labels = mc.loadLabelsFile(args[1]);
+				Map<String, BitSet> labels = StateModelChecker.loadLabelsFile(args[1]);
 				//System.out.println(labels);
 				BitSet target = labels.get(args[2]);
 				if (target == null)

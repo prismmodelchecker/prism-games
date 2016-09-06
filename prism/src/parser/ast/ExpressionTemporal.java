@@ -49,11 +49,15 @@ public class ExpressionTemporal extends Expression
 	// Operator symbols
 	public static final String opSymbols[] = { "", "X", "U", "F", "G", "W", "R", "", "", "", "", "C", "I", "F", "S" , "Fc", "F0"};
 
-	// Operator
+	/** Operator, one of the operator constants above */
 	protected int op = 0;
+
 	// Up to two operands (either may be null)
-	protected Expression operand1 = null; // LHS of operator
-	protected Expression operand2 = null; // RHS of operator
+	/** LHS of operator, null for unary operators */
+	protected Expression operand1 = null;
+	/** RHS of operator, null for nullary operators (e.g., S) */
+	protected Expression operand2 = null;
+
 	// Optional (time) bounds
 	protected Expression lBound = null; // None if null, i.e. zero
 	protected Expression uBound = null; // None if null, i.e. infinity
@@ -65,10 +69,17 @@ public class ExpressionTemporal extends Expression
 
 	// Constructors
 
+	/** Constructor */
 	public ExpressionTemporal()
 	{
 	}
 
+	/**
+	 * Constructor.
+	 * @param op the temporal operator (see constants at ExpressionTemporal)
+	 * @param operand1 the LHS operand ({@code null} for unary operators)
+	 * @param operand2 the RHS operand
+	 */
 	public ExpressionTemporal(int op, Expression operand1, Expression operand2)
 	{
 		this.op = op;
@@ -78,16 +89,19 @@ public class ExpressionTemporal extends Expression
 
 	// Set methods
 
+	/** Set the operator to i */
 	public void setOperator(int i)
 	{
 		op = i;
 	}
 
+	/** Set the LHS operand to e1 */
 	public void setOperand1(Expression e1)
 	{
 		operand1 = e1;
 	}
 
+	/** Set the RHS operand to e2 */
 	public void setOperand2(Expression e2)
 	{
 		operand2 = e2;
@@ -145,6 +159,7 @@ public class ExpressionTemporal extends Expression
 
 	// Get methods
 
+	/** Set the operator */
 	public int getOperator()
 	{
 		return op;
@@ -155,22 +170,25 @@ public class ExpressionTemporal extends Expression
 		return opSymbols[op];
 	}
 
+	/** Get the LHS operand (should be {@code null} for unary operators) */
 	public Expression getOperand1()
 	{
 		return operand1;
 	}
 
+	/** Get the RHS operand */
 	public Expression getOperand2()
 	{
 		return operand2;
 	}
 
+	/* Get the number of stored operands */
 	public int getNumOperands()
 	{
-		if (operand1 == null)
+		if (operand2 == null)
 			return 0;
 		else
-			return (operand2 == null) ? 1 : 2;
+			return (operand1 == null) ? 1 : 2;
 	}
 
 	public boolean hasBounds()
@@ -401,6 +419,114 @@ public class ExpressionTemporal extends Expression
 		}
 		throw new PrismLangException("Cannot convert " + getOperatorSymbol() + " to until form");
 	}
+
+	// ---- convenience methods for distinguishing top-level temporal operators -----------------
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the next step (X) top-level operator.
+	 */
+	public static boolean isNext(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_X;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the Until (U) top-level operator.
+	 */
+	public static boolean isUntil(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_U;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the Weak Until (W) top-level operator.
+	 */
+	public static boolean isWeakUntil(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_W;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the Release (R) top-level operator.
+	 */
+	public static boolean isRelease(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_R;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the finally / eventually (F) top-level operator.
+	 */
+	public static boolean isFinally(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_F;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal with the globally / always (G) top-level operator.
+	 */
+	public static boolean isGlobally(Expression e)
+	{
+		return (e instanceof ExpressionTemporal) && ((ExpressionTemporal) e).getOperator() == P_G;
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal
+	 * with a globally finally / always eventually (G followed by F) top-level operator pair.
+	 */
+	public static boolean isGloballyFinally(Expression e)
+	{
+		return isGlobally(e) && isFinally(((ExpressionTemporal) e).getOperand2());
+	}
+
+	/**
+	 * Returns true if the given expression is an ExpressionTemporal
+	 * with a finally globally / eventually always (F followed by G) top-level operator pair.
+	 */
+	public static boolean isFinallyGlobally(Expression e)
+	{
+		return isFinally(e) && isGlobally(((ExpressionTemporal) e).getOperand2());
+	}
+
+
+	// ---- static constructors for building temporal expressions -----------------
+
+	/** Construct a ExpressionTemporal for "X expr" */
+	public static ExpressionTemporal Next(Expression expr)
+	{
+		return new ExpressionTemporal(P_X, null, expr);
+	}
+
+	/** Construct a ExpressionTemporal for "F expr" */
+	public static ExpressionTemporal Finally(Expression expr)
+	{
+		return new ExpressionTemporal(P_F, null, expr);
+	}
+
+	/** Construct a ExpressionTemporal for "G expr" */
+	public static ExpressionTemporal Globally(Expression expr)
+	{
+		return new ExpressionTemporal(P_G, null, expr);
+	}
+
+	/** Construct a ExpressionTemporal for "expr1 U expr2" */
+	public static ExpressionTemporal Globally(Expression expr1, Expression expr2)
+	{
+		return new ExpressionTemporal(P_U, expr1, expr2);
+	}
+
+	/** Construct a ExpressionTemporal for "expr1 W expr2" */
+	public static ExpressionTemporal WeakUntil(Expression expr1, Expression expr2)
+	{
+		return new ExpressionTemporal(P_W, expr1, expr2);
+	}
+
+	/** Construct a ExpressionTemporal for "expr1 R expr2" */
+	public static ExpressionTemporal Release(Expression expr1, Expression expr2)
+	{
+		return new ExpressionTemporal(P_R, expr1, expr2);
+	}
+
 }
 
 //------------------------------------------------------------------------------

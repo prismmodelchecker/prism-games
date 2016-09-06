@@ -124,7 +124,29 @@ public class ExpressionReward extends ExpressionQuant
 	 * Throws an exception (with explanatory message) if it cannot be found.
 	 * This means that, the method always returns a valid index if it finishes.
 	 */
-	public int getRewardStructIndexByIndexObject(ModelInfo modelInfo, Values constantValues, Object rsi) throws PrismException
+	public int getRewardStructIndexByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
+	{
+		return getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndex);
+	}
+	
+	/**
+	 * Get the index of a reward structure (within a model) corresponding to the divisor index of this R operator, if present.
+	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
+	 * Throws an exception (with explanatory message) if it cannot be found,
+	 * or returns -1 if there is no divisor reward.
+	 */
+	public int getRewardStructDivIndexByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
+	{
+		return (rewardStructIndexDiv == null) ? -1 : getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndexDiv);
+	}
+	
+	/**
+	 * Get the index of a reward structure (within a model) corresponding to an index of this R operator.
+	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
+	 * Throws an exception (with explanatory message) if it cannot be found.
+	 * This means that, the method always returns a valid index if it finishes.
+	 */
+	protected int getRewardStructIndexByIndexObject(ModelInfo modelInfo, Values constantValues, Object rsi) throws PrismException
 	{
 		int rewStruct = -1;
 		// Recall: the index is an Object which is either an Integer, denoting the index (starting from 0) directly,
@@ -159,16 +181,19 @@ public class ExpressionReward extends ExpressionQuant
 	 */
 	public RewardStruct getRewardStructByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
 	{
-		int rewardStructIndex2 = getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndex);
-		return modelInfo.getRewardStruct(rewardStructIndex2);
+		int rewardStructIndex = getRewardStructIndexByIndexObject(modelInfo, constantValues);
+		return modelInfo.getRewardStruct(rewardStructIndex);
 	}
 	
+	/**
+	 * Get the reward structure (within a model) corresponding to the divisor index of this R operator, if present.
+	 * Throws an exception (with explanatory message) if it cannot be found,
+	 * or returns null if there is no divisor reward.
+	 */
 	public RewardStruct getRewardStructDivByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
 	{
-		if (rewardStructIndexDiv == null)
-			return null;
-		int rewardStructIndex2 = getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndexDiv);
-		return modelInfo.getRewardStruct(rewardStructIndex2);
+		int rewardStructIndex = getRewardStructDivIndexByIndexObject(modelInfo, constantValues);
+		return (rewardStructIndex == -1) ? null : modelInfo.getRewardStruct(rewardStructIndex);
 	}
 
 	/**

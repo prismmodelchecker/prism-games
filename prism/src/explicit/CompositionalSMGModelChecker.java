@@ -216,7 +216,7 @@ public class CompositionalSMGModelChecker extends PrismComponent
 		List<Result> subsystemResults = new ArrayList<Result>(numSubsystems); // one result per subsystem
 
 		for (int i = 0; i < numSubsystems; i++) {
-			mc.setModulesFileAndPropertiesFile(subsystemModulesFiles.get(i), propertiesFile);
+			mc.setModulesFileAndPropertiesFile(subsystemModulesFiles.get(i), propertiesFile, null);
 			Result result_i = mc.check(subsystems.get(i), expr.getOperand(i));
 			subsystemResults.add(result_i);
 			subsystemStrategies.add(result_i.getStrategy());

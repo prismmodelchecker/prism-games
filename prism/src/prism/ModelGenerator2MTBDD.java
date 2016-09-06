@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford, formerly University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -26,48 +26,34 @@
 
 package prism;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.BitSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.LinkedList;
 import java.util.Vector;
-import java.util.Map.Entry;
 
-import common.IterableStateSet;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
+import parser.State;
 import parser.Values;
 import parser.VarList;
-import parser.ast.ModulesFile;
 
 /**
- * Class to convert explicit-state file storage of a model to symbolic representation.
+ * Class to construct a symbolic representation from a ModelGenerator object.
  */
-public class ExplicitFiles2MTBDD
+public class ModelGenerator2MTBDD
 {
 	// Prism stuff
 	private Prism prism;
 	private PrismLog mainLog;
 
-	// Files to read in from
-	private File statesFile;
-	private File transFile;
-	private File labelsFile;
-	private File stateRewardsFile;
+	// Source model generator
+	private ModelGenerator modelGen;
 
 	// Model info
-	private ModulesFile modulesFile;
 	private ModelType modelType;
 	private VarList varList;
 	private int numVars;
-	private int numStates;
-
-	// Explicit storage of states
-	private int statesArray[][] = null;
+	private int numRewardStructs;
+	private String[] rewardStructNames;
 
 	// mtbdd stuff
 
@@ -75,8 +61,7 @@ public class ExplicitFiles2MTBDD
 	private JDDNode trans; // transition matrix dd
 	private JDDNode range; // dd giving range for system
 	private JDDNode start; // dd for start state
-	private JDDNode stateRewards; // dd of state rewards
-	private JDDNode transRewards; // dd of transition rewards
+	private JDDNode reach; // dd for reachable states
 	private JDDVars allDDRowVars; // all dd vars (rows)
 	private JDDVars allDDColVars; // all dd vars (cols)
 	private JDDVars allDDSynchVars; // all dd vars (synchronising actions)
@@ -104,86 +89,30 @@ public class ExplicitFiles2MTBDD
 	private Vector<String> synchs; // list of action names
 	private JDDNode transActions; // dd for transition action labels (MDPs)
 	private Vector<JDDNode> transPerAction; // dds for transition action labels (D/CTMCs)
-
+	// rewards
+	private JDDNode[] stateRewardsArray;
+	private JDDNode[] transRewardsArray;
+	
 	private int maxNumChoices = 0;
-	private LinkedHashMap<String, JDDNode> labelsDD;
 
-	public ExplicitFiles2MTBDD(Prism prism)
+	public ModelGenerator2MTBDD(Prism prism)
 	{
 		this.prism = prism;
 		mainLog = prism.getMainLog();
 	}
 
 	/**
-	 * Build a Model corresponding to the passed in states/transitions/labels files.
-	 * Variable info and model type is taken from {@code modulesFile}.
-	 * The number of states should also be passed in as {@code numStates}.
+	 * Build a Model corresponding to the passed in model generator.
 	 */
-	public Model build(File statesFile, File transFile, File labelsFile, File stateRewardsFile, ModulesFile modulesFile, int numStates) throws PrismException
+	public Model build(ModelGenerator modelGen) throws PrismException
 	{
-		this.statesFile = statesFile;
-		this.transFile = transFile;
-		this.labelsFile = labelsFile;
-		this.stateRewardsFile = stateRewardsFile;
-		this.modulesFile = modulesFile;
-		modelType = modulesFile.getModelType();
-		varList = modulesFile.createVarList();
+		this.modelGen = modelGen;
+		modelType = modelGen.getModelType();
+		varList = modelGen.createVarList();
 		numVars = varList.getNumVars();
-		this.numStates = numStates;
-
-		// Build states list, if info is available
-		if (statesFile != null) {
-			readStatesFromFile();
-		}
-
+		numRewardStructs = modelGen.getNumRewardStructs();
+		rewardStructNames = modelGen.getRewardStructNames().toArray(new String[0]);
 		return buildModel();
-	}
-
-	/** read info about reachable state space from file and store explicitly */
-	private void readStatesFromFile() throws PrismException
-	{
-		String s, ss[];
-		int i, j, lineNum = 0;
-
-		// create arrays for explicit state storage
-		statesArray = new int[numStates][];
-
-		// open file for reading, automatic close when done
-		try (BufferedReader in = new BufferedReader(new FileReader(statesFile))) {
-			// skip first line
-			in.readLine();
-			lineNum = 1;
-			// read remaining lines
-			s = in.readLine();
-			lineNum++;
-			while (s != null) {
-				// skip blank lines
-				s = s.trim();
-				if (s.length() > 0) {
-					// split into two parts
-					ss = s.split(":");
-					// determine which state this line describes
-					i = Integer.parseInt(ss[0]);
-					// now split up middle bit and extract var info
-					ss = ss[1].substring(ss[1].indexOf('(') + 1, ss[1].indexOf(')')).split(",");
-					if (ss.length != numVars)
-						throw new PrismException("(wrong number of variable values) ");
-					if (statesArray[i] != null)
-						throw new PrismException("(duplicated state) ");
-					statesArray[i] = new int[numVars];
-					for (j = 0; j < numVars; j++) {
-						statesArray[i][j] = varList.encodeToIntFromString(j, ss[j]);
-					}
-				}
-				// read next line
-				s = in.readLine();
-				lineNum++;
-			}
-		} catch (IOException e) {
-			throw new PrismException("File I/O error reading from \"" + statesFile + "\"");
-		} catch (PrismException e) {
-			throw new PrismException("Error detected " + e.getMessage() + "at line " + lineNum + " of states file \"" + statesFile + "\"");
-		}
 	}
 
 	/** build model */
@@ -196,7 +125,7 @@ public class ExplicitFiles2MTBDD
 
 		// for an mdp, compute the max number of choices in a state
 		if (modelType == ModelType.MDP)
-			computeMaxChoicesFromFile();
+			maxNumChoices = 1; // TODO: un-hard-code
 
 		// allocate dd variables
 		allocateDDVars();
@@ -204,8 +133,8 @@ public class ExplicitFiles2MTBDD
 		sortIdentities();
 		sortRanges();
 
-		// construct transition matrix from file
-		buildTrans();
+		// construct transition matrix and rewards
+		buildTransAndRewards();
 
 		// get rid of any nondet dd variables not needed
 		if (modelType == ModelType.MDP) {
@@ -238,24 +167,11 @@ public class ExplicitFiles2MTBDD
 		// 		JDD.Deref(tmp);
 
 		// load labels
-		loadLabels();
-
-		// calculate dd for initial state
-		buildInit();
-
-		// compute state rewards
-		computeStateRewards();
+		//loadLabels();
 
 		int numModules = 1; // just one module
-		String moduleNames[] = modulesFile.getModuleNames(); // whose name is stored here
-		Values constantValues = new Values(); // no constants
-
-		JDDNode stateRewardsArray[] = new JDDNode[1];
-		stateRewardsArray[0] = stateRewards;
-		JDDNode transRewardsArray[] = new JDDNode[1];
-		transRewardsArray[0] = transRewards;
-		String rewardStructNames[] = new String[1];
-		rewardStructNames[0] = "";
+		String moduleNames[] = new String[] { "M" };
+		Values constantValues = modelGen.getConstantValues();
 
 		// create new Model object to be returned
 		if (modelType == ModelType.DTMC) {
@@ -278,16 +194,9 @@ public class ExplicitFiles2MTBDD
 			model.setTransActions(transActions);
 		}
 
-		// do reachability (or not)
-		if (prism.getDoReach()) {
-			mainLog.print("\nComputing reachable states...\n");
-			model.doReachability();
-			model.filterReachableStates();
-		} else {
-			mainLog.print("\nSkipping reachable state computation.\n");
-			model.skipReachability();
-			model.filterReachableStates();
-		}
+		// no need to do reachability
+		model.setReach(reach);
+		model.filterReachableStates();
 
 		// Print some info (if extraddinfo flag on)
 		if (prism.getExtraDDInfo()) {
@@ -296,9 +205,6 @@ public class ExplicitFiles2MTBDD
 
 		// find any deadlocks
 		model.findDeadlocks(prism.getFixDeadlocks());
-
-		// attach labels (might overwrite deadlock state information)
-		attachLabels(model);
 
 		// deref spare dds
 		JDD.Deref(moduleIdentities[0]);
@@ -320,50 +226,8 @@ public class ExplicitFiles2MTBDD
 				JDD.Deref(ddChoiceVars[i]);
 			}
 		}
-		if (labelsDD != null) {
-			for (JDDNode d : labelsDD.values()) {
-				JDD.Deref(d);
-			}
-		}
 
 		return model;
-	}
-
-	/** for an mdp, compute max number of choices in a state (from transitions file) */
-	private void computeMaxChoicesFromFile() throws PrismException
-	{
-		String s, ss[];
-		int j, lineNum = 0;
-
-		// open file for reading, automatic close when done
-		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
-			// skip first line
-			in.readLine();
-			lineNum = 1;
-			// read remaining lines
-			s = in.readLine();
-			lineNum++;
-			maxNumChoices = 0;
-			while (s != null) {
-				s = s.trim();
-				if (s.length() > 0) {
-					ss = s.split(" ");
-					if (ss.length < 4 || ss.length > 5)
-						throw new PrismException("");
-					j = Integer.parseInt(ss[1]);
-					if (j + 1 > maxNumChoices)
-						maxNumChoices = j + 1;
-				}
-				s = in.readLine();
-				lineNum++;
-			}
-		} catch (IOException e) {
-			throw new PrismException("File I/O error reading from \"" + transFile + "\": " + e.getMessage());
-		} catch (NumberFormatException e) {
-			throw new PrismException("Error detected at line " + lineNum + " of transition matrix file \"" + transFile + "\"");
-		} catch (PrismException e) {
-			throw new PrismException("Error detected " + e.getMessage() + "at line " + lineNum + " of transition matrix file \"" + transFile + "\"");
-		}
 	}
 
 	/**
@@ -531,12 +395,9 @@ public class ExplicitFiles2MTBDD
 		moduleRangeDDs[0] = JDD.SumAbstract(moduleIdentities[0], moduleDDColVars[0]);
 	}
 
-	/** Construct transition matrix from file */
-	private void buildTrans() throws PrismException
+	/** Construct transition matrix and rewards */
+	private void buildTransAndRewards() throws PrismException
 	{
-		String s, ss[], a;
-		int i, j, r, c, k = 0, lineNum = 0;
-		double d;
 		JDDNode elem, tmp;
 
 		// initialise action list
@@ -544,95 +405,85 @@ public class ExplicitFiles2MTBDD
 
 		// initialise mtbdds
 		trans = JDD.Constant(0);
-		transRewards = JDD.Constant(0);
 		if (modelType != ModelType.MDP) {
 			transPerAction = new Vector<JDDNode>();
 			transPerAction.add(JDD.Constant(0));
 		} else {
 			transActions = JDD.Constant(0);
 		}
-
-		// open file for reading, automatic close when done
-		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
-			// skip first line
-			in.readLine();
-			lineNum = 1;
-			// read remaining lines
-			s = in.readLine();
-			lineNum++;
-			while (s != null) {
-				// skip blank lines
-				s = s.trim();
-				if (s.length() > 0) {
-					a = "";
-					// parse line, split into parts
-					ss = s.split(" ");
-					// case for dtmcs/ctmcs...
-					if (modelType != ModelType.MDP) {
-						if (ss.length < 3 || ss.length > 4)
-							throw new PrismException("");
-						r = Integer.parseInt(ss[0]);
-						c = Integer.parseInt(ss[1]);
-						d = Double.parseDouble(ss[2]);
-						if (ss.length == 4) {
-							a = ss[3];
-						}
+		start = JDD.Constant(0); 
+		reach = JDD.Constant(0); 
+		stateRewardsArray = new JDDNode[numRewardStructs];
+		transRewardsArray = new JDDNode[numRewardStructs];
+		for (int r = 0; r < numRewardStructs; r++) {
+			stateRewardsArray[r] = JDD.Constant(0);
+			transRewardsArray[r] = JDD.Constant(0);
+		}
+		
+		LinkedList<State> explore = new LinkedList<State>();
+		// Add initial state(s) to 'explore', update start/reach
+		for (State initState : modelGen.getInitialStates()) {
+			explore.add(initState);
+			JDDNode ddState = encodeState(initState, varDDRowVars);
+			start = JDD.Or(start, ddState.copy());
+			reach = JDD.Or(reach, ddState);
+		}
+		// Explore...
+		while (!explore.isEmpty()) {
+			// Pick next state to explore
+			State state = explore.removeFirst();
+			JDDNode ddState = encodeState(state, varDDRowVars);
+			// Explore all choices/transitions from this state
+			modelGen.exploreState(state);
+			// Look at each outgoing choice in turn
+			int nc = modelGen.getNumChoices();
+			if (modelType == ModelType.MDP && nc > maxNumChoices) {
+				String msg = "Too many nondeterministic choices (" + nc + ") at state " + state.toString(modelGen);
+				msg += ". Maximum is currently hard-coded at " + maxNumChoices;
+				throw new PrismException(msg);
+			}
+			for (int i = 0; i < nc; i++) {
+				Object o = modelGen.getChoiceAction(i);
+				String a = o == null ? null : o.toString();
+				// Look at each transition in the choice
+				int nt = modelGen.getNumTransitions(i);
+				for (int j = 0; j < nt; j++) {
+					State stateNew = modelGen.computeTransitionTarget(i, j);
+					double d = modelGen.getTransitionProbability(i, j);
+					JDDNode ddStateNew = encodeState(stateNew, varDDRowVars);
+					// Is this a new state?
+					if (!JDD.AreIntersecting(reach, ddStateNew)) {
+						// If so, add to the explore list
+						explore.add(stateNew);
+						// And to model
+						reach = JDD.Or(reach, ddStateNew.copy());
 					}
-					// case for mdps...
-					else {
-						if (ss.length < 4 || ss.length > 5)
-							throw new PrismException("");
-						r = Integer.parseInt(ss[0]);
-						k = Integer.parseInt(ss[1]);
-						c = Integer.parseInt(ss[2]);
-						d = Double.parseDouble(ss[3]);
-						if (ss.length == 5) {
-							a = ss[4];
-						}
-					}
-					// construct element of matrix mtbdd
-					// case where we don't have a state list...
-					if (statesFile == null) {
-						/// ...for dtmcs/ctmcs...
-						if (modelType != ModelType.MDP) {
-							elem = JDD.SetMatrixElement(JDD.Constant(0), varDDRowVars[0], varDDColVars[0], r, c, 1.0);
-						}
-						/// ...for mdps...
-						else {
-							elem = JDD.Set3DMatrixElement(JDD.Constant(0), varDDRowVars[0], varDDColVars[0], allDDChoiceVars, r, c, k, 1.0);
-						}
-					}
-					// case where we do have a state list...
-					else {
-						elem = JDD.Constant(1);
-						for (i = 0; i < numVars; i++) {
-							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[i], statesArray[r][i], 1));
-							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), varDDColVars[i], statesArray[c][i], 1));
-						}
-						if (modelType == ModelType.MDP) {
-							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), allDDChoiceVars, k, 1));
-						}
+					// Build MTBDD for transition
+					elem = JDD.Apply(JDD.TIMES, ddState.copy(), JDD.PermuteVariables(ddStateNew.copy(), allDDRowVars, allDDColVars));
+					if (modelType == ModelType.MDP) {
+						elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), allDDChoiceVars, i, 1));
 					}
 					// add it into mtbdds for transition matrix and transition rewards
 					JDD.Ref(elem);
 					trans = JDD.Apply(JDD.PLUS, trans, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem));
 					// look up action name
-					if (!("".equals(a))) {
-						j = synchs.indexOf(a);
+					int k;
+					if (!(a == null || "".equals(a))) {
+						k = synchs.indexOf(a);
 						// add to list if first time seen 
-						if (j == -1) {
+						if (k == -1) {
 							synchs.add(a);
-							j = synchs.size() - 1;
+							k = synchs.size() - 1;
 						}
-						j++;
+						k++;
 					} else {
-						j = 0;
+						k = 0;
 					}
 					/// ...for dtmcs/ctmcs...
 					if (modelType != ModelType.MDP) {
-						// get (or create) dd for action j
-						if (j < transPerAction.size()) {
-							tmp = transPerAction.get(j);
+						// get (or create) dd for action k
+						if (k < transPerAction.size()) {
+							tmp = transPerAction.get(k);
 						} else {
 							tmp = JDD.Constant(0);
 							transPerAction.add(tmp);
@@ -640,7 +491,7 @@ public class ExplicitFiles2MTBDD
 						// add element to matrix
 						JDD.Ref(elem);
 						tmp = JDD.Apply(JDD.PLUS, tmp, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem));
-						transPerAction.set(j, tmp);
+						transPerAction.set(k, tmp);
 					}
 					/// ...for mdps...
 					else {
@@ -649,156 +500,49 @@ public class ExplicitFiles2MTBDD
 						// use max here because we see multiple transitions for a sinlge choice
 						transActions = JDD.Apply(JDD.MAX, transActions, JDD.Apply(JDD.TIMES, JDD.Constant(j), tmp));
 					}
+
+					// Add action rewards
+					for (int r = 0; r < numRewardStructs; r++) {
+						double tr = modelGen.getStateActionReward(r, state, o);
+						transRewardsArray[r] = JDD.Apply(JDD.PLUS, transRewardsArray[r], JDD.Apply(JDD.TIMES, JDD.Constant(tr), elem.copy()));
+					}
+					
 					// deref element dd
 					JDD.Deref(elem);
+					JDD.Deref(ddStateNew);
 				}
-				// read next line
-				s = in.readLine();
-				lineNum++;
+				
+				// Print some progress info occasionally
+				// TODO progress.updateIfReady(src + 1);
 			}
-		} catch (IOException e) {
-			throw new PrismException("File I/O error reading from \"" + transFile + "\": " + e.getMessage());
-		} catch (NumberFormatException e) {
-			throw new PrismException("Error detected at line " + lineNum + " of transition matrix file \"" + transFile + "\"");
-		} catch (PrismException e) {
-			throw new PrismException("Error detected " + e.getMessage() + "at line " + lineNum + " of transition matrix file \"" + transFile + "\"");
+			
+			// Add state rewards
+			for (int r = 0; r < numRewardStructs; r++) {
+				double sr = modelGen.getStateReward(r, state);
+				stateRewardsArray[r] = JDD.Apply(JDD.PLUS, stateRewardsArray[r], JDD.Apply(JDD.TIMES, JDD.Constant(sr), ddState.copy()));
+			}
+			
+			JDD.Deref(ddState);
 		}
 	}
-
-	/** calculate dd for initial state */
-	private void buildInit() throws PrismException
+	
+	/**
+	 * Encode a state into a BDD (referencing the result).
+	 */
+	private JDDNode encodeState(State state, JDDVars[] varDDVars)
 	{
-		// If no labels are provided, just use state 0 (i.e. min value for each var) 
-		if (labelsDD == null) {
-			start = JDD.Constant(1);
-			for (int i = 0; i < numVars; i++) {
-				JDDNode tmp = JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[i], 0, 1);
-				start = JDD.And(start, tmp);
+		JDDNode res;
+		int i, j = 0;
+		res = JDD.Constant(1);
+		for (i = 0; i < numVars; i++) {
+			try {
+				j = varList.encodeToInt(i, state.varValues[i]);
+			} catch (PrismLangException e) {
+				// Won't happen
 			}
+			res = JDD.Apply(JDD.TIMES, res, JDD.SetVectorElement(JDD.Constant(0), varDDVars[i], j, 1.0));
 		}
-		// Otherwise, construct from the labels
-		else {
-			start = labelsDD.get("init");
-			if (start == null || start.equals(JDD.ZERO)) {
-				throw new PrismException("No initial states found in labels file");
-			}
-		}
-	}
-
-	/** Load label information form label file (if exists) */
-	private void loadLabels() throws PrismException
-	{
-		if (labelsFile == null) {
-			return;
-		}
-
-		// we construct BitSets for the labels
-		Map<String, BitSet> labels = explicit.StateModelChecker.loadLabelsFile(labelsFile.getAbsolutePath());
-		labelsDD = new LinkedHashMap<>();
-
-		for (Entry<String, BitSet> e : labels.entrySet()) {
-			// compute dd
-
-			JDDNode labelStatesDD = JDD.Constant(0);
-
-			for (int state : new IterableStateSet(e.getValue(), numStates)) {
-				JDDNode tmp;
-				// case where we don't have a state list...
-				if (statesFile == null) {
-					tmp = JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[0], state, 1);
-				}
-				// case where we do have a state list...
-				else {
-					tmp = JDD.Constant(1);
-					for (int i = 0; i < numVars; i++) {
-						tmp = JDD.Apply(JDD.TIMES, tmp, JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[i], statesArray[state][i], 1));
-					}
-				}
-
-				// add it into bdd
-				labelStatesDD = JDD.Or(labelStatesDD, tmp);
-			}
-
-			// store the dd
-			labelsDD.put(e.getKey(), labelStatesDD);
-		}
-	}
-
-	/** Attach the computed label information to the model */
-	private void attachLabels(Model model) throws PrismNotSupportedException
-	{
-		if (labelsDD == null)
-			return;
-
-		for (Entry<String, JDDNode> e : labelsDD.entrySet()) {
-			if (e.equals("init")) {
-				// handled in buildInit()
-				continue;
-			}
-			model.addLabelDD(e.getKey(), e.getValue().copy());
-		}
-	}
-
-	/** Read info about state rewards from a .srew file */
-	private void computeStateRewards() throws PrismException
-	{
-		String s, ss[];
-		int i, j, lineNum = 0;
-		double d;
-		JDDNode tmp;
-
-		// initialise mtbdd
-		stateRewards = JDD.Constant(0);
-
-		if (stateRewardsFile == null)
-			return;
-
-		// open file for reading, automatic close when done
-		try (BufferedReader in = new BufferedReader(new FileReader(stateRewardsFile))) {
-			// skip first line
-			in.readLine();
-			lineNum = 1;
-			// read remaining lines
-			s = in.readLine();
-			lineNum++;
-			while (s != null) {
-				// skip blank lines
-				s = s.trim();
-				if (s.length() > 0) {
-					// split into two parts
-					ss = s.split(" ");
-					if (ss.length != 2)
-						throw new PrismException("");
-					// determine which state this line refers to
-					i = Integer.parseInt(ss[0]);
-					// determine reward value
-					d = Double.parseDouble(ss[1]);
-					// construct element of vector mtbdd
-					// case where we don't have a state list...
-					if (statesFile == null) {
-						tmp = JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[0], i, 1.0);
-					}
-					// case where we do have a state list...
-					else {
-						tmp = JDD.Constant(1);
-						for (j = 0; j < numVars; j++) {
-							tmp = JDD.Apply(JDD.TIMES, tmp, JDD.SetVectorElement(JDD.Constant(0), varDDRowVars[j], statesArray[i][j], 1));
-						}
-					}
-					// add it into mtbdd for state rewards
-					stateRewards = JDD.Apply(JDD.PLUS, stateRewards, JDD.Apply(JDD.TIMES, JDD.Constant(d), tmp));
-				}
-				// read next line
-				s = in.readLine();
-				lineNum++;
-			}
-		} catch (IOException e) {
-			throw new PrismException("File I/O error reading from \"" + stateRewardsFile + "\": " + e.getMessage());
-		} catch (NumberFormatException e) {
-			throw new PrismException("Error detected at line " + lineNum + " of state rewards file \"" + stateRewardsFile + "\"");
-		} catch (PrismException e) {
-			throw new PrismException("Error detected " + e.getMessage() + "at line " + lineNum + " of state rewards file \"" + stateRewardsFile + "\"");
-		}
+		return res;
 	}
 }
 
