@@ -51,6 +51,7 @@ public class ModelGenerator2MTBDD
 	// Model info
 	private ModelType modelType;
 	private VarList varList;
+	private int numLabels;
 	private int numVars;
 	private int numRewardStructs;
 	private String[] rewardStructNames;
@@ -83,12 +84,15 @@ public class ModelGenerator2MTBDD
 	private JDDNode[] ddSynchVars; // individual dd vars for synchronising actions
 	private JDDNode[] ddSchedVars; // individual dd vars for scheduling non-det.
 	private JDDNode[] ddChoiceVars; // individual dd vars for local non-det.
-	// names for all dd vars used
-	private Vector<String> ddVarNames;
+
+	private ModelVariablesDD modelVariables;
+
 	// action info
 	private Vector<String> synchs; // list of action names
 	private JDDNode transActions; // dd for transition action labels (MDPs)
 	private Vector<JDDNode> transPerAction; // dds for transition action labels (D/CTMCs)
+	// labels
+	private JDDNode[] labelsArray;
 	// rewards
 	private JDDNode[] stateRewardsArray;
 	private JDDNode[] transRewardsArray;
@@ -109,7 +113,9 @@ public class ModelGenerator2MTBDD
 		this.modelGen = modelGen;
 		modelType = modelGen.getModelType();
 		varList = modelGen.createVarList();
+		numLabels = modelGen.getNumLabels();
 		numVars = varList.getNumVars();
+		modelVariables = new ModelVariablesDD();
 		numRewardStructs = modelGen.getNumRewardStructs();
 		rewardStructNames = modelGen.getRewardStructNames().toArray(new String[0]);
 		return buildModel();
@@ -125,7 +131,7 @@ public class ModelGenerator2MTBDD
 
 		// for an mdp, compute the max number of choices in a state
 		if (modelType == ModelType.MDP)
-			maxNumChoices = 1; // TODO: un-hard-code
+			maxNumChoices = 32; // TODO: un-hard-code
 
 		// allocate dd variables
 		allocateDDVars();
@@ -166,23 +172,20 @@ public class ModelGenerator2MTBDD
 		// 		mainLog.println();
 		// 		JDD.Deref(tmp);
 
-		// load labels
-		//loadLabels();
-
 		int numModules = 1; // just one module
 		String moduleNames[] = new String[] { "M" };
 		Values constantValues = modelGen.getConstantValues();
 
 		// create new Model object to be returned
 		if (modelType == ModelType.DTMC) {
-			model = new ProbModel(trans, start, stateRewardsArray, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, ddVarNames, numModules,
+			model = new ProbModel(trans, start, stateRewardsArray, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, modelVariables, numModules,
 					moduleNames, moduleDDRowVars, moduleDDColVars, numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		} else if (modelType == ModelType.MDP) {
 			model = new NondetModel(trans, start, stateRewardsArray, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, allDDSynchVars,
-					allDDSchedVars, allDDChoiceVars, allDDNondetVars, ddVarNames, numModules, moduleNames, moduleDDRowVars, moduleDDColVars, numVars, varList,
+					allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables, numModules, moduleNames, moduleDDRowVars, moduleDDColVars, numVars, varList,
 					varDDRowVars, varDDColVars, constantValues);
 		} else if (modelType == ModelType.CTMC) {
-			model = new StochModel(trans, start, stateRewardsArray, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, ddVarNames, numModules,
+			model = new StochModel(trans, start, stateRewardsArray, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, modelVariables, numModules,
 					moduleNames, moduleDDRowVars, moduleDDColVars, numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		}
 		// set action info
@@ -206,25 +209,22 @@ public class ModelGenerator2MTBDD
 		// find any deadlocks
 		model.findDeadlocks(prism.getFixDeadlocks());
 
+		// attach labels
+		for (int l = 0; l < numLabels; l++) {
+			model.addLabelDD(modelGen.getLabelName(l), labelsArray[l]);
+		}
+		
 		// deref spare dds
 		JDD.Deref(moduleIdentities[0]);
 		JDD.Deref(moduleRangeDDs[0]);
-		for (i = 0; i < numVars; i++) {
-			JDD.Deref(varIdentities[i]);
-			JDD.Deref(varRangeDDs[i]);
-			JDD.Deref(varColRangeDDs[i]);
-		}
+		JDD.DerefArray(varIdentities, numVars);
+		JDD.DerefArray(varRangeDDs, numVars);
+		JDD.DerefArray(varColRangeDDs, numVars);
 		JDD.Deref(range);
 		if (modelType == ModelType.MDP) {
-			for (i = 0; i < ddSynchVars.length; i++) {
-				JDD.Deref(ddSynchVars[i]);
-			}
-			for (i = 0; i < ddSchedVars.length; i++) {
-				JDD.Deref(ddSchedVars[i]);
-			}
-			for (i = 0; i < ddChoiceVars.length; i++) {
-				JDD.Deref(ddChoiceVars[i]);
-			}
+			JDD.DerefArray(ddSynchVars, ddSynchVars.length);
+			JDD.DerefArray(ddSchedVars, ddSchedVars.length);
+			JDD.DerefArray(ddChoiceVars, ddChoiceVars.length);
 		}
 
 		return model;
@@ -236,10 +236,8 @@ public class ModelGenerator2MTBDD
 	 */
 	private void allocateDDVars()
 	{
-		JDDNode v, vr, vc;
+		JDDNode vr, vc;
 		int i, j, n;
-		int ddVarsUsed = 0;
-		ddVarNames = new Vector<String>();
 
 		// create arrays/etc. first
 
@@ -262,9 +260,7 @@ public class ModelGenerator2MTBDD
 		// allocate nondeterministic variables
 		if (modelType == ModelType.MDP) {
 			for (i = 0; i < maxNumChoices; i++) {
-				v = JDD.Var(ddVarsUsed++);
-				ddChoiceVars[i] = v;
-				ddVarNames.add("l" + i);
+				ddChoiceVars[i] = modelVariables.allocateVariable("l" + i);
 			}
 		}
 
@@ -278,14 +274,11 @@ public class ModelGenerator2MTBDD
 			// add pairs of variables (row/col)
 			for (j = 0; j < n; j++) {
 				// new dd row variable
-				vr = JDD.Var(ddVarsUsed++);
+				vr = modelVariables.allocateVariable(varList.getName(i) + "." + j);
 				// new dd col variable
-				vc = JDD.Var(ddVarsUsed++);
+				vc = modelVariables.allocateVariable(varList.getName(i) + "'." + j);
 				varDDRowVars[i].addVar(vr);
 				varDDColVars[i].addVar(vc);
-				// add names to list
-				ddVarNames.add(varList.getName(i) + "." + j);
-				ddVarNames.add(varList.getName(i) + "'." + j);
 			}
 		}
 	}
@@ -329,10 +322,8 @@ public class ModelGenerator2MTBDD
 		if (modelType == ModelType.MDP) {
 			for (i = 0; i < ddChoiceVars.length; i++) {
 				// add to list
-				JDD.Ref(ddChoiceVars[i]);
-				JDD.Ref(ddChoiceVars[i]);
-				allDDChoiceVars.addVar(ddChoiceVars[i]);
-				allDDNondetVars.addVar(ddChoiceVars[i]);
+				allDDChoiceVars.addVar(ddChoiceVars[i].copy());
+				allDDNondetVars.addVar(ddChoiceVars[i].copy());
 			}
 		}
 	}
@@ -359,8 +350,7 @@ public class ModelGenerator2MTBDD
 		id = JDD.Constant(1);
 		for (j = 0; j < numVars; j++) {
 			if (varList.getModule(j) == 0) {
-				JDD.Ref(varIdentities[j]);
-				id = JDD.Apply(JDD.TIMES, id, varIdentities[j]);
+				id = JDD.Apply(JDD.TIMES, id, varIdentities[j].copy());
 			}
 		}
 		moduleIdentities[0] = id;
@@ -379,20 +369,16 @@ public class ModelGenerator2MTBDD
 		varColRangeDDs = new JDDNode[numVars];
 		for (i = 0; i < numVars; i++) {
 			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDColVars[i]);
+			varRangeDDs[i] = JDD.SumAbstract(varIdentities[i].copy(), varDDColVars[i]);
 			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varColRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDRowVars[i]);
+			varColRangeDDs[i] = JDD.SumAbstract(varIdentities[i].copy(), varDDRowVars[i]);
 			// build up range for whole system as we go
-			JDD.Ref(varRangeDDs[i]);
-			range = JDD.Apply(JDD.TIMES, range, varRangeDDs[i]);
+			range = JDD.Apply(JDD.TIMES, range, varRangeDDs[i].copy());
 		}
 		// module ranges
 		moduleRangeDDs = new JDDNode[1];
 		// obtain range dd by abstracting from identity matrix
-		JDD.Ref(moduleIdentities[0]);
-		moduleRangeDDs[0] = JDD.SumAbstract(moduleIdentities[0], moduleDDColVars[0]);
+		moduleRangeDDs[0] = JDD.SumAbstract(moduleIdentities[0].copy(), moduleDDColVars[0]);
 	}
 
 	/** Construct transition matrix and rewards */
@@ -412,7 +398,11 @@ public class ModelGenerator2MTBDD
 			transActions = JDD.Constant(0);
 		}
 		start = JDD.Constant(0); 
-		reach = JDD.Constant(0); 
+		reach = JDD.Constant(0);
+		labelsArray = new JDDNode[numLabels];
+		for (int l = 0; l < numLabels; l++) {
+			labelsArray[l] = JDD.Constant(0);
+		}
 		stateRewardsArray = new JDDNode[numRewardStructs];
 		transRewardsArray = new JDDNode[numRewardStructs];
 		for (int r = 0; r < numRewardStructs; r++) {
@@ -464,8 +454,7 @@ public class ModelGenerator2MTBDD
 						elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), allDDChoiceVars, i, 1));
 					}
 					// add it into mtbdds for transition matrix and transition rewards
-					JDD.Ref(elem);
-					trans = JDD.Apply(JDD.PLUS, trans, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem));
+					trans = JDD.Apply(JDD.PLUS, trans, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem.copy()));
 					// look up action name
 					int k;
 					if (!(a == null || "".equals(a))) {
@@ -489,14 +478,12 @@ public class ModelGenerator2MTBDD
 							transPerAction.add(tmp);
 						}
 						// add element to matrix
-						JDD.Ref(elem);
-						tmp = JDD.Apply(JDD.PLUS, tmp, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem));
+						tmp = JDD.Apply(JDD.PLUS, tmp, JDD.Apply(JDD.TIMES, JDD.Constant(d), elem.copy()));
 						transPerAction.set(k, tmp);
 					}
 					/// ...for mdps...
 					else {
-						JDD.Ref(elem);
-						tmp = JDD.ThereExists(elem, allDDColVars);
+						tmp = JDD.ThereExists(elem.copy(), allDDColVars);
 						// use max here because we see multiple transitions for a sinlge choice
 						transActions = JDD.Apply(JDD.MAX, transActions, JDD.Apply(JDD.TIMES, JDD.Constant(j), tmp));
 					}
@@ -514,6 +501,12 @@ public class ModelGenerator2MTBDD
 				
 				// Print some progress info occasionally
 				// TODO progress.updateIfReady(src + 1);
+			}
+			
+			for (int l = 0; l < numLabels; l++) {
+				if (modelGen.isLabelTrue(l)) {
+					labelsArray[l] = JDD.Or(labelsArray[l], ddState.copy());
+				}
 			}
 			
 			// Add state rewards

@@ -104,8 +104,9 @@ public class Modules2MTBDD
 	private JDDNode[] ddSynchVars;		// individual dd vars for synchronising actions
 	private JDDNode[] ddSchedVars;		// individual dd vars for scheduling non-det.
 	private JDDNode[] ddChoiceVars;		// individual dd vars for local non-det.
-	// names for all dd vars used
-	private Vector<String> ddVarNames;
+
+	private ModelVariablesDD modelVariables;
+	
 	// flags for keeping track of which variables have been used
 	private boolean[] varsUsed;
 	
@@ -250,18 +251,18 @@ public class Modules2MTBDD
 		
 		// create new Model object to be returned
 		if (modelType == ModelType.DTMC) {
-			model = new ProbModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, ddVarNames,
+			model = new ProbModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
 						   numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 						   numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		}
 		else if (modelType == ModelType.MDP) {
 			model = new NondetModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars,
-						     allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, ddVarNames,
+						     allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables,
 						     numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 						     numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		}
 		else if (modelType == ModelType.CTMC) {
-			model = new StochModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, ddVarNames,
+			model = new StochModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
 						    numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 						    numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		}
@@ -310,32 +311,20 @@ public class Modules2MTBDD
 		// deref spare dds
 		globalDDRowVars.derefAll();
 		globalDDColVars.derefAll();
-		for (i = 0; i < numModules; i++) {
-			JDD.Deref(moduleIdentities[i]);
-			JDD.Deref(moduleRangeDDs[i]);
-		}
-		for (i = 0; i < numVars; i++) {
-			JDD.Deref(varIdentities[i]);
-			JDD.Deref(varRangeDDs[i]);
-			JDD.Deref(varColRangeDDs[i]);
-		}
+		JDD.DerefArray(moduleIdentities, numModules);
+		JDD.DerefArray(moduleRangeDDs, numModules);
+		JDD.DerefArray(varIdentities, numVars);
+		JDD.DerefArray(varRangeDDs, numVars);
+		JDD.DerefArray(varColRangeDDs, numVars);
 		JDD.Deref(range);
 		if (modelType == ModelType.MDP) {
-			for (i = 0; i < ddSynchVars.length; i++) {
-				JDD.Deref(ddSynchVars[i]);
-			}
-			for (i = 0; i < ddSchedVars.length; i++) {
-				JDD.Deref(ddSchedVars[i]);
-			}
-			for (i = 0; i < ddChoiceVars.length; i++) {
-				JDD.Deref(ddChoiceVars[i]);
-			}
+			JDD.DerefArray(ddSynchVars, ddSynchVars.length);
+			JDD.DerefArray(ddSchedVars, ddSchedVars.length);
+			JDD.DerefArray(ddChoiceVars, ddChoiceVars.length);
 		}
 		if (doSymmetry) {
 			JDD.Deref(symm);
-			for (i = 0; i < numSymmModules-1; i++) {
-				JDD.Deref(nonSymms[i]);
-			}
+			JDD.DerefArray(nonSymms, numSymmModules-1);
 		}
 		
 		expr2mtbdd.clearDummyModel();
@@ -348,11 +337,10 @@ public class Modules2MTBDD
 			
 	private void allocateDDVars()
 	{
-		JDDNode v, vr, vc;
 		int i, j, m, n, last;
-		int ddVarsUsed = 0;
-		ddVarNames = new Vector<String>();
-
+		
+		modelVariables = new ModelVariablesDD();
+		
 		switch (prism.getOrdering()) {
 		
 		case 1:
@@ -389,9 +377,7 @@ public class Modules2MTBDD
 			if (modelType == ModelType.MDP) {
 				// allocate vars
 				for (i = 0; i < numSynchs; i++) {
-					v = JDD.Var(ddVarsUsed++);
-					ddSynchVars[i] = v;
-					ddVarNames.add(synchs.elementAt(i)+".a");
+					ddSynchVars[i] = modelVariables.allocateVariable(synchs.elementAt(i)+".a");
 				}
 			}
 		
@@ -399,9 +385,7 @@ public class Modules2MTBDD
 			if (modelType == ModelType.MDP) {
 				// allocate vars
 				for (i = 0; i < numModules; i++) {
-					v = JDD.Var(ddVarsUsed++);
-					ddSchedVars[i] = v;
-					ddVarNames.add(moduleNames[i] + ".s");
+					ddSchedVars[i] = modelVariables.allocateVariable(moduleNames[i] + ".s");
 				}
 			}
 			
@@ -409,19 +393,15 @@ public class Modules2MTBDD
 			if (modelType == ModelType.MDP) {
 				m = ddChoiceVars.length;
 				for (i = 0; i < m; i++) {
-					v = JDD.Var(ddVarsUsed++);
-					ddChoiceVars[i] = v;
-					ddVarNames.add("l" + i);
+					ddChoiceVars[i] = modelVariables.allocateVariable("l" + i);
 				}
 			}
 			
 			// create a gap in the dd variables
 			// this allows to prepend additionl row/col vars, e.g. for constructing
 			// a product model when doing LTL model checking
-			for (i = 0; i < 20; i++) {
-				ddVarsUsed++;
-				ddVarNames.add("");
-			}
+			modelVariables.preallocateExtraStateVariables(20);
+
 			
 			// allocate dd variables for module variables (i.e. rows/cols)
 			// go through all vars in order (incl. global variables)
@@ -433,14 +413,9 @@ public class Modules2MTBDD
 				// add pairs of variables (row/col)
 				for (j = 0; j < n; j++) {
 					// new dd row variable
-					vr = JDD.Var(ddVarsUsed++);
+					varDDRowVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "." + j));
 					// new dd col variable
-					vc = JDD.Var(ddVarsUsed++);
-					varDDRowVars[i].addVar(vr);
-					varDDColVars[i].addVar(vc);
-					// add names to list
-					ddVarNames.add(varList.getName(i) + "." + j);
-					ddVarNames.add(varList.getName(i) + "'." + j);
+					varDDColVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "'." + j));
 				}
 			}
 
@@ -477,9 +452,7 @@ public class Modules2MTBDD
 			// allocate synchronizing action variables
 			if (modelType == ModelType.MDP) {
 				for (i = 0; i < numSynchs; i++) {
-					v = JDD.Var(ddVarsUsed++);
-					ddSynchVars[i] = v;
-					ddVarNames.add(synchs.elementAt(i)+".a");
+					ddSynchVars[i] = modelVariables.allocateVariable(synchs.elementAt(i)+".a");
 				}
 			}
 
@@ -487,9 +460,7 @@ public class Modules2MTBDD
 			if (modelType == ModelType.MDP) {
 				m = ddChoiceVars.length;
 				for (i = 0; i < m; i++) {
-					v = JDD.Var(ddVarsUsed++);
-					ddChoiceVars[i] = v;
-					ddVarNames.add("l" + i);
+					ddChoiceVars[i] = modelVariables.allocateVariable("l" + i);
 				}
 			}
 			
@@ -503,9 +474,7 @@ public class Modules2MTBDD
 				if ((modelType == ModelType.MDP) && (last != varList.getModule(i))) {
 					// add scheduling dd var(s) (may do multiple ones here if modules have no vars)
 					for (j = last+1; j <= varList.getModule(i); j++) {
-						v = JDD.Var(ddVarsUsed++);
-						ddSchedVars[j] = v;
-						ddVarNames.add(moduleNames[j] + ".s");
+						ddSchedVars[j] = modelVariables.allocateVariable(moduleNames[j] + ".s");
 					}
 					// change 'last'
 					last = varList.getModule(i);
@@ -516,19 +485,13 @@ public class Modules2MTBDD
 				n = varList.getRangeLogTwo(i);
 				// add pairs of variables (row/col)
 				for (j = 0; j < n; j++) {
-					vr = JDD.Var(ddVarsUsed++);
-					vc = JDD.Var(ddVarsUsed++);
-					varDDRowVars[i].addVar(vr);
-					varDDColVars[i].addVar(vc);
-					ddVarNames.add(varList.getName(i) + "." + j);
-					ddVarNames.add(varList.getName(i) + "'." + j);
+					varDDRowVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "." + j));
+					varDDColVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "'." + j));
 				}
 			}
 			// add any remaining scheduling dd var(s) (happens if some modules have no vars)
 			if (modelType == ModelType.MDP) for (j = last+1; j <numModules; j++) {
-				v = JDD.Var(ddVarsUsed++);
-				ddSchedVars[j] = v;
-				ddVarNames.add(moduleNames[j] + ".s");
+				ddSchedVars[j] = modelVariables.allocateVariable(moduleNames[j] + ".s");
 			}
 			break;
 			
@@ -598,26 +561,20 @@ public class Modules2MTBDD
 			// go thru all syncronising action vars
 			for (i = 0; i < ddSynchVars.length; i++) {
 				// add to list
-				JDD.Ref(ddSynchVars[i]);
-				JDD.Ref(ddSynchVars[i]);
-				allDDSynchVars.addVar(ddSynchVars[i]);
-				allDDNondetVars.addVar(ddSynchVars[i]);
+				allDDSynchVars.addVar(ddSynchVars[i].copy());
+				allDDNondetVars.addVar(ddSynchVars[i].copy());
 			}
 			// go thru all scheduler nondet vars
 			for (i = 0; i < ddSchedVars.length; i++) {
 				// add to list
-				JDD.Ref(ddSchedVars[i]);
-				JDD.Ref(ddSchedVars[i]);
-				allDDSchedVars.addVar(ddSchedVars[i]);
-				allDDNondetVars.addVar(ddSchedVars[i]);
+				allDDSchedVars.addVar(ddSchedVars[i].copy());
+				allDDNondetVars.addVar(ddSchedVars[i].copy());
 			}
 			// go thru all local nondet vars
 			for (i = 0; i < ddChoiceVars.length; i++) {
 				// add to list
-				JDD.Ref(ddChoiceVars[i]);
-				JDD.Ref(ddChoiceVars[i]);
-				allDDChoiceVars.addVar(ddChoiceVars[i]);
-				allDDNondetVars.addVar(ddChoiceVars[i]);
+				allDDChoiceVars.addVar(ddChoiceVars[i].copy());
+				allDDNondetVars.addVar(ddChoiceVars[i].copy());
 			}
 		}
 	}
@@ -646,8 +603,7 @@ public class Modules2MTBDD
 			id = JDD.Constant(1);
 			for (j = 0; j < numVars; j++) {
 				if (varList.getModule(j) == i) {
-					JDD.Ref(varIdentities[j]);
-					id = JDD.Apply(JDD.TIMES, id, varIdentities[j]);
+					id = JDD.Apply(JDD.TIMES, id, varIdentities[j].copy());
 				}
 			}
 			moduleIdentities[i] = id;
@@ -668,21 +624,17 @@ public class Modules2MTBDD
 		varColRangeDDs = new JDDNode[numVars];
 		for (i = 0; i < numVars; i++) {
 			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDColVars[i]);
+			varRangeDDs[i] = JDD.SumAbstract(varIdentities[i].copy(), varDDColVars[i]);
 			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varColRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDRowVars[i]);
+			varColRangeDDs[i] = JDD.SumAbstract(varIdentities[i].copy(), varDDRowVars[i]);
 			// build up range for whole system as we go
-			JDD.Ref(varRangeDDs[i]);
-			range = JDD.Apply(JDD.TIMES, range, varRangeDDs[i]);
+			range = JDD.Apply(JDD.TIMES, range, varRangeDDs[i].copy());
 		}
 		// module ranges
 		moduleRangeDDs = new JDDNode[numModules];
 		for (i = 0; i < numModules; i++) {
 			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(moduleIdentities[i]);
-			moduleRangeDDs[i] = JDD.SumAbstract(moduleIdentities[i], moduleDDColVars[i]);			
+			moduleRangeDDs[i] = JDD.SumAbstract(moduleIdentities[i].copy(), moduleDDColVars[i]);
 		}
 	}
 
@@ -715,8 +667,7 @@ public class Modules2MTBDD
 		// for dtmcs, need to normalise each row to remove local nondeterminism
 		if (modelType == ModelType.DTMC) {
 			// divide each row by row sum
-			JDD.Ref(trans);
-			tmp = JDD.SumAbstract(trans, allDDColVars);
+			tmp = JDD.SumAbstract(trans.copy(), allDDColVars);
 			trans = JDD.Apply(JDD.DIVIDE, trans, tmp);
 		}
 	}
@@ -783,8 +734,7 @@ public class Modules2MTBDD
 			// independent bit
 			tmp = JDD.Constant(1);
 			for (i = 0; i < numSynchs; i++) {
-				JDD.Ref(ddSynchVars[i]);
-				tmp = JDD.And(tmp, JDD.Not(ddSynchVars[i]));
+				tmp = JDD.And(tmp, JDD.Not(ddSynchVars[i].copy()));
 			}
 			sysDDs.ind.trans = JDD.Apply(JDD.TIMES, tmp, sysDDs.ind.trans);
 			//JDD.Ref(tmp);
@@ -793,12 +743,11 @@ public class Modules2MTBDD
 			for (i = 0; i < numSynchs; i++) {
 				tmp = JDD.Constant(1);
 				for (j = 0; j < numSynchs; j++) {
-					JDD.Ref(ddSynchVars[j]);
 					if (j == i) {
-						tmp = JDD.And(tmp, ddSynchVars[j]);
+						tmp = JDD.And(tmp, ddSynchVars[j].copy());
 					}
 					else {
-						tmp = JDD.And(tmp, JDD.Not(ddSynchVars[j]));
+						tmp = JDD.And(tmp, JDD.Not(ddSynchVars[j].copy()));
 					}
 				}
 				sysDDs.synchs[i].trans = JDD.Apply(JDD.TIMES, tmp, sysDDs.synchs[i].trans);
@@ -813,14 +762,12 @@ public class Modules2MTBDD
 		// now, for all model types, transition matrix can be built by summing over all actions
 		// also build transition rewards at the same time
 		n = modulesFile.getNumRewardStructs();
-		JDD.Ref(sysDDs.ind.trans);
-		trans = sysDDs.ind.trans;
+		trans = sysDDs.ind.trans.copy();
 		for (j = 0; j < n; j++) {
 			transRewards[j] = sysDDs.ind.rewards[j];
 		}
 		for (i = 0; i < numSynchs; i++) {
-			JDD.Ref(sysDDs.synchs[i].trans);
-			trans = JDD.Apply(JDD.PLUS, trans, sysDDs.synchs[i].trans);
+			trans = JDD.Apply(JDD.PLUS, trans, sysDDs.synchs[i].trans.copy());
 			for (j = 0; j < n; j++) {
 				transRewards[j] = JDD.Apply(JDD.PLUS, transRewards[j], sysDDs.synchs[i].rewards[j]);
 			}
@@ -833,20 +780,17 @@ public class Modules2MTBDD
 		if (modelType != ModelType.MDP) {
 			n = modulesFile.getNumRewardStructs();
 			for (j = 0; j < n; j++) {
-				JDD.Ref(trans);
-				transRewards[j] = JDD.Apply(JDD.DIVIDE, transRewards[j], trans);
+				transRewards[j] = JDD.Apply(JDD.DIVIDE, transRewards[j], trans.copy());
 			}
 		}
 		
 		// For MDPs, we take a copy of the DDs used to construct the part
 		// of the transition matrix that corresponds to each action
 		if (modelType == ModelType.MDP && storeTransParts) {
-			JDD.Ref(sysDDs.ind.trans);
-			transInd = JDD.ThereExists(JDD.GreaterThan(sysDDs.ind.trans, 0), allDDColVars);
+			transInd = JDD.ThereExists(JDD.GreaterThan(sysDDs.ind.trans.copy(), 0), allDDColVars);
 			transSynch = new JDDNode[numSynchs];
 			for (i = 0; i < numSynchs; i++) {
-				JDD.Ref(sysDDs.synchs[i].trans);
-				transSynch[i] = JDD.ThereExists(JDD.GreaterThan(sysDDs.synchs[i].trans, 0), allDDColVars);
+				transSynch[i] = JDD.ThereExists(JDD.GreaterThan(sysDDs.synchs[i].trans.copy(), 0), allDDColVars);
 			}
 		}
 		
@@ -874,8 +818,7 @@ public class Modules2MTBDD
 				//tmp = JDD.ThereExists(JDD.GreaterThan(sysDDs.ind.trans, 0), allDDColVars);
 				//transActions = JDD.Apply(JDD.PLUS, transActions, JDD.Apply(JDD.TIMES, tmp, JDD.Constant(1)));
 				for (i = 0; i < numSynchs; i++) {
-					JDD.Ref(sysDDs.synchs[i].trans);
-					tmp = JDD.ThereExists(JDD.GreaterThan(sysDDs.synchs[i].trans, 0), allDDColVars);
+					tmp = JDD.ThereExists(JDD.GreaterThan(sysDDs.synchs[i].trans.copy(), 0), allDDColVars);
 					transActions = JDD.Apply(JDD.PLUS, transActions, JDD.Apply(JDD.TIMES, tmp, JDD.Constant(1+i)));
 				}
 				break;
@@ -883,11 +826,9 @@ public class Modules2MTBDD
 			case CTMC:
 				// Just reference DDs and copy them to new array
 				transPerAction = new JDDNode[numSynchs + 1];
-				JDD.Ref(sysDDs.ind.trans);
-				transPerAction[0] = sysDDs.ind.trans;
+				transPerAction[0] = sysDDs.ind.trans.copy();
 				for (i = 0; i < numSynchs; i++) {
-					JDD.Ref(sysDDs.synchs[i].trans);
-					transPerAction[i + 1] = sysDDs.synchs[i].trans;
+					transPerAction[i + 1] = sysDDs.synchs[i].trans.copy();
 				}
 				break;
 			}
@@ -970,8 +911,7 @@ public class Modules2MTBDD
 			sysDDs.synchs[i] = translateModule(m, module, synch, synchMin[i]);
 		}
 		// store identity matrix
-		JDD.Ref(moduleIdentities[m]);
-		sysDDs.id = moduleIdentities[m];
+		sysDDs.id = moduleIdentities[m].copy();
 		
 		// store synchs used
 		sysDDs.allSynchs.addAll(module.getAllSynchs());
@@ -1568,11 +1508,9 @@ public class Modules2MTBDD
 		}
 		
 		// deref guards/updates
-		for (l = 0; l < numCommands; l++) {
-			JDD.Deref(guardDDs[l]);
-			JDD.Deref(upDDs[l]);
-			//JDD.Deref(rewDDs[l]);
-		}
+		JDD.DerefArray(guardDDs, numCommands);
+		JDD.DerefArray(upDDs, numCommands);
+		//JDD.DerefArray(rewDDs, numCommands);
 		
 		return compDDs;
 	}

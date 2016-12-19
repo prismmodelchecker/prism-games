@@ -51,17 +51,17 @@ public final class BigRational implements Comparable<BigRational>
 	private final static BigInteger BITEN = new BigInteger("10");
 
 	/** the BigRational "1" */
-	final static BigRational ONE = new BigRational(BigInteger.ONE);
+	public final static BigRational ONE = new BigRational(BigInteger.ONE);
 	/** the BigRational "-1" */
-	final static BigRational MONE = new BigRational(BigInteger.ONE).negate();
+	public final static BigRational MONE = new BigRational(BigInteger.ONE).negate();
 	/** the BigRational "0" */
-	final static BigRational ZERO = new BigRational(BigInteger.ZERO);
+	public final static BigRational ZERO = new BigRational(BigInteger.ZERO);
 	/** the BigRational "infinity" */
-	final static BigRational INF = new BigRational(BigInteger.ONE, BigInteger.ZERO);
+	public final static BigRational INF = new BigRational(BigInteger.ONE, BigInteger.ZERO);
 	/** the BigRational "-infinity" */
-	final static BigRational MINF = new BigRational(BMONE, BigInteger.ZERO);
+	public final static BigRational MINF = new BigRational(BMONE, BigInteger.ZERO);
 	/** the BigRational "not a number" */
-	final static BigRational NAN = new BigRational(BigInteger.ZERO, BigInteger.ZERO);
+	public final static BigRational NAN = new BigRational(BigInteger.ZERO, BigInteger.ZERO);
 
 	/** numerator */
 	private BigInteger num;
@@ -126,8 +126,12 @@ public final class BigRational implements Comparable<BigRational>
 		}
 		if (cancel) {
 			if (num.equals(BigInteger.ZERO)) {
-				num = BigInteger.ZERO;
-				den = BigInteger.ONE;
+				if (!den.equals(BigInteger.ZERO)) {
+					// not NaN (= 0/0), so this is a real zero:
+					// normalise by setting denominator to 1
+					num = BigInteger.ZERO;
+					den = BigInteger.ONE;
+				}
 			} else {
 				BigInteger gcd = num.gcd(den);
 				num = num.divide(gcd);
@@ -259,6 +263,8 @@ public final class BigRational implements Comparable<BigRational>
 			// TODO: ? might be imprecise, perhaps there
 			// is a way to get the full precision?
 			return new BigRational(((Double)value).toString());
+		} else if (value instanceof String) {
+			return new BigRational((String)value);
 		}
 		throw new IllegalArgumentException("Can not convert from " + value.getClass() + " to BigRational");
 	}

@@ -166,6 +166,12 @@ public class TestModelGenerator extends DefaultModelGenerator
 	}
 
 	@Override
+	public boolean rewardStructHasTransitionRewards(int i)
+	{
+		return false;
+	}
+
+	@Override
 	public VarList createVarList()
 	{
 		VarList varList = new VarList();
@@ -182,6 +188,8 @@ public class TestModelGenerator extends DefaultModelGenerator
 	{
 		try {
 			Prism prism = new Prism(new PrismPrintStreamLog(System.out));
+			prism.setMainLog(new PrismFileLog("stdout"));
+			prism.initialise();
 
 			int test = 2;
 
@@ -207,11 +215,13 @@ public class TestModelGenerator extends DefaultModelGenerator
 				System.out.println(res);
 			}
 
+			prism.closeDown(true);
 		} catch (PrismException e) {
 			System.err.println("Error: " + e.getMessage());
 		} catch (FileNotFoundException e) {
 			System.err.println("Error: " + e.getMessage());
 		}
+
 	}
 
 	@Override

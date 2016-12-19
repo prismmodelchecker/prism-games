@@ -126,9 +126,9 @@ public class ExpressionReward extends ExpressionQuant
 	 */
 	public int getRewardStructIndexByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
 	{
-		return getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndex);
+		return getRewardStructIndexByIndexObject(rewardStructIndex, modelInfo, constantValues);
 	}
-	
+
 	/**
 	 * Get the index of a reward structure (within a model) corresponding to the divisor index of this R operator, if present.
 	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
@@ -137,16 +137,16 @@ public class ExpressionReward extends ExpressionQuant
 	 */
 	public int getRewardStructDivIndexByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
 	{
-		return (rewardStructIndexDiv == null) ? -1 : getRewardStructIndexByIndexObject(modelInfo, constantValues, rewardStructIndexDiv);
+		return (rewardStructIndexDiv == null) ? -1 : getRewardStructIndexByIndexObject(rewardStructIndexDiv, modelInfo, constantValues);
 	}
 	
 	/**
-	 * Get the index of a reward structure (within a model) corresponding to an index of this R operator.
+	 * Get the index of a reward structure (within a model) corresponding to the rsi reward structure index object.
 	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
 	 * Throws an exception (with explanatory message) if it cannot be found.
 	 * This means that, the method always returns a valid index if it finishes.
 	 */
-	protected int getRewardStructIndexByIndexObject(ModelInfo modelInfo, Values constantValues, Object rsi) throws PrismException
+	public static int getRewardStructIndexByIndexObject(Object rsi, ModelInfo modelInfo, Values constantValues) throws PrismException
 	{
 		int rewStruct = -1;
 		// Recall: the index is an Object which is either an Integer, denoting the index (starting from 0) directly,
@@ -160,8 +160,8 @@ public class ExpressionReward extends ExpressionQuant
 			rewStruct = 0;
 		}
 		// Expression - evaluate to an index
-		else if (rewardStructIndex instanceof Expression) {
-			int i = ((Expression) rewardStructIndex).evaluateInt(constantValues);
+		else if (rsi instanceof Expression) {
+			int i = ((Expression) rsi).evaluateInt(constantValues);
 			rsi = new Integer(i); // (for better error reporting below)
 			rewStruct = i - 1;
 		}
@@ -174,7 +174,7 @@ public class ExpressionReward extends ExpressionQuant
 		}
 		return rewStruct;
 	}
-	
+
 	/**
 	 * Get the reward structure (from a model) corresponding to the index of this R operator.
 	 * Throws an exception (with explanatory message) if it cannot be found.
@@ -184,7 +184,7 @@ public class ExpressionReward extends ExpressionQuant
 		int rewardStructIndex = getRewardStructIndexByIndexObject(modelInfo, constantValues);
 		return modelInfo.getRewardStruct(rewardStructIndex);
 	}
-	
+
 	/**
 	 * Get the reward structure (within a model) corresponding to the divisor index of this R operator, if present.
 	 * Throws an exception (with explanatory message) if it cannot be found,
@@ -196,6 +196,16 @@ public class ExpressionReward extends ExpressionQuant
 		return (rewardStructIndex == -1) ? null : modelInfo.getRewardStruct(rewardStructIndex);
 	}
 
+	/**
+	 * Get the reward structure (from a model) corresponding to a reward structure index object.
+	 * Throws an exception (with explanatory message) if it cannot be found.
+	 */
+	public static RewardStruct getRewardStructByIndexObject(Object rsi, ModelInfo modelInfo, Values constantValues) throws PrismException
+	{
+		int rewardStructIndex = getRewardStructIndexByIndexObject(rsi, modelInfo, constantValues);
+		return modelInfo.getRewardStruct(rewardStructIndex);
+	}
+	
 	/**
 	 * Get info about the operator and bound.
 	 * @param constantValues Values for constants in order to evaluate any bound

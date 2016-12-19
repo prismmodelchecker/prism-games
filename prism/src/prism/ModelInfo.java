@@ -139,7 +139,16 @@ public interface ModelInfo
 	 * Returns null if index is out of range.
 	 */
 	public RewardStruct getRewardStruct(int i);
-	
+
+	/**
+	 * Returns true if the reward structure with index i defines transition rewards.
+	 * (indexed from 0, not from 1 like at the user (property language) level)
+	 * If this returns false, the model checker is allowed to ignore them (which may be more efficient).
+	 * If using an algorithm or implementation that does not support transition rewards,
+	 * you may need to return false here (as well as not defining transition rewards).
+	 */
+	public boolean rewardStructHasTransitionRewards(int i);
+
 	/**
 	 * Get the number of "player" definitions in the model.
 	 */

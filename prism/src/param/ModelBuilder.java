@@ -3,6 +3,7 @@
 //	Copyright (c) 2013-
 //	Authors:
 //	* Ernst Moritz Hahn <emhahn@cs.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -31,8 +32,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import explicit.IndexedSet;
+import explicit.StateStorage;
 import parser.State;
-import parser.ast.ConstantList;
 import parser.ast.Expression;
 import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionConstant;
@@ -40,29 +42,21 @@ import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionITE;
 import parser.ast.ExpressionLiteral;
 import parser.ast.ExpressionUnaryOp;
-import parser.ast.ModulesFile;
-import parser.visitor.ASTTraverseModify;
+import prism.ModelGeneratorSymbolic;
 import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
-import prism.PrismSettings;
 import prism.PrismNotSupportedException;
-import explicit.IndexedSet;
-import explicit.StateStorage;
+import prism.PrismSettings;
 
 /**
  * Class to construct a parametric Markov model.
- * 
- * @author Ernst Moritz Hahn <emhahn@cs.ox.ac.uk> (University of Oxford)
- * @see ParamModel
  */
 public final class ModelBuilder extends PrismComponent
 {
-	/** {@code ModulesFile} to be transformed to a {@code ParamModel} */
-	private ModulesFile modulesFile;
-	/** parametric model constructed from {@code modulesFile} */
-	private ParamModel model;
+	/** the ModelGeneratorSymbolic interface providing the model to be transformed to a {@code ParamModel} */
+	private ModelGeneratorSymbolic modelGenSym;
 	/** function factory used in the constructed parametric model */
 	private FunctionFactory functionFactory;
 	/** names of parameters */
@@ -104,7 +98,7 @@ public final class ModelBuilder extends PrismComponent
 	 * @return rational function representing the given PRISM expression
 	 * @throws PrismException thrown if {@code expr} cannot be represented as rational function
 	 */
-	Function expr2function(FunctionFactory factory, Expression expr) throws PrismException
+	public Function expr2function(FunctionFactory factory, Expression expr) throws PrismException
 	{
 		if (expr instanceof ExpressionLiteral) {
 			String exprString = ((ExpressionLiteral) expr).getString();
@@ -114,16 +108,15 @@ public final class ModelBuilder extends PrismComponent
 			return factory.fromBigRational(new BigRational(exprString));
 		} else if (expr instanceof ExpressionConstant) {
 			String exprString = ((ExpressionConstant) expr).getName();
-			int index = modulesFile.getConstantList().getConstantIndex(exprString);
-			if (index != -1) {
-				Expression constExpr = modulesFile.getConstantList().getConstant(index);
-				if (constExpr != null) {
-					return expr2function(factory, constExpr);
-				} else {
-					return factory.getVar(exprString);
-				}
+			if (modelGenSym.getConstantValues().contains(exprString)) {
+				Object val = modelGenSym.getConstantValues().getValueOf(exprString);
+				return factory.fromBigRational(new BigRational(val.toString()));
+			}
+			Expression constExpr = modelGenSym.getUnknownConstantDefinition(exprString);
+			if (constExpr == null) {
+				return factory.getVar(exprString);
 			} else {
-				throw new PrismException("Invalid parametric constant definition used");
+				return expr2function(factory, constExpr);
 			}
 		} else if (expr instanceof ExpressionBinaryOp) {
 			ExpressionBinaryOp binExpr = ((ExpressionBinaryOp) expr);
@@ -192,39 +185,6 @@ public final class ModelBuilder extends PrismComponent
 		}
 	}
 
-	// setters and getters
-
-	/**
-	 * Set modules file to be transformed to parametric Markov model.
-	 * 
-	 * @param modulesFile modules file to be transformed to parametric Markov model
-	 */
-	public void setModulesFile(ModulesFile modulesFile)
-	{
-		this.modulesFile = modulesFile;
-	}
-
-	/**
-	 * Set parameter informations.
-	 * Obviously, all of {@code paramNames}, {@code lower}, {@code} upper
-	 * must have the same length, and {@code lower} bounds of parameters must
-	 * not be higher than {@code upper} bounds.
-	 * 
-	 * @param paramNames names of parameters
-	 * @param lower lower bounds of parameters
-	 * @param upper upper bounds of parameters
-	 */
-	public void setParameters(String[] paramNames, String[] lower, String[] upper)
-	{
-		this.paramNames = paramNames;
-		this.lower = new BigRational[lower.length];
-		this.upper = new BigRational[upper.length];
-		for (int param = 0; param < lower.length; param++) {
-			this.lower[param] = new BigRational(lower[param]);
-			this.upper[param] = new BigRational(upper[param]);
-		}
-	}
-
 	/**
 	 * Get the parameter names as a list of strings.
 	 * @return the parameter names
@@ -235,14 +195,32 @@ public final class ModelBuilder extends PrismComponent
 	}
 
 	/**
-	 * Construct parametric Markov model.
-	 * For this to work, module file, PRISM log, etc. must have been set
-	 * beforehand.
-	 * 
-	 * @throws PrismException in case the model cannot be constructed
+	 * Construct a parametric model and return it.
+	 * All of {@code paramNames}, {@code lower}, {@code} upper must have the same length,
+	 * and {@code lower} bounds of parameters must not be higher than {@code upper} bounds.
+	 * @param modelGenSym The ModelGeneratorSymbolic interface providing the model 
+	 * @param paramNames names of parameters
+	 * @param lowerStr lower bounds of parameters
+	 * @param upperStr upper bounds of parameters
 	 */
-	public void build() throws PrismException
+	public ParamModel constructModel(ModelGeneratorSymbolic modelGenSym, String[] paramNames, String[] lowerStr, String[] upperStr) throws PrismException
 	{
+		// No model construction for PTAs
+		if (modelGenSym.getModelType() == ModelType.PTA) {
+			throw new PrismNotSupportedException("You cannot build a PTA model explicitly, only perform model checking");
+		}
+
+		// Store model generator and parameter info
+		this.modelGenSym = modelGenSym;
+		this.paramNames = paramNames;
+		lower = new BigRational[lowerStr.length];
+		upper = new BigRational[upperStr.length];
+		for (int param = 0; param < lowerStr.length; param++) {
+			lower[param] = new BigRational(lowerStr[param]);
+			upper[param] = new BigRational(upperStr[param]);
+		}
+		
+		// Create function factory
 		if (functionType.equals("JAS")) {
 			functionFactory = new JasFunctionFactory(paramNames, lower, upper);
 		} else if (functionType.equals("JAS-cached")) {
@@ -250,21 +228,14 @@ public final class ModelBuilder extends PrismComponent
 		} else if (functionType.equals("DAG")) {
 			functionFactory = new DagFunctionFactory(paramNames, lower, upper, dagMaxError, false);
 		}
-		long time;
-
-		if (modulesFile.getModelType() == ModelType.PTA) {
-			throw new PrismNotSupportedException("You cannot build a PTA model explicitly, only perform model checking");
-		}
-
-		mainLog.print("\nBuilding model...\n");
-
-		// build model
-		time = System.currentTimeMillis();
+		// And pass it to the model generator
+		modelGenSym.setSymbolic(this, functionFactory);
+		
 		// First, set values for any constants in the model
 		// (but do this *symbolically* - partly because some constants are parameters and therefore unknown,
 		// but also to keep values like 1/3 as expressions rather than being converted to doubles,
 		// resulting in a loss of precision)
-		ConstantList constantList = modulesFile.getConstantList();
+		/*ConstantList constantList = modulesFile.getConstantList();
 		constExprs = constantList.evaluateConstantsPartially(modulesFile.getUndefinedConstantValues(), null);
 		modulesFile = (ModulesFile) modulesFile.deepCopy();
 		modulesFile = (ModulesFile) modulesFile.accept(new ASTTraverseModify()
@@ -274,24 +245,17 @@ public final class ModelBuilder extends PrismComponent
 				Expression expr = constExprs.get(e.getName());
 				return (expr != null) ? expr.deepCopy() : e;
 			}
-		});
-		ParamModel modelExpl = constructModel(modulesFile);
-		time = System.currentTimeMillis() - time;
-
-		mainLog.print("\n"+modelExpl.infoStringTable());
+		});*/
 		
+		// Build/return model
+		mainLog.print("\nBuilding model...\n");
+		long time = System.currentTimeMillis();
+		ParamModel modelExpl = doModelConstruction(modelGenSym);
+		time = System.currentTimeMillis() - time;
+		mainLog.print("\n"+modelExpl.infoStringTable());
 		mainLog.println("\nTime for model construction: " + time / 1000.0 + " seconds.");
-		model = modelExpl;
-	}
-
-	/**
-	 * Returns the constructed parametric Markov model.
-	 * 
-	 * @return constructed parametric Markov model
-	 */
-	public explicit.Model getModel()
-	{
-		return model;
+		
+		return modelExpl;
 	}
 
 	/**
@@ -305,35 +269,34 @@ public final class ModelBuilder extends PrismComponent
 	 * @param states list of states to be filled by this method
 	 * @throws PrismException thrown if problems in underlying methods occur
 	 */
-	private void reserveMemoryAndExploreStates(ModulesFile modulesFile, ParamModel model, ModelType modelType, SymbolicEngine engine, StateStorage<State> states)
-			throws PrismException
+	private void reserveMemoryAndExploreStates(ModelGeneratorSymbolic modelGenSym, ParamModel model, StateStorage<State> states) throws PrismException
 	{
-		boolean isNonDet = modelType == ModelType.MDP;
+		boolean isNonDet = modelGenSym.getModelType().nondeterministic();
 		int numStates = 0;
 		int numTotalChoices = 0;
 		int numTotalSuccessors = 0;
 
 		LinkedList<State> explore = new LinkedList<State>();
 
-		State state = modulesFile.getDefaultInitialState();
+		State state = modelGenSym.getInitialState();
 		states.add(state);
 		explore.add(state);
 		numStates++;
 
 		while (!explore.isEmpty()) {
 			state = explore.removeFirst();
-			TransitionList tranlist = engine.calculateTransitions(state, true);  // Suppress warnings
-			int numChoices = tranlist.getNumChoices();
+			modelGenSym.exploreState(state);
+			int numChoices = modelGenSym.getNumChoices();
 			if (isNonDet) {
 				numTotalChoices += numChoices;
 			} else {
 				numTotalChoices += 1;
 			}
 			for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
-				int numSuccessors = tranlist.getChoice(choiceNr).size();
+				int numSuccessors = modelGenSym.getNumTransitions(choiceNr);
 				numTotalSuccessors += numSuccessors;
 				for (int succNr = 0; succNr < numSuccessors; succNr++) {
-					State stateNew = tranlist.getChoice(choiceNr).computeTarget(succNr, state);
+					State stateNew = modelGenSym.computeTransitionTarget(choiceNr, succNr); 
 					if (states.add(stateNew)) {
 						numStates++;
 						explore.add(stateNew);
@@ -359,11 +322,11 @@ public final class ModelBuilder extends PrismComponent
 	 * @return parametric model constructed
 	 * @throws PrismException thrown if model cannot be constructed
 	 */
-	private ParamModel constructModel(ModulesFile modulesFile) throws PrismException
+	private ParamModel doModelConstruction(ModelGeneratorSymbolic modelGenSym) throws PrismException
 	{
 		ModelType modelType;
 
-		if (modulesFile.getInitialStates() != null) {
+		if (!modelGenSym.hasSingleInitialState()) {
 			throw new PrismNotSupportedException("Cannot do explicit-state reachability if there are multiple initial states");
 		}
 
@@ -372,45 +335,38 @@ public final class ModelBuilder extends PrismComponent
 		mainLog.print("\nComputing reachable states...");
 		mainLog.flush();
 		long timer = System.currentTimeMillis();
-		modelType = modulesFile.getModelType();
+		modelType = modelGenSym.getModelType();
 		ParamModel model = new ParamModel();
 		model.setModelType(modelType);
 		if (modelType != ModelType.DTMC && modelType != ModelType.CTMC && modelType != ModelType.MDP) {
 			throw new PrismNotSupportedException("Unsupported model type: " + modelType);
 		}
-		SymbolicEngine engine = new SymbolicEngine(modulesFile, this, functionFactory);
-
-		if (modulesFile.getInitialStates() != null) {
-			throw new PrismNotSupportedException("Explicit model construction does not support multiple initial states");
-		}
+		// need? SymbolicEngine engine = new SymbolicEngine(modulesFile, this, functionFactory);
 
 		boolean isNonDet = modelType == ModelType.MDP;
 		boolean isContinuous = modelType == ModelType.CTMC;
 		StateStorage<State> states = new IndexedSet<State>(true);
-		reserveMemoryAndExploreStates(modulesFile, model, modelType, engine, states);
+		reserveMemoryAndExploreStates(modelGenSym, model, states);
 		int[] permut = states.buildSortingPermutation();
 		List<State> statesList = states.toPermutedArrayList(permut);
 		model.setStatesList(statesList);
 		model.addInitialState(permut[0]);
 		int stateNr = 0;
 		for (State state : statesList) {
-			TransitionList tranlist = engine.calculateTransitions(state, false);
-			int numChoices = tranlist.getNumChoices();
-
+			modelGenSym.exploreState(state);
+			int numChoices = modelGenSym.getNumChoices();
 			boolean computeSumOut = !isNonDet;
 			boolean checkChoiceSumEqualsOne = doProbChecks && model.getModelType().choicesSumToOne();
 
 			// sumOut = the sum over all outgoing choices from this state
 			Function sumOut = functionFactory.getZero();
 			for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
-				ChoiceListFlexi choice = tranlist.getChoice(choiceNr);
-				int numSuccessors = choice.size();
+				int numSuccessors = modelGenSym.getNumTransitions(choiceNr);
 
 				// sumOutForChoice = the sum over all outgoing transitions for this choice
 				Function sumOutForChoice = functionFactory.getZero();
 				for (int succNr = 0; succNr < numSuccessors; succNr++) {
-					ChoiceListFlexi succ = tranlist.getChoice(choiceNr);
-					Function probFunc = succ.getProbability(succNr);
+					Function probFunc = modelGenSym.getTransitionProbabilityFunction(choiceNr, succNr);
 					if (computeSumOut)
 						sumOut = sumOut.add(probFunc);
 					if (checkChoiceSumEqualsOne)
@@ -421,9 +377,9 @@ public final class ModelBuilder extends PrismComponent
 						if (sumOutForChoice.isConstant()) {
 							// as the sum is constant, we know that it is really not 1
 							throw new PrismLangException("Probabilities sum to " + sumOutForChoice.asBigRational() + " instead of 1 in state "
-									+ state.toString(modulesFile) + " for some command");
+									+ state.toString(modelGenSym) + " for some command");
 						} else {
-							throw new PrismLangException("In state " + state.toString(modulesFile) + " the probabilities sum to "
+							throw new PrismLangException("In state " + state.toString(modelGenSym) + " the probabilities sum to "
 									+ sumOutForChoice + " for some command, which can not be determined to be equal to 1 (to ignore, use -noprobchecks option)");
 						}
 					}
@@ -435,20 +391,17 @@ public final class ModelBuilder extends PrismComponent
 				sumOut = functionFactory.getOne();
 			}
 			for (int choiceNr = 0; choiceNr < numChoices; choiceNr++) {
-				ChoiceListFlexi choice = tranlist.getChoice(choiceNr);
-				int a = tranlist.getTransitionModuleOrActionIndex(tranlist.getTotalIndexOfTransition(choiceNr, 0));
-				String action = a < 0 ? null : modulesFile.getSynch(a - 1);
-				int numSuccessors = choice.size();
+				Object action = modelGenSym.getChoiceAction(choiceNr);
+				int numSuccessors = modelGenSym.getNumTransitions(choiceNr);
 				for (int succNr = 0; succNr < numSuccessors; succNr++) {
-					ChoiceListFlexi succ = tranlist.getChoice(choiceNr);
-					State stateNew = succ.computeTarget(succNr, state);
-					Function probFn = succ.getProbability(succNr);
+					State stateNew = modelGenSym.computeTransitionTarget(choiceNr, succNr);
+					Function probFn = modelGenSym.getTransitionProbabilityFunction(choiceNr, succNr);
 					// divide by sumOut
 					// for DTMC, this normalises over the choices
 					// for CTMC this builds the embedded DTMC
 					// for MDP this does nothing (sumOut is set to 1)
 					probFn = probFn.divide(sumOut);
-					model.addTransition(permut[states.get(stateNew)], probFn, action);
+					model.addTransition(permut[states.get(stateNew)], probFn, action == null ? "" : action.toString());
 				}
 				if (isNonDet) {
 					model.setSumLeaving(isContinuous ? sumOut : functionFactory.getOne());

@@ -29,14 +29,18 @@ package prism;
 
 import java.util.List;
 
+import param.Function;
+import param.FunctionFactory;
+import param.ModelBuilder;
 import parser.State;
+import parser.ast.Expression;
 
 /**
  * Interface for classes that generate a probabilistic model:
  * given a particular model state (represented as a State object),
  * they provide information about the outgoing transitions from that state.
  */
-public interface ModelGenerator extends ModelInfo
+public interface ModelGeneratorSymbolic extends ModelInfo
 {
 	/**
 	 * Does the model have a single initial state?
@@ -130,12 +134,6 @@ public interface ModelGenerator extends ModelInfo
 	public State computeTransitionTarget(int i, int offset) throws PrismException;
 	
 	/**
-	 * Get (the number of) the player owning choice i. Returns -1 if unknown.
-	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
-	 */
-    public int getPlayerNumberForChoice(int i) throws PrismException;
-    
-	/**
 	 * Is label {@code label} true in the state currently being explored?
 	 * @param label The name of the label to check 
 	 */
@@ -148,22 +146,28 @@ public interface ModelGenerator extends ModelInfo
 	public boolean isLabelTrue(int i) throws PrismException;
 	
 	/**
-	 * Get the state reward of the {@code r}th reward structure for state {@code state}
-	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
+	 * Get the state reward of the {@code r}th reward structure for state {@code state}.
 	 * @param r The index of the reward structure to use
 	 * @param state The state in which to evaluate the rewards 
 	 */
 	public double getStateReward(int r, State state) throws PrismException;
 	
 	/**
-	 * Get the state-action reward of the {@code r}th reward structure for state {@code state} and action {@code action}
-	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * If a reward structure has no transition rewards, you can indicate this by implementing
-	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
-	 * and/or allow use of algorithms/implementations that do not support transition rewards rewards.
+	 * Get the state-action reward of the {@code r}th reward structure for state {@code state}
+	 * and action {@code action{.
 	 * @param r The index of the reward structure to use
 	 * @param state The state in which to evaluate the rewards 
 	 * @param action The outgoing action label 
 	 */
 	public double getStateActionReward(int r, State state, Object action) throws PrismException;
+	
+	// Extra methods for symbolic interface (bit of a hack for now:
+	// we assume some methods do not need to be implemented, e.g. getTransitionProbability,
+	// and and some new ones to replace them, e.g. getTransitionProbabilityFunction
+	
+	public void setSymbolic(ModelBuilder modelBuilder, FunctionFactory functionFactory);
+	
+	public Expression getUnknownConstantDefinition(String name) throws PrismException;
+
+	public Function getTransitionProbabilityFunction(int i, int offset) throws PrismException;
 }

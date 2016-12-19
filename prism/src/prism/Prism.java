@@ -50,6 +50,7 @@ import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
 import param.ModelBuilder;
+import param.ParamModel;
 import param.ParamModelChecker;
 import param.ParamResult;
 import parser.ExplicitFiles2ModulesFile;
@@ -69,6 +70,7 @@ import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
 import simulator.ModulesFileModelGenerator;
+import simulator.ModulesFileModelGeneratorSymbolic;
 import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
@@ -1727,8 +1729,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
-		currentModel = null;
-		currentModelExpl = null;
 
 		// Print basic model info
 		mainLog.println("\nType:        " + currentModulesFile.getModelType());
@@ -1803,8 +1803,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModelGenerator == null ? null : currentModelGenerator.getModelType();
 		currentModelInfo = currentModelGenerator;
 		currentDefinedMFConstants = null;
-		currentModel = null;
-		currentModelExpl = null;
 
 		// Print basic model info
 		mainLog.println("\nGenerator:   " + currentModelGenerator.getClass().getName());
@@ -1835,9 +1833,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (currentModelGenerator != null) {
 			currentModelGenerator.setSomeUndefinedConstants(definedMFConstants);
 		}
-		// Reset dependent info
-		currentModel = null;
-		currentModelExpl = null;
 
 		// If required, export parsed PRISM model, with constants expanded
 		if (exportPrismConst) {
@@ -1871,7 +1866,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
-		currentModelExpl = null;
 	}
 
 	/**
@@ -1891,7 +1885,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Reset dependent info
 		currentModelType = currentModel == null ? null : currentModel.getModelType();
 		currentDefinedMFConstants = null;
-		currentModelExpl = null;
 	}
 
 	/**
@@ -1921,8 +1914,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
-		currentModel = null;
-		currentModelExpl = null;
 
 		return currentModulesFile;
 	}
@@ -3060,8 +3051,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				currentModelType = ModelType.MDP;
 				currentModelGenerator = new ModulesFileModelGenerator(currentModulesFile, this);
 				clearBuiltModel();
-				currentModel = null;
-				currentModelExpl = null;
 				// If required, export generated PRISM model
 				if (exportDigital) {
 					try {
@@ -3245,10 +3234,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		String[] paramUpperBounds = new String[] { "1" };
 		// And execute parameteric model checking
 		param.ModelBuilder builder = new ModelBuilder(this);
-		builder.setModulesFile(currentModulesFile);
-		builder.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		builder.build();
-		explicit.Model modelExpl = builder.getModel();
+		ParamModel modelExpl = builder.constructModel(new ModulesFileModelGeneratorSymbolic(currentModulesFile, this), paramNames, paramLowerBounds, paramUpperBounds);
 		ParamModelChecker mc = new ParamModelChecker(this);
 		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
@@ -3304,10 +3290,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Property constants: " + definedPFConstants);
 
 		param.ModelBuilder builder = new ModelBuilder(this);
-		builder.setModulesFile(currentModulesFile);
-		builder.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		builder.build();
-		explicit.Model modelExpl = builder.getModel();
+		ParamModel modelExpl = builder.constructModel(new ModulesFileModelGeneratorSymbolic(currentModulesFile, this), paramNames, paramLowerBounds, paramUpperBounds);
 		ParamModelChecker mc = new ParamModelChecker(this);
 		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
@@ -3776,13 +3759,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Clear the built model if needed (free/deallocate memory etc)
+	 * <br>
+	 * Resets {@code currentModel} and {@code currentModelExpl} to {@code null}.
 	 */
 	private void clearBuiltModel()
 	{
-		if (currentModel != null)
+		if (currentModel != null) {
 			currentModel.clear();
-		/*if (currentModelExpl != null)
-			currentModelExpl.clear();*/
+			currentModel = null;
+		}
+		currentModelExpl = null;
 
 		// nullify the strategy
 		strategy = null;

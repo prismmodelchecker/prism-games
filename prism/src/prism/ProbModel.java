@@ -83,8 +83,8 @@ public class ProbModel implements Model
 	protected JDDVars[] moduleDDColVars; // dd vars for each module (cols)
 	protected JDDVars allDDRowVars; // all dd vars (rows)
 	protected JDDVars allDDColVars; // all dd vars (cols)
-	// names for all dd vars used
-	protected Vector<String> ddVarNames;
+
+	protected ModelVariablesDD modelVariables;
 
 	/**
 	 * A map from label to state set, optionally storing a state set
@@ -390,7 +390,13 @@ public class ProbModel implements Model
 
 	public Vector<String> getDDVarNames()
 	{
-		return ddVarNames;
+		return modelVariables.getDDVarNames();
+	}
+
+	@Override
+	public ModelVariablesDD getModelVariables()
+	{
+		return modelVariables;
 	}
 
 	public ODDNode getODD()
@@ -410,7 +416,7 @@ public class ProbModel implements Model
 
 	// constructor
 
-	public ProbModel(JDDNode tr, JDDNode s, JDDNode sr[], JDDNode trr[], String rsn[], JDDVars arv, JDDVars acv, Vector<String> ddvn, int nm, String[] mn,
+	public ProbModel(JDDNode tr, JDDNode s, JDDNode sr[], JDDNode trr[], String rsn[], JDDVars arv, JDDVars acv, ModelVariablesDD mvdd, int nm, String[] mn,
 			JDDVars[] mrv, JDDVars[] mcv, int nv, VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv)
 	{
 		int i;
@@ -424,7 +430,7 @@ public class ProbModel implements Model
 		rewardStructNames = rsn;
 		allDDRowVars = arv;
 		allDDColVars = acv;
-		ddVarNames = ddvn;
+		modelVariables = mvdd;
 		numModules = nm;
 		moduleNames = mn;
 		moduleDDRowVars = mrv;
@@ -470,6 +476,50 @@ public class ProbModel implements Model
 	{
 		JDDNode old = labelsDD.put(label, labelDD);
 		if (old != null) JDD.Deref(old);
+	}
+
+	/**
+	 * Add a label with corresponding state set, ensuring a unique, non-existing label.
+	 * The label will be either "X" or "X_i" where X is the content of the {@code prefix} argument
+	 * and i is a non-negative integer.
+	 * <br>
+	 * Optionally, a set of defined label names can be passed so that those labels
+	 * can be avoided. This can be obtained from the model checker via {@code getDefinedLabelNames()}.
+	 * <br>
+	 * Note that a stored label takes precedence over the on-the-fly calculation
+	 * of an ExpressionLabel, cf. {@link explicit.StateModelChecker#checkExpressionLabel}
+	 * <br>[ STORES: labelDD, deref on later call to clear() ]
+	 *
+	 * @param prefix the prefix for the unique label
+	 * @param labelDD the JDDNode with the state set for the label
+	 * @param definedLabelNames set of names (optional, may be {@code null}) to check for existing labels
+	 * @return the generated unique label
+	 */
+	public String addUniqueLabelDD(String prefix, JDDNode labelDD, Set<String> definedLabelNames)
+	{
+		String label;
+		int i = 0;
+		label = prefix;  // first, try without appending _i
+		while (true) {
+			boolean labelOk = !hasLabelDD(label);  // not directly attached to model
+			if (definedLabelNames != null) {
+				labelOk &= !definedLabelNames.contains(label);  // not defined
+			}
+
+			if (labelOk) {
+				break;
+			}
+
+			// prepare next label to try
+			label = prefix+"_"+i;
+			if (i == Integer.MAX_VALUE)
+				throw new UnsupportedOperationException("Integer overflow trying to add unique label");
+
+			i++;
+		}
+
+		addLabelDD(label, labelDD);
+		return label;
 	}
 
 	/**
@@ -709,9 +759,9 @@ public class ProbModel implements Model
 			n = allDDRowVars.getNumVars();
 			for (i = 0; i < n; i++) {
 				j = allDDRowVars.getVarIndex(i);
-				log.print(" " + j + ":" + ddVarNames.get(j));
+				log.print(" " + j + ":" + getDDVarNames().get(j));
 				j = allDDColVars.getVarIndex(i);
-				log.print(" " + j + ":" + ddVarNames.get(j));
+				log.print(" " + j + ":" + getDDVarNames().get(j));
 			}
 			log.println();
 			log.print(getTransName() + " terminals: " + JDD.GetTerminalsAndNumbersString(trans, getNumDDVarsInTrans()) + "\n");
@@ -971,6 +1021,9 @@ public class ProbModel implements Model
 			ODDUtils.ClearODD(odd);
 			odd = null;
 		}
+
+		if (modelVariables != null)
+			modelVariables.clear();
 	}
 
 }

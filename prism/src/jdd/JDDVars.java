@@ -26,6 +26,8 @@
 
 package jdd;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -84,7 +86,11 @@ public class JDDVars implements Iterable<JDDNode>
 	/**
 	 * Appends the variables of another JDDVars container to this container.
 	 * Does not increase the refcount of the JDDNodes!
+	 * <br>
+	 * This method is deprecated, better use copy() or copyVarsFrom() instead.
+	 * These simplify variable reference count debugging.
 	 */
+	@Deprecated
 	public void addVars(JDDVars ddv)
 	{
 		vars.addAll(ddv.vars);
@@ -127,6 +133,29 @@ public class JDDVars implements Iterable<JDDNode>
 			result[i] = vararray[i].copy();
 		}
 		return result;
+	}
+
+
+	/**
+	 * Copy JDDNodes from another JDDVars, merge into the existing variables,
+	 * sorting by the variable indices. Afterwards, this JDDVars container
+	 * is fully sorted by variable indices, i.e., the existing variables are
+	 * sorted as well.
+	 * @param ddv the new variables
+	 */
+	public void mergeVarsFrom(JDDVars ddv) {
+		copyVarsFrom(ddv);
+		sortByIndex();
+	}
+
+	/**
+	 * Remove variable v from container. Does not decrease the refcount.
+	 */
+	public void removeVar(JDDNode v)
+	{
+		vars.remove(v);
+		if (arrayBuilt) DDV_FreeArray(array);
+		arrayBuilt = false;
 	}
 
 	/**
@@ -207,7 +236,12 @@ public class JDDVars implements Iterable<JDDNode>
 
 	/**
 	 * Increases the refcount of all contained JDDNodes.
+	 * <br>
+	 * This method is deprecated, please use copy() and
+	 * copyVarsFrom() instead.
+	 * This simplifies reference counting debugging.
 	 */
+	@Deprecated
 	public void refAll()
 	{
 		int i;
@@ -336,6 +370,21 @@ public class JDDVars implements Iterable<JDDNode>
 			result = JDD.And(result, var.copy());
 		}
 		return result;
+	}
+
+	/** Sort the variables in this container by their variable index. */
+	public void sortByIndex()
+	{
+		if (arrayBuilt) DDV_FreeArray(array);
+		arrayBuilt = false;
+
+		Collections.sort(vars, new Comparator<JDDNode>() {
+			@Override
+			public int compare(JDDNode a, JDDNode b)
+			{
+				return new Integer(a.getIndex()).compareTo(b.getIndex());
+			}
+		});
 	}
 }
 

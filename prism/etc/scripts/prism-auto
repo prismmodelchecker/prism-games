@@ -11,13 +11,34 @@
 
 # Run "prism-auto -h" for details of further options.
 
-import os,sys,re,subprocess,signal,tempfile,functools,filecmp,logging,time
+import os,sys,re,subprocess,signal,tempfile,functools,logging,time,platform
 from pipes import quote
 from optparse import OptionParser
 
 #==================================================================================================
 # Utility functions
 #==================================================================================================
+
+# returns true if we are running on Windows
+def isWindows():
+    s = platform.system()
+    return s == 'Windows' or re.match('CYGWIN', s) != None
+
+# compare two files (with filenames f1,f2) for equality
+def compareFiles(f1,f2):
+    # We open the files in 'rU' mode (universal newline mode),
+    # which automatically converts all the different newline
+    # encodings to '\n'.
+    # This allow the two files to differ in their
+    # line ending encodings without affecting equality
+    with open(f1, 'rU') as fp1, open(f2, 'rU') as fp2:
+        while True:
+            s1 = fp1.readline()
+            s2 = fp2.readline()
+            if s1 != s2:  # mismatch
+                return False
+            if s1 == '':  # EOF (in both files)
+                return True
 
 # returns a sorted list of files / directories in dir
 def sortedListDir(dir):
@@ -313,6 +334,8 @@ def walk(dir, meth):
 # Run PRISM with a given list of command-line args
 
 def runPrism(args, dir=""):
+    # keep track if we need to cleanup the log file after use
+    cleanupLogFile = False
     if options.test:
         if options.testAll: args.append("-testall")
         else: args.append("-test")
@@ -341,13 +364,29 @@ def runPrism(args, dir=""):
         prismArgs = prismArgs + ['-mainlog', logFile]
         exitCode = subprocess.Popen(prismArgs).wait()
         #exitCode = subprocess.Popen(prismArgs, cwd=dir, stdout=f).wait()
-    elif options.test:
+    elif options.test or options.ddWarnings:
         f = tempfile.NamedTemporaryFile(delete=False)
         logFile = f.name
-        prismArgs = prismArgs + ['-mainlog', logFile]
-        exitCode = subprocess.Popen(prismArgs).wait()
+        # we want cleanup when we are done, as this is a real temporary file
+        cleanupLogFile = True
+        if isWindows():
+            # On Windows, PRISM can not open a temporary file created with NamedTemporaryFile.
+            # So, we just pass the file to Popen to capture standard output instead of redirecting
+            # with the -mainlog parameter.
+            # Note: This does not work with nailgun, as this requires the use of -mainlog to
+            # capture PRISM's output.
+            exitCode = subprocess.Popen(prismArgs, stdout=f).wait()
+        else:
+            prismArgs = prismArgs + ['-mainlog', logFile]
+            exitCode = subprocess.Popen(prismArgs).wait()
+        f.close()
     else:
         exitCode = subprocess.Popen(prismArgs).wait()
+    # Extract DD reference count warnings
+    if options.ddWarnings:
+        for line in open(logFile, 'r').readlines():
+            if re.match('Warning: CUDD reports .* non-zero references', line):
+                printTestResult(line)
     # Extract test results if needed
     if options.test:
         for line in open(logFile, 'r').readlines():
@@ -356,6 +395,9 @@ def runPrism(args, dir=""):
             if options.showWarnings and re.match('Warning:', line):
                 printTestResult(line)
     if options.test and exitCode != 0:
+        # failure, we don't want to cleanup the log (if it was a temporary file)
+        # so that the user can inspect it
+        cleanupLogFile = False
         for line in open(logFile, 'r').readlines():
             if re.match('Error:', line):
                 printTestResult(line)
@@ -363,6 +405,9 @@ def runPrism(args, dir=""):
         print("edit " + logFile)
         if not options.testAll:
             closeDown(1)
+    if cleanupLogFile:
+        # logFile was a temporary file and we'd like to clean it up
+        os.remove(logFile)
 
 # Print a testing-related message, colour coding if needed
 
@@ -374,6 +419,8 @@ def printTestResult(msg):
     # Coloured-coded...
     if 'Error:' in msg or 'FAIL' in msg:
         print('\033[31m' + msg + '\033[0m')
+    elif 'Warning:' in msg:
+         print('\033[31;1m' + msg + '\033[0m')
     elif 'PASS' in msg:
         print('\033[32m' + msg + '\033[0m')
     elif 'SKIPPED' in msg or 'NOT TESTED' in msg:
@@ -408,7 +455,7 @@ def verifyAndCleanupExports(outFiles, exportPrefix):
             if options.noExportTests:
                 msg = msg + "SKIPPED"
                 os.remove(expFile)
-            elif filecmp.cmp(outFile, expFile):
+            elif compareFiles(outFile, expFile):
                 # If successful, notify and delete exported file
                 msg = msg + "PASS"
                 os.remove(expFile)
@@ -673,6 +720,7 @@ parser.add_option("--debug", action="store_true", dest="debug", default=False, h
 parser.add_option("--echo-full", action="store_true", dest="echoFull", default=False, help="An expanded version of -e/--echo")
 parser.add_option("--models-filename", dest="modelsFilename", metavar="X", default="models", help="Read in list of models/parameters for a directory from file X, if present [default=models]")
 parser.add_option("--no-export-tests", action="store_true", dest="noExportTests", default=False, help="Don't check exported files when in test mode")
+parser.add_option("--dd-warnings", action="store_true", dest="ddWarnings", default=False, help="Print the DD reference count warnings")
 parser.add_option("--colour", dest="colourEnabled", metavar="X", type="choice", choices=["yes","no","auto"], default="auto", help="Whether to colour test results: yes, no, auto (yes iff in terminal mode) [default=auto]")
 (options, args) = parser.parse_args()
 if len(args) < 1:
@@ -684,6 +732,9 @@ if options.logDir and not os.path.isdir(options.logDir):
     print("Log directory \"" + options.logDir + "\" does not exist")
     sys.exit(1)
 if options.nailgun:
+    if isWindows():
+        print("Using nailgun on Windows is currently not supported")
+        sys.exit(1)
     if options.echo or options.echoFull:
         print(options.prismExec + " -ng &")
     else:

@@ -29,6 +29,8 @@ package prism;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import mtbdd.PrismMTBDD;
 import dv.DoubleVector;
@@ -987,8 +989,10 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			return new StateValuesMTBDD(dd.copy(), model);
 		} else {
 			// get expression associated with label
-			ll = propertiesFile.getCombinedLabelList();
-			i = ll.getLabelIndex(expr.getName());
+			ll = getLabelList();
+			i = -1;
+			if (ll != null)
+				i = ll.getLabelIndex(expr.getName());
 			if (i == -1)
 				throw new PrismException("Unknown label \"" + expr.getName() + "\" in property");
 			// check recursively
@@ -1418,7 +1422,38 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 	{
 		return constantValues;
 	}
-	
+
+	/**
+	 * Get the label list (combined list from properties file, if attached).
+	 * @return the label list for the properties/modules file, or {@code null} if not available.
+	 */
+	public LabelList getLabelList()
+	{
+		if (propertiesFile != null) {
+			return propertiesFile.getCombinedLabelList(); // combined list from properties and modules file
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Return the set of label names that are defined
+	 * either by the model (from the modules file)
+	 * or properties file (if attached to the model checker).
+	 */
+	public Set<String> getDefinedLabelNames()
+	{
+		TreeSet<String> definedLabelNames = new TreeSet<String>();
+
+		// labels from the label list
+		LabelList labelList = getLabelList();
+		if (labelList != null) {
+			definedLabelNames.addAll(labelList.getLabelNames());
+		}
+
+		return definedLabelNames;
+	}
+
 	/**
 	 * Export a set of labels and the states that satisfy them.
 	 * @param labelNames The name of each label
