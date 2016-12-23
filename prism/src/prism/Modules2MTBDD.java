@@ -346,6 +346,8 @@ public class Modules2MTBDD
 		case 1:
 		// ordering: (a ... a) (s ... s) (l ... l) (r c ... r c)
 		
+			modelVariables.preallocateExtraActionVariables(prism.getSettings().getInteger(PrismSettings.PRISM_DD_EXTRA_ACTION_VARS));
+
 			// create arrays/etc. first
 			
 			// nondeterministic variables
@@ -398,9 +400,9 @@ public class Modules2MTBDD
 			}
 			
 			// create a gap in the dd variables
-			// this allows to prepend additionl row/col vars, e.g. for constructing
+			// this allows to prepend additional row/col vars, e.g. for constructing
 			// a product model when doing LTL model checking
-			modelVariables.preallocateExtraStateVariables(20);
+			modelVariables.preallocateExtraStateVariables(prism.getSettings().getInteger(PrismSettings.PRISM_DD_EXTRA_STATE_VARS));
 
 			
 			// allocate dd variables for module variables (i.e. rows/cols)
@@ -424,6 +426,8 @@ public class Modules2MTBDD
 		case 2:
 		// ordering: (a ... a) (l ... l) (s r c ... r c) (s r c ... r c) ...
 	
+			modelVariables.preallocateExtraActionVariables(prism.getSettings().getInteger(PrismSettings.PRISM_DD_EXTRA_ACTION_VARS));
+
 			// create arrays/etc. first
 			
 			// nondeterministic variables
@@ -463,7 +467,13 @@ public class Modules2MTBDD
 					ddChoiceVars[i] = modelVariables.allocateVariable("l" + i);
 				}
 			}
-			
+
+			// TODO: For the other variable order (-o1, used for sparse/hybrid by default,
+			// see above), we preallocate a certain number of state variables.
+			// For consistency, it would make sense to do the same here. However,
+			// we should first do some testing to see if this negatively impacts
+			// performance.
+
 			// go through all vars in order (incl. global variables)
 			// so overall ordering can be specified by ordering in the input file
 			// use 'last' to detect when starting a new module
