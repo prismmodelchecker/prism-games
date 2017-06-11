@@ -1100,6 +1100,17 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	 */
 	private void checkPlayerDefns() throws PrismLangException
 	{
+		// First make sure player info is present for games (and not for others)
+		if (modelType.multiplePlayers()) {
+			if (players.isEmpty()) {
+				throw new PrismLangException(modelType + " model has no player definitions");
+			}
+		} else {
+			if (!players.isEmpty()) {
+				throw new PrismLangException("Player definitions not allowed for " + modelType + " models", players.get(0));
+			}
+		}
+		
 		List<String> modulesUsed = new ArrayList<String>();
 		List<String> actionsUsed = new ArrayList<String>();
 		for (Player player : players) {
