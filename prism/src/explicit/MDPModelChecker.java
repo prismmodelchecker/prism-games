@@ -33,7 +33,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
+import common.IterableStateSet;
+import common.StopWatch;
 import parser.VarList;
 import parser.ast.Declaration;
 import parser.ast.DeclarationIntUnbounded;
@@ -44,12 +47,15 @@ import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import strat.MDStrategyArray;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
+import automata.DA;
+import automata.LTL2WDBA;
 import common.IterableBitSet;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MCRewardsFromMDPRewards;
@@ -165,16 +171,20 @@ public class MDPModelChecker extends ProbModelChecker
 		// For LTL model checking routines
 		mcLtl = new LTLModelChecker(this);
 
-		// Build product of MDP and automaton
-		AcceptanceType[] allowedAcceptance = {
-				AcceptanceType.RABIN,
-				AcceptanceType.REACH
-		};
-		product = mcLtl.constructProductMDP(this, (MDP)model, expr, statesOfInterest, allowedAcceptance);
-		
+		// Model check maximal state formulas and construct DFA, with the special
+		// handling needed for cosafety reward translation
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet, AcceptanceReach> da = mcLtl.constructDFAForCosafetyRewardLTL(this, model, expr, labelBS);
+
+		StopWatch timer = new StopWatch(getLog());
+		mainLog.println("\nConstructing " + model.getModelType() + "-" + da.getAutomataType() + " product...");
+		timer.start(model.getModelType() + "-" + da.getAutomataType() + " product");
+		product = mcLtl.constructProductModel(da, (MDP)model, labelBS, statesOfInterest);
+		timer.stop("product has " + product.getProductModel().infoString());
+
 		// Adapt reward info to product model
 		productRewards = ((MDPRewards) modelRewards).liftFromModel(product);
-		
+
 		// Output product, if required
 		if (getExportProductTrans()) {
 				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
@@ -192,24 +202,16 @@ public class MDPModelChecker extends ProbModelChecker
 			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
 			out.close();
 		}
-		
+
 		// Find accepting states + compute reachability rewards
-		BitSet acc;
-		if (product.getAcceptance() instanceof AcceptanceReach) {
-			// For a DFA, just collect the accept states
-			mainLog.println("\nSkipping end component detection since DRA is a DFA...");
-			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
-		} else {
-			// Usually, we have to detect end components in the product
-			mainLog.println("\nFinding accepting end components...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
-		}
+		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
+
 		mainLog.println("\nComputing reachability rewards...");
 		mcProduct = new MDPModelChecker(this);
 		mcProduct.inheritSettings(this);
-		ModelCheckerResult res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, minMax.isMin());
+		ModelCheckerResult res = mcProduct.computeReachRewards((MDP)product.getProductModel(), productRewards, acc, minMax.isMin());
 		rewardsProduct = StateValues.createFromDoubleArray(res.soln, product.getProductModel());
-		
+
 		// Output vector over product, if required
 		if (getExportProductVector()) {
 				mainLog.println("\nExporting product solution vector matrix to file \"" + getExportProductVectorFilename() + "\"...");
@@ -217,11 +219,11 @@ public class MDPModelChecker extends ProbModelChecker
 				rewardsProduct.print(out, false, false, false, false);
 				out.close();
 		}
-		
+
 		// Mapping rewards in the original model
 		rewards = product.projectToOriginalModel(rewardsProduct);
 		rewardsProduct.clear();
-		
+
 		return rewards;
 	}
 	
@@ -1295,6 +1297,181 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Compute expected instantaneous reward,
+	 * i.e. compute the min/max expected reward of the states after {@code k} steps.
+	 * @param mdp The MDP
+	 * @param mdpRewards The rewards
+	 * @param k the number of steps
+	 * @param min Min or max rewards (true=min, false=max)
+	 */
+	public ModelCheckerResult computeInstantaneousRewards(MDP mdp, MDPRewards mdpRewards, final int k, boolean min)
+	{
+		ModelCheckerResult res = null;
+		int i, n, iters;
+		double soln[], soln2[], tmpsoln[];
+		long timer;
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		// Start backwards transient computation
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting backwards instantaneous rewards computation...");
+
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = mdpRewards.getStateReward(i);
+
+		// Start iterations
+		for (iters = 0; iters < k; iters++) {
+			// Matrix-vector multiply
+			mdp.mvMultMinMax(soln, min, soln2, null, false, null);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished backwards transient computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Backwards transient instantaneous rewards computation");
+		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.lastSoln = soln2;
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		res.timePre = 0.0;
+		return res;
+	}
+
+	/**
+	 * Compute total expected rewards.
+	 * @param mdp The MDP
+	 * @param mdpRewards The rewards
+	 * @param min Min or max rewards (true=min, false=max)
+	 */
+	public ModelCheckerResult computeTotalRewards(MDP mdp, MDPRewards mdpRewards, boolean min) throws PrismException
+	{
+		if (min) {
+			throw new PrismNotSupportedException("Minimum total expected reward not supported in explicit engine");
+		} else {
+			// max. We don't know if there are positive ECs, so we can't skip precomputation
+			return computeTotalRewardsMax(mdp, mdpRewards, false);
+		}
+	}
+
+	/**
+	 * Compute maximal total expected rewards.
+	 * @param mdp The MDP
+	 * @param mdpRewards The rewards
+	 * @param noPositiveECs if true, there are no positive ECs, i.e., all states have finite values (skip precomputation)
+	 */
+	public ModelCheckerResult computeTotalRewardsMax(MDP mdp, MDPRewards mdpRewards, boolean noPositiveECs) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		int n;
+		long timer;
+		BitSet inf;
+
+		// Local copy of setting
+		MDPSolnMethod mdpSolnMethod = this.mdpSolnMethod;
+
+		// Switch to a supported method, if necessary
+		if (!(mdpSolnMethod == MDPSolnMethod.VALUE_ITERATION || mdpSolnMethod == MDPSolnMethod.GAUSS_SEIDEL || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION)) {
+			mdpSolnMethod = MDPSolnMethod.GAUSS_SEIDEL;
+			mainLog.printWarning("Switching to MDP solution method \"" + mdpSolnMethod.fullName() + "\"");
+		}
+
+		// Start expected total reward
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total expected reward (max)...");
+
+		// Store num states
+		n = mdp.getNumStates();
+
+		long timerPre;
+
+		if (noPositiveECs) {
+			// no inf states
+			inf = new BitSet();
+			timerPre = 0;
+		} else {
+			mainLog.println("Precomputation: Find positive end components...");
+
+			timerPre = System.currentTimeMillis();
+
+			ECComputer ecs = ECComputer.createECComputer(this, mdp);
+			ecs.computeMECStates();
+			BitSet positiveECs = new BitSet();
+			for (BitSet ec : ecs.getMECStates()) {
+				// check if this MEC is positive
+				boolean positiveEC = false;
+				for (int state : new IterableStateSet(ec, n)) {
+					if (mdpRewards.getStateReward(state) > 0) {
+						// state with positive reward in this MEC
+						positiveEC = true;
+						break;
+					}
+					for (int choice = 0, numChoices = mdp.getNumChoices(state); choice < numChoices; choice++) {
+						if (mdpRewards.getTransitionReward(state, choice) > 0 &&
+								mdp.allSuccessorsInSet(state, choice, ec)) {
+							// choice from this state with positive reward back into this MEC
+							positiveEC = true;
+							break;
+						}
+					}
+				}
+				if (positiveEC) {
+					positiveECs.or(ec);
+				}
+			}
+
+			// inf = Pmax[ <> positiveECs ] > 0
+			//     = ! (Pmax[ <> positiveECs ] = 0)
+			inf = prob0(mdp, null, positiveECs, false, null);  // Pmax[ <> positiveECs ] = 0
+			inf.flip(0,n);  // !(Pmax[ <> positive ECs ] = 0) = Pmax[ <> positiveECs ] > 0
+
+			timerPre = System.currentTimeMillis() - timerPre;
+			mainLog.println("Precomputation took " + timerPre / 1000.0 + " seconds, " + inf.cardinality() + " infinite states, " + (n - inf.cardinality()) + " states remaining.");
+		}
+
+		// Compute rewards
+		// do standard max reward calculation, but with empty target set
+		switch (mdpSolnMethod) {
+		case VALUE_ITERATION:
+			res = computeReachRewardsValIter(mdp, mdpRewards, new BitSet(), inf, false, null, null, null);
+			break;
+		case GAUSS_SEIDEL:
+			res = computeReachRewardsGaussSeidel(mdp, mdpRewards, new BitSet(), inf, false, null, null, null);
+			break;
+		case POLICY_ITERATION:
+			res = computeReachRewardsPolIter(mdp, mdpRewards, new BitSet(), inf, false, null);
+			break;
+		default:
+			throw new PrismException("Unknown MDP solution method " + mdpSolnMethod.fullName());
+		}
+
+		// Finished expected total reward
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Expected total reward took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timePre = timerPre / 1000.0;
+
+		// Return results
+		return res;
+	}
+
+
+	/**
 	 * Compute expected reachability rewards.
 	 * @param mdp The MDP
 	 * @param mdpRewards The rewards
@@ -1836,4 +2013,5 @@ public class MDPModelChecker extends ProbModelChecker
 			System.out.println(e);
 		}
 	}
+
 }

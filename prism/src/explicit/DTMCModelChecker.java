@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import parser.VarList;
 import parser.ast.Declaration;
@@ -40,11 +41,13 @@ import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
-import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
+import automata.DA;
 import common.IterableBitSet;
+import common.StopWatch;
+import explicit.LTLModelChecker.LTLProduct;
 import explicit.rewards.MCRewards;
 import explicit.rewards.Rewards;
 
@@ -78,6 +81,8 @@ public class DTMCModelChecker extends ProbModelChecker
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
 				AcceptanceType.REACH,
+				AcceptanceType.BUCHI,
+				AcceptanceType.STREETT,
 				AcceptanceType.GENERIC
 		};
 		product = mcLtl.constructProductMC(this, (DTMC)model, expr, statesOfInterest, allowedAcceptance);
@@ -139,21 +144,25 @@ public class DTMCModelChecker extends ProbModelChecker
 		MCRewards productRewards;
 		StateValues rewardsProduct, rewards;
 		DTMCModelChecker mcProduct;
-		LTLModelChecker.LTLProduct<DTMC> product;
+		LTLProduct<DTMC> product;
 
 		// For LTL model checking routines
 		mcLtl = new LTLModelChecker(this);
 
-		// Build product of Markov chain and automaton
-		AcceptanceType[] allowedAcceptance = {
-				AcceptanceType.RABIN,
-				AcceptanceType.REACH
-		};
-		product = mcLtl.constructProductMC(this, (DTMC)model, expr, statesOfInterest, allowedAcceptance);
-		
+		// Model check maximal state formulas and construct DFA, with the special
+		// handling needed for cosafety reward translation
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet, AcceptanceReach> da = mcLtl.constructDFAForCosafetyRewardLTL(this, model, expr, labelBS);
+
+		StopWatch timer = new StopWatch(mainLog);
+		mainLog.println("\nConstructing " + model.getModelType() + "-" + da.getAutomataType() + " product...");
+		timer.start(model.getModelType() + "-" + da.getAutomataType() + " product");
+		product = mcLtl.constructProductModel(da, (DTMC)model, labelBS, statesOfInterest);
+		timer.stop("product has " + product.getProductModel().infoString());
+
 		// Adapt reward info to product model
 		productRewards = ((MCRewards) modelRewards).liftFromModel(product);
-		
+
 		// Output product, if required
 		if (getExportProductTrans()) {
 				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
@@ -171,22 +180,16 @@ public class DTMCModelChecker extends ProbModelChecker
 			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
 			out.close();
 		}
-		
+
 		// Find accepting states + compute reachability rewards
-		BitSet acc;
-		if (product.getAcceptance() instanceof AcceptanceReach) {
-			mainLog.println("\nSkipping BSCC computation since acceptance is defined via goal states...");
-			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
-		} else {
-			mainLog.println("\nFinding accepting BSCCs...");
-			acc = mcLtl.findAcceptingBSCCs(product.getProductModel(), product.getAcceptance());
-		}
-		mainLog.println("\nComputing reachability probabilities...");
+		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
+
+		mainLog.println("\nComputing reachability rewards...");
 		mcProduct = new DTMCModelChecker(this);
 		mcProduct.inheritSettings(this);
-		ModelCheckerResult res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc);
+		ModelCheckerResult res = mcProduct.computeReachRewards((DTMC)product.getProductModel(), productRewards, acc);
 		rewardsProduct = StateValues.createFromDoubleArray(res.soln, product.getProductModel());
-		
+
 		// Output vector over product, if required
 		if (getExportProductVector()) {
 				mainLog.println("\nExporting product solution vector matrix to file \"" + getExportProductVectorFilename() + "\"...");
@@ -194,21 +197,29 @@ public class DTMCModelChecker extends ProbModelChecker
 				rewardsProduct.print(out, false, false, false, false);
 				out.close();
 		}
-		
+
 		// Mapping rewards in the original model
 		rewards = product.projectToOriginalModel(rewardsProduct);
 		rewardsProduct.clear();
-		
+
 		return rewards;
 	}
 	
-	public ModelCheckerResult computeInstantaneousRewards(DTMC dtmc, MCRewards mcRewards, double t) throws PrismException
+	public ModelCheckerResult computeInstantaneousRewards(DTMC dtmc, MCRewards mcRewards, int k, BitSet statesOfInterest) throws PrismException
+	{
+		if (statesOfInterest.cardinality() == 1) {
+			return computeInstantaneousRewardsForwards(dtmc, mcRewards, k, statesOfInterest.nextSetBit(0));
+		} else {
+			return computeInstantaneousRewardsBackwards(dtmc, mcRewards, k);
+		}
+	}
+	
+	public ModelCheckerResult computeInstantaneousRewardsBackwards(DTMC dtmc, MCRewards mcRewards, int k) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
-		int right = (int) t;
 
 		// Store num states
 		n = dtmc.getNumStates();
@@ -226,7 +237,7 @@ public class DTMCModelChecker extends ProbModelChecker
 			soln[i] = mcRewards.getStateReward(i);
 
 		// Start iterations
-		for (iters = 0; iters < right; iters++) {
+		for (iters = 0; iters < k; iters++) {
 			// Matrix-vector multiply
 			dtmc.mvMult(soln, soln2, null, false);
 			// Swap vectors for next iter
@@ -250,6 +261,31 @@ public class DTMCModelChecker extends ProbModelChecker
 		return res;
 	}
 
+	public ModelCheckerResult computeInstantaneousRewardsForwards(DTMC dtmc, MCRewards mcRewards, int k, int stateOfInterest) throws PrismException
+	{
+		// Build a point probability distribution for the required state  
+		double[] initDist = new double[dtmc.getNumStates()];
+		initDist[stateOfInterest] = 1.0;
+		
+		// Compute (forward) transient probabilities
+		ModelCheckerResult res = computeTransientProbs(dtmc, k, initDist);
+		
+		// Compute expected value (from initial state)
+		int n = dtmc.getNumStates();
+		double avg = 0.0;
+		for (int i = 0; i < n; i++) {
+			avg += res.soln[i] *= mcRewards.getStateReward(i);
+		}
+
+		// Reuse vector/result storage
+		for (int i = 0; i < n; i++) {
+			res.soln[i] = 0.0;
+		}
+		res.soln[stateOfInterest] = avg;
+		
+		return res;
+	}
+	
 	public ModelCheckerResult computeCumulativeRewards(DTMC dtmc, MCRewards mcRewards, double t) throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -336,7 +372,15 @@ public class DTMCModelChecker extends ProbModelChecker
 		mainLog.print("States in non-zero reward BSCCs: " + bsccsNonZero.cardinality());
 		
 		// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0)
-		BitSet inf = prob0(dtmc, null, bsccsNonZero);
+		BitSet inf;
+		if (preRel) {
+			// prob0 using predecessor relation
+			PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
+			inf = prob0(dtmc, null, bsccsNonZero, pre);
+		} else {
+			// prob0 using fixed point algorithm
+			inf = prob0(dtmc, null, bsccsNonZero);
+		}
 		inf.flip(0, n);
 		int numInf = inf.cardinality();
 		mainLog.println(", inf=" + numInf + ", maybe=" + (n - numInf));
@@ -400,6 +444,29 @@ public class DTMCModelChecker extends ProbModelChecker
 
 	/**
 	 * Compute transient probability distribution (forwards).
+	 * Start from initial state (or uniform distribution over multiple initial states).
+	 */
+	public StateValues doTransient(DTMC dtmc, int k) throws PrismException
+	{
+		return doTransient(dtmc, k, (StateValues) null);
+	}
+
+	/**
+	 * Compute transient probability distribution (forwards).
+	 * Optionally, use the passed in file initDistFile to give the initial probability distribution (time 0).
+	 * If null, start from initial state (or uniform distribution over multiple initial states).
+	 * @param dtmc The DTMC
+	 * @param k Time step
+	 * @param initDistFile File containing initial distribution
+	 */
+	public StateValues doTransient(DTMC dtmc, int k, File initDistFile) throws PrismException
+	{
+		StateValues initDist = readDistributionFromFile(initDistFile, dtmc);
+		return doTransient(dtmc, k, initDist);
+	}
+
+	/**
+	 * Compute transient probability distribution (forwards).
 	 * Optionally, use the passed in vector initDist as the initial probability distribution (time step 0).
 	 * If null, start from initial state (or uniform distribution over multiple initial states).
 	 * For reasons of efficiency, when a vector is passed in, it will be trampled over,
@@ -408,9 +475,11 @@ public class DTMCModelChecker extends ProbModelChecker
 	 * @param k Time step
 	 * @param initDist Initial distribution (will be overwritten)
 	 */
-	public StateValues doTransient(DTMC dtmc, int k, double initDist[]) throws PrismException
+	public StateValues doTransient(DTMC dtmc, int k, StateValues initDist) throws PrismException
 	{
-		throw new PrismNotSupportedException("Not implemented yet");
+		StateValues initDistNew = (initDist == null) ? buildInitialDistribution(dtmc) : initDist;
+		ModelCheckerResult res = computeTransientProbs(dtmc, k, initDistNew.getDoubleArray());
+		return StateValues.createFromDoubleArray(res.soln, dtmc);
 	}
 
 	// Numerical computation functions
@@ -1212,7 +1281,14 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Precomputation (not optional)
 		timerProb1 = System.currentTimeMillis();
-		inf = prob1(dtmc, null, target);
+		if (preRel) {
+			// prob1 via predecessor relation
+			PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
+			inf = prob1(dtmc, null, target, pre);
+		} else {
+			// prob1 via fixed-point algorithm
+			inf = prob1(dtmc, null, target);
+		}
 		inf.flip(0, n);
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
@@ -1600,7 +1676,44 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeTransientProbs(DTMC dtmc, int k, double initDist[]) throws PrismException
 	{
-		throw new PrismNotSupportedException("Not implemented yet");
+		ModelCheckerResult res;
+		int n, iters;
+		double soln[], soln2[], tmpsoln[];
+		long timer;
+
+		// Start transient probability computation
+		timer = System.currentTimeMillis();
+		mainLog.println("Starting transient probability computation...");
+
+		// Store num states
+		n = dtmc.getNumStates();
+
+		// Create solution vector(s)
+		// Use the passed in vector, if present
+		soln = initDist;
+		soln2 = new double[n];
+
+		// Start iterations
+		for (iters = 0; iters < k; iters++) {
+			// Matrix-vector multiply
+			dtmc.vmMult(soln, soln2);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished transient probability computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Transient probability computation");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		return res;
 	}
 
 	/**

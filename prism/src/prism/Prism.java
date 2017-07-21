@@ -2405,7 +2405,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Export the currently loaded model's state rewards to a file
+	 * Export the currently loaded model's state rewards to a file (or files, or stdout).
+	 * If there is more than 1 reward structure, then multiple files are generated
+	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
 	 * @param exportType Type of export; one of: <ul>
 	 * <li> {@link #EXPORT_PLAIN} 
 	 * <li> {@link #EXPORT_MATLAB}
@@ -2415,29 +2417,46 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportStateRewardsToFile(int exportType, File file) throws FileNotFoundException, PrismException
 	{
-		String s;
-
-		if (getExplicit())
-			throw new PrismNotSupportedException("Export of state rewards not yet supported by explicit engine");
-
-		// rows format does not apply to vectors
+		int numRewardStructs = currentModelInfo.getNumRewardStructs();
+		if (numRewardStructs == 0) {
+			mainLog.println("\nOmitting state reward export as there are no reward structures");
+		}
+		
+		// Rows format does not apply to vectors
 		if (exportType == EXPORT_ROWS)
 			exportType = EXPORT_PLAIN;
 
 		// Build model, if necessary
 		buildModelIfRequired();
 
-		// print message
-		mainLog.print("\nExporting state rewards vector ");
+		mainLog.print("\nExporting state rewards ");
 		mainLog.print(getStringForExportType(exportType) + " ");
 		mainLog.println(getDestinationStringForFile(file));
 
-		// do export
-		s = currentModel.exportStateRewardsToFile(exportType, file);
-		if (s != null)
-			mainLog.println("Rewards exported to files: " + s);
+		// Do export, writing to multiple files if necessary
+		List <String> files = new ArrayList<>();
+		for (int r = 0; r < numRewardStructs; r++) {
+			String filename = (file != null) ? file.getPath() : null;
+			if (filename != null && numRewardStructs > 1) {
+				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
+				files.add(filename);
+			}
+			File fileToUse = (filename == null) ? null : new File(filename);
+			if (!getExplicit()) {
+				currentModel.exportStateRewardsToFile(r, exportType, fileToUse);
+			} else {
+				PrismLog out = getPrismLogForFile(fileToUse);
+				explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+				((explicit.ProbModelChecker) mcExpl).exportStateRewardsToFile(currentModelExpl, r, exportType, out);
+				out.close();
+			}
+		}
+		
+		if (files.size() > 1) {
+			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
+		}
 	}
-
+	
 	/**
 	 * Export the currently loaded model's transition rewards to a file
 	 * @param ordered Ensure that (source) states are in ascending order?
@@ -2451,24 +2470,27 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportTransRewardsToFile(boolean ordered, int exportType, File file) throws FileNotFoundException, PrismException
 	{
-		String s;
-
+		int numRewardStructs = currentModelInfo.getNumRewardStructs();
+		if (numRewardStructs == 0) {
+			mainLog.println("\nOmitting state reward export as there are no reward structures");
+		}
+		
 		if (getExplicit())
 			throw new PrismException("Export of transition rewards not yet supported by explicit engine");
 
-		// can only do ordered version of export for MDPs
+		// Can only do ordered version of export for MDPs
 		if (currentModelType == ModelType.MDP) {
 			if (!ordered)
 				mainLog.printWarning("Cannot export unordered transition reward matrix for MDPs; using ordered.");
 			ordered = true;
 		}
-		// can only do ordered version of export for MRMC
+		// Can only do ordered version of export for MRMC
 		if (exportType == EXPORT_MRMC) {
 			if (!ordered)
 				mainLog.printWarning("Cannot export unordered transition reward matrix in MRMC format; using ordered.");
 			ordered = true;
 		}
-		// can only do ordered version of export for rows format
+		// Can only do ordered version of export for rows format
 		if (exportType == EXPORT_ROWS) {
 			if (!ordered)
 				mainLog.printWarning("Cannot export unordered transition matrix in rows format; using ordered.");
@@ -2478,15 +2500,29 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Build model, if necessary
 		buildModelIfRequired();
 
-		// print message
-		mainLog.print("\nExporting transition rewards matrix ");
+		mainLog.print("\nExporting transition rewards ");
 		mainLog.print(getStringForExportType(exportType) + " ");
 		mainLog.println(getDestinationStringForFile(file));
 
-		// do export
-		s = currentModel.exportTransRewardsToFile(exportType, ordered, file);
-		if (s != null)
-			mainLog.println("Rewards exported to files: " + s);
+		// Do export, writing to multiple files if necessary
+		List <String> files = new ArrayList<>();
+		for (int r = 0; r < numRewardStructs; r++) {
+			String filename = (file != null) ? file.getPath() : null;
+			if (filename != null && numRewardStructs > 1) {
+				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
+				files.add(filename);
+			}
+			File fileToUse = (filename == null) ? null : new File(filename);
+			if (!getExplicit()) {
+				currentModel.exportTransRewardsToFile(r, exportType, ordered, fileToUse);
+			} else {
+				// Not implemented yet
+			}
+		}
+		
+		if (files.size() > 1) {
+			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
+		}
 	}
 
 	/**
@@ -2793,8 +2829,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		List<String> labelNames = new ArrayList<String>();
 		labelNames.add("init");
 		labelNames.add("deadlock");
-		labelNames.addAll(currentModelInfo.getLabelNames());
-		if (propertiesFile != null) {
+		if (propertiesFile == null) {
+			labelNames.addAll(currentModelInfo.getLabelNames());
+		} else {
 			LabelList ll = propertiesFile.getCombinedLabelList();
 			int numLabels = ll.size();
 			for (int i = 0; i < numLabels; i++) {
@@ -2951,13 +2988,19 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 
 		// Auto-switch engine if required
-		else if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
+		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
 				mainLog.printWarning("Switching to explicit engine to allow use of chosen MDP solution method.");
 				engineSwitch = true;
 				lastEngine = getEngine();
 				setEngine(Prism.EXPLICIT);
 			}
+		}
+		if (Expression.containsNonProbLTLFormula(prop.getExpression())) {
+			mainLog.printWarning("Switching to explicit engine to allow non-probabilistic LTL mocel checking.");
+			engineSwitch = true;
+			lastEngine = getEngine();
+			setEngine(Prism.EXPLICIT);
 		}
 		try {
 
@@ -3544,7 +3587,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		else {
 			buildModelIfRequired();
 			if (currentModelType == ModelType.DTMC) {
-				throw new PrismException("Not implemented yet");
+				DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
+				probsExpl = mcDTMC.doTransient((DTMC) currentModelExpl, (int) time, fileIn);
 			} else if (currentModelType == ModelType.CTMC) {
 				CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
 				probsExpl = mcCTMC.doTransient((CTMC) currentModelExpl, time, fileIn);
@@ -3671,7 +3715,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 					probsExpl = mc.doTransient((CTMC) currentModelExpl, timeDouble - initTimeDouble, initDistExpl);
 				} else {
-					throw new PrismException("Not implemented yet");
+					DTMCModelChecker mc = new DTMCModelChecker(this);
+					if (i == 0) {
+						initDistExpl = mc.readDistributionFromFile(fileIn, currentModelExpl);
+						initTimeInt = 0;
+					}
+					probsExpl = mc.doTransient((DTMC) currentModelExpl, timeInt - initTimeInt, initDistExpl);
 				}
 			}
 
