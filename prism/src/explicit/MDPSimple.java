@@ -124,10 +124,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		numTransitions = mdp.numTransitions;
 		maxNumDistrs = mdp.maxNumDistrs;
 		maxNumDistrsOk = mdp.maxNumDistrsOk;
-		
-		// disabledness
-		disabledChoices = new HashMap<Integer, BitSet>(mdp.disabledChoices);
-		someChoicesDisabled = mdp.someChoicesDisabled;
 	}
 
 	/**
@@ -256,10 +252,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		trans.get(s).clear();
 		if (actions != null && actions.get(s) != null)
 			actions.get(s).clear();
-
-		// cleaning disabled choices map
-		if (someChoicesDisabled)
-			disabledChoices.remove(s);
 	}
 
 	@Override
@@ -502,11 +494,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	{
 		int c = 0;
 		for (Distribution distr : trans.get(s1)) {
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s1) && disabledChoices.get(s1).get(c++) == true)
-				continue;
-
 			if (distr.contains(s2))
 				return true;
 		}
@@ -518,9 +505,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	{
 		int c = 0;
 		for (Distribution distr : trans.get(s)) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			if (!distr.isSubsetOf(set))
 				return false;
 		}
@@ -532,9 +516,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	{
 		int c = 0;
 		for (Distribution distr : trans.get(s)) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			if (distr.containsOneOf(set))
 				return true;
 		}
@@ -642,9 +623,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			b1 = forall; // there exists or for all
 			j = 0;
 			for (Distribution distr : trans.get(i)) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(j++) == true)
-					continue;
 				b2 = distr.containsOneOf(u);
 				if (forall) {
 					if (!b2) {
@@ -715,9 +693,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			b1 = forall; // there exists or for all
 			j = 0;
 			for (Distribution distr : trans.get(i)) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(j++) == true)
-					continue;
 				b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 				if (forall) {
 					if (!b2) {
@@ -756,12 +731,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		first = true;
 		step = trans.get(s);
 		for (Distribution distr : step) {
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true) {
-				j++;
-				continue;
-			}
 
 			// Compute sum for this distribution
 			d = 0.0;
@@ -810,10 +779,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		c = 0;
 		for (Distribution distr : step) {
 			j++;
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 
 			// Compute sum for this distribution
 			d = 0.0;
@@ -865,11 +830,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		first = true;
 		step = trans.get(s);
 		for (Distribution distr : step) {
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = 0.0;
@@ -949,11 +909,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -1021,11 +976,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			diag = 1.0;
 			// Compute sum for this distribution
 			// (note: have to add state rewards in the loop for Jacobi)
@@ -1085,11 +1035,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {

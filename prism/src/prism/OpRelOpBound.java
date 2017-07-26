@@ -79,11 +79,6 @@ public class OpRelOpBound
 		return false;
 	}
 
-	public boolean isExact()
-	{
-		return relOp == RelOp.EQ && !numeric; 
-	}
-	
 	public MinMax getMinMax(ModelType modelType) throws PrismLangException
 	{
 		return getMinMax(modelType, true, null);

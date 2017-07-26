@@ -227,9 +227,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
-					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-						continue;
 					b2 = distr.containsOneOf(u);
 					if (forall) {
 						if (!b2) {
@@ -258,9 +255,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		int c = 0;
 		
 		for (Distribution distr : trans.get(s)) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			if(distr.getSupport().size() == 1 && distr.getSupport().contains(s))
 				return true;
 		}
@@ -282,9 +276,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 				u1 = null; // reach in one step
 				first = true;
 				for (Distribution distr : trans.get(i)) {
-					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-						continue;
 					if(first) { 
 						u1 = new HashSet<Integer>(distr.getSupport()); // put all successors in reachable states
 						first = false;
@@ -311,13 +302,10 @@ public class STPGExplicit extends MDPSimple implements STPG
 		        // go only through states in subtree so far,
 		        // and only extend subtree if closed for that player,
 		        // or if the state has only one choice that is enabled
-		        boolean jump = (getNumChoices(i) - disabledChoices.size() == 1) && getPlayer(i) != closedPlayer;
+		        boolean jump = (getNumChoices(i) == 1) && getPlayer(i) != closedPlayer;
 		        if (u.get(i) && (getPlayer(i) == closedPlayer || jump)) {
 				int c = 0;
 				for (Distribution distr : trans.get(i)) {
-					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-						continue;
 					for(int r : distr.getSupport()) { // add all successors (no matter which player)
 					    result.set(r, true);
 					}
@@ -339,9 +327,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
-					// ignoring the choice if it is disabled
-					if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-						continue;
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
 						if (!b2) {
@@ -557,11 +542,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
-
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 

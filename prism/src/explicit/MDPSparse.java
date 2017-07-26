@@ -409,10 +409,6 @@ public class MDPSparse extends MDPExplicit
 			h2 = choiceStarts[j + 1];
 			c = 0;
 			for (k = l2; k < h2; k++) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(s1) && disabledChoices.get(s1).get(c++) == true)
-					continue;
-
 				// Assume that only non-zero entries are stored
 				if (cols[k] == s2) {
 					return true;
@@ -433,9 +429,6 @@ public class MDPSparse extends MDPExplicit
 			h2 = choiceStarts[j + 1];
 			c = 0;
 			for (k = l2; k < h2; k++) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-					continue;
 				// Assume that only non-zero entries are stored
 				if (!set.get(cols[k])) {
 					return false;
@@ -456,9 +449,6 @@ public class MDPSparse extends MDPExplicit
 			h2 = choiceStarts[j + 1];
 			c = 0;
 			for (k = l2; k < h2; k++) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-					continue;
 				// Assume that only non-zero entries are stored
 				if (set.get(cols[k])) {
 					return true;
@@ -635,9 +625,6 @@ public class MDPSparse extends MDPExplicit
 			h1 = rowStarts[i + 1];
 			c = 0;
 			for (j = l1; j < h1; j++) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-					continue;
 				some = false;
 				l2 = choiceStarts[j];
 				h2 = choiceStarts[j + 1];
@@ -750,9 +737,6 @@ public class MDPSparse extends MDPExplicit
 			h1 = rowStarts[i + 1];
 			c = 0;
 			for (j = l1; j < h1; j++) {
-				// ignoring the choice if it is disabled
-				if (someChoicesDisabled && disabledChoices.containsKey(i) && disabledChoices.get(i).get(c++) == true)
-					continue;
 				some = false;
 				all = true;
 				l2 = choiceStarts[j];
@@ -817,10 +801,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
-
 			// Compute sum for this distribution
 			d = 0.0;
 			l2 = choiceStarts[j];
@@ -863,9 +843,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			// Compute sum for this distribution
 			d = 0.0;
 			l2 = choiceStarts[j];
@@ -912,9 +889,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			diag = 1.0;
 			// Compute sum for this distribution
 			d = 0.0;
@@ -988,9 +962,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j - l1);
 			l2 = choiceStarts[j];
@@ -1054,9 +1025,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			diag = 1.0;
 			// Compute sum for this distribution
 			// (note: have to add state rewards in the loop for Jacobi)
@@ -1112,9 +1080,6 @@ public class MDPSparse extends MDPExplicit
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
-			// ignoring the choice if it is disabled
-			if (someChoicesDisabled && disabledChoices.containsKey(s) && disabledChoices.get(s).get(c++) == true)
-				continue;
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j - l1);
 			l2 = choiceStarts[j];

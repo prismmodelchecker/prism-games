@@ -609,17 +609,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, coalition);
 
-		// Handle exact probabilities case (SMGs only)
-		if (opInfo.isExact()) {
-			if (model.getModelType() != ModelType.SMG){
-				throw new PrismException("Exact bounds only supported for SMGs");
-			}
-			if (forAll) {
-				throw new PrismException("You can only check for the existence of a strategy with an exact bound");
-			}
-			return ((SMGModelChecker) this).checkExactProbabilityFormula((SMG) model, expr, coalition, opInfo.getBound(), statesOfInterest);
-		}
-		
 		// Compute probabilities
 		StateValues probs = checkProbPathFormula(model, expr.getExpression(), minMax, statesOfInterest);
 
@@ -959,19 +948,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		int r = expr.getRewardStructIndexByIndexObject(modelInfo, constantValues);
 		mainLog.println("Building reward structure...");
 		Rewards rewards = constructRewards(model, r);
-
-		// Handle exact probabilities case (SMGs only)
-		if (opInfo.isExact()) {
-			if (model.getModelType() != ModelType.SMG){
-				throw new PrismException("Exact bounds only supported for SMGs");
-			}
-			if (forAll) {
-				throw new PrismException("You can only check for the existence of a strategy with an exact bound");
-			}
-			return ((SMGModelChecker) this).checkExactRewardFormula((SMG) model, (SMGRewards) rewards, expr, coalition, opInfo.getBound());
-		}
-
-		// otherwise, use traditional methods
 
 		// Compute rewards
 		StateValues rews = checkRewardFormula(model, rewards, expr.getExpression(), minMax, statesOfInterest);

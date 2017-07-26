@@ -271,17 +271,4 @@ public interface MDP extends NondetModel
 	 * @param dest Vector to write result to.
 	 */
 	public void mvMultRight(int[] states, int[] strat, double[] source, double[] dest);
-
-	/**
-	 * Disables the given choice in the state of the MDP
-	 *
-	 * @param s state
-	 * @param c choice to be disabled
-	 */
-	public void disableChoice(int s, int c);
-
-	/**
-	 * Enables all choices that have been disabled previously
-	 */
-	public void enableAllChoices();
 }

@@ -235,19 +235,6 @@ public interface STPG extends NondetModel
 	 */
 	public boolean allSuccessorsInSet(int s, int c, BitSet set);
 
-	/**
-	 * Disables the given choice in the state of the MDP
-	 *
-	 * @param s state
-	 * @param c choice to be disabled
-	 */
-	public void disableChoice(int s, int c);
-
-	/**
-	 * Enables all choices that have been disabled previously
-	 */
-	public void enableAllChoices();
-
     /**
      * If this returns true, the probabilistic reachability model checking does not check for deadlocks first
      **/

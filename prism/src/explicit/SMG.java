@@ -171,6 +171,12 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public BitSet disableState(int s, boolean close_P1, boolean close_P2)
 	{
+		throw new UnsupportedOperationException();
+		
+		// Disabled for now because support disabling transitions has been removed
+		// during refactoring of explicit engine model classes
+		
+		/*
 		int numStates = trans.size();
 		BitSet disabled = new BitSet(numStates);
 		disabled.set(s);
@@ -197,6 +203,7 @@ public class SMG extends STPGExplicit implements STPG
 		}
 		
 		return disabled;
+		*/
 	}
 	
 	public String getName()
