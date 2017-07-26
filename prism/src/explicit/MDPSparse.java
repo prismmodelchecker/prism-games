@@ -401,13 +401,12 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
-		int j, k, l1, h1, l2, h2, c;
+		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s1];
 		h1 = rowStarts[s1 + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
-			c = 0;
 			for (k = l2; k < h2; k++) {
 				// Assume that only non-zero entries are stored
 				if (cols[k] == s2) {
@@ -421,13 +420,12 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean allSuccessorsInSet(int s, BitSet set)
 	{
-		int j, k, l1, h1, l2, h2, c;
+		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
-			c = 0;
 			for (k = l2; k < h2; k++) {
 				// Assume that only non-zero entries are stored
 				if (!set.get(cols[k])) {
@@ -441,13 +439,12 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
-		int j, k, l1, h1, l2, h2, c;
+		int j, k, l1, h1, l2, h2;
 		l1 = rowStarts[s];
 		h1 = rowStarts[s + 1];
 		for (j = l1; j < h1; j++) {
 			l2 = choiceStarts[j];
 			h2 = choiceStarts[j + 1];
-			c = 0;
 			for (k = l2; k < h2; k++) {
 				// Assume that only non-zero entries are stored
 				if (set.get(cols[k])) {
@@ -462,8 +459,7 @@ public class MDPSparse extends MDPExplicit
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
 		for (int i = 0; i < numStates; i++) {
-			// Note that no distributions is a deadlock, not an empty
-			// distribution
+			// Note that no distributions is a deadlock, not an empty distribution
 			if (getNumChoices(i) == 0) {
 				addDeadlockState(i);
 				if (fix) {
@@ -617,13 +613,12 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
 	{
-		int j, k, l1, h1, l2, h2, c;
+		int j, k, l1, h1, l2, h2;
 		boolean b1, some;
 		for (int i : new IterableStateSet(subset, numStates)) {
 			b1 = forall; // there exists or for all
 			l1 = rowStarts[i];
 			h1 = rowStarts[i + 1];
-			c = 0;
 			for (j = l1; j < h1; j++) {
 				some = false;
 				l2 = choiceStarts[j];
@@ -729,13 +724,12 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
 	{
-		int j, k, l1, h1, l2, h2, c;
+		int j, k, l1, h1, l2, h2;
 		boolean b1, some, all;
 		for (int i : new IterableStateSet(subset, numStates)) {
 			b1 = forall; // there exists or for all
 			l1 = rowStarts[i];
 			h1 = rowStarts[i + 1];
-			c = 0;
 			for (j = l1; j < h1; j++) {
 				some = false;
 				all = true;
@@ -792,7 +786,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1;
 		double d, minmax;
 		boolean first;
 
@@ -833,7 +827,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
 	{
-		int j, k, l1, h1, l2, h2, c = 0;
+		int j, k, l1, h1, l2, h2;
 		double d;
 		List<Integer> res;
 
@@ -880,7 +874,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1;
 		double diag, d, minmax;
 		boolean first;
 
@@ -953,7 +947,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1;
 		double d, minmax;
 		boolean first;
 
@@ -1016,7 +1010,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k, l1, h1, l2, h2, stratCh = -1, c = 0;
+		int j, k, l1, h1, l2, h2, stratCh = -1;
 		double diag, d, minmax;
 		boolean first;
 
@@ -1070,7 +1064,7 @@ public class MDPSparse extends MDPExplicit
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val)
 	{
-		int j, k, l1, h1, l2, h2, c = 0;
+		int j, k, l1, h1, l2, h2;
 		double d;
 		List<Integer> res;
 
