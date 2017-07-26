@@ -1595,9 +1595,7 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	// Various options for "P" keyword and attached symbols
 	(( begin = <P> ( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )? (
 			( r = LtGt() prob = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
-	       |( <EQ> ((<QMARK> { relOp = "="; isBool = false; } )
-	               |(prob = Expression(false, false) { relOp = "="; isBool = true; } )
-	       ))
+	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
 	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
 	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
 	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
@@ -1722,9 +1720,7 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 		( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )?
 		(RewardIndex(ret))?
 		(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
-	       |( <EQ> ((<QMARK> { relOp = "="; isBool = false; } )
-	               |(rew = Expression(false, false) { relOp = "="; isBool = true; } )
-	       ))
+	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
 	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
 	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
 	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
