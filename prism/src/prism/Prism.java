@@ -49,6 +49,7 @@ import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
+import param.BigRational;
 import param.ModelBuilder;
 import param.ParamModel;
 import param.ParamModelChecker;
@@ -1030,6 +1031,30 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		return reachMethod;
 	}
 
+	/**
+	 * Returns an integer containing flags for the C++ implementation of interval iteration,
+	 * derived from the current settings object.
+	 */
+	public int getIntervalIterationFlags() throws PrismException
+	{
+		int flags = 0;
+
+		OptionsIntervalIteration iiOptions = OptionsIntervalIteration.from(settings);
+
+		if (iiOptions.isEnforceMonotonicityFromBelow())
+			flags += 1;
+
+		if (iiOptions.isEnforceMonotonicityFromAbove())
+			flags += 2;
+
+		if (iiOptions.isSelectMidpointForResult())
+			flags += 4;  // select midpoint for result
+
+		return flags;
+	}
+
+
+
 	public void addModelListener(PrismModelListener listener)
 	{
 		modelListeners.add(listener);
@@ -1057,6 +1082,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			}
 		}
 		jdd.SanityJDD.enabled = settings.getBoolean(PrismSettings.PRISM_JDD_SANITY_CHECKS);
+		PrismSparse.SetExportIterations(settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS));
+		PrismHybrid.SetExportIterations(settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS));
+		PrismMTBDD.SetExportIterations(settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS));
 	}
 
 	//------------------------------------------------------------------------------
@@ -1132,10 +1160,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Get an SCCComputer object for the explicit engine.
+	 * @param consumer the SCCConsumer
 	 */
-	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model model) throws PrismException
+	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model model, explicit.SCCConsumer consumer) throws PrismException
 	{
-		return explicit.SCCComputer.createSCCComputer(this, model);
+		return explicit.SCCComputer.createSCCComputer(this, model, consumer);
 	}
 
 	/**
@@ -1903,7 +1932,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		clearBuiltModel();
 		// Construct ModulesFile
 		ExplicitFiles2ModulesFile ef2mf = new ExplicitFiles2ModulesFile(this);
-		currentModulesFile = ef2mf.buildModulesFile(statesFile, transFile, labelsFile, typeOverride);
+		currentModulesFile = ef2mf.buildModulesFile(statesFile, transFile, labelsFile, stateRewardsFile, typeOverride);
 		// Store explicit files info for later
 		explicitFilesStatesFile = statesFile;
 		explicitFilesTransFile = transFile;
@@ -2420,6 +2449,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		int numRewardStructs = currentModelInfo.getNumRewardStructs();
 		if (numRewardStructs == 0) {
 			mainLog.println("\nOmitting state reward export as there are no reward structures");
+			return;
+		}
+		
+		if (currentModelSource == ModelSource.EXPLICIT_FILES && getExplicit()) {
+			mainLog.println("\nOmitting state reward export (not supported when importing files using the explicit engine)");
+			return;
 		}
 		
 		// Rows format does not apply to vectors
@@ -2539,7 +2574,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		long l; // timer
 		PrismLog tmpLog;
 		SCCComputer sccComputer = null;
-		explicit.SCCComputer sccComputerExpl = null;
+		explicit.SCCConsumerStore sccConsumerExpl = null;
 		//Vector<JDDNode> bsccs;
 		//JDDNode not, bscc;
 
@@ -2560,8 +2595,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			sccComputer = getSCCComputer(currentModel);
 			sccComputer.computeBSCCs();
 		} else {
-			sccComputerExpl = getExplicitSCCComputer(currentModelExpl);
-			sccComputerExpl.computeBSCCs();
+			sccConsumerExpl = new explicit.SCCConsumerStore();
+			getExplicitSCCComputer(currentModelExpl, sccConsumerExpl).computeSCCs();
 		}
 		l = System.currentTimeMillis() - l;
 		mainLog.println("\nTime for BSCC computation: " + l / 1000.0 + " seconds.");
@@ -2589,7 +2624,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (!getExplicit()) {
 			n = sccComputer.getBSCCs().size();
 		} else {
-			n = sccComputerExpl.getBSCCs().size();
+			n = sccConsumerExpl.getBSCCs().size();
 		}
 		for (i = 0; i < n; i++) {
 			tmpLog.println();
@@ -2605,8 +2640,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(sccComputer.getBSCCs().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(sccComputer.getBSCCs().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(sccComputerExpl.getBSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB,
-						true, true);
+				explicit.StateValues.createFromBitSet(sccConsumerExpl.getBSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -2725,7 +2759,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		long l; // timer
 		PrismLog tmpLog;
 		SCCComputer sccComputer = null;
-		explicit.SCCComputer sccComputerExpl = null;
+		explicit.SCCConsumerStore sccConsumerExpl = null;
 
 		// no specific states format for MRMC
 		if (exportType == EXPORT_MRMC)
@@ -2744,8 +2778,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			sccComputer = getSCCComputer(currentModel);
 			sccComputer.computeSCCs();
 		} else {
-			sccComputerExpl = getExplicitSCCComputer(currentModelExpl);
-			sccComputerExpl.computeSCCs();
+			sccConsumerExpl = new explicit.SCCConsumerStore();
+			getExplicitSCCComputer(currentModelExpl, sccConsumerExpl).computeSCCs();
 		}
 		l = System.currentTimeMillis() - l;
 		mainLog.println("\nTime for SCC computation: " + l / 1000.0 + " seconds.");
@@ -2773,7 +2807,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (!getExplicit()) {
 			n = sccComputer.getSCCs().size();
 		} else {
-			n = sccComputerExpl.getSCCs().size();
+			n = sccConsumerExpl.getSCCs().size();
 		}
 		for (i = 0; i < n; i++) {
 			tmpLog.println();
@@ -2789,8 +2823,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					new StateListMTBDD(sccComputer.getSCCs().get(i), currentModel).printMatlab(tmpLog);
 				JDD.Deref(sccComputer.getSCCs().get(i));
 			} else {
-				explicit.StateValues.createFromBitSet(sccComputerExpl.getSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB,
-						true, true);
+				explicit.StateValues.createFromBitSet(sccConsumerExpl.getSCCs().get(i), currentModelExpl).print(tmpLog, true, exportType == EXPORT_MATLAB, true, true);
 			}
 			if (exportType == EXPORT_MATLAB)
 				tmpLog.println("];");
@@ -3295,7 +3328,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (!("Result".equals(prop.getExpression().getResultName())))
 			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
 		resultString += ": " + result.getResultString();
-		mainLog.print("\n" + resultString);
+		mainLog.println("\n" + resultString);
+
+		if (result.getResult() instanceof BigRational) {
+			mainLog.println("Approximate result: " + ((BigRational)result.getResult()).doubleValue());
+		}
 
 		return result;
 	}
@@ -3894,6 +3931,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
 		mc.setDoBisim(doBisim);
+		mc.setDoIntervalIteration(settings.getBoolean(PrismSettings.PRISM_INTERVAL_ITER));
+		mc.setDoTopologicalValueIteration(settings.getBoolean(PrismSettings.PRISM_TOPOLOGICAL_VI));
+		mc.setDoPmaxQuotient(settings.getBoolean(PrismSettings.PRISM_PMAX_QUOTIENT));
 
 		return mc;
 	}

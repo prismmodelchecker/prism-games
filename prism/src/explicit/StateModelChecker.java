@@ -133,6 +133,16 @@ public class StateModelChecker extends PrismComponent
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 
+
+	// Do topological value iteration?
+	protected boolean doTopologicalValueIteration = false;
+
+	// For Pmax computation, collapse MECs to quotient MDP?
+	protected boolean doPmaxQuotient = false;
+
+	// Do interval iteration?
+	protected boolean doIntervalIteration = false;
+
 	// Model info (for reward structures, etc.)
 	protected ModulesFile modulesFile = null;
 	protected ModelInfo modelInfo = null;
@@ -238,6 +248,8 @@ public class StateModelChecker extends PrismComponent
 		setGenStrat(other.getGenStrat());
 		setDoBisim(other.getDoBisim());
 		tolerance = other.tolerance;
+		setDoIntervalIteration(other.getDoIntervalIteration());
+		setDoPmaxQuotient(other.getDoPmaxQuotient());
 	}
 
 	/**
@@ -360,6 +372,30 @@ public class StateModelChecker extends PrismComponent
 		this.strategy = strategy;
 	}
 
+	/**
+	 * Specify whether or not to do topological value iteration.
+	 */
+	public void setDoTopologicalValueIteration(boolean doTopologicalValueIteration)
+	{
+		this.doTopologicalValueIteration = doTopologicalValueIteration;
+	}
+
+	/**
+	 * Specify whether or not to perform MEC quotienting for Pmax.
+	 */
+	public void setDoPmaxQuotient(boolean doPmaxQuotient)
+	{
+		this.doPmaxQuotient = doPmaxQuotient;
+	}
+
+	/**
+	 * Specify whether or not to use interval iteration.
+	 */
+	public void setDoIntervalIteration(boolean doIntervalIteration)
+	{
+		this.doIntervalIteration = doIntervalIteration;
+	}
+
 	// Get methods for flags/settings
 
 	public int getVerbosity()
@@ -429,6 +465,30 @@ public class StateModelChecker extends PrismComponent
 	public boolean getDoBisim()
 	{
 		return doBisim;
+	}
+
+	/**
+	 * Whether or not to do topological value iteration.
+	 */
+	public boolean getDoTopologicalValueIteration()
+	{
+		return doTopologicalValueIteration;
+	}
+
+	/**
+	 * Whether or not to do MEC quotient for Pmax
+	 */
+	public boolean getDoPmaxQuotient()
+	{
+		return doPmaxQuotient;
+	}
+
+	/**
+	 * Whether or not to use interval iteration.
+	 */
+	public boolean getDoIntervalIteration()
+	{
+		return doIntervalIteration;
 	}
 
 	/** Get the constant values (both from the modules file and the properties file) */

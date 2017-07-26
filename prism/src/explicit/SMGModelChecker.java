@@ -266,10 +266,10 @@ public class SMGModelChecker extends ProbModelChecker
 		// first need all strongly connected components (SCCs)
 		// in the game induced by uniformly randomising strategies
 		// i.e., the transients should be avoided
-		List<BitSet> sccs = new ArrayList<BitSet>();
-		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, smg);
+		SCCConsumerStore sccStore = new SCCConsumerStore();
+		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, smg, sccStore);
 		sccComputer.computeSCCs();
-		sccs = sccComputer.getSCCs();
+		List<BitSet> sccs = sccStore.getSCCs();
 		BitSet inSCC = new BitSet(); // states not in some SCC
 		int n = sccs.size();
 		for (int i = 0; i < n; i++)

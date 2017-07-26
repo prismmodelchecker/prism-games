@@ -26,9 +26,10 @@
 //==============================================================================
 
 #include "dv.h"
-#include <math.h>
+#include <cmath>
 #include <new>
 #include <cstdint>
+#include <limits>
 
 // local function prototypes
 
@@ -40,6 +41,7 @@ static void max_double_vector_mtbdd_rec(DdManager *ddman, double *vec, DdNode *v
 static double get_first_from_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
 static double min_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
 static double max_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
+static double max_finite_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
 static double sum_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
 static double sum_double_vector_over_mtbdd_rec(DdManager *ddman, double *vec, DdNode *mult, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o);
 static void sum_double_vector_over_dd_vars_rec(DdManager *ddman, double *vec, double *vec2, DdNode **vars, int num_vars, int level, int first_var, int last_var, ODDNode *odd, ODDNode *odd2, int64_t o, int64_t o2);
@@ -381,6 +383,44 @@ double max_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *fil
 	}
 }
 
+
+EXPORT double max_finite_double_vector_over_bdd(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, ODDNode *odd)
+{
+	return max_finite_double_vector_over_bdd_rec(ddman, vec, filter, vars, num_vars, 0, odd, 0);
+}
+
+double max_finite_double_vector_over_bdd_rec(DdManager *ddman, double *vec, DdNode *filter, DdNode **vars, int num_vars, int level, ODDNode *odd, int64_t o)
+{
+	double d1, d2;
+	DdNode *dd;
+
+	if (level == num_vars) {
+		if (Cudd_V(filter) > 0) {
+			double v = vec[o];
+			if (v < std::numeric_limits<double>::infinity()) {
+				return -std::numeric_limits<double>::infinity();
+			} else {
+				return v;
+			}
+		}
+		else {
+			return -std::numeric_limits<double>::infinity();
+		}
+	}
+	else {
+		d1 = d2 = -HUGE_VAL;
+		if (odd->eoff > 0) {
+			dd = (filter->index > vars[level]->index) ? filter : Cudd_E(filter);
+			d1 = max_double_vector_over_bdd_rec(ddman, vec, dd, vars, num_vars, level+1, odd->e, o);
+		}
+		if (odd->toff > 0) {
+			dd = (filter->index > vars[level]->index) ? filter : Cudd_T(filter);
+			d2 = max_double_vector_over_bdd_rec(ddman, vec, dd, vars, num_vars, level+1, odd->t, o+odd->eoff);
+		}
+		return (d1 > d2) ? d1 : d2;
+	}
+}
+
 //------------------------------------------------------------------------------
 
 // sums up the elements of a double array - but only those in the bdd passed in
@@ -579,9 +619,9 @@ EXPORT DistVector::~DistVector()
 EXPORT bool doubles_are_close_abs(double d1, double d2, double epsilon)
 {
 	// Deal with infinite cases
-	if (isinf(d1)) {
-		return isinf(d2) && (d1 > 0) == (d2 > 0);
-	} else if (isinf(d2)) {
+	if (std::isinf(d1)) {
+		return std::isinf(d2) && (d1 > 0) == (d2 > 0);
+	} else if (std::isinf(d2)) {
 		return false;
 	}
 	// Compute/check error
@@ -591,9 +631,9 @@ EXPORT bool doubles_are_close_abs(double d1, double d2, double epsilon)
 EXPORT bool doubles_are_close_rel(double d1, double d2, double epsilon)
 {
 	// Deal with infinite cases
-	if (isinf(d1)) {
-		return isinf(d2) && (d1 > 0) == (d2 > 0);
-	} else if (isinf(d2)) {
+	if (std::isinf(d1)) {
+		return std::isinf(d2) && (d1 > 0) == (d2 > 0);
+	} else if (std::isinf(d2)) {
 		return false;
 	}
 	// Compute/check error
