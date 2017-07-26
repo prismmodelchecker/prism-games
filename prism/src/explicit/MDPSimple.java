@@ -33,7 +33,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -492,7 +491,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public boolean isSuccessor(int s1, int s2)
 	{
-		int c = 0;
 		for (Distribution distr : trans.get(s1)) {
 			if (distr.contains(s2))
 				return true;
@@ -503,7 +501,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public boolean allSuccessorsInSet(int s, BitSet set)
 	{
-		int c = 0;
 		for (Distribution distr : trans.get(s)) {
 			if (!distr.isSubsetOf(set))
 				return false;
@@ -514,7 +511,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public boolean someSuccessorsInSet(int s, BitSet set)
 	{
-		int c = 0;
 		for (Distribution distr : trans.get(s)) {
 			if (distr.containsOneOf(set))
 				return true;
@@ -617,11 +613,9 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall, BitSet result)
 	{
-		int j;
 		boolean b1, b2;
 		for (int i : new IterableStateSet(subset, numStates)) {
 			b1 = forall; // there exists or for all
-			j = 0;
 			for (Distribution distr : trans.get(i)) {
 				b2 = distr.containsOneOf(u);
 				if (forall) {
@@ -687,11 +681,9 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall, BitSet result)
 	{
-		int j;
 		boolean b1, b2;
 		for (int i : new IterableStateSet(subset, numStates)) {
 			b1 = forall; // there exists or for all
-			j = 0;
 			for (Distribution distr : trans.get(i)) {
 				b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 				if (forall) {
@@ -720,18 +712,16 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public double mvMultMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int j, k, stratCh = -1, c;
+		int j, k, stratCh = -1;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
-		c = 0;
 		j = 0;
 		minmax = 0;
 		first = true;
 		step = trans.get(s);
 		for (Distribution distr : step) {
-
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -743,9 +733,8 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
 				// If strategy generation is enabled, remember optimal choice
-				if (strat != null) {
+				if (strat != null)
 					stratCh = j;
-				}
 			}
 			first = false;
 			j++;
@@ -766,20 +755,18 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public List<Integer> mvMultMinMaxSingleChoices(int s, double vect[], boolean min, double val)
 	{
-		int j, k, c;
+		int j, k;
 		double d, prob;
 		List<Integer> res;
 		List<Distribution> step;
 
 		// Create data structures to store strategy
 		res = new ArrayList<Integer>();
-		// One row of matrix-vector operation
+		// One row of matrix-vector operation 
 		j = -1;
 		step = trans.get(s);
-		c = 0;
 		for (Distribution distr : step) {
 			j++;
-
 			// Compute sum for this distribution
 			d = 0.0;
 			for (Map.Entry<Integer, Double> e : distr) {
@@ -819,12 +806,11 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min, int strat[])
 	{
-		int j, k, stratCh = -1, c;
+		int j, k, stratCh = -1;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
-		c = 0;
 		j = 0;
 		minmax = 0;
 		first = true;
@@ -897,12 +883,11 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k, stratCh = -1, c;
+		int j, k, stratCh = -1;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
-		c = 0;
 		minmax = 0;
 		first = true;
 		j = -1;
@@ -964,12 +949,11 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k = -1, stratCh = -1, c;
+		int j, k = -1, stratCh = -1;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
-		c = 0;
 		minmax = 0;
 		first = true;
 		j = -1;
@@ -1022,16 +1006,15 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], MDPRewards mdpRewards, boolean min, double val)
 	{
-		int j, k, c;
+		int j, k;
 		double d, prob;
 		List<Integer> res;
 		List<Distribution> step;
 
 		// Create data structures to store strategy
 		res = new ArrayList<Integer>();
-		// One row of matrix-vector operation
+		// One row of matrix-vector operation 
 		j = -1;
-		c = 0;
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
