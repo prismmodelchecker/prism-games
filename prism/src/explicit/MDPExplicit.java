@@ -108,7 +108,6 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 				sorted.clear();
 			}
 		}
-		out.flush();
 	}
 
 	@Override
@@ -293,7 +292,7 @@ public abstract class MDPExplicit extends ModelExplicit implements MDP
 		}*/
 		return maxDiff;
 	}
-	
+
 	@Override
 	public Model constructInducedModel(MDStrategy strat)
 	{
