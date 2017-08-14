@@ -204,7 +204,7 @@ public class GUIPropertiesList extends JList implements KeyListener
 		String str = "";
 		ArrayList<GUIProperty> gps = getValidSelectedProperties();
 		
-		//strings will contain all relevant named properties, first selected, then refernced
+		//strings will contain all relevant named properties, first selected, then referenced
 		Vector<String> strings = new Vector<String>(); 
 		
 		for (GUIProperty p : gps) { 
@@ -461,6 +461,8 @@ public class GUIPropertiesList extends JList implements KeyListener
 			GUIProperty gp = getProperty(i);
 			if (gp.getComment().length() > 0)
 				s += PrismParser.slashCommentBlock(gp.getComment());
+			if (gp.getName()!=null)
+			    s += "\"" + gp.getName()+ "\" : ";
 			s += gp.getPropString() + "\n\n";
 		}
 

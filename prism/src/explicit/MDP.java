@@ -328,8 +328,8 @@ public interface MDP extends NondetModel
 		}
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null && !first) {
-			// For max, only remember strictly better choices
-			if (min) {
+			// For max and games, only remember strictly better choices
+			if (min || this instanceof STPG) {
 				strat[s] = stratCh;
 			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
@@ -491,8 +491,8 @@ public interface MDP extends NondetModel
 		}
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null && !first) {
-			// For max, only remember strictly better choices
-			if (min) {
+			// For max and games, only remember strictly better choices
+			if (min || this instanceof STPG) {
 				strat[s] = stratCh;
 			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;

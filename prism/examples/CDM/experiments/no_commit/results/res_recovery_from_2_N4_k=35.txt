@@ -1,0 +1,90 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Sat Oct 08 15:29:12 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg examples/games/CDM/experiments/no_commit/props_recovery_from_2_N4.pctl -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=1.0,k=35'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+Parsing properties file "examples/games/CDM/experiments/no_commit/props_recovery_from_2_N4.pctl"...
+
+4 properties:
+(1) filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+(2) filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+(3) filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+(4) filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=35
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.767 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.828 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: filter(range, <<[1]>> Pmax=? [ F<=k ((sched=1)&(<<[1]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=35
+
+States satisfying filter all_prefer_2&sched=0: 16
+
+Range of values over states satisfying filter: [0.018535785575113744,0.025886304485968386]
+
+Time for model checking: 0.253 seconds.
+
+Result: [0.018535785575113744,0.025886304485968386] (range of values over states satisfying filter)
+
+-------------------------------------------
+
+Model checking: filter(range, <<[1, 2]>> Pmax=? [ F<=k ((sched=1|sched=2)&(<<[1, 2]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=35
+
+States satisfying filter all_prefer_2&sched=0: 16
+
+Range of values over states satisfying filter: [0.15619819958647202,0.202558011015969]
+
+Time for model checking: 0.195 seconds.
+
+Result: [0.15619819958647202,0.202558011015969] (range of values over states satisfying filter)
+
+-------------------------------------------
+
+Model checking: filter(range, <<[1, 2, 3]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3)&(<<[1, 2, 3]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=35
+
+States satisfying filter all_prefer_2&sched=0: 16
+
+Range of values over states satisfying filter: [0.4391639555747003,0.5283321275936741]
+
+Time for model checking: 0.22 seconds.
+
+Result: [0.4391639555747003,0.5283321275936741] (range of values over states satisfying filter)
+
+-------------------------------------------
+
+Model checking: filter(range, <<[1, 2, 3, 4]>> Pmax=? [ F<=k ((sched=1|sched=2|sched=3|sched=4)&(<<[1, 2, 3, 4]>> P>0.5 [ X all_prefer_1 ])) ], all_prefer_2&sched=0)
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25,k=35
+
+States satisfying filter all_prefer_2&sched=0: 16
+
+Range of values over states satisfying filter: [0.7400443502195998,0.8522459883236437]
+
+Time for model checking: 0.178 seconds.
+
+Result: [0.7400443502195998,0.8522459883236437] (range of values over states satisfying filter)
+

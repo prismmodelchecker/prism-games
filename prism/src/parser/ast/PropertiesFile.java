@@ -183,9 +183,9 @@ public class PropertiesFile extends ASTElement
 		return properties.size();
 	}
 
-	public Property getPropertyObject(int i)
+        public Property getPropertyObject(int i)
 	{
-		return properties.get(i);
+	        return properties.get(i);
 	}
 
 	public Expression getProperty(int i)
@@ -240,8 +240,8 @@ public class PropertiesFile extends ASTElement
 	 * Look up a property by name, currently just locally like {@link #getPropertyObjectByName}.
 	 * Returns null if not found.
 	 */
-	public Property lookUpPropertyObjectByName(String name)
-	{
+	public Property lookUpPropertyObjectByName(String name) throws PrismLangException
+	{ 
 		return getPropertyObjectByName(name);
 	}
 
@@ -424,6 +424,7 @@ public class PropertiesFile extends ASTElement
 			// store identifier
 			else {
 				propNames.addElement(s);
+				combinedLabelList.addLabel(new ExpressionIdent(s), properties.get(i).getExpression());
 			}
 		}
 	}
@@ -611,7 +612,9 @@ public class PropertiesFile extends ASTElement
 
 		n = getNumProperties();
 		for (i = 0; i < n; i++) {
-			s += getPropertyObject(i) + ";\n";
+			String t;
+			t = getPropertyObject(i).toString();
+			s += t + ";\n";
 			if (i < n - 1)
 				s += "\n";
 		}
@@ -636,7 +639,7 @@ public class PropertiesFile extends ASTElement
 		ret.setConstantList((ConstantList) constantList.deepCopy());
 		n = getNumProperties();
 		for (i = 0; i < n; i++) {
-			ret.addProperty((Property) getPropertyObject(i).deepCopy());
+		    ret.addProperty((Property) getPropertyObject(i).deepCopy());
 		}
 		// Copy other (generated) info
 		ret.allIdentsUsed = (allIdentsUsed == null) ? null : (Vector<String>) allIdentsUsed.clone();

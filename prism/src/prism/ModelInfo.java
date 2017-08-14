@@ -30,6 +30,7 @@ package prism;
 import java.util.List;
 
 import parser.Values;
+import parser.ast.Player;
 import parser.VarList;
 import parser.ast.RewardStruct;
 import parser.type.Type;
@@ -148,6 +149,16 @@ public interface ModelInfo
 	 */
 	public boolean rewardStructHasTransitionRewards(int i);
 
+	/**
+	 * Get the number of "player" definitions in the model.
+	 */
+	public int getNumPlayers();
+
+	/**
+	 * Get the {@code i}th "player" definition.
+	 */
+	public Player getPlayer(int i);
+	
 	// TODO: can we remove this?
 	public VarList createVarList() throws PrismException;
 }

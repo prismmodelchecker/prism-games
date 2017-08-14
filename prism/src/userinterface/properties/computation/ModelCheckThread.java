@@ -54,6 +54,8 @@ public class ModelCheckThread extends GUIComputationThread
 	private PropertiesFile propertiesFile;
 	private ArrayList<GUIProperty> guiProps;
 
+        private boolean computePareto = false;
+
 	/**
 	 * Create a new instance of ModelCheckThread (where a Model has been built)
 	 */
@@ -64,6 +66,12 @@ public class ModelCheckThread extends GUIComputationThread
 		this.propertiesFile = propertiesFile;
 		this.guiProps = guiProps;
 	}
+        public ModelCheckThread(GUIMultiProperties parent, PropertiesFile propertiesFile, ArrayList<GUIProperty> guiProps, boolean computePareto)
+        {
+	        this(parent, propertiesFile, guiProps); // call original constructor
+		this.computePareto = computePareto;
+        }
+        
 
 	public void run()
 	{
@@ -73,7 +81,10 @@ public class ModelCheckThread extends GUIComputationThread
 			public void run()
 			{
 				parent.startProgress();
-				parent.setTaskBarText("Verifying properties...");
+				if(computePareto)
+				    parent.setTaskBarText("Compute Pareto sets...");
+				else 
+				    parent.setTaskBarText("Verifying properties...");
 				parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, parent));
 			}
 		});
@@ -103,7 +114,7 @@ public class ModelCheckThread extends GUIComputationThread
 
 			// Do model checking
 			try {
-				result = prism.modelCheck(propertiesFile, propertiesFile.getPropertyObject(i));
+			        result = prism.modelCheck(propertiesFile, propertiesFile.getPropertyObject(i), computePareto);
 			} catch (Exception e) {
 				result = new Result(e);
 				error(e);
@@ -115,7 +126,13 @@ public class ModelCheckThread extends GUIComputationThread
 			}
 			//while(!ic.canContinue){}
 			gp.setResult(result);
-			gp.setMethodString("Verification");
+			if (computePareto)
+			    gp.setMethodString("Pareto set computation");
+			else 
+			    gp.setMethodString("Verification");
+			// set parameters if available
+			gp.appendMethodString(result.getParameterString());
+			// set number of warnings
 			gp.setNumberOfWarnings(prism.getMainLog().getNumberOfWarnings());
 
 			parent.repaintList();
@@ -127,9 +144,15 @@ public class ModelCheckThread extends GUIComputationThread
 			public void run()
 			{
 				parent.stopProgress();
-				parent.setTaskBarText("Verifying properties... done.");
-				parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, parent));
-				parent.notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.VERIFY_END));
+				if(computePareto) {
+				    parent.setTaskBarText("Computing Pareto sets... done.");
+				    parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, parent));
+				    parent.notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.PARETO_END));
+				} else {
+				    parent.setTaskBarText("Verifying properties... done.");
+				    parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, parent));
+				    parent.notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.VERIFY_END));
+				}
 			}
 		});
 	}

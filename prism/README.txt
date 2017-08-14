@@ -2,68 +2,41 @@
 README
 ======
 
-This is PRISM (Probabilistic Symbolic Model Checker).
+This is PRISM-games, an extension of the PRISM model checker
+for verification and strategy synthesis for stochastic multi-player games.
 
 ------------
 INSTALLATION
 ------------
 
-For detailed installation instructions, check the online manual at:
+Up-to-date installation instructions can be found here:
 
-  http://www.prismmodelchecker.org/manual/InstallingPRISM/Instructions
-  
-or see the local copies included in this distribution:
-
-  doc/manual/InstallingPRISM/Instructions.html
-  doc/manual.pdf
-
-Very abbreviated instructions for installing/running PRISM are as follows:
-
-For Windows binary distributions:
-
- - to install, run prism-XXX-win-installer.exe
- - to run, use Desktop/Start menu shortcuts or double-click bin\xprism.bat
-
-For other binary distributions:
-
- - to install, enter the PRISM directory, type "./install.sh"
- - to run, execute bin/xprism or bin/prism
-
-For source code distributions:
-
- - enter the PRISM directory and type "make"
- - to run, execute bin/xprism or bin/prism
-
-If you have problems check the manual, especially the section "Common Problems And Questions".
+http://www.prismmodelchecker.org/games/installation.php
 
 -------------
 DOCUMENTATION
 -------------
 
+Included in this release is a manual for the latest version of PRISM,
+in which PRISM-games is based.
+
+Documentation specifically for PRISM-games can be found here:
+
 The best source of information about using PRISM is the online manual:
 
-  http://www.prismmodelchecker.org/manual/
-
-You can also view the local copies included in this distribution:
-
-  doc/manual/index.html
-  doc/manual.pdf
-
-For other PRISM-related information, see the website:
-
-  http://www.prismmodelchecker.org/
+  http://www.prismmodelchecker.org/games/
 
 ---------
 LICENSING
 ---------
 
-PRISM is distributed under the GNU General Public License (GPL).
+PRISM-games is distributed under the GNU General Public License (GPL).
 A copy of this license can be found in the file COPYING.txt.
 For more information, see:
 
   http://www.gnu.org/licenses/
 
-PRISM uses the CUDD (Colorado University Decision Diagram) library of
+PRISM-games uses the CUDD (Colorado University Decision Diagram) library of
 Fabio Somenzi, which is freely available. For more information about this
 library, see:
 
@@ -82,6 +55,7 @@ PRISM was created and is still actively maintained by:
 We gratefully acknowledge contributions to the PRISM code-base from various sources,
 including (in approximately reverse chronological order):
 
+ * Clemens Wiltsche: Multi-objective and compositional synthesis for stochastic games
  * Joachim Klein: Various bug fixes, especially related to LTL
  * Ernst Moritz Hahn: Parametric model checking, fast adaptive uniformisation + various other features
  * Frits Dannenberg: Fast adaptive uniformisation

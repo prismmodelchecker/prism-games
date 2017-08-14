@@ -54,6 +54,8 @@ import simulator.method.CIiterations;
 import simulator.method.CIwidth;
 import simulator.method.SPRTMethod;
 import simulator.method.SimulationMethod;
+import strat.Strategies;
+import strat.Strategy;
 
 // prism - command line version
 
@@ -69,6 +71,7 @@ public class PrismCL implements PrismModelListener
 	private boolean importinitdist = false;
 	private boolean steadystate = false;
 	private boolean dotransient = false;
+	private boolean computePareto = false;
 	private boolean exporttrans = false;
 	private boolean exportstaterewards = false;
 	private boolean exporttransrewards = false;
@@ -161,6 +164,9 @@ public class PrismCL implements PrismModelListener
 	// info about which properties to model check
 	private int numPropertiesToCheck = 0;
 	private List<Property> propertiesToCheck = null;
+
+        // strategies for compositional systems
+        private List<Strategy> subsystemStrategies = null;
 
 	// info about undefined constants
 	private UndefinedConstants undefinedConstants[];
@@ -370,7 +376,7 @@ public class PrismCL implements PrismModelListener
 							}
 							// Normal model checking
 							if (!simulate && !param) {
-								res = prism.modelCheck(propertiesFile, propertiesToCheck.get(j));
+							        res = prism.modelCheck(propertiesFile, propertiesToCheck.get(j), computePareto);
 							}
 							// Parametric model checking
 							else if (param) {
@@ -518,6 +524,7 @@ public class PrismCL implements PrismModelListener
 			// default to log going to stdout
 			// this means all errors etc. can be safely sent to the log
 			// even if a new log is created shortly
+		    
 			mainLog = new PrismFileLog("stdout");
 
 			// create prism object(s)
@@ -1152,6 +1159,10 @@ public class PrismCL implements PrismModelListener
 					} else {
 						errorAndExit("No value specified for -" + sw + " switch");
 					}
+				}
+				// compute Pareto sets
+				else if (sw.equals("pareto")) {
+					computePareto = true;
 				}
 				// generate random path with simulator
 				else if (sw.equals("simpath")) {
@@ -1986,6 +1997,7 @@ public class PrismCL implements PrismModelListener
 		exportstrat = true;
 		exportStratFilename = fileString;
 		prism.setGenStrat(true);
+		prism.getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, true);
 		// Process options
 		String options[] = optionsString.split(",");
 		for (String opt : options) {
@@ -2004,6 +2016,8 @@ public class PrismCL implements PrismModelListener
 					exportStratType = StrategyExportType.INDUCED_MODEL;
 				else if (optVal.equals("dot"))
 					exportStratType = StrategyExportType.DOT_FILE;
+				else if (optVal.equals("matlab"))
+					exportStratType = StrategyExportType.MATLAB;
 				else
 					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"type\" option of -exportstrat");
 			}
@@ -2301,6 +2315,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-const <vals> .................. Define constant values as <vals> (e.g. for experiments)");
 		mainLog.println("-steadystate (or -ss) .......... Compute steady-state probabilities (D/CTMCs only)");
 		mainLog.println("-transient <x> (or -tr <x>) .... Compute transient probabilities for time (or time range) <x> (D/CTMCs only)");
+		mainLog.println("-pareto ........................ Compute Pareto sets (SMGs only)");
 		mainLog.println("-simpath <options> <file>....... Generate a random path with the simulator");
 		mainLog.println("-nobuild ....................... Skip model construction (just do parse/export)");
 		mainLog.println("-test .......................... Enable \"test\" mode");

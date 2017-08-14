@@ -1,0 +1,22 @@
+const double tv1 = 0.8;
+const double va1 = 0.8;
+const double tw1 = 0.3;
+const double wi1 = 0.3;
+const double tv2 = 0.8;
+const double va2 = 0.8;
+const double tw2 = 0.3;
+const double wi2 = 0.2;
+const double tv3 = 0.8;
+const double va3 = 0.8;
+const double tw3 = 0.3;
+const double wi3 = 0.3;
+
+"phi1" : <<1>> ((R{"window1"}/{"time"}<=wi1 [ S ] & R{"tempdev2"}/{"time"}<=tw2 [ S ]) => R{"tempdev1"}/{"time"}<=tw1 [ S ])
+"psi1" : <<1>> (R{"valve1"}/{"time"}<=va1 [ S ] & (R{"tempdev2"}/{"time"}<=tv2 [ S ] => R{"tempdev1"}/{"time"}<=tv1 [ S ]))
+"phi2" : <<1>> (R{"window2"}/{"time"}<=wi2 [ S ] => R{"tempdev2"}/{"time"}<=tw2 [ S ])
+"psi2" : <<1>> (R{"valve2"}/{"time"}<=va2 [ S ] & R{"tempdev2"}/{"time"}<=tv2 [ S ])
+"phi3" : <<1>> ((R{"window3"}/{"time"}<=wi3 [ S ] & R{"tempdev2"}/{"time"}<=tw2 [ S ]) => R{"tempdev3"}/{"time"}<=tw3 [ S ])
+"psi3" : <<1>> (R{"valve3"}/{"time"}<=va3 [ S ] & (R{"tempdev2"}/{"time"}<=tv2 [ S ] => R{"tempdev3"}/{"time"}<=tv3 [ S ]))
+
+"phi" : comp("phi1", "phi2", "phi3")
+"psi" : comp("psi1", "psi2", "psi3")

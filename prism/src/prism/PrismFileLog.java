@@ -109,6 +109,11 @@ public class PrismFileLog extends PrismLog
 		}
 	}
 
+	public String getFileName()
+	{
+		return filename;
+	}
+
 	// Methods for PrismLog
 	
 	@Override

@@ -48,6 +48,7 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 	new Color(226,199,255),     //purple
 	new Color(212,255,255)} ;*///cyan
 	private GUISimulator.UpdateTableModel utm;
+        private GUISimulator.DisabledItemSelectionModel lsm;
 
 	private UpdateHeaderListModel headerModel;
 	private JList header;
@@ -57,12 +58,14 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 	private GUISimulator sim;
 
 	/** Creates a new instance of GUISimulatorUpdatesTable */
-	public GUISimulatorUpdatesTable(GUISimulator.UpdateTableModel utm, GUISimulator sim)
+        public GUISimulatorUpdatesTable(GUISimulator.UpdateTableModel utm, GUISimulator.DisabledItemSelectionModel lsm, GUISimulator sim)
 	{
 		super(utm);
 		this.sim = sim;
 		this.utm = utm;
+		this.lsm = lsm;
 
+		this.setSelectionModel(lsm);
 		this.getSelectionModel().addListSelectionListener(this);
 
 		setColumnSelectionAllowed(false);
@@ -165,30 +168,35 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 		{
 			renderer.setText(value == null ? "" : value.toString());
 
-			int dist;
-
-			// Select default background colour
-			// (depends on choice, for nondeterministic models)
-			if (sim.getModulesFile().getModelType().nondeterministic())
+			// first see if the row is disabled 
+			if (!lsm.isEnabled(row)) {
+			    renderer.setBackground(new Color(100, 100, 100));
+			} else {
+			    int dist;
+			    
+			    // Select default background colour
+			    // (depends on choice, for nondeterministic models)
+			    if (sim.getModulesFile().getModelType().nondeterministic())
 				dist = utm.getChoiceIndexOf(row);
-			else
+			    else
 				dist = 0;
-			Color c = DISTRIBUTION_COLOURS[dist % 2];
-
-			if (isSelected) {
+			    Color c = DISTRIBUTION_COLOURS[dist % 2];
+			    
+			    if (isSelected) {
 				Color newCol = new Color(c.getRed() - 20, c.getGreen() - 20, c.getBlue());
 				if (utm.oldUpdate) {
-					newCol = new Color(newCol.getRed() - 7, newCol.getGreen() - 7, newCol.getBlue() - 7);
-					renderer.setBackground(newCol);
+				    newCol = new Color(newCol.getRed() - 7, newCol.getGreen() - 7, newCol.getBlue() - 7);
+				    renderer.setBackground(newCol);
 				} else {
-					renderer.setBackground(newCol);
+				    renderer.setBackground(newCol);
 				}
-			} else {
+			    } else {
 				if (utm.oldUpdate) {
-					Color newCol = new Color(c.getRed() - 7, c.getGreen() - 7, c.getBlue() - 7);
-					renderer.setBackground(newCol);
+				    Color newCol = new Color(c.getRed() - 7, c.getGreen() - 7, c.getBlue() - 7);
+				    renderer.setBackground(newCol);
 				} else
-					renderer.setBackground(c);
+				    renderer.setBackground(c);
+			    }
 			}
 
 			renderer.setBorder(new EmptyBorder(1, 1, 1, 1));
@@ -201,8 +209,8 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 		}
 	}
 
-	class UpdateHeaderRenderer extends JButton implements ListCellRenderer
-	{
+	    class UpdateHeaderRenderer extends JButton implements ListCellRenderer
+	    {
 
 		ImageIcon selectedIcon;
 		ImageIcon selectedDisabledIcon;
@@ -235,7 +243,7 @@ public class GUISimulatorUpdatesTable extends JTable implements ListSelectionLis
 			return this;
 		}
 
-	}
+	    }
 
 	class UpdateHeaderListModel extends AbstractListModel
 	{

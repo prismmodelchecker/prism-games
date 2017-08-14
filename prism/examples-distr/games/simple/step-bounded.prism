@@ -1,0 +1,41 @@
+smg
+
+// assigning modules to players
+player p1 
+	player1
+endplayer
+player p2
+	player2
+endplayer
+
+// global state variables
+global s : [0..5];
+global t : [0..1];
+
+// player 1 module definition
+module player1
+
+	[] p1state & t=0 -> (s'=nextState);
+	[] p1state & t=0 -> 1-1/(s+1) : (s'=0) & (t'=1) 
+                          + 0.5/(s+1) : (s'=nextState) 
+                          + 0.5/(s+1) : true;
+
+endmodule
+
+// player 2 module definition
+module player2
+
+	[] p2state & t=0 -> (s'=nextState);
+	[] p2state & t=0 -> 0.5 : (s'=nextState) + 0.5 : (s'=0) & (t'=1);
+
+endmodule
+
+// formulae describing player 1 and player 2 states
+formula p1state = mod(s,2)=0;
+formula p2state = mod(s,2)=1;
+
+// formula defined state update
+formula nextState = s=5?5:s+1;
+
+// definition of the target states
+label "T" = t=1 & s=0;

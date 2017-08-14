@@ -93,12 +93,17 @@ import parser.type.Type;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.type.TypeInterval;
+import parser.type.TypePareto;
+import prism.PointList;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismSettings;
 import prism.PrismSettingsListener;
 import prism.TileList;
 import prism.UndefinedConstants;
+import strat.StochasticUpdateStrategy;
+import strat.StochasticUpdateStrategyProduct;
+import strat.Strategies;
 import userinterface.GUIClipboardEvent;
 import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
@@ -121,12 +126,12 @@ import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
 
 /**
- *  Properties tab of the PRISM GUI.
+ * Properties tab of the PRISM GUI.
  */
 @SuppressWarnings("serial")
 public class GUIMultiProperties extends GUIPlugin implements MouseListener, ListSelectionListener, PrismSettingsListener, ContainerListener
 {
-	//CONSTANTS
+	// CONSTANTS
 	public static final int CONTINUE = 0;
 	public static final int CANCEL = 1;
 
@@ -143,7 +148,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	// State
 	private boolean modified;
 	private boolean computing;
-	private boolean verifyAfterReceiveParseNotification, experimentAfterReceiveParseNotification, simulateAfterReceiveParseNotification, exportLabelsAfterReceiveParseNotification;
+        private boolean verifyAfterReceiveParseNotification, experimentAfterReceiveParseNotification, simulateAfterReceiveParseNotification, exportLabelsAfterReceiveParseNotification, computeParetoAfterReceiveParseNotification;
 	private PropertiesFile parsedProperties;
 	private ArrayList<GUIProperty> propertiesToBeVerified;
 	private File activeFile;
@@ -158,15 +163,19 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private FileFilter textFilter;
 	private FileFilter csvFilter;
 	private FileFilter matlabFilter;
+	private Map<String,FileFilter> traFilters;
+	private Map<String,FileFilter> advFilters;
 	private JMenu propMenu;
 	private JPopupMenu propertiesPopup, constantsPopup, labelsPopup, experimentPopup;
 	private GUIExperimentTable experiments;
 	private GUIGraphHandler graphHandler;
 	private JScrollPane expScroller;
 	private JTextField fileTextField;
-	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
+        private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, computePareto, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, parametric, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
-			exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab;;
+	                exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab, exportStratProduct, exportStratPlain, strategyInfo, generateStrategy,
+			implementStrategy, importStrategy, strategyExperiment;
+	private JMenu strategiesMenu;
 
 	// Current properties
 	private GUIPropertiesList propList;
@@ -192,7 +201,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		a_newList();
 		setParsedModel(null);
 		doEnables();
-		//options = new GUIPropertiesOptions(this);
+		// options = new GUIPropertiesOptions(this);
 	}
 
 	public void takeCLArgs(String args[])
@@ -202,7 +211,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
-	//ACCESS METHODS
+	// ACCESS METHODS
 
 	public ModulesFile getParsedModel()
 	{
@@ -246,7 +255,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public int getInvalidPropertyStrategy()
 	{
-		return getPrism().getSettings().getInteger(PrismSettings.PROPERTIES_ADDITION_STRATEGY) + 1; //note the correction
+		return getPrism().getSettings().getInteger(PrismSettings.PROPERTIES_ADDITION_STRATEGY) + 1; // note the
+		// correction
 	}
 
 	public GUIGraphHandler getGraphHandler()
@@ -259,6 +269,51 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void repaintList()
 	{
 		propList.repaint();
+	}
+
+        protected void computeParetoAfterParse()
+        {
+		ArrayList<GUIProperty> validGUIProperties;
+		UndefinedConstants uCon;
+
+		computeParetoAfterReceiveParseNotification = false;
+		try {
+			// Get valid/selected properties
+			String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString();
+			// Get PropertiesFile for valid/selected properties
+			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
+			// And get list of corresponding GUIProperty objects
+			validGUIProperties = propList.getValidSelectedProperties();
+			// Query user for undefined constant values (if required)
+			int n = parsedProperties.getNumProperties();
+			ArrayList<Property> validProperties = new ArrayList<Property>(n);
+			for (int i = 0; i < n; i++)
+				validProperties.add(parsedProperties.getPropertyObject(i));
+			uCon = new UndefinedConstants(parsedModel, parsedProperties, validProperties);
+			if (uCon.getMFNumUndefined() + uCon.getPFNumUndefined() > 0) {
+				// Use previous constant values as defaults in dialog
+				int result = GUIConstantsPicker.defineConstantsWithDialog(this.getGUI(), uCon, mfConstants, pfConstants);
+				if (result != GUIConstantsPicker.VALUES_DONE)
+					return;
+			}
+			// Store model/property constants
+			mfConstants = uCon.getMFConstantValues();
+			pfConstants = uCon.getPFConstantValues();
+			getPrism().setPRISMModelConstants(mfConstants);
+			parsedProperties.setSomeUndefinedConstants(pfConstants);
+			// Store properties to be verified
+			propertiesToBeVerified = validGUIProperties;
+			for (GUIProperty gp : propertiesToBeVerified)
+				gp.setConstants(mfConstants, pfConstants);
+			// Start Pareto set computation ... last parameter is true
+			Thread t = new ModelCheckThread(this, parsedProperties, propertiesToBeVerified, true);
+			t.setPriority(Thread.NORM_PRIORITY);
+			t.start();
+		} catch (PrismException e) {
+			error(e.getMessage());
+			return;
+		}
+	
 	}
 
 	protected void verifyAfterParse()
@@ -348,7 +403,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				return;
 		}
 
-		//find out any undefined constants
+		// find out any undefined constants
 		try {
 			uCon = new UndefinedConstants(parsedModel, parsedProperties, simulatableProperties);
 			if (uCon.getMFNumUndefined() + uCon.getPFNumUndefined() > 0) {
@@ -425,7 +480,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			return;
 		}
 
-		//get Property objects for sorting out undefined constants
+		// get Property objects for sorting out undefined constants
 		ArrayList<Property> props = new ArrayList<Property>();
 		for (int i = 0; i < parsedProperties.getNumProperties(); i++) {
 			props.add(parsedProperties.getPropertyObject(i));
@@ -439,7 +494,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			error("Cannot create an experiment because there are no constants with undefined values");
 			return;
 		}
-		boolean offerGraph = type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval;
+		boolean offerGraph = type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval || type instanceof TypePareto || Expression.isPareto(gp.getProperty());
 		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, offerGraph, gp.isValidForSimulation());
 		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
 			showGraphDialog = true;
@@ -449,7 +504,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			useSimulation = true;
 		}
 
-		//if we are using simulation, make sure the property is ok
+		// if we are using simulation, make sure the property is ok
 		if (useSimulation) {
 			try {
 				getPrism().checkPropertyForSimulation(gp.getProperty());
@@ -459,7 +514,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		}
 
-		// make sure we can actually create a graph, i.e. that there is >1 result
+		// make sure we can actually create a graph, i.e. that there is >1
+		// result
 		if (showGraphDialog)
 			if (uCon.getRangingConstants().size() == 0) {
 				message("Cannot create a graph since there is only a single result.");
@@ -471,7 +527,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		boolean notCancelled = true;
 		// start the experiment, via the graph dialog if appropriate
 		if (showGraphDialog) {
-			GUIGraphPicker ggp = new GUIGraphPicker(getGUI(), this, experiments.getExperiment(i), graphHandler, false);
+			GUIGraphPicker ggp = new GUIGraphPicker(getGUI(), this, experiments.getExperiment(i), graphHandler, false, Expression.isPareto(gp.getProperty()));
 			if (ggp.isGraphCancelled()) {
 				if (questionYesNo("Do you want to cancel the experiment completely?", 0) == 0)
 					notCancelled = false;
@@ -480,10 +536,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		if (notCancelled)
 			experiments.startExperiment(i);
-		//else
-		//	experiments.removeExperiment(i);
+		// else
+		// experiments.removeExperiment(i);
 	}
-
+	
 	public void propertyLoadSuccessful(PropertiesFile pf, File f)
 	{
 		// note: add constants/labels first to stop property parse errors
@@ -527,7 +583,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			gp.setBeingEdited(false);
 			if (pctl != null) {
 				if (pctl.matches("\"[^\"]*\"[ ]*:.*")) {
-					//the string contains property name
+					// the string contains property name
 					int start = pctl.indexOf('"') + 1;
 					int end = pctl.indexOf('"', start);
 					String name = pctl.substring(start, end);
@@ -564,8 +620,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void constantListChanged()
 	{
 		labTable.validateLabels();
-		//maybe some constants became valid/invalid, so validate them
-		//before re-validating properties.
+		// maybe some constants became valid/invalid, so validate them
+		// before re-validating properties.
 		consTable.validateConstants();
 		propList.validateProperties();
 		setModified(true);
@@ -607,7 +663,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		fileTextField.setText("Properties list: " + ((activeFile == null) ? "<Untitled>" : activeFile.getPath()) + (modified ? "*" : ""));
 	}
 
-	protected void setParsedModel(ModulesFile m)
+    protected void setParsedModel(ModulesFile m)
 	{
 		parsedModel = m;
 		consTable.validateConstants();
@@ -628,6 +684,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		savePropsAs.setEnabled(!computing);
 		simulate.setEnabled(!computing && parsedModel != null && propList.existsValidSimulatableSelectedProperties());
 		verifySelected.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
+		computePareto.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
 		exportLabelsPlain.setEnabled(!computing && parsedModel != null);
 		exportLabelsMatlab.setEnabled(!computing && parsedModel != null);
 		details.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
@@ -642,7 +699,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		labTable.setEnabled(!computing);
 		removeLabel.setEnabled(labTable.getSelectedRowCount() > 0);
 
-		// newExperiment: enabled if there is exactly one prop selected and it is valid
+		// newExperiment: enabled if there is exactly one prop selected and it
+		// is valid
 		newExperiment.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
 		// parametric: enabled if there is exactly one prop selected and it is valid
 		parametric.setEnabled(propList.getNumSelectedProperties() == 1 && propList.getValidSelectedProperties().size() == 1);
@@ -650,7 +708,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		deleteExperiment.setEnabled(experiments.getSelectedRowCount() > 0);
 		// viewResults: enabled if at least one experiment is selected
 		viewResults.setEnabled(experiments.getSelectedRowCount() > 0);
-		// plotResults: enabled if exactly one experiment is selected and its type is int/double
+		// plotResults: enabled if exactly one experiment is selected and its
+		// type is int/double
 		if (experiments.getSelectedRowCount() == 1) {
 			GUIExperiment exp = experiments.getExperiment(experiments.getSelectedRow());
 			Type type = exp.getPropertyType();
@@ -716,7 +775,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
-	//ACTION METHODS
+	// ACTION METHODS
 
 	public void a_newList()
 	{
@@ -751,8 +810,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	// Save properties
 	// NB: This used to be in a thread but I have taken it out because:
-	//	 (a) We sometimes need to know whether save was successful before continuing
-	//	 (b) When saving before clearing, clear can occur too early
+	// (a) We sometimes need to know whether save was successful before
+	// continuing
+	// (b) When saving before clearing, clear can occur too early
 
 	public int a_save()
 	{
@@ -785,8 +845,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	// Save properties as
 	// NB: This used to be in a thread but I have taken it out because:
-	//	 (a) We sometimes need to know whether save was successful before continuing
-	//	 (b) When saving before clearing, clear can occur too early
+	// (a) We sometimes need to know whether save was successful before
+	// continuing
+	// (b) When saving before clearing, clear can occur too early
 
 	public int a_saveAs()
 	{
@@ -846,7 +907,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			error("None of the selected properties are suitable for simulation");
 			return;
 		}
-		// Reset warnings counter 
+		// Reset warnings counter
 		getPrism().getMainLog().resetNumberOfWarnings();
 		// Request a parse
 		simulateAfterReceiveParseNotification = true;
@@ -867,9 +928,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		}
 	}
-
-	public void a_verifySelected()
-	{
+    // almost stame as a_verifySelected, only here the Pareto set is computed and no strategy is synthesised
+    // the bounds in the properties are ignored
+	public void a_computePareto()
+        {
 		consTable.correctEditors();
 		labTable.correctEditors();
 		// Bail out if there are no valid properties to verify
@@ -878,28 +940,120 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			error("None of the selected properties are suitable for verification. The model was not built");
 			return;
 		}
-		// Reset warnings counter 
+		// Reset warnings counter
 		getPrism().getMainLog().resetNumberOfWarnings();
+
+		// Request a parse
+		computeParetoAfterReceiveParseNotification = true;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	    
+        }
+
+	public void a_verifySelected()
+	{
+		// check if strategy implementation is enabled
+		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && getPrism().getStrategy() != null) {
+		    // check if strategy is stochastic memory update
+		    if(getPrism().getStrategy() instanceof StochasticUpdateStrategy ||
+		       getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct) {
+			JOptionPane.showMessageDialog(this, "Cannot verify under a stochastic update strategy.", "Operation not supported.", JOptionPane.ERROR_MESSAGE);
+			return;
+		    }
+			int n = JOptionPane.showOptionDialog(this, "The product of the model and strategy will be built.\nDo you want to continue?", "Use strategy?",
+					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Yes", "No" }, "Yes");
+
+			// if no do nothing
+			if (n == 1)
+				return;
+
+			// set the settings option
+			try {
+				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
+			} catch (PrismException error) {
+				// TODO Auto-generated catch block
+				error.printStackTrace();
+			}
+		} else {
+			// disabling strategy implementation
+			// showing error message
+			//			JOptionPane.showMessageDialog(this, "No strategy generated.");
+			//			return;
+			//			try {
+			//				getPrism().getSettings().set(
+			//						PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
+			//			} catch (PrismException error) {
+			//				// TODO Auto-generated catch block
+			//				error.printStackTrace();
+			//			}
+		}
+
+		consTable.correctEditors();
+		labTable.correctEditors();
+		// Bail out if there are no valid properties to verify
+		// (probably never occurs - action is disabled in this case)
+		if (!propList.existsValidSelectedProperties()) {
+			error("None of the selected properties are suitable for verification. The model was not built");
+			return;
+		}
+		// Reset warnings counter
+		getPrism().getMainLog().resetNumberOfWarnings();
+
+		// set strategy generation flag
+		//try {
+			//			getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY,
+			//					generateStrategy.isSelected());
+			//getPrism().getSettings().set(PrismSettings.PRISM_EXPORT_ADV, "MDP");
+		//} catch (PrismException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		//}
+
 		// Request a parse
 		verifyAfterReceiveParseNotification = true;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
 	}
 
-	public void a_verifyDone()
+	public void a_verifyDone(boolean pareto)
 	{
+
 		int[] selected = propList.getSelectedIndices();
 
-		// Display result dialogs
-		for (int i = 0; i < selected.length; i++) {
+		// Display result dialogs, only if not pareto computation
+		if(!pareto) {
+		    for (int i = 0; i < selected.length; i++) {
 			GUIProperty gp = propList.getProperty(selected[i]);
 			if (!gp.isBeingEdited()) {
-				gp.setBeingEdited(true);
-				// Force repaint because we modified the GUIProperty directly
-				repaintList();
-				new GUIPropertyResultDialog(getGUI(), this, gp).display();
+			    gp.setBeingEdited(true);
+			    // Force repaint because we modified the GUIProperty directly
+			    repaintList();
+			    new GUIPropertyResultDialog(getGUI(), this, gp).display();
 			}
+		    }
 		}
 
+		// if strategy generation was enabled notifying the simulator
+		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && getPrism().getStrategy() != null
+				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) {
+			simulator.setStrategyGenerated(true);
+			simulator.setStrategy(getPrism().getStrategy());
+			// disabling strategy generation
+			try {
+				getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		// if strategy implementation was enabled - disabling this too
+		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY)) {
+			try {
+				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		// How to plot a parametric result...
 		/*if (selected.length == 1) {
 			GUIProperty gp = propList.getProperty(selected[0]);
@@ -921,7 +1075,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// For a single property with a displayable counterexample, offer to do show it
 		if (selected.length == 1) {
 			GUIProperty gp = propList.getProperty(selected[0]);
-			Object cex = gp.getResult().getCounterexample();
+			Object cex = null;
+			if(gp.getResult() != null) {
+			    cex = gp.getResult().getCounterexample();
+			}
 			if (cex != null && cex instanceof simulator.PathFullInfo) {
 				String qu = "Do you want to view a witness/counterexample for the property in the simulator?";
 				if (questionYesNo("Question", qu, 0) == 0) {
@@ -930,16 +1087,19 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				}
 			}
 		}
-
 		//print Pareto curves for all available TileLists, then clear the storage
 		synchronized (TileList.getStoredTileLists()) {
 			for (int i = 0; i < TileList.getStoredTileLists().size(); i++) {
 				TileList tl = TileList.getStoredTileLists().get(i);
-				if (tl != null && tl.getDimension() == 2) {
+				if(tl != null && tl instanceof PointList && tl.getDimension() == 2) { // add sliders to graph
+				        Graph graph = new Graph(tl.getName());
+				        graph.addPointListSeries((PointList) tl);
+					this.getGraphHandler().addGraph(graph, true); // true means add sliders
+				} else if (tl != null && tl.getDimension() == 2) {
 					Graph graph = new Graph(TileList.getStoredFormulas().get(i).toString());
 					graph.getXAxisSettings().setHeading(TileList.getStoredFormulasX().get(i).toString());
 					graph.getYAxisSettings().setHeading(TileList.getStoredFormulasY().get(i).toString());
-					SeriesKey sk = graph.addSeries("Pareto curve");
+					SeriesKey sk = graph.addSeries(tl.getName());
 
 					//Get points in tilelist and sort them. This is required for the graph to show them right
 					List<prism.Point> l = tl.getPoints();
@@ -950,10 +1110,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 							if (o1.getCoord(0) == o2.getCoord(0))
 								return Double.compare(o1.getCoord(1), o2.getCoord(1));
 							else
-								return Double.compare(o1.getCoord(0), o2.getCoord(0));
+								return Double.compare(o2.getCoord(0), o1.getCoord(0));
 						};
 					};
-
 					Collections.sort(l, c);
 
 					for (prism.Point p : l) {
@@ -963,6 +1122,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					}
 					this.getGraphHandler().addGraph(graph);
 				}
+
 			}
 
 			TileList.clearStoredTileLists();
@@ -972,8 +1132,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void a_cut()
 	{
 		java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-		//java.awt.datatransfer.StringSelection selection = new java.awt.datatransfer.StringSelection(propList.getClipboardString());
-		//clipboard.setContents(selection, null);
+		// java.awt.datatransfer.StringSelection selection = new
+		// java.awt.datatransfer.StringSelection(propList.getClipboardString());
+		// clipboard.setContents(selection, null);
 		clipboard.setContents(new GUIClipboardProperties(propList.getSelectedProperties()), null);
 		a_delete();
 	}
@@ -981,8 +1142,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void a_copy()
 	{
 		java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-		//java.awt.datatransfer.StringSelection selection = new java.awt.datatransfer.StringSelection(propList.getClipboardString());
-		//clipboard.setContents(selection, null);
+		// java.awt.datatransfer.StringSelection selection = new
+		// java.awt.datatransfer.StringSelection(propList.getClipboardString());
+		// clipboard.setContents(selection, null);
 		clipboard.setContents(new GUIClipboardProperties(propList.getSelectedProperties()), null);
 	}
 
@@ -1064,10 +1226,11 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void a_removeSelectedConstants()
 	{
-		// Note: Unlike for prop list, this is safe because constants can always be deleted
-		//       (not the case properties - e.g. if they are being edited)
+		// Note: Unlike for prop list, this is safe because constants can always
+		// be deleted
+		// (not the case properties - e.g. if they are being edited)
 		while (consTable.getSelectedRowCount() > 0) {
-			consTable.removeConstant(consTable.getSelectedRow());//for now
+			consTable.removeConstant(consTable.getSelectedRow());// for now
 		}
 	}
 
@@ -1078,8 +1241,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void a_removeSelectedLabels()
 	{
-		// Note: Unlike for prop list, this is safe because constants can always be deleted
-		//       (not the case properties - e.g. if they are being edited)
+		// Note: Unlike for prop list, this is safe because constants can always
+		// be deleted
+		// (not the case properties - e.g. if they are being edited)
 		while (labTable.getSelectedRowCount() > 0) {
 			labTable.removeLabel(labTable.getSelectedRow());
 		}
@@ -1148,7 +1312,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	
 	public void a_newExperiment()
 	{
-		// Reset warnings counter 
+		// Reset warnings counter
 		getPrism().getMainLog().resetNumberOfWarnings();
 		// Start expt
 		experimentAfterReceiveParseNotification = true;
@@ -1197,14 +1361,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			message("Can only plot results if the property is of type int or double");
 			return;
 		}
-		// make sure we can actually create a graph, i.e. that there is >1 result
+		// make sure we can actually create a graph, i.e. that there is >1
+		// result
 		if (exp.getRangingConstants().size() == 0) {
 			message("Cannot create a graph since there is only a single result.");
 			return;
 		}
 
 		// launch dialog, plot series (modal)
-		new GUIGraphPicker(getGUI(), this, exp, graphHandler, true);
+		new GUIGraphPicker(getGUI(), this, exp, graphHandler, true, false);
 	}
 
 	public void a_exportResults(boolean exportMatrix, String sep)
@@ -1229,7 +1394,110 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
-	//METHODS TO IMPLEMENT GUIPlugin INTERFACE
+	public void a_exportStratProduct()
+	{
+		// checking if everything is available
+		if (getPrism().getStrategy() == null) {
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (getPrism().getBuiltModelExplicit() == null) {
+			JOptionPane.showMessageDialog(this, "No model is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (getPrism().getStrategy().getType().equals(Strategies.FORMAT_STRING_SU_STRAT_MONO)
+		    || getPrism().getStrategy().getType().equals(Strategies.FORMAT_STRING_SU_STRAT_COMP)) {
+		    JOptionPane.showMessageDialog(this, "Strategy has stochastic memory update. Cannot form product with model.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+		    return;
+		}
+
+		// choosing file and exporting
+		if (showSaveFileDialog(traFilters.values(), traFilters.get("tra")) == JFileChooser.APPROVE_OPTION) {
+			final File file = getChooserFile();
+			Thread t = new Thread()
+			{
+				@Override
+				public void run()
+				{
+					try {
+						getPrism().getStrategy().buildProduct(getPrism().getBuiltModelExplicit()).exportToPrismExplicitTra(file);
+					} catch (PrismException e) {
+						JOptionPane.showMessageDialog(GUIMultiProperties.this, "Strategy export failed", "Cannot export", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			};
+			t.start();
+		}
+	}
+
+	public void a_exportStratPlain()
+	{
+		if (getPrism().getStrategy() == null) {
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		// choosing file and exporting
+		if (showSaveFileDialog(advFilters.values(), advFilters.get("adv")) == JFileChooser.APPROVE_OPTION) {
+			final File file = getChooserFile();
+			Thread t = new Thread()
+			{
+				@Override
+				public void run()
+				{
+					getPrism().getStrategy().exportToFile(file.getAbsolutePath());
+				}
+			};
+			t.start();
+		}
+	}
+
+	public void a_importStrategy()
+	{
+		if (getPrism().getBuiltModelExplicit() == null) {
+			JOptionPane.showMessageDialog(this, "No model in memory, please build the model first.", "Cannot import", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
+		// choosing file and exporting
+		if (showOpenFileDialog(advFilters.values(), advFilters.get("adv")) == JFileChooser.APPROVE_OPTION) {
+			final File file = getChooserFile();
+			//	 set strategies everywhere
+			try {
+				getPrism().setStrategy(Strategies.loadStrategyFromFile(file.getAbsolutePath()));
+			} catch (IllegalArgumentException error) {
+				JOptionPane.showMessageDialog(this, "Problem reading the file", "Cannot import", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			simulator.setStrategyGenerated(true);
+			simulator.setStrategy(getPrism().getStrategy());
+			
+		}
+	}
+
+	public void a_showStrategyInfo()
+	{
+		if (getPrism().getStrategy() == null) {
+			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "No Strategy", JOptionPane.ERROR_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(this, getPrism().getStrategy().getInfo(), "Strategy info", JOptionPane.INFORMATION_MESSAGE);
+		}
+	}
+
+	public void a_strategyExperimentSelected()
+	{
+		try {
+			getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
+		} catch (PrismException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		getPrism().getMainLog().resetNumberOfWarnings();
+		experimentAfterReceiveParseNotification = true;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	}
+	
+	// METHODS TO IMPLEMENT GUIPlugin INTERFACE
 
 	public boolean displaysTab()
 	{
@@ -1270,26 +1538,29 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	{
 	}
 
-	// if return value is true, event should not be passed on to any more listeners
+	// if return value is true, event should not be passed on to any more
+	// listeners
 
 	public boolean processGUIEvent(GUIEvent e)
 	{
 		if (e instanceof GUIModelEvent) {
 			GUIModelEvent me = (GUIModelEvent) e;
 			if (me.getID() == GUIModelEvent.NEW_MODEL) {
-				//New Model
-				setParsedModel(null);
+				// New Model
+			    setParsedModel(null);
 				doEnables();
-				//newList();
+				// newList();
 			} else if (me.getID() == GUIModelEvent.MODEL_BUILT) {
 				if (me.getBuildValues() != null)
 					mfConstants = me.getBuildValues();
 				doEnables();
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSED) {
-				setParsedModel(me.getModulesFile());
+			    setParsedModel(me.getModulesFile());
 				checkForPropertiesToLoad();
 				if (verifyAfterReceiveParseNotification)
 					verifyAfterParse();
+				if(computeParetoAfterReceiveParseNotification)
+				        computeParetoAfterParse();
 				if (experimentAfterReceiveParseNotification)
 					experimentAfterParse();
 				if (simulateAfterReceiveParseNotification)
@@ -1299,6 +1570,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			} else if (me.getID() == GUIModelEvent.MODEL_PARSE_FAILED) {
 				argsPropertiesFile = null;
 				verifyAfterReceiveParseNotification = false;
+				computeParetoAfterReceiveParseNotification = false;
 				experimentAfterReceiveParseNotification = false;
 				simulateAfterReceiveParseNotification = false;
 				exportLabelsAfterReceiveParseNotification = false;
@@ -1341,7 +1613,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			} else if (pr.getID() == GUIPropertiesEvent.EXPERIMENT_END) {
 				stopExperiment.setEnabled(false);
 			} else if (pr.getID() == GUIPropertiesEvent.VERIFY_END) {
-				a_verifyDone();
+			    a_verifyDone(false);
+			} else if (pr.getID() == GUIPropertiesEvent.PARETO_END) {
+			    a_verifyDone(true);
 			}
 		} else if (e instanceof GUIExitEvent) {
 			if (e.getID() == GUIExitEvent.REQUEST_EXIT) {
@@ -1365,7 +1639,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
-	//METHODS TO IMPLEMENT MouseListner INTERFACE
+	// METHODS TO IMPLEMENT MouseListner INTERFACE
 
 	public void mouseClicked(MouseEvent e)
 	{
@@ -1417,13 +1691,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (!computing) {
 			if (e.isPopupTrigger() && e.getSource() == propList) {
 				int index = propList.locationToIndex(e.getPoint());
-				// if there are no properties selected, select the one under the popup
+				// if there are no properties selected, select the one under the
+				// popup
 				if (propList.isSelectionEmpty()) {
 					if (index != -1) {
 						propList.setSelectedIndex(index);
 					}
 				} else {
-					// if the property under the popup is not already selected, select just that one
+					// if the property under the popup is not already selected,
+					// select just that one
 					int[] sel = propList.getSelectedIndices();
 					boolean valid = false;
 					for (int i = 0; i < sel.length; i++) {
@@ -1437,7 +1713,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					}
 				}
 
-				// disable certain actions if any of the selected propeties are currently being edited
+				// disable certain actions if any of the selected propeties are
+				// currently being edited
 				int[] sel = propList.getSelectedIndices();
 				boolean showDeleters = true;
 				for (int i = 0; i < sel.length; i++) {
@@ -1448,6 +1725,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				}
 
 				verifySelected.setEnabled(propList.existsValidSelectedProperties());
+				computePareto.setEnabled(propList.existsValidSelectedProperties());
 				simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 				details.setEnabled(propList.existsValidSelectedProperties());
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1458,6 +1736,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
 					verifySelected.setEnabled(false);
+					computePareto.setEnabled(false);
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
@@ -1482,7 +1761,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (computing)
 			return false;
 
-		// disable certain actions if any of the selected propeties are currently being edited
+		// disable certain actions if any of the selected propeties are
+		// currently being edited
 		int[] sel = propList.getSelectedIndices();
 		boolean showDeleters = true;
 		for (int i = 0; i < sel.length; i++) {
@@ -1515,13 +1795,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (!computing) {
 			if (e.isPopupTrigger() && e.getSource() == propList) {
 				int index = propList.locationToIndex(e.getPoint());
-				// if there are no properties selected, select the one under the popup
+				// if there are no properties selected, select the one under the
+				// popup
 				if (propList.isSelectionEmpty()) {
 					if (index != -1) {
 						propList.setSelectedIndex(index);
 					}
 				} else {
-					// if the property under the popup is not already selected, select just that one
+					// if the property under the popup is not already selected,
+					// select just that one
 					int[] sel = propList.getSelectedIndices();
 					boolean valid = false;
 					for (int i = 0; i < sel.length; i++) {
@@ -1534,7 +1816,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						propList.setSelectedIndex(index);
 					}
 				}
-				// disable certain actions if any of the selected propeties are currently being edited
+				// disable certain actions if any of the selected propeties are
+				// currently being edited
 				int[] sel = propList.getSelectedIndices();
 				boolean showDeleters = true;
 				for (int i = 0; i < sel.length; i++) {
@@ -1544,6 +1827,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					}
 				}
 				verifySelected.setEnabled(propList.existsValidSelectedProperties());
+				computePareto.setEnabled(propList.existsValidSelectedProperties());
 				simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 				details.setEnabled(propList.existsValidSelectedProperties());
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1553,6 +1837,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
 					verifySelected.setEnabled(false);
+					computePareto.setEnabled(false);
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
@@ -1584,12 +1869,13 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		selectionChangeHandler.notifyListeners(new GUIEvent(1));
 	}
 
-	//METHODS TO IMPLEMENT ListSelectionListener INTERFACE
+	// METHODS TO IMPLEMENT ListSelectionListener INTERFACE
 	public void valueChanged(ListSelectionEvent e)
 	{
 		ArrayList<GUIProperty> selectedProps = propList.getSelectedProperties();
 
-		// disable certain actions if any of the selected properties are currently being edited
+		// disable certain actions if any of the selected properties are
+		// currently being edited
 		boolean showDeleters = true;
 		for (int i = 0; i < selectedProps.size(); i++) {
 			if (((GUIProperty) selectedProps.get(i)).isBeingEdited()) {
@@ -1599,6 +1885,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 
 		verifySelected.setEnabled(propList.existsValidSelectedProperties());
+		computePareto.setEnabled(propList.existsValidSelectedProperties());
 		simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 		details.setEnabled(propList.existsValidSelectedProperties());
 		editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1606,13 +1893,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (showDeleters == false) {
 			simulate.setEnabled(false);
 			verifySelected.setEnabled(false);
+			computePareto.setEnabled(false);
 			details.setEnabled(false);
 			editProperty.setEnabled(false);
 		}
 
 		updateCommentLabel();
 
-		//Now do the one for the constants table
+		// Now do the one for the constants table
 
 		removeConstant.setEnabled(consTable.getSelectedRowCount() > 0);
 		removeLabel.setEnabled(labTable.getSelectedRowCount() > 0);
@@ -1621,14 +1909,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		selectionChangeHandler.notifyListeners(new GUIEvent(1));
 	}
 
-	//CONSTRUCTOR HELPER METHODS
+	// CONSTRUCTOR HELPER METHODS
 	JScrollPane constantsScroll, labelsScroll;
 	JTextArea comLabel;
 
 	private void initComponents()
 	{
 		setupActions();
-		//panel
+		// panel
 		JSplitPane mainSplit = new JSplitPane();
 		{
 			JPanel left = new JPanel();
@@ -1650,8 +1938,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						{
 							comLabel.setRows(2);
 							comLabel.setEditable(false);
-							//comLabel.setPreferredSize(new Dimension(300, 20));
-							//comLabel.setMinimumSize(new Dimension(10,10));
+							// comLabel.setPreferredSize(new Dimension(300,
+							// 20));
+							// comLabel.setMinimumSize(new Dimension(10,10));
 						}
 						comScroll.setViewportView(comLabel);
 						topLeft.setLayout(new BorderLayout());
@@ -1728,8 +2017,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						bottomRight.add(graphHandler);
 
 						bottomRight.setPreferredSize(new Dimension(300, 300));
-						//graphHandler.addGraph();
-						//graphHandler.addGraph();
+						// graphHandler.addGraph();
+						// graphHandler.addGraph();
 					}
 					rightSplit.setOrientation(JSplitPane.VERTICAL_SPLIT);
 					rightSplit.setTopComponent(topRight);
@@ -1762,18 +2051,18 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				fileTextField.setBackground(null);
 			}
 
-			//progress = new JProgressBar(0, 100);
+			// progress = new JProgressBar(0, 100);
 			topPanel.setLayout(new BorderLayout());
-			//topPanel.add(progress, BorderLayout.WEST);
+			// topPanel.add(progress, BorderLayout.WEST);
 			topPanel.add(fileTextField, BorderLayout.CENTER);
 		}
 		setLayout(new BorderLayout());
 		add(mainSplit, BorderLayout.CENTER);
 		add(topPanel, BorderLayout.NORTH);
-		//menu
+		// menu
 		propMenu = new JMenu("Properties");
 		{
-			//JSplitter split = new JSeparator();
+			// JSplitter split = new JSeparator();
 			propMenu.add(newProps);
 			propMenu.add(new JSeparator());
 			propMenu.add(openProps);
@@ -1783,6 +2072,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.add(savePropsAs);
 			propMenu.add(new JSeparator());
 			propMenu.add(verifySelected);
+			propMenu.add(computePareto);
+			propMenu.add(generateStrategy);
 			propMenu.add(simulate);
 			propMenu.add(newExperiment);
 			//propMenu.add(parametric);
@@ -1795,7 +2086,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.setMnemonic('P');
 		}
 		createPopups();
-		//file filters
+		// file filters
 		propsFilter = new FileNameExtensionFilter("PRISM properties (*.props, *.pctl, *.csl)", "props", "pctl", "csl");
 		labFilters = new HashMap<String,FileFilter>();
 		labFilters.put("lab", new FileNameExtensionFilter("Label files (*.lab)", "lab"));
@@ -1803,6 +2094,12 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		textFilter =  new FileNameExtensionFilter("Plain text files (*.txt)", "txt");
 		csvFilter =  new FileNameExtensionFilter("Comma-separated values (*.csv)", "csv");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
+		traFilters = new HashMap<String,FileFilter>();
+		traFilters.put("tra", new FileNameExtensionFilter("Transition matrix files (*.tra)", "tra"));
+		traFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
+		advFilters = new HashMap<String,FileFilter>();
+		advFilters.put("adv", new FileNameExtensionFilter("Adversary files (*.adv)", "adv"));
+		advFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
 	}
 
 	private void createPopups()
@@ -1813,10 +2110,47 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		propertiesPopup.add(newProperty);
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(verifySelected);
+		propertiesPopup.add(computePareto);
 		propertiesPopup.add(simulate);
 		propertiesPopup.add(newExperiment);
 		//propertiesPopup.add(parametric);
 		propertiesPopup.add(details);
+
+		// strategies
+		strategiesMenu = new JMenu("Strategies");
+		strategiesMenu.setMnemonic('S');
+		strategiesMenu.setIcon(GUIPrism.getIconFromImage("smallStrategy.png"));
+
+		// add strategy info
+		strategiesMenu.add(strategyInfo);
+		strategiesMenu.add(new JSeparator());
+
+		// a group of radio button menu items
+		strategiesMenu.add(generateStrategy);
+		strategiesMenu.add(implementStrategy);
+		strategiesMenu.add(strategyExperiment);
+
+		// adding import menu
+		strategiesMenu.add(new JSeparator());
+		strategiesMenu.add(importStrategy);
+		
+		// adding export menu
+		strategiesMenu.add(new JSeparator());
+		strategiesMenu.add(exportStratPlain);
+		strategiesMenu.add(exportStratProduct);
+		
+		//		JMenu stratExportMenu = new JMenu("Export strategy");
+		//		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
+		//		stratExportMenu.add(exportStratPlain);
+		//		stratExportMenu.add(exportStratProduct);
+		//		strategiesMenu.add(stratExportMenu);
+		//		JMenu stratExportMenu = new JMenu("Export strategy");
+		//		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
+
+		// add to the main menu
+		propertiesPopup.add(strategiesMenu);
+
+		// standard actions
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCutAction());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCopyAction());
@@ -1865,7 +2199,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		};
 		newProps.putValue(Action.LONG_DESCRIPTION, "Clears the current properties list, and the current active properties list.");
-		//newProps.putValue(Action.SHORT_DESCRIPTION, "New properties list");
+		// newProps.putValue(Action.SHORT_DESCRIPTION, "New properties list");
 		newProps.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_N));
 		newProps.putValue(Action.NAME, "New properties list");
 		newProps.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallNew.png"));
@@ -1880,7 +2214,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		};
 		openProps.putValue(Action.LONG_DESCRIPTION, "Opens a properties list, checking that it is valid according to the current parsed model");
-		//openProps.putValue(Action.SHORT_DESCRIPTION, "Open properties list");
+		// openProps.putValue(Action.SHORT_DESCRIPTION, "Open properties list");
 		openProps.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_O));
 		openProps.putValue(Action.NAME, "Open properties list...");
 		openProps.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallOpen.png"));
@@ -1911,7 +2245,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}
 		};
 		savePropsAs.putValue(Action.LONG_DESCRIPTION, "Saves all properties to a new file selected by the user from a dialog.");
-		//savePropsAs.putValue(Action.SHORT_DESCRIPTION, "Save properties list As...");
+		// savePropsAs.putValue(Action.SHORT_DESCRIPTION,
+		// "Save properties list As...");
 		savePropsAs.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_A));
 		savePropsAs.putValue(Action.NAME, "Save properties list as...");
 		savePropsAs.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallSaveAs.png"));
@@ -1925,7 +2260,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		};
 		insertProps.putValue(Action.LONG_DESCRIPTION,
 				"Inserts properties from user selected file into the properties list.  The active property file remains the same however.");
-		//insertProps.putValue(Action.SHORT_DESCRIPTION, "Insert properties list");
+		// insertProps.putValue(Action.SHORT_DESCRIPTION,
+		// "Insert properties list");
 		insertProps.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_I));
 		insertProps.putValue(Action.NAME, "Insert properties list...");
 		insertProps.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallAdd.png"));
@@ -1959,6 +2295,13 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			public void actionPerformed(ActionEvent e)
 			{
+			        try{
+					getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
+				        getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
+				} catch (PrismException e1) {
+				        e1.printStackTrace();
+				}
+
 				a_verifySelected();
 			}
 		};
@@ -1966,11 +2309,39 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				.putValue(
 						Action.LONG_DESCRIPTION,
 						"Model checks the selected properties against the model that is built.  If there is no built model, the parsed model is automatically built.  If the parsed model has changed since the last build, the user is prompted as to whether they wish to re-build the model.  If the model text has been modified since the last build, the user is asked whether they want to re-parse and re-build.");
-		//verifySelected.putValue(Action.SHORT_DESCRIPTION, "Verify Selected Properties");
+		// verifySelected.putValue(Action.SHORT_DESCRIPTION,
+		// "Verify Selected Properties");
 		verifySelected.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_V));
 		verifySelected.putValue(Action.NAME, "Verify");
 		verifySelected.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallTick.png"));
 		verifySelected.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+
+
+
+		computePareto = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				try {
+				        // Strategy computation and Pareto set computation are different methods
+				        getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
+				} catch (PrismException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+				a_computePareto();
+			}
+		};
+		computePareto
+				.putValue(
+						Action.LONG_DESCRIPTION,
+						"Computes the Pareto set for the selected properties against the model that is built.  If there is no built model, the parsed model is automatically built.  If the parsed model has changed since the last build, the user is prompted as to whether they wish to re-build the model.  If the model text has been modified since the last build, the user is asked whether they want to re-parse and re-build.");
+		computePareto.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_V));
+		computePareto.putValue(Action.NAME, "Compute Pareto set");
+		computePareto.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallPareto.png"));
+		computePareto.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F10, 0));
+
 
 		newProperty = new AbstractAction()
 		{
@@ -2187,10 +2558,108 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		stopExperiment.putValue(Action.LONG_DESCRIPTION, "Stops the Experiment that is currently running");
 		stopExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStop.png"));
 		stopExperiment.setEnabled(false);
+
+		strategyInfo = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_showStrategyInfo();
+			}
+		};
+		strategyInfo.putValue(Action.NAME, "Strategy info");
+		strategyInfo.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallInfo.png"));
+
+		generateStrategy = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				try {
+					getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, true);
+
+				} catch (PrismException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				a_verifySelected();
+
+			}
+		};
+		generateStrategy.putValue(Action.LONG_DESCRIPTION, "Generate the strategy for the property.");
+		generateStrategy.putValue(Action.NAME, "Generate strategy");
+		generateStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallConstruct.png"));
+
+		implementStrategy = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				if (getPrism().getStrategy() == null) {
+					JOptionPane.showMessageDialog(GUIMultiProperties.this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				try {
+					getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
+				} catch (PrismException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				a_verifySelected();
+			}
+		};
+		implementStrategy.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
+		implementStrategy.putValue(Action.NAME, "Verify under strategy");
+		implementStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallImplement.png"));
+
+		strategyExperiment = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				
+				a_strategyExperimentSelected();
+			}
+		};
+		strategyExperiment.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
+		strategyExperiment.putValue(Action.NAME, "Perform experiment under strategy");
+		strategyExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExperiment.png"));
+
+		
+		exportStratProduct = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStratProduct();
+			}
+		};
+		exportStratProduct.putValue(Action.LONG_DESCRIPTION, "Export the product of the model and strategy to .tra file");
+		exportStratProduct.putValue(Action.NAME, "Export product...");
+		exportStratProduct.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExport.png"));
+
+		exportStratPlain = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStratPlain();
+			}
+		};
+		exportStratPlain.putValue(Action.LONG_DESCRIPTION, "Export the strategy to .adv file");
+		exportStratPlain.putValue(Action.NAME, "Export strategy...");
+		exportStratPlain.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExport.png"));
+
+		importStrategy = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_importStrategy();
+			}
+		};
+		importStrategy.putValue(Action.LONG_DESCRIPTION, "Import strategy from text file.");
+		importStrategy.putValue(Action.NAME, "Import strategy...");
+		importStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallAdd.png"));
+
 	}
 
 	/**
 	 * Getter for property propList.
+	 * 
 	 * @return Value of property propList.
 	 */
 	public userinterface.properties.GUIPropertiesList getPropList()
@@ -2200,6 +2669,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	/**
 	 * Getter for property consTable.
+	 * 
 	 * @return Value of property consTable.
 	 */
 	public userinterface.properties.GUIPropConstantList getConsTable()
@@ -2209,6 +2679,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	/**
 	 * Getter for property labTable.
+	 * 
 	 * @return Value of property labTable.
 	 */
 	public userinterface.properties.GUIPropLabelList getLabTable()

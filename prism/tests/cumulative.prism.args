@@ -1,0 +1,1 @@
+-ex -paretoepsilon 1e-3 -verbose -exportstrat cumulative.strat

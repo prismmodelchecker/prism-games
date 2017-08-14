@@ -29,6 +29,8 @@ package userinterface.properties;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -44,6 +46,7 @@ import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -292,7 +295,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 				models.remove(theTabs.getSelectedIndex());
 				options.remove(theTabs.getSelectedIndex());
-				theTabs.remove(graph);
+				if (theTabs.indexOfTabComponent(graph) == -1) { // tab contains sliders
+					theTabs.remove(theTabs.getSelectedIndex());
+				} else {
+					theTabs.remove(graph);
+				}
 			}
 		};
 		deleteGraph.putValue(Action.NAME, "Delete graph");
@@ -397,6 +404,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 	public int addGraph(Graph m)
 	{
+		return addGraph(m, false);
+	}
+
+	public int addGraph(Graph m, boolean addSliders)
+	{
 		String name = "";
 
 		boolean nameNew;
@@ -412,7 +424,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			}
 
 			if (nameNew)
-				return addGraph(m, name);
+				return addGraph(m, name, addSliders);
 
 			counter++;
 		}
@@ -420,11 +432,30 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 	public int addGraph(Graph m, String tabName)
 	{
+		return addGraph(m, tabName, false);
+	}
+
+	public int addGraph(Graph m, String tabName, boolean addSliders)
+	{
 		// add the model to the list of models
 		models.add(m);
 
+		Component c = null;
 		// make the graph appear as a tab
-		theTabs.add(m);
+		if (addSliders) {
+			JSplitPane pane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, m, m.getSliderPane());
+			pane.setResizeWeight(0.7); // bottom part doesn't get resized much
+			pane.setOneTouchExpandable(true);
+			int slidersheight = m.getSliderPane().getHeight();
+			if (slidersheight * 10 > this.getHeight() * 3)
+				slidersheight = (this.getHeight() * 3) / 10;
+			pane.setPreferredSize(new Dimension(this.getHeight() - slidersheight, slidersheight));
+			theTabs.add(pane);
+			c = pane;
+		} else {
+			theTabs.add(m);
+			c = m;
+		}
 		options.add(new GraphOptions(plug, m, plug.getGUI(), "Options for graph " + tabName));
 
 		// anything that happens to the graph should propagate
@@ -437,7 +468,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		theTabs.setTitleAt(index, tabName);
 
 		// make this new tab the default selection
-		theTabs.setSelectedIndex(theTabs.indexOfComponent(m));
+		theTabs.setSelectedIndex(theTabs.indexOfComponent(c));
 
 		// return the index of the component
 		return index;
@@ -447,7 +478,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	{
 		for (int i = 0; i < models.size(); i++) {
 			if (m == models.get(i)) {
-				theTabs.setSelectedComponent(m);
+				try {
+					theTabs.setSelectedComponent(m);
+				} catch (IllegalArgumentException e) { // component not found in pane
+					// select by index
+					theTabs.setSelectedIndex(i);
+				}
 				break;
 			}
 		}

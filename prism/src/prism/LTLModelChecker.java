@@ -170,6 +170,10 @@ public class LTLModelChecker extends PrismComponent
 		if (!expr.isPathFormula(true)) {
 			return false;
 		}
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			// Don't support reward-bounded path formulas
+			return false;
+		}
 		if (Expression.containsTemporalTimeBounds(expr)) {
 			if (modelType.continuousTime()) {
 				// Only support temporal bounds for discrete time models

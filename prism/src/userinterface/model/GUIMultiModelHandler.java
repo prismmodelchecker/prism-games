@@ -534,6 +534,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		tree.stopParsing();
 		parsing = false;
 		parsedModel = m;
+
 		modifiedSinceParse = false;
 		lastError = "Parse Successful";
 
@@ -549,6 +550,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 				}
 				int parseDelay = theModel.getPrism().getSettings().getInteger(PrismSettings.MODEL_PARSE_DELAY);
 				waiter = new WaitParseThread(parseDelay, this);
+
 				waiter.start();
 				//Funky thread waiting stuff
 			}
@@ -565,7 +567,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		}
 		tree.repaint();
 		theModel.doEnables();
-		theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODEL_PARSED, parsedModel));
+	    theModel.notifyEventListeners(new GUIModelEvent(GUIModelEvent.MODEL_PARSED, parsedModel));
 	}
 
 	public synchronized void modelParseFailed(PrismException parserError, boolean background)

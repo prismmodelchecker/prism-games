@@ -36,6 +36,8 @@ package parser;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 import jltl2ba.SimpleLTL;
 import parser.BooleanUtils;
@@ -430,13 +432,16 @@ TOKEN :
 |	< CLOCK:			"clock" >
 |	< CONST:			"const" >
 |	< CTMC:				"ctmc" >
+|	< CTMDP:			"ctmdp" >
 |	< C:				"C" >
+|	< DISCOUNT:			"disc" >
 |	< DOUBLE:			"double" >
 |	< DTMC:				"dtmc" >
 |	< E:				"E" >
 |	< ENDINIT:			"endinit" >
 |	< ENDINVARIANT:		"endinvariant" >
 |	< ENDMODULE:		"endmodule" >
+|	< ENDPLAYER:		"endplayer" >
 |	< ENDREWARDS:		"endrewards" >
 |	< ENDSYSTEM:		"endsystem" >
 |	< FALSE:			"false" >
@@ -444,6 +449,8 @@ TOKEN :
 |	< FILTER:			"filter" >
 |	< FUNC:				"func" >
 |	< F:				"F" >
+|	< Fc:				"Fc" >
+|	< F0:				"F0" >
 |	< GLOBAL:			"global" >
 |	< G:				"G" >
 |	< INIT:				"init" >
@@ -451,26 +458,41 @@ TOKEN :
 |	< I:				"I" >
 |	< INT:				"int" >
 |	< LABEL:			"label" >
+|	< MAXMAX:			"maxmax" >
+|	< MAXMIN:			"maxmin" >
 |	< MAX:				"max" >
 |	< MDP:				"mdp" >
+|	< MINMAX:			"minmax" >
+|	< MINMIN:			"minmin" >
 |	< MIN:				"min" >
 |	< MODULE:			"module" >
 |	< X:				"X" >
 |	< NONDETERMINISTIC:	"nondeterministic" >
 //|	< OF:				"of" >
+|	< PMAXMAX:			"Pmaxmax" >
+|	< PMAXMIN:			"Pmaxmin" >
 |	< PMAX:				"Pmax" >
+|	< PMINMAX:			"Pminmax" >
+|	< PMINMIN:			"Pminmin" >
 |	< PMIN:				"Pmin" >
 |	< P:				"P" >
+|	< PLAYER:			"player" >
 |	< PROBABILISTIC:	"probabilistic" >
 |	< PROB:				"prob" >
 |	< PTA:				"pta" >
 |	< RATE:				"rate" >
 |	< REWARDS:			"rewards" >
+|	< RMAXMAX:			"Rmaxmax" >
+|	< RMAXMIN:			"Rmaxmin" >
 |	< RMAX:				"Rmax" >
+|	< RMINMAX:			"Rminmax" >
+|	< RMINMIN:			"Rminmin" >
 |	< RMIN:				"Rmin" >
 |	< R:				"R" >
 |	< S:				"S" >
 |	< STOCHASTIC:		"stochastic" >
+|	< STPG:				"stpg" >
+|	< SMG:				"smg" >
 |	< SYSTEM:			"system" >
 |	< TRUE:				"true" >
 |	< U:				"U" >
@@ -541,6 +563,7 @@ ModulesFile ModulesFile() throws PrismLangException :
 	Expression init = null;
 	int initCount = 0;
 	Expression initDupe = null;
+	Player player = null;
 	ModulesFile mf = new ModulesFile();
 	Token begin = null;
 }
@@ -561,7 +584,9 @@ ModulesFile ModulesFile() throws PrismLangException :
 	// Initial states ("init...endinit" construct)
 	init = Init() { mf.setInitialStates(init); initCount++; if (initCount == 2) initDupe = init; } |
 	// System definition ("system...endsystem" construct)
-	SystemEndsystem(mf)
+	SystemEndsystem(mf) |
+	// Player definition
+	player = Player() { mf.addPlayer(player); }
 	)* <EOF>
 	{
 		// Check for multiple instances of some items
@@ -679,7 +704,10 @@ ModelType ModulesFileType() :
 	( (<DTMC>|<PROBABILISTIC>) { modelType=ModelType.DTMC; }
 	| (<MDP>|<NONDETERMINISTIC>) { modelType=ModelType.MDP; }
 	| (<CTMC>|<STOCHASTIC>) { modelType=ModelType.CTMC; }
+	| <CTMDP> { modelType=ModelType.CTMDP; }
 	| <PTA> { modelType=ModelType.PTA; }
+	| <STPG> { modelType=ModelType.STPG; }
+	| <SMG> { modelType=ModelType.SMG; }
 	)
 	{ return modelType; }
 }
@@ -821,7 +849,11 @@ Command Command() :
 }
 {
 	// Synchronisation action-label
-	begin = <LBRACKET> ( synch = Identifier() { comm.setSynch(synch); } )? <RBRACKET>
+	begin = <LBRACKET> (
+		synch = Identifier() { comm.setSynch(synch); }
+		(<NOT> { comm.setSynchType(Command.ActionType.OUTPUT); }
+		|<QMARK> { comm.setSynchType(Command.ActionType.INPUT); })?
+	)? <RBRACKET>
 	// Guard/updates
 	guard = Expression(false, false) { comm.setGuard(guard); } <RARROW> updates = Updates() { comm.setUpdates(updates); } <SEMICOLON>
 	{ comm.setPosition(begin, getToken(0)); return comm; }
@@ -1090,6 +1122,34 @@ SystemDefn SystemAtomic() :
 	)
 	{ sys.setPosition(begin, getToken(0)); return sys; }
 }
+
+// Player definition
+
+Player Player() :
+{
+	String name = null;
+	Player player = null;
+	Token begin;
+}
+{
+	{ begin = getToken(1); }
+	<PLAYER> name = Identifier() { player = new Player(name); }
+	( PlayerItem(player) ( <COMMA> PlayerItem(player) )* )?
+	<ENDPLAYER>
+	{ player.setPosition(begin, getToken(0)); return player; }
+}
+
+// Player definition item (module or [action])
+
+void PlayerItem(Player player) :
+{
+	String name = null;
+}
+{
+	( <LBRACKET> name = Identifier() <RBRACKET> { player.addAction(name); } )
+	| ( name = Identifier() { player.addModule(name); } )
+}
+
 
 //-----------------------------------------------------------------------------------
 // Expressions.
@@ -1536,11 +1596,26 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 	(( begin = <P> ( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )? (
 			( r = LtGt() prob = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
 	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
-	       |( <MIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	       |( <MAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )))
+	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       ))
+	       |( <MAX> (( <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	       ))
+	       |( <MINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	       |( <MINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       |( <MAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	       |( <MAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	))
 	// These two are dupes of above but allow space to be omitted
 	|( begin = <PMIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	|( begin = <PMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } ))
+	|( begin = <PMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	|( begin = <PMINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	|( begin = <PMINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	|( begin = <PMAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	|( begin = <PMAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } ))
 	// Path formula, optional filter
 	<LBRACKET> expr = Expression(prop, true) (filter = Filter())? <RBRACKET>
 	{
@@ -1645,12 +1720,27 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 		( <LPARENTH> modifier = IdentifierExpression() <RPARENTH> )?
 		(RewardIndex(ret))?
 		(( r = LtGt() rew = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } )
-	   |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
-	   |( <MIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	   |( <MAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )))
+	       |( <EQ> <QMARK> { relOp = "="; isBool = false; } )
+	       |( <MIN> (( <EQ> <QMARK> { relOp = "min="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       ))
+	       |( <MAX> (( <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	                |( <MIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	                |( <MAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	       ))
+	       |( <MINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	       |( <MINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	       |( <MAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	       |( <MAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } )
+	))
 	// These two are dupes of above but allow space to be omitted
 	|( begin = <RMIN> <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	|( begin = <RMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } ))
+	|( begin = <RMAX> <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	|( begin = <RMINMIN> <EQ> <QMARK> { relOp = "minmin="; isBool = false; } )
+	|( begin = <RMINMAX> <EQ> <QMARK> { relOp = "minmax="; isBool = false; } )
+	|( begin = <RMAXMIN> <EQ> <QMARK> { relOp = "maxmin="; isBool = false; } )
+	|( begin = <RMAXMAX> <EQ> <QMARK> { relOp = "maxmax="; isBool = false; } ))
 	// Path formula, optional filter
 	<LBRACKET> expr = ExpressionRewardContents(prop, pathprop) (filter = Filter())? <RBRACKET>
 	{
@@ -1678,16 +1768,25 @@ void RewardIndex(ExpressionReward exprRew) :
 {
 	Object index = null;
 	Object indexDiv = null;
+	Object discount = null;
 }
 {
 	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
-	( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | index = Expression(false, false) ) <RBRACE> )
+	(<LBRACE> (
+	( 
+	 LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | <DISCOUNT><EQ>discount=Expression(false, false) | index = Expression(false, false)  )
+	) 
+	(<COMMA><DISCOUNT><EQ> discount=Expression(false,false))?
+	<RBRACE>)
 	// Optional second reward structure index (for ratio objectives)
 	( <DIVIDE> ( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> indexDiv = Identifier() <DQUOTE> ) | indexDiv = Expression(false, false) ) <RBRACE> ))?
 	{
 		exprRew.setRewardStructIndex(index);
 		if (indexDiv != null) {
 			exprRew.setRewardStructIndexDiv(indexDiv);
+		}
+		if (discount != null) {
+			exprRew.setDiscount(discount);
 		}
 	}
 }
@@ -1716,6 +1815,8 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 	| LOOKAHEAD(<C> <LE>) begin = <C> <LE> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_C, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
 	| <C> { ret = new ExpressionTemporal(ExpressionTemporal.R_C, null, null); }
 	| <I> <EQ> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_I, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
+	| <Fc> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_Fc, null, expr); }
+	| <F0> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_F0, null, expr); }
 	
 	// Path formula (including F "target")
 	| expr = Expression(prop, true) { ret = expr; }
@@ -1788,7 +1889,7 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 		return ret;
 	}
 }
-
+	
 // Coalition (player list) for a strategy (<<>> or [[]]) operator
 
 void ExpressionStrategyCoalition(ExpressionStrategy exprStrat) :

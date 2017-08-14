@@ -1,0 +1,315 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Electrical Starting, Generation, Conversion and Distribution System Architecture for //
+//     a More Electric Vehicle                                                          //
+//                                                                                      //
+// Modelled after European Patent EP 1 792 379 B1, by Rodney G. Michalko                //
+//                                                                                      //
+// Author: Clemens Wiltsche, University of Oxford, 2014 (clemens.wiltsche@cs.ox.ac.uk)  //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// Model Assumptions:
+// * Game proceeds in stages: change generator status (S)
+//                            contactor intention changes (P1)
+//                            contactor intention resolved (P2)
+//                            send/receive over interface in pre-defined order
+//       this consitutes one time step
+// * Only one contactor switch intention per subsystem may change at any one time
+// * Generators may fail independently, also several at a time
+// * Interfaces: The component controlling the contactor only switches it on if the
+//       subsystem is not powered, so that no power flows out through the contactor,
+//       so that sources are not parallelled.
+
+smg
+
+/////////////////////////////// TOP-LEVEL SYTEM (200) ////////////////////////////////////
+
+system "MEV"
+	"HVAC_LEFT" || "HVAC_RIGHT"
+endsystem
+
+// MODEL PARAMTERS
+// generator dynamics
+const N;                 // [#] number of timesteps generator configuration stays the same
+const double pg = 0.8;   // [prob] probability of generator being healthy per max_gc time steps
+
+// interface dynamics
+const double I1_health;  // [prob] probability of interface being powered
+
+// connector dynamics
+const del_max;           // [#] maximum turn-off delay in loop itarations of connector, turn-on delay is (floor of) half this
+
+//////////////////////////// HIGH VOLATAGE AC, LEFT (210a) ///////////////////////////////
+
+system "HVAC_LEFT"
+       C1_switch || C2_switch || C3_switch || C4_switch || GEN_LEFT || HVAC_LEFT || GEN_COUNTER_LEFT
+endsystem
+
+const C1_init = 0;
+const C2_init = 0;
+const C3_init = 0;
+const C4_init = 0;
+
+const C1_turn_off_int = 1; // need to turn off when interface opens
+const C2_turn_off_int = 1; // need to turn off when interface opens
+const C3_turn_off_int = 0; // no need to turn off when interface opens
+
+module C1_switch
+        C1 : [0..1] init C1_init; // connector status for C1
+	C1_int : [0..1] init C1_init; // intention for C1
+	C1_del : [0..max(del_max,1)] init del_max; // delay for switching
+
+	// change intention to switch off
+	[switch_left]        C1_int!=0 -> (C1_int'=0) & (C1_del'=0);
+	[switch_left_int_on] C1_int!=0 -> (C1_int'=0) & (C1_del'=0);
+	// change intention to switch on
+	[switch_left]        C1_int!=1                     -> (C1_int'=1) & (C1_del'=ceil(del_max/2));
+	[switch_left_int_on] C1_int!=1 & C1_turn_off_int=0 -> (C1_int'=1) & (C1_del'=ceil(del_max/2));
+	// do nothing
+	[switch_left]        true                         -> true;
+	[switch_left_int_on] C1_int=0 | C1_turn_off_int=0 -> true;
+
+	// resolve connector status
+	[conn_res_left] true                            -> (C1'=C1_int) & (C1_del'=del_max);
+	// not resolved - increase counter
+	[conn_res_left] C1_del<del_max & (C1!=C1_int) -> (C1_del'=C1_del+1);
+endmodule
+
+module C2_switch = C1_switch [C1=C2, C1_int=C2_int, C1_init=C2_init, C1_del=C2_del, C1_turn_off_int=C2_turn_off_int] endmodule
+module C3_switch = C1_switch [C1=C3, C1_int=C3_int, C1_init=C3_init, C1_del=C3_del, C1_turn_off_int=C3_turn_off_int] endmodule
+
+// switch over interface is special
+// C4 should only be switched on if no power could flow out of HVAC_left,
+// so due to delays we need to make sure that C1 and C2 are off,
+// and their intention is off as well
+module C4_switch
+        C4 : [0..1] init C4_init; // connector status for C4
+	C4_int : [0..1] init C4_init; // intention for C4
+	C4_del : [0..max(del_max, 1)] init del_max; // delay for switching
+
+	// change intention to switch off
+	[switch_left]        C4_int!=0 -> (C4_int'=0) & (C4_del'=0);
+	// change intention to switch on
+	[switch_left_int_on] C4_int!=1 -> (C4_int'=1) & (C4_del'=ceil(del_max/2));
+	// no change if save to leave on
+	[switch_left] true -> true;
+
+	// resolve connector status
+	[conn_res_left] true                            -> (C4'=C4_int) & (C4_del'=del_max);
+	// not resolved - increase counter
+	[conn_res_left] C4_del<del_max & (C4!=C4_int) -> (C4_del'=C4_del+1);
+endmodule
+
+module GEN_COUNTER_LEFT
+	GC_left : [0..max(N, 1)] init 0;
+	
+	[gen_left] GC_left<N -> (GC_left'=GC_left+1);
+	[gen_left] GC_left=N -> (GC_left'=0);
+endmodule
+
+module GEN_LEFT
+	// generators
+        G224a : [0..1] init (pg=0.0 ? 0 : 1); // G1
+        G252a : [0..1] init (pg=0.0 ? 0 : 1); // G2
+
+	[gen_left] GC_left=0 -> pg*pg         : (G224a'=1) & (G252a'=1)  // both generators work
+		              + pg*(1-pg)     : (G224a'=1) & (G252a'=0)  // G2 fails
+			      + (1-pg)*pg     : (G224a'=0) & (G252a'=1)  // G1 fails
+		              + (1-pg)*(1-pg) : (G224a'=0) & (G252a'=0); // both generators fail
+	[gen_left] GC_left>0 -> true; // no change in generator status
+endmodule
+
+// interface I1 (left to right direction)
+formula i1l_pow = C4=0 & bus_214a2=1; // need C4=0, because want to avoid circularity
+formula i1l_off = !i1l_pow;
+
+module HVAC_LEFT
+	// status of power delivered over interface I1 to left side
+	I1_left : [0..1] init (I1_health=1.0 ? 1 : 0);
+	// players / stages:
+	pL : [1..7] init 1;
+
+	// 1: generators
+	[gen_left?] pL=1 -> (pL'=2);
+
+	// 2: tau for normal form
+	[tau?] pL=2 -> (pL'=3);
+
+	// 3: contactors
+	[switch_left!]        pL=3 -> (pL'=4);
+	[switch_left_int_on!] pL=3 -> (pL'=4);
+
+	// 4: resolve connector status nondeterministically
+	[conn_res_left?] pL=4 -> (pL'=5);
+
+	// 5: status - also sample interface distribution
+	[stat_buses_safe_left?] pL=5 &  buses_left &  safe_left -> I1_health : (pL'=6) + (1-I1_health) : (pL'=7);
+	[stat_buses_left?]      pL=5 &  buses_left & !safe_left -> I1_health : (pL'=6) + (1-I1_health) : (pL'=7);
+	[stat_safe_left?]       pL=5 & !buses_left &  safe_left -> I1_health : (pL'=6) + (1-I1_health) : (pL'=7);
+	[stat_left?]            pL=5 & !buses_left & !safe_left -> I1_health : (pL'=6) + (1-I1_health) : (pL'=7);
+
+	// 6&7: interfaces - set incoming power according to previously drawn sample
+	[i1l_pow__i1r_pow?] pL=6 & i1l_pow -> (I1_left'=1) & (pL'=1);
+	[i1l_pow__i1r_off?] pL=7 & i1l_pow -> (I1_left'=0) & (pL'=1);
+	[i1l_off__i1r_pow?] pL=6 & i1l_off -> (I1_left'=1) & (pL'=1);
+	[i1l_off__i1r_off?] pL=7 & i1l_off -> (I1_left'=0) & (pL'=1);
+
+endmodule
+
+// SAFETY SPECIFICATIONS - HVAC LEFT
+
+// no paralleling of sources
+formula safe_left = (C1=0 | C3=0 | C2=0) &
+		    (C1=0 | C3=0 | C4=0 | I1_left=0) &
+		    (C2=0 | C4=0 | I1_left=0);
+
+// buses
+formula bus_214a1 = (G224a=1 & C1=1)
+	          | (G252a=1 & C3=1 & C2=1)
+	          | (C3=1 & C4=1 & I1_left=1)
+	          ? 1 : 0;
+formula bus_214a2 = (G224a=1 & C1=1 & C3=1)
+	          | (G252a=1 & C2=1)
+	          | (C4=1 & I1_left=1)
+                  ? 1 : 0;
+
+// both buses on left side powered
+formula buses_left = bus_214a1=1 & bus_214a2=1;
+
+
+// REWARDS - HVAC LEFT
+// defined over actions
+
+rewards "fail_l"
+	// left side fails
+	[stat_buses_left] true : 1;
+	[stat_left]       true : 1;
+endrewards
+
+rewards "i1_l"
+	// both buses on left side are powered
+	[i1l_pow__i1r_pow] true : 1; 
+	[i1l_pow__i1r_off] true : 1; 
+endrewards
+
+rewards "buses_l"
+	// left side powers interface
+	[stat_buses_safe_left] true : 1;
+	[stat_buses_left]      true : 1;
+endrewards
+
+rewards "time"
+	[i1l_pow__i1r_pow] true : 1;
+	[i1l_pow__i1r_off] true : 1;
+	[i1l_off__i1r_pow] true : 1;
+	[i1l_off__i1r_off] true : 1;
+endrewards
+
+
+//////////////////////////// HIGH VOLATAGE AC, RIGHT (210b) ///////////////////////////////
+
+system "HVAC_RIGHT"
+       C5_switch || C6_switch || C7_switch || C8_switch || GEN_RIGHT || HVAC_RIGHT || GEN_COUNTER_RIGHT
+endsystem
+
+const C5_init = 0;
+const C6_init = 0;
+const C7_init = 0;
+const C8_init = 0;
+
+const C5_turn_off_int = 1; // need to turn off when interface opens
+const C6_turn_off_int = 1; // need to turn off when interface opens
+const C7_turn_off_int = 0; // no need to turn off when interface opens
+
+module C5_switch = C1_switch [C1=C5, C1_int=C5_int, C1_init=C5_init, C1_del=C5_del, conn_res_left=conn_res_right, switch_left=switch_right, switch_left_int_on=switch_right_int_on, C1_turn_off_int=C5_turn_off_int] endmodule
+module C6_switch = C1_switch [C1=C6, C1_int=C6_int, C1_init=C6_init, C1_del=C6_del, conn_res_left=conn_res_right, switch_left=switch_right, switch_left_int_on=switch_right_int_on, C1_turn_off_int=C6_turn_off_int] endmodule
+module C7_switch = C1_switch [C1=C7, C1_int=C7_int, C1_init=C7_init, C1_del=C7_del, conn_res_left=conn_res_right, switch_left=switch_right, switch_left_int_on=switch_right_int_on, C1_turn_off_int=C7_turn_off_int] endmodule
+
+module C8_switch = C4_switch [C4=C8, C4_int=C8_int, C4_init=C8_init, C4_del=C8_del, conn_res_left=conn_res_right, switch_left=switch_right, switch_left_int_on=switch_right_int_on] endmodule
+
+module GEN_COUNTER_RIGHT = GEN_COUNTER_LEFT[gen_left=gen_right, GC_left=GC_right] endmodule
+
+module GEN_RIGHT = GEN_LEFT[G224a=G224b, G252a=G252b, gen_left=gen_right, GC_left=GC_right] endmodule
+
+// interface I1 (right to left direction)
+formula i1r_pow = C8=0 & bus_214b2=1; // need C8=0, because want to avoid circularity
+formula i1r_off = !i1r_pow;
+
+module HVAC_RIGHT
+	// status of power delivered over interface I1 to right side
+	I1_right : [0..1] init (I1_health=1.0 ? 1 : 0);
+	// players / stages:
+	pR : [1..7] init 1;
+
+	// 1: generators
+	[gen_right?] pR=1 -> (pR'=2);
+
+	// 2: tau for normal form
+	[tau?] pR=2 -> (pR'=3);
+
+	// 3: contactors
+	[switch_right!]        pR=3 -> (pR'=4);
+	[switch_right_int_on!] pR=3 -> (pR'=4);
+
+	// 4: resolve connector status nondeterministically
+	[conn_res_right?] pR=4 -> (pR'=5);
+
+	// 5: status - also sample interface distribution
+	[stat_buses_safe_right?] pR=5 &  buses_right &  safe_right -> I1_health : (pR'=6) + (1-I1_health) : (pR'=7);
+	[stat_buses_right?]      pR=5 &  buses_right & !safe_right -> I1_health : (pR'=6) + (1-I1_health) : (pR'=7);
+	[stat_safe_right?]       pR=5 & !buses_right &  safe_right -> I1_health : (pR'=6) + (1-I1_health) : (pR'=7);
+	[stat_right?]            pR=5 & !buses_right & !safe_right -> I1_health : (pR'=6) + (1-I1_health) : (pR'=7);
+
+	// 6&7: interfaces - set incoming power according to previously drawn sample
+	[i1l_pow__i1r_pow?] pR=6 & i1r_pow -> (I1_right'=1) & (pR'=1);
+	[i1l_pow__i1r_off?] pR=7 & i1r_pow -> (I1_right'=0) & (pR'=1);
+	[i1l_off__i1r_pow?] pR=6 & i1r_off -> (I1_right'=1) & (pR'=1);
+	[i1l_off__i1r_off?] pR=7 & i1r_off -> (I1_right'=0) & (pR'=1);
+
+endmodule
+
+// both buses on right side powered
+formula buses_right = bus_214b1=1 & bus_214b2=1;
+
+// SAFETY SPECIFICATIONS - HVAC RIGHT
+
+// no paralleling of sources
+formula safe_right = (C5=0 | C8=0 | I1_right=0) &
+	             (C5=0 | C7=0 | C6=0) &
+		     (C6=0 | C7=0 | C8=0 | I1_right=0);
+
+// buses
+formula bus_214b1 = (C8=1 & I1_right=1) |
+	            (G252b=1 & C5=1) |
+	            (G224b=1 & C7=1 & C6=1)
+	            ? 1 : 0;
+formula bus_214b2 = (G224b=1 & C6=1) |
+	            (I1_right=1 & C7=1 & C8=1) |
+	            (G252b=1 & C5=1 & C7=1)
+                    ? 1 : 0;
+
+// safe and buses powered
+formula pow_safe_right = safe_right & bus_214b1=1 & bus_214b2=1;
+
+
+// REWARDS - HVAC RIGHT
+// defined over actions
+
+rewards "fail_r"
+	// right side fails
+	[stat_buses_right] true : 1;
+	[stat_right]       true : 1;
+endrewards
+
+rewards "i1_r"
+	// right side powers interface
+	[i1l_pow__i1r_pow] true : 1; 
+	[i1l_off__i1r_pow] true : 1;
+endrewards
+
+rewards "buses_r"
+	// both buses on right side are powered
+	[stat_buses_safe_right] true : 1;
+	[stat_buses_right]      true : 1;
+endrewards

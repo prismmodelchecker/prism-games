@@ -28,6 +28,7 @@
 
 package prism;
 
+import explicit.Pareto;
 import strat.Strategy;
 
 /**
@@ -47,6 +48,8 @@ public class Result
 	private Strategy strat;
 	// Solution vector (optional)
 	private StateVector vect;
+        // parameter string (optional)
+        private String parameterString;
 	
 	/**
 	 * Construct an empty Result object.
@@ -100,6 +103,14 @@ public class Result
 	{
 		this.strat = strat;
 	}
+
+	/**
+	 * Set the parameter string (null denotes n/a).
+	 */
+	public void setParameterString(String parameterString)
+	{
+	        this.parameterString = parameterString;
+	}
 	
 	/**
 	 * Set the result vector (null denotes n/a).
@@ -140,6 +151,14 @@ public class Result
 	{
 		return strat;
 	}
+
+	/**
+	 * Get the paramter string (null denotes n/a).
+	 */
+        public String getParameterString()
+	{
+		return parameterString;
+	}
 	
 	/**
 	 * Get the result vector (null denotes n/a).
@@ -154,7 +173,13 @@ public class Result
 	 */
 	public String getResultString()
 	{
-		String s = result.toString();
+	        String s = "";
+		if(result instanceof Pareto[]) {
+		        s = "Pareto Set";
+		} else {
+		        s = result.toString();
+		}
+		
 		if (explanation != null)
 			s += " (" + explanation +")";
 		return s;

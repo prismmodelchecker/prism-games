@@ -26,9 +26,11 @@
 
 package explicit;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -52,6 +54,8 @@ import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.MDStrategyArray;
+import strat.MemorylessDeterministicStrategy;
+import strat.StepBoundedDeterministicStrategy;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
@@ -424,7 +428,7 @@ public class MDPModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		// (except for target states, which are -2, denoting arbitrary)
-		if (genStrat || exportAdv) {
+		if (genStrat || generateStrategy || exportAdv) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
 				strat[i] = target.get(i) ? -2 : -1;
@@ -454,7 +458,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// If still required, store strategy for no/yes (0/1) states.
 		// This is just for the cases max=0 and min=1, where arbitrary choices suffice (denoted by -2)
-		if (genStrat || exportAdv) {
+		if (genStrat || generateStrategy || exportAdv) {
 			if (min) {
 				for (int i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
 					if (!target.get(i))
@@ -523,6 +527,9 @@ public class MDPModelChecker extends ProbModelChecker
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray(mdp, strat);
+		}
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(strat);
 		}
 		// Export adversary
 		if (exportAdv) {
@@ -1271,6 +1278,8 @@ public class MDPModelChecker extends ProbModelChecker
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
+		List<List<Integer>> stratChoices = null;
+		int[] strat = null;
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -1282,6 +1291,13 @@ public class MDPModelChecker extends ProbModelChecker
 		// Create solution vector(s)
 		soln = new double[n];
 		soln2 = (init == null) ? new double[n] : init;
+
+		// Create strategy storage
+		if (generateStrategy) {
+			stratChoices = new ArrayList<List<Integer>>(n);
+			for (i = 0; i < n; i++)
+				stratChoices.add(new LinkedList<Integer>());
+		}
 
 		// Initialise solution vectors. Use passed in initial vector, if present
 		if (init != null) {
@@ -1309,14 +1325,35 @@ public class MDPModelChecker extends ProbModelChecker
 		iters = 0;
 		while (iters < k) {
 			iters++;
+
+			if (generateStrategy)
+				strat = new int[n];
+
 			// Matrix-vector multiply and min/max ops
-			mdp.mvMultMinMax(soln, min, soln2, unknown, false, null);
+			mdp.mvMultMinMax(soln, min, soln2, unknown, false, generateStrategy ? strat : null);
 			// Store intermediate results if required
 			// (compute min/max value over initial states for this step)
 			if (results != null) {
 				// TODO: whether this is min or max should be specified somehow
 				results[iters] = Utils.minMaxOverArraySubset(soln2, mdp.getInitialStates(), true);
 			}
+
+			// Store strategy information
+			if (generateStrategy) {
+				for (int s = 0; s < n; s++) {
+					i = stratChoices.get(s).size();
+					// if not yet initialised, or choice has changed, storing
+					// initial choice
+					if (i == 0 || stratChoices.get(s).get(i - 1) != strat[s]) {
+						stratChoices.get(s).add(iters);
+						stratChoices.get(s).add(strat[s]);
+					} else {
+						// increase the count
+						stratChoices.get(s).set(stratChoices.get(s).size() - 2, stratChoices.get(s).get(stratChoices.get(s).size() - 2) + 1);
+					}
+				}
+			}
+
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -1328,13 +1365,33 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.print("Bounded probabilistic reachability (" + (min ? "min" : "max") + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
-		// Return results
+		// Creating strategy object
+		int[][] choices = null;
+		if (generateStrategy) {
+			// converting list into array
+			choices = new int[n][];
+			for (i = 0; i < n; i++) {
+				choices[i] = new int[stratChoices.get(i).size()];
+
+				// reversing the list
+				for (int j = stratChoices.get(i).size() - 2, x = 0; j >= 0; j -= 2, x += 2) {
+					choices[i][x] = stratChoices.get(i).get(j);
+					choices[i][x + 1] = stratChoices.get(i).get(j + 1);
+				}
+			}
+		}
+
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.lastSoln = soln2;
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
+		if (generateStrategy) {
+			res.strat = new StepBoundedDeterministicStrategy(mdp, choices, k);
+		}
+		
 		return res;
 	}
 
@@ -2105,7 +2162,7 @@ public class MDPModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		// (except for target states, which are -2, denoting arbitrary)
-		if (genStrat || exportAdv || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
+		if (genStrat || generateStrategy || exportAdv || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
 				strat[i] = target.get(i) ? -2 : -1;
@@ -2124,7 +2181,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// If required, generate strategy for "inf" states.
-		if (genStrat || exportAdv || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
+		if (genStrat || generateStrategy || exportAdv || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
 			if (min) {
 				// If min reward is infinite, all choices give infinity
 				// So the choice can be arbitrary, denoted by -2; 
@@ -2181,6 +2238,9 @@ public class MDPModelChecker extends ProbModelChecker
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray(mdp, strat);
+		}
+		if (generateStrategy) {
+			res.strat = new MemorylessDeterministicStrategy(strat);
 		}
 		// Export adversary
 		if (exportAdv) {

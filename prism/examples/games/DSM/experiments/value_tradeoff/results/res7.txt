@@ -1,0 +1,406 @@
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 21:49:01 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<1>> R{"value1"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"value1"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 115470 251990 356566 501876 620883 768803 893453 980899 1127948 1260966 1387416 1532440 1661731 1810876 1837373 1989901 2112661 2259707 2386101 2534445 2657530 2804685 2943779 3090361 3234579 3254419 3398653 3510912 3656003 3799348 3908654 4059274 4206465 4356564 4503969 4571095 4720546 4867821 4960231 5106571 5251104 5357317 5502343 5645400 5748130 5890873 6022854 6173590 6241312 states
+Reachable states exploration and model construction done in 158.377 secs.
+Sorting reachable states list...
+
+Time for model construction: 186.834 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 253.924 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 130 iterations and 340.18 seconds.
+Computed an over-approximation of the solution (in 340 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 129 iterations and 336.964 seconds.
+Expected reachability took 931.68 seconds.
+
+Value in the initial state: 7.415178953621567
+
+Time for model checking: 933.683 seconds.
+
+Result: 7.415178953621567 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 22:07:43 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<2, 1>> R{"value12"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<2, 1>> R{"value12"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 120342 261710 358226 507735 621251 764454 893340 982935 1134873 1272471 1405177 1555508 1689365 1843065 1992024 2118136 2269636 2399463 2551057 2678971 2830123 2957748 3107063 3254164 3263123 3411973 3520535 3668555 3815320 3927719 4082422 4217151 4371233 4521971 4581226 4731927 4881239 4977834 5126773 5272207 5385136 5532344 5653056 5801393 5946854 6041726 6195712 6241312 states
+Reachable states exploration and model construction done in 155.252 secs.
+Sorting reachable states list...
+
+Time for model construction: 183.315 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 250.991 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 130 iterations and 329.242 seconds.
+Computed an over-approximation of the solution (in 329 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 323.623 seconds.
+Expected reachability took 904.487 seconds.
+
+Value in the initial state: 14.391087601221185
+
+Time for model checking: 909.389 seconds.
+
+Result: 14.391087601221185 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 22:25:58 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<3, 2, 1>> R{"value123"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<3, 2, 1>> R{"value123"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 113720 247835 356577 500129 620940 766857 890400 980599 1114711 1247828 1373346 1516418 1645285 1793969 1824237 1979630 2105410 2256294 2386277 2536348 2662526 2812317 2940715 3090351 3206935 3354904 3495212 3642928 3788561 3904599 4057785 4207829 4360866 4511239 4581899 4733168 4882049 4974772 5123888 5268544 5377574 5526223 5673456 5775501 5923332 6069443 6170615 6241312 states
+Reachable states exploration and model construction done in 156.189 secs.
+Sorting reachable states list...
+
+Time for model construction: 197.508 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 352.89 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 130 iterations and 476.809 seconds.
+Computed an over-approximation of the solution (in 476 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 468.983 seconds.
+Expected reachability took 1299.212 seconds.
+
+Value in the initial state: 20.979812052380733
+
+Time for model checking: 1304.646 seconds.
+
+Result: 20.979812052380733 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 22:51:02 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4>> R{"value1234"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<3, 2, 1, 4>> R{"value1234"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<3, 2, 1, 4>> R{"value1234"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 117409 259347 356536 497783 618870 768713 897605 972188 1122447 1263547 1402727 1552206 1691553 1792256 1941761 2069947 2218553 2346582 2493434 2619948 2765556 2893063 3037794 3103822 3248348 3376536 3518367 3659369 3773167 3916565 4034593 4185779 4333472 4365662 4512924 4658266 4756241 4902134 5045495 5144541 5285588 5428020 5532210 5675589 5816652 5916307 6058531 6194017 6241312 states
+Reachable states exploration and model construction done in 166.207 secs.
+Sorting reachable states list...
+
+Time for model construction: 190.382 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 247.501 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 130 iterations and 348.628 seconds.
+Computed an over-approximation of the solution (in 348 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 343.101 seconds.
+Expected reachability took 939.796 seconds.
+
+Value in the initial state: 27.24664671573934
+
+Time for model checking: 945.118 seconds.
+
+Result: 27.24664671573934 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 23:10:00 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5>> R{"value12345"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<3, 2, 1, 5, 4>> R{"value12345"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<3, 2, 1, 5, 4>> R{"value12345"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 119649 245075 347852 491401 583135 711591 858435 1002818 1062178 1193474 1337944 1464444 1519800 1662973 1792518 1925760 2073885 2199194 2334914 2480190 2557924 2703768 2823262 2966562 3085257 3227247 3336659 3478206 3588661 3730112 3803942 3945458 4053420 4201116 4343838 4489986 4633313 4730732 4875392 4970234 5113562 5251865 5350495 5492433 5603744 5745622 5884455 5976643 6117423 6211262 6241312 states
+Reachable states exploration and model construction done in 160.532 secs.
+Sorting reachable states list...
+
+Time for model construction: 183.129 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 240.695 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 131 iterations and 336.594 seconds.
+Computed an over-approximation of the solution (in 336 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 328.287 seconds.
+Expected reachability took 906.321 seconds.
+
+Value in the initial state: 33.26338980501653
+
+Time for model checking: 922.846 seconds.
+
+Result: 33.26338980501653 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 23:28:28 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5,6>> R{"value123456"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<3, 2, 1, 6, 5, 4>> R{"value123456"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<3, 2, 1, 6, 5, 4>> R{"value123456"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 123440 262690 357601 504899 618025 767400 900740 966714 1115621 1256015 1393725 1539679 1677750 1771374 1925672 2058301 2210276 2339598 2491007 2624602 2770971 2921438 3046231 3193661 3315000 3463012 3607397 3729394 3876905 3995866 4139742 4266552 4418309 4569019 4678229 4828039 4954242 5101656 5250212 5357170 5506361 5653454 5764368 5910834 6056028 6065414 6220627 6241312 states
+Reachable states exploration and model construction done in 162.522 secs.
+Sorting reachable states list...
+
+Time for model construction: 190.502 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 276.294 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 131 iterations and 391.91 seconds.
+Computed an over-approximation of the solution (in 391 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 382.678 seconds.
+Expected reachability took 1051.545 seconds.
+
+Value in the initial state: 39.10031607761575
+
+Time for model checking: 1057.45 seconds.
+
+Result: 39.10031607761575 (value in the initial state)
+
+PRISM-games
+===========
+
+Version: 4.1.beta2
+Date: Tue Sep 03 23:49:18 BST 2013
+Hostname: qavbench.comlab
+Command line: prism value_tradeoff/dsm7304.smg -ex -pctl '<<1,2,3,4,5,6,7>> R{"value1234567"}max=? [F time=max_time]'
+
+Parsing model file "value_tradeoff/dsm7304.smg"...
+
+1 property:
+(1) <<3, 2, 1, 7, 6, 5, 4>> R{"value1234567"}max=? [ F time=max_time ]
+
+Type:        SMG
+Modules:     player0 player1 player2 player3 player4 player5 player6 player7 
+Variables:   time job1 job2 job3 job4 job5 job6 job7 sched job_arrived1 job_arrived2 job_arrived3 job_arrived4 job_arrived5 job_arrived6 job_arrived7 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<3, 2, 1, 7, 6, 5, 4>> R{"value1234567"}max=? [ F time=max_time ]
+
+Building model...
+
+Computing reachable states...
+ 122218 257539 361963 506017 600077 731669 873997 995218 1141143 1275370 1397542 1489530 1634921 1781840 1927067 2067726 2207870 2339523 2470267 2619154 2745696 2894584 3013129 3157017 3305062 3417013 3561833 3681506 3828214 3955259 4107610 4231940 4383033 4488697 4638949 4719809 4868043 4961135 5107533 5216727 5352991 5484488 5631465 5775334 5876020 6019216 6115212 6241312 states
+Reachable states exploration and model construction done in 157.541 secs.
+Sorting reachable states list...
+
+Time for model construction: 184.342 seconds.
+
+Type:        SMG
+States:      6241312 (1 initial)
+Transitions: 19678246
+Choices:     10132696
+Max/avg:     2/1.62
+Building reward structure...
+Computing rewards...
+
+Starting expected reachability...
+Starting Prob1 (minmax)...
+Prob1 (minmax) took 97 iterations and 224.386 seconds.
+target=51752, inf=0, rest=6189560
+Computing the upper bound where 0.01 is used instead of 0.0
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 131 iterations and 324.137 seconds.
+Computed an over-approximation of the solution (in 324 seconds), this will now be used to get the solution
+Starting value iteration (maxmin)...
+Value iteration (maxmin) took 128 iterations and 316.182 seconds.
+Expected reachability took 865.356 seconds.
+
+Value in the initial state: 44.839866691827424
+
+Time for model checking: 882.011 seconds.
+
+Result: 44.839866691827424 (value in the initial state)
+

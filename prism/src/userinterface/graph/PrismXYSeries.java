@@ -33,6 +33,9 @@ import org.jfree.data.general.*;
 
 public class PrismXYSeries extends XYSeries
 {
+        /** Do allow multiple Y values for each X value */
+        private boolean multipleXallowed;
+
 	/** Do not allow negative and zero values on the x axis. */
 	private boolean logXAxis;
 	
@@ -49,15 +52,28 @@ public class PrismXYSeries extends XYSeries
 	 * 
 	 * @param key
 	 */
-	public PrismXYSeries(Comparable key) 
+        public PrismXYSeries(Comparable key)
+        {
+	    this(key, false);
+        }
+	public PrismXYSeries(Comparable key, boolean multipleXallowed) 
 	{
-		super(key, true, false);
+		super(key, true, multipleXallowed);
 		
 		this.logXAxis = false;
 		this.logYAxis = false;
+		this.multipleXallowed = multipleXallowed;
 		
 		discardedItems = new XYSeries("dummy", true, false);
 	}
+
+        public void setMultipleXAllowed(boolean b) {
+	        multipleXallowed = b;
+        }
+
+        public boolean setMultipleXAllowed() {
+	        return multipleXallowed;
+        }
 	
 	/**
 	 * Checks validity of XYDataItem. We do NOT allow positive or negative
@@ -185,7 +201,7 @@ public class PrismXYSeries extends XYSeries
 			}
 			
 			/* If in main items, then remove and return this. (Should not be both in discarded and main items) */ 
-			if (indexS >= 0)
+			if (!multipleXallowed && indexS >= 0)
 			{
 				result = super.remove(indexS);
 			}

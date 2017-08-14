@@ -29,6 +29,7 @@ package prism;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Collections;
 
 /**
  * This class keeps lists of operators and bounds used in multi-objective verification. 
@@ -106,24 +107,25 @@ public class OpsAndBoundsList
 			case P_MIN:
 			case P_GE:
 			case P_LE:
-				relOpsProb.add(op);
-				boundsProb.add(quantityBound);
-				stepBoundsProb.add(stepBound);
+			    relOpsProb.add(op);
+			    boundsProb.add(quantityBound);
+			    stepBoundsProb.add(stepBound);
 				origPositionsProb.add(origPosition);
 				break;
 			case R_MAX:
 			case R_MIN:
 			case R_GE:
 			case R_LE:
-				relOpsReward.add(op);
-				boundsReward.add(quantityBound);
-				stepBoundsReward.add(stepBound);
+			    relOpsReward.add(op);
+			    boundsReward.add(quantityBound);
+			    stepBoundsReward.add(stepBound);
 				origPositionsReward.add(origPosition);
 				break;
 			default:
 				throw new UnsupportedOperationException("Don't know how to add" +
 						" operator " + op + ", the handling code does not exist.");
 		}
+
 	}
 
 	/**
@@ -291,7 +293,7 @@ public class OpsAndBoundsList
 	{
 		return this.relOpsProb.size();
 	}
-	
+
 	/**
 	 * Returns true if the list contains the operator op.
 	 */

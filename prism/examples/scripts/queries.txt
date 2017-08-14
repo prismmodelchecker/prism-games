@@ -1,0 +1,118 @@
+DSM prismpp (households, days, deterministic, job duration):
+
+rm dsm4344.nm
+rm dsm4344.smg
+./prismpp dsm_mdp-dtmc+sched.pp 4 3 4 4 > dsm4344.nm
+./prismpp dsm_mdp-dtmc+sched.pp 4 3 4 4 > dsm4344.smg
+
+rm dsm3334.nm
+rm dsm3334.smg
+./prismpp dsm_mdp-dtmc+sched.pp 3 3 3 4 > dsm3334.nm
+./prismpp dsm_mdp-dtmc+sched.pp 3 3 3 4 > dsm3334.smg
+
+rm dsm5354.nm
+rm dsm5354.smg
+./prismpp dsm_mdp-dtmc+sched.pp 5 3 5 4 > dsm5354.nm
+./prismpp dsm_mdp-dtmc+sched.pp 5 3 5 4 > dsm5354.smg
+
+rm dsm5304.nm
+rm dsm5304.smg
+./prismpp dsm_mdp-dtmc+sched.pp 5 3 0 4 > dsm5304.nm
+./prismpp dsm_mdp-dtmc+sched.pp 5 3 0 4 > dsm5304.smg
+
+
+rm dsm4304.nm
+rm dsm4304.smg
+./prismpp dsm_mdp-dtmc+sched.pp 4 3 0 4 > dsm4304.nm
+./prismpp dsm_mdp-dtmc+sched.pp 4 3 0 4 > dsm4304.smg
+
+rm dsm6364.nm
+rm dsm6364.smg
+./prismpp dsm_mdp-dtmc+sched.pp 6 3 6 4 > dsm6364.nm
+./prismpp dsm_mdp-dtmc+sched.pp 6 3 6 4 > dsm6364.smg
+
+rm dsm4304-price.nm
+rm dsm4304-price.smg
+./prismpp dsm_mdp-dtmc+sched+pricing.pp 4 3 0 4 > dsm4304-price.nm
+./prismpp dsm_mdp-dtmc+sched+pricing.pp 4 3 0 4 > dsm4304-price.smg
+
+
+rm dsm4205.nm
+rm dsm4205.smg
+./prismpp dsm_mdp-dtmc+sched.pp 4 2 0 5 > dsm4205.nm
+./prismpp dsm_mdp-dtmc+sched.pp 4 2 0 5 > dsm4205.smg
+
+rm dsm4304-f.nm
+rm dsm4304-f.smg
+./prismpp dsm_final.pp 4 3 0 4 > dsm4304-f.nm
+./prismpp dsm_final.pp 4 3 0 4 > dsm4304-f.smg
+
+
+rm dsm4344-f.nm
+rm dsm4344-f.smg
+./prismpp dsm_final.pp 4 3 4 4 > dsm4344-f.nm
+./prismpp dsm_final.pp 4 3 4 4 > dsm4344-f.smg
+
+rm dsm4334-f.nm
+rm dsm4334-f.smg
+./prismpp dsm_final.pp 4 3 3 4 > dsm4334-f.nm
+./prismpp dsm_final.pp 4 3 3 4 > dsm4334-f.smg
+
+rm dsm5304.nm
+rm dsm5304.smg
+./prismpp dsm_final.pp 5 3 0 4 > dsm5304.nm
+./prismpp dsm_final.pp 5 3 0 4 > dsm5304.smg
+
+rm dsm6364-f2.nm
+rm dsm5354-f2.nm
+rm dsm4344-f2.nm
+rm dsm3334-f2.nm
+rm dsm2324-f2.nm
+./prismpp dsm_final2.pp 6 3 6 4 > dsm6364-f2.nm
+./prismpp dsm_final2.pp 5 3 5 4 > dsm5354-f2.nm
+./prismpp dsm_final2.pp 4 3 4 4 > dsm4344-f2.nm
+./prismpp dsm_final2.pp 3 3 3 4 > dsm3334-f2.nm
+./prismpp dsm_final2.pp 2 3 2 4 > dsm2324-f2.nm
+
+rm dsm6304-f.nm
+rm dsm5304-f.nm
+rm dsm4304-f.nm
+rm dsm3304-f.nm
+rm dsm2304-f.nm
+./prismpp dsm_final.pp 6 3 6 4 > dsm6304-f.nm
+./prismpp dsm_final.pp 5 3 5 4 > dsm5304-f.nm
+./prismpp dsm_final.pp 4 3 4 4 > dsm4304-f.nm
+./prismpp dsm_final.pp 3 3 3 4 > dsm3304-f.nm
+./prismpp dsm_final.pp 2 3 2 4 > dsm2304-f.nm
+
+
+DSM PATL:
+
+bin/prism examples/games/DSM/dsm4304 -ex -pctl '<<0,1,2,3,4>> R{"cost"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304.smg -ex -pctl '<<3,4>> Pmax=? [(<<1,2>> R{"cost"}<46 [F time=max_time]]) U (time=max_time)]'
+
+bin/prism examples/games/DSM/dsm4304-price.smg -ex -pctl '<<0,1,2,3,4>> R{"new_tcost"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<0,1,2,3,4>> R{"upfront_tcost"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<0,1,2,3,4>> R{"upfront_cost1"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<1,2,3,4>> R{"common_value"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<1>> R{"common_value"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4334-f.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304-f.smg -ex -pctl '<<1,2,3>> R{"value123"}max=? [F time=max_time]'
+
+bin/prism examples/games/DSM/dsm4304.smg -ex -pctl '<<1>> R{"common_value"}max=? [F time=max_time]'
+
+
+
+
+

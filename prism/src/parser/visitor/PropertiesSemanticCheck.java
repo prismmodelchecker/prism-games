@@ -33,6 +33,7 @@ import parser.ast.ExpressionLabel;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
+import parser.ast.ExpressionStrategy;
 import parser.ast.ExpressionTemporal;
 import parser.ast.FormulaList;
 import parser.ast.LabelList;
@@ -143,7 +144,7 @@ public class PropertiesSemanticCheck extends SemanticCheck
 	public void visitPost(ExpressionProb e) throws PrismLangException
 	{
 		if (e.getModifier() != null) {
-			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for P operator");
+			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for P operator", e);
 		}
 		if (e.getProb() != null && !e.getProb().isConstant()) {
 			throw new PrismLangException("P operator probability bound is not constant", e.getProb());
@@ -153,7 +154,13 @@ public class PropertiesSemanticCheck extends SemanticCheck
 	public void visitPost(ExpressionReward e) throws PrismLangException
 	{
 		if (e.getModifier() != null) {
-			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for R operator");
+			if (e.getModifier().equals("path")) {
+				if (e.getBound() == null) {
+					throw new PrismLangException("Properties of the form R(path)[...] are path formulas and cannot use =?", e);
+				}
+			} else if (!(e.getModifier().equals("exp"))) {
+				throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for R operator", e);
+			}
 		}
 		if (e.getRewardStructIndex() != null) {
 			if (e.getRewardStructIndex() instanceof Expression) {
@@ -189,13 +196,43 @@ public class PropertiesSemanticCheck extends SemanticCheck
 	public void visitPost(ExpressionSS e) throws PrismLangException
 	{
 		if (e.getModifier() != null) {
-			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for S operator");
+			throw new PrismLangException("Modifier \"" + e.getModifier() + "\" not supported for S operator", e);
 		}
 		if (e.getProb() != null && !e.getProb().isConstant()) {
 			throw new PrismLangException("S operator probability bound is not constant", e.getProb());
 		}
 	}
 
+	public void visitPost(ExpressionStrategy e) throws PrismLangException
+	{
+		// Make sure any player names in a coalition operator are valid
+		if (e.getCoalition() != null) {
+			for (String player : e.getCoalitionPlayers()) {
+				int numPlayers = modelInfo.getNumPlayers();
+				// Valid player references are either integers
+				// in the range 1..numPlayers or a name of player from the model
+				try {
+					int playerNum = Integer.parseInt(player);
+					if (playerNum < 1 || playerNum > numPlayers) {
+						throw new PrismLangException("Invalid player index \"" + player + "\"");
+					}
+				}
+				catch (NumberFormatException ex) {
+					boolean found = false;
+					for (int i = 0; i < numPlayers; i++) {
+						if (player.equals(modelInfo.getPlayer(i).getName())) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						throw new PrismLangException("Unknown player \"" + player + "\"");
+					}
+				}
+			}
+		}
+	}
+	
 	public void visitPost(ExpressionLabel e) throws PrismLangException
 	{
 		String name = e.getName();

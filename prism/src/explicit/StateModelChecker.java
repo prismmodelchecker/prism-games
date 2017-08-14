@@ -77,6 +77,7 @@ import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.Result;
+import strat.Strategy;
 
 /**
  * Super class for explicit-state model checkers.
@@ -112,6 +113,22 @@ public class StateModelChecker extends PrismComponent
 
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
+
+	// Strategy generation
+	protected boolean generateStrategy = false;
+	protected boolean implementStrategy = false;
+	protected Strategy strategy = null;
+
+        // Stored Pareto sets
+        protected Pareto pareto_set = null;
+        // Stored parameters
+        protected MultiParameters parsed_params = null;
+        
+        // Computing Pareto sets?
+        protected boolean computePareto = true; // computing Pareto set, or doing actual model checking?
+
+        // Cancel computation if first element true
+        protected boolean[] cancel_computation = new boolean[1]; // false by default	
 
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
@@ -159,6 +176,7 @@ public class StateModelChecker extends PrismComponent
 		// If present, initialise settings from PrismSettings
 		if (settings != null) {
 			verbosity = settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1;
+			tolerance = settings.getDouble(PrismSettings.PRISM_PARETO_EPSILON);
 		}
 	}
 
@@ -192,6 +210,9 @@ public class StateModelChecker extends PrismComponent
 		case STPG:
 			mc = new STPGModelChecker(parent);
 			break;
+		case SMG:
+			mc = new SMGModelChecker(parent);
+			break;
 		default:
 			throw new PrismException("Cannot create model checker for model type " + modelType);
 		}
@@ -199,6 +220,11 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	// Settings methods
+
+	// Pareto set
+	protected double tolerance = 0.0;
+
+	// Setters/getters
 
 	/**
 	 * Inherit settings (and the log) from another StateModelChecker object.
@@ -221,6 +247,7 @@ public class StateModelChecker extends PrismComponent
 		setStoreVector(other.getStoreVector());
 		setGenStrat(other.getGenStrat());
 		setDoBisim(other.getDoBisim());
+		tolerance = other.tolerance;
 		setDoIntervalIteration(other.getDoIntervalIteration());
 		setDoPmaxQuotient(other.getDoPmaxQuotient());
 	}
@@ -231,9 +258,21 @@ public class StateModelChecker extends PrismComponent
 	public void printSettings()
 	{
 		mainLog.print("verbosity = " + verbosity + " ");
+		mainLog.print("tolerance = " + tolerance + " ");
 	}
 
 	// Set methods for flags/settings
+
+        public void setCancel(boolean[] cancel_computation)
+        {
+	    this.cancel_computation = cancel_computation;
+        }
+
+
+        public void setComputeParetoSet(boolean computePareto)
+        {
+	        this.computePareto = computePareto;
+        }
 
 	/**
 	 * Set verbosity level, i.e. amount of output produced.
@@ -305,6 +344,32 @@ public class StateModelChecker extends PrismComponent
 	public void setDoBisim(boolean doBisim)
 	{
 		this.doBisim = doBisim;
+	}
+
+	/**
+	 * Method sets the strategy to be used by the model checker
+	 * @param strategy strategy
+	 * Set flag of whether to generate a strategy.
+	 */
+	public void setGenerateStrategy(boolean b)
+	{
+		this.generateStrategy = b;
+	}
+
+	/**
+	 * Set flag of whether to implement the strategy when model checking
+	 */
+	public void setImplementStrategy(boolean b)
+	{
+		this.implementStrategy = b;
+	}
+
+	/**
+	 * Method sets the strategy to be used by the model checker
+	 */
+	public void setStrategy(Strategy strategy)
+	{
+		this.strategy = strategy;
 	}
 
 	/**
@@ -492,7 +557,13 @@ public class StateModelChecker extends PrismComponent
 			constantValues.addValues(propertiesFile.getConstantValues());
 	}
 
-	// Model checking functions
+	/**
+	 * Method to retrieve the strategy that has been generated
+	 */
+	public Strategy getStrategy()
+	{
+		return strategy;
+	}
 
 	/**
 	 * Model check an expression, process and return the result.
@@ -910,7 +981,7 @@ public class StateModelChecker extends PrismComponent
 }
 
 	// Check property ref
-
+	
 	protected StateValues checkExpressionProp(Model model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Look up property and check recursively
@@ -944,6 +1015,19 @@ public class StateModelChecker extends PrismComponent
 		if (bsFilter.isEmpty()) {
 			throw new PrismException("Filter satisfies no states");
 		}
+
+		// Remove states which have non-initial strategy memory elements
+		if (implementStrategy && strategy != null) {
+			for (int i = 0; i < model.getNumStates(); i++) {
+				// if state does not contain initial memory element - remove it
+				// from the filter
+				if ((bsFilter.get(i) && strategy.getInitialStateOfTheProduct(i) != -1 && ((Integer) model.getStatesList().get(i).varValues[model
+						.getStatesList().get(i).varValues.length - 1]) != strategy.getInitialStateOfTheProduct(i))) {
+					bsFilter.set(i, false);
+				}
+			}
+		}
+
 		// Remember whether filter is for the initial state and, if so, whether there's just one
 		boolean filterInit = (filter instanceof ExpressionLabel && ((ExpressionLabel) filter).isInitLabel());
 		boolean filterInitSingle = filterInit & model.getNumInitialStates() == 1;
@@ -1118,28 +1202,36 @@ public class StateModelChecker extends PrismComponent
 		case FORALL:
 			// Get access to BitSet for this
 			bs = vals.getBitSet();
-			// Check "for all" over filter
-			b = vals.forallOverBitSet(bsFilter);
-			// Store as object/vector
-			resObj = new Boolean(b);
-			resVals = new StateValues(expr.getType(), resObj, model);
-			// Create explanation of result and print some details to log
-			resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
-			mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
-			if (filterInit) {
-				if (filterInitSingle) {
-					resultExpl += "the initial state";
-				} else {
-					resultExpl += "all initial states";
-				}
-				mainLog.println(" of " + model.getNumInitialStates() + " initial states.");
+			if (bs == null) { // happens if Pareto set computation is used
+				// Print some info to log
+				mainLog.print("\nPareto set computation result evaluated");
+				// default is true
+				resObj = vals.getParetoArray();
+				resVals = new StateValues(expr.getType(), new Boolean(true), model);
 			} else {
-				if (filterTrue) {
-					resultExpl += "all states";
-					mainLog.println(" of all " + model.getNumStates() + " states.");
+				// Check "for all" over filter
+				b = vals.forallOverBitSet(bsFilter);
+				// Store as object/vector
+				resObj = new Boolean(b);
+				resVals = new StateValues(expr.getType(), resObj, model);
+				// Create explanation of result and print some details to log
+				resultExpl = "Property " + (b ? "" : "not ") + "satisfied in ";
+				mainLog.print("\nProperty satisfied in " + vals.countOverBitSet(bsFilter));
+				if (filterInit) {
+					if (filterInitSingle) {
+						resultExpl += "the initial state";
+					} else {
+						resultExpl += "all initial states";
+					}
+					mainLog.println(" of " + model.getNumInitialStates() + " initial states.");
 				} else {
-					resultExpl += "all filter states";
-					mainLog.println(" of " + bsFilter.cardinality() + " filter states.");
+					if (filterTrue) {
+						resultExpl += "all states";
+						mainLog.println(" of all " + model.getNumStates() + " states.");
+					} else {
+						resultExpl += "all filter states";
+						mainLog.println(" of " + bsFilter.cardinality() + " filter states.");
+					}
 				}
 			}
 			break;
@@ -1195,6 +1287,7 @@ public class StateModelChecker extends PrismComponent
 
 		// Store result
 		result.setResult(resObj);
+		result.setParameterString(parsed_params != null ? parsed_params.getParameterString() : null);
 		// Set result explanation (if none or disabled, clear)
 		if (expr.getExplanationEnabled() && resultExpl != null) {
 			result.setExplanation(resultExpl.toLowerCase());

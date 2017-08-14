@@ -1,0 +1,65 @@
+smg
+
+// top-level system
+system
+	"S1" || "S2"
+endsystem
+
+// subsystem S1
+system "S1"
+	G1
+endsystem
+module G1
+
+	s : [0..2] init 1;
+
+	[d!]  s=0 -> (s'=1);
+	[q1!] s=0 -> (s'=1);
+
+	[a?] s=1 -> (s'=2);
+	[b?] s=1 -> 0.5 : (s'=1)
+                  + 0.5 : (s'=2);
+
+	[] s=2 -> (s'=0);
+	[a?] s=2 -> (s'=2);
+
+endmodule
+
+// subsystem S2
+system "S2"
+	G2
+endsystem
+module G2
+
+	t : [0..2] init 1;
+
+	[a!] t=0 -> 0.5 : (t'=1)
+                  + 0.5 : (t'=2);
+	[q2!] t=0 -> (t'=1);
+
+	[b?] t=1 -> (t'=2);
+	[b?] t=1 -> 0.5 : (t'=1)
+                  + 0.5 : (t'=2);
+	
+	[] t=2 -> (t'=0);
+
+endmodule
+
+// rewards
+rewards "r1"
+	[a] true : 1;
+endrewards
+
+rewards "r2"
+	[d] true : 1;
+	[b] true : 1;
+endrewards
+
+rewards "r3"
+	[b] true : 1;
+endrewards
+
+rewards "c"
+	[a] true : 1;
+	[b] true : 1;
+endrewards

@@ -46,11 +46,17 @@ public class ExpressionFunc extends Expression
 	public static final int MOD = 5;
 	public static final int LOG = 6;
 	public static final int MULTI = 7;
+	public static final int COMP = 8; // compositional property
+	public static final int OR = 9; // disjunction
+	public static final int AND = 10; // conjunction
+	public static final int NOT = 11; // negation
+	public static final int IMPL = 12; // implication
+	public static final int EQUIV = 13; // double implication
 	// Built-in function names
-	public static final String names[] = { "min", "max", "floor", "ceil", "pow", "mod", "log", "multi" };
+	public static final String names[] = { "min", "max", "floor", "ceil", "pow", "mod", "log", "multi", "comp", "or", "and", "not", "impl", "equiv" };
 	// Min/max function arities
-	public static final int minArities[] = { 2, 2, 1, 1, 2, 2, 2, 1 };
-	public static final int maxArities[] = { -1, -1, 1, 1, 2, 2, 2, -1 };
+	public static final int minArities[] = { 2, 2, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2 };
+	public static final int maxArities[] = { -1, -1, 1, 1, 2, 2, 2, -1, -1, -1, -1, 1, 2, 2 };
 
 	// Function name
 	private String name = "";
@@ -168,7 +174,7 @@ public class ExpressionFunc extends Expression
 		}
 		return true;
 	}
-	
+
 	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
@@ -187,8 +193,40 @@ public class ExpressionFunc extends Expression
 			return evaluateMod(ec);
 		case LOG:
 			return evaluateLog(ec);
+		case MULTI:
+			throw new PrismLangException("Cannot evaluate \"multi\" function.", this);
+		case COMP:
+			throw new PrismLangException("Cannot evaluate \"comp\" function.", this);
+		case OR:
+			throw new PrismLangException("Cannot evaluate \"or\" function.", this);
+		case AND:
+			throw new PrismLangException("Cannot evaluate \"and\" function.", this);
+		case NOT:
+			throw new PrismLangException("Cannot evaluate \"not\" function.", this);
+		case IMPL:
+			throw new PrismLangException("Cannot evaluate \"impl\" function.", this);
+		case EQUIV:
+			throw new PrismLangException("Cannot evaluate \"equiv\" function.", this);
 		}
 		throw new PrismLangException("Unknown function \"" + name + "\"", this);
+	}
+
+	/**
+	 * Returns true if expression yields Pareto set
+	 */
+	public boolean isPareto()
+	{
+		switch (code) {
+		case COMP:
+		case OR:
+		case AND:
+		case NOT:
+		case IMPL:
+		case EQUIV:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	@Override

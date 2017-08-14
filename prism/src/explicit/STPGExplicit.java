@@ -28,12 +28,17 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import prism.ModelType;
+import prism.PrismLog;
+import prism.PrismUtils;
+import prism.PrismException;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.STPGRewards;
 
@@ -93,7 +98,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	// Mutators (for ModelSimple)
-	
+
 	/**
 	 * Add a new (player 1) state and return its index.
 	 */
@@ -212,13 +217,14 @@ public class STPGExplicit extends MDPSimple implements STPG
 	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
+		int i, c;
 		boolean b1, b2;
 		boolean forall = false;
 
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				forall = (getPlayer(i) == 1) ? forall1 : forall2;
+				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
 					b2 = distr.containsOneOf(u);
@@ -238,17 +244,87 @@ public class STPGExplicit extends MDPSimple implements STPG
 			}
 		}
 	}
+	
+	/**
+	 * Returns true is state {@code s} has a selfloop with probability 1
+	 * @param s The state to be tested.
+	 * @return True if probability 1 selfloop.
+	 */
+	public boolean hasProb1Selfloop(int s)
+	{
+		int c = 0;
+		
+		for (Distribution distr : trans.get(s)) {
+			if(distr.getSupport().size() == 1 && distr.getSupport().contains(s))
+				return true;
+		}
+		
+		return false; // no probability 1 selfloop found
+	}
+	
+	public void reachpositivestep(BitSet u, boolean forall1, boolean forall2, BitSet result)
+	{
+		int i, c;
+		boolean forall = false;
+		boolean first;
+		Set<Integer> u1;
+		
+		for (i = 0; i < numStates; i++) {
+			if (u.get(i)) {
+				forall = (getPlayer(i) == 1) ? forall1 : forall2;
+				c = 0;
+				u1 = null; // reach in one step
+				first = true;
+				for (Distribution distr : trans.get(i)) {
+					if(first) { 
+						u1 = new HashSet<Integer>(distr.getSupport()); // put all successors in reachable states
+						first = false;
+					} else if (!first && forall) {
+						u1.retainAll(distr.getSupport()); // intersect
+					} else if (!first & !forall) {
+						u1.addAll(distr.getSupport()); // union
+					}
+				}
+				for(int r : u1)
+					result.set(r, true);
+			}
+		}
+	}
+
+    /**
+     * @param u The subtree so far
+     * @param closedPlayer Player for which subtree is closed
+     * @param result The subtree after extending
+     **/
+        public void subtreeStep(BitSet u, int closedPlayer, BitSet result)
+	{
+		for (int i = 0; i < numStates; i++) {
+		        // go only through states in subtree so far,
+		        // and only extend subtree if closed for that player,
+		        // or if the state has only one choice that is enabled
+		        boolean jump = (getNumChoices(i) == 1) && getPlayer(i) != closedPlayer;
+		        if (u.get(i) && (getPlayer(i) == closedPlayer || jump)) {
+				int c = 0;
+				for (Distribution distr : trans.get(i)) {
+					for(int r : distr.getSupport()) { // add all successors (no matter which player)
+					    result.set(r, true);
+					}
+				}
+			}
+		}
+	}
 
 	@Override
 	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result)
 	{
-		int i;
+		int i, c;
 		boolean b1, b2;
 		boolean forall = false;
 
 		for (i = 0; i < numStates; i++) {
 			if (subset.get(i)) {
 				forall = (getPlayer(i) == 1) ? forall1 : forall2;
+				c = 0;
 				b1 = forall; // there exists or for all
 				for (Distribution distr : trans.get(i)) {
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
@@ -371,6 +447,33 @@ public class STPGExplicit extends MDPSimple implements STPG
 	}
 
 	@Override
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[],
+			double disc)
+	{
+		int s;
+		boolean min = false;
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		// Loop depends on subset/complement arguments
+		if (subset == null) {
+			for (s = 0; s < numStates; s++) {
+				min = (getPlayer(s) == 1) ? min1 : min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
+			}
+		} else if (complement) {
+			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
+				min = (getPlayer(s) == 1) ? min1 : min2;
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
+			}
+		} else {
+			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
+				min = (getPlayer(s) == 1) ? min1 : min2;
+				//System.out.printf("s: %s, min1: %s, min2: %s, min: %s, player: %d\n", s, min1, min2, min, getPlayer(s));
+				result[s] = mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv, disc);
+			}
+		}
+	}
+
+	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
 		MDPRewards mdpRewards = rewards.buildMDPRewards();
@@ -398,7 +501,7 @@ public class STPGExplicit extends MDPSimple implements STPG
 		for (i = 0; i < numStates; i++) {
 			if (i > 0)
 				s += ", ";
-			s += i + "(P-" + getPlayer(i) + "): ";
+			s += i + "(PP-" + getPlayer(i) + "): ";
 			s += "[";
 			n = getNumChoices(i);
 			for (j = 0; j < n; j++) {
@@ -427,18 +530,18 @@ public class STPGExplicit extends MDPSimple implements STPG
 	 */
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[], double disc)
 	{
-		int j, k, advCh = -1;
+		int j, k, advCh = -1, c;
 		double d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
 
+		c = 0;
 		minmax = 0;
 		first = true;
 		j = -1;
 		step = trans.get(s);
 		for (Distribution distr : step) {
 			j++;
-
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
 
@@ -470,5 +573,89 @@ public class STPGExplicit extends MDPSimple implements STPG
 		minmax += mdpRewards.getStateReward(s);
 
 		return minmax;
+	}
+
+	@Override
+	public void exportToDotFile(PrismLog out, BitSet mark)
+	{
+		exportToDotFile(out, mark, false);
+	}
+
+	@Override
+	public void exportToDotFile(PrismLog out, BitSet mark, boolean states)
+	{
+		exportToDotFile(out, mark, null, states);
+	}
+
+	public void exportToDotFile(PrismLog out, BitSet mark, BitSet players, boolean states)
+	{
+		int i, j, numChoices;
+		String nij;
+		Object action;
+		out.print("digraph " + getModelType() + " {\nsize=\"8,5\"\nnode [shape=box];\n");
+		for (i = 0; i < numStates; i++) {
+			String state_label = null;
+			if (states) {
+				state_label = "label=\"" + statesList.get(i).toString() + "\"";
+			}
+			int player = (players == null) ? getPlayer(i) : (players.get(i) ? 1 : 2);
+			// Player 1 states are diamonds
+			if (player == 1 && mark != null && mark.get(i)) {
+				if (state_label != null)
+					state_label += ", ";
+				else
+					state_label = "";
+				out.print(i + " [" + state_label + "shape=diamond, style=filled, fillcolor=\"#cccccc\"]\n");
+			} else if (mark != null && mark.get(i)) {
+				if (state_label != null)
+					state_label += ", ";
+				else
+					state_label = "";
+				out.print(i + " [" + state_label + "style=filled  fillcolor=\"#cccccc\"]\n");
+			} else if (player == 1) {
+				if (state_label != null)
+					state_label += ", ";
+				else
+					state_label = "";
+				out.print(i + " [" + state_label + "shape=diamond]\n");
+			} else if (state_label != null) {
+				out.print(i + " [" + state_label + "]\n");
+			}
+			numChoices = getNumChoices(i);
+			for (j = 0; j < numChoices; j++) {
+				action = getAction(i, j);
+				nij = "n" + i + "_" + j;
+				out.print(i + " -> " + nij + " [ arrowhead=none,label=\"" + j);
+				if (action != null)
+					out.print(":" + action);
+				out.print("\" ];\n");
+				out.print(nij + " [ shape=point,width=0.1,height=0.1,label=\"\" ];\n");
+				Iterator<Map.Entry<Integer, Double>> iter = getTransitionsIterator(i, j);
+				while (iter.hasNext()) {
+					Map.Entry<Integer, Double> e = iter.next();
+					if (PrismUtils.doublesAreEqual(e.getValue(), 1.0)) {
+						out.print(nij + " -> " + e.getKey() + ";\n");
+					} else {
+						out.print(nij + " -> " + e.getKey() + " [ label=\"" + e.getValue() + "\" ];\n");
+					}
+				}
+			}
+		}
+		out.print("}\n");
+	}
+
+	public boolean deadlocksAllowed()
+	{
+		return false;
+	}
+
+	@Override
+	public void checkForDeadlocks(BitSet except) throws PrismException
+	{
+		for (int i = 0; i < numStates; i++) {
+			if (trans.get(i).isEmpty() && (except == null || !except.get(i)))
+			    throw new PrismException("Game has a deadlock in state " + i +
+						     (statesList==null ? "" : ": " + statesList.get(i)));
+		}
 	}
 }

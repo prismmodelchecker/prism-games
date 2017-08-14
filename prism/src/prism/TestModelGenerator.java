@@ -36,6 +36,7 @@ import parser.VarList;
 import parser.ast.Declaration;
 import parser.ast.DeclarationInt;
 import parser.ast.Expression;
+import parser.ast.Player;
 import parser.ast.PropertiesFile;
 import parser.type.Type;
 import parser.type.TypeInt;
@@ -221,5 +222,26 @@ public class TestModelGenerator extends DefaultModelGenerator
 			System.err.println("Error: " + e.getMessage());
 		}
 
+	}
+
+	@Override
+	public int getPlayerNumberForChoice(int i) throws PrismException
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int getNumPlayers()
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public Player getPlayer(int i)
+	{
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -123,6 +123,23 @@ JAVA_DIR_BACKUP = $(shell \
 #JAVA_DIR =	/cygdrive/c/java/j2sdk1.4.2
 #JAVA_DIR =	/System/Library/Frameworks/JavaVM.framework
 
+########
+# PPL  #
+########
+
+# PPL_DIR needs to be set to the location of the Parma Polyhedra Library installation.
+# (More precisely PPL_DIR should contain a directory 'ppl' containing libppl_java.* and ppl_java.jar)
+# This makefile will try to detect this automatically based on the information provided by the ppl-config command.
+# If this detection does not work, or you wish to override it,
+# either set the variable yourself by uncommenting and/or modifying one of the lines below
+# or pass a value to make directly, e.g.: make PPL_DIR=/usr/local/ppl/lib
+
+# Find PPL
+PPL_DIR = $(shell src/scripts/findppl.sh)
+
+#PPL_DIR = 		/usr/local/ppl/lib
+#PPL_DIR = 		/usr/local/lib
+
 ##################
 # Compilers etc. #
 ##################
@@ -378,6 +395,7 @@ make_dirs:
 	  CLASSES_DIR="$(CLASSES_DIR)" \
 	  OBJ_DIR="$(OBJ_DIR)" \
 	  LIB_DIR="$(LIB_DIR)" \
+	  PPL_DIR="$(PPL_DIR)" \
 	  INCLUDE_DIR="$(INCLUDE_DIR)" \
 	  JAVA_INCLUDES="$(JAVA_INCLUDES)" \
 	  JAVA_JNI_H_DIR="$(JAVA_JNI_H_DIR)" \
@@ -427,7 +445,7 @@ bin_scripts:
 	done;
 	@echo Copying "$(OBJ_DIR)/prism/ngprism$(EXE) -> bin/ngprism$(EXE)" && \
 	cp $(OBJ_DIR)/prism/ngprism$(EXE) bin/ngprism$(EXE)
-	@./install.sh silent
+	@PPL_DIR=$(PPL_DIR) ./install.sh silent
 
 # Unless VERSION has been passed in (as VERSION=xxx),
 # extract version number from Java code using printversion
@@ -623,6 +641,20 @@ checks:
 	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
+	if [ "$(PPL_DIR)" = "" ]; then \
+	  echo "\033[33mPRISM was unable to find the directory which contains"; \
+	  echo "the Parma Polyhedra Library (PPL). Please specify this "; \
+	  echo "manually to make, as in this example:"; \
+	  echo; \
+	  echo "  make PPL_DIR=/usr/local/ppl/lib"; \
+	  echo; \
+	  echo "See the PRISM manual for further information."; \
+	  echo; \
+	  echo "Alternatively, if you wish, you can set the environment"; \
+	  echo "variable yourself (using setenv or export) or you"; \
+	  echo "can edit the value of PPL_DIR directly in the Makefile."; \
+	  echo "\033[0m"; \
+	fi; \
 	if [ ! -d "$(JAVA_DIR)" ]; then \
 	  echo "\033[33mJava directory \"$(JAVA_DIR)\" does not exist."; \
 	  echo "\033[0m"; \
@@ -644,7 +676,8 @@ checks:
 	echo "OSTYPE/ARCH: $(OSTYPE) $(ARCH)"; \
 	echo "JAVA_DIR: $(JAVA_DIR)"; \
 	echo "JAVA_DIR_BACKUP: $(JAVA_DIR_BACKUP)"; \
-	echo "JAVAC: "`which $(JAVAC)` \
+	echo "JAVAC: "`which $(JAVAC)`; \
+	echo "PPL_DIR: $(PPL_DIR)" \
 	)
 
 #################################################

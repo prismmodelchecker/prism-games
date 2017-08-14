@@ -37,6 +37,7 @@ import parser.State;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.RewardStruct;
+import parser.ast.ModulesFile;
 import prism.ModelGenerator;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -46,22 +47,31 @@ import prism.PrismNotSupportedException;
 import explicit.DTMC;
 import explicit.MDP;
 import explicit.Model;
+import explicit.SMG;
+import explicit.STPG;
 
 public class ConstructRewards
 {
 	protected PrismLog mainLog;
+	protected ModulesFile modulesFile;
 
 	/** Allow negative rewards, i.e., weights. Defaults to false. */
 	protected boolean allowNegative = false;
 
-	public ConstructRewards()
+	public ConstructRewards(ModulesFile modulesFile)
 	{
-		this(new PrismFileLog("stdout"));
+	        this(new PrismFileLog("stdout"), modulesFile);
 	}
 
 	public ConstructRewards(PrismLog mainLog)
 	{
+	        this(mainLog, null);
+	}
+
+	public ConstructRewards(PrismLog mainLog, ModulesFile modulesFile)
+	{
 		this.mainLog = mainLog;
+		this.modulesFile = modulesFile;
 	}
 
 	/** Set flag that negative rewards are allowed, i.e., weights */
@@ -84,6 +94,10 @@ public class ConstructRewards
 			return buildMCRewardStructure((DTMC) model, rewStr, constantValues);
 		case MDP:
 			return buildMDPRewardStructure((MDP) model, rewStr, constantValues);
+		case STPG:
+			return buildSTPGRewardStructure((STPG) model, rewStr, constantValues);
+		case SMG:
+			return buildSMGRewardStructure((SMG) model, rewStr, constantValues);
 		default:
 			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
 		}
@@ -204,6 +218,134 @@ public class ConstructRewards
 	}
 
 	/**
+	 * Construct the rewards for an STPG from a model and reward structure. 
+	 * @param stpg The STPG
+	 * @param rewStr The reward structure
+	 * @param constantValues Values for any undefined constants needed
+	 */
+	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardStruct rewStr, Values constantValues) throws PrismException
+	{
+		List<State> statesList;
+		Expression guard;
+		String action;
+		Object stpgAction;
+		int i, s, j, k, numItems, numStates, numChoices, numChoices2;
+
+		// Special case: constant state rewards
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
+		}
+		// Normal: state and transition rewards
+		else {
+			numStates = stpg.getNumStates();
+			statesList = stpg.getStatesList();
+			STPGRewardsSimple rewSimple = new STPGRewardsSimple(numStates);
+			numItems = rewStr.getNumItems();
+			for (i = 0; i < numItems; i++) {
+				guard = rewStr.getStates(i);
+				action = rewStr.getSynch(i);
+				for (s = 0; s < numStates; s++) {
+					// Is guard satisfied?
+					if (guard.evaluateBoolean(constantValues, statesList.get(s))) {
+						// Transition reward
+						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+							numChoices = stpg.getNumChoices(s);
+							for (j = 0; j < numChoices; j++) {
+								stpgAction = stpg.getAction(s, j);
+								double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+								if (Double.isNaN(rew))
+									throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(s), rewStr.getReward(i));
+								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
+									rewSimple.addToTransitionReward(s, j, rew);
+								}
+								numChoices2 = stpg.getNumNestedChoices(s, j);
+								for (k = 0; k < numChoices2; k++) {
+									stpgAction = stpg.getNestedAction(s, j, k);
+									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
+										rewSimple.addToNestedTransitionReward(s, j, k, rew);
+									}
+								}
+							}
+						}
+						// State reward
+						else {
+							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(s), rewStr.getReward(i));
+							rewSimple.addToStateReward(s, rew);
+						}
+					}
+				}
+			}
+			return rewSimple;
+		}
+	}
+
+	/**
+	 * Construct the rewards for an SMG from a model and reward structure. 
+	 * @param smg The SMG
+	 * @param rewStr The reward structure
+	 * @param constantValues Values for any undefined constants needed
+	 */
+	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues) throws PrismException
+	{
+		List<State> statesList;
+		SMGRewardsSimple rewSimple;
+		Expression guard;
+		String action;
+		Object smgAction;
+		int i, j, k, n, numStates, numChoices;
+
+		// Special case: constant state rewards
+		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
+			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
+			if (Double.isNaN(rew))
+				throw new PrismLangException("Reward structure evaluates to NaN (at any state)", rewStr.getReward(0));
+			return new StateRewardsConstant(rew);
+		}
+		// Normal: state and transition rewards
+		else {
+			numStates = smg.getNumStates();
+			statesList = smg.getStatesList();
+			rewSimple = new SMGRewardsSimple(numStates);
+			n = rewStr.getNumItems();
+			for (i = 0; i < n; i++) {
+				guard = rewStr.getStates(i);
+				action = rewStr.getSynch(i);
+				for (j = 0; j < numStates; j++) {
+					// Is guard satisfied?
+					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
+						// Transition reward
+						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+							numChoices = smg.getNumChoices(j);
+							for (k = 0; k < numChoices; k++) {
+								smgAction = smg.getAction(j, k);
+								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
+									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+									if (Double.isNaN(rew))
+										throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+									rewSimple.addToTransitionReward(j, k, rew);
+								}
+							}
+						}
+						// State reward
+						else {
+							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + statesList.get(j), rewStr.getReward(i));
+							rewSimple.addToStateReward(j, rew);
+						}
+					}
+				}
+			}
+			return rewSimple;
+		}
+	}
+
+	/**
 	 * Construct the rewards for a model from a model generator. 
 	 * @param model The model
 	 * @param modelGen The ModelGenerator defining the rewards
@@ -217,6 +359,10 @@ public class ConstructRewards
 			return buildMCRewardStructure((DTMC) model, modelGen, r);
 		case MDP:
 			return buildMDPRewardStructure((MDP) model, modelGen, r);
+		case STPG:
+			return buildSTPGRewardStructure((STPG) model, modelGen, r);
+		case SMG:
+			return buildSMGRewardStructure((SMG) model, modelGen, r);
 		default:
 			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
 		}
@@ -279,6 +425,83 @@ public class ConstructRewards
 			int numChoices = mdp.getNumChoices(j);
 			for (int k = 0; k < numChoices; k++) {
 				rew = modelGen.getStateActionReward(r, state, mdp.getAction(j, k));
+				if (Double.isNaN(rew))
+					throw new PrismException("Reward structure evaluates to NaN at state " + state);
+				if (!allowNegative && rew < 0)
+					throw new PrismException("Reward structure evaluates to " + rew + " at state " + state +", negative rewards not allowed");
+				rewSimple.addToTransitionReward(j, k, rew);
+			}
+		}
+		return rewSimple;
+	}
+
+	/**
+	 * Construct the rewards for an STPG from a model generator. 
+	 * @param stpg The STPG
+	 * @param modelGen The ModelGenerator defining the rewards
+	 * @param r The index of the reward structure to build
+	 */
+	public STPGRewards buildSTPGRewardStructure(STPG stpg, ModelGenerator modelGen, int r) throws PrismException
+	{
+		int numStates = stpg.getNumStates();
+		List<State> statesList = stpg.getStatesList();
+		STPGRewardsSimple rewSimple = new STPGRewardsSimple(numStates);
+		for (int j = 0; j < numStates; j++) {
+			State state = statesList.get(j);
+			// State rewards
+			double rew = modelGen.getStateReward(r, state);
+			if (Double.isNaN(rew))
+				throw new PrismException("Reward structure evaluates to NaN at state " + state);
+			if (!allowNegative && rew < 0)
+				throw new PrismException("Reward structure evaluates to " + rew + " at state " + state +", negative rewards not allowed");
+			rewSimple.addToStateReward(j, rew);
+			// State-action rewards
+			int numChoices = stpg.getNumChoices(j);
+			for (int k = 0; k < numChoices; k++) {
+				rew = modelGen.getStateActionReward(r, state, stpg.getAction(j, k));
+				if (Double.isNaN(rew))
+					throw new PrismException("Reward structure evaluates to NaN at state " + state);
+				if (!allowNegative && rew < 0)
+					throw new PrismException("Reward structure evaluates to " + rew + " at state " + state +", negative rewards not allowed");
+				rewSimple.addToTransitionReward(j, k, rew);
+				int numChoices2 = stpg.getNumNestedChoices(j, k);
+				for (int l = 0; l < numChoices2; l++) {
+					rew = modelGen.getStateActionReward(r, state, stpg.getNestedAction(j, k, l));
+					if (Double.isNaN(rew))
+						throw new PrismException("Reward structure evaluates to NaN at state " + state);
+					if (!allowNegative && rew < 0)
+						throw new PrismException("Reward structure evaluates to " + rew + " at state " + state +", negative rewards not allowed");
+					rewSimple.addToNestedTransitionReward(j, k, l, rew);
+				}
+			}
+		}
+		return rewSimple;
+	}
+
+	/**
+	 * Construct the rewards for an MDP from a model generator. 
+	 * @param smg The SMG
+	 * @param modelGen The ModelGenerator defining the rewards
+	 * @param r The index of the reward structure to build
+	 */
+	public SMGRewards buildSMGRewardStructure(SMG smg, ModelGenerator modelGen, int r) throws PrismException
+	{
+		int numStates = smg.getNumStates();
+		List<State> statesList = smg.getStatesList();
+		SMGRewardsSimple rewSimple = new SMGRewardsSimple(numStates);
+		for (int j = 0; j < numStates; j++) {
+			State state = statesList.get(j);
+			// State rewards
+			double rew = modelGen.getStateReward(r, state);
+			if (Double.isNaN(rew))
+				throw new PrismException("Reward structure evaluates to NaN at state " + state);
+			if (!allowNegative && rew < 0)
+				throw new PrismException("Reward structure evaluates to " + rew + " at state " + state +", negative rewards not allowed");
+			rewSimple.addToStateReward(j, rew);
+			// State-action rewards
+			int numChoices = smg.getNumChoices(j);
+			for (int k = 0; k < numChoices; k++) {
+				rew = modelGen.getStateActionReward(r, state, smg.getAction(j, k));
 				if (Double.isNaN(rew))
 					throw new PrismException("Reward structure evaluates to NaN at state " + state);
 				if (!allowNegative && rew < 0)

@@ -1,0 +1,63 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                      //
+// Electrical Starting, Generation, Conversion and Distribution System Architecture for //
+//     a More Electric Vehicle                                                          //
+//                                                                                      //
+// Modelled after European Patent EP 1 792 379 B1, by Rodney G. Michalko                //
+//                                                                                      //
+// Author: Clemens Wiltsche, University of Oxford, 2014 (clemens.wiltsche@cs.ox.ac.uk)  //
+//                                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// Compositional top-level property of full system, without interface
+comp("P210a", "P210b");
+
+// Compositional top-level property of full system, using interface
+comp("P210a_int", "P210b_int");
+
+// Global top-level property of full system
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Properties of HVAC left (210a)
+
+const double u_fail_l; // guar: upper bound on failures
+const double l_buses_l; // guar: lower bound on powering the buses
+const double l_i1_l; // guar: lower bound on the left side delivering power over I1
+
+// minimise failures
+"safe_210a" : P>=1 [ R(path){"fail_l"}/{"time"}<=u_fail_l [ S ] ]
+
+// maximise uptime for buses
+"buses_210a" : P>=1 [ R(path){"buses_l"}/{"time"}>=l_buses_l [ S ] ]
+
+// maximise power over interface
+"I1_210a" : P>=1 [ R(path){"i1_l"}/{"time"}>=l_i1_l [ S ] ]
+
+// full property of HVAC left (210a) without interface
+"P210a" : <<1>> ("safe_210a" & "buses_210a")
+
+// full property of HVAC left (210a) with interface
+"P210a_int" : <<1>> ("safe_210a" & "buses_210a" & "I1_210a")
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Properties of HVAC right (210b)
+
+const double u_fail_r; // guar: upper bound on failures
+const double l_buses_r; // guar: lower bound on powering the buses
+const double l_i1_r; // guar: lower bound on the right side delivering power over I1
+
+// minimise failures
+"safe_210b" : P>=1 [ R(path){"fail_r"}/{"time"}<=u_fail_r [ S ] ]
+
+// maximise uptime for buses
+"buses_210b" : P>=1 [ R(path){"buses_r"}/{"time"}>=l_buses_r [ S ] ]
+
+// maximise power over interface
+"I1_210b" : P>=1 [ R{"i1_r"}/{"time"}>=l_i1_r [ S ] ]
+
+// full property of HVAC right (210b) without interface
+"P210b" : <<1>> ("safe_210b" & "buses_210b")
+
+// full property of HVAC right (210b) with interface
+"P210b_int" : <<1>> ("safe_210b" & "buses_210b" & "I1_210b")

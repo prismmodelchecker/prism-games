@@ -1,0 +1,39 @@
+smg
+
+const double p = 0.5;
+const double q = 0.5;
+
+const double r = 0.25;
+const double t = 0.25;
+
+player p1
+	investor1, [p1a], [p1b], [p1c]
+endplayer
+
+
+player p2
+	[p2a], [p2b]
+endplayer
+
+module investor1
+
+
+	s : [1..4] init 1;
+	
+	[p1a] s=1 -> p : (s'=3) + (1-p) : (s'=2);
+	[p1b] s=1 -> q : (s'=4) + (1-q) : (s'=2);
+	
+	
+	[p2a] s=2 -> r : (s'=3) + (1-r) : (s'=1);
+	[p2b] s=2 -> t : (s'=4) + (1-t) : (s'=1);
+
+	[p1c] s>2 -> true;
+		
+	
+endmodule
+
+label "T" = s=3;
+
+rewards "profit12"
+	s=2 : 1;
+endrewards

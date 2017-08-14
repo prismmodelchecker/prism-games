@@ -33,6 +33,13 @@ import java.util.BitSet;
 
 public class Point
 {	
+
+        // number used to identify the index of a point within a polyhedron,
+        // used for PointList class to draw a union of convex polyhedra
+        //public int index = 0;
+        // also used in PointList class
+        //public boolean forceswitch = false;
+
 	/**
 	 * A number used as a basis when neglecting roundoff errors in tests
 	 * for equality.
@@ -111,7 +118,7 @@ public class Point
 				return false;
 
 			for (int i = 0; i < this.getDimension(); i++) {
-				if (second.getCoord(i) != this.getCoord(i))
+			    if (!PrismUtils.doublesAreEqual(second.getCoord(i), this.getCoord(i)))
 					return false;
 			}
 			//System.err.println("comparing " + this + " and " + second + " with the result " + (x == second.getX() && y == second.getY()));

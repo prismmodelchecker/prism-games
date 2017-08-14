@@ -74,7 +74,9 @@ public class TypeBool extends Type
 	{
 		if (value instanceof Boolean)
 			return (Boolean) value;
-		else
-			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		else {
+		    Thread.dumpStack();
+		    throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		}
 	}
 }

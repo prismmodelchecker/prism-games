@@ -1,0 +1,71 @@
+PRISM
+=====
+
+Version: 4.0.3.games
+Date: Mon Feb 13 10:43:20 GMT 2012
+Hostname: bokonon.local
+Command line: prism -test -ex -fixdl r0test-nonterminal.smg r0test-nonterminal.smg.props
+
+Parsing model file "r0test-nonterminal.smg"...
+
+Parsing properties file "r0test-nonterminal.smg.props"...
+
+2 properties:
+(1) <<1>> R{"r0"}max=? [ F0 m=2 ]
+(2) <<1>> R{"r1"}max=? [ F0 m=2 ]
+
+Type:        SMG
+Modules:     sched 
+Variables:   m 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"r0"}max=? [ F0 m=2 ]
+
+Building model...
+
+Computing reachable states...
+maximal rews for rich man's strategy: [1.0, 0.0, 0.0]
+maximal rews for rich man's strategy: [1.0, 0.0, 0.0]
+ 3
+Reachable states exploration and model construction done in 0.018 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.041 seconds.
+
+Warning: Deadlocks detected and fixed in 1 states
+
+Type:        SMG
+States:      3 (1 initial)
+Transitions: 5
+Choices:     4
+Max/avg:     2/1.33
+Building reward structure...
+Computing rewards...0
+
+Value in the initial state: 3.8742048900000006
+
+Time for model checking: 0.0060 seconds.
+
+Result: 3.8742048900000006 (value in the initial state)
+Testing result: PASS
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"r1"}max=? [ F0 m=2 ]
+Building reward structure...
+Computing rewards...0
+
+Value in the initial state: 3.8742048900000006
+
+Time for model checking: 0.0020 seconds.
+
+Result: 3.8742048900000006 (value in the initial state)
+Testing result: PASS
+
+---------------------------------------------------------------------
+
+Note: There was 1 warning during computation.
+

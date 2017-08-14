@@ -29,10 +29,14 @@ package userinterface.properties;
 
 import java.util.Vector;
 import java.util.ArrayList;
+
 import javax.swing.*;
+
 import java.awt.*;
+
 import org.jfree.data.xy.*;
 
+import explicit.Pareto;
 import userinterface.*;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphResultListener;
@@ -59,6 +63,8 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 	private userinterface.graph.Graph graphModel;
 	private boolean graphCancelled;
+	
+	private boolean isPareto;
 
 	private static final int MAX_NUM_SERIES_BEFORE_QUERY = 11;
 
@@ -69,9 +75,10 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	 * @param experiment The experiment for which to plot a graph.
 	 * @param graphHandler The graph handler in which to display the graph.
 	 * @param resultsKnown If true, simply plot existing results (experiment has been done). 
+	 * @param isPareto If true, draw Pareto sets on top of each other
 	 * If false, attach listeners to the results such that plot is made when results become available.
 	 */
-	public GUIGraphPicker(GUIPrism parent, GUIPlugin plugin, GUIExperiment experiment, GUIGraphHandler graphHandler, boolean resultsKnown)
+	public GUIGraphPicker(GUIPrism parent, GUIPlugin plugin, GUIExperiment experiment, GUIGraphHandler graphHandler, boolean resultsKnown, boolean isPareto)
 	{
 		super(parent, true);
 		setTitle("New Graph Series");
@@ -82,6 +89,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		this.experiment = experiment;
 		this.graphHandler = graphHandler;
 		this.resultsCollection = experiment.getResults();
+		this.isPareto = isPareto;
 
 		// graphCancelled will be set explicitly to false when the OK button is pressed
 		// (this means if the user closes the dialog, this counts as a cancel)
@@ -96,7 +104,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		setLocationRelativeTo(getParent()); // centre
 		getRootPane().setDefaultButton(lineOkayButton);
 
-		/* Wait untill OK or Cancel is pressed. */
+		/* Wait until OK or Cancel is pressed. */
 		setVisible(true);
 
 		/* If OK was pressed. */
@@ -107,7 +115,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			/* Collect series Values */
 			ArrayList<Values> seriesValues = new ArrayList<Values>();
 
-			/* Add single constant values to each serie */
+			/* Add single constant values to each series */
 			seriesValues.add(otherValues);
 
 			for (int i = 0; i < multiSeries.size(); i++) {
@@ -198,7 +206,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 										y = ((Integer) interval.upper).intValue();
 										graphModel.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
 									}
-								}
+								}									
 							}
 						} catch (PrismException pe) {
 							// No result found. 
@@ -627,7 +635,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		if (newGraphRadio.isSelected()) {
 			/* Make new graph. */
 			graphModel = new Graph();
-			graphHandler.addGraph(graphModel);
+			graphHandler.addGraph(graphModel, isPareto); // if isPareto is true, add sliders 
 
 			graphModel.getYAxisSettings().setHeading(resultsCollection.getResultName());
 			graphModel.getXAxisSettings().setHeading(ranger);

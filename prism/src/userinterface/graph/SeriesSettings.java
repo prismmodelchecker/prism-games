@@ -594,8 +594,9 @@ public class SeriesSettings extends Observable implements SettingOwner
 			float height = this.getHeight();
 			
 			Graphics2D g2d = (Graphics2D) g;
+
 			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			
+
 			g2d.setColor(color);	
 			g2d.setStroke(stroke);
 			g2d.translate(width/2, height/2);			

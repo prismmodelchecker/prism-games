@@ -35,14 +35,14 @@ import prism.PrismLog;
 import userinterface.graph.Graph;
 
 /**
- * Stores and manipulates a path though a model.
- * The full path is stored, i.e. all info at all steps.
- * State objects and arrays are copied for storage.
+ * Stores and manipulates a path though a model. The full path is stored, i.e.
+ * all info at all steps. State objects and arrays are copied for storage.
  */
 public class PathFull extends Path implements PathFullInfo
 {
 	// Model to which the path corresponds
 	private ModulesFile modulesFile;
+        private explicit.Model model;
 	// Does model use continuous time?
 	private boolean continuousTime;
 	// Model info/stats
@@ -59,10 +59,12 @@ public class PathFull extends Path implements PathFullInfo
 	/**
 	 * Constructor: creates a new (empty) PathFull object for a specific model.
 	 */
-	public PathFull(ModulesFile modulesFile)
+
+    public PathFull(ModulesFile modulesFile)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
+		this.model = null;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		numRewardStructs = modulesFile.getNumRewardStructs();
 		// Create list to store path
@@ -71,6 +73,24 @@ public class PathFull extends Path implements PathFullInfo
 		clear();
 		// Create loop detector
 		loopDet = new LoopDetector();
+	}
+	/**
+	 * Constructor: creates a new (empty) PathFull object for a specific model.
+	 */
+    public PathFull(ModulesFile modulesFile, explicit.Model model)
+	{
+		// Store model and info
+		this.modulesFile = modulesFile;
+	        this.model = model;
+		continuousTime = modulesFile.getModelType().continuousTime();
+		numRewardStructs = modulesFile.getNumRewardStructs();
+		// Create list to store path
+		steps = new ArrayList<Step>(100);
+		// Initialise variables
+		clear();
+		// Create loop detector
+		loopDet = new LoopDetector();
+		loopDet.setBasedOnValues(false);
 	}
 
 	/**
@@ -92,7 +112,7 @@ public class PathFull extends Path implements PathFullInfo
 		Step step = new Step();
 		steps.add(step);
 		// Add (copies of) initial state and state rewards to new step
-		step.state = new State(initialState);
+		step.state = model==null ? new State(initialState) : initialState;
 		step.stateRewards = initialStateRewards.clone();
 		// Set cumulative time/reward (up until entering this state)
 		step.timeCumul = 0.0;
@@ -126,7 +146,7 @@ public class PathFull extends Path implements PathFullInfo
 		stepNew = new Step();
 		steps.add(stepNew);
 		// Add (copies of) new state and state rewards to new step
-		stepNew.state = new State(newState);
+		stepNew.state = model==null ? new State(newState) : newState;
 		stepNew.stateRewards = newStateRewards.clone();
 		// Set cumulative time/rewards (up until entering this state)
 		stepNew.timeCumul = stepOld.timeCumul + time;
@@ -144,6 +164,12 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.addStep(this, transitionList);
 	}
 
+    @Override
+	public void setStrategyMemoryForCurrentState(Object memory)
+	{
+		steps.get(steps.size() - 1).strategyMemory = memory;
+	}
+	
 	// MUTATORS (additional)
 
 	/**
@@ -172,9 +198,11 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	/**
-	 * Remove the prefix of the current path up to the given path step.
-	 * Index step should be >=0 and <= the total path size. 
-	 * @param step The step before which states will be removed.
+	 * Remove the prefix of the current path up to the given path step. Index
+	 * step should be >=0 and <= the total path size.
+	 * 
+	 * @param step
+	 *            The step before which states will be removed.
 	 */
 	public void removePrecedingStates(int step)
 	{
@@ -189,8 +217,8 @@ public class PathFull extends Path implements PathFullInfo
 		rewardsCumul = new double[numRewardStructs];
 		for (j = 0; j < numRewardStructs; j++)
 			rewardsCumul[j] = getCumulativeReward(step, j);
-		// Move later steps of path 'step' places forward 
-		// and subtract time/reward as appropriate 
+		// Move later steps of path 'step' places forward
+		// and subtract time/reward as appropriate
 		numKeep = steps.size() - step;
 		for (i = 0; i < numKeep; i++) {
 			Step tmp = steps.get(i + step);
@@ -226,13 +254,17 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public State getPreviousState()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).state;
+	    return null;
 	}
 
 	@Override
 	public State getCurrentState()
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).state;
+	    return null;
 	}
 
 	@Override
@@ -250,7 +282,7 @@ public class PathFull extends Path implements PathFullInfo
 		else if (i > 0)
 			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
 		else
-			return "?";
+		    return "\u03c4"; // TAU
 	}
 
 	@Override
@@ -262,55 +294,73 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public double getTotalTime()
 	{
+	    if(steps.size() >= 1)
 		return size < 1 ? 0.0 : steps.get(steps.size() - 1).timeCumul;
+	    return 0.0;
 	}
 
 	@Override
 	public double getTimeInPreviousState()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).time;
+	    return 0.0;
 	}
 
 	@Override
 	public double getTotalCumulativeReward(int rsi)
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).rewardsCumul[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double getPreviousStateReward(int rsi)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).stateRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousStateRewards()
-	{
+        {
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).stateRewards;
+	    return null;
 	}
 
 	@Override
 	public double getPreviousTransitionReward(int rsi)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousTransitionRewards()
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards;
+	    return null;
 	}
 
 	@Override
 	public double getCurrentStateReward(int rsi)
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards[rsi];
+	    return 0.0;
 	}
 
 	@Override
 	public double[] getCurrentStateRewards()
 	{
+	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards;
+	    return null;
 	}
 
 	@Override
@@ -329,6 +379,12 @@ public class PathFull extends Path implements PathFullInfo
 	public long loopEnd()
 	{
 		return loopDet.loopEnd();
+	}
+
+	@Override
+	public Object getStrategyMemoryForCurrentState()
+	{
+		return steps.get(steps.size() - 1).strategyMemory;
 	}
 
 	// ACCESSORS (for PathFullInfo)
@@ -393,7 +449,7 @@ public class PathFull extends Path implements PathFullInfo
 		else if (i > 0)
 			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
 		else
-			return "?";
+		    return "\u03c4"; // TAU
 	}
 
 	/**
@@ -402,7 +458,9 @@ public class PathFull extends Path implements PathFullInfo
 	 */
 	public double getProbability(int step)
 	{
+	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).probability;
+	    return 0.0;
 	}
 
 	@Override
@@ -418,6 +476,14 @@ public class PathFull extends Path implements PathFullInfo
 	protected double[] getTransitionRewards(int step)
 	{
 		return steps.get(step).transitionRewards;
+	}
+
+	/**
+	 * Get the strategy memory for the state at a given step of the path (if stored; null if not).
+	 */
+	public Object getStrategyMemory(int step)
+	{
+		return steps.get(step).strategyMemory;
 	}
 
 	@Override
@@ -545,6 +611,7 @@ public class PathFull extends Path implements PathFullInfo
 			moduleOrActionIndex = 0;
 			probability = 0.0;
 			transitionRewards = new double[numRewardStructs];
+			strategyMemory = null;
 		}
 
 		// Current state (before transition)
@@ -559,13 +626,17 @@ public class PathFull extends Path implements PathFullInfo
 		public double time;
 		// Index of the choice taken
 		public int choice;
-		// Action label taken (i.e. the index in the model's list of all actions).
-		// This is 1-indexed, with 0 denoting an independent ("tau"-labelled) command.
+		// Action label taken (i.e. the index in the model's list of all
+		// actions).
+		// This is 1-indexed, with 0 denoting an independent ("tau"-labelled)
+		// command.
 		public int moduleOrActionIndex;
 		// Probability or rate of step
 		public double probability;
 		// Transition rewards associated with step
 		public double transitionRewards[];
+		// Strategy memory
+		public Object strategyMemory;
 	}
 
 	class DisplayThread extends Thread

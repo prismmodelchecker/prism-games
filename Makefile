@@ -29,11 +29,12 @@ do_build:
 	echo "mv prism-examples prism/examples"; mv prism-examples prism/examples
 	@if [ -e prism/examples-distr ]; then \
 	  echo "mv prism/examples-distr/* prism/examples"; mv prism/examples-distr/* prism/examples; \
+	  echo "mv prism/examples-distr dontcopy"; mv prism/examples-distr dontcopy; \
 	fi
 	mv cudd prism
-	mv prism "prism-$(VERSION)-src"
-	(cd "prism-$(VERSION)-src"; $(MAKE) dist_src VERSION=$(VERSION))
-	tar cfz "prism-$(VERSION)-src.tar.gz" --exclude=.svn "prism-$(VERSION)-src"
+	mv prism "prism-games-$(VERSION)-src"
+	(cd "prism-games-$(VERSION)-src"; $(MAKE) dist_src VERSION=$(VERSION))
+	tar cfz "prism-games-$(VERSION)-src.tar.gz" --exclude=.svn "prism-games-$(VERSION)-src"
 
 # Get svn revision (only works if done before dist_src)
 add_rev:

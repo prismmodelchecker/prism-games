@@ -258,7 +258,7 @@ public class GUIInitialStatePicker extends javax.swing.JDialog implements KeyLis
 	 *  initialState.  If you don't want any default values, then pass in null for
 	 *  initDefaults
 	 */
-	public static Values defineInitalValuesWithDialog(GUIPrism parent, Values initDefaults, ModulesFile mf)
+	public static Values defineInitialValuesWithDialog(GUIPrism parent, Values initDefaults, ModulesFile mf)
 	{
 		return new GUIInitialStatePicker(parent, initDefaults, mf).defineValues();
 	}

@@ -35,6 +35,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.Vector;
+import java.util.List;
+import java.util.ArrayList;
 
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
@@ -54,7 +56,13 @@ import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
 
 import parser.ast.ModulesFile;
+import parser.ast.SystemDefn;
+import parser.ast.SystemReference;
+import parser.ast.SystemBrackets;
+import parser.ast.Module;
 import prism.PrismSettings;
+import prism.PrismException;
+import prism.ModelType;
 import userinterface.CheckBoxList;
 import userinterface.GUIPrism;
 
@@ -125,7 +133,7 @@ public class GUIPathPlotDialog extends JDialog
 	private JRadioButton rdbtnVarsNone;
 	private JPanel bottomPanel;
 	private JPanel mainPanel;
-	private JCheckBox chckbxChanges;
+        private JCheckBox chckbxChanges, chckbxTransRew;
 	private JPanel rewardsRadios;
 	private JLabel lblRewardsShow;
 	private JRadioButton rdbtnRewardsAll;
@@ -330,13 +338,23 @@ public class GUIPathPlotDialog extends JDialog
 				topPanel.add(chckbxChanges, gbc_chckbxChanges);
 			}
 			{
+				chckbxTransRew= new JCheckBox("Plot transition rewards");
+				GridBagConstraints gbc_chckbxTransRew = new GridBagConstraints();
+				gbc_chckbxTransRew.anchor = GridBagConstraints.WEST;
+				gbc_chckbxTransRew.gridwidth = 2;
+				gbc_chckbxTransRew.insets = new Insets(0, 0, 5, 5);
+				gbc_chckbxTransRew.gridx = 0;
+				gbc_chckbxTransRew.gridy = 3;
+				topPanel.add(chckbxTransRew, gbc_chckbxTransRew);
+			}
+			{
 				lblMaximumPathLength = new JLabel("Maximum path length:");
 				GridBagConstraints gbc_lblMaximumPathLength = new GridBagConstraints();
 				gbc_lblMaximumPathLength.anchor = GridBagConstraints.WEST;
 				gbc_lblMaximumPathLength.gridwidth = 2;
 				gbc_lblMaximumPathLength.insets = new Insets(0, 0, 0, 5);
 				gbc_lblMaximumPathLength.gridx = 0;
-				gbc_lblMaximumPathLength.gridy = 3;
+				gbc_lblMaximumPathLength.gridy = 4;
 				topPanel.add(lblMaximumPathLength, gbc_lblMaximumPathLength);
 			}
 			{
@@ -346,7 +364,7 @@ public class GUIPathPlotDialog extends JDialog
 				gbc_textFieldMaxLen.gridwidth = 2;
 				gbc_textFieldMaxLen.insets = new Insets(0, 0, 0, 5);
 				gbc_textFieldMaxLen.gridx = 2;
-				gbc_textFieldMaxLen.gridy = 3;
+				gbc_textFieldMaxLen.gridy = 4;
 				topPanel.add(textFieldMaxLen, gbc_textFieldMaxLen);
 				textFieldMaxLen.setColumns(8);
 			}
@@ -486,11 +504,75 @@ public class GUIPathPlotDialog extends JDialog
 			textFieldInterval.setText("");
 		}
 		chckbxChanges.setSelected(true);
+		chckbxTransRew.setSelected(false);
 		textFieldMaxLen.setText("" + gui.getPrism().getSettings().getLong(PrismSettings.SIMULATOR_DEFAULT_MAX_PATH));
 		rdbtnVarsAll.setSelected(true);
-		for (int i = 0; i < modulesFile.getNumVars(); i++) {
-			varsCheckBoxes.add(new JCheckBox(modulesFile.getVarName(i)));
+
+		// only the visible variables
+		List<ModulesFile> modulesFiles = null;
+		// extract system ... endsystem constructs
+		try {
+		    if(modulesFile != null && modulesFile.getModelType() == ModelType.SMG && modulesFile.getSystemDefn() != null) {
+			SystemDefn sys = modulesFile.getSystemDefn();
+			if (sys == null) throw new PrismException("Cannot simulate for empty system.");
+			while (sys instanceof SystemBrackets)
+			    sys = ((SystemBrackets) sys).getOperand();
+			ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
+			ModulesFile.extractSubsystemRefs(sys, sysRefs);
+			// Extract modules in each subsystem ...
+			int numComps = sysRefs.size();
+			List<List<String>> moduleNameLists = new ArrayList<List<String>>();
+			for (int i = 0; i < numComps; i++) {
+			    SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
+			    if (subsys == null) throw new PrismException("Unknown system reference" + sysRefs.get(i));
+			    ArrayList<String> moduleNames = new ArrayList<String>();
+			    ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
+			    moduleNameLists.add(moduleNames);
+			}
+			modulesFiles = new ArrayList<ModulesFile>(numComps);
+			for(int i = 0; i < numComps; i++) {
+			    ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
+			    modulesFiles.add(modulesFile_i);
+			}
+		    }
+		} catch (PrismException e) {
+		    // TODO
 		}
+
+		int i = 0;
+		for (int g = 0; g < modulesFile.getNumGlobals(); g++) {
+		    varsCheckBoxes.add(new JCheckBox(modulesFile.getGlobal(g).getName()));
+		    //visibleVariables.add(new Variable(i, modulesFile.getGlobal(g).getName(), modulesFile.getGlobal(g).getType()));
+		    i++;
+		}
+		if(modulesFile.getModelType() == ModelType.SMG && modulesFile.getSystemDefn() != null) {
+		    int numComps = modulesFiles.size();
+		    for(int k = 0; k < numComps; k++) {
+			ModulesFile modulesFile_k = modulesFiles.get(k);
+			for (int m = 0; m < modulesFile_k.getNumModules(); m++) {
+			    Module module = modulesFile_k.getModule(m);
+			    for (int v = 0; v < module.getNumDeclarations(); v++) {
+				varsCheckBoxes.add(new JCheckBox(module.getDeclaration(v).getName()));
+				//visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
+				i++;
+			    }
+			}
+		    }
+		} else {
+		    for (int m = 0; m < modulesFile.getNumModules(); m++) {
+			Module module = modulesFile.getModule(m);
+			for (int v = 0; v < module.getNumDeclarations(); v++) {
+			    varsCheckBoxes.add(new JCheckBox(module.getDeclaration(v).getName()));
+			    //visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
+			    i++;
+			}
+		    }
+		}
+
+
+		//for (int i = 0; i < modulesFile.getNumVars(); i++) {
+		//	varsCheckBoxes.add(new JCheckBox(modulesFile.getVarName(i)));
+		//}
 		//
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		setLocationRelativeTo(getParent()); // centre
@@ -569,6 +651,9 @@ public class GUIPathPlotDialog extends JDialog
 		if (chckbxChanges.isSelected()) {
 			simPathString += ",changes=true";
 		}
+		if (chckbxTransRew.isSelected()) {
+			simPathString += ",showtransrewards=true";
+		}
 		if (rdbtnVarsNone.isSelected()) {
 			simPathString += ",vars=()";
 		} else if (rdbtnVarsSelected.isSelected()) {
@@ -577,6 +662,12 @@ public class GUIPathPlotDialog extends JDialog
 				if (cb.isSelected()) {
 					s += "," + cb.getText();
 				}
+			}
+			simPathString += ",vars=(" + s + ")";
+		} else if (rdbtnVarsAll.isSelected()) {
+		    String s = "";
+			for (JCheckBox cb : varsCheckBoxes) {
+			    s += "," + cb.getText(); // whether checked or not - want all
 			}
 			simPathString += ",vars=(" + s + ")";
 		}

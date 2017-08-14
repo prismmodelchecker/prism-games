@@ -1,0 +1,78 @@
+PRISM
+=====
+
+Version: 4.0.3.games
+Date: Mon Feb 13 10:43:17 GMT 2012
+Hostname: bokonon.local
+Command line: prism -test -ex -verbose r0-bound.smg r0-bound.smg.props
+
+Parsing model file "r0-bound.smg"...
+
+Parsing properties file "r0-bound.smg.props"...
+
+3 properties:
+(1) <<1>> R{"r"}max=? [ F0 "t" ]
+(2) <<1>> R{"r"}max=? [ Fc "t" ]
+(3) <<1>> R{"r"}max=? [ F "t" ]
+
+Type:        SMG
+Modules:     player1 
+Variables:   s 
+
+Switching to explicit engine, which supports SMGs...
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"r"}max=? [ F0 "t" ]
+
+Building model...
+
+Computing reachable states...
+maximal rews for rich man's strategy: [1.0, 0.0, 0.0]
+ 3
+Reachable states exploration and model construction done in 0.022 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.046 seconds.
+
+Type:        SMG
+States:      3 (1 initial)
+Transitions: 5
+Choices:     4
+Max/avg:     2/1.33
+Building reward structure...
+Computing rewards...0
+
+Value in the initial state: 3.8742048900000006
+
+Time for model checking: 0.0080 seconds.
+
+Result: 3.8742048900000006 (value in the initial state)
+Testing result: PASS
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"r"}max=? [ Fc "t" ]
+Building reward structure...
+Computing rewards...0
+
+Value in the initial state: 9.999916647515823
+
+Time for model checking: 0.0020 seconds.
+
+Result: 9.999916647515823 (value in the initial state)
+Testing result: PASS
+
+---------------------------------------------------------------------
+
+Model checking: <<1>> R{"r"}max=? [ F "t" ]
+Building reward structure...
+Computing rewards...0
+
+Value in the initial state: Infinity
+
+Time for model checking: 0.0010 seconds.
+
+Result: Infinity (value in the initial state)
+Testing result: PASS
+

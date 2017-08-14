@@ -70,8 +70,8 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		List<List<Double>> list1;
 		List<Double> list2;
 		// Nothing to do for zero reward
-		if (r == 0.0)
-			return;
+		//if (r == 0.0)
+		//	return;
 		// If no rewards array created yet, create it
 		if (nestedTransRewards == null) {
 			nestedTransRewards = new ArrayList<List<List<Double>>>(numStates);
@@ -111,6 +111,14 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 	}
 
 	/**
+	 * Add {@code r} to the reward for the {@code i},{@code j}th nested transition of state {@code s}.
+	 */
+	public void addToNestedTransitionReward(int s, int i, int j, double r)
+	{
+		setNestedTransitionReward(s, i, j, getNestedTransitionReward(s, i, j) + r);
+	}
+
+	/**
 	 * Clear all rewards for state s.
 	 */
 	public void clearRewards(int s)
@@ -129,12 +137,12 @@ public class STPGRewardsSimple extends MDPRewardsSimple implements STPGRewards
 		List<List<Double>> list1;
 		List<Double> list2;
 		if (nestedTransRewards == null || (list1 = nestedTransRewards.get(s)) == null)
-			return 0.0;
+			return this.zeroReplacement;
 		if (list1.size() <= i || (list2 = list1.get(i)) == null)
-			return 0.0;
+			return this.zeroReplacement;
 		if (list2.size() <= j)
-			return 0.0;
-		return list2.get(j);
+			return this.zeroReplacement;
+		return (list2.get(j) != 0.0) ? list2.get(j) : zeroReplacement;
 	}
 
 	// Converters

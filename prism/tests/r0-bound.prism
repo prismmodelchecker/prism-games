@@ -1,0 +1,19 @@
+smg
+
+// Player info
+player p1 player1 endplayer
+
+module player1
+	s : [0..2];
+
+	[] s=0 -> 1 : (s'=1);
+	[] s=0 -> 0.9 : (s'=0) + 0.1 : (s'=2);
+	[] s>0 -> true;
+
+endmodule
+
+label "t" = s=1;
+
+rewards "r"
+	s=0 : 1;
+endrewards

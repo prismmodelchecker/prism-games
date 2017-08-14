@@ -70,6 +70,7 @@ public class PrismExplicit extends PrismComponent
 		long l; // timer
 		Model modelExpl;
 		ConstructModel constructModel;
+		boolean[] cancel_computation = new boolean[1]; // false by default
 
 		if (modulesFile.getModelType() == ModelType.PTA) {
 			throw new PrismNotSupportedException("You cannot build a PTA model explicitly, only perform model checking");
@@ -82,11 +83,11 @@ public class PrismExplicit extends PrismComponent
 
 		// build model
 		l = System.currentTimeMillis();
-		modelExpl = constructModel.constructModel(simEngine);
+		modelExpl = constructModel.constructModel(simEngine, false, cancel_computation);
 		l = System.currentTimeMillis() - l;
 
 		mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
-
+		
 		return modelExpl;
 	}
 
@@ -226,9 +227,14 @@ public class PrismExplicit extends PrismComponent
 		case STPG:
 			mc = new STPGModelChecker(this);
 			break;
+		case SMG:
+			mc = new SMGModelChecker(this);
+			break;
 		default:
 			throw new PrismException("Unknown model type " + model.getModelType());
 		}
+		//temporary HACK, we should eventually decide if we use boolean verbose or int verbosity
+		mc.setVerbosity(settings.getBoolean(PrismSettings.PRISM_VERBOSE) ? 10 : 1);
 
 		// Do model checking
 		mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, null);
@@ -472,5 +478,10 @@ public class PrismExplicit extends PrismComponent
 		} catch (FileNotFoundException e) {
 			System.out.println(e);
 		}
+	}
+	
+	public PrismSettings getSettings()
+	{
+		return settings;
 	}
 }

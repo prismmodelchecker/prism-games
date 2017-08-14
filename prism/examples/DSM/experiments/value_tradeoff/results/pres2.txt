@@ -1,0 +1,84 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Tue Sep 13 19:53:43 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm2314p.smg -ex -pctl '<<1>> R{"value1"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm2314p.smg"...
+
+1 property:
+(1) <<[1]>> R{"value1"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 5302
+Reachable states exploration and model construction done in 0.555 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.602 seconds.
+
+Type:        SMG
+
+States:      5302 (1 initial)
+Transitions: 11148
+Choices:     6712
+Max/avg:     3/1.27
+
+-------------------------------------------
+
+Model checking: <<[1]>> R{"value1"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 15.367571933766024
+
+Time for model checking: 0.393 seconds.
+
+Result: 15.367571933766024 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Wed Sep 14 11:51:39 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/DSM/experiments/value_tradeoff/dsm2304p.smg -ex -pctl '<<1,2>> R{"value12"}max=? [F time=max_time]'
+
+Parsing model file "examples/games/DSM/experiments/value_tradeoff/dsm2304p.smg"...
+
+1 property:
+(1) <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 5302
+Reachable states exploration and model construction done in 0.641 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.699 seconds.
+
+Type:        SMG
+
+States:      5302 (1 initial)
+Transitions: 11148
+Choices:     6712
+Max/avg:     3/1.27
+
+-------------------------------------------
+
+Model checking: <<[1, 2]>> R{"value12"}max=? [ F time=max_time ]
+Building reward structure...
+
+Value in the initial state: 34.901899739302806
+
+Time for model checking: 0.42 seconds.
+
+Result: 34.901899739302806 (value in the initial state)
+

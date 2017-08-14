@@ -38,6 +38,7 @@ public class GUIPropertiesEvent extends GUIEvent
     public static final int EXPERIMENT_END = 4;
     public static final int PROPERTIES_LIST_CHANGED = 5;
     public static final int VERIFY_END = 6;
+    public static final int PARETO_END = 7;
     //private UndefinedConstants mfUndefined;
     private Values buildValues;
     

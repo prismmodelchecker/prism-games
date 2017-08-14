@@ -27,6 +27,8 @@
 
 package simulator.sampler;
 
+import java.util.List;
+
 import simulator.*;
 import simulator.method.SimulationMethod;
 import parser.ast.*;
@@ -215,10 +217,11 @@ public abstract class Sampler
 		throw new PrismException("Can't create sampler for property \"" + expr + "\"");
 	}
 
+
 	private static SamplerDouble createSamplerForRewardProperty(ExpressionReward expr, ModulesFile mf) throws PrismException
 	{
 		// Extract reward structure index
-		Object rs = expr.getRewardStructIndex();
+		Object rs = expr.getRewardStructIndex();		
 		int rsi = -1;
 		if (mf.getNumRewardStructs() == 0)
 			throw new PrismException("Model has no rewards specified");
@@ -233,7 +236,6 @@ public abstract class Sampler
 		}
 		if (rsi == -1)
 			throw new PrismException("Invalid reward structure index \"" + rs + "\"");
-
 		// Construct sampler based on type
 		if (!(expr.getExpression() instanceof ExpressionTemporal)) {
 			// catch complex co-safety reward specifications
@@ -247,7 +249,7 @@ public abstract class Sampler
 				return new SamplerRewardCumulCont(exprTemp, rsi);
 			} else {
 				// Discrete-time cumulative reward
-				return new SamplerRewardCumulDisc(exprTemp, rsi);
+			        return new SamplerRewardCumulDisc(exprTemp, rsi);
 			}
 		case ExpressionTemporal.R_I:
 			if (mf.getModelType().continuousTime()) {
@@ -255,7 +257,7 @@ public abstract class Sampler
 				return new SamplerRewardInstCont(exprTemp, rsi);
 			} else {
 				// Discrete-time instantaneous reward
-				return new SamplerRewardInstDisc(exprTemp, rsi);
+			        return new SamplerRewardInstDisc(exprTemp, rsi);
 			}
 		case ExpressionTemporal.P_F:
 			// reachability reward

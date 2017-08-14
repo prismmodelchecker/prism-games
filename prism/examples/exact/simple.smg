@@ -1,0 +1,35 @@
+smg
+
+const double p = 0.5;
+const double q = 0.5;
+
+player p1
+	foo, [p1a], [p1b]
+endplayer
+
+
+player p2
+	[p2a], [p2b]
+endplayer
+
+module foo
+
+
+	s : [1..5] init 1;
+
+	[p1a] s=1 -> p : (s'=2) + (1-p) : (s'=3);
+	[p1b] s=1 -> q : (s'=3) + (1-q) : (s'=1);
+
+	[p2a] s=3 -> 0.5 : (s'=4) + 0.5 : (s'=4);
+	[p2b] s=3 -> 0.5 : (s'=5) + 0.5 : (s'=5);
+
+	[p1a] s=2 -> 0.5 : (s'=4) + 0.5 : (s'=4);
+	[p1b] s=2 -> 0.5 : (s'=5) + 0.5 : (s'=5);
+
+	[p1a] s>3 -> 0.5 : (s'=s) + 0.5 : (s'=s);
+	[p1a] s>3 -> 0.5 : (s'=s) + 0.5 : (s'=s);	
+	
+endmodule
+
+label "T" = s=4;
+label "Z" = s=5;

@@ -72,6 +72,7 @@ public class TypeVoid extends Type
 	@Override
 	public Object castValueTo(Object value) throws PrismLangException
 	{
+	    Thread.dumpStack();
 		throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
 	}
 }

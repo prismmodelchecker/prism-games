@@ -1,0 +1,230 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 16:08:38 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], sched=0&preference1=2&N_committed=0)' -const 'Pexp=0.5,gamma=0.0,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) filter(range, <<[0, 1]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&N_committed=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 114981 175065
+Reachable states exploration and model construction done in 4.483 secs.
+Sorting reachable states list...
+
+Time for model construction: 4.834 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: filter(range, <<[0, 1]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&N_committed=0)
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+States satisfying filter sched=0&preference1=2&N_committed=0: 4781
+
+Range of values over states satisfying filter: [0.005761134560300802,0.7495147431711129]
+
+Time for model checking: 69.52 seconds.
+
+Result: [0.005761134560300802,0.7495147431711129] (range of values over states satisfying filter)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 16:09:53 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2>> Pmax=? [F all_committed&all_prefer_1], sched=0&preference1=2&preference2=2&N_committed=0)' -const 'Pexp=0.5,gamma=0.0,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) filter(range, <<[0, 1, 2]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&N_committed=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 130187 175065
+Reachable states exploration and model construction done in 4.062 secs.
+Sorting reachable states list...
+
+Time for model construction: 4.403 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: filter(range, <<[0, 1, 2]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&N_committed=0)
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+States satisfying filter sched=0&preference1=2&preference2=2&N_committed=0: 1372
+
+Range of values over states satisfying filter: [0.02964714250971985,0.8344281914938674]
+
+Time for model checking: 40.792 seconds.
+
+Result: [0.02964714250971985,0.8344281914938674] (range of values over states satisfying filter)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 16:10:40 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], sched=0&preference1=2&preference2=2&preference3=2&N_committed=0)' -const 'Pexp=0.5,gamma=0.0,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) filter(range, <<[0, 1, 2, 3]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&N_committed=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 114257 175065
+Reachable states exploration and model construction done in 4.528 secs.
+Sorting reachable states list...
+
+Time for model construction: 4.891 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: filter(range, <<[0, 1, 2, 3]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&N_committed=0)
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+States satisfying filter sched=0&preference1=2&preference2=2&preference3=2&N_committed=0: 392
+
+Range of values over states satisfying filter: [0.10611350290425975,0.8988793216914484]
+
+Time for model checking: 31.823 seconds.
+
+Result: [0.10611350290425975,0.8988793216914484] (range of values over states satisfying filter)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 16:11:17 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&N_committed=0)' -const 'Pexp=0.5,gamma=0.0,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) filter(range, <<[0, 1, 2, 3, 4]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&N_committed=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 108520 175065
+Reachable states exploration and model construction done in 5.216 secs.
+Sorting reachable states list...
+
+Time for model construction: 5.589 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: filter(range, <<[0, 1, 2, 3, 4]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&N_committed=0)
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+States satisfying filter sched=0&preference1=2&preference2=2&preference3=2&preference4=2&N_committed=0: 112
+
+Range of values over states satisfying filter: [0.3355309459012628,0.9562566872297931]
+
+Time for model checking: 27.829 seconds.
+
+Result: [0.3355309459012628,0.9562566872297931] (range of values over states satisfying filter)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Mon Oct 03 16:11:52 BST 2011
+Hostname: qavbench.comlab
+Command line: prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&preference5=2&N_committed=0)' -const 'Pexp=0.5,gamma=0.0,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25'
+
+Parsing model file "examples/games/CDM/experiments/prob_choose_best/cdm5032.smg"...
+
+1 property:
+(1) filter(range, <<[0, 1, 2, 3, 4, 5]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&preference5=2&N_committed=0)
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 128071 175065
+Reachable states exploration and model construction done in 4.158 secs.
+Sorting reachable states list...
+
+Time for model construction: 4.524 seconds.
+
+Type:        SMG
+
+States:      175065 (1 initial)
+Transitions: 1187018
+Choices:     304320
+Max/avg:     2/1.74
+
+-------------------------------------------
+
+Model checking: filter(range, <<[0, 1, 2, 3, 4, 5]>> Pmax=? [ F all_committed&all_prefer_1 ], sched=0&preference1=2&preference2=2&preference3=2&preference4=2&preference5=2&N_committed=0)
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+States satisfying filter sched=0&preference1=2&preference2=2&preference3=2&preference4=2&preference5=2&N_committed=0: 32
+
+Range of values over states satisfying filter: [1.0,1.0]
+
+Time for model checking: 4.374 seconds.
+
+Result: [1.0,1.0] (range of values over states satisfying filter)
+

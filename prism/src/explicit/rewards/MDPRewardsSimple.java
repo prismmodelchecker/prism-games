@@ -45,6 +45,9 @@ public class MDPRewardsSimple implements MDPRewards
 	/** Transition rewards */
 	protected List<List<Double>> transRewards;
 
+	/** The number returned when the real reward is unset or 0.0*/
+	protected double zeroReplacement = 0.0;
+
 	/**
 	 * Constructor: all zero rewards.
 	 * @param numStates Number of states
@@ -90,6 +93,7 @@ public class MDPRewardsSimple implements MDPRewards
 				}
 			}
 		}
+		zeroReplacement = rews.zeroReplacement;
 	}
 
 	// Mutators
@@ -166,14 +170,38 @@ public class MDPRewardsSimple implements MDPRewards
 		}
 	}
 
+	/**
+	 * If set, the method {@link #getNestedTransitionReward(int, int, int)}
+	 * will return {@code number} whenever it would normally return {@code 0.0}.
+	 * This may be useful when zero rewards are undesirable and are replaced by
+	 * some small epsilon>0.
+	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
+	 */
+	public void setZeroReplacement(double number)
+	{
+		this.zeroReplacement = number;
+	}
+
+	/**
+	 * The number the method {@link #getNestedTransitionReward(int, int, int)}
+	 * will return as "zero" 
+	 * This may be useful when zero rewards are undesirable and are replaced by
+	 * some small epsilon>0.
+	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
+	 */
+	public double getZeroReplacement()
+	{
+		return this.zeroReplacement;
+	}
+
 	// Accessors
 
 	@Override
 	public double getStateReward(int s)
 	{
 		if (stateRewards == null)
-			return 0.0;
-		return stateRewards.get(s);
+			return this.zeroReplacement;
+		return (stateRewards.get(s) != 0.0) ? stateRewards.get(s) : this.zeroReplacement;
 	}
 
 	@Override
@@ -181,10 +209,10 @@ public class MDPRewardsSimple implements MDPRewards
 	{
 		List<Double> list;
 		if (transRewards == null || (list = transRewards.get(s)) == null)
-			return 0.0;
+			return this.zeroReplacement;
 		if (list.size() <= i)
-			return 0.0;
-		return list.get(i);
+			return this.zeroReplacement;
+		return (list.get(i) != 0) ? list.get(i) : this.zeroReplacement;
 	}
 
 	// Converters

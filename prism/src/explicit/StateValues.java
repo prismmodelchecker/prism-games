@@ -42,6 +42,7 @@ import parser.type.Type;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
+import parser.type.TypePareto;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
@@ -53,7 +54,7 @@ import prism.StateVector;
  */
 public class StateValues implements StateVector
 {
-	// Type (int, double or boolean)
+	// Type (int, double, boolean, or Pareto)
 	protected Type type;
 	// Size
 	protected int size;
@@ -61,6 +62,7 @@ public class StateValues implements StateVector
 	protected int[] valuesI;
 	protected double[] valuesD;
 	protected BitSet valuesB;
+	protected Pareto[] valuesP;
 
 	// Model info
 	protected List<State> statesList;
@@ -78,6 +80,7 @@ public class StateValues implements StateVector
 		valuesI = null;
 		valuesD = null;
 		valuesB = null;
+		valuesP = null;
 	}
 
 	/**
@@ -152,10 +155,31 @@ public class StateValues implements StateVector
 			} else {
 				valuesB = new BitSet();
 			}
+		} else if (type instanceof TypePareto) {
+		    valuesP = new Pareto[size];
+		    Pareto objP = ((TypePareto) type).castValueTo(init);
+		    for (i = 0; i < size; i++)
+			valuesP[i] = objP;
 		} else {
 			throw new PrismLangException("Cannot create a vector of type " + type);
 		}
 	}
+	
+	/**
+	 * Create a new (Pareto-set-valued) state values vector from an existing array of Pareto sets
+	 * The array is stored directly, not copied.
+	 * Also set associated model (whose state space size should match vector size).
+	 */
+	public static StateValues createFromParetoArray(Pareto[] array, Model model)
+	{
+		StateValues sv = new StateValues();
+		sv.type = TypePareto.getInstance();
+		sv.size = array.length;
+		sv.valuesP = array;
+		sv.statesList = model.getStatesList();
+		return sv;
+	}
+
 
 	/**
 	 * Create a new (int-valued) state values vector from an existing array of ints.
@@ -1312,6 +1336,7 @@ public class StateValues implements StateVector
 		valuesI = null;
 		valuesD = null;
 		valuesB = null;
+		valuesP = null;
 	}
 
 	// METHODS TO ACCESS VECTOR DATA
@@ -1331,6 +1356,8 @@ public class StateValues implements StateVector
 			return valuesD[i];
 		} else if (type instanceof TypeBool) {
 			return valuesB.get(i);
+		} else if (type instanceof TypePareto) {
+			return valuesP[i];
 		} else {
 			return null;
 		}
@@ -1338,6 +1365,7 @@ public class StateValues implements StateVector
 
 	/**
 	 * Is the ith element of the vector non-zero (or non-false)?
+	 * Does not apply to Pareto sets (false by default)
 	 */
 	public boolean isNonZero(int i)
 	{
@@ -1375,6 +1403,15 @@ public class StateValues implements StateVector
 	{
 		return valuesB;
 	}
+
+	/**
+	 * For Pareto-set-valued vectors, get the Pareto array storing the data.
+	 */
+	public Pareto[] getParetoArray()
+	{
+		return valuesP;
+	}
+
 
 	/**
 	 * Get the number of states for which the value is non-zero/non-false.
@@ -1496,6 +1533,7 @@ public class StateValues implements StateVector
 			}
 			return true;
 		}
+		Thread.dumpStack();
 		throw new PrismException("Can't take for-all over a vector of type " + type);
 	}
 
@@ -1718,6 +1756,9 @@ public class StateValues implements StateVector
 		}
 		if (valuesB != null) {
 			sv.valuesB = (BitSet) valuesB.clone();
+		}
+		if (valuesP != null) {
+			sv.valuesP = Utils.cloneParetoArray(valuesP);
 		}
 		sv.statesList = statesList;
 		return sv;

@@ -14,6 +14,7 @@ import parser.ast.ConstantList;
 import parser.ast.Expression;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
+import parser.ast.Player;
 import parser.ast.RewardStruct;
 import parser.type.Type;
 import prism.DefaultModelGenerator;
@@ -229,6 +230,18 @@ public class ModulesFileModelGeneratorSymbolic extends DefaultModelGenerator imp
 		return modulesFile.getRewardStruct(i);
 	}
 
+	@Override
+	public int getNumPlayers()
+	{
+		return modulesFile.getNumPlayers();
+	}
+
+	@Override
+	public Player getPlayer(int i)
+	{
+		return modulesFile.getPlayer(i);
+	}
+	
 	// Methods for ModelGenerator interface
 	
 	@Override
@@ -360,6 +373,12 @@ public class ModulesFileModelGeneratorSymbolic extends DefaultModelGenerator imp
 		return getTransitionList().computeTransitionTarget(index, exploreState);
 	}
 	
+	@Override
+    public int getPlayerNumberForChoice(int i) throws PrismException
+	{
+    	throw new PrismException("Not implemented");
+	}
+
 	@Override
 	public boolean isLabelTrue(int i) throws PrismException
 	{

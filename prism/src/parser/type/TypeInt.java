@@ -74,7 +74,9 @@ public class TypeInt extends Type
 	{
 		if (value instanceof Integer)
 			return (Integer) value;
-		else
-			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		else {
+		    Thread.dumpStack();
+		    throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		}
 	}
 }

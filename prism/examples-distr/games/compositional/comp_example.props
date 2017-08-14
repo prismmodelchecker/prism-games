@@ -1,0 +1,12 @@
+const double v1 = 1/4;
+const double v2 = 9/8;
+const double v3 = 3/4;
+
+"psi" : comp("phi1", "phi2")
+
+"phi1" : <<1>> (R{"r1"}/{"c"}<=v1 [ S ]=>R{"r2"}/{"c"}>=v2 [ S ])
+
+"phi2" : <<1>> (R{"r1"}/{"c"}<=v1 [ S ]&R{"r3"}/{"c"}<=v3 [ S ])
+
+"phi" : <<1>> (R{"r2"}/{"c"}>=v2 [ S ]&R{"r3"}/{"c"}<=v3 [ S ])
+

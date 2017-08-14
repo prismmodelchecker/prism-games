@@ -130,6 +130,12 @@ public interface ModelGenerator extends ModelInfo
 	public State computeTransitionTarget(int i, int offset) throws PrismException;
 	
 	/**
+	 * Get (the number of) the player owning choice i. Returns -1 if unknown.
+	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
+	 */
+    public int getPlayerNumberForChoice(int i) throws PrismException;
+    
+	/**
 	 * Is label {@code label} true in the state currently being explored?
 	 * @param label The name of the label to check 
 	 */

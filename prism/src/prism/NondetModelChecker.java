@@ -252,7 +252,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	{
 		// Get info from P operator
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, null);
 		
 		// Check for trivial (i.e. stupid) cases
 		if (opInfo.isTriviallyTrue()) {
@@ -315,8 +315,10 @@ public class NondetModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionReward(ExpressionReward expr, boolean forAll, JDDNode statesOfInterest) throws PrismException
 	{
 		// Get info from R operator
+	        if(expr.getRewardStructIndexDiv() != null)
+		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
-		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
+		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, null);
 
 		// Get rewards
 		Object rs = expr.getRewardStructIndex();
@@ -884,6 +886,11 @@ public class NondetModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbPathFormula(Expression expr, boolean qual, boolean min, JDDNode statesOfInterest) throws PrismException
 	{
+		// No support for reward-bounded path formulas (i.e. of the form R(path)~r)
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Reward-bounded path formulas not supported");
+		}
+		
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and whether we want to use the corresponding algorithms
 		boolean useSimplePathAlgo = expr.isSimplePathFormula();
@@ -1218,6 +1225,11 @@ public class NondetModelChecker extends NonProbModelChecker
 			expr = Expression.Not(Expression.Parenth(expr));
 		}
 
+		// Reward-bounded path formulas not allowed in LTL
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Automaton construction for reward-bounded path formulas not supported");
+		}
+		
 		// Can't do "dfa" properties yet
 		if (expr instanceof ExpressionFunc && ((ExpressionFunc) expr).getName().equals("dfa")) {
 			throw new PrismException("Model checking for \"dfa\" specifications not supported yet");
@@ -1334,7 +1346,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// check that there is an upper time bound
 		if (expr.getUpperBound() == null) {
-			throw new PrismException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
+		        throw new PrismException("Cumulative reward operator without time bound (C) not supported");
 		}
 
 		// get info from inst reward

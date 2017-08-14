@@ -39,6 +39,7 @@ import parser.*;
 import parser.ast.*;
 import parser.type.TypeVoid;
 import prism.*;
+import explicit.Pareto;
 
 /**
  * Encapsulates a property in the list in the GUI "Properties" tab.
@@ -327,6 +328,8 @@ public class GUIProperty
 			setStatus(STATUS_RESULT_ERROR);
 		} else if (result.getResult() instanceof TileList) {
 			setStatus(STATUS_RESULT_PARETO);
+		} else if (result.getResult() instanceof Pareto[]) {
+		        setStatus(STATUS_RESULT_PARETO);
 		} else {
 			setStatus(STATUS_NOT_DONE);
 			result = null;
@@ -341,6 +344,12 @@ public class GUIProperty
 	public void setMethodString(String method)
 	{
 		this.method = (method == null) ? "<none>" : method;
+	}
+	public void appendMethodString(String method)
+	{
+	    this.method = (this.method == null) ?
+		((method == null) ? "<none>" : method) :
+		((method == null) ? this.method : this.method + method);
 	}
 
 	public void setConstants(Values mfConstants, Values pfConstants)

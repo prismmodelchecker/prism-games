@@ -1,0 +1,62 @@
+const double eps = 0.01;
+
+// RESULT: True
+<<1>> (R{"r1"}>=0.5 [ S ] & R{"r2"}>=0.5 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=0.5+eps [ S ] & R{"r2"}>=0.5 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=0.5 [ S ] & R{"r2"}>=0.5+eps [ S ])
+
+// RESULT: True
+<<1>> (R{"r1"}>=0.25 [ S ] & R{"r2"}>=1.0 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=0.25+eps [ S ] & R{"r2"}>=1.0 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=0.25 [ S ] & R{"r2"}>=1.0+eps [ S ])
+
+// RESULT: True	 
+<<1>> (R{"r1"}>=0.5 [ S ] | R{"r2"}>=1.25 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=0.5+eps [ S ] | R{"r2"}>=1.25+eps [ S ])
+
+// RESULT: True
+<<1>> (R{"r1"}>=1.0 [ S ] | R{"r2"}>=1.0 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}>=1.0+eps [ S ] | R{"r2"}>=1.0+eps [ S ])
+
+// RESULT: True
+<<1>> (R{"r1"}<=1.0 [ S ] & R{"r2"}<=1.0 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=1.0-eps [ S ] & R{"r2"}<=1.0 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=1.0 [ S ] & R{"r2"}<=1.0-eps [ S ])
+
+// RESULT: True
+<<1>> (R{"r1"}<=1.25 [ S ] & R{"r2"}<=0.5 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=1.25-eps [ S ] & R{"r2"}<=0.5 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=1.25 [ S ] & R{"r2"}<=0.5-eps [ S ])
+
+// RESULT: True	 
+<<1>> (R{"r1"}<=0.5 [ S ] | R{"r2"}<=0.5 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=0.5-eps [ S ] | R{"r2"}<=0.5-eps [ S ])
+
+// RESULT: True
+<<1>> (R{"r1"}<=1.0 [ S ] | R{"r2"}<=0.25 [ S ])
+
+// RESULT: False
+<<1>> (R{"r1"}<=1.0-eps [ S ] | R{"r2"}<=0.25-eps [ S ])
+

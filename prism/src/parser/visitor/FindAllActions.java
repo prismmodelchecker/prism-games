@@ -89,6 +89,7 @@ public class FindAllActions extends ASTTraverseModify
 		}
 		// Otherwise, there is a problem.
 		throw new PrismLangException("Unknown action name " + e.getSynch() + " in reward structure item", e);
+		
 	}
 }
 

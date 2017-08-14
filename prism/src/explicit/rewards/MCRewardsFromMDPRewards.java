@@ -58,6 +58,13 @@ public class MCRewardsFromMDPRewards implements MCRewards
 		// This works fine for cumulative rewards, but not instantaneous ones
 		return mdpRewards.getStateReward(s) + mdpRewards.getTransitionReward(s, strat[s]);
 	}
+
+	@Override
+	public double getTransitionReward(int s, int i)
+	{
+		// For now, state/transition rewards from MDP are both put into state reward
+		return 0;
+	}
 	
 	@Override
 	public MCRewards liftFromModel(Product<? extends Model> product)

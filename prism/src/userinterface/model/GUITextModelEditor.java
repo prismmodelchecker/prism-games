@@ -786,6 +786,8 @@ public class GUITextModelEditor extends GUIModelEditor implements DocumentListen
 		Element lineElement = editor.getDocument().getDefaultRootElement().
 		getElement(line-1);
 		
+		if(lineElement==null) throw new BadLocationException("Empty line element", -1);
+
 		int beginLineOffset = lineElement.getStartOffset();
 		int endLineOffset = lineElement.getEndOffset();
 		

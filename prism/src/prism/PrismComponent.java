@@ -48,8 +48,8 @@ public class PrismComponent
 	 * Log for output.
 	 * Defaults to System.out, so that is always available.
 	 */
-	protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
-
+         protected PrismLog mainLog = new PrismPrintStreamLog(System.out);
+    
 	/**
 	 * PRISM settings object.
 	 * Defaults to null to avoid delays when it will be copied from a parent object.

@@ -1,0 +1,1890 @@
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:08:50 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.758 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.818 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 56.68433361280399
+
+Time for model checking: 8.667 seconds.
+
+Result: 56.68433361280399 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:09:00 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.789 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.848 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 57.6038917264248
+
+Time for model checking: 9.297 seconds.
+
+Result: 57.6038917264248 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:09:11 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.712 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.778 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 66.79407310299379
+
+Time for model checking: 12.259 seconds.
+
+Result: 66.79407310299379 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:09:25 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.69 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.752 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 83.11505215902574
+
+Time for model checking: 15.56 seconds.
+
+Result: 83.11505215902574 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:09:42 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.869 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.928 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 103.40313803610943
+
+Time for model checking: 20.282 seconds.
+
+Result: 103.40313803610943 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:10:05 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=0.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.737 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.8 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=0,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 121.46294636270756
+
+Time for model checking: 24.609 seconds.
+
+Result: 121.46294636270756 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:10:31 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.832 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.89 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 34.12287039459585
+
+Time for model checking: 5.314 seconds.
+
+Result: 34.12287039459585 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:10:38 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.724 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.784 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 33.166632072208216
+
+Time for model checking: 5.08 seconds.
+
+Result: 33.166632072208216 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:10:45 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.843 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.903 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 35.55304941958195
+
+Time for model checking: 5.945 seconds.
+
+Result: 35.55304941958195 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:10:53 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.733 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.792 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 41.97561098430191
+
+Time for model checking: 8.023 seconds.
+
+Result: 41.97561098430191 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:02 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.711 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.771 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 50.93975470079234
+
+Time for model checking: 10.709 seconds.
+
+Result: 50.93975470079234 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:14 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=0.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.712 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.778 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=0.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 60.095144398124866
+
+Time for model checking: 13.083 seconds.
+
+Result: 60.095144398124866 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:29 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.742 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.801 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 24.85350363867643
+
+Time for model checking: 3.83 seconds.
+
+Result: 24.85350363867643 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:35 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.87 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.929 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 24.53431438470579
+
+Time for model checking: 3.27 seconds.
+
+Result: 24.53431438470579 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:40 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.854 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.914 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 25.552172876838704
+
+Time for model checking: 3.697 seconds.
+
+Result: 25.552172876838704 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:46 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.803 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.862 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 28.256465673769256
+
+Time for model checking: 4.994 seconds.
+
+Result: 28.256465673769256 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:11:52 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.775 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.838 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 32.875862705882916
+
+Time for model checking: 6.369 seconds.
+
+Result: 32.875862705882916 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:00 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=1.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.838 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.896 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 38.27296760201902
+
+Time for model checking: 8.015 seconds.
+
+Result: 38.27296760201902 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:10 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.746 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.808 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 21.515208720872465
+
+Time for model checking: 2.408 seconds.
+
+Result: 21.515208720872465 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:14 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.784 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.845 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 21.40734195081346
+
+Time for model checking: 2.801 seconds.
+
+Result: 21.40734195081346 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:19 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.885 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.943 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 21.889666652980402
+
+Time for model checking: 2.678 seconds.
+
+Result: 21.889666652980402 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:23 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.73 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.794 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 23.148845517368265
+
+Time for model checking: 3.249 seconds.
+
+Result: 23.148845517368265 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:28 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.635 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.693 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 25.45772212543427
+
+Time for model checking: 4.661 seconds.
+
+Result: 25.45772212543427 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:34 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=1.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.722 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.783 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=1.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 29.044855982241174
+
+Time for model checking: 5.723 seconds.
+
+Result: 29.044855982241174 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:42 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.862 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.92 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.310950770783318
+
+Time for model checking: 2.009 seconds.
+
+Result: 20.310950770783318 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:46 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.705 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.764 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.211583536124238
+
+Time for model checking: 2.082 seconds.
+
+Result: 20.211583536124238 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:49 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.651 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.71 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.425123361595936
+
+Time for model checking: 2.104 seconds.
+
+Result: 20.425123361595936 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:53 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.829 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.888 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 21.00607050224945
+
+Time for model checking: 2.496 seconds.
+
+Result: 21.00607050224945 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:12:57 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.728 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.794 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 22.19703852606581
+
+Time for model checking: 3.461 seconds.
+
+Result: 22.19703852606581 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:02 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=2.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.724 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.784 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=2,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 24.277919979605546
+
+Time for model checking: 4.144 seconds.
+
+Result: 24.277919979605546 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:08 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.751 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.809 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.989907345490536
+
+Time for model checking: 2.021 seconds.
+
+Result: 19.989907345490536 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:12 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.676 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.734 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.910837577723477
+
+Time for model checking: 1.997 seconds.
+
+Result: 19.910837577723477 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:15 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.882 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.941 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.878593471541542
+
+Time for model checking: 2.108 seconds.
+
+Result: 19.878593471541542 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:19 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.86 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.919 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.044973837337764
+
+Time for model checking: 2.029 seconds.
+
+Result: 20.044973837337764 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:23 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.749 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.811 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.63467445289804
+
+Time for model checking: 2.389 seconds.
+
+Result: 20.63467445289804 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:27 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=2.5'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.749 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.812 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=2.5,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 21.7809687953766
+
+Time for model checking: 2.98 seconds.
+
+Result: 21.7809687953766 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:32 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=0.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.702 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.767 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=0,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.789988490146676
+
+Time for model checking: 2.145 seconds.
+
+Result: 19.789988490146676 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:36 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=1.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.782 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.842 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=1,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.773761730799215
+
+Time for model checking: 1.967 seconds.
+
+Result: 19.773761730799215 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:39 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=2.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.742 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.805 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=2,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.781106015923612
+
+Time for model checking: 2.007 seconds.
+
+Result: 19.781106015923612 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:43 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=3.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.801 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.86 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=3,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.781910575176706
+
+Time for model checking: 2.213 seconds.
+
+Result: 19.781910575176706 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:47 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=4.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.739 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.799 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=4,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 19.87438579050309
+
+Time for model checking: 2.254 seconds.
+
+Result: 19.87438579050309 (value in the initial state)
+
+PRISM
+=====
+
+Version: 4.0.1.games
+Date: Thu Oct 06 13:13:51 BST 2011
+Hostname: qavbench.comlab
+Command line: prism -ex examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> R{"runtime"}min=? [F all_prefer_1]' -const 'Pexp=0.5,Q1=1.0,Q2=0.5,Q3=0.25,gamma=5.0,eta=1.0,lambda=3.0'
+
+Parsing model file "examples/games/CDM/experiments/no_commit/cdm4032.smg"...
+
+1 property:
+(1) <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+
+-------------------------------------------
+
+Building model...
+
+Computing reachable states...
+ 11645
+Reachable states exploration and model construction done in 0.694 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.757 seconds.
+
+Type:        SMG
+
+States:      11645 (1 initial)
+Transitions: 83252
+Choices:     29025
+Max/avg:     3/2.49
+
+-------------------------------------------
+
+Model checking: <<[0, 1, 2]>> R{"runtime"}min=? [ F all_prefer_1 ]
+Model constants: Pexp=0.5,eta=1,gamma=5,lambda=3,Q1=1,Q2=0.5,Q3=0.25
+Building reward structure...
+
+Value in the initial state: 20.457371466945528
+
+Time for model checking: 2.323 seconds.
+
+Result: 20.457371466945528 (value in the initial state)
+

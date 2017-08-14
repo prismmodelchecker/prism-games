@@ -1,0 +1,54 @@
+rm -f experiments/no_commit/cdm5032.smg
+./prismpp cdm_final_free_.pp 5 0 3 2 > experiments/no_commit/cdm5032.smg
+
+rm -f experiments/no_commit/cdm6032.smg
+./prismpp cdm_final_free_.pp 6 0 3 2 > experiments/no_commit/cdm6032.smg
+
+
+rm -f experiments/no_commit/cdm4032.smg
+./prismpp cdm_final_free_.pp 4 0 3 2 > experiments/no_commit/cdm4032.smg
+
+
+// DTMC's
+rm -f experiments/no_commit/cdm5532.smg
+./prismpp cdm_final_free_.pp 5 5 3 2 > experiments/no_commit/cdm5532.smg
+rm -f experiments/no_commit/cdm4432.smg
+./prismpp cdm_final_free_.pp 4 4 3 2 > experiments/no_commit/cdm4432.smg
+rm -f experiments/no_commit/cdm3332.smg
+./prismpp cdm_final_free_.pp 3 3 3 2 > experiments/no_commit/cdm3332.smg
+rm -f experiments/no_commit/cdm2232.smg
+./prismpp cdm_final_free_.pp 2 2 3 2 > experiments/no_commit/cdm2232.smg
+
+// GAMES
+rm -f experiments/no_commit/cdm5032.smg
+./prismpp cdm_final_free_.pp 5 0 3 2 > experiments/no_commit/cdm5032.smg
+rm -f experiments/no_commit/cdm4032.smg
+./prismpp cdm_final_free_.pp 4 0 3 2 > experiments/no_commit/cdm4032.smg
+rm -f experiments/no_commit/cdm3032.smg
+./prismpp cdm_final_free_.pp 3 0 3 2 > experiments/no_commit/cdm3032.smg
+rm -f experiments/no_commit/cdm2032.smg
+./prismpp cdm_final_free_.pp 2 0 3 2 > experiments/no_commit/cdm2032.smg
+
+
+
+rm -f experiments/no_commit/cdm4232.smg
+./prismpp cdm_final_free_.pp 4 2 3 2 > experiments/no_commit/cdm4232.smg
+
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 examples/games/CDM/experiments/no_commit/cdm4032.smg  examples/games/CDM/experiments/no_commit/props_comm.pctl
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex examples/games/CDM/experiments/no_commit/cdm4432.smg  examples/games/CDM/experiments/no_commit/props_comm.pctl
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl '<<0,1,2>> Pmin=? [all_prefer_1 U<=10 !(all_prefer_1)]'
+
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl "filter(range, <<1,2,3>> Pmax=? [(<<1,2,3>> P<0.5 [X (all_prefer_2|all_prefer_3)]) U<=20 all_prefer_1], (all_prefer_2|all_prefer_3)&(sched=1|sched=2|sched=3))"
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl "filter(range, <<1,2,3>> Pmax=? [(<<1,2,3>> P<0.5 [F<=10 (all_prefer_2|all_prefer_3)]) U<=20 all_prefer_1], (all_prefer_2|all_prefer_3)&(sched=1|sched=2|sched=3))"
+
+
+PRISM_JAVAMAXMEM=1g bin/prism -ex -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 examples/games/CDM/experiments/no_commit/cdm4032.smg -pctl "filter(range, <<1,2,3>> Pmax=? [ true U<=20 all_prefer_1], (all_prefer_2|all_prefer_3)&(sched=1|sched=2|sched=3))"
+
+
+filter(range, <<1,2,3>> Pmax=? [!(<<4>> Pmax>0.5 [X (all_prefer_2|all_prefer_3)]) U<=20 all_prefer_1], (all_prefer_2|all_prefer_3)&(sched=1|sched=2|sched=3))
+

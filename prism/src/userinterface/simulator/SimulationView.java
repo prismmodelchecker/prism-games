@@ -32,7 +32,9 @@ import java.util.*;
 
 import parser.ast.*;
 import parser.type.Type;
+import prism.ModelType;
 import prism.PrismSettings;
+import prism.PrismException;
 import userinterface.simulator.GUIViewDialog.RewardListItem;
 
 /**
@@ -49,6 +51,7 @@ public class SimulationView extends Observable
 	private ArrayList<RewardStructure> rewards;
 
 	private boolean stepsVisible;
+	private boolean memoryVisible;
 	private boolean actionsVisible;
 	private boolean showTime;
 	private boolean showCumulativeTime;
@@ -65,6 +68,7 @@ public class SimulationView extends Observable
 		this.rewards = new ArrayList<RewardStructure>();
 
 		this.stepsVisible = true;
+		this.memoryVisible = true;
 		this.actionsVisible = true;
 		this.showTime = false;
 		this.showCumulativeTime = true;
@@ -81,6 +85,19 @@ public class SimulationView extends Observable
 	public void showSteps(boolean stepsVisible)
 	{
 		this.stepsVisible = stepsVisible;
+
+		this.setChanged();
+		this.notifyObservers();
+	}
+
+	public boolean showMemory()
+	{
+		return memoryVisible;
+	}
+
+	public void showMemory(boolean memoryVisible)
+	{
+		this.memoryVisible = memoryVisible;
 
 		this.setChanged();
 		this.notifyObservers();
@@ -188,8 +205,39 @@ public class SimulationView extends Observable
 		}
 	}
 
-	public void refreshToDefaultView(boolean pathActive, ModulesFile parsedModel)
+	public void refreshToDefaultView(boolean pathActive, ModulesFile parsedModel) throws PrismException
 	{
+		// for system...endsystem constructs
+		List<List<String>> moduleNameLists = null;
+		List<ModulesFile> modulesFiles = null;
+
+		// extract system ... endsystem constructs
+		if (parsedModel != null && parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
+			SystemDefn sys = parsedModel.getSystemDefn();
+			if (sys == null)
+				throw new PrismException("Cannot simulate for empty system.");
+			while (sys instanceof SystemBrackets)
+				sys = ((SystemBrackets) sys).getOperand();
+			ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
+			ModulesFile.extractSubsystemRefs(sys, sysRefs);
+			// Extract modules in each subsystem ...
+			int numComps = sysRefs.size();
+			moduleNameLists = new ArrayList<List<String>>();
+			for (int i = 0; i < numComps; i++) {
+				SystemDefn subsys = parsedModel.getSystemDefnByName(sysRefs.get(i).getName());
+				if (subsys == null)
+					throw new PrismException("Unknown system reference" + sysRefs.get(i));
+				ArrayList<String> moduleNames = new ArrayList<String>();
+				ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
+				moduleNameLists.add(moduleNames);
+			}
+			modulesFiles = new ArrayList<ModulesFile>(numComps);
+			for (int i = 0; i < numComps; i++) {
+				ModulesFile modulesFile_i = (ModulesFile) parsedModel.deepCopy(moduleNameLists.get(i));
+				modulesFiles.add(modulesFile_i);
+			}
+		}
+
 		// First see if we can get away with using current settings...
 		boolean canUseCurrentView = true;
 		if (!pathActive) {
@@ -216,11 +264,26 @@ public class SimulationView extends Observable
 				if (!allVarNames.remove(parsedModel.getGlobal(g).getName()))
 					canUseCurrentView = false;
 			}
-			for (int m = 0; m < parsedModel.getNumModules(); m++) {
-				Module module = parsedModel.getModule(m);
-				for (int v = 0; v < module.getNumDeclarations(); v++) {
-					if (!allVarNames.remove(module.getDeclaration(v).getName()))
-						canUseCurrentView = false;
+
+			if (parsedModel != null && parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
+				int numComps = modulesFiles.size();
+				for (int i = 0; i < numComps; i++) {
+					ModulesFile modulesFile_i = modulesFiles.get(i);
+					for (int m = 0; m < modulesFile_i.getNumModules(); m++) {
+						Module module = modulesFile_i.getModule(m);
+						for (int v = 0; v < module.getNumDeclarations(); v++) {
+							if (!allVarNames.remove(module.getDeclaration(v).getName()))
+								canUseCurrentView = false;
+						}
+					}
+				}
+			} else {
+				for (int m = 0; m < parsedModel.getNumModules(); m++) {
+					Module module = parsedModel.getModule(m);
+					for (int v = 0; v < module.getNumDeclarations(); v++) {
+						if (!allVarNames.remove(module.getDeclaration(v).getName()))
+							canUseCurrentView = false;
+					}
 				}
 			}
 
@@ -274,11 +337,25 @@ public class SimulationView extends Observable
 					visibleVariables.add(new Variable(i, parsedModel.getGlobal(g).getName(), parsedModel.getGlobal(g).getType()));
 					i++;
 				}
-				for (int m = 0; m < parsedModel.getNumModules(); m++) {
-					Module module = parsedModel.getModule(m);
-					for (int v = 0; v < module.getNumDeclarations(); v++) {
-						visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
-						i++;
+				if (parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
+					int numComps = modulesFiles.size();
+					for (int k = 0; k < numComps; k++) {
+						ModulesFile modulesFile_k = modulesFiles.get(k);
+						for (int m = 0; m < modulesFile_k.getNumModules(); m++) {
+							Module module = modulesFile_k.getModule(m);
+							for (int v = 0; v < module.getNumDeclarations(); v++) {
+								visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
+								i++;
+							}
+						}
+					}
+				} else {
+					for (int m = 0; m < parsedModel.getNumModules(); m++) {
+						Module module = parsedModel.getModule(m);
+						for (int v = 0; v < module.getNumDeclarations(); v++) {
+							visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
+							i++;
+						}
 					}
 				}
 

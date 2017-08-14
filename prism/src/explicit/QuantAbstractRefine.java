@@ -84,7 +84,7 @@ public abstract class QuantAbstractRefine extends PrismComponent
 
 	// Property type
 	public enum PropertyType {
-		PROB_REACH, EXP_REACH, PROB_REACH_BOUNDED;
+	    PROB_REACH, EXP_REACH, PROB_REACH_BOUNDED, MULTI_QUANT;
 	};
 
 	// Refinement termination criteria

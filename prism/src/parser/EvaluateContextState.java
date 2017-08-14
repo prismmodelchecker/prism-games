@@ -61,6 +61,8 @@ public class EvaluateContextState implements EvaluateContext
 	public Object getVarValue(String name, int index)
 	{
 		// Use index to look up value
+	        if(index >= varValues.length)
+		        return null;
 		return index == -1 ? null : varValues[index];
 	}
 }

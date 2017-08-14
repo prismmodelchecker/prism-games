@@ -1,0 +1,53 @@
+// generate DTMC models
+
+rm -f experiments/p_start/dtmc/dsm7374.nm
+rm -f experiments/p_start/dtmc/dsm6364.nm
+rm -f experiments/p_start/dtmc/dsm5354.nm
+rm -f experiments/p_start/dtmc/dsm4344.nm
+rm -f experiments/p_start/dtmc/dsm3334.nm
+rm -f experiments/p_start/dtmc/dsm2324.nm
+./prismpp dsm_final2.pp 7 3 7 4 > experiments/p_start/dtmc/dsm7374.nm
+./prismpp dsm_final2.pp 6 3 6 4 > experiments/p_start/dtmc/dsm6364.nm
+./prismpp dsm_final2.pp 5 3 5 4 > experiments/p_start/dtmc/dsm5354.nm
+./prismpp dsm_final2.pp 4 3 4 4 > experiments/p_start/dtmc/dsm4344.nm
+./prismpp dsm_final2.pp 3 3 3 4 > experiments/p_start/dtmc/dsm3334.nm
+./prismpp dsm_final2.pp 2 3 2 4 > experiments/p_start/dtmc/dsm2324.nm
+
+// properties
+R{"common_value"}max=? [F time=max_time]
+
+
+
+// generate MDP models
+
+rm -f experiments/p_start/mdp/dsm7304.nm
+rm -f experiments/p_start/mdp/dsm6304.nm
+rm -f experiments/p_start/mdp/dsm5304.nm
+rm -f experiments/p_start/mdp/dsm4304.nm
+rm -f experiments/p_start/mdp/dsm3304.nm
+rm -f experiments/p_start/mdp/dsm2304.nm
+./prismpp dsm_final2.pp 7 3 0 4 > experiments/p_start/mdp/dsm7304.nm
+./prismpp dsm_final2.pp 6 3 0 4 > experiments/p_start/mdp/dsm6304.nm
+./prismpp dsm_final2.pp 5 3 0 4 > experiments/p_start/mdp/dsm5304.nm
+./prismpp dsm_final2.pp 4 3 0 4 > experiments/p_start/mdp/dsm4304.nm
+./prismpp dsm_final2.pp 3 3 0 4 > experiments/p_start/mdp/dsm3304.nm
+./prismpp dsm_final2.pp 2 3 0 4 > experiments/p_start/mdp/dsm2304.nm
+
+// properties
+R{"common_value"}max=? [F time=max_time]
+R{"common_value"}min=? [F time=max_time]
+
+
+// generate game models
+
+
+
+
+
+
+
+
+
+
+
+

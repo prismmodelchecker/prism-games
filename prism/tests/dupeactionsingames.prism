@@ -1,0 +1,36 @@
+// Bug in game construction fixes in prism-games rev 7378
+
+smg
+
+player env
+
+[loop]
+
+endplayer
+
+player controller
+
+[a],[b],[c],[d]
+
+endplayer
+
+
+//-----------------------------------------------------------------------
+module game
+  s : [0..2];
+
+  [a] s=0 -> (s'=1);
+  [b] s=1 -> (s'=0);
+  [c] s=0 -> (s'=2);
+  [d] s=0 -> (s'=2);
+
+  [loop] s=2 -> (s'=2);
+
+endmodule
+
+label "target" = s=2;
+
+rewards "rew"
+[b] true : 100;
+[d] true: 100;
+endrewards

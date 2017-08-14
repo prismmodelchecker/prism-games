@@ -40,6 +40,8 @@ public class ExpressionReward extends ExpressionQuant
 	protected Object rewardStructIndex = null;
 	protected Object rewardStructIndexDiv = null;
 	
+	protected Object discount = null;
+	
 	// Constructors
 	
 	public ExpressionReward()
@@ -59,7 +61,7 @@ public class ExpressionReward extends ExpressionQuant
 	{
 		rewardStructIndex = o;
 	}
-
+    
 	public void setRewardStructIndexDiv(Object o)
 	{
 		rewardStructIndexDiv = o;
@@ -73,6 +75,11 @@ public class ExpressionReward extends ExpressionQuant
 		setBound(r);
 	}
 
+	public void setDiscount(Object o)
+	{
+		discount = o;
+	}
+	
 	// Get methods
 	
 	public Object getRewardStructIndex()
@@ -91,6 +98,11 @@ public class ExpressionReward extends ExpressionQuant
 	public Expression getReward()
 	{
 		return getBound();
+	}
+
+	public Object getDiscount()
+	{
+		return discount;
 	}
 
 	// Other methods
@@ -117,6 +129,17 @@ public class ExpressionReward extends ExpressionQuant
 		return getRewardStructIndexByIndexObject(rewardStructIndex, modelInfo, constantValues);
 	}
 
+	/**
+	 * Get the index of a reward structure (within a model) corresponding to the divisor index of this R operator, if present.
+	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
+	 * Throws an exception (with explanatory message) if it cannot be found,
+	 * or returns -1 if there is no divisor reward.
+	 */
+	public int getRewardStructDivIndexByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
+	{
+		return (rewardStructIndexDiv == null) ? -1 : getRewardStructIndexByIndexObject(rewardStructIndexDiv, modelInfo, constantValues);
+	}
+	
 	/**
 	 * Get the index of a reward structure (within a model) corresponding to the rsi reward structure index object.
 	 * This is 0-indexed (as used e.g. in ModulesFile), not 1-indexed (as seen by user)
@@ -163,6 +186,17 @@ public class ExpressionReward extends ExpressionQuant
 	}
 
 	/**
+	 * Get the reward structure (within a model) corresponding to the divisor index of this R operator, if present.
+	 * Throws an exception (with explanatory message) if it cannot be found,
+	 * or returns null if there is no divisor reward.
+	 */
+	public RewardStruct getRewardStructDivByIndexObject(ModelInfo modelInfo, Values constantValues) throws PrismException
+	{
+		int rewardStructIndex = getRewardStructDivIndexByIndexObject(modelInfo, constantValues);
+		return (rewardStructIndex == -1) ? null : modelInfo.getRewardStruct(rewardStructIndex);
+	}
+
+	/**
 	 * Get the reward structure (from a model) corresponding to a reward structure index object.
 	 * Throws an exception (with explanatory message) if it cannot be found.
 	 */
@@ -171,7 +205,6 @@ public class ExpressionReward extends ExpressionQuant
 		int rewardStructIndex = getRewardStructIndexByIndexObject(rsi, modelInfo, constantValues);
 		return modelInfo.getRewardStruct(rewardStructIndex);
 	}
-
 	
 	/**
 	 * Get info about the operator and bound.
@@ -280,8 +313,9 @@ public class ExpressionReward extends ExpressionQuant
 		
 		s += "R" + getModifierString();
 		if (rewardStructIndex != null) {
-			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+"}";
-			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\"}";
+			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+(discount==null?"":",disc="+discount)+"}";
+			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\""+(discount==null?"":",disc="+discount) + "}";
+			else if (discount != null) s += "{disc="+discount+"}";
 			if (rewardStructIndexDiv != null) {
 				s += "/";
 				if (rewardStructIndexDiv instanceof Expression) s += "{"+rewardStructIndexDiv+"}";

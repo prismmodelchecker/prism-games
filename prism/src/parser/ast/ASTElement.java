@@ -313,7 +313,12 @@ public abstract class ASTElement
 	 */
 	public ASTElement findAllVars(List<String> varIdents, List<Type> varTypes) throws PrismLangException
 	{
-		FindAllVars visitor = new FindAllVars(varIdents, varTypes);
+		return findAllVars(varIdents, varTypes, false);
+	}
+
+	public ASTElement findAllVars(List<String> varIdents, List<Type> varTypes, boolean noErrorOnVariableNotPresent) throws PrismLangException
+	{
+		FindAllVars visitor = new FindAllVars(varIdents, varTypes, noErrorOnVariableNotPresent);
 		return (ASTElement) accept(visitor);
 	}
 

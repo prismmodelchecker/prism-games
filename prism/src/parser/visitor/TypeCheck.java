@@ -193,6 +193,15 @@ public class TypeCheck extends ASTTraverse
 			}
 			e.setType(TypePathBool.getInstance());
 			break;
+		case ExpressionTemporal.R_Fc:
+		case ExpressionTemporal.R_F0:
+			if (e.getOperand2() != null) {
+				type = e.getOperand2().getType();
+				if (!(type instanceof TypeBool) && !(type instanceof TypePathBool))
+					throw new PrismLangException("Type error: Argument of " + e.getOperatorSymbol() + " operator is not Boolean", e.getOperand2());
+			}
+			e.setType(TypePathDouble.getInstance());
+			break;
 		case ExpressionTemporal.R_C:
 		case ExpressionTemporal.R_I:
 		case ExpressionTemporal.R_S:
@@ -386,6 +395,16 @@ public class TypeCheck extends ASTTraverse
 				}
 			}
 			break;
+		case ExpressionFunc.COMP:
+			// All operands must be booleans, doubles, or ints
+			for (i = 0; i < n; i++) {
+				if (!(types[i] instanceof TypeBool || types[i] instanceof TypeDouble || types[i] instanceof TypeInt)) {
+					throw new PrismLangException("Type error: non-Boolean/Double/Integer argument to  function \"" + e.getName()
+							+ "\"", e.getOperand(i));
+				}
+			}
+			break;
+			
 		default:
 			throw new PrismLangException("Cannot type check unknown function", e);
 		}
@@ -425,6 +444,10 @@ public class TypeCheck extends ASTTraverse
 				e.setType(TypeDouble.getInstance());
 			else
 				e.setType(TypeVoid.getInstance());
+			break;
+		case ExpressionFunc.COMP:
+			// Resulting type is Pareto
+		    e.setType(TypeBool.getInstance());
 			break;
 		}
 	}
@@ -520,7 +543,12 @@ public class TypeCheck extends ASTTraverse
 			throw new PrismLangException("Type error: Contents of R operator is invalid", e.getExpression());
 		}
 		// Set type
-		e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
+		if (e.getModifier() != null && e.getModifier().equals("path")) {
+			e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypePathBool.getInstance());
+			
+		} else {
+			e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
+		}
 	}
 
 	public void visitPost(ExpressionSS e) throws PrismLangException

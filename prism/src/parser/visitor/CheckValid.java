@@ -28,7 +28,6 @@ package parser.visitor;
 
 import parser.ast.*;
 import parser.type.*;
-import prism.PrismException;
 import prism.PrismLangException;
 import prism.ModelType;
 
@@ -89,16 +88,14 @@ public class CheckValid extends ASTTraverse
 
 	public void visitPost(ExpressionProb e) throws PrismLangException
 	{
-		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ && e.getProb() == null)
 			throw new PrismLangException("Can't use \"P=?\" for nondeterministic models; use \"Pmin=?\" or \"Pmax=?\"");
 	}
 	
 	public void visitPost(ExpressionReward e) throws PrismLangException
 	{
-		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+		if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ && e.getReward() == null)
 			throw new PrismLangException("Can't use \"R=?\" for nondeterministic models; use \"Rmin=?\" or \"Rmax=?\"");
-		if (e.getRewardStructIndexDiv() != null)
-			throw new PrismLangException("No support for ratio reward objectives yet");
 	}
 	
 	public void visitPost(ExpressionSS e) throws PrismLangException
@@ -110,7 +107,7 @@ public class CheckValid extends ASTTraverse
 		if (modelType == ModelType.PTA) {
 			throw new PrismLangException("The S operator cannot be used for PTAs");
 		}
-		/*if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ)
+		/*if (modelType.nondeterministic() && e.getRelOp() == RelOp.EQ && e.getProb() == null)
 			throw new PrismLangException("Can't use \"S=?\" for nondeterministic models; use \"Smin=?\" or \"Smax=?\"");*/
 	}
 
@@ -120,7 +117,7 @@ public class CheckValid extends ASTTraverse
 			throw new PrismLangException("The " + e.getOperatorString() + " operator is only meaningful for models with nondeterminism");
 		// Currently (for non-games), <<>> or [[]] can only contain "*" or "" 
 		Coalition coalition = e.getCoalition();
-		if (!(coalition.isAllPlayers() || coalition.isEmpty())) {
+		if (!modelType.multiplePlayers() && !(coalition.isAllPlayers() || coalition.isEmpty())) {
 			throw new PrismLangException("The " + e.getOperatorString() + " operator must contain either \"*\" or be empty for an " + modelType);
 		}
 	}

@@ -575,6 +575,18 @@ public class PrismUtils
 		} catch (NumberFormatException e) {
 			throw new PrismException("Invalid amount of memory \"" + mem + "\"");
 		}
+
+		// made this Java 6 compatible
+		if(m.group(2).equals("") || m.group(2).equals("k"))
+		    return num;
+		else if (m.group(2).equals("m")) 
+		    return num * 1024;
+		else if (m.group(2).equals("g")) 
+		    return num * (1024 * 1024);
+		else
+		    // Shouldn't happen
+			throw new PrismException("Invalid amount of memory \"" + mem + "\"");
+		/*
 		switch (m.group(2)) {
 		case "":
 		case "k":
@@ -587,6 +599,7 @@ public class PrismUtils
 			// Shouldn't happen
 			throw new PrismException("Invalid amount of memory \"" + mem + "\"");
 		}
+		*/
 	}
 
 	/**

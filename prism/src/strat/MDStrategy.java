@@ -27,7 +27,14 @@
 
 package strat;
 
+import java.io.File;
+import java.util.HashMap;
+
+import explicit.Distribution;
+import explicit.Model;
+import prism.PrismException;
 import prism.PrismLog;
+import prism.Prism.StrategyExportType;
 
 /**
  * Classes to store memoryless deterministic (MD) strategies.
@@ -38,6 +45,8 @@ public abstract class MDStrategy implements Strategy
 	 * Current state of model
 	 */
 	protected int currentState = -1;
+
+	// Getters specifically for MD strategies
 	
 	/**
 	 * Get the number of states of the model associated with this strategy. 
@@ -69,23 +78,101 @@ public abstract class MDStrategy implements Strategy
 	// Methods for Strategy
 	
 	@Override
-	public void initialise(int s)
+	public String getInfo()
 	{
-		currentState = s;
-	}
-	
-	@Override
-	public void update(Object action, int s)
-	{
-		currentState = s;
-	}
-	
-	@Override
-	public Object getChoiceAction()
-	{
-		return getChoiceAction(currentState);
+		// TODO Auto-generated method stub
+		return null;
 	}
 
+	@Override
+	public int getMemorySize()
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public String getType()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getDescription()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setInfo(String info)
+	{
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void init(int state) throws InvalidStrategyStateException
+	{
+		currentState = state;
+	}
+
+	@Override
+	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	{
+		currentState = state;
+	}
+
+	@Override
+	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public abstract HashMap<String,Double> getNextAction(int state) throws InvalidStrategyStateException;;
+	
+	@Override
+	public Object getCurrentMemoryElement()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setMemory(Object memory) throws InvalidStrategyStateException
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void reset()
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Model buildProduct(Model model) throws PrismException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int getInitialStateOfTheProduct(int s)
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
+	public void exportToFile(String file)
+	{
+		// TODO Auto-generated method stub
+	}
+	
 	@Override
 	public void exportActions(PrismLog out)
 	{
@@ -105,4 +192,19 @@ public abstract class MDStrategy implements Strategy
 				out.println(s + ":" + getChoiceIndex(s));
 		}
 	}
+	
+	@Override
+	public abstract void exportInducedModel(PrismLog out);
+	
+	@Override
+	public abstract void exportDotFile(PrismLog out);
+	
+	@Override
+	public abstract void exportStratToFile(File file, StrategyExportType exportType);
+	
+	@Override
+	public abstract void restrictStrategyToReachableStates() throws PrismException;
+	
+	@Override
+	public abstract void clear();
 }

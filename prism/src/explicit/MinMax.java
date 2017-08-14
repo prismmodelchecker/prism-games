@@ -26,6 +26,8 @@
 
 package explicit;
 
+import parser.ast.Coalition;
+
 /**
  * Class to store info about types of probabilities that are to be computed
  * (typically how to quantify over strategies, e.g. "min" or "max"). 
@@ -55,6 +57,8 @@ public class MinMax
 	
 	protected boolean min1;
 	protected boolean min2;
+	protected double bound;
+	protected Coalition coalition;
 	
 	public void setMinMin(boolean min1, boolean min2)
 	{
@@ -62,6 +66,16 @@ public class MinMax
 		this.min2 = min2;
 	}
 	
+	public void setBound(double bound)
+	{
+		this.bound = bound;
+	}
+	
+	public void setCoalition(Coalition coalition)
+	{
+		this.coalition = coalition;
+	}
+
 	public boolean isMin1()
 	{
 		return min1;
@@ -72,6 +86,16 @@ public class MinMax
 		return min2;
 	}
 	
+	public double getBound()
+	{
+		return bound;
+	}
+	
+	public Coalition getCoalition()
+	{
+		return coalition;
+	}
+
 	// Create a new instance by applying some operation
 	
 	public MinMax negate()
@@ -79,6 +103,7 @@ public class MinMax
 		MinMax neg = new MinMax();
 		neg.setMin(!isMin());
 		neg.setMinMin(!isMin1(), !isMin2());
+		neg.setBound(bound == -1 ? -1 : 1.0 - bound);
 		return neg;
 	}
 	
@@ -100,6 +125,13 @@ public class MinMax
 	{
 		MinMax minMax = new MinMax();
 		minMax.setMin(false);
+		return minMax;
+	}
+	
+	public static MinMax minMin(boolean min1, boolean min2)
+	{
+		MinMax minMax = new MinMax();
+		minMax.setMinMin(min1, min2);
 		return minMax;
 	}
 }

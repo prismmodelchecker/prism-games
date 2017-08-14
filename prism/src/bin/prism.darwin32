@@ -4,6 +4,8 @@
 
 # PRISM home directory
 PRISM_DIR=/home/luser/prism
+# PPL directory
+PPL_DIR=/users/luser/ppl
 
 # Default value for notification after the scipt has finished (yes/no)
 NOTIFY_DEFAULT=no
@@ -55,10 +57,10 @@ PRISM_JAVASTACKSIZE="-Xss4M"
 #  - top-level directory (for images, dtds)
 #  - lib/pepa.zip (PEPA stuff)
 #  - lib/*.jar (all other jars)
-PRISM_CLASSPATH="$PRISM_DIR"/lib/prism.jar:"$PRISM_DIR"/classes:"$PRISM_DIR":"$PRISM_DIR"/lib/pepa.zip:"$PRISM_DIR"/lib/*
+PRISM_CLASSPATH="$PRISM_DIR"/lib/prism.jar:"$PRISM_DIR"/classes:"$PRISM_DIR":"$PRISM_DIR"/lib/pepa.zip:"$PPL_DIR"/ppl/*:"$PRISM_DIR"/lib/*
 
 # Set up pointers to libraries
-PRISM_LIB_PATH="$PRISM_DIR"/lib
+PRISM_LIB_PATH="$PRISM_DIR"/lib:"$PPL_DIR":"$PPL_DIR"/ppl
 
 # Copy library path to relevant vars
 if [ "$DYLD_LIBRARY_PATH" = "" ]; then

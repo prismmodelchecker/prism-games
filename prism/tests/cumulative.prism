@@ -1,0 +1,26 @@
+smg
+
+player p1 [a1], [a2] endplayer
+player p2 [b1], [b2], [term] endplayer
+
+module cumulative
+	
+	a : [0..4] init 0;
+	
+	[b1] a=0 -> 0.5 : (a'=1) + 0.5 : (a'=0);
+	[b2] a=0 -> 1/3 : (a'=2) + 1/3 : (a'=0) + 1/3 : (a'=1);
+
+	[a1] a=1 -> 0.5 : (a'=0) + 0.5 : (a'=1);
+	[a2] a=1 -> 1/3 : (a'=2) + 2/3 : (a'=3);
+
+	[term] a>=2 -> (a'=4); // terminals
+
+endmodule
+
+rewards "r1"
+	a=2 : 1;
+endrewards
+
+rewards "r2"
+	a=3: 1;
+endrewards

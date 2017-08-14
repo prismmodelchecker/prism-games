@@ -36,6 +36,7 @@ import java.util.List;
 import dv.DoubleVector;
 import explicit.CTMC;
 import explicit.CTMCModelChecker;
+import explicit.CompositionalSMGModelChecker;
 import explicit.ConstructModel;
 import explicit.DTMC;
 import explicit.DTMCModelChecker;
@@ -58,6 +59,9 @@ import parser.PrismParser;
 import parser.State;
 import parser.Values;
 import parser.ast.Expression;
+import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionStrategy;
+import parser.ast.ExpressionUnaryOp;
 import parser.ast.ForLoop;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
@@ -148,6 +152,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public static final int EXPORT_ADV_DTMC = 2;
 	public static final int EXPORT_ADV_MDP = 3;
 
+	// options for strategy export (for sparse engine)
+	public static final int EXPORT_STRAT_ACTIONS = 1;
+	public static final int EXPORT_STRAT_INDICES = 2;
+	public static final int EXPORT_STRAT_INDUCED = 3;
+	public static final int EXPORT_STRAT_DOT = 4;
+		
 	// methods for SCC decomposition
 	public static final int XIEBEEREL = 1;
 	public static final int LOCKSTEP = 2;
@@ -155,7 +165,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	// Options for type of strategy export
 	public enum StrategyExportType {
-		ACTIONS, INDICES, INDUCED_MODEL, DOT_FILE;
+		ACTIONS, INDICES, INDUCED_MODEL, DOT_FILE, MATLAB;
 		public String description()
 		{
 			switch (this) {
@@ -167,6 +177,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				return "as an induced model";
 			case DOT_FILE:
 				return "as a dot file";
+			case MATLAB:
+				return "as a Matlab file";
 			default:
 				return this.toString();
 			}
@@ -176,6 +188,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	//------------------------------------------------------------------------------
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
+
+	// explicit simulation
+	protected boolean explicitSimulation = true; // CLEMENS: TODO: where to get this from?
 
 	// Export parsed PRISM model?
 	protected boolean exportPrism = false;
@@ -268,6 +283,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
 
+	// Info about the strategy that was generated
+	private strat.Strategy strategy;
+	// in case we want to simulate strategies from the command line
+	private List<strat.Strategy> subsystemStrategies;
+
 	// Info for explicit files load
 	private File explicitFilesStatesFile = null;
 	private File explicitFilesTransFile = null;
@@ -278,7 +298,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Has the CUDD library been initialised yet?
 	private boolean cuddStarted = false;
 
-	//------------------------------------------------------------------------------
+	// Info about automatic engine switching
+	private int engineOld = -1;
+	private boolean engineSwitched = false;
+
+	// ------------------------------------------------------------------------------
 	// Constructors + options methods
 	//------------------------------------------------------------------------------
 
@@ -652,6 +676,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		this.reachMethod = reachMethod;
 	}
 
+	// to cancel the computation in the compositional model checker,
+	// set the first component to true, otherwise, set the first component to false
+	// the reference to this array is passed to the model checker, so that its content
+	// can be checked at any time
+	boolean[] cancel_computation = new boolean[1];
+
+	public void setCancel(boolean cancel)
+	{
+		cancel_computation[0] = cancel;
+	}
+
 	// Get methods
 
 	/**
@@ -660,7 +695,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public static String getToolName()
 	{
-		return "PRISM";
+		return "PRISM-games";
 	}
 
 	/**
@@ -669,7 +704,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public static String getCommandLineName()
 	{
-		return "prism";
+		return "prism-games";
 	}
 
 	/**
@@ -720,6 +755,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean getExplicit()
 	{
 		return getEngine() == Prism.EXPLICIT;
+	}
+
+	public boolean getCheckCompatibility()
+	{
+		return settings.getBoolean(PrismSettings.PRISM_MULTI_COMP);
 	}
 
 	public boolean getFixDeadlocks()
@@ -1095,7 +1135,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public SimulatorEngine getSimulator()
 	{
 		if (theSimulator == null) {
-			theSimulator = new SimulatorEngine(this);
+			theSimulator = new SimulatorEngine(this, this);
 		}
 		return theSimulator;
 	}
@@ -1732,6 +1772,35 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 		mainLog.println();
 
+		// For some models, automatically switch engine
+		switch (currentModelType) {
+		case SMG:
+		case STPG:
+		case CTMDP:
+   		        if(!getExplicit()) { // not using explicit engine already
+			        mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
+				engineOld = getEngine();
+
+				engineSwitched = true;
+				try {
+				        setEngine(Prism.EXPLICIT);
+				} catch (PrismException e) {
+				        // Won't happen
+				}
+			}
+		    break;
+		// For other models, switch engine back if changed earlier
+		default:
+			if (engineSwitched) {
+				try {
+					setEngine(engineOld);
+				} catch (PrismException e) {
+					// Won't happen
+				}
+				engineSwitched = false;
+			}
+		}
+
 		// If required, export parsed PRISM model
 		if (exportPrism) {
 			try {
@@ -1915,6 +1984,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Get the currently stored strategy
+	 * 
+	 * @return
+	 */
+	public strat.Strategy getStrategy()
+	{
+		return strategy;
+	}
+
+	/**
 	 * Returns true if the current model is of a type that can be built (e.g. not a PTA).
 	 */
 	public boolean modelCanBeBuilt()
@@ -1993,8 +2072,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 					ConstructModel constructModel = new ConstructModel(this);
 					constructModel.setFixDeadlocks(getFixDeadlocks());
-					currentModelExpl = constructModel.constructModel(currentModelGenerator);
+					constructModel.setCheckCompatibility(getCheckCompatibility());
 					currentModel = null;
+					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false, cancel_computation);
 				}
 				// if (...) ... currentModel = buildModelExplicit(currentModulesFile);
 				break;
@@ -2054,25 +2134,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 				}
 			} else {
-				explicit.StateValues deadlocks = currentModelExpl.getDeadlockStatesList();
-				int numDeadlocks = currentModelExpl.getNumDeadlockStates();
-				if (numDeadlocks > 0) {
-					if (getFixDeadlocks()) {
-						mainLog.printWarning("Deadlocks detected and fixed in " + numDeadlocks + " states");
-					} else {
-						mainLog.print(currentModelExpl.infoStringTable());
-						mainLog.print("\n" + numDeadlocks + " deadlock states found");
-						if (!getVerbose() && numDeadlocks > 10) {
-							mainLog.print(". The first 10 are below. Use verbose mode to view them all.\n");
-							deadlocks.print(mainLog, 10);
-						} else {
-							mainLog.print(":\n");
-							deadlocks.print(mainLog);
-						}
-						mainLog.print("\nTip: Use the \"fix deadlocks\" option to automatically add self-loops in deadlock states.\n");
-						throw new PrismException("Model contains " + numDeadlocks + " deadlock states");
-					}
-				}
+				checkForDeadlocksExpl(currentModelExpl);
 			}
 
 			// Print model stats
@@ -2098,6 +2160,32 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			}
 			// Throw exception anyway
 			throw e;
+		}
+	}
+
+	private void checkForDeadlocksExpl(explicit.Model modelExpl) throws PrismException
+	{
+		explicit.StateValues deadlocks = modelExpl.getDeadlockStatesList();
+		int numDeadlocks = modelExpl.getNumDeadlockStates();
+		if (numDeadlocks > 0) {
+			if (getFixDeadlocks()) {
+				mainLog.printWarning("Deadlocks detected and fixed in " + numDeadlocks + " states");
+			} else {
+				if (!(currentModelExpl == null))
+					mainLog.print(currentModelExpl.infoStringTable());
+				mainLog.print("\n" + numDeadlocks + " deadlock states found");
+				if (!getVerbose() && numDeadlocks > 10) {
+					mainLog.print(". The first 10 are below. Use verbose mode to view them all.\n");
+					deadlocks.print(mainLog, 10);
+				} else {
+					mainLog.print(":\n");
+					deadlocks.print(mainLog);
+					mainLog.print(String.format("deadlocked model: %s\n", modelExpl));
+				}
+				mainLog.print("\nTip: Use the \"fix deadlocks\" option to automatically add self-loops in deadlock states.\n");
+
+				throw new PrismException("Model contains " + numDeadlocks + " deadlock state" + (numDeadlocks > 1 ? "s" : ""));
+			}
 		}
 	}
 
@@ -2159,7 +2247,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
 		constructModel = new ConstructModel(this);
-		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this));
+		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false, cancel_computation);
 		statesList = constructModel.getStatesList();
 
 		// create Explicit2MTBDD object
@@ -2873,6 +2961,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public Result modelCheck(PropertiesFile propertiesFile, Property prop) throws PrismException, PrismLangException
 	{
+		return modelCheck(propertiesFile, prop, false); // default is to not compute the Pareto
+	}
+
+	public Result modelCheck(PropertiesFile propertiesFile, Property prop, boolean computePareto) throws PrismException, PrismLangException
+	{
 		Result res = null;
 		Values definedPFConstants = propertiesFile.getConstantValues();
 		boolean engineSwitch = false;
@@ -2904,6 +2997,29 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
 			return fauMC.check(prop.getExpression());
 		}
+
+		// For compositional verification/synthesis
+		if (currentModelType == ModelType.SMG && Expression.isFunc(prop.getExpression(), ExpressionFunc.COMP)) {
+			CompositionalSMGModelChecker compoMC;
+			compoMC = new CompositionalSMGModelChecker(this, currentModulesFile, propertiesFile, getSimulator());
+			compoMC.setCheckCompatibility(getCheckCompatibility());
+			compoMC.setComputeParetoSet(computePareto);
+			this.setCancel(false);
+			compoMC.setCancel(cancel_computation);
+			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
+			res = compoMC.check(e);
+
+			// saving strategy if it was generated.
+			if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
+				// one strategy
+				strategy = compoMC.getStrategy();
+				if (strategy != null)
+					strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: " + strategy.getMemorySize());
+			}
+			return res;
+
+		}
+
 		// Auto-switch engine if required
 		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
@@ -2920,6 +3036,20 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			setEngine(Prism.EXPLICIT);
 		}
 		try {
+
+			// resolve property references in the property
+			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
+
+			// before building do a quick check whether the comp-operator is used with coalition
+			if (e instanceof ExpressionStrategy) {
+				for (Expression ee : ((ExpressionStrategy) e).getOperands()) {
+					while (Expression.isParenth(ee))
+						ee = ((ExpressionUnaryOp) ee).getOperand();
+					if (ee instanceof ExpressionFunc && ((ExpressionFunc) ee).getNameCode() == ExpressionFunc.COMP)
+						throw new PrismException("Cannot use the coalition operator outside the \"comp\" operator");
+				}
+			}
+
 			// Build model, if necessary
 			buildModelIfRequired();
 
@@ -2937,7 +3067,30 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				res = mc.check(prop.getExpression());
 			} else {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
-				res = mc.check(currentModelExpl, prop.getExpression());
+				mc.setComputeParetoSet(computePareto);
+				mc.setCancel(cancel_computation);
+				// if implement strategy option is enabled, build a product with
+				// strategy before model checking
+
+				if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
+					try {
+						mc.setStrategy(strategy);
+						res = mc.check(strategy.buildProduct(currentModelExpl), e);
+					} catch (UnsupportedOperationException uoe) {
+						// Note: this also gets thrown if the strategy is stochastic update
+						throw new PrismException("Building the product of the model and strategy failed");
+					}
+				} else {
+					res = mc.check(currentModelExpl, e);
+				}
+				// saving strategy if it was generated.
+				if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
+					// one strategy
+					strategy = res.getStrategy();
+					if (strategy != null)
+						strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: "
+								+ strategy.getMemorySize());
+				}
 			}
 		} finally {
 			// Undo auto-switch (if any)
@@ -3280,7 +3433,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void generateSimulationPath(ModulesFile modulesFile, String details, long maxPathLength, File file) throws PrismException, PrismLangException
 	{
 		GenerateSimulationPath genPath = new GenerateSimulationPath(getSimulator(), mainLog);
-		genPath.generateSimulationPath(modulesFile, null, details, maxPathLength, file);
+		genPath.generateSimulationPath(modulesFile, null, null, details, maxPathLength, file);
+	}
+
+	/**
+	 *  Sets the strategy that will be available for this prism session
+	 * @param strat the strategy
+	 */
+	public void setStrategy(strat.Strategy strat)
+	{
+		this.strategy = strat;
 	}
 
 	/**
@@ -3693,6 +3855,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			currentModel = null;
 		}
 		currentModelExpl = null;
+
+		// nullify the strategy
+		strategy = null;
+		getSimulator().setStrategy(null);
 	}
 
 	/**

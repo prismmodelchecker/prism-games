@@ -36,6 +36,7 @@ public class LoopDetector
 	private boolean isLooping;
 	private long loopStart;
 	private long loopEnd;
+        private boolean basedOnValues = true;
 
 	/**
 	 * Initialise the loop detector.
@@ -45,6 +46,11 @@ public class LoopDetector
 		isLooping = false;
 		loopStart = loopEnd = -1;
 	}
+
+        public void setBasedOnValues(boolean basedOnValues)
+        {
+	        this.basedOnValues = basedOnValues;
+        }
 	
 	/**
 	 * Update loop detector after a step has just been added to the path.
@@ -58,10 +64,16 @@ public class LoopDetector
 		if (path.continuousTime())
 			return;
 		// Check transitions from previous step were deterministic
-		if (!transitionList.isDeterministic())
+		if (transitionList != null && !transitionList.isDeterministic())
 			return;
+		// Check successive states were identical, based on values
+		if (basedOnValues && path.getPreviousState().equals(path.getCurrentState())) {
+			isLooping = true;
+			loopStart = path.size() - 1;
+			loopEnd = path.size();
+		}
 		// Check successive states were identical
-		if (path.getPreviousState().equals(path.getCurrentState())) {
+		if (!basedOnValues && path.getPreviousState() == path.getCurrentState()) {
 			isLooping = true;
 			loopStart = path.size() - 1;
 			loopEnd = path.size();

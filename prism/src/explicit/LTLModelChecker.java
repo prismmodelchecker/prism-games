@@ -4,6 +4,7 @@
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
 //	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
+//	* Alessandro Bruni <albr@dtu.dk> (Technical University of Denmark)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -226,6 +227,11 @@ public class LTLModelChecker extends PrismComponent
 		DA<BitSet,? extends AcceptanceOmega> da;
 		long time;
 
+		// Reward-bounded path formulas not allowed in LTL
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Automaton construction for reward-bounded path formulas not supported");
+		}
+		
 		if (Expression.containsTemporalTimeBounds(expr)) {
 			if (model.getModelType().continuousTime()) {
 				throw new PrismException("Automaton construction for time-bounded operators not supported for " + model.getModelType()+".");
@@ -335,7 +341,7 @@ public class LTLModelChecker extends PrismComponent
 
 		return product;
 	}
-
+	
 	/**
 	 * Generate a deterministic automaton for the given LTL formula
 	 * and construct the product of this automaton with an MDP.
@@ -392,6 +398,33 @@ public class LTLModelChecker extends PrismComponent
 		return product;
 	}
 	
+	/**
+	 * Generate a deterministic automaton for the given LTL formula
+	 * and construct the product of this automaton with an STPG.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param model the model
+	 * @param expr a path expression
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @param allowedAcceptance the allowed acceptance conditions
+	 * @return the product with the DA
+	 * @throws PrismException
+	 */
+	public LTLProduct<SMG> constructProductSMG(ProbModelChecker mc, SMG model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		// Convert LTL formula to automaton
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet,? extends AcceptanceOmega> da;
+		da = constructDAForLTLFormula(mc, model, expr, labelBS, allowedAcceptance);
+
+		// Build product of model and automaton
+		mainLog.println("\nConstructing SMG-"+da.getAutomataType()+" product...");
+		LTLProduct<SMG> product = constructProductModel(da, model, labelBS, statesOfInterest);
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
+	}
+
 	/**
 	 * Generate a deterministic automaton for the given LTL formula
 	 * and construct the product of this automaton with a model.
@@ -475,6 +508,12 @@ public class LTLModelChecker extends PrismComponent
 			prodModel = stpgProd;
 			break;
 		}
+		case SMG: {
+			SMG smgProd = new SMG();
+			smgProd.setVarList(newVarList);
+			prodModel = smgProd;
+			break;
+		}
 		default:
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}
@@ -518,6 +557,9 @@ public class LTLModelChecker extends PrismComponent
 			case STPG:
 				((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
 				break;
+			case SMG:
+				((SMG) prodModel).addState(((SMG) model).getPlayer(s_0));
+				break;
 			default:
 				prodModel.addState();
 			break;
@@ -552,6 +594,9 @@ public class LTLModelChecker extends PrismComponent
 				case STPG:
 					iter = ((STPG) model).getTransitionsIterator(s_1, j);
 					break;
+				case SMG:
+					iter = ((SMG) model).getTransitionsIterator(s_1, j);
+					break;
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
@@ -579,6 +624,9 @@ public class LTLModelChecker extends PrismComponent
 						case STPG:
 							((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_2));
 							break;
+						case SMG:
+							((SMG) prodModel).addState(((SMG) model).getPlayer(s_2));
+							break;
 						default:
 							prodModel.addState();
 							break;
@@ -595,6 +643,7 @@ public class LTLModelChecker extends PrismComponent
 						break;
 					case MDP:
 					case STPG:
+					case SMG:
 						prodDistr.set(map[s_2 * daSize + q_2], prob);
 						break;
 					default:
@@ -608,10 +657,19 @@ public class LTLModelChecker extends PrismComponent
 				case STPG:
 					((STPGExplicit) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((STPG) model).getAction(s_1, j));
 					break;
+				case SMG:
+					((SMG) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((SMG) model).getAction(s_1, j));
+					break;
 				default:
 					break;
 				}
 			}
+		}
+
+		// For SMGs, copy player/coalition info too
+		if (modelType == ModelType.SMG) {
+			((SMG) prodModel).copyPlayerInfo((SMG) model);
+			((SMG) prodModel).copyCoalitionInfo((SMG) model);
 		}
 
 		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
@@ -883,5 +941,4 @@ public class LTLModelChecker extends PrismComponent
 
 		return lifted;
 	}
-
 }

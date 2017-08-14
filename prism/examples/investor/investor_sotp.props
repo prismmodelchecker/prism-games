@@ -1,0 +1,6 @@
+// Maximum expected profit for investor
+// (assuming hard-coded strategy)
+
+Rmin=? [ Fc "finished" ]
+
+Rmin=? [ F i=2 ]

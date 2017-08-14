@@ -37,6 +37,8 @@ public class Command extends ASTElement
 	// This is 1-indexed, with 0 denoting an independent ("tau"-labelled) command.
 	// -1 denotes not (yet) known.
 	private int synchIndex;
+	// Action type
+	private ActionType synchType;
 	// Guard
 	private Expression guard;
 	// List of updates
@@ -44,12 +46,31 @@ public class Command extends ASTElement
 	// Parent module
 	private Module parent;
 	
+	// Action types
+	public enum ActionType {
+		INPUT, OUTPUT, NORMAL;
+		public String suffix()
+		{
+			switch (this) {
+			case INPUT:
+				return "?";
+			case OUTPUT:
+				return "!";
+			case NORMAL:
+				return "";
+			default:
+				return this.toString();
+			}
+		}
+	};
+
 	// Constructor
 	
 	public Command()
 	{
 		synch = "";
 		synchIndex = -1;
+		synchType = ActionType.NORMAL;
 		guard = null;
 		updates = null;
 	}
@@ -64,6 +85,11 @@ public class Command extends ASTElement
 	public void setSynchIndex(int i)
 	{
 		synchIndex = i;
+	}
+	
+	public void setSynchType(ActionType synchType)
+	{
+		this.synchType = synchType;
 	}
 	
 	public void setGuard(Expression g)
@@ -103,6 +129,11 @@ public class Command extends ASTElement
 		return synchIndex;
 	}
 	
+	public ActionType getSynchType()
+	{
+		return synchType;
+	}
+	
 	public Expression getGuard()
 	{
 		return guard;
@@ -133,7 +164,7 @@ public class Command extends ASTElement
 	 */
 	public String toString()
 	{
-		String s = "[" + synch;
+		String s = "[" + synch + synchType.suffix();
 		s += "] " + guard + " -> " + updates;
 		return s;
 	}
@@ -146,6 +177,7 @@ public class Command extends ASTElement
 		Command ret = new Command();
 		ret.setSynch(getSynch());
 		ret.setSynchIndex(getSynchIndex());
+		ret.setSynchType(getSynchType());
 		ret.setGuard(getGuard().deepCopy());
 		ret.setUpdates((Updates)getUpdates().deepCopy());
 		ret.setPosition(this);

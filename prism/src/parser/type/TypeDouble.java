@@ -76,7 +76,9 @@ public class TypeDouble extends Type
 			return (Double) value;
 		if (value instanceof Integer)
 			return new Double(((Integer) value).intValue());
-		else
-			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		else {
+		    Thread.dumpStack();
+		    throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		}
 	}
 }

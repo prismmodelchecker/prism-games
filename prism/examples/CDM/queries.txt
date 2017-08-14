@@ -1,0 +1,231 @@
+rm -f cdm5032.nm
+./prismpp cdm_final.pp 5 0 3 2 > cdm5032.nm
+
+rm -f cdm8032.nm
+./prismpp cdm_final.pp 8 0 3 2 > cdm10032.nm
+
+rm -f cdm7032.nm
+./prismpp cdm_final.pp 7 0 3 2 > cdm7032.nm
+
+rm -f cdm6032.nm
+./prismpp cdm_final.pp 6 0 3 2 > cdm6032.nm
+
+rm -f cdm5032.nm
+./prismpp cdm_final.pp 5 0 3 2 > cdm5032.nm
+
+rm -f cdm5532.nm
+./prismpp cdm_final.pp 5 5 3 2 > cdm5532.nm
+
+
+rm -f cdm5432.nm
+./prismpp cdm_final.pp 5 4 3 2 > /experiments/prob_choose_best/cdm5432.nm
+
+rm -f experiments/prob_choose_best/cdm5532.smg
+./prismpp cdm_final.pp 5 5 3 2 > experiments/prob_choose_best/cdm5532.smg
+
+
+// queries toe generate models for experiments
+
+rm -f experiments/prob_choose_best/cdm6632.smg
+rm -f experiments/prob_choose_best/cdm6532.smg
+rm -f experiments/prob_choose_best/cdm6432.smg
+rm -f experiments/prob_choose_best/cdm6332.smg
+rm -f experiments/prob_choose_best/cdm6232.smg
+rm -f experiments/prob_choose_best/cdm6132.smg
+rm -f experiments/prob_choose_best/cdm6032.smg
+
+./prismpp cdm_final.pp 6 6 3 2 > experiments/prob_choose_best/cdm6632.smg
+./prismpp cdm_final.pp 6 5 3 2 > experiments/prob_choose_best/cdm6532.smg
+./prismpp cdm_final.pp 6 4 3 2 > experiments/prob_choose_best/cdm6432.smg
+./prismpp cdm_final.pp 6 3 3 2 > experiments/prob_choose_best/cdm6332.smg
+./prismpp cdm_final.pp 6 2 3 2 > experiments/prob_choose_best/cdm6232.smg
+./prismpp cdm_final.pp 6 1 3 2 > experiments/prob_choose_best/cdm6132.smg
+./prismpp cdm_final.pp 6 0 3 2 > experiments/prob_choose_best/cdm6032.smg
+
+rm -f experiments/prob_choose_best/cdm6032.smg
+./prismpp cdm_final.pp 6 0 3 2 > experiments/prob_choose_best/cdm6032.smg
+
+
+
+rm -f experiments/no_commit/cdm5032.smg
+./prismpp cdm_final_free.pp 5 0 3 2 > experiments/no_commit/cdm5032.smg
+
+
+// PATL queries to verify
+
+
+// all choosing the first site
+<<0>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]
+<<0,1,2,3,4,5,6>> Pmax=? [F all_committed&all_prefer_1]
+
+// modelling recovering ability
+
+filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], preference1=1)
+filter(range, <<0,1,2>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1)
+filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1&preference3=1)
+filter(range, <<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1&preference3=1&preference4=1)
+filter(range, <<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1&preference3=1&preference4=1&preference5=1)
+filter(range, <<0,1,2,3,4,5,6>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1&preference3=1&preference4=1&preference5=1&preference6=1)
+
+filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], preference1=2)
+filter(range, <<0,1,2>> Pmax=? [F all_committed&all_prefer_1], preference1=2&preference2=2)
+filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], preference1=2&preference2=2&preference3=2)
+filter(range, <<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1], preference1=2&preference2=2&preference3=2&preference4=2)
+filter(range, <<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1], preference1=2&preference2=2&preference3=2&preference4=2&preference5=2)
+filter(range, <<0,1,2,3,4,5,6>> Pmax=? [F all_committed&all_prefer_1], preference1=2&preference2=2&preference3=2&preference4=2&preference5=2&preference6=2)
+
+
+filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], preference1=3)
+filter(range, <<0,1,2>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3)
+filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3)
+filter(range, <<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3&preference4=3)
+filter(range, <<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3&preference4=3&preference5=3)
+filter(range, <<0,1,2,3,4,5,6>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3&preference4=3&preference5=3&preference6=3)
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=2.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=2.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25
+
+
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25
+
+
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm7032.smg -ex -pctl '<<0,1,2,3,4,5,6>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], preference1=1&N_committed=0&sched=0)' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1>> Pmax=? [F all_committed&all_prefer_1], preference1=3&N_committed=0&sched=0)' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3&N_committed=0&sched=0)' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1], preference1=1&preference2=1&preference3=1&N_committed=0&sched=0)' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 
+
+
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl 'filter(range, <<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1], preference1=3&preference2=3&preference3=3&preference4=3&N_committed=0&sched=0)' -const Pexp=0.5,gamma=2.0,eta=2.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 
+
+
+
+
+---------------------------varying gamma for 5 ------------------------
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.0.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=0.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=0.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.0.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=1.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=1.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.0.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=2.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=2.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.0,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_g=3.0.txt
+
+---------------------------varying lambda for 5 ------------------------
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.5,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=0.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.5,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=1.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.5,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=2.5,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+rm -f examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=3.0,Q1=1.0,Q2=0.5,Q3=0.25 > examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=3.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=3.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=3.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+PRISM_JAVAMAXMEM=16g bin/prism examples/games/CDM/experiments/prob_choose_best/cdm5032.smg -ex -pctl '<<0,1,2,3,4,5>> Pmax=? [F all_committed&all_prefer_1]' -const Pexp=0.5,gamma=3.5,eta=1.0,lambda=3.0,Q1=1.0,Q2=0.5,Q3=0.25 >> examples/games/CDM/experiments/prob_choose_best/results/res_from0_l=3.5.txt
+
+
+
+
+
+

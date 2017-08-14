@@ -61,6 +61,7 @@ import userinterface.GUIClipboardEvent;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.OptionsPanel;
+import userinterface.simulator.GUISimulator;
 import userinterface.util.GUIComputationEvent;
 import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
@@ -95,6 +96,9 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	//State
 	private boolean computing = false;
 	private boolean initialised = false;
+
+    // simulator
+    private GUISimulator sim;
 
 	/** Creates a new instance of GUIMultiModel */
 	public GUIMultiModel(GUIPrism pr)
@@ -1176,7 +1180,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		}
 
 		modelFilters = new HashMap<String,FileFilter>();
-		modelFilters.put("prism", new FileNameExtensionFilter("PRISM models (*.prism, *.pm, *.nm, *.sm)", "prism", "pm", "nm", "sm")); 
+		modelFilters.put("prism", new FileNameExtensionFilter("PRISM models (*.prism, *.pm, *.nm, *.sm, *.smg)", "prism", "pm", "nm", "sm", "smg")); 
 		modelFilters.put("pepa", new FileNameExtensionFilter("PEPA models (*.pepa)", "pepa"));
 		staFilters = new HashMap<String,FileFilter>();
 		staFilters.put("sta", new FileNameExtensionFilter("State list files (*.sta)", "sta"));
@@ -1254,4 +1258,15 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	{
 		return initComputeExportMenu();
 	}
+
+    public void setGUISimulator(GUISimulator sim)
+    {
+	this.sim = sim;
+    }
+
+    public GUISimulator getGUISimulator()
+    {
+	return sim;
+    }
+
 }

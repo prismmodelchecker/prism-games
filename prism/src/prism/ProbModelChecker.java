@@ -26,8 +26,6 @@
 
 package prism;
 
-import hybrid.PrismHybrid;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -41,6 +39,8 @@ import acceptance.AcceptanceReach;
 import acceptance.AcceptanceReachDD;
 import acceptance.AcceptanceType;
 import automata.DA;
+import dv.DoubleVector;
+import hybrid.PrismHybrid;
 import common.StopWatch;
 import jdd.JDD;
 import jdd.JDDNode;
@@ -60,7 +60,6 @@ import parser.type.TypePathBool;
 import parser.type.TypePathDouble;
 import prism.LTLModelChecker.LTLProduct;
 import sparse.PrismSparse;
-import dv.DoubleVector;
 
 /*
  * Model checker for DTMCs.
@@ -225,6 +224,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionReward(ExpressionReward expr, JDDNode statesOfInterest) throws PrismException
 	{
 		// Get info from R operator
+        if(expr.getRewardStructIndexDiv() != null)
+	        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		
 		// Get rewards
@@ -468,6 +469,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkProbPathFormula(Expression expr, boolean qual, JDDNode statesOfInterest) throws PrismException
 	{
+		// No support for reward-bounded path formulas (i.e. of the form R(path)~r)
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Reward-bounded path formulas not supported");
+		}
+		
 		// Test whether this is a simple path formula (i.e. PCTL)
 		// and whether we want to use the corresponding algorithms
 		boolean useSimplePathAlgo = expr.isSimplePathFormula();
@@ -554,6 +560,11 @@ public class ProbModelChecker extends NonProbModelChecker
 		JDDVars daDDRowVars, daDDColVars;
 		int i;
 
+		// Reward-bounded path formulas not allowed in LTL
+		if (Expression.containsRewardBoundedPathFormula(expr)) {
+			throw new PrismException("Automaton construction for reward-bounded path formulas not supported");
+		}
+		
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.REACH,
 				AcceptanceType.BUCHI,
@@ -832,7 +843,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// check that there is an upper time bound
 		if (expr.getUpperBound() == null) {
-			throw new PrismException("Cumulative reward operator without time bound (C) is only allowed for multi-objective queries");
+		        throw new PrismException("Cumulative reward operator without time bound (C) not supported");
 		}
 
 		// get info from inst reward

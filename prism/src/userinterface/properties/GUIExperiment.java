@@ -178,7 +178,7 @@ public class GUIExperiment
 	{
 		if (running && theThread != null) {
 			if (useSimulation)
-				guiProp.getPrism().getSimulator().stopSampling();
+			    guiProp.getPrism().getSimulator().stopSampling();
 			theThread.interrupt();
 		}
 	}
@@ -306,7 +306,7 @@ public class GUIExperiment
 								}
 								// Normal model checking
 								if (!useSimulation) {
-									res = prism.modelCheck(propertiesFile, propertyToCheck);
+									res = prism.modelCheck(propertiesFile, propertyToCheck, Expression.isPareto(propertyToCheck.getExpression()));
 								}
 								// Approximate (simulation-based) model checking
 								else {
@@ -385,6 +385,12 @@ public class GUIExperiment
 			}
 			// catch and ignore possible exception from invokeAndWait calls
 			catch (java.lang.reflect.InvocationTargetException e) {
+			}
+			try {
+				prism.getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}

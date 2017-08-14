@@ -82,9 +82,6 @@ public class ModulesFileSemanticCheck extends SemanticCheck
 			n = e.getNumModules();
 			for (i = 0; i < n; i++) {
 				int k = v.indexOf(e.getModuleName(i));
-				if (k == -1) {
-					throw new PrismLangException("Module " + e.getModuleName(i) + " does not appear in the \"system\" construct", e.getSystemDefn());
-				}
 				if (v.indexOf(e.getModuleName(i), k + 1) != -1) {
 					throw new PrismLangException("Module " + e.getModuleName(i) + " appears more than once in the \"system\" construct", e.getSystemDefn());
 				}
@@ -250,10 +247,11 @@ public class ModulesFileSemanticCheck extends SemanticCheck
 				s = "Module \"" + m.getName() + "\" is not allowed to modify variable \"" + var + "\"";
 				throw new PrismLangException(s, e.getVarIdent(i));
 			}
-			if (isGlobal && !c.getSynch().equals("")) {
+			//TODO this should be dealt with so that the check is not commented out
+			/*if (isGlobal && !c.getSynch().equals("")) {
 				s = "Synchronous command cannot modify global variable";
 				throw new PrismLangException(s, e.getVarIdent(i));
-			}
+			}*/
 		}
 	}
 

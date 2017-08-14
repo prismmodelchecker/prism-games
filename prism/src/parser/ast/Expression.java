@@ -786,6 +786,14 @@ public abstract class Expression extends ASTElement
 	}
 
 	/**
+	 * Test if an expression yields Pareto set {@code nameCode}.
+	 */
+	public static boolean isPareto(Expression expr)
+	{
+		return expr instanceof ExpressionFunc && ((ExpressionFunc) expr).isPareto();
+	}
+	
+	/**
 	 * Test if an expression is a quantitative property (P=?, R=? or S=?) 
 	 */
 	public static boolean isQuantitative(Expression expr)
@@ -828,6 +836,27 @@ public abstract class Expression extends ASTElement
 				{
 					if (e.hasBounds())
 						throw new PrismLangException("");
+				}
+			});
+		} catch (PrismLangException e) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Test if an expression contains any reward-bounded path formulas (i.e. of the form R(path)~r). 
+	 */
+	public static boolean containsRewardBoundedPathFormula(Expression expr)
+	{
+		try {
+			expr.accept(new ASTTraverse()
+			{
+				public void visitPre(ExpressionReward e) throws PrismLangException
+				{
+					if ("path".equals(e.getModifier())) {
+						throw new PrismLangException("Found one");
+					}
 				}
 			});
 		} catch (PrismLangException e) {

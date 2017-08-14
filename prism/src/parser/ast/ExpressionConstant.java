@@ -80,8 +80,9 @@ public class ExpressionConstant extends Expression
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
 		Object res = ec.getConstantValue(name);
-		if (res == null)
+		if (res == null) {
 			throw new PrismLangException("Could not evaluate constant", this);
+		}
 		return res;
 	}
 

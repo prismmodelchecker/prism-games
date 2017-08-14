@@ -1,0 +1,62 @@
+smg
+
+const double p = 0.5;
+const double q = 0.5;
+
+const double r = p;
+const double t = q;
+
+const double u = r;
+const double v = t;
+
+player p1
+	foo, [p1a], [p1b]
+endplayer
+
+player p2
+	[p2a], [p2b]
+endplayer
+
+module foo
+
+
+	s : [1..8] init 1;
+	
+	[p1a] s=1 -> (s'=2);
+	[p1b] s=1 -> (s'=3);
+
+	[p1a] s=2 -> p : (s'=7) + (1-p) : (s'=4);
+	[p1b] s=3 -> q : (s'=8) + (1-q) : (s'=4);
+	
+	[p2a] s=4 -> (s'=5);
+	[p2b] s=4 -> (s'=6);
+
+	[p2a] s=5 -> r : (s'=7) + (1-r) : (s'=1);
+	[p2b] s=6 -> t : (s'=8) + (1-t) : (s'=1);
+
+	
+	[p1a] s>6 -> true;
+		
+	
+endmodule
+
+label "T" = s=7;
+
+rewards "r0"
+	s=3 : 1;
+	s=6 : 1;
+endrewards
+
+rewards "r1"
+	s=2 : 1;
+	s=5 : 1;
+endrewards
+
+rewards "r3"
+	s=3 : 5;
+	s=6 : 5;
+	s=2 : 1;
+	s=5 : 1;
+endrewards
+
+

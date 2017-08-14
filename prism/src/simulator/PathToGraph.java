@@ -58,6 +58,7 @@ public class PathToGraph extends PathDisplayer
 	private double lastTime;
 	private State lastState;
 	private double[] lastStateRewards;
+	private double[] lastTransitionRewards;
 	/** For each variable/reward, whether we skipped plotting a point last time */
 	private BitSet skippedVars = new BitSet();
 	private BitSet skippedRewards = new BitSet();
@@ -109,24 +110,26 @@ public class PathToGraph extends PathDisplayer
 
 		// Display initial state
 		lastState = new State(initialState.varValues.length);
-		if (showRewards)
+		if (showRewards) {
 			lastStateRewards = explicit.Utils.cloneDoubleArray(initialStateRewards);
-		displayState(0.0, initialState, initialStateRewards, true);
+			lastTransitionRewards = new double[initialStateRewards.length]; // all zeros
+		}
+		displayState(0.0, initialState, new double[initialStateRewards.length], initialStateRewards, true);
 	}
 
 	@Override
 	public void displayStep(double timeSpent, double timeCumul, Object action, double probability, double[] transitionRewards, long newStateIndex, State newState, double[] newStateRewards)
 	{
-		displayState(timeCumul, newState, newStateRewards, !showChangesOnly);
+	        displayState(timeCumul, newState, transitionRewards, newStateRewards, !showChangesOnly);
 	}
 
 	@Override
-	public void displaySnapshot(double timeCumul, long newStateIndex, State newState, double[] newStateRewards)
+	public void displaySnapshot(double timeCumul, double[] transitionRewards, long newStateIndex, State newState, double[] newStateRewards)
 	{
-		displayState(timeCumul, newState, newStateRewards, !showChangesOnly);
+	        displayState(timeCumul, newState, transitionRewards, newStateRewards, !showChangesOnly);
 	}
 
-	private void displayState(double time, State state, double[] stateRewards, boolean force)
+        private void displayState(double time, State state, double[] transitionRewards, double[] stateRewards, boolean force)
 	{
 		if (varsToShow == null) {
 			for (int j = 0; j < numVars; j++) {
@@ -152,6 +155,28 @@ public class PathToGraph extends PathDisplayer
 			}
 		}
 		if (showRewards) {
+		    if(showTransitionRewards) {
+			for (int j = 0; j < numRewardStructs; j++) {
+			        // last transition to current state
+				double d = stateRewards[j];
+				boolean plot = force || lastTransitionRewards[j] != stateRewards[j];
+				if (plot) {
+					if (skippedRewards.get(j))
+						graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(lastTime, lastStateRewards[j]));
+					graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(time, d));
+				}
+				skippedRewards.set(j, !plot);
+				// current state to current transition
+				d = transitionRewards[j];
+				plot = force || stateRewards[j] != transitionRewards[j];
+				if (plot) {
+					if (skippedRewards.get(j))
+						graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(lastTime + 0.5, lastTransitionRewards[j]));
+					graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(time + 0.5, d));
+				}
+				skippedRewards.set(j, !plot);
+			}
+		    } else {
 			for (int j = 0; j < numRewardStructs; j++) {
 				double d = stateRewards[j];
 				boolean plot = force || lastStateRewards[j] != stateRewards[j];
@@ -162,11 +187,13 @@ public class PathToGraph extends PathDisplayer
 				}
 				skippedRewards.set(j, !plot);
 			}
+		    }
 		}
 		lastTime = time;
 		lastState.copy(state);
 		if (showRewards) {
 			explicit.Utils.copyDoubleArray(stateRewards, lastStateRewards);
+			explicit.Utils.copyDoubleArray(transitionRewards, lastTransitionRewards);
 		}
 	}
 
@@ -193,6 +220,6 @@ public class PathToGraph extends PathDisplayer
 	{
 		// Always display last points to ensure complete plot lines
 		// (it's OK to overwrite points)
-		displayState(lastTime, lastState, lastStateRewards, true);
+	        displayState(lastTime, lastState, lastTransitionRewards, lastStateRewards, true);
 	}
 }
