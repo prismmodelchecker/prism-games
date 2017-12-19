@@ -744,7 +744,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob0...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob0...");
 
 		// Special case: no target states
 		if (target.isEmpty()) {
@@ -765,8 +766,10 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob0");
-		mainLog.println(" took " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob0");
+			mainLog.println(" took " + timer / 1000.0 + " seconds.");
+		}
 
 		return result;
 	}
@@ -788,7 +791,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob0...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob0...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
@@ -832,8 +836,10 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob0");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob0");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		return u;
 	}
@@ -854,7 +860,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob1...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob1...");
 
 		// Special case: no 'target' states
 		if (target.isEmpty()) {
@@ -899,8 +906,10 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob1");
-		mainLog.println(" took " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob1");
+			mainLog.println(" took " + timer / 1000.0 + " seconds.");
+		}
 
 		return result;
 	}
@@ -922,7 +931,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob1...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob1...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
@@ -974,8 +984,10 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob1");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob1");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		return u;
 	}
@@ -1333,6 +1345,11 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	double computeReachRewardsUpperBound(DTMC dtmc, MCRewards mcRewards, BitSet target, BitSet unknown, BitSet inf) throws PrismException
 	{
+		if (unknown.isEmpty()) {
+			mainLog.println("Skipping upper bound computation, no unknown states...");
+			return 0;
+		}
+
 		// inf and target states become trap states (with self-loops)
 		BitSet trapStates = (BitSet) target.clone();
 		trapStates.or(inf);
@@ -2125,7 +2142,9 @@ public class DTMCModelChecker extends ProbModelChecker
 		}
 
 		double max_v = PrismUtils.findMaxFinite(rv.soln, unknownStates.iterator());
-		mainLog.println("Maximum finite value in solution vector at end of interval iteration: " + max_v);
+		if (max_v != Double.NEGATIVE_INFINITY) {
+			mainLog.println("Maximum finite value in solution vector at end of interval iteration: " + max_v);
+		}
 
 		return rv;
 	}

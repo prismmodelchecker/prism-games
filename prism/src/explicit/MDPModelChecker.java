@@ -600,7 +600,7 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param min Min or max probabilities (true=min, false=max)
 	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public BitSet prob0(MDP mdp, BitSet remain, BitSet target, boolean min, int strat[])
+	public BitSet prob0(MDPGeneric<?> mdp, BitSet remain, BitSet target, boolean min, int strat[])
 	{
 		int n, iters;
 		BitSet u, soln, unknown;
@@ -609,12 +609,18 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob0 (" + (min ? "min" : "max") + ")...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob0 (" + (min ? "min" : "max") + ")...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
 			soln = new BitSet(mdp.getNumStates());
 			soln.set(0, mdp.getNumStates());
+
+			// for min, generate strategy, any choice (-2) is fine
+			if (min && strat != null) {
+				Arrays.fill(strat, -2);
+			}
 			return soln;
 		}
 
@@ -653,8 +659,10 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob0 (" + (min ? "min" : "max") + ")");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob0 (" + (min ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		// If required, generate strategy. This is for min probs,
 		// so it can be done *after* the main prob0 algorithm (unlike for prob1).
@@ -686,7 +694,7 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param min Min or max probabilities (true=min, false=max)
 	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 */
-	public BitSet prob1(MDP mdp, BitSet remain, BitSet target, boolean min, int strat[])
+	public BitSet prob1(MDPGeneric<?> mdp, BitSet remain, BitSet target, boolean min, int strat[])
 	{
 		int n, iters;
 		BitSet u, v, soln, unknown;
@@ -695,7 +703,8 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start precomputation
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting Prob1 (" + (min ? "min" : "max") + ")...");
+		if (!silentPrecomputations)
+			mainLog.println("Starting Prob1 (" + (min ? "min" : "max") + ")...");
 
 		// Special case: no target states
 		if (target.cardinality() == 0) {
@@ -773,8 +782,10 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Finished precomputation
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Prob1 (" + (min ? "min" : "max") + ")");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (!silentPrecomputations) {
+			mainLog.print("Prob1 (" + (min ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		return u;
 	}
@@ -1460,6 +1471,11 @@ public class MDPModelChecker extends ProbModelChecker
 	 */
 	double computeReachRewardsMaxUpperBound(MDP mdp, MDPRewards mdpRewards, BitSet target, BitSet unknown, BitSet inf) throws PrismException
 	{
+		if (unknown.isEmpty()) {
+			mainLog.println("Skipping upper bound computation, no unknown states...");
+			return 0;
+		}
+
 		// inf and target states become trap states (with dropped choices)
 		BitSet trapStates = (BitSet) target.clone();
 		trapStates.or(inf);
@@ -2557,7 +2573,9 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		double max_v = PrismUtils.findMaxFinite(rv.soln, unknownStates.iterator());
-		mainLog.println("Maximum finite value in solution vector at end of interval iteration: " + max_v);
+		if (max_v != Double.NEGATIVE_INFINITY) {
+			mainLog.println("Maximum finite value in solution vector at end of interval iteration: " + max_v);
+		}
 
 		return rv;
 	}

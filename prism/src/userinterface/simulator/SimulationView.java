@@ -270,7 +270,7 @@ public class SimulationView extends Observable
 				for (int i = 0; i < numComps; i++) {
 					ModulesFile modulesFile_i = modulesFiles.get(i);
 					for (int m = 0; m < modulesFile_i.getNumModules(); m++) {
-						Module module = modulesFile_i.getModule(m);
+						parser.ast.Module module = modulesFile_i.getModule(m);
 						for (int v = 0; v < module.getNumDeclarations(); v++) {
 							if (!allVarNames.remove(module.getDeclaration(v).getName()))
 								canUseCurrentView = false;
@@ -279,7 +279,7 @@ public class SimulationView extends Observable
 				}
 			} else {
 				for (int m = 0; m < parsedModel.getNumModules(); m++) {
-					Module module = parsedModel.getModule(m);
+					parser.ast.Module module = parsedModel.getModule(m);
 					for (int v = 0; v < module.getNumDeclarations(); v++) {
 						if (!allVarNames.remove(module.getDeclaration(v).getName()))
 							canUseCurrentView = false;
@@ -342,7 +342,7 @@ public class SimulationView extends Observable
 					for (int k = 0; k < numComps; k++) {
 						ModulesFile modulesFile_k = modulesFiles.get(k);
 						for (int m = 0; m < modulesFile_k.getNumModules(); m++) {
-							Module module = modulesFile_k.getModule(m);
+							parser.ast.Module module = modulesFile_k.getModule(m);
 							for (int v = 0; v < module.getNumDeclarations(); v++) {
 								visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
 								i++;
@@ -351,7 +351,7 @@ public class SimulationView extends Observable
 					}
 				} else {
 					for (int m = 0; m < parsedModel.getNumModules(); m++) {
-						Module module = parsedModel.getModule(m);
+						parser.ast.Module module = parsedModel.getModule(m);
 						for (int v = 0; v < module.getNumDeclarations(); v++) {
 							visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
 							i++;
