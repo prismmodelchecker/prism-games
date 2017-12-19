@@ -214,7 +214,7 @@ public class PropertiesSemanticCheck extends SemanticCheck
 				try {
 					int playerNum = Integer.parseInt(player);
 					if (playerNum < 1 || playerNum > numPlayers) {
-						throw new PrismLangException("Invalid player index \"" + player + "\"");
+						//throw new PrismLangException("Invalid player index \"" + player + "\"");
 					}
 				}
 				catch (NumberFormatException ex) {
