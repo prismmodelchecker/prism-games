@@ -12,11 +12,6 @@
 // RESULT: 5.18711
 <<investor1,market>> R{"profit1"}max=? [ Fc "done1" ]
 
-// Can both investors collaborate to
-// achieve an expected profit of precisely 5?
-// RESULT: true
-<<investor1,investor2>> R{"profit12"}=5 [ Fc "done" ]
-
 // Maximum probability with which investor 1
 // can guarantee a share value greater than 5
 // RESULT: 0.48030
