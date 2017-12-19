@@ -1,1 +1,0 @@
--multimaxciter 500 -multimaxditer 500 -paretoepsilon 0.001 -gs -exportstrat compositional.strat -ex -verbose
