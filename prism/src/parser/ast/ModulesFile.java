@@ -1102,7 +1102,8 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	{
 		// First make sure player info is present for games (and not for others)
 		if (modelType.multiplePlayers()) {
-			if (players.isEmpty()) {
+			// (NB: compositional games don't need this)
+			if (players.isEmpty() && systemDefns.size() == 0) {
 				throw new PrismLangException(modelType + " model has no player definitions");
 			}
 		} else {
