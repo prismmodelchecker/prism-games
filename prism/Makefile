@@ -427,15 +427,15 @@ make_dirs:
 	fi
 
 tests: testslocal
-	@if [ -d ~/prism/prism-tests ]; then \
-	  cd ~/prism/prism-tests && $(PWD)/etc/scripts/prism-auto -t -m . -p $(PWD)/bin/prism --nailgun --ngprism $(PWD)/bin/ngprism; \
+	@if [ -d ../prism-tests ]; then \
+	  cd ../prism-tests && "$(PWD)"/etc/scripts/prism-auto -t -m . -p "$(PWD)"/bin/prism --nailgun --ngprism "$(PWD)"/bin/ngprism; \
 	else \
 	  echo "Skipping tests"; \
 	fi
 
 testslocal:
 	@if [ -d tests ]; then \
-	  cd tests && $(PWD)/etc/scripts/prism-auto -t -m . -p $(PWD)/bin/prism --nailgun --ngprism $(PWD)/bin/ngprism; \
+	  cd tests && "$(PWD)"/etc/scripts/prism-auto -t -m . -p "$(PWD)"/bin/prism --nailgun --ngprism "$(PWD)"/bin/ngprism; \
 	else \
 	  echo "Skipping local tests"; \
 	fi
@@ -523,7 +523,7 @@ dist_tidy:
 	@find . \( -type d -o -type s \) -exec chmod 755 {} \;
 	@find . -type f  \( -name '*.sh' -o -name '*.so' -o -name '*.dll' \) -exec chmod 755 {} \;
 	@find examples -type f -name 'auto' -exec chmod 755 {} \; || test 1
-	@find bin -type f -exec chmod 755 {} \;
+	@find bin -type f -exec chmod 755 {} \; || test 1
 	@find src/bin -type f -exec chmod 755 {} \;
 	@find etc/scripts -type f -exec chmod 755 {} \;
 
