@@ -206,7 +206,7 @@ public class PropertiesSemanticCheck extends SemanticCheck
 	public void visitPost(ExpressionStrategy e) throws PrismLangException
 	{
 		// Make sure any player names in a coalition operator are valid
-		if (e.getCoalition() != null) {
+		if (e.getCoalition() != null && !e.getCoalition().isAllPlayers()) {
 			for (String player : e.getCoalitionPlayers()) {
 				int numPlayers = modelInfo.getNumPlayers();
 				// Valid player references are either integers
