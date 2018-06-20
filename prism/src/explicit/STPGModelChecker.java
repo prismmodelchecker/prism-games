@@ -41,6 +41,7 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
@@ -495,6 +496,12 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
+		ExportIterations iterationsExport = null;
+		if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			String description = (min1 ? "Min" : "Max") + "/" + (min1 ? "Min" : "Max");
+			iterationsExport = new ExportIterations("Explicit STPG ReachProbs value iteration (" + description + ")");
+		}
+
 		// Store num states
 		n = stpg.getNumStates();
 
@@ -546,6 +553,10 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
+		if (iterationsExport != null) {
+			iterationsExport.exportVector(soln);
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -559,6 +570,10 @@ public class STPGModelChecker extends ProbModelChecker
 			tmpsoln = soln;
 			soln = soln2;
 			soln2 = tmpsoln;
+
+			if (iterationsExport != null) {
+				iterationsExport.exportVector(soln);
+			}
 		}
 
 		// Finished value iteration
@@ -566,6 +581,10 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		if (iterationsExport != null) {
+			iterationsExport.close();
 		}
 
 		// Non-convergence is an error (usually)
@@ -623,6 +642,12 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
+		ExportIterations iterationsExport = null;
+		if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			String description = (min1 ? "Min" : "Max") + "/" + (min1 ? "Min" : "Max");
+			iterationsExport = new ExportIterations("Explicit STPG ReachProbs Gauss Seidel (" + description + ")");
+		}
+
 		// Store num states
 		n = stpg.getNumStates();
 
@@ -654,6 +679,10 @@ public class STPGModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		if (iterationsExport != null) {
+			iterationsExport.exportVector(soln);
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -663,6 +692,10 @@ public class STPGModelChecker extends ProbModelChecker
 			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false, termCrit == TermCrit.ABSOLUTE);
 			// Check termination
 			done = maxDiff < termCritParam;
+
+			if (iterationsExport != null) {
+				iterationsExport.exportVector(soln);
+			}
 		}
 
 		// Finished Gauss-Seidel
@@ -670,6 +703,10 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		if (iterationsExport != null) {
+			iterationsExport.close();
 		}
 
 		// Non-convergence is an error (usually)
@@ -963,6 +1000,12 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
+		ExportIterations iterationsExport = null;
+		if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			String description = (min1 ? "Min" : "Max") + "/" + (min1 ? "Min" : "Max");
+			iterationsExport = new ExportIterations("Explicit STPG ReachRewards value iteration (" + description + ")");
+		}
+
 		// Store num states
 		n = stpg.getNumStates();
 
@@ -1017,6 +1060,10 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
+		if (iterationsExport != null) {
+			iterationsExport.exportVector(soln);
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
@@ -1040,6 +1087,11 @@ public class STPGModelChecker extends ProbModelChecker
 			tmpsoln = soln;
 			soln = soln2;
 			soln2 = tmpsoln;
+			
+
+			if (iterationsExport != null) {
+				iterationsExport.exportVector(soln);
+			}
 		}
 
 		// Finished value iteration
@@ -1047,6 +1099,10 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
+
+		if (iterationsExport != null) {
+			iterationsExport.close();
 		}
 
 		// Print adversary
@@ -1200,7 +1256,12 @@ public class STPGModelChecker extends ProbModelChecker
 			// Compute the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+				try {
+					ExportIterations.setDefaultFilename("iterations-upper-bound.html");
+					res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+				} finally {
+					ExportIterations.resetDefaultFilename();
+				}
 				break;
 			default:
 				throw new PrismException("Unknown STPG solution method " + solnMethod);
@@ -1590,7 +1651,13 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Get the rich man's strategy and its values
 		// Start with computing optimal probabilities to reach the final state
-		ModelCheckerResult mcrprob = computeReachProbs(stpg, target, min1, min2);
+		ModelCheckerResult mcrprob;
+		try {
+			ExportIterations.setDefaultFilename("iterations-rich-man-probs.html");
+			mcrprob = computeReachProbs(stpg, target, min1, min2);
+		} finally {
+			ExportIterations.resetDefaultFilename();
+		}
 
 		// Next, reweigh the rewards and make sure that only optimal actions are
 		// taken
@@ -1653,8 +1720,15 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify"
 					+ rewards.getClass().getName());
 		}
+
 		// Next, compute the value for the rich man's strategy.
-		ModelCheckerResult mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
+		ModelCheckerResult mcrrich;
+		try {
+			ExportIterations.setDefaultFilename("iterations-rich-man-rewards.html");
+			mcrrich = computeReachRewards(stpg, rewardsRestricted, target, min1, min2, init, known, R_CUMULATIVE);
+		} finally {
+			ExportIterations.resetDefaultFilename();
+		}
 		//System.out.println("maximal rews for rich man's strategy: " + Arrays.toString(mcrrich.soln));
 
 		// TODO generate rich man strategy.
@@ -1725,6 +1799,12 @@ public class STPGModelChecker extends ProbModelChecker
 			// chosen by rews
 			boolean done = false;
 
+			ExportIterations iterationsExport = null;
+			if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+				ExportIterations.setDefaultFilename("iterations-reach-rewards-zero-" + x + ".html");
+				iterationsExport = new ExportIterations("ReachRewardsZero, reward level " + x);
+			}
+
 			double difference = 0;
 			do {
 				difference = 0;
@@ -1787,7 +1867,10 @@ public class STPGModelChecker extends ProbModelChecker
 						difference = cDif;
 
 					rews[0][s] = stateRew;
-
+				}
+				
+				if (iterationsExport != null) {
+					iterationsExport.exportVector(rews[0]);
 				}
 
 			} while (difference > 10e-6); // TODO some smarter convergence
@@ -1807,6 +1890,11 @@ public class STPGModelChecker extends ProbModelChecker
 						stratChoices.get(s).set(stratChoices.get(s).size() - 2, stratChoices.get(s).get(stratChoices.get(s).size() - 2) + 1);
 					}
 				}
+			}
+
+			if (iterationsExport != null) {
+				iterationsExport.exportVector(rews[0]);
+				iterationsExport.close();
 			}
 
 			// shift the array
