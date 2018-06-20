@@ -50,6 +50,8 @@ public class ModulesFile extends ASTElement implements ModelInfo
 {
 	// Model type (enum)
 	private ModelType modelType;
+	// The model type that was originally specified but was later overridden
+	private ModelType overriddenModelType;
 
 	// Model components
 	private FormulaList formulaList;
@@ -127,6 +129,13 @@ public class ModulesFile extends ASTElement implements ModelInfo
 
 	public void setModelType(ModelType t)
 	{
+		modelType = t;
+	}
+
+	/** Override the model type (stores current model type as the overridden model type) */
+	public void overrideModelType(ModelType t)
+	{
+		overriddenModelType = modelType;
 		modelType = t;
 	}
 
@@ -304,6 +313,15 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	public ModelType getModelType()
 	{
 		return modelType;
+	}
+
+	/**
+	 * If the original model type was overriden (e.g., via a command line switch),
+	 * this returns the original model type. If it was not overriden, returns {@code null}.
+	 */
+	public ModelType getOverridenModelType()
+	{
+		return overriddenModelType;
 	}
 
 	public String getTypeString()
@@ -1104,7 +1122,15 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		if (modelType.multiplePlayers()) {
 			// (NB: compositional games don't need this)
 			if (players.isEmpty() && systemDefns.size() == 0) {
-				throw new PrismLangException(modelType + " model has no player definitions");
+				if (overriddenModelType != null && !overriddenModelType.multiplePlayers()) {
+					// we started with a non-game model and the model type was overridden
+					// to be a game, so we add a single player controlling all nondeterminism
+					// in the system
+					addPlayer(Player.singlePlayerForEverything(this));
+				} else {
+					// we started as a game, so the lack of a player definition is an error
+					throw new PrismLangException(modelType + " model has no player definitions");
+				}
 			}
 		} else {
 			if (!players.isEmpty()) {
@@ -1526,6 +1552,7 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		ret.setPosition(this);
 		// Copy type
 		ret.setModelType(modelType);
+		ret.overriddenModelType = overriddenModelType;
 		// Deep copy main components
 		ret.setFormulaList((FormulaList) formulaList.deepCopy());
 		ret.setLabelList((LabelList) labelList.deepCopy());

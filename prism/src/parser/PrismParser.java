@@ -153,7 +153,7 @@ public class PrismParser implements PrismParserConstants {
                 }
                 // Override type of model if requested
                 if (typeOverride != null) {
-                        mf.setModelType(typeOverride);
+                        mf.overrideModelType(typeOverride);
                 }
 
                 return mf;
