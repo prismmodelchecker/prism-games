@@ -59,7 +59,10 @@ import java.awt.event.ActionEvent;
 import javax.swing.SwingUtilities;
 import javax.swing.JScrollPane;
 
-import org.w3c.dom.*;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.*;
 
 import javax.xml.parsers.*;

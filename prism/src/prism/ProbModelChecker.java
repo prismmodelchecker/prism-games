@@ -39,9 +39,10 @@ import acceptance.AcceptanceReach;
 import acceptance.AcceptanceReachDD;
 import acceptance.AcceptanceType;
 import automata.DA;
-import dv.DoubleVector;
-import hybrid.PrismHybrid;
 import common.StopWatch;
+import dv.DoubleVector;
+import explicit.ExportIterations;
+import hybrid.PrismHybrid;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -2580,6 +2581,11 @@ public class ProbModelChecker extends NonProbModelChecker
 		JDD.Ref(bscc);
 		init = JDD.Apply(JDD.DIVIDE, bscc, JDD.Constant(n));
 
+		if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			String filename = ExportIterations.getUniqueFilename("iterations-ss-bscc");
+			PrismNative.setDefaultExportIterationsFilename(filename);
+		}
+
 		// compute remaining probabilities
 		mainLog.println("\nComputing probabilities...");
 		mainLog.println("Engine: " + Prism.getEngineString(engine));
@@ -2604,6 +2610,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			JDD.Deref(trf);
 			JDD.Deref(init);
 			throw e;
+		} finally {
+			if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+				PrismNative.setDefaultExportIterationsFilename(ExportIterations.getDefaultFilename());
+			}
 		}
 
 		// derefs

@@ -109,11 +109,6 @@ public class PrismFileLog extends PrismLog
 		}
 	}
 
-	public String getFileName()
-	{
-		return filename;
-	}
-
 	// Methods for PrismLog
 	
 	@Override
@@ -126,6 +121,12 @@ public class PrismFileLog extends PrismLog
 	public long getFilePointer()
 	{
 		return fp;
+	}
+
+	/** Get the filename (or "stdout" if writing to standard output) */
+	public String getFileName()
+	{
+		return stdout ? "stdout" : filename;
 	}
 
 	@Override

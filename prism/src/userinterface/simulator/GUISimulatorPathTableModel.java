@@ -165,7 +165,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			    }
 			} else {
 			    for (int m = 0; m < parsedModel.getNumModules(); m++) {
-				Module module = parsedModel.getModule(m);
+				parser.ast.Module module = parsedModel.getModule(m);
 				for (int v = 0; v < module.getNumDeclarations(); v++) {
 				    if (varNames.contains(module.getDeclaration(v).getName())) {
 					groupCount++;
@@ -456,7 +456,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			    }
 			} else {
 			    for (int m = 0; m < parsedModel.getNumModules(); m++) {
-				Module module = parsedModel.getModule(m);
+			    parser.ast.Module module = parsedModel.getModule(m);
 				boolean atLeastOne = false;
 
 				for (int v = 0; v < module.getNumDeclarations(); v++) {

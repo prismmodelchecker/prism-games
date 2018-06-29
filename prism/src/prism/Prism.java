@@ -332,7 +332,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Read in PRISM settings from the default file (.prism in user's home directory).
+	 * Read in PRISM settings from the default file (see PrismSettings.getLocationForSettingsFile()).
 	 * If no file exists, attempt to create a new one with default settings.
 	 */
 	public void loadUserSettingsFile()
@@ -342,7 +342,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Read in PRISM settings from a specified file.
-	 * If the file is null, use the default (.prism in user's home directory).
+	 * If the file is null, use the default (see PrismSettings.getLocationForSettingsFile()).
 	 * If no file exists, attempt to create a new one with default settings.
 	 */
 	public void loadUserSettingsFile(File settingsFile)
@@ -3566,8 +3566,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		explicit.StateValues probs;
 		if (model.getModelType() == ModelType.DTMC) {
 			mcDTMC = new DTMCModelChecker(this);
-			//TODO: probs = mcDTMC.doSteadyState((DTMC) model, fileIn);
-			probs = mcDTMC.doSteadyState((DTMC) model, (File) null);
+			probs = mcDTMC.doSteadyState((DTMC) model, fileIn);
 		} else if (model.getModelType() == ModelType.CTMC) {
 			throw new PrismException("Not implemented yet");
 		} else {
