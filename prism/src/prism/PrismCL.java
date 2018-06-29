@@ -2071,7 +2071,7 @@ public class PrismCL implements PrismModelListener
 	{
 		String s;
 		int i;
-		mainLog.print("Command line: prism");
+		mainLog.print("Command line: " + Prism.getCommandLineName());
 		// Print out the command-line arguments
 		for (i = 0; i < args.length; i++) {
 			s = args[i];
