@@ -615,10 +615,20 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			setComputing(true);
 
-			if (isOldUpdate()) {
-				engine.computeTransitionsForCurrentState();
+			try {
+				if (isOldUpdate()) {
+					engine.computeTransitionsForCurrentState();
+				}
+				engine.automaticTransitions(noSteps, displayPathLoops);
+			} catch (PrismException e) {
+				this.error(e.getMessage());
+				guiMultiModel.getHandler().modelParseFailed(e, false);
+				guiMultiModel.tabToFront();
+
+				// Even if there was an exception, we continue and try
+				// to update the path display, as there may be intermediate steps
+				// that have succeeded
 			}
-			engine.automaticTransitions(noSteps, displayPathLoops);
 
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
@@ -629,15 +639,12 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
+		} catch (PrismException e) {
+			this.error(e.getMessage());
+			guiMultiModel.getHandler().modelParseFailed(e, false);
+			guiMultiModel.tabToFront();
+		} finally {
 			setComputing(false);
-
-		} catch (PrismLangException e) {
-			this.error(e.getMessage());
-			guiMultiModel.getHandler().modelParseFailed((PrismLangException) e, false);
-			guiMultiModel.tabToFront();
-		} catch (PrismException e) { // TODO: CLEMENS
-			this.error(e.getMessage());
-			guiMultiModel.tabToFront();
 		}
 
 	}
@@ -655,10 +662,21 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 
 			setComputing(true);
-			if (isOldUpdate()) {
-				engine.computeTransitionsForCurrentState();
+
+			try {
+				if (isOldUpdate()) {
+					engine.computeTransitionsForCurrentState();
+				}
+				engine.automaticTransitions(time, displayPathLoops);
+			} catch (PrismException e) {
+				this.error(e.getMessage());
+				guiMultiModel.getHandler().modelParseFailed(e, false);
+				guiMultiModel.tabToFront();
+
+				// Even if there was an exception, we continue and try
+				// to update the path display, as there may be intermediate steps
+				// that have succeeded
 			}
-			engine.automaticTransitions(time, displayPathLoops);
 
 			// Update model/path/tables/lists
 			pathTableModel.updatePathTable();
@@ -669,10 +687,12 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
-			setComputing(false);
 
 		} catch (PrismException e) {
 			this.error(e.getMessage());
+		}
+		finally {
+			setComputing(false);
 		}
 	}
 
@@ -688,9 +708,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
-			setComputing(false);
 		} catch (PrismException e) {
 			this.error(e.getMessage());
+		} finally {
+			setComputing(false);
 		}
 	}
 
@@ -706,9 +727,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
-			setComputing(false);
 		} catch (PrismException e) {
 			this.error(e.getMessage());
+		} finally {
+			setComputing(false);
 		}
 	}
 
@@ -724,24 +746,28 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
-			setComputing(false);
 		} catch (PrismException e) {
 			this.error(e.getMessage());
+		} finally {
+			setComputing(false);
 		}
 	}
 
 	/** Remove the prefix of the current path up to the given path step. */
 	public void a_removePreceding(int step) throws PrismException
 	{
-		setComputing(true);
-		engine.removePrecedingStates(step);
-		// Update model/path/tables/lists
-		pathTableModel.updatePathTable();
-		updateTableModel.updateUpdatesTable();
-		// Update display
-		repaintLists();
-		updatePathInfo();
-		setComputing(false);
+		try {
+			setComputing(true);
+			engine.removePrecedingStates(step);
+			// Update model/path/tables/lists
+			pathTableModel.updatePathTable();
+			updateTableModel.updateUpdatesTable();
+			// Update display
+			repaintLists();
+			updatePathInfo();
+		} finally {
+			setComputing(false);
+		}
 	}
 
 	public void a_manualUpdate()
@@ -783,13 +809,12 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			// Update display
 			repaintLists();
 			updatePathInfo();
-			setComputing(false);
 
 		} catch (NumberFormatException e) {
 			this.error("The Auto update \'no. steps\' parameter is invalid.\nIt must be a positive integer representing a step in the path table");
-			setComputing(false);
 		} catch (PrismException e) {
 			this.error(e.getMessage());
+		} finally {
 			setComputing(false);
 		}
 	}
@@ -843,9 +868,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				return;
 			setComputing(true);
 			engine.exportPath(getChooserFile());
-			setComputing(false);
 		} catch (PrismException e) {
 			error(e.getMessage());
+		} finally {
+			setComputing(false);
 		}
 	}
 
@@ -857,9 +883,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			Graph graphModel = new Graph();
 			guiProp.getGraphHandler().addGraph(graphModel);
 			engine.plotPath(graphModel);
-			setComputing(false);
 		} catch (PrismException e) {
 			error(e.getMessage());
+		} finally {
+			setComputing(false);
 		}
 	}
 
@@ -972,7 +999,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				initialStateObject = model.getStatesList().get(initialStateIndex);
 			}
 			new SimPathPlotThread(this, engine, parsedModel, model, initialStateObject, simPathDetails, maxPathLength, graphModel).start();
-			setComputing(false);
 
 			// store initial state for next time
 			lastInitialState = initialState;
@@ -983,6 +1009,8 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				guiMultiModel.getHandler().modelParseFailed((PrismLangException) e, false);
 				guiMultiModel.tabToFront();
 			}
+		} finally {
+			setComputing(false);
 		}
 	}
 
@@ -1737,7 +1765,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					else if (noSteps == 0)
 						return;
 					// Do backtrack
-					a_backTrack((int) (engine.getPathSize() - noSteps));
+					a_backTrack((int)(engine.getPathSize() - noSteps));
 				} catch (NumberFormatException nfe) {
 					String msg = "The \"" + typeBacktrackCombo.getSelectedItem() + "\" parameter is invalid: ";
 					msg += "it should be a positive integer";
@@ -2041,7 +2069,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					if (uptoState <= engine.getPathSize())
 						throw new NumberFormatException();
 					// Do simulation
-					a_autoStep(uptoState - engine.getPathSize());
+					a_autoStep((int)(uptoState - engine.getPathSize()));
 				} catch (NumberFormatException nfe) {
 					String msg = "The \"" + typeExploreCombo.getSelectedItem() + "\" parameter is invalid: ";
 					msg += "it should be greater than " + engine.getPathSize();
