@@ -121,17 +121,15 @@ public class StateModelChecker extends PrismComponent
 	protected boolean implementStrategy = false;
 	protected Strategy strategy = null;
 
-        // Stored Pareto sets
-        protected Pareto pareto_set = null;
-        // Stored parameters
-        protected MultiParameters parsed_params = null;
-        
-        // Computing Pareto sets?
-        protected boolean computePareto = true; // computing Pareto set, or doing actual model checking?
+	// Stored Pareto sets
+	protected Pareto pareto_set = null;
+	// Stored parameters
+	protected MultiParameters parsed_params = null;
+	// Computing Pareto sets?
+	protected boolean computePareto = true; // computing Pareto set, or doing actual model checking?
 
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
-
 
 	// Do topological value iteration?
 	protected boolean doTopologicalValueIteration = false;
@@ -266,10 +264,10 @@ public class StateModelChecker extends PrismComponent
 
 	// Set methods for flags/settings
 
-        public void setComputeParetoSet(boolean computePareto)
-        {
-	        this.computePareto = computePareto;
-        }
+	public void setComputeParetoSet(boolean computePareto)
+	{
+		this.computePareto = computePareto;
+	}
 
 	/**
 	 * Set verbosity level, i.e. amount of output produced.
