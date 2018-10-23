@@ -678,17 +678,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		this.reachMethod = reachMethod;
 	}
 
-	// to cancel the computation in the compositional model checker,
-	// set the first component to true, otherwise, set the first component to false
-	// the reference to this array is passed to the model checker, so that its content
-	// can be checked at any time
-	boolean[] cancel_computation = new boolean[1];
-
-	public void setCancel(boolean cancel)
-	{
-		cancel_computation[0] = cancel;
-	}
-
 	// Get methods
 
 	/**
@@ -2094,7 +2083,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					constructModel.setCheckCompatibility(getCheckCompatibility());
 					currentModel = null;
-					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false, cancel_computation);
+					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false);
 				}
 				// if (...) ... currentModel = buildModelExplicit(currentModulesFile);
 				break;
@@ -2267,7 +2256,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
 		constructModel = new ConstructModel(this);
-		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false, cancel_computation);
+		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false);
 		statesList = constructModel.getStatesList();
 
 		// create Explicit2MTBDD object
@@ -3025,8 +3014,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			compoMC = new CompositionalSMGModelChecker(this, currentModulesFile, propertiesFile, getSimulator());
 			compoMC.setCheckCompatibility(getCheckCompatibility());
 			compoMC.setComputeParetoSet(computePareto);
-			this.setCancel(false);
-			compoMC.setCancel(cancel_computation);
 			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
 			res = compoMC.check(e);
 
@@ -3089,7 +3076,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			} else {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
 				mc.setComputeParetoSet(computePareto);
-				mc.setCancel(cancel_computation);
 				// if implement strategy option is enabled, build a product with
 				// strategy before model checking
 

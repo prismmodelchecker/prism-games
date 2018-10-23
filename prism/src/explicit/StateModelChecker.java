@@ -129,9 +129,6 @@ public class StateModelChecker extends PrismComponent
         // Computing Pareto sets?
         protected boolean computePareto = true; // computing Pareto set, or doing actual model checking?
 
-        // Cancel computation if first element true
-        protected boolean[] cancel_computation = new boolean[1]; // false by default	
-
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 
@@ -268,12 +265,6 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	// Set methods for flags/settings
-
-        public void setCancel(boolean[] cancel_computation)
-        {
-	    this.cancel_computation = cancel_computation;
-        }
-
 
         public void setComputeParetoSet(boolean computePareto)
         {

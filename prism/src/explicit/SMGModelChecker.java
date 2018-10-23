@@ -168,9 +168,6 @@ public class SMGModelChecker extends ProbModelChecker
 	        // initialise the Parma Polyhedra Library
 	        PPLSupport.initPPL();
 
-		// reset cancellation of computation
-		cancel_computation[0] = false;
-
 		// extract simple expression from MQ
 		MultiParameters params = initialiseRewards(model, cnf);
 
@@ -2370,12 +2367,6 @@ public class SMGModelChecker extends ProbModelChecker
 	public boolean computeCQParetoSet(SMG smg, MultiParameters params, Pareto[] Px, List<Pareto>[] stochasticStates, boolean checkBounds,
 			boolean energy_objective) throws PrismException
 	{
-		// first, check if cancelled
-		if (cancel_computation[0]) {
-			cancel_computation[0] = false; // reset
-			throw new PrismException("Computation cancelled");
-		}
-
 		int gameSize = smg.getNumStates();
 		int n = params.rewards.size();
 		int init = smg.getFirstInitialState();
@@ -2452,7 +2443,7 @@ public class SMGModelChecker extends ProbModelChecker
 			}
 
 			// VALUE ITERATION STEP
-			Pareto[] temp = smg.pMultiObjective(Qx, params.rewards, localGaussSeidel, baseline_accuracy, params.biggest_reward, cancel_computation,
+			Pareto[] temp = smg.pMultiObjective(Qx, params.rewards, localGaussSeidel, baseline_accuracy, params.biggest_reward,
 					stochasticStates, params.rounding, !params.no_union_with_previous & !energy_objective, energy_objective, params.M);
 			System.arraycopy(temp, 0, Px, 0, temp.length); // copy to result
 

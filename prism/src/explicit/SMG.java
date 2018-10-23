@@ -306,12 +306,12 @@ public class SMG extends STPGExplicit implements STPG
 	/**
 	 * Product constructor.
 	 **/
-    public SMG(ModulesFile mf, List<ModulesFile> mfs, List<SMG> smgs, PrismLog mainLog, boolean[] cancel_computation) throws PrismException
+    public SMG(ModulesFile mf, List<ModulesFile> mfs, List<SMG> smgs, PrismLog mainLog) throws PrismException
 	{
-	    this(mf, mfs, smgs, mainLog, false, cancel_computation); // no compatibility check is default
+	    this(mf, mfs, smgs, mainLog, false); // no compatibility check is default
 	}
 
-    public SMG(ModulesFile mf, List<ModulesFile> mfs, List<SMG> smgs, PrismLog mainLog, boolean checkCompatibility, boolean[] cancel_computation) throws PrismException
+    public SMG(ModulesFile mf, List<ModulesFile> mfs, List<SMG> smgs, PrismLog mainLog, boolean checkCompatibility) throws PrismException
 	{
 		int n = smgs.size();
 		int estSize = 1;
@@ -380,10 +380,6 @@ public class SMG extends STPGExplicit implements STPG
 			// log progress
 			if(pointer % 1000 == 0 && pointer > 0) {
 			    mainLog.print(String.format("(%d/~%d)", pointer, estSize));
-			    if (cancel_computation[0]) {
-				cancel_computation[0] = false; // reset
-				throw new PrismException("Computation cancelled");
-			    }
 			}
 			if(pointer % 10000 == 0 && pointer > 0)
 			    mainLog.print("\n");
@@ -928,7 +924,6 @@ public class SMG extends STPGExplicit implements STPG
 	 */
 	public Pareto[] pMultiObjective(Pareto[] Xk, List<SMGRewards> rewards, boolean gaussSeidel,
 					long baseline_accuracy, double[] biggest_reward,
-					boolean[] cancel_computation,
 					List<Pareto>[] stochasticStates, boolean rounding,
 					boolean union_with_previous, boolean cut, long M)
 	    throws PrismException
@@ -939,10 +934,6 @@ public class SMG extends STPGExplicit implements STPG
 		// iterate for each state separately
 		for (int s = 0; s < numStates; s++) {
 			// first, check if cancelled
-			if (cancel_computation[0]) {
-				cancel_computation[0] = false; // reset
-				throw new PrismException("Computation cancelled");
-			}
 			// initialize the polyhedra for the stochastic states of s
 			List<Pareto> distPolys = new ArrayList<Pareto>(trans.get(s).size());
 			// apply F to (X^k)(s)

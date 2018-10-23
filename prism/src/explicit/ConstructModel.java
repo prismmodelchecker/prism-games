@@ -145,7 +145,7 @@ public class ConstructModel extends PrismComponent
 	 */
 	public List<State> computeReachableStates(ModelGenerator modelGen) throws PrismException
 	{
-		constructModel(modelGen, true, null);
+		constructModel(modelGen, true);
 		return getStatesList();
 	}
 
@@ -155,7 +155,7 @@ public class ConstructModel extends PrismComponent
 	 */
 	public Model constructModel(ModelGenerator modelGen) throws PrismException
 	{
-		return constructModel(modelGen, false, null);
+		return constructModel(modelGen, false);
 	}
 
 	/**
@@ -166,7 +166,7 @@ public class ConstructModel extends PrismComponent
 	 * @param justReach If true, just build the reachable state set, not the model
 	 *
 	 */
-	public Model constructModel(ModelGenerator modelGen, boolean justReach, boolean[] cancel_computation) throws PrismException
+	public Model constructModel(ModelGenerator modelGen, boolean justReach) throws PrismException
 	{
 		// Model info
 		ModelType modelType;
@@ -195,7 +195,7 @@ public class ConstructModel extends PrismComponent
 		if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG
 				&& ((ModulesFileModelGenerator) modelGen).getModulesFile().getSystemDefn() != null) {
 			// default is to not check compatibility
-			return constructSMGModelCompositionally(((ModulesFileModelGenerator) modelGen).getModulesFile(), justReach, cancel_computation);
+			return constructSMGModelCompositionally(((ModulesFileModelGenerator) modelGen).getModulesFile(), justReach);
 		}
 
 		// Display a warning if there are unbounded vars
@@ -486,9 +486,9 @@ public class ConstructModel extends PrismComponent
 	 * the set of reachable states can be obtained with {@link #getStatesList()}.
 	 * @param modulesFile The PRISM model
 	 */
-	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, boolean[] cancel_computation) throws PrismException
+	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach) throws PrismException
 	{
-		return constructSMGModelCompositionally(modulesFile, justReach, null, null, true, cancel_computation);
+		return constructSMGModelCompositionally(modulesFile, justReach, null, null, true);
 	}
 
 	/**
@@ -499,7 +499,7 @@ public class ConstructModel extends PrismComponent
 	* and and only the components are returned.
 	**/
 	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, List<SMG> subsystems, List<ModulesFile> subsystemModulesFiles,
-			boolean buildFullModel, boolean[] cancel_computation) throws PrismException
+			boolean buildFullModel) throws PrismException
 	{
 		// if compatibility check or full model build is requested, need to build full model in any case
 		if ((checkCompatibility || buildFullModel) && subsystems == null)
@@ -543,7 +543,7 @@ public class ConstructModel extends PrismComponent
 			// construct the models
 			ModulesFileModelGenerator modelGen = new ModulesFileModelGenerator(modulesFile_i, this);
 			modelGen.setCompositional(true);
-			m = (SMG) constructModel(modelGen, justReach, cancel_computation);
+			m = (SMG) constructModel(modelGen, justReach);
 			// convert to normal form if necessary
 			if (m != null)
 				m.toNormalForm();
@@ -554,7 +554,7 @@ public class ConstructModel extends PrismComponent
 		if (!justReach && (checkCompatibility || buildFullModel) && sys instanceof SystemFullParallel) {
 			// form composition and check compatibility (if requested)
 			double t0 = (double) System.nanoTime();
-			SMG smg_compositional = new SMG(modulesFile, subsystemModulesFiles, subsystems, mainLog, checkCompatibility, cancel_computation);
+			SMG smg_compositional = new SMG(modulesFile, subsystemModulesFiles, subsystems, mainLog, checkCompatibility);
 
 			mainLog.print(String.format("product construction took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
 			return smg_compositional;
@@ -568,8 +568,6 @@ public class ConstructModel extends PrismComponent
 	 */
 	public static void main(String[] args)
 	{
-		boolean[] cancel_computation = new boolean[1]; // false by default
-
 		try {
 			// Simple example: parse a PRISM file from a file, construct the model and export to a .tra file
 			PrismLog mainLog = new PrismPrintStreamLog(System.out);
@@ -581,7 +579,7 @@ public class ConstructModel extends PrismComponent
 			modulesFile.setUndefinedConstants(undefinedConstants.getMFConstantValues());
 			ConstructModel constructModel = new ConstructModel(prism);
 			simulator.ModulesFileModelGenerator modelGen = new simulator.ModulesFileModelGenerator(modulesFile, constructModel);
-			Model model = constructModel.constructModel(modelGen, false, cancel_computation);
+			Model model = constructModel.constructModel(modelGen, false);
 			model.exportToPrismExplicitTra(args[1]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());

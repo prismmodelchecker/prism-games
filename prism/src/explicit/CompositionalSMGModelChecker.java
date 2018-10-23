@@ -80,7 +80,6 @@ public class CompositionalSMGModelChecker extends PrismComponent
 	// options
 	private boolean computePareto = true; // computing Pareto set, or doing actual model checking?
         private boolean checkCompatibility = false; // check compatibility of subsystems
-	private boolean[] cancel_computation = new boolean[1]; // false by default
 
 	// the subsystems, their properties, and the return values of the separate subtasks
 	private List<ModulesFile> subsystemModulesFiles; // one modules File per subsystem
@@ -128,12 +127,6 @@ public class CompositionalSMGModelChecker extends PrismComponent
 	{
 		this.computePareto = computePareto;
 	}
-
-	public void setCancel(boolean[] cancel_computation)
-	{
-		this.cancel_computation = cancel_computation;
-	}
-
 
         public Strategy getStrategy()
         {
@@ -193,7 +186,6 @@ public class CompositionalSMGModelChecker extends PrismComponent
 
 		// set subsystem model checker options
 		mc.setComputeParetoSet(computePareto);
-		mc.setCancel(cancel_computation);
 
 		// build the subsystems
 		mainLog.print("Building Model ... \n");
@@ -258,7 +250,7 @@ public class CompositionalSMGModelChecker extends PrismComponent
 	    constructModel.setCheckCompatibility(checkCompatibility);
 	    subsystems = new ArrayList<SMG>();
 	    subsystemModulesFiles = new ArrayList<ModulesFile>();
-   	    currentModelExpl = (SMG) constructModel.constructSMGModelCompositionally(modulesFile, false, subsystems, subsystemModulesFiles, buildFullModel, cancel_computation);
+   	    currentModelExpl = (SMG) constructModel.constructSMGModelCompositionally(modulesFile, false, subsystems, subsystemModulesFiles, buildFullModel);
 
 	    currentModelExpl.findDeadlocks(false); // do not fix deadlocks in composition
 	    checkForDeadlocksExpl(currentModelExpl); // check for deadlocks - if found, abort
