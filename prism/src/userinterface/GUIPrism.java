@@ -114,11 +114,11 @@ public class GUIPrism extends JFrame
 	{
 		try {
 			//Show the splash screen
-			//splash = new GUIPrismSplash("images/splash.png");
-			//splash.display();
+			splash = new GUIPrismSplash("images/splash.png");
+			splash.display();
 			gui = new GUIPrism();
 			gui.setVisible(true);
-			//EventQueue.invokeLater(new GUIPrism.SplashScreenCloser());
+			EventQueue.invokeLater(new GUIPrism.SplashScreenCloser());
 			gui.passCLArgs(args);
 		} catch (GUIException e) {
 			System.err.println("Error: Could not load the PRISM GUI: " + e.getMessage());
