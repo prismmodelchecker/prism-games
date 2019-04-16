@@ -31,3 +31,7 @@ prism/\.project
 # Eclipse project custom settings
 \.settings/
 prism/\.settings/
+
+prism/out/
+prism/prism.iml
+prism/examples/PA/
