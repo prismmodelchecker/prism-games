@@ -2060,13 +2060,20 @@ public class NondetModelChecker extends NonProbModelChecker
 				case Prism.SPARSE:
 					IntegerVector strat = null;
 					if (genStrat) {
-						JDDNode ddStrat = JDD.ITE(yes, JDD.Constant(-2), JDD.Constant(-1));
+						// prepare strategy storage for the sparse engine computation
+						JDDNode ddStrat = JDD.ITE(yes.copy(), JDD.Constant(-2), JDD.Constant(-1));
+						// restrict to the reachable state space of the model (required for conversion to integer array)
+						ddStrat = JDD.Times(ddStrat, reach.copy());
 						strat = new IntegerVector(ddStrat, allDDRowVars, odd);
 						JDD.Deref(ddStrat);
 					}
 					if (doIntervalIteration) {
 						if (transform != null) {
-							strat = null;  // strategy generation with the quotient not yet supported
+							// strategy generation with the quotient not yet supported
+							if (strat != null) {
+								strat.clear();
+								strat = null;
+							}
 							probsDV = PrismSparse.NondetUntilInterval(transformed.getTrans(),
 							                                          transformed.getTransActions(),
 							                                          transformed.getSynchs(),
@@ -2086,7 +2093,11 @@ public class NondetModelChecker extends NonProbModelChecker
 						}
 					} else {
 						if (transform != null) {
-							strat = null;  // strategy generation with the quotient not yet supported
+							// strategy generation with the quotient not yet supported
+							if (strat != null) {
+								strat.clear();
+								strat = null;
+							}
 							probsDV = PrismSparse.NondetUntil(transformed.getTrans(),
 							                                  transformed.getTransActions(),
 							                                  transformed.getSynchs(),
@@ -2175,9 +2186,16 @@ public class NondetModelChecker extends NonProbModelChecker
 	{
 		DoubleVector rewardsDV;
 		StateValues rewards = null;
+		// Local copy of setting
+		int engine = this.engine;
 
 		// compute rewards
 		mainLog.println("\nComputing rewards...");
+		// switch engine, if necessary
+		if (engine == Prism.HYBRID) {
+			mainLog.println("Switching engine since hybrid engine does yet support this computation...");
+			engine = Prism.SPARSE;
+		}
 		mainLog.println("Engine: " + Prism.getEngineString(engine));
 		try {
 			switch (engine) {
