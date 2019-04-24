@@ -17,12 +17,10 @@ http://www.prismmodelchecker.org/games/installation.php
 DOCUMENTATION
 -------------
 
-Included in this release is a manual for the latest version of PRISM,
-in which PRISM-games is based.
+Included in this release is a manual for the version of PRISM
+on which PRISM-games is based.
 
 Documentation specifically for PRISM-games can be found here:
-
-The best source of information about using PRISM is the online manual:
 
   http://www.prismmodelchecker.org/games/
 
