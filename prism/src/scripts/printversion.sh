@@ -12,11 +12,11 @@ if [ "$SRC_DIR" = "" ]; then
 fi
 
 if [ -f "$SRC_DIR"/prism/Version.java ]; then
-	VERSION_NUM=`grep versionString "$SRC_DIR"/prism/Version.java | sed -E 's/[^"]+"([^"]+)"[^"]+/\1/'`
+	VERSION_NUM=`grep versionExtensionString "$SRC_DIR"/prism/Version.java | sed -E 's/[^"]+"([^"]+)"[^"]+/\1/'`
 	if [ "$VERSION_NUM" != "" ]; then
 		/bin/echo -n $VERSION_NUM
 
-		VERSION_SUFFIX=`grep versionSuffixString "$SRC_DIR"/prism/Version.java | sed -E 's/[^"]+"([^"]*)"[^"]+/\1/'`
+		VERSION_SUFFIX=`grep versionExtensionSuffixString "$SRC_DIR"/prism/Version.java | sed -E 's/[^"]+"([^"]*)"[^"]+/\1/'`
 		if [ "$VERSION_SUFFIX" != "" ]; then
 			/bin/echo -n ".$VERSION_SUFFIX"
 	

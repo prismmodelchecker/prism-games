@@ -83,6 +83,14 @@ import strat.Strategy;
  */
 public class Prism extends PrismComponent implements PrismSettingsListener
 {
+	/** PRISM extension version (e.g. "2.0"). Read from prism.Version.
+	 * The usual version (and versionSuffix) variable is retained below
+	 * in order to keep track of  the base version of PRISM */
+	private static String versionExtension = prism.Version.versionExtensionString;
+	
+	/** Optional PRISM extension version suffix (e.g. "dev", "beta"). Read from prism.Version. */
+	private static String versionExtensionSuffix = prism.Version.versionExtensionSuffixString;
+
 	/** PRISM version (e.g. "4.0.3"). Read from prism.Version. */
 	private static String version = prism.Version.versionString;
 
@@ -703,6 +711,19 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Get current version number, as a string. 
 	 */
 	public static String getVersion()
+	{
+		String v = versionExtension;
+		// Append version suffix (e.g. "dev", "beta") if non-empty
+		if (versionExtensionSuffix.length() > 0) {
+			v += "." + versionExtensionSuffix;
+		}
+		return v;
+	}
+
+	/**
+	 * Get number of the version of PRISM on which this extension is based, as a string. 
+	 */
+	public static String getBaseVersion()
 	{
 		String v = version;
 		// Append version suffix (e.g. "dev", "beta") if non-empty
@@ -1387,7 +1408,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mainLog.setVerbosityLevel(verbose ? PrismLog.VL_ALL : PrismLog.VL_DEFAULT);
 		mainLog.print(getToolName() + "\n");
 		mainLog.print(new String(new char[getToolName().length()]).replace("\0", "=") + "\n");
-		mainLog.print("\nVersion: " + getVersion() + "\n");
+		mainLog.print("\nVersion: " + getVersion() + " (based on PRISM " + getBaseVersion() + ")\n");
 		mainLog.print("Date: " + new java.util.Date() + "\n");
 		try {
 			String h = java.net.InetAddress.getLocalHost().getHostName();
