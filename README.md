@@ -1,21 +1,17 @@
-======
-README
-======
+# PRISM-games
 
 This is PRISM-games, an extension of the PRISM model checker
 for verification and strategy synthesis for stochastic multi-player games.
 
-------------
-INSTALLATION
-------------
+
+## Installation
 
 Up-to-date installation instructions can be found here:
 
 http://www.prismmodelchecker.org/games/installation.php
 
--------------
-DOCUMENTATION
--------------
+
+## Documentation
 
 Included in this release is a manual for the version of PRISM
 on which PRISM-games is based.
@@ -24,25 +20,27 @@ Documentation specifically for PRISM-games can be found here:
 
   http://www.prismmodelchecker.org/games/
 
----------
-LICENSING
----------
 
-PRISM-games is distributed under the GNU General Public License (GPL).
-A copy of this license can be found in the file COPYING.txt.
+## Licensing
+
+PRISM-games is distributed under the GNU General Public License (GPL), version 2.
+A copy of this license can be found in the file `COPYING.txt`.
 For more information, see:
 
   http://www.gnu.org/licenses/
 
-PRISM-games uses the CUDD (Colorado University Decision Diagram) library of
-Fabio Somenzi, which is freely available. For more information about this
-library, see:
+PRISM-games uses the CUDD (Colorado University Decision Diagram) library of Fabio Somenzi,
+which is freely available. For more information about this library, see:
 
   http://vlsi.colorado.edu/~fabio/CUDD/
 
-----------------
-ACKNOWLEDGEMENTS
-----------------
+PRISM-games also uses various other libraries (mainly to be found in the lib directory).
+For details of those, and for links to source where we distribute only binaries, see:
+
+http://www.prismmodelchecker.org/other-downloads.php
+
+
+## Acknowledgements
 
 PRISM was created and is still actively maintained by:
 
@@ -83,9 +81,8 @@ For more details see:
 
   http://www.prismmodelchecker.org/people.php
 
--------
-CONTACT
--------
+
+## Contact
 
 If you have problems or questions regarding PRISM, please use the help forum provided. See:
 
