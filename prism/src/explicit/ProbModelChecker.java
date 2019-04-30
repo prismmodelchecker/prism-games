@@ -1087,6 +1087,9 @@ public class ProbModelChecker extends NonProbModelChecker
 					rewards = checkRewardTotal(model, modelRewards, exprTemp, minMax);
 				}
 				break;
+			case ExpressionTemporal.R_S:
+				rewards = checkRewardSteady(model, modelRewards);
+				break;
 			default:
 				throw new PrismNotSupportedException("Explicit engine does not yet handle the " + exprTemp.getOperatorSymbol() + " reward operator");
 			}
@@ -1213,6 +1216,27 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
+	 * Compute expected rewards for a steady-state reward operator.
+	 */
+	protected StateValues checkRewardSteady(Model model, Rewards modelRewards) throws PrismException
+	{
+		// Compute/return the rewards
+		ModelCheckerResult res = null;
+		switch (model.getModelType()) {
+		case DTMC:
+			res = ((DTMCModelChecker) this).computeSteadyStateRewards((DTMC) model, (MCRewards) modelRewards);
+			break;
+		case CTMC:
+			res = ((CTMCModelChecker) this).computeSteadyStateRewards((CTMC) model, (MCRewards) modelRewards);
+			break;
+		default:
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the steady-state reward operator for " + model.getModelType() + "s");
+		}
+		result.setStrategy(res.strat);
+		return StateValues.createFromDoubleArray(res.soln, model);
+	}
+
+	/**
 	 * Compute rewards for a path formula in a reward operator.
 	 */
 	protected StateValues checkRewardPathFormula(Model model, Rewards modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
@@ -1330,16 +1354,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		BitSet b = checkExpression(model, expr, null).getBitSet();
 
 		// Compute/return the probabilities
-		ModelCheckerResult res = null;
 		switch (model.getModelType()) {
 		case DTMC:
-			double multProbs[] = Utils.bitsetToDoubleArray(b, model.getNumStates());
-			res = ((DTMCModelChecker) this).computeSteadyStateBackwardsProbs((DTMC) model, multProbs);
-			break;
-		default: 
-		    throw new PrismNotSupportedException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
+			return ((DTMCModelChecker) this).computeSteadyStateFormula((DTMC) model, b);
+		case CTMC:
+			return ((CTMCModelChecker) this).computeSteadyStateFormula((CTMC) model, b);
+		default:
+			throw new PrismNotSupportedException("Explicit engine does not yet handle the S operator for " + model.getModelType() + "s");
 		}
-		return StateValues.createFromDoubleArray(res.soln, model);
 	}
 
 	protected StateValues checkExpressionMultiObjective(Model model, ExpressionStrategy expr, boolean forAll, Coalition coalition) throws PrismException

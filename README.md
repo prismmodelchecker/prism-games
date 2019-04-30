@@ -50,6 +50,10 @@ PRISM was created and is still actively maintained by:
  * Gethin Norman (University of Glasgow)
  * Marta Kwiatkowska (University of Oxford) 
 
+Development of the tool is currently led from Birmingham by Dave Parker. Other current key developers are:
+
+ * Joachim Klein (formerly Technische Universität Dresden)
+
 We gratefully acknowledge contributions to the PRISM code-base from various sources,
 including (in approximately reverse chronological order):
 
