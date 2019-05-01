@@ -52,6 +52,13 @@ Development of the tool is currently led from Birmingham by Dave Parker. Other c
 
  * Joachim Klein (formerly Technische Universität Dresden)
 
+In addition, the following have worked specifically worked on PRISM-games:
+
+* Aistis Simaitis (University of Oxford)
+* Vojtěch Forejt (University of Oxford)
+* Mateusz Ujma (University of Oxford)
+* Clemens Wiltsche (University of Oxford)
+
 We gratefully acknowledge contributions to the PRISM code-base from various sources,
 including (in approximately reverse chronological order):
 
