@@ -1,0 +1,27 @@
+// Maximum achievable expected W1 reward when execution completes
+<<p1>> R{"w_1_total"}max=? [ F status=8 ]
+<<p1,p4>> R{"w_1_total"}max=? [ F status=8 ]
+<<p1,p2,p4>> R{"w_1_total"}max=? [ F status=8 ]
+<<p1,p2,p4,p5>> R{"w_1_total"}max=? [ F status=8 ]
+<<p1,p2,p3,p4,p5>> R{"w_1_total"}max=? [ F status=8 ]
+
+// Maximum achievable expected W2 reward when execution completes
+<<p1>> R{"w_2_total"}max=? [ F status=8 ]
+<<p1,p4>> R{"w_2_total"}max=? [ F status=8 ]
+<<p1,p2,p4>> R{"w_2_total"}max=? [ F status=8 ]
+<<p1,p2,p4,p5>> R{"w_2_total"}max=? [ F status=8 ]
+<<p1,p2,p3,p4,p5>> R{"w_2_total"}max=? [ F status=8 ]
+
+// Maximum achievable probability to complete task 1
+<<p1>> Pmax=? [ F task1_completed ]
+<<p1,p4>> Pmax=? [ F task1_completed ]
+<<p1,p2,p4>> Pmax=? [ F task1_completed ]
+<<p1,p2,p4,p5>> Pmax=? [ F task1_completed ]
+<<p1,p2,p3,p4,p5>> Pmax=? [ F task1_completed ]
+
+// Maximum achievable probability to complete tasks 1 and 2
+<<p1>> Pmax=? [ F task2_completed&task1_completed ]
+<<p1,p4>> Pmax=? [ F task2_completed&task1_completed ]
+<<p1,p2,p4>> Pmax=? [ F task2_completed&task1_completed ]
+<<p1,p2,p4,p5>> Pmax=? [ F task2_completed&task1_completed ]
+<<p1,p2,p3,p4,p5>> Pmax=? [ F task2_completed&task1_completed ]

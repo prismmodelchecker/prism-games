@@ -1,0 +1,12 @@
+
+
+
+# One investor (two player-game)
+prism-games investor.prism investor.props -const vmax=10,vinit=5
+prism-games investor.prism investor.props -const vmax=10,vinit=0:10 -exportresults stdout
+
+# One investor, with infinite loop removed, allowing us to test F rather than Fc
+prism-games investor_mod.prism investor_mod.props -const vmax=10,vinit=5
+
+# One investor, with conversion to min, allowing us to test F rather than Fc (but breaks because of ECs?)
+prism-games investor_min.nm -pctl '<<1>> Rmin=? [ F i=2 ]' -const vmax=10,vinit=5

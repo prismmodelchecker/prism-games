@@ -1,0 +1,27 @@
+const int k;
+
+// RESULT: true
+<<1>> P>=0.99 [ F<=5 c=2 ]
+
+// RESULT (k=0): 0.0
+// RESULT (k=1): 0.85
+// RESULT (k=2): 0.85
+// RESULT (k=3): 0.9775
+// RESULT (k=4): 0.9775
+// RESULT (k=5): 0.996625
+<<1>> Pmax=? [ F<=k c=2 ]
+
+// RESULT: 1.0
+<<1>> Pmax=? [ F c=2 ]
+
+// RESULT: 0.0
+<<1>> Pmin=? [ F<=3 c=2 ]
+
+// RESULT: 0.0
+<<1>> Pmin=? [ F c=2 ]
+
+// RESULT: 0.0
+<<1>> Pmin=? [ F (h=2 & c=0) ]
+
+// RESULT: 0.15
+<<1>> Pmax=? [ F (h=2 & c=0) ]

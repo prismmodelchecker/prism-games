@@ -1,0 +1,6 @@
+#!/bin/sh
+
+prism-games coins.prism coins.props
+prism-games dice.prism dice.props -const N=3
+prism-games prisoners_dilemma.prism prisoners_dilemma.props
+prism-games smg_example.prism smg_example.props

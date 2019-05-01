@@ -1,0 +1,8 @@
+#!/bin/sh
+
+prism-games mdsm2304.prism mdsm2304.props
+prism-games mdsm3304.prism mdsm3304.props
+prism-games mdsm4304.prism mdsm4304.props
+prism-games mdsm5304.prism mdsm5304.props
+prism-games mdsm6304.prism mdsm6304.props
+prism-games mdsm7304.prism mdsm7304.props

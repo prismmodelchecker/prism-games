@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# One investor (two player-game)
+prism-games investor.prism investor.props -const vmax=10,vinit=5
+prism-games investor.prism investor.props -const vmax=10,vinit=0:10 -exportresults stdout
+
+# Two investors (three-player game)
+prism-games two_investors.prism two_investors.props
+
+# Hard-coded "seat of the pants" strategy (MDP)
+prism-games investor_sotp.prism investor_sotp.props -const vmax=10,vinit=5

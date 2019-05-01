@@ -1,0 +1,23 @@
+// RESULT: 0.2
+<<p1>> Pmax=? [ F t=1 ]
+
+// RESULT: Infinity
+<<p1>> Rmax=? [ F t=1 ]
+
+// RESULT: 0.1
+<<p1>> Pmax=? [ X t=1 ]
+
+// RESULT: 0.1
+<<p1>> Pmax=? [ F<=1 t=1 ]
+
+// RESULT: 0.2
+<<p1>> Pmax=? [ F<=6 t=1 ]
+
+// RESULT: 0.2
+<<p2, p1>> Pmax=? [ F<=2 t=1 ]
+
+// RESULT: 0.1
+<<p1>> Pmax=? [ F<=2 t=1 ]
+
+// RESULT: 0.2
+<<p1>> Pmax=? [ F<=3 t=1 ]

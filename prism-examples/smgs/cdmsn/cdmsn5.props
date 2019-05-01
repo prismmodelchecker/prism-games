@@ -1,0 +1,33 @@
+const int k;
+
+// Speed of convergence
+// Optimal (minimal) expected running time to reach the best decision
+// Players not in the coalition are assumed to be faulty
+ 
+<<sched,1>> R{"runtime"}min=? [F all_prefer_1]
+<<sched,1,2>> R{"runtime"}min=? [F all_prefer_1]
+<<sched,1,2,3>> R{"runtime"}min=? [F all_prefer_1]
+<<sched,1,2,3,4>> R{"runtime"}min=? [F all_prefer_1]
+<<sched,1,2,3,4,5>> R{"runtime"}min=? [F all_prefer_1]
+
+// Robustness 1
+// Best-case ability of a coalition to recover from a 'bad' state to a 'good' state in k steps,
+// where 'good' means the coalition can with probability > 0.9 reach the best decision within 10 steps
+// and 'bad' means that all sensors currently have the worst decision.
+
+filter(range, <<1>> Pmax=? [F<=k ((sched=1) & (<<1>> P>0.9 [F<=10 all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2>> Pmax=? [F<=k ((sched=1|sched=2) & (<<1,2>> P>0.9 [F<=10 all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3>> Pmax=? [F<=k ((sched=1|sched=2|sched=3) & (<<1,2,3>> P>0.9 [F<=10 all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3,4>> Pmax=? [F<=k ((sched=1|sched=2|sched=3|sched=4) & (<<1,2,3,4>> P>0.9 [F<=10 all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3,4,5>> Pmax=? [F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5) & (<<1,2,3,4,5>> P>0.9 [F<=10 all_prefer_1]))], all_prefer_3&sched=0)
+
+// Robustness 2
+// Best-case ability of a coalition to recover from a 'bad' state to a 'good' state in k steps,
+// where 'good' means the coalition can reach the best decision using less than 0.5mJ of energy
+// and 'bad' means that all sensors currently have the worst decision.
+
+filter(range, <<1>> Pmax=? [F<=k ((sched=1) & (<<1>> R{"ntot1"}<50 [F all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2>> Pmax=? [F<=k ((sched=1|sched=2) & (<<1,2>> R{"ntot12"}<50 [F all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3>> Pmax=? [F<=k ((sched=1|sched=2|sched=3) & (<<1,2,3>> R{"ntot123"}<50 [F all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3,4>> Pmax=? [F<=k ((sched=1|sched=2|sched=3|sched=4) & (<<1,2,3,4>> R{"ntot1234"}<50 [F all_prefer_1]))], all_prefer_3&sched=0)
+filter(range, <<1,2,3,4,5>> Pmax=? [F<=k ((sched=1|sched=2|sched=3|sched=4|sched=5) & (<<1,2,3,4,5>> R{"ntot12345"}<50 [F all_prefer_1]))], all_prefer_3&sched=0)

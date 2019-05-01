@@ -1,0 +1,1007 @@
+// PRISM model for autonomous car case study
+// Two player stochastic game with three objectives.
+//
+// This is a machine-generated file
+// Author: Clemens Wiltsche
+// Generated: 14/05/2019
+
+
+smg
+
+player p1
+	[uturn_0], [brake_0], [changelane_0], [honk_0], [move_0_0], [move_1_0], [move_2_0],
+	[uturn_1], [brake_1], [changelane_1], [honk_1], [move_0_1], [move_1_1],
+	[uturn_2], [brake_2], [changelane_2], [honk_2], [term_2],
+	[uturn_3], [brake_3], [changelane_3], [honk_3], [move_0_3], [move_1_3],
+	[uturn_4], [brake_4], [changelane_4], [honk_4], [move_0_4], [move_1_4],
+	[uturn_5], [brake_5], [changelane_5], [honk_5], [move_0_5], [move_1_5],
+	[uturn_6], [brake_6], [changelane_6], [honk_6], [move_0_6], [move_1_6],
+	[uturn_7], [brake_7], [changelane_7], [honk_7], [term_7],
+	[uturn_8], [brake_8], [changelane_8], [honk_8], [term_8],
+	[uturn_9], [brake_9], [changelane_9], [honk_9], [move_0_9], [move_1_9],
+	[uturn_10], [brake_10], [changelane_10], [honk_10], [term_10],
+	[uturn_11], [brake_11], [changelane_11], [honk_11], [move_0_11], [move_1_11], [move_2_11],
+	[uturn_12], [brake_12], [changelane_12], [honk_12], [term_12],
+	[uturn_13], [brake_13], [changelane_13], [honk_13], [move_0_13], [move_1_13],
+	[uturn_14], [brake_14], [changelane_14], [honk_14], [move_0_14], [move_1_14],
+	[uturn_15], [brake_15], [changelane_15], [honk_15], [move_0_15], [move_1_15],
+	[uturn_16], [brake_16], [changelane_16], [honk_16], [move_0_16], [move_1_16],
+	[uturn_17], [brake_17], [changelane_17], [honk_17], [term_17],
+	[uturn_18], [brake_18], [changelane_18], [honk_18], [move_0_18], [move_1_18],
+	[uturn_19], [brake_19], [changelane_19], [honk_19], [move_0_19], [move_1_19],
+	[uturn_20], [brake_20], [changelane_20], [honk_20], [move_0_20], [move_1_20],
+	[uturn_21], [brake_21], [changelane_21], [honk_21], [term_21],
+	[uturn_22], [brake_22], [changelane_22], [honk_22], [move_0_22], [move_1_22],
+	[uturn_23], [brake_23], [changelane_23], [honk_23], [move_0_23], [move_1_23],
+	[uturn_24], [brake_24], [changelane_24], [honk_24], [move_0_24], [move_1_24],
+	[uturn_25], [brake_25], [changelane_25], [honk_25], [move_0_25], [move_1_25],
+	[uturn_26], [brake_26], [changelane_26], [honk_26], [move_0_26], [move_1_26], [move_2_26],
+	[uturn_27], [brake_27], [changelane_27], [honk_27], [move_0_27], [move_1_27],
+	[uturn_28], [brake_28], [changelane_28], [honk_28], [move_0_28], [move_1_28],
+	[uturn_29], [brake_29], [changelane_29], [honk_29], [move_0_29], [move_1_29],
+	[uturn_30], [brake_30], [changelane_30], [honk_30], [move_0_30], [move_1_30],
+	[uturn_31], [brake_31], [changelane_31], [honk_31], [term_31],
+	[uturn_32], [brake_32], [changelane_32], [honk_32], [move_0_32], [move_1_32],
+	[uturn_33], [brake_33], [changelane_33], [honk_33], [term_33],
+	[uturn_34], [brake_34], [changelane_34], [honk_34], [move_0_34], [move_1_34],
+	[uturn_35], [brake_35], [changelane_35], [honk_35], [move_0_35], [move_1_35],
+	[uturn_36], [brake_36], [changelane_36], [honk_36], [move_0_36], [move_1_36],
+	[uturn_37], [brake_37], [changelane_37], [honk_37], [move_0_37], [move_1_37],
+	[uturn_38], [brake_38], [changelane_38], [honk_38], [term_38],
+	[uturn_39], [brake_39], [changelane_39], [honk_39], [move_0_39], [move_1_39],
+	[uturn_40], [brake_40], [changelane_40], [honk_40], [move_0_40], [move_1_40],
+	[uturn_41], [brake_41], [changelane_41], [honk_41], [move_0_41], [move_1_41], [move_2_41],
+	[uturn_42], [brake_42], [changelane_42], [honk_42], [move_0_42], [move_1_42],
+	[uturn_43], [brake_43], [changelane_43], [honk_43], [move_0_43], [move_1_43]
+endplayer
+
+player p2
+	[pedestrian_0], [obstacle_0], [jam_0], [hazard_0],
+	[pedestrian_1], [obstacle_1], [jam_1], [hazard_1],
+	[pedestrian_2], [obstacle_2], [jam_2], [hazard_2],
+	[pedestrian_3], [obstacle_3], [jam_3], [hazard_3],
+	[pedestrian_4], [obstacle_4], [jam_4], [hazard_4],
+	[pedestrian_5], [obstacle_5], [jam_5], [hazard_5],
+	[pedestrian_6], [obstacle_6], [jam_6], [hazard_6],
+	[pedestrian_7], [obstacle_7], [jam_7], [hazard_7],
+	[pedestrian_8], [obstacle_8], [jam_8], [hazard_8],
+	[pedestrian_9], [obstacle_9], [jam_9], [hazard_9],
+	[pedestrian_10], [obstacle_10], [jam_10], [hazard_10],
+	[pedestrian_11], [obstacle_11], [jam_11], [hazard_11],
+	[pedestrian_12], [obstacle_12], [jam_12], [hazard_12],
+	[pedestrian_13], [obstacle_13], [jam_13], [hazard_13],
+	[pedestrian_14], [obstacle_14], [jam_14], [hazard_14],
+	[pedestrian_15], [obstacle_15], [jam_15], [hazard_15],
+	[pedestrian_16], [obstacle_16], [jam_16], [hazard_16],
+	[pedestrian_17], [obstacle_17], [jam_17], [hazard_17],
+	[pedestrian_18], [obstacle_18], [jam_18], [hazard_18],
+	[pedestrian_19], [obstacle_19], [jam_19], [hazard_19],
+	[pedestrian_20], [obstacle_20], [jam_20], [hazard_20],
+	[pedestrian_21], [obstacle_21], [jam_21], [hazard_21],
+	[pedestrian_22], [obstacle_22], [jam_22], [hazard_22],
+	[pedestrian_23], [obstacle_23], [jam_23], [hazard_23],
+	[pedestrian_24], [obstacle_24], [jam_24], [hazard_24],
+	[pedestrian_25], [obstacle_25], [jam_25], [hazard_25],
+	[pedestrian_26], [obstacle_26], [jam_26], [hazard_26],
+	[pedestrian_27], [obstacle_27], [jam_27], [hazard_27],
+	[pedestrian_28], [obstacle_28], [jam_28], [hazard_28],
+	[pedestrian_29], [obstacle_29], [jam_29], [hazard_29],
+	[pedestrian_30], [obstacle_30], [jam_30], [hazard_30],
+	[pedestrian_31], [obstacle_31], [jam_31], [hazard_31],
+	[pedestrian_32], [obstacle_32], [jam_32], [hazard_32],
+	[pedestrian_33], [obstacle_33], [jam_33], [hazard_33],
+	[pedestrian_34], [obstacle_34], [jam_34], [hazard_34],
+	[pedestrian_35], [obstacle_35], [jam_35], [hazard_35],
+	[pedestrian_36], [obstacle_36], [jam_36], [hazard_36],
+	[pedestrian_37], [obstacle_37], [jam_37], [hazard_37],
+	[pedestrian_38], [obstacle_38], [jam_38], [hazard_38],
+	[pedestrian_39], [obstacle_39], [jam_39], [hazard_39],
+	[pedestrian_40], [obstacle_40], [jam_40], [hazard_40],
+	[pedestrian_41], [obstacle_41], [jam_41], [hazard_41],
+	[pedestrian_42], [obstacle_42], [jam_42], [hazard_42],
+	[pedestrian_43], [obstacle_43], [jam_43], [hazard_43],
+	[term]
+endplayer
+
+const int POS_init = 43;
+const int POS_goal = 44;
+const int POS_term = 45;
+const int POS_0 = 0;	// name: Mansmoor Road
+const int POS_1 = 1;	// name: Church View
+const int POS_2 = 2;	// name: Fencott Road
+const int POS_3 = 3;	// name: High Street
+const int POS_4 = 4;	// name: Church Lane
+const int POS_5 = 5;	// name: High Street
+const int POS_6 = 6;	// name: High Street
+const int POS_7 = 7;	// name: 
+const int POS_8 = 8;	// name: 
+const int POS_9 = 9;	// name: New Pond Lane
+const int POS_10 = 10;	// name: Mansmoor Road
+const int POS_11 = 11;	// name: 
+const int POS_12 = 12;	// name: The Chure
+const int POS_13 = 13;	// name: Church Lane
+const int POS_14 = 14;	// name: The Chure
+const int POS_15 = 15;	// name: Fencott Road
+const int POS_16 = 16;	// name: High Street
+const int POS_17 = 17;	// name: Otmoor Lane
+const int POS_18 = 18;	// name: High Street
+const int POS_19 = 19;	// name: Blacksmiths Lane
+const int POS_20 = 20;	// name: High Street
+const int POS_21 = 21;	// name: Blacksmiths Lane
+const int POS_22 = 22;	// name: High Street
+const int POS_23 = 23;	// name: Otmoor Lane
+const int POS_24 = 24;	// name: The Chure
+const int POS_25 = 25;	// name: Mill Close
+const int POS_26 = 26;	// name: 
+const int POS_27 = 27;	// name: Church Lane
+const int POS_28 = 28;	// name: Church Lane
+const int POS_29 = 29;	// name: The Broadway
+const int POS_30 = 30;	// name: Mill Lane
+const int POS_31 = 31;	// name: Mill Close
+const int POS_32 = 32;	// name: Mill Close
+const int POS_33 = 33;	// name: Mill Lane
+const int POS_34 = 34;	// name: New Pond Lane
+const int POS_35 = 35;	// name: The Broadway
+const int POS_36 = 36;	// name: Church View
+const int POS_37 = 37;	// name: The Chure
+const int POS_38 = 38;	// name: High Street
+const int POS_39 = 39;	// name: High Street
+const int POS_40 = 40;	// name: Mill Close
+const int POS_41 = 41;	// name: New Pond Lane
+const int POS_42 = 42;	// name: New Pond Lane
+const int POS_43 = 43;	// name: High Street
+
+const int DEST_0_0 = POS_7;	// from Mansmoor Road
+const int DEST_1_0 = POS_8;	// from Mansmoor Road
+const int DEST_2_0 = POS_9;	// from Mansmoor Road to New Pond Lane
+const int DEST_0_1 = POS_34;	// from Church View to New Pond Lane
+const int DEST_1_1 = POS_35;	// from Church View to The Broadway
+const int DEST_2 = POS_term;
+const int DEST_0_3 = POS_17;	// from High Street to Otmoor Lane
+const int DEST_1_3 = POS_18;	// from High Street to High Street
+const int DEST_0_4 = POS_27;	// from Church Lane to Church Lane
+const int DEST_1_4 = POS_29;	// from Church Lane to The Broadway
+const int DEST_0_5 = POS_21;	// from High Street to Blacksmiths Lane
+const int DEST_1_5 = POS_22;	// from High Street to High Street
+const int DEST_0_6 = POS_16;	// from High Street to High Street
+const int DEST_1_6 = POS_17;	// from High Street to Otmoor Lane
+const int DEST_7 = POS_term;
+const int DEST_8 = POS_term;
+const int DEST_0_9 = POS_40;	// from New Pond Lane to Mill Close
+const int DEST_1_9 = POS_42;	// from New Pond Lane to New Pond Lane
+const int DEST_10 = POS_term;
+const int DEST_0_11 = POS_7;
+const int DEST_1_11 = POS_9;	// to New Pond Lane
+const int DEST_2_11 = POS_10;	// to Mansmoor Road
+const int DEST_12 = POS_term;
+const int DEST_0_13 = POS_28;	// from Church Lane to Church Lane
+const int DEST_1_13 = POS_29;	// from Church Lane to The Broadway
+const int DEST_0_14 = POS_38;	// from The Chure to High Street
+const int DEST_1_14 = POS_39;	// from The Chure to High Street
+const int DEST_0_15 = POS_1;	// from Fencott Road to Church View
+const int DEST_1_15 = POS_3;	// from Fencott Road to High Street
+const int DEST_0_16 = POS_1;	// from High Street to Church View
+const int DEST_1_16 = POS_2;	// from High Street to Fencott Road
+const int DEST_17 = POS_term;
+const int DEST_0_18 = POS_4;	// from High Street to Church Lane
+const int DEST_1_18 = POS_5;	// from High Street to High Street
+const int DEST_0_19 = POS_20;	// from Blacksmiths Lane to High Street
+const int DEST_1_19 = POS_22;	// from Blacksmiths Lane to High Street
+const int DEST_0_20 = POS_4;	// from High Street to Church Lane
+const int DEST_1_20 = POS_6;	// from High Street to High Street
+const int DEST_21 = POS_term;
+const int DEST_0_22 = POS_37;	// from High Street to The Chure
+const int DEST_1_22 = POS_38;	// from High Street to High Street
+const int DEST_0_23 = POS_16;	// from Otmoor Lane to High Street
+const int DEST_1_23 = POS_18;	// from Otmoor Lane to High Street
+const int DEST_0_24 = POS_13;	// from The Chure to Church Lane
+const int DEST_1_24 = POS_14;	// from The Chure to The Chure
+const int DEST_0_25 = POS_32;	// from Mill Close to Mill Close
+const int DEST_1_25 = POS_33;	// from Mill Close to Mill Lane
+const int DEST_0_26 = POS_8;
+const int DEST_1_26 = POS_9;	// to New Pond Lane
+const int DEST_2_26 = POS_10;	// to Mansmoor Road
+const int DEST_0_27 = POS_12;	// from Church Lane to The Chure
+const int DEST_1_27 = POS_14;	// from Church Lane to The Chure
+const int DEST_0_28 = POS_5;	// from Church Lane to High Street
+const int DEST_1_28 = POS_6;	// from Church Lane to High Street
+const int DEST_0_29 = POS_34;	// from The Broadway to New Pond Lane
+const int DEST_1_29 = POS_36;	// from The Broadway to Church View
+const int DEST_0_30 = POS_31;	// from Mill Lane to Mill Close
+const int DEST_1_30 = POS_32;	// from Mill Lane to Mill Close
+const int DEST_31 = POS_term;
+const int DEST_0_32 = POS_41;	// from Mill Close to New Pond Lane
+const int DEST_1_32 = POS_42;	// from Mill Close to New Pond Lane
+const int DEST_33 = POS_goal;
+const int DEST_0_34 = POS_40;	// from New Pond Lane to Mill Close
+const int DEST_1_34 = POS_41;	// from New Pond Lane to New Pond Lane
+const int DEST_0_35 = POS_27;	// from The Broadway to Church Lane
+const int DEST_1_35 = POS_28;	// from The Broadway to Church Lane
+const int DEST_0_36 = POS_2;	// from Church View to Fencott Road
+const int DEST_1_36 = POS_3;	// from Church View to High Street
+const int DEST_0_37 = POS_12;	// from The Chure to The Chure
+const int DEST_1_37 = POS_13;	// from The Chure to Church Lane
+const int DEST_38 = POS_term;
+const int DEST_0_39 = POS_20;	// from High Street to High Street
+const int DEST_1_39 = POS_21;	// from High Street to Blacksmiths Lane
+const int DEST_0_40 = POS_31;	// from Mill Close to Mill Close
+const int DEST_1_40 = POS_33;	// from Mill Close to Mill Lane
+const int DEST_0_41 = POS_7;	// from New Pond Lane
+const int DEST_1_41 = POS_8;	// from New Pond Lane
+const int DEST_2_41 = POS_10;	// from New Pond Lane to Mansmoor Road
+const int DEST_0_42 = POS_35;	// from New Pond Lane to The Broadway
+const int DEST_1_42 = POS_36;	// from New Pond Lane to Church View
+const int DEST_0_43 = POS_37;	// from High Street to The Chure
+const int DEST_1_43 = POS_39;	// from High Street to High Street
+
+const double DISTR_0_0 = 0.142857;
+const double DISTR_1_0 = 0.119466;
+const double DISTR_2_0 = 0.142856;
+const double DISTR_3_0 = 0.142857;
+const double DISTR_4_0 = 0.140603;
+const double DISTR_5_0 = 0.142857;
+const double DISTR_6_0 = 0.168504;
+const double DISTR_0_1 = 0.142765;
+const double DISTR_1_1 = 0.011455;
+const double DISTR_2_1 = 0.054497;
+const double DISTR_3_1 = 0.131820;
+const double DISTR_4_1 = 0.022764;
+const double DISTR_5_1 = 0.142857;
+const double DISTR_6_1 = 0.493843;
+const double DISTR_0_2 = 0.142857;
+const double DISTR_1_2 = 0.089551;
+const double DISTR_2_2 = 0.142676;
+const double DISTR_3_2 = 0.142857;
+const double DISTR_4_2 = 0.128577;
+const double DISTR_5_2 = 0.142857;
+const double DISTR_6_2 = 0.210625;
+const double DISTR_0_3 = 0.142857;
+const double DISTR_1_3 = 0.028146;
+const double DISTR_2_3 = 0.108689;
+const double DISTR_3_3 = 0.142760;
+const double DISTR_4_3 = 0.054189;
+const double DISTR_5_3 = 0.142857;
+const double DISTR_6_3 = 0.380502;
+const double DISTR_0_4 = 0.142826;
+const double DISTR_1_4 = 0.012985;
+const double DISTR_2_4 = 0.060942;
+const double DISTR_3_4 = 0.135590;
+const double DISTR_4_4 = 0.025757;
+const double DISTR_5_4 = 0.142857;
+const double DISTR_6_4 = 0.479044;
+const double DISTR_0_5 = 0.142856;
+const double DISTR_1_5 = 0.017597;
+const double DISTR_2_5 = 0.078635;
+const double DISTR_3_5 = 0.140852;
+const double DISTR_4_5 = 0.034667;
+const double DISTR_5_5 = 0.142857;
+const double DISTR_6_5 = 0.442536;
+const double DISTR_0_6 = 0.075595;
+const double DISTR_1_6 = 0.001683;
+const double DISTR_2_6 = 0.008404;
+const double DISTR_3_6 = 0.033047;
+const double DISTR_4_6 = 0.003365;
+const double DISTR_5_6 = 0.118115;
+const double DISTR_6_6 = 0.759791;
+const double DISTR_0_7 = 0.142857;
+const double DISTR_1_7 = 0.121887;
+const double DISTR_2_7 = 0.142856;
+const double DISTR_3_7 = 0.142857;
+const double DISTR_4_7 = 0.141076;
+const double DISTR_5_7 = 0.142857;
+const double DISTR_6_7 = 0.165609;
+const double DISTR_0_8 = 0.142857;
+const double DISTR_1_8 = 0.127569;
+const double DISTR_2_8 = 0.142857;
+const double DISTR_3_8 = 0.142857;
+const double DISTR_4_8 = 0.141947;
+const double DISTR_5_8 = 0.142857;
+const double DISTR_6_8 = 0.159056;
+const double DISTR_0_9 = 0.142857;
+const double DISTR_1_9 = 0.053028;
+const double DISTR_2_9 = 0.137178;
+const double DISTR_3_9 = 0.142857;
+const double DISTR_4_9 = 0.093212;
+const double DISTR_5_9 = 0.142857;
+const double DISTR_6_9 = 0.288011;
+const double DISTR_0_10 = 0.142857;
+const double DISTR_1_10 = 0.119466;
+const double DISTR_2_10 = 0.142856;
+const double DISTR_3_10 = 0.142857;
+const double DISTR_4_10 = 0.140603;
+const double DISTR_5_10 = 0.142857;
+const double DISTR_6_10 = 0.168504;
+const double DISTR_0_11 = 0.142857;
+const double DISTR_1_11 = 0.127569;
+const double DISTR_2_11 = 0.142857;
+const double DISTR_3_11 = 0.142857;
+const double DISTR_4_11 = 0.141947;
+const double DISTR_5_11 = 0.142857;
+const double DISTR_6_11 = 0.159056;
+const double DISTR_0_12 = 0.115954;
+const double DISTR_1_12 = 0.003234;
+const double DISTR_2_12 = 0.016102;
+const double DISTR_3_12 = 0.060596;
+const double DISTR_4_12 = 0.006464;
+const double DISTR_5_12 = 0.139803;
+const double DISTR_6_12 = 0.657848;
+const double DISTR_0_13 = 0.142857;
+const double DISTR_1_13 = 0.024108;
+const double DISTR_2_13 = 0.098867;
+const double DISTR_3_13 = 0.142544;
+const double DISTR_4_13 = 0.046881;
+const double DISTR_5_13 = 0.142857;
+const double DISTR_6_13 = 0.401886;
+const double DISTR_0_14 = 0.142847;
+const double DISTR_1_14 = 0.014566;
+const double DISTR_2_14 = 0.067313;
+const double DISTR_3_14 = 0.138166;
+const double DISTR_4_14 = 0.028833;
+const double DISTR_5_14 = 0.142857;
+const double DISTR_6_14 = 0.465418;
+const double DISTR_0_15 = 0.142857;
+const double DISTR_1_15 = 0.089551;
+const double DISTR_2_15 = 0.142676;
+const double DISTR_3_15 = 0.142857;
+const double DISTR_4_15 = 0.128577;
+const double DISTR_5_15 = 0.142857;
+const double DISTR_6_15 = 0.210625;
+const double DISTR_0_16 = 0.142857;
+const double DISTR_1_16 = 0.028146;
+const double DISTR_2_16 = 0.108689;
+const double DISTR_3_16 = 0.142760;
+const double DISTR_4_16 = 0.054189;
+const double DISTR_5_16 = 0.142857;
+const double DISTR_6_16 = 0.380502;
+const double DISTR_0_17 = 0.142857;
+const double DISTR_1_17 = 0.048202;
+const double DISTR_2_17 = 0.134577;
+const double DISTR_3_17 = 0.142857;
+const double DISTR_4_17 = 0.086550;
+const double DISTR_5_17 = 0.142857;
+const double DISTR_6_17 = 0.302101;
+const double DISTR_0_18 = 0.075595;
+const double DISTR_1_18 = 0.001683;
+const double DISTR_2_18 = 0.008404;
+const double DISTR_3_18 = 0.033047;
+const double DISTR_4_18 = 0.003365;
+const double DISTR_5_18 = 0.118115;
+const double DISTR_6_18 = 0.759791;
+const double DISTR_0_19 = 0.140373;
+const double DISTR_1_19 = 0.006761;
+const double DISTR_2_19 = 0.033213;
+const double DISTR_3_19 = 0.105508;
+const double DISTR_4_19 = 0.013492;
+const double DISTR_5_19 = 0.142835;
+const double DISTR_6_19 = 0.557816;
+const double DISTR_0_20 = 0.142856;
+const double DISTR_1_20 = 0.017597;
+const double DISTR_2_20 = 0.078635;
+const double DISTR_3_20 = 0.140852;
+const double DISTR_4_20 = 0.034667;
+const double DISTR_5_20 = 0.142857;
+const double DISTR_6_20 = 0.442536;
+const double DISTR_0_21 = 0.140373;
+const double DISTR_1_21 = 0.006761;
+const double DISTR_2_21 = 0.033213;
+const double DISTR_3_21 = 0.105508;
+const double DISTR_4_21 = 0.013492;
+const double DISTR_5_21 = 0.142835;
+const double DISTR_6_21 = 0.557816;
+const double DISTR_0_22 = 0.136165;
+const double DISTR_1_22 = 0.005327;
+const double DISTR_2_22 = 0.026341;
+const double DISTR_3_22 = 0.090401;
+const double DISTR_4_22 = 0.010639;
+const double DISTR_5_22 = 0.142693;
+const double DISTR_6_22 = 0.588434;
+const double DISTR_0_23 = 0.142857;
+const double DISTR_1_23 = 0.048202;
+const double DISTR_2_23 = 0.134577;
+const double DISTR_3_23 = 0.142857;
+const double DISTR_4_23 = 0.086550;
+const double DISTR_5_23 = 0.142857;
+const double DISTR_6_23 = 0.302101;
+const double DISTR_0_24 = 0.115954;
+const double DISTR_1_24 = 0.003234;
+const double DISTR_2_24 = 0.016102;
+const double DISTR_3_24 = 0.060596;
+const double DISTR_4_24 = 0.006464;
+const double DISTR_5_24 = 0.139803;
+const double DISTR_6_24 = 0.657848;
+const double DISTR_0_25 = 0.141141;
+const double DISTR_1_25 = 0.007292;
+const double DISTR_2_25 = 0.035718;
+const double DISTR_3_25 = 0.110083;
+const double DISTR_4_25 = 0.014546;
+const double DISTR_5_25 = 0.142847;
+const double DISTR_6_25 = 0.548374;
+const double DISTR_0_26 = 0.142857;
+const double DISTR_1_26 = 0.121887;
+const double DISTR_2_26 = 0.142856;
+const double DISTR_3_26 = 0.142857;
+const double DISTR_4_26 = 0.141076;
+const double DISTR_5_26 = 0.142857;
+const double DISTR_6_26 = 0.165609;
+const double DISTR_0_27 = 0.142857;
+const double DISTR_1_27 = 0.024108;
+const double DISTR_2_27 = 0.098867;
+const double DISTR_3_27 = 0.142544;
+const double DISTR_4_27 = 0.046881;
+const double DISTR_5_27 = 0.142857;
+const double DISTR_6_27 = 0.401886;
+const double DISTR_0_28 = 0.142826;
+const double DISTR_1_28 = 0.012985;
+const double DISTR_2_28 = 0.060942;
+const double DISTR_3_28 = 0.135590;
+const double DISTR_4_28 = 0.025757;
+const double DISTR_5_28 = 0.142857;
+const double DISTR_6_28 = 0.479044;
+const double DISTR_0_29 = 0.142857;
+const double DISTR_1_29 = 0.027925;
+const double DISTR_2_29 = 0.108202;
+const double DISTR_3_29 = 0.142753;
+const double DISTR_4_29 = 0.053795;
+const double DISTR_5_29 = 0.142857;
+const double DISTR_6_29 = 0.381610;
+const double DISTR_0_30 = 0.142857;
+const double DISTR_1_30 = 0.048338;
+const double DISTR_2_30 = 0.134663;
+const double DISTR_3_30 = 0.142857;
+const double DISTR_4_30 = 0.086744;
+const double DISTR_5_30 = 0.142857;
+const double DISTR_6_30 = 0.301684;
+const double DISTR_0_31 = 0.141141;
+const double DISTR_1_31 = 0.007292;
+const double DISTR_2_31 = 0.035718;
+const double DISTR_3_31 = 0.110083;
+const double DISTR_4_31 = 0.014546;
+const double DISTR_5_31 = 0.142847;
+const double DISTR_6_31 = 0.548374;
+const double DISTR_0_32 = 0.142665;
+const double DISTR_1_32 = 0.010417;
+const double DISTR_2_32 = 0.049976;
+const double DISTR_3_32 = 0.128264;
+const double DISTR_4_32 = 0.020724;
+const double DISTR_5_32 = 0.142857;
+const double DISTR_6_32 = 0.505096;
+const double DISTR_0_33 = 0.142857;
+const double DISTR_1_33 = 0.048338;
+const double DISTR_2_33 = 0.134663;
+const double DISTR_3_33 = 0.142857;
+const double DISTR_4_33 = 0.086744;
+const double DISTR_5_33 = 0.142857;
+const double DISTR_6_33 = 0.301684;
+const double DISTR_0_34 = 0.035897;
+const double DISTR_1_34 = 0.000734;
+const double DISTR_2_34 = 0.003667;
+const double DISTR_3_34 = 0.014621;
+const double DISTR_4_34 = 0.001467;
+const double DISTR_5_34 = 0.067529;
+const double DISTR_6_34 = 0.876084;
+const double DISTR_0_35 = 0.142857;
+const double DISTR_1_35 = 0.027925;
+const double DISTR_2_35 = 0.108202;
+const double DISTR_3_35 = 0.142753;
+const double DISTR_4_35 = 0.053795;
+const double DISTR_5_35 = 0.142857;
+const double DISTR_6_35 = 0.381610;
+const double DISTR_0_36 = 0.142765;
+const double DISTR_1_36 = 0.011455;
+const double DISTR_2_36 = 0.054497;
+const double DISTR_3_36 = 0.131820;
+const double DISTR_4_36 = 0.022764;
+const double DISTR_5_36 = 0.142857;
+const double DISTR_6_36 = 0.493843;
+const double DISTR_0_37 = 0.142847;
+const double DISTR_1_37 = 0.014566;
+const double DISTR_2_37 = 0.067313;
+const double DISTR_3_37 = 0.138166;
+const double DISTR_4_37 = 0.028833;
+const double DISTR_5_37 = 0.142857;
+const double DISTR_6_37 = 0.465418;
+const double DISTR_0_38 = 0.142857;
+const double DISTR_1_38 = 0.111815;
+const double DISTR_2_38 = 0.142849;
+const double DISTR_3_38 = 0.142857;
+const double DISTR_4_38 = 0.138674;
+const double DISTR_5_38 = 0.142857;
+const double DISTR_6_38 = 0.178090;
+const double DISTR_0_39 = 0.136165;
+const double DISTR_1_39 = 0.005327;
+const double DISTR_2_39 = 0.026341;
+const double DISTR_3_39 = 0.090401;
+const double DISTR_4_39 = 0.010639;
+const double DISTR_5_39 = 0.142693;
+const double DISTR_6_39 = 0.588434;
+const double DISTR_0_40 = 0.142665;
+const double DISTR_1_40 = 0.010417;
+const double DISTR_2_40 = 0.049976;
+const double DISTR_3_40 = 0.128264;
+const double DISTR_4_40 = 0.020724;
+const double DISTR_5_40 = 0.142857;
+const double DISTR_6_40 = 0.505096;
+const double DISTR_0_41 = 0.142857;
+const double DISTR_1_41 = 0.053028;
+const double DISTR_2_41 = 0.137178;
+const double DISTR_3_41 = 0.142857;
+const double DISTR_4_41 = 0.093212;
+const double DISTR_5_41 = 0.142857;
+const double DISTR_6_41 = 0.288011;
+const double DISTR_0_42 = 0.035897;
+const double DISTR_1_42 = 0.000734;
+const double DISTR_2_42 = 0.003667;
+const double DISTR_3_42 = 0.014621;
+const double DISTR_4_42 = 0.001467;
+const double DISTR_5_42 = 0.067529;
+const double DISTR_6_42 = 0.876084;
+const double DISTR_0_43 = 0.142857;
+const double DISTR_1_43 = 0.111815;
+const double DISTR_2_43 = 0.142849;
+const double DISTR_3_43 = 0.142857;
+const double DISTR_4_43 = 0.138674;
+const double DISTR_5_43 = 0.142857;
+const double DISTR_6_43 = 0.178090;
+
+const int CHANGELANE_0_0 = -1;
+const int CHANGELANE_1_0 = -2;
+const int CHANGELANE_0_1 = -1;
+const int CHANGELANE_1_1 = -2;
+const int CHANGELANE_0_2 = -1;
+const int CHANGELANE_1_2 = -2;
+const int CHANGELANE_0_3 = -1;
+const int CHANGELANE_1_3 = -2;
+const int CHANGELANE_0_4 = -1;
+const int CHANGELANE_1_4 = -2;
+const int CHANGELANE_0_5 = -1;
+const int CHANGELANE_1_5 = -2;
+const int CHANGELANE_0_6 = -1;
+const int CHANGELANE_1_6 = -2;
+const int CHANGELANE_0_7 = -1;
+const int CHANGELANE_1_7 = -2;
+const int CHANGELANE_0_8 = -1;
+const int CHANGELANE_1_8 = -2;
+const int CHANGELANE_0_9 = -1;
+const int CHANGELANE_1_9 = -2;
+const int CHANGELANE_0_10 = -1;
+const int CHANGELANE_1_10 = -2;
+const int CHANGELANE_0_11 = -1;
+const int CHANGELANE_1_11 = -2;
+const int CHANGELANE_0_12 = -1;
+const int CHANGELANE_1_12 = -2;
+const int CHANGELANE_0_13 = -1;
+const int CHANGELANE_1_13 = -2;
+const int CHANGELANE_0_14 = -1;
+const int CHANGELANE_1_14 = -2;
+const int CHANGELANE_0_15 = -1;
+const int CHANGELANE_1_15 = -2;
+const int CHANGELANE_0_16 = -1;
+const int CHANGELANE_1_16 = -2;
+const int CHANGELANE_0_17 = -1;
+const int CHANGELANE_1_17 = -2;
+const int CHANGELANE_0_18 = -1;
+const int CHANGELANE_1_18 = -2;
+const int CHANGELANE_0_19 = -1;
+const int CHANGELANE_1_19 = -2;
+const int CHANGELANE_0_20 = -1;
+const int CHANGELANE_1_20 = -2;
+const int CHANGELANE_0_21 = -1;
+const int CHANGELANE_1_21 = -2;
+const int CHANGELANE_0_22 = -1;
+const int CHANGELANE_1_22 = -2;
+const int CHANGELANE_0_23 = -1;
+const int CHANGELANE_1_23 = -2;
+const int CHANGELANE_0_24 = -1;
+const int CHANGELANE_1_24 = -2;
+const int CHANGELANE_0_25 = -1;
+const int CHANGELANE_1_25 = -2;
+const int CHANGELANE_0_26 = -1;
+const int CHANGELANE_1_26 = -2;
+const int CHANGELANE_0_27 = -1;
+const int CHANGELANE_1_27 = -2;
+const int CHANGELANE_0_28 = -1;
+const int CHANGELANE_1_28 = -2;
+const int CHANGELANE_0_29 = -1;
+const int CHANGELANE_1_29 = -2;
+const int CHANGELANE_0_30 = -1;
+const int CHANGELANE_1_30 = -2;
+const int CHANGELANE_0_31 = -1;
+const int CHANGELANE_1_31 = -2;
+const int CHANGELANE_0_32 = -1;
+const int CHANGELANE_1_32 = -2;
+const int CHANGELANE_0_33 = -1;
+const int CHANGELANE_1_33 = -2;
+const int CHANGELANE_0_34 = -1;
+const int CHANGELANE_1_34 = -2;
+const int CHANGELANE_0_35 = -1;
+const int CHANGELANE_1_35 = -2;
+const int CHANGELANE_0_36 = -1;
+const int CHANGELANE_1_36 = -2;
+const int CHANGELANE_0_37 = -1;
+const int CHANGELANE_1_37 = -2;
+const int CHANGELANE_0_38 = -1;
+const int CHANGELANE_1_38 = -2;
+const int CHANGELANE_0_39 = -1;
+const int CHANGELANE_1_39 = -2;
+const int CHANGELANE_0_40 = -1;
+const int CHANGELANE_1_40 = -2;
+const int CHANGELANE_0_41 = -1;
+const int CHANGELANE_1_41 = -2;
+const int CHANGELANE_0_42 = -1;
+const int CHANGELANE_1_42 = -2;
+const int CHANGELANE_0_43 = -1;
+const int CHANGELANE_1_43 = -2;
+const int UTURN_0_0 = -1;
+const int UTURN_1_0 = -2;
+const int UTURNPLAYER_0 = 1;
+const int REVEDGE_0 = 10;
+const int UTURN_0_1 = -1;
+const int UTURN_1_1 = -2;
+const int UTURNPLAYER_1 = 1;
+const int REVEDGE_1 = 36;
+const int UTURN_0_2 = -1;
+const int UTURN_1_2 = -2;
+const int UTURNPLAYER_2 = 1;
+const int REVEDGE_2 = 15;
+const int UTURN_0_3 = -1;
+const int UTURN_1_3 = -2;
+const int UTURNPLAYER_3 = 1;
+const int REVEDGE_3 = 16;
+const int UTURN_0_4 = -1;
+const int UTURN_1_4 = -2;
+const int UTURNPLAYER_4 = 1;
+const int REVEDGE_4 = 28;
+const int UTURN_0_5 = -1;
+const int UTURN_1_5 = -2;
+const int UTURNPLAYER_5 = 1;
+const int REVEDGE_5 = 20;
+const int UTURN_0_6 = -1;
+const int UTURN_1_6 = -2;
+const int UTURNPLAYER_6 = 1;
+const int REVEDGE_6 = 18;
+const int UTURN_0_7 = -1;
+const int UTURN_1_7 = -2;
+const int UTURNPLAYER_7 = 1;
+const int REVEDGE_7 = 26;
+const int UTURN_0_8 = -1;
+const int UTURN_1_8 = -2;
+const int UTURNPLAYER_8 = 1;
+const int REVEDGE_8 = 11;
+const int UTURN_0_9 = -1;
+const int UTURN_1_9 = -2;
+const int UTURNPLAYER_9 = 1;
+const int REVEDGE_9 = 41;
+const int UTURN_0_10 = -1;
+const int UTURN_1_10 = -2;
+const int UTURNPLAYER_10 = 1;
+const int REVEDGE_10 = 0;
+const int UTURN_0_11 = -1;
+const int UTURN_1_11 = -2;
+const int UTURNPLAYER_11 = 1;
+const int REVEDGE_11 = 8;
+const int UTURN_0_12 = -1;
+const int UTURN_1_12 = -2;
+const int UTURNPLAYER_12 = 1;
+const int REVEDGE_12 = 24;
+const int UTURN_0_13 = -1;
+const int UTURN_1_13 = -2;
+const int UTURNPLAYER_13 = 1;
+const int REVEDGE_13 = 27;
+const int UTURN_0_14 = -1;
+const int UTURN_1_14 = -2;
+const int UTURNPLAYER_14 = 1;
+const int REVEDGE_14 = 37;
+const int UTURN_0_15 = -1;
+const int UTURN_1_15 = -2;
+const int UTURNPLAYER_15 = 1;
+const int REVEDGE_15 = 2;
+const int UTURN_0_16 = -1;
+const int UTURN_1_16 = -2;
+const int UTURNPLAYER_16 = 1;
+const int REVEDGE_16 = 3;
+const int UTURN_0_17 = -1;
+const int UTURN_1_17 = -2;
+const int UTURNPLAYER_17 = 1;
+const int REVEDGE_17 = 23;
+const int UTURN_0_18 = -1;
+const int UTURN_1_18 = -2;
+const int UTURNPLAYER_18 = 1;
+const int REVEDGE_18 = 6;
+const int UTURN_0_19 = -1;
+const int UTURN_1_19 = -2;
+const int UTURNPLAYER_19 = 1;
+const int REVEDGE_19 = 21;
+const int UTURN_0_20 = -1;
+const int UTURN_1_20 = -2;
+const int UTURNPLAYER_20 = 1;
+const int REVEDGE_20 = 5;
+const int UTURN_0_21 = -1;
+const int UTURN_1_21 = -2;
+const int UTURNPLAYER_21 = 1;
+const int REVEDGE_21 = 19;
+const int UTURN_0_22 = -1;
+const int UTURN_1_22 = -2;
+const int UTURNPLAYER_22 = 1;
+const int REVEDGE_22 = 39;
+const int UTURN_0_23 = -1;
+const int UTURN_1_23 = -2;
+const int UTURNPLAYER_23 = 1;
+const int REVEDGE_23 = 17;
+const int UTURN_0_24 = -1;
+const int UTURN_1_24 = -2;
+const int UTURNPLAYER_24 = 1;
+const int REVEDGE_24 = 12;
+const int UTURN_0_25 = -1;
+const int UTURN_1_25 = -2;
+const int UTURNPLAYER_25 = 1;
+const int REVEDGE_25 = 31;
+const int UTURN_0_26 = -1;
+const int UTURN_1_26 = -2;
+const int UTURNPLAYER_26 = 1;
+const int REVEDGE_26 = 7;
+const int UTURN_0_27 = -1;
+const int UTURN_1_27 = -2;
+const int UTURNPLAYER_27 = 1;
+const int REVEDGE_27 = 13;
+const int UTURN_0_28 = -1;
+const int UTURN_1_28 = -2;
+const int UTURNPLAYER_28 = 1;
+const int REVEDGE_28 = 4;
+const int UTURN_0_29 = -1;
+const int UTURN_1_29 = -2;
+const int UTURNPLAYER_29 = 1;
+const int REVEDGE_29 = 35;
+const int UTURN_0_30 = -1;
+const int UTURN_1_30 = -2;
+const int UTURNPLAYER_30 = 1;
+const int REVEDGE_30 = 33;
+const int UTURN_0_31 = -1;
+const int UTURN_1_31 = -2;
+const int UTURNPLAYER_31 = 1;
+const int REVEDGE_31 = 25;
+const int UTURN_0_32 = -1;
+const int UTURN_1_32 = -2;
+const int UTURNPLAYER_32 = 1;
+const int REVEDGE_32 = 40;
+const int UTURN_0_33 = -1;
+const int UTURN_1_33 = -2;
+const int UTURNPLAYER_33 = 1;
+const int REVEDGE_33 = 30;
+const int UTURN_0_34 = -1;
+const int UTURN_1_34 = -2;
+const int UTURNPLAYER_34 = 1;
+const int REVEDGE_34 = 42;
+const int UTURN_0_35 = -1;
+const int UTURN_1_35 = -2;
+const int UTURNPLAYER_35 = 1;
+const int REVEDGE_35 = 29;
+const int UTURN_0_36 = -1;
+const int UTURN_1_36 = -2;
+const int UTURNPLAYER_36 = 1;
+const int REVEDGE_36 = 1;
+const int UTURN_0_37 = -1;
+const int UTURN_1_37 = -2;
+const int UTURNPLAYER_37 = 1;
+const int REVEDGE_37 = 14;
+const int UTURN_0_38 = -1;
+const int UTURN_1_38 = -2;
+const int UTURNPLAYER_38 = 1;
+const int REVEDGE_38 = 43;
+const int UTURN_0_39 = -1;
+const int UTURN_1_39 = -2;
+const int UTURNPLAYER_39 = 1;
+const int REVEDGE_39 = 22;
+const int UTURN_0_40 = -1;
+const int UTURN_1_40 = -2;
+const int UTURNPLAYER_40 = 1;
+const int REVEDGE_40 = 32;
+const int UTURN_0_41 = -1;
+const int UTURN_1_41 = -2;
+const int UTURNPLAYER_41 = 1;
+const int REVEDGE_41 = 9;
+const int UTURN_0_42 = -1;
+const int UTURN_1_42 = -2;
+const int UTURNPLAYER_42 = 1;
+const int REVEDGE_42 = 34;
+const int UTURN_0_43 = -1;
+const int UTURN_1_43 = -2;
+const int UTURNPLAYER_43 = 1;
+const int REVEDGE_43 = 38;
+
+global p : [1..2] init 2;
+global car_position : [0..46] init POS_init;
+global s : [-11..12] init 0;
+
+
+module field_2
+
+	[hazard_2] p=2 & s=0 & car_position=POS_2 -> DISTR_0_2+DISTR_1_2+DISTR_2_2+DISTR_5_2 : (s'=-6) + DISTR_3_2+DISTR_4_2+DISTR_6_2 : (s'=-7);
+	[hazard_2] p=2 & s=-6 & car_position=POS_2 -> (DISTR_2_2+DISTR_5_2)/(DISTR_0_2+DISTR_1_2+DISTR_2_2+DISTR_5_2) : (s'=-8) + (DISTR_0_2+DISTR_1_2)/(DISTR_0_2+DISTR_1_2+DISTR_2_2+DISTR_5_2) : (s'=-9);
+	[hazard_2] p=2 & s=-7 & car_position=POS_2 -> (DISTR_3_2+DISTR_4_2)/(DISTR_3_2+DISTR_4_2+DISTR_6_2) : (s'=-10) + (DISTR_6_2)/(DISTR_3_2+DISTR_4_2+DISTR_6_2) : (s'=-2) & (p'=1);
+	[hazard_2] p=2 & s=-8 & car_position=POS_2 -> DISTR_2_2/(DISTR_2_2+DISTR_5_2) : (s'=3) + DISTR_5_2/(DISTR_2_2+DISTR_5_2) : (s'=6) & (p'=1);
+	[hazard_2] p=2 & s=-9 & car_position=POS_2 -> DISTR_1_2/(DISTR_0_2+DISTR_1_2) : (s'=2) + DISTR_0_2/(DISTR_0_2+DISTR_1_2) : (s'=1) & (p'=1);
+	[hazard_2] p=2 & s=-10 & car_position=POS_2 -> DISTR_4_2/(DISTR_3_2+DISTR_4_2) : (s'=5) + DISTR_3_2/(DISTR_3_2+DISTR_4_2) : (s'=4) & (p'=1);
+	[brake_2] p=1 & s=1 & car_position=POS_2 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[honk_2] p=1 & s=1 & car_position=POS_2 -> 0.040000 : (p'=2) & (s'=-1) + 0.960000 : (p'=1) & (s'=-2);
+	[changelane_2] p=1 & s=1 & car_position=POS_2 -> 0.030000 : (p'=2) & (s'=CHANGELANE_0_2) + 0.970000 : (p'=1) & (s'=CHANGELANE_1_2);
+	[pedestrian_2] p=2 & s=2 & car_position=POS_2-> (p'=1) & (s'=1);
+	[obstacle_2] p=2 & s=2 & car_position=POS_2-> (p'=1) & (s'=4);
+	[pedestrian_2] p=2 & s=3 & car_position=POS_2-> (p'=1) & (s'=1);
+	[jam_2] p=2 & s=3 & car_position=POS_2-> (p'=1) & (s'=6);
+	[changelane_2] p=1 & s=4 & car_position=POS_2 -> 0.020000 : (p'=2) & (s'=CHANGELANE_0_2) + 0.980000 : (p'=1) & (s'=CHANGELANE_1_2);
+	[uturn_2] p=1 & s=4 & car_position=POS_2 -> 0.020000 : (p'=2) & (s'=UTURN_0_2) + 0.980000 : (p'=UTURNPLAYER_2) & (s'=UTURN_1_2) & (car_position'=REVEDGE_2);
+	[obstacle_2] p=2 & s=5 & car_position=POS_2-> (p'=1) & (s'=4);
+	[jam_2] p=2 & s=5 & car_position=POS_2-> (p'=1) & (s'=6);
+	[honk_2] p=1 & s=6 & car_position=POS_2 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[uturn_2] p=1 & s=6 & car_position=POS_2 -> 0.020000 : (p'=2) & (s'=UTURN_0_2) + 0.980000 : (p'=UTURNPLAYER_2) & (s'=UTURN_1_2) & (car_position'=REVEDGE_2);
+	[term_2] p=1 & s=-2 & car_position=POS_2 -> (car_position'=DEST_2) & (s'=0) & (p'=2);
+
+endmodule
+
+
+
+
+module field_1
+
+	[hazard_1] p=2 & s=0 & car_position=POS_1 -> DISTR_0_1+DISTR_1_1+DISTR_2_1+DISTR_5_1 : (s'=-6) + DISTR_3_1+DISTR_4_1+DISTR_6_1 : (s'=-7);
+	[hazard_1] p=2 & s=-6 & car_position=POS_1 -> (DISTR_2_1+DISTR_5_1)/(DISTR_0_1+DISTR_1_1+DISTR_2_1+DISTR_5_1) : (s'=-8) + (DISTR_0_1+DISTR_1_1)/(DISTR_0_1+DISTR_1_1+DISTR_2_1+DISTR_5_1) : (s'=-9);
+	[hazard_1] p=2 & s=-7 & car_position=POS_1 -> (DISTR_3_1+DISTR_4_1)/(DISTR_3_1+DISTR_4_1+DISTR_6_1) : (s'=-10) + (DISTR_6_1)/(DISTR_3_1+DISTR_4_1+DISTR_6_1) : (s'=-2) & (p'=1);
+	[hazard_1] p=2 & s=-8 & car_position=POS_1 -> DISTR_2_1/(DISTR_2_1+DISTR_5_1) : (s'=3) + DISTR_5_1/(DISTR_2_1+DISTR_5_1) : (s'=6) & (p'=1);
+	[hazard_1] p=2 & s=-9 & car_position=POS_1 -> DISTR_1_1/(DISTR_0_1+DISTR_1_1) : (s'=2) + DISTR_0_1/(DISTR_0_1+DISTR_1_1) : (s'=1) & (p'=1);
+	[hazard_1] p=2 & s=-10 & car_position=POS_1 -> DISTR_4_1/(DISTR_3_1+DISTR_4_1) : (s'=5) + DISTR_3_1/(DISTR_3_1+DISTR_4_1) : (s'=4) & (p'=1);
+	[brake_1] p=1 & s=1 & car_position=POS_1 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[honk_1] p=1 & s=1 & car_position=POS_1 -> 0.040000 : (p'=2) & (s'=-1) + 0.960000 : (p'=1) & (s'=-2);
+	[changelane_1] p=1 & s=1 & car_position=POS_1 -> 0.030000 : (p'=2) & (s'=CHANGELANE_0_1) + 0.970000 : (p'=1) & (s'=CHANGELANE_1_1);
+	[pedestrian_1] p=2 & s=2 & car_position=POS_1-> (p'=1) & (s'=1);
+	[obstacle_1] p=2 & s=2 & car_position=POS_1-> (p'=1) & (s'=4);
+	[pedestrian_1] p=2 & s=3 & car_position=POS_1-> (p'=1) & (s'=1);
+	[jam_1] p=2 & s=3 & car_position=POS_1-> (p'=1) & (s'=6);
+	[changelane_1] p=1 & s=4 & car_position=POS_1 -> 0.020000 : (p'=2) & (s'=CHANGELANE_0_1) + 0.980000 : (p'=1) & (s'=CHANGELANE_1_1);
+	[uturn_1] p=1 & s=4 & car_position=POS_1 -> 0.020000 : (p'=2) & (s'=UTURN_0_1) + 0.980000 : (p'=UTURNPLAYER_1) & (s'=UTURN_1_1) & (car_position'=REVEDGE_1);
+	[obstacle_1] p=2 & s=5 & car_position=POS_1-> (p'=1) & (s'=4);
+	[jam_1] p=2 & s=5 & car_position=POS_1-> (p'=1) & (s'=6);
+	[honk_1] p=1 & s=6 & car_position=POS_1 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[uturn_1] p=1 & s=6 & car_position=POS_1 -> 0.020000 : (p'=2) & (s'=UTURN_0_1) + 0.980000 : (p'=UTURNPLAYER_1) & (s'=UTURN_1_1) & (car_position'=REVEDGE_1);
+	[move_0_1] p=1 & s=-2 & car_position=POS_1-> (car_position'=DEST_0_1) & (s'=0) & (p'=2);
+	[move_1_1] p=1 & s=-2 & car_position=POS_1-> (car_position'=DEST_1_1) & (s'=0) & (p'=2);
+
+endmodule
+
+
+
+
+module field_0
+
+	[hazard_0] p=2 & s=0 & car_position=POS_0 -> DISTR_0_0+DISTR_1_0+DISTR_2_0+DISTR_5_0 : (s'=-6) + DISTR_3_0+DISTR_4_0+DISTR_6_0 : (s'=-7);
+	[hazard_0] p=2 & s=-6 & car_position=POS_0 -> (DISTR_2_0+DISTR_5_0)/(DISTR_0_0+DISTR_1_0+DISTR_2_0+DISTR_5_0) : (s'=-8) + (DISTR_0_0+DISTR_1_0)/(DISTR_0_0+DISTR_1_0+DISTR_2_0+DISTR_5_0) : (s'=-9);
+	[hazard_0] p=2 & s=-7 & car_position=POS_0 -> (DISTR_3_0+DISTR_4_0)/(DISTR_3_0+DISTR_4_0+DISTR_6_0) : (s'=-10) + (DISTR_6_0)/(DISTR_3_0+DISTR_4_0+DISTR_6_0) : (s'=-2) & (p'=1);
+	[hazard_0] p=2 & s=-8 & car_position=POS_0 -> DISTR_2_0/(DISTR_2_0+DISTR_5_0) : (s'=3) + DISTR_5_0/(DISTR_2_0+DISTR_5_0) : (s'=6) & (p'=1);
+	[hazard_0] p=2 & s=-9 & car_position=POS_0 -> DISTR_1_0/(DISTR_0_0+DISTR_1_0) : (s'=2) + DISTR_0_0/(DISTR_0_0+DISTR_1_0) : (s'=1) & (p'=1);
+	[hazard_0] p=2 & s=-10 & car_position=POS_0 -> DISTR_4_0/(DISTR_3_0+DISTR_4_0) : (s'=5) + DISTR_3_0/(DISTR_3_0+DISTR_4_0) : (s'=4) & (p'=1);
+	[brake_0] p=1 & s=1 & car_position=POS_0 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[honk_0] p=1 & s=1 & car_position=POS_0 -> 0.040000 : (p'=2) & (s'=-1) + 0.960000 : (p'=1) & (s'=-2);
+	[changelane_0] p=1 & s=1 & car_position=POS_0 -> 0.030000 : (p'=2) & (s'=CHANGELANE_0_0) + 0.970000 : (p'=1) & (s'=CHANGELANE_1_0);
+	[pedestrian_0] p=2 & s=2 & car_position=POS_0-> (p'=1) & (s'=1);
+	[obstacle_0] p=2 & s=2 & car_position=POS_0-> (p'=1) & (s'=4);
+	[pedestrian_0] p=2 & s=3 & car_position=POS_0-> (p'=1) & (s'=1);
+	[jam_0] p=2 & s=3 & car_position=POS_0-> (p'=1) & (s'=6);
+	[changelane_0] p=1 & s=4 & car_position=POS_0 -> 0.020000 : (p'=2) & (s'=CHANGELANE_0_0) + 0.980000 : (p'=1) & (s'=CHANGELANE_1_0);
+	[uturn_0] p=1 & s=4 & car_position=POS_0 -> 0.020000 : (p'=2) & (s'=UTURN_0_0) + 0.980000 : (p'=UTURNPLAYER_0) & (s'=UTURN_1_0) & (car_position'=REVEDGE_0);
+	[obstacle_0] p=2 & s=5 & car_position=POS_0-> (p'=1) & (s'=4);
+	[jam_0] p=2 & s=5 & car_position=POS_0-> (p'=1) & (s'=6);
+	[honk_0] p=1 & s=6 & car_position=POS_0 -> 0.010000 : (p'=2) & (s'=-1) + 0.990000 : (p'=1) & (s'=-2);
+	[uturn_0] p=1 & s=6 & car_position=POS_0 -> 0.020000 : (p'=2) & (s'=UTURN_0_0) + 0.980000 : (p'=UTURNPLAYER_0) & (s'=UTURN_1_0) & (car_position'=REVEDGE_0);
+	[move_0_0] p=1 & s=-2 & car_position=POS_0-> (car_position'=DEST_0_0) & (s'=0) & (p'=2);
+	[move_1_0] p=1 & s=-2 & car_position=POS_0-> (car_position'=DEST_1_0) & (s'=0) & (p'=2);
+	[move_2_0] p=1 & s=-2 & car_position=POS_0-> (car_position'=DEST_2_0) & (s'=0) & (p'=2);
+
+endmodule
+
+
+module field_7 = field_2 [POS_2=POS_7, pedestrian_2=pedestrian_7, obstacle_2=obstacle_7, jam_2=jam_7, hazard_2=hazard_7, uturn_2=uturn_7, brake_2=brake_7, changelane_2=changelane_7, honk_2=honk_7, DISTR_0_2=DISTR_0_7, DISTR_1_2=DISTR_1_7, DISTR_2_2=DISTR_2_7, DISTR_3_2=DISTR_3_7, DISTR_4_2=DISTR_4_7, DISTR_5_2=DISTR_5_7, DISTR_6_2=DISTR_6_7, UTURN_0_2=UTURN_0_7, UTURN_1_2=UTURN_1_7, REVEDGE_2=REVEDGE_7, UTURNPLAYER_2=UTURNPLAYER_7, CHANGELANE_0_2=CHANGELANE_0_7, CHANGELANE_1_2=CHANGELANE_1_7, term_2=term_7, DEST_2=DEST_7] endmodule
+module field_8 = field_2 [POS_2=POS_8, pedestrian_2=pedestrian_8, obstacle_2=obstacle_8, jam_2=jam_8, hazard_2=hazard_8, uturn_2=uturn_8, brake_2=brake_8, changelane_2=changelane_8, honk_2=honk_8, DISTR_0_2=DISTR_0_8, DISTR_1_2=DISTR_1_8, DISTR_2_2=DISTR_2_8, DISTR_3_2=DISTR_3_8, DISTR_4_2=DISTR_4_8, DISTR_5_2=DISTR_5_8, DISTR_6_2=DISTR_6_8, UTURN_0_2=UTURN_0_8, UTURN_1_2=UTURN_1_8, REVEDGE_2=REVEDGE_8, UTURNPLAYER_2=UTURNPLAYER_8, CHANGELANE_0_2=CHANGELANE_0_8, CHANGELANE_1_2=CHANGELANE_1_8, term_2=term_8, DEST_2=DEST_8] endmodule
+module field_10 = field_2 [POS_2=POS_10, pedestrian_2=pedestrian_10, obstacle_2=obstacle_10, jam_2=jam_10, hazard_2=hazard_10, uturn_2=uturn_10, brake_2=brake_10, changelane_2=changelane_10, honk_2=honk_10, DISTR_0_2=DISTR_0_10, DISTR_1_2=DISTR_1_10, DISTR_2_2=DISTR_2_10, DISTR_3_2=DISTR_3_10, DISTR_4_2=DISTR_4_10, DISTR_5_2=DISTR_5_10, DISTR_6_2=DISTR_6_10, UTURN_0_2=UTURN_0_10, UTURN_1_2=UTURN_1_10, REVEDGE_2=REVEDGE_10, UTURNPLAYER_2=UTURNPLAYER_10, CHANGELANE_0_2=CHANGELANE_0_10, CHANGELANE_1_2=CHANGELANE_1_10, term_2=term_10, DEST_2=DEST_10] endmodule
+module field_12 = field_2 [POS_2=POS_12, pedestrian_2=pedestrian_12, obstacle_2=obstacle_12, jam_2=jam_12, hazard_2=hazard_12, uturn_2=uturn_12, brake_2=brake_12, changelane_2=changelane_12, honk_2=honk_12, DISTR_0_2=DISTR_0_12, DISTR_1_2=DISTR_1_12, DISTR_2_2=DISTR_2_12, DISTR_3_2=DISTR_3_12, DISTR_4_2=DISTR_4_12, DISTR_5_2=DISTR_5_12, DISTR_6_2=DISTR_6_12, UTURN_0_2=UTURN_0_12, UTURN_1_2=UTURN_1_12, REVEDGE_2=REVEDGE_12, UTURNPLAYER_2=UTURNPLAYER_12, CHANGELANE_0_2=CHANGELANE_0_12, CHANGELANE_1_2=CHANGELANE_1_12, term_2=term_12, DEST_2=DEST_12] endmodule
+module field_17 = field_2 [POS_2=POS_17, pedestrian_2=pedestrian_17, obstacle_2=obstacle_17, jam_2=jam_17, hazard_2=hazard_17, uturn_2=uturn_17, brake_2=brake_17, changelane_2=changelane_17, honk_2=honk_17, DISTR_0_2=DISTR_0_17, DISTR_1_2=DISTR_1_17, DISTR_2_2=DISTR_2_17, DISTR_3_2=DISTR_3_17, DISTR_4_2=DISTR_4_17, DISTR_5_2=DISTR_5_17, DISTR_6_2=DISTR_6_17, UTURN_0_2=UTURN_0_17, UTURN_1_2=UTURN_1_17, REVEDGE_2=REVEDGE_17, UTURNPLAYER_2=UTURNPLAYER_17, CHANGELANE_0_2=CHANGELANE_0_17, CHANGELANE_1_2=CHANGELANE_1_17, term_2=term_17, DEST_2=DEST_17] endmodule
+module field_21 = field_2 [POS_2=POS_21, pedestrian_2=pedestrian_21, obstacle_2=obstacle_21, jam_2=jam_21, hazard_2=hazard_21, uturn_2=uturn_21, brake_2=brake_21, changelane_2=changelane_21, honk_2=honk_21, DISTR_0_2=DISTR_0_21, DISTR_1_2=DISTR_1_21, DISTR_2_2=DISTR_2_21, DISTR_3_2=DISTR_3_21, DISTR_4_2=DISTR_4_21, DISTR_5_2=DISTR_5_21, DISTR_6_2=DISTR_6_21, UTURN_0_2=UTURN_0_21, UTURN_1_2=UTURN_1_21, REVEDGE_2=REVEDGE_21, UTURNPLAYER_2=UTURNPLAYER_21, CHANGELANE_0_2=CHANGELANE_0_21, CHANGELANE_1_2=CHANGELANE_1_21, term_2=term_21, DEST_2=DEST_21] endmodule
+module field_31 = field_2 [POS_2=POS_31, pedestrian_2=pedestrian_31, obstacle_2=obstacle_31, jam_2=jam_31, hazard_2=hazard_31, uturn_2=uturn_31, brake_2=brake_31, changelane_2=changelane_31, honk_2=honk_31, DISTR_0_2=DISTR_0_31, DISTR_1_2=DISTR_1_31, DISTR_2_2=DISTR_2_31, DISTR_3_2=DISTR_3_31, DISTR_4_2=DISTR_4_31, DISTR_5_2=DISTR_5_31, DISTR_6_2=DISTR_6_31, UTURN_0_2=UTURN_0_31, UTURN_1_2=UTURN_1_31, REVEDGE_2=REVEDGE_31, UTURNPLAYER_2=UTURNPLAYER_31, CHANGELANE_0_2=CHANGELANE_0_31, CHANGELANE_1_2=CHANGELANE_1_31, term_2=term_31, DEST_2=DEST_31] endmodule
+module field_33 = field_2 [POS_2=POS_33, pedestrian_2=pedestrian_33, obstacle_2=obstacle_33, jam_2=jam_33, hazard_2=hazard_33, uturn_2=uturn_33, brake_2=brake_33, changelane_2=changelane_33, honk_2=honk_33, DISTR_0_2=DISTR_0_33, DISTR_1_2=DISTR_1_33, DISTR_2_2=DISTR_2_33, DISTR_3_2=DISTR_3_33, DISTR_4_2=DISTR_4_33, DISTR_5_2=DISTR_5_33, DISTR_6_2=DISTR_6_33, UTURN_0_2=UTURN_0_33, UTURN_1_2=UTURN_1_33, REVEDGE_2=REVEDGE_33, UTURNPLAYER_2=UTURNPLAYER_33, CHANGELANE_0_2=CHANGELANE_0_33, CHANGELANE_1_2=CHANGELANE_1_33, term_2=term_33, DEST_2=DEST_33] endmodule
+module field_38 = field_2 [POS_2=POS_38, pedestrian_2=pedestrian_38, obstacle_2=obstacle_38, jam_2=jam_38, hazard_2=hazard_38, uturn_2=uturn_38, brake_2=brake_38, changelane_2=changelane_38, honk_2=honk_38, DISTR_0_2=DISTR_0_38, DISTR_1_2=DISTR_1_38, DISTR_2_2=DISTR_2_38, DISTR_3_2=DISTR_3_38, DISTR_4_2=DISTR_4_38, DISTR_5_2=DISTR_5_38, DISTR_6_2=DISTR_6_38, UTURN_0_2=UTURN_0_38, UTURN_1_2=UTURN_1_38, REVEDGE_2=REVEDGE_38, UTURNPLAYER_2=UTURNPLAYER_38, CHANGELANE_0_2=CHANGELANE_0_38, CHANGELANE_1_2=CHANGELANE_1_38, term_2=term_38, DEST_2=DEST_38] endmodule
+module field_3 = field_1 [POS_1=POS_3, pedestrian_1=pedestrian_3, obstacle_1=obstacle_3, jam_1=jam_3, hazard_1=hazard_3, uturn_1=uturn_3, brake_1=brake_3, changelane_1=changelane_3, honk_1=honk_3, move_0_1=move_0_3, DEST_0_1 = DEST_0_3, move_1_1=move_1_3, DEST_1_1 = DEST_1_3, DISTR_0_1=DISTR_0_3, DISTR_1_1=DISTR_1_3, DISTR_2_1=DISTR_2_3, DISTR_3_1=DISTR_3_3, DISTR_4_1=DISTR_4_3, DISTR_5_1=DISTR_5_3, DISTR_6_1=DISTR_6_3, UTURN_0_1=UTURN_0_3, UTURN_1_1=UTURN_1_3, REVEDGE_1=REVEDGE_3, UTURNPLAYER_1=UTURNPLAYER_3, CHANGELANE_0_1=CHANGELANE_0_3, CHANGELANE_1_1=CHANGELANE_1_3] endmodule
+module field_4 = field_1 [POS_1=POS_4, pedestrian_1=pedestrian_4, obstacle_1=obstacle_4, jam_1=jam_4, hazard_1=hazard_4, uturn_1=uturn_4, brake_1=brake_4, changelane_1=changelane_4, honk_1=honk_4, move_0_1=move_0_4, DEST_0_1 = DEST_0_4, move_1_1=move_1_4, DEST_1_1 = DEST_1_4, DISTR_0_1=DISTR_0_4, DISTR_1_1=DISTR_1_4, DISTR_2_1=DISTR_2_4, DISTR_3_1=DISTR_3_4, DISTR_4_1=DISTR_4_4, DISTR_5_1=DISTR_5_4, DISTR_6_1=DISTR_6_4, UTURN_0_1=UTURN_0_4, UTURN_1_1=UTURN_1_4, REVEDGE_1=REVEDGE_4, UTURNPLAYER_1=UTURNPLAYER_4, CHANGELANE_0_1=CHANGELANE_0_4, CHANGELANE_1_1=CHANGELANE_1_4] endmodule
+module field_5 = field_1 [POS_1=POS_5, pedestrian_1=pedestrian_5, obstacle_1=obstacle_5, jam_1=jam_5, hazard_1=hazard_5, uturn_1=uturn_5, brake_1=brake_5, changelane_1=changelane_5, honk_1=honk_5, move_0_1=move_0_5, DEST_0_1 = DEST_0_5, move_1_1=move_1_5, DEST_1_1 = DEST_1_5, DISTR_0_1=DISTR_0_5, DISTR_1_1=DISTR_1_5, DISTR_2_1=DISTR_2_5, DISTR_3_1=DISTR_3_5, DISTR_4_1=DISTR_4_5, DISTR_5_1=DISTR_5_5, DISTR_6_1=DISTR_6_5, UTURN_0_1=UTURN_0_5, UTURN_1_1=UTURN_1_5, REVEDGE_1=REVEDGE_5, UTURNPLAYER_1=UTURNPLAYER_5, CHANGELANE_0_1=CHANGELANE_0_5, CHANGELANE_1_1=CHANGELANE_1_5] endmodule
+module field_6 = field_1 [POS_1=POS_6, pedestrian_1=pedestrian_6, obstacle_1=obstacle_6, jam_1=jam_6, hazard_1=hazard_6, uturn_1=uturn_6, brake_1=brake_6, changelane_1=changelane_6, honk_1=honk_6, move_0_1=move_0_6, DEST_0_1 = DEST_0_6, move_1_1=move_1_6, DEST_1_1 = DEST_1_6, DISTR_0_1=DISTR_0_6, DISTR_1_1=DISTR_1_6, DISTR_2_1=DISTR_2_6, DISTR_3_1=DISTR_3_6, DISTR_4_1=DISTR_4_6, DISTR_5_1=DISTR_5_6, DISTR_6_1=DISTR_6_6, UTURN_0_1=UTURN_0_6, UTURN_1_1=UTURN_1_6, REVEDGE_1=REVEDGE_6, UTURNPLAYER_1=UTURNPLAYER_6, CHANGELANE_0_1=CHANGELANE_0_6, CHANGELANE_1_1=CHANGELANE_1_6] endmodule
+module field_9 = field_1 [POS_1=POS_9, pedestrian_1=pedestrian_9, obstacle_1=obstacle_9, jam_1=jam_9, hazard_1=hazard_9, uturn_1=uturn_9, brake_1=brake_9, changelane_1=changelane_9, honk_1=honk_9, move_0_1=move_0_9, DEST_0_1 = DEST_0_9, move_1_1=move_1_9, DEST_1_1 = DEST_1_9, DISTR_0_1=DISTR_0_9, DISTR_1_1=DISTR_1_9, DISTR_2_1=DISTR_2_9, DISTR_3_1=DISTR_3_9, DISTR_4_1=DISTR_4_9, DISTR_5_1=DISTR_5_9, DISTR_6_1=DISTR_6_9, UTURN_0_1=UTURN_0_9, UTURN_1_1=UTURN_1_9, REVEDGE_1=REVEDGE_9, UTURNPLAYER_1=UTURNPLAYER_9, CHANGELANE_0_1=CHANGELANE_0_9, CHANGELANE_1_1=CHANGELANE_1_9] endmodule
+module field_13 = field_1 [POS_1=POS_13, pedestrian_1=pedestrian_13, obstacle_1=obstacle_13, jam_1=jam_13, hazard_1=hazard_13, uturn_1=uturn_13, brake_1=brake_13, changelane_1=changelane_13, honk_1=honk_13, move_0_1=move_0_13, DEST_0_1 = DEST_0_13, move_1_1=move_1_13, DEST_1_1 = DEST_1_13, DISTR_0_1=DISTR_0_13, DISTR_1_1=DISTR_1_13, DISTR_2_1=DISTR_2_13, DISTR_3_1=DISTR_3_13, DISTR_4_1=DISTR_4_13, DISTR_5_1=DISTR_5_13, DISTR_6_1=DISTR_6_13, UTURN_0_1=UTURN_0_13, UTURN_1_1=UTURN_1_13, REVEDGE_1=REVEDGE_13, UTURNPLAYER_1=UTURNPLAYER_13, CHANGELANE_0_1=CHANGELANE_0_13, CHANGELANE_1_1=CHANGELANE_1_13] endmodule
+module field_14 = field_1 [POS_1=POS_14, pedestrian_1=pedestrian_14, obstacle_1=obstacle_14, jam_1=jam_14, hazard_1=hazard_14, uturn_1=uturn_14, brake_1=brake_14, changelane_1=changelane_14, honk_1=honk_14, move_0_1=move_0_14, DEST_0_1 = DEST_0_14, move_1_1=move_1_14, DEST_1_1 = DEST_1_14, DISTR_0_1=DISTR_0_14, DISTR_1_1=DISTR_1_14, DISTR_2_1=DISTR_2_14, DISTR_3_1=DISTR_3_14, DISTR_4_1=DISTR_4_14, DISTR_5_1=DISTR_5_14, DISTR_6_1=DISTR_6_14, UTURN_0_1=UTURN_0_14, UTURN_1_1=UTURN_1_14, REVEDGE_1=REVEDGE_14, UTURNPLAYER_1=UTURNPLAYER_14, CHANGELANE_0_1=CHANGELANE_0_14, CHANGELANE_1_1=CHANGELANE_1_14] endmodule
+module field_15 = field_1 [POS_1=POS_15, pedestrian_1=pedestrian_15, obstacle_1=obstacle_15, jam_1=jam_15, hazard_1=hazard_15, uturn_1=uturn_15, brake_1=brake_15, changelane_1=changelane_15, honk_1=honk_15, move_0_1=move_0_15, DEST_0_1 = DEST_0_15, move_1_1=move_1_15, DEST_1_1 = DEST_1_15, DISTR_0_1=DISTR_0_15, DISTR_1_1=DISTR_1_15, DISTR_2_1=DISTR_2_15, DISTR_3_1=DISTR_3_15, DISTR_4_1=DISTR_4_15, DISTR_5_1=DISTR_5_15, DISTR_6_1=DISTR_6_15, UTURN_0_1=UTURN_0_15, UTURN_1_1=UTURN_1_15, REVEDGE_1=REVEDGE_15, UTURNPLAYER_1=UTURNPLAYER_15, CHANGELANE_0_1=CHANGELANE_0_15, CHANGELANE_1_1=CHANGELANE_1_15] endmodule
+module field_16 = field_1 [POS_1=POS_16, pedestrian_1=pedestrian_16, obstacle_1=obstacle_16, jam_1=jam_16, hazard_1=hazard_16, uturn_1=uturn_16, brake_1=brake_16, changelane_1=changelane_16, honk_1=honk_16, move_0_1=move_0_16, DEST_0_1 = DEST_0_16, move_1_1=move_1_16, DEST_1_1 = DEST_1_16, DISTR_0_1=DISTR_0_16, DISTR_1_1=DISTR_1_16, DISTR_2_1=DISTR_2_16, DISTR_3_1=DISTR_3_16, DISTR_4_1=DISTR_4_16, DISTR_5_1=DISTR_5_16, DISTR_6_1=DISTR_6_16, UTURN_0_1=UTURN_0_16, UTURN_1_1=UTURN_1_16, REVEDGE_1=REVEDGE_16, UTURNPLAYER_1=UTURNPLAYER_16, CHANGELANE_0_1=CHANGELANE_0_16, CHANGELANE_1_1=CHANGELANE_1_16] endmodule
+module field_18 = field_1 [POS_1=POS_18, pedestrian_1=pedestrian_18, obstacle_1=obstacle_18, jam_1=jam_18, hazard_1=hazard_18, uturn_1=uturn_18, brake_1=brake_18, changelane_1=changelane_18, honk_1=honk_18, move_0_1=move_0_18, DEST_0_1 = DEST_0_18, move_1_1=move_1_18, DEST_1_1 = DEST_1_18, DISTR_0_1=DISTR_0_18, DISTR_1_1=DISTR_1_18, DISTR_2_1=DISTR_2_18, DISTR_3_1=DISTR_3_18, DISTR_4_1=DISTR_4_18, DISTR_5_1=DISTR_5_18, DISTR_6_1=DISTR_6_18, UTURN_0_1=UTURN_0_18, UTURN_1_1=UTURN_1_18, REVEDGE_1=REVEDGE_18, UTURNPLAYER_1=UTURNPLAYER_18, CHANGELANE_0_1=CHANGELANE_0_18, CHANGELANE_1_1=CHANGELANE_1_18] endmodule
+module field_19 = field_1 [POS_1=POS_19, pedestrian_1=pedestrian_19, obstacle_1=obstacle_19, jam_1=jam_19, hazard_1=hazard_19, uturn_1=uturn_19, brake_1=brake_19, changelane_1=changelane_19, honk_1=honk_19, move_0_1=move_0_19, DEST_0_1 = DEST_0_19, move_1_1=move_1_19, DEST_1_1 = DEST_1_19, DISTR_0_1=DISTR_0_19, DISTR_1_1=DISTR_1_19, DISTR_2_1=DISTR_2_19, DISTR_3_1=DISTR_3_19, DISTR_4_1=DISTR_4_19, DISTR_5_1=DISTR_5_19, DISTR_6_1=DISTR_6_19, UTURN_0_1=UTURN_0_19, UTURN_1_1=UTURN_1_19, REVEDGE_1=REVEDGE_19, UTURNPLAYER_1=UTURNPLAYER_19, CHANGELANE_0_1=CHANGELANE_0_19, CHANGELANE_1_1=CHANGELANE_1_19] endmodule
+module field_20 = field_1 [POS_1=POS_20, pedestrian_1=pedestrian_20, obstacle_1=obstacle_20, jam_1=jam_20, hazard_1=hazard_20, uturn_1=uturn_20, brake_1=brake_20, changelane_1=changelane_20, honk_1=honk_20, move_0_1=move_0_20, DEST_0_1 = DEST_0_20, move_1_1=move_1_20, DEST_1_1 = DEST_1_20, DISTR_0_1=DISTR_0_20, DISTR_1_1=DISTR_1_20, DISTR_2_1=DISTR_2_20, DISTR_3_1=DISTR_3_20, DISTR_4_1=DISTR_4_20, DISTR_5_1=DISTR_5_20, DISTR_6_1=DISTR_6_20, UTURN_0_1=UTURN_0_20, UTURN_1_1=UTURN_1_20, REVEDGE_1=REVEDGE_20, UTURNPLAYER_1=UTURNPLAYER_20, CHANGELANE_0_1=CHANGELANE_0_20, CHANGELANE_1_1=CHANGELANE_1_20] endmodule
+module field_22 = field_1 [POS_1=POS_22, pedestrian_1=pedestrian_22, obstacle_1=obstacle_22, jam_1=jam_22, hazard_1=hazard_22, uturn_1=uturn_22, brake_1=brake_22, changelane_1=changelane_22, honk_1=honk_22, move_0_1=move_0_22, DEST_0_1 = DEST_0_22, move_1_1=move_1_22, DEST_1_1 = DEST_1_22, DISTR_0_1=DISTR_0_22, DISTR_1_1=DISTR_1_22, DISTR_2_1=DISTR_2_22, DISTR_3_1=DISTR_3_22, DISTR_4_1=DISTR_4_22, DISTR_5_1=DISTR_5_22, DISTR_6_1=DISTR_6_22, UTURN_0_1=UTURN_0_22, UTURN_1_1=UTURN_1_22, REVEDGE_1=REVEDGE_22, UTURNPLAYER_1=UTURNPLAYER_22, CHANGELANE_0_1=CHANGELANE_0_22, CHANGELANE_1_1=CHANGELANE_1_22] endmodule
+module field_23 = field_1 [POS_1=POS_23, pedestrian_1=pedestrian_23, obstacle_1=obstacle_23, jam_1=jam_23, hazard_1=hazard_23, uturn_1=uturn_23, brake_1=brake_23, changelane_1=changelane_23, honk_1=honk_23, move_0_1=move_0_23, DEST_0_1 = DEST_0_23, move_1_1=move_1_23, DEST_1_1 = DEST_1_23, DISTR_0_1=DISTR_0_23, DISTR_1_1=DISTR_1_23, DISTR_2_1=DISTR_2_23, DISTR_3_1=DISTR_3_23, DISTR_4_1=DISTR_4_23, DISTR_5_1=DISTR_5_23, DISTR_6_1=DISTR_6_23, UTURN_0_1=UTURN_0_23, UTURN_1_1=UTURN_1_23, REVEDGE_1=REVEDGE_23, UTURNPLAYER_1=UTURNPLAYER_23, CHANGELANE_0_1=CHANGELANE_0_23, CHANGELANE_1_1=CHANGELANE_1_23] endmodule
+module field_24 = field_1 [POS_1=POS_24, pedestrian_1=pedestrian_24, obstacle_1=obstacle_24, jam_1=jam_24, hazard_1=hazard_24, uturn_1=uturn_24, brake_1=brake_24, changelane_1=changelane_24, honk_1=honk_24, move_0_1=move_0_24, DEST_0_1 = DEST_0_24, move_1_1=move_1_24, DEST_1_1 = DEST_1_24, DISTR_0_1=DISTR_0_24, DISTR_1_1=DISTR_1_24, DISTR_2_1=DISTR_2_24, DISTR_3_1=DISTR_3_24, DISTR_4_1=DISTR_4_24, DISTR_5_1=DISTR_5_24, DISTR_6_1=DISTR_6_24, UTURN_0_1=UTURN_0_24, UTURN_1_1=UTURN_1_24, REVEDGE_1=REVEDGE_24, UTURNPLAYER_1=UTURNPLAYER_24, CHANGELANE_0_1=CHANGELANE_0_24, CHANGELANE_1_1=CHANGELANE_1_24] endmodule
+module field_25 = field_1 [POS_1=POS_25, pedestrian_1=pedestrian_25, obstacle_1=obstacle_25, jam_1=jam_25, hazard_1=hazard_25, uturn_1=uturn_25, brake_1=brake_25, changelane_1=changelane_25, honk_1=honk_25, move_0_1=move_0_25, DEST_0_1 = DEST_0_25, move_1_1=move_1_25, DEST_1_1 = DEST_1_25, DISTR_0_1=DISTR_0_25, DISTR_1_1=DISTR_1_25, DISTR_2_1=DISTR_2_25, DISTR_3_1=DISTR_3_25, DISTR_4_1=DISTR_4_25, DISTR_5_1=DISTR_5_25, DISTR_6_1=DISTR_6_25, UTURN_0_1=UTURN_0_25, UTURN_1_1=UTURN_1_25, REVEDGE_1=REVEDGE_25, UTURNPLAYER_1=UTURNPLAYER_25, CHANGELANE_0_1=CHANGELANE_0_25, CHANGELANE_1_1=CHANGELANE_1_25] endmodule
+module field_27 = field_1 [POS_1=POS_27, pedestrian_1=pedestrian_27, obstacle_1=obstacle_27, jam_1=jam_27, hazard_1=hazard_27, uturn_1=uturn_27, brake_1=brake_27, changelane_1=changelane_27, honk_1=honk_27, move_0_1=move_0_27, DEST_0_1 = DEST_0_27, move_1_1=move_1_27, DEST_1_1 = DEST_1_27, DISTR_0_1=DISTR_0_27, DISTR_1_1=DISTR_1_27, DISTR_2_1=DISTR_2_27, DISTR_3_1=DISTR_3_27, DISTR_4_1=DISTR_4_27, DISTR_5_1=DISTR_5_27, DISTR_6_1=DISTR_6_27, UTURN_0_1=UTURN_0_27, UTURN_1_1=UTURN_1_27, REVEDGE_1=REVEDGE_27, UTURNPLAYER_1=UTURNPLAYER_27, CHANGELANE_0_1=CHANGELANE_0_27, CHANGELANE_1_1=CHANGELANE_1_27] endmodule
+module field_28 = field_1 [POS_1=POS_28, pedestrian_1=pedestrian_28, obstacle_1=obstacle_28, jam_1=jam_28, hazard_1=hazard_28, uturn_1=uturn_28, brake_1=brake_28, changelane_1=changelane_28, honk_1=honk_28, move_0_1=move_0_28, DEST_0_1 = DEST_0_28, move_1_1=move_1_28, DEST_1_1 = DEST_1_28, DISTR_0_1=DISTR_0_28, DISTR_1_1=DISTR_1_28, DISTR_2_1=DISTR_2_28, DISTR_3_1=DISTR_3_28, DISTR_4_1=DISTR_4_28, DISTR_5_1=DISTR_5_28, DISTR_6_1=DISTR_6_28, UTURN_0_1=UTURN_0_28, UTURN_1_1=UTURN_1_28, REVEDGE_1=REVEDGE_28, UTURNPLAYER_1=UTURNPLAYER_28, CHANGELANE_0_1=CHANGELANE_0_28, CHANGELANE_1_1=CHANGELANE_1_28] endmodule
+module field_29 = field_1 [POS_1=POS_29, pedestrian_1=pedestrian_29, obstacle_1=obstacle_29, jam_1=jam_29, hazard_1=hazard_29, uturn_1=uturn_29, brake_1=brake_29, changelane_1=changelane_29, honk_1=honk_29, move_0_1=move_0_29, DEST_0_1 = DEST_0_29, move_1_1=move_1_29, DEST_1_1 = DEST_1_29, DISTR_0_1=DISTR_0_29, DISTR_1_1=DISTR_1_29, DISTR_2_1=DISTR_2_29, DISTR_3_1=DISTR_3_29, DISTR_4_1=DISTR_4_29, DISTR_5_1=DISTR_5_29, DISTR_6_1=DISTR_6_29, UTURN_0_1=UTURN_0_29, UTURN_1_1=UTURN_1_29, REVEDGE_1=REVEDGE_29, UTURNPLAYER_1=UTURNPLAYER_29, CHANGELANE_0_1=CHANGELANE_0_29, CHANGELANE_1_1=CHANGELANE_1_29] endmodule
+module field_30 = field_1 [POS_1=POS_30, pedestrian_1=pedestrian_30, obstacle_1=obstacle_30, jam_1=jam_30, hazard_1=hazard_30, uturn_1=uturn_30, brake_1=brake_30, changelane_1=changelane_30, honk_1=honk_30, move_0_1=move_0_30, DEST_0_1 = DEST_0_30, move_1_1=move_1_30, DEST_1_1 = DEST_1_30, DISTR_0_1=DISTR_0_30, DISTR_1_1=DISTR_1_30, DISTR_2_1=DISTR_2_30, DISTR_3_1=DISTR_3_30, DISTR_4_1=DISTR_4_30, DISTR_5_1=DISTR_5_30, DISTR_6_1=DISTR_6_30, UTURN_0_1=UTURN_0_30, UTURN_1_1=UTURN_1_30, REVEDGE_1=REVEDGE_30, UTURNPLAYER_1=UTURNPLAYER_30, CHANGELANE_0_1=CHANGELANE_0_30, CHANGELANE_1_1=CHANGELANE_1_30] endmodule
+module field_32 = field_1 [POS_1=POS_32, pedestrian_1=pedestrian_32, obstacle_1=obstacle_32, jam_1=jam_32, hazard_1=hazard_32, uturn_1=uturn_32, brake_1=brake_32, changelane_1=changelane_32, honk_1=honk_32, move_0_1=move_0_32, DEST_0_1 = DEST_0_32, move_1_1=move_1_32, DEST_1_1 = DEST_1_32, DISTR_0_1=DISTR_0_32, DISTR_1_1=DISTR_1_32, DISTR_2_1=DISTR_2_32, DISTR_3_1=DISTR_3_32, DISTR_4_1=DISTR_4_32, DISTR_5_1=DISTR_5_32, DISTR_6_1=DISTR_6_32, UTURN_0_1=UTURN_0_32, UTURN_1_1=UTURN_1_32, REVEDGE_1=REVEDGE_32, UTURNPLAYER_1=UTURNPLAYER_32, CHANGELANE_0_1=CHANGELANE_0_32, CHANGELANE_1_1=CHANGELANE_1_32] endmodule
+module field_34 = field_1 [POS_1=POS_34, pedestrian_1=pedestrian_34, obstacle_1=obstacle_34, jam_1=jam_34, hazard_1=hazard_34, uturn_1=uturn_34, brake_1=brake_34, changelane_1=changelane_34, honk_1=honk_34, move_0_1=move_0_34, DEST_0_1 = DEST_0_34, move_1_1=move_1_34, DEST_1_1 = DEST_1_34, DISTR_0_1=DISTR_0_34, DISTR_1_1=DISTR_1_34, DISTR_2_1=DISTR_2_34, DISTR_3_1=DISTR_3_34, DISTR_4_1=DISTR_4_34, DISTR_5_1=DISTR_5_34, DISTR_6_1=DISTR_6_34, UTURN_0_1=UTURN_0_34, UTURN_1_1=UTURN_1_34, REVEDGE_1=REVEDGE_34, UTURNPLAYER_1=UTURNPLAYER_34, CHANGELANE_0_1=CHANGELANE_0_34, CHANGELANE_1_1=CHANGELANE_1_34] endmodule
+module field_35 = field_1 [POS_1=POS_35, pedestrian_1=pedestrian_35, obstacle_1=obstacle_35, jam_1=jam_35, hazard_1=hazard_35, uturn_1=uturn_35, brake_1=brake_35, changelane_1=changelane_35, honk_1=honk_35, move_0_1=move_0_35, DEST_0_1 = DEST_0_35, move_1_1=move_1_35, DEST_1_1 = DEST_1_35, DISTR_0_1=DISTR_0_35, DISTR_1_1=DISTR_1_35, DISTR_2_1=DISTR_2_35, DISTR_3_1=DISTR_3_35, DISTR_4_1=DISTR_4_35, DISTR_5_1=DISTR_5_35, DISTR_6_1=DISTR_6_35, UTURN_0_1=UTURN_0_35, UTURN_1_1=UTURN_1_35, REVEDGE_1=REVEDGE_35, UTURNPLAYER_1=UTURNPLAYER_35, CHANGELANE_0_1=CHANGELANE_0_35, CHANGELANE_1_1=CHANGELANE_1_35] endmodule
+module field_36 = field_1 [POS_1=POS_36, pedestrian_1=pedestrian_36, obstacle_1=obstacle_36, jam_1=jam_36, hazard_1=hazard_36, uturn_1=uturn_36, brake_1=brake_36, changelane_1=changelane_36, honk_1=honk_36, move_0_1=move_0_36, DEST_0_1 = DEST_0_36, move_1_1=move_1_36, DEST_1_1 = DEST_1_36, DISTR_0_1=DISTR_0_36, DISTR_1_1=DISTR_1_36, DISTR_2_1=DISTR_2_36, DISTR_3_1=DISTR_3_36, DISTR_4_1=DISTR_4_36, DISTR_5_1=DISTR_5_36, DISTR_6_1=DISTR_6_36, UTURN_0_1=UTURN_0_36, UTURN_1_1=UTURN_1_36, REVEDGE_1=REVEDGE_36, UTURNPLAYER_1=UTURNPLAYER_36, CHANGELANE_0_1=CHANGELANE_0_36, CHANGELANE_1_1=CHANGELANE_1_36] endmodule
+module field_37 = field_1 [POS_1=POS_37, pedestrian_1=pedestrian_37, obstacle_1=obstacle_37, jam_1=jam_37, hazard_1=hazard_37, uturn_1=uturn_37, brake_1=brake_37, changelane_1=changelane_37, honk_1=honk_37, move_0_1=move_0_37, DEST_0_1 = DEST_0_37, move_1_1=move_1_37, DEST_1_1 = DEST_1_37, DISTR_0_1=DISTR_0_37, DISTR_1_1=DISTR_1_37, DISTR_2_1=DISTR_2_37, DISTR_3_1=DISTR_3_37, DISTR_4_1=DISTR_4_37, DISTR_5_1=DISTR_5_37, DISTR_6_1=DISTR_6_37, UTURN_0_1=UTURN_0_37, UTURN_1_1=UTURN_1_37, REVEDGE_1=REVEDGE_37, UTURNPLAYER_1=UTURNPLAYER_37, CHANGELANE_0_1=CHANGELANE_0_37, CHANGELANE_1_1=CHANGELANE_1_37] endmodule
+module field_39 = field_1 [POS_1=POS_39, pedestrian_1=pedestrian_39, obstacle_1=obstacle_39, jam_1=jam_39, hazard_1=hazard_39, uturn_1=uturn_39, brake_1=brake_39, changelane_1=changelane_39, honk_1=honk_39, move_0_1=move_0_39, DEST_0_1 = DEST_0_39, move_1_1=move_1_39, DEST_1_1 = DEST_1_39, DISTR_0_1=DISTR_0_39, DISTR_1_1=DISTR_1_39, DISTR_2_1=DISTR_2_39, DISTR_3_1=DISTR_3_39, DISTR_4_1=DISTR_4_39, DISTR_5_1=DISTR_5_39, DISTR_6_1=DISTR_6_39, UTURN_0_1=UTURN_0_39, UTURN_1_1=UTURN_1_39, REVEDGE_1=REVEDGE_39, UTURNPLAYER_1=UTURNPLAYER_39, CHANGELANE_0_1=CHANGELANE_0_39, CHANGELANE_1_1=CHANGELANE_1_39] endmodule
+module field_40 = field_1 [POS_1=POS_40, pedestrian_1=pedestrian_40, obstacle_1=obstacle_40, jam_1=jam_40, hazard_1=hazard_40, uturn_1=uturn_40, brake_1=brake_40, changelane_1=changelane_40, honk_1=honk_40, move_0_1=move_0_40, DEST_0_1 = DEST_0_40, move_1_1=move_1_40, DEST_1_1 = DEST_1_40, DISTR_0_1=DISTR_0_40, DISTR_1_1=DISTR_1_40, DISTR_2_1=DISTR_2_40, DISTR_3_1=DISTR_3_40, DISTR_4_1=DISTR_4_40, DISTR_5_1=DISTR_5_40, DISTR_6_1=DISTR_6_40, UTURN_0_1=UTURN_0_40, UTURN_1_1=UTURN_1_40, REVEDGE_1=REVEDGE_40, UTURNPLAYER_1=UTURNPLAYER_40, CHANGELANE_0_1=CHANGELANE_0_40, CHANGELANE_1_1=CHANGELANE_1_40] endmodule
+module field_42 = field_1 [POS_1=POS_42, pedestrian_1=pedestrian_42, obstacle_1=obstacle_42, jam_1=jam_42, hazard_1=hazard_42, uturn_1=uturn_42, brake_1=brake_42, changelane_1=changelane_42, honk_1=honk_42, move_0_1=move_0_42, DEST_0_1 = DEST_0_42, move_1_1=move_1_42, DEST_1_1 = DEST_1_42, DISTR_0_1=DISTR_0_42, DISTR_1_1=DISTR_1_42, DISTR_2_1=DISTR_2_42, DISTR_3_1=DISTR_3_42, DISTR_4_1=DISTR_4_42, DISTR_5_1=DISTR_5_42, DISTR_6_1=DISTR_6_42, UTURN_0_1=UTURN_0_42, UTURN_1_1=UTURN_1_42, REVEDGE_1=REVEDGE_42, UTURNPLAYER_1=UTURNPLAYER_42, CHANGELANE_0_1=CHANGELANE_0_42, CHANGELANE_1_1=CHANGELANE_1_42] endmodule
+module field_43 = field_1 [POS_1=POS_43, pedestrian_1=pedestrian_43, obstacle_1=obstacle_43, jam_1=jam_43, hazard_1=hazard_43, uturn_1=uturn_43, brake_1=brake_43, changelane_1=changelane_43, honk_1=honk_43, move_0_1=move_0_43, DEST_0_1 = DEST_0_43, move_1_1=move_1_43, DEST_1_1 = DEST_1_43, DISTR_0_1=DISTR_0_43, DISTR_1_1=DISTR_1_43, DISTR_2_1=DISTR_2_43, DISTR_3_1=DISTR_3_43, DISTR_4_1=DISTR_4_43, DISTR_5_1=DISTR_5_43, DISTR_6_1=DISTR_6_43, UTURN_0_1=UTURN_0_43, UTURN_1_1=UTURN_1_43, REVEDGE_1=REVEDGE_43, UTURNPLAYER_1=UTURNPLAYER_43, CHANGELANE_0_1=CHANGELANE_0_43, CHANGELANE_1_1=CHANGELANE_1_43] endmodule
+module field_11 = field_0 [POS_0=POS_11, pedestrian_0=pedestrian_11, obstacle_0=obstacle_11, jam_0=jam_11, hazard_0=hazard_11, uturn_0=uturn_11, brake_0=brake_11, changelane_0=changelane_11, honk_0=honk_11, move_0_0=move_0_11, DEST_0_0 = DEST_0_11, move_1_0=move_1_11, DEST_1_0 = DEST_1_11, move_2_0=move_2_11, DEST_2_0 = DEST_2_11, DISTR_0_0=DISTR_0_11, DISTR_1_0=DISTR_1_11, DISTR_2_0=DISTR_2_11, DISTR_3_0=DISTR_3_11, DISTR_4_0=DISTR_4_11, DISTR_5_0=DISTR_5_11, DISTR_6_0=DISTR_6_11, UTURN_0_0=UTURN_0_11, UTURN_1_0=UTURN_1_11, REVEDGE_0=REVEDGE_11, UTURNPLAYER_0=UTURNPLAYER_11, CHANGELANE_0_0=CHANGELANE_0_11, CHANGELANE_1_0=CHANGELANE_1_11] endmodule
+module field_26 = field_0 [POS_0=POS_26, pedestrian_0=pedestrian_26, obstacle_0=obstacle_26, jam_0=jam_26, hazard_0=hazard_26, uturn_0=uturn_26, brake_0=brake_26, changelane_0=changelane_26, honk_0=honk_26, move_0_0=move_0_26, DEST_0_0 = DEST_0_26, move_1_0=move_1_26, DEST_1_0 = DEST_1_26, move_2_0=move_2_26, DEST_2_0 = DEST_2_26, DISTR_0_0=DISTR_0_26, DISTR_1_0=DISTR_1_26, DISTR_2_0=DISTR_2_26, DISTR_3_0=DISTR_3_26, DISTR_4_0=DISTR_4_26, DISTR_5_0=DISTR_5_26, DISTR_6_0=DISTR_6_26, UTURN_0_0=UTURN_0_26, UTURN_1_0=UTURN_1_26, REVEDGE_0=REVEDGE_26, UTURNPLAYER_0=UTURNPLAYER_26, CHANGELANE_0_0=CHANGELANE_0_26, CHANGELANE_1_0=CHANGELANE_1_26] endmodule
+module field_41 = field_0 [POS_0=POS_41, pedestrian_0=pedestrian_41, obstacle_0=obstacle_41, jam_0=jam_41, hazard_0=hazard_41, uturn_0=uturn_41, brake_0=brake_41, changelane_0=changelane_41, honk_0=honk_41, move_0_0=move_0_41, DEST_0_0 = DEST_0_41, move_1_0=move_1_41, DEST_1_0 = DEST_1_41, move_2_0=move_2_41, DEST_2_0 = DEST_2_41, DISTR_0_0=DISTR_0_41, DISTR_1_0=DISTR_1_41, DISTR_2_0=DISTR_2_41, DISTR_3_0=DISTR_3_41, DISTR_4_0=DISTR_4_41, DISTR_5_0=DISTR_5_41, DISTR_6_0=DISTR_6_41, UTURN_0_0=UTURN_0_41, UTURN_1_0=UTURN_1_41, REVEDGE_0=REVEDGE_41, UTURNPLAYER_0=UTURNPLAYER_41, CHANGELANE_0_0=CHANGELANE_0_41, CHANGELANE_1_0=CHANGELANE_1_41] endmodule
+
+module terminals
+	[term] s=-1 -> (car_position'=POS_term) & (p'=2) & (s'=-11);
+	[term] s=-3 -> (car_position'=POS_term) & (p'=2) & (s'=-11);
+	[term] car_position=POS_goal -> (car_position'=POS_term) & (p'=2) & (s'=-11);
+	[term] car_position=POS_term -> (car_position'=POS_term) & (p'=2) & (s'=-11);
+endmodule
+
+
+rewards "reach_goal"
+	car_position=POS_goal : 1;
+endrewards
+
+
+rewards "accidents"
+	s=-1 : 1;
+endrewards
+
+
+rewards "road_quality"
+	car_position=0 & s=-2: 0.241721;
+	car_position=1 & s=-2: 0.482145;
+	car_position=2 & s=-2: 4.417312;
+	car_position=3 & s=-2: 0.199633;
+	car_position=4 & s=-2: 0.091145;
+	car_position=5 & s=-2: 0.123805;
+	car_position=6 & s=-2: 0.011780;
+	car_position=7 & s=-2: 7.607064;
+	car_position=8 & s=-2: 8.618737;
+	car_position=9 & s=-2: 2.338840;
+	car_position=10 & s=-2: 0.241721;
+	car_position=11 & s=-2: 8.618737;
+	car_position=12 & s=-2: 0.022638;
+	car_position=13 & s=-2: 0.170384;
+	car_position=14 & s=-2: 0.102320;
+	car_position=15 & s=-2: 4.417312;
+	car_position=16 & s=-2: 0.199633;
+	car_position=17 & s=-2: 0.070234;
+	car_position=18 & s=-2: 0.011780;
+	car_position=19 & s=-2: 0.142094;
+	car_position=20 & s=-2: 0.123805;
+	car_position=21 & s=-2: 0.142094;
+	car_position=22 & s=-2: 0.037304;
+	car_position=23 & s=-2: 0.070234;
+	car_position=24 & s=-2: 0.022638;
+	car_position=25 & s=-2: 0.051088;
+	car_position=26 & s=-2: 7.607064;
+	car_position=27 & s=-2: 0.170384;
+	car_position=28 & s=-2: 0.091145;
+	car_position=29 & s=-2: 0.198025;
+	car_position=30 & s=-2: 0.070449;
+	car_position=31 & s=-2: 0.051088;
+	car_position=32 & s=-2: 0.073051;
+	car_position=33 & s=-2: 0.070449;
+	car_position=34 & s=-2: 0.030813;
+	car_position=35 & s=-2: 0.198025;
+	car_position=36 & s=-2: 0.482145;
+	car_position=37 & s=-2: 0.102320;
+	car_position=38 & s=-2: 1.052307;
+	car_position=39 & s=-2: 0.037304;
+	car_position=40 & s=-2: 0.073051;
+	car_position=41 & s=-2: 2.338840;
+	car_position=42 & s=-2: 0.030813;
+	car_position=43 & s=-2: 1.052307;
+endrewards
+

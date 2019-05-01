@@ -1,5 +1,0 @@
-<<0,1>> R{"tot1234"}min=? [F all_prefer_1]
-<<0,1,2>> R{"tot1234"}min=? [F all_prefer_1]
-<<0,1,2,3>> R{"tot1234"}min=? [F all_prefer_1]
-<<0,1,2,3,4>> R{"tot1234"}min=? [F all_prefer_1]
-

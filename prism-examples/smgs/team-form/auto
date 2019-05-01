@@ -1,0 +1,11 @@
+#!/bin/sh
+
+prism-games team-form-offline-fc.prism team-form-fc.props
+prism-games team-form-offline-r.prism team-form-r.props
+prism-games team-form-offline-s.prism team-form-s.props
+prism-games team-form-offline-ia.prism team-form-ia.props
+
+prism-games team-form-online-fc.prism team-form-fc.props
+prism-games team-form-online-r.prism team-form-r.props
+prism-games team-form-online-s.prism team-form-s.props
+prism-games team-form-online-ia.prism team-form-ia.props

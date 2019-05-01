@@ -1,0 +1,13 @@
+#!/bin/bash
+
+prism-games cdmsn3032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn3.props -prop 1
+prism-games cdmsn3032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn3.props -const k=10 -prop 4
+prism-games cdmsn3032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn3.props -const k=10 -prop 7
+
+prism-games cdmsn4032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn4.props -prop 1
+prism-games cdmsn4032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn4.props -const k=10 -prop 5
+prism-games cdmsn4032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn4.props -const k=10 -prop 9
+
+prism-games cdmsn5032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn5.props -prop 1
+prism-games cdmsn5032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn5.props -const k=10 -prop 6
+prism-games cdmsn5032.prism -const Pexp=0.5,eta=1,gamma=1,lambda=0,Q1=1,Q2=0.5,Q3=0.25 cdmsn5.props -const k=10 -prop 11

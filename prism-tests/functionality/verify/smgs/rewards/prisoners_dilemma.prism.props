@@ -1,0 +1,43 @@
+// Maximum expected reward achievable in the game
+// RESULT: 11.999999999999998
+<<ag1, ag3, sched, ag2>> R{"Coalition123"}max=? [ Fc target ]
+
+// Minimum expected reward achievable in the game
+// RESULT: 1.3333333333333333
+<<ag1, ag3, sched, ag2>> R{"Coalition123"}min=? [ Fc target ]
+
+// Maximum reward that can be achieved by coalition of two agents and the scheduler
+// RESULT: 5.333333333333333
+<<ag1, sched, ag2>> R{"Coalition12"}max=? [ Fc target ]
+
+// Minimum reward that can be achieved by coalition of two agents and the scheduler
+// RESULT: 3.666666666666666
+<<ag1, sched, ag2>> R{"Coalition12"}min=? [ Fc target ]
+
+// Maximum reward that can be achieved by coalition of two agents
+// RESULT: 5.333333333333333
+<<ag1, ag2>> R{"Coalition12"}max=? [ Fc target ]
+
+// Minimum reward that can be achieved by coalition of two agents
+// RESULT: 3.666666666666666 
+<<ag1, ag2>> R{"Coalition12"}min=? [ Fc target ]
+
+// Maximum reward that can be achieved by one agent
+// RESULT: 1.3333333333333333 
+<<ag1>> R{"Coalition1"}max=? [ Fc target ]
+
+// Minimum reward that can be achieved by one agent
+// RESULT: 2.6666666666666665
+<<ag1>> R{"Coalition1"}min=? [ Fc target ]
+
+// Maximum probability that two agents and a scheduler can guarantee to achieve a cooperating pair
+// RESULT: 0.3333333333333333
+<<ag1, sched, ag2>> Pmax=? [ F cooperating ]
+
+// Maximum probability that two agents can guarantee to achieve a cooperating or defecting pair
+// RESULT: 0.3333333333333333
+<<ag1, ag2>> Pmax=? [ F cooperating|defecting ]
+
+// Maximum probability that two agents and a scheduler can guarantee to achieve a cooperating or defecting pair
+// RESULT: 1.0
+<<ag1, sched, ag2>> Pmax=? [ F cooperating|defecting ]

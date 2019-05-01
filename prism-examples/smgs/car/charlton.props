@@ -1,0 +1,1 @@
+<<1>> (R{"reach_goal"}>=0.7 [ C ] & R{"accidents"}<=0.3 [ C ] & R{"road_quality"}>=6.0 [ C ])

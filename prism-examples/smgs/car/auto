@@ -1,0 +1,5 @@
+#!/bin/bash
+
+prism-games islip.prism islip.props -prop 1 -multirounding -multimaxciter 500 -baselineaccuracy 200 -increasefactor 1.01 -paretoepsilon 0.001 -logcpareto -gs # -exportstrat islip.strat
+
+prism-games charlton.prism charlton.props -prop 1 -multirounding -multimaxciter 500 -baselineaccuracy 200 -increasefactor 1.01 -paretoepsilon 0.001 -logcpareto -gs # -exportstrat charlton.strat
