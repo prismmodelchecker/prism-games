@@ -1,4 +1,35 @@
-This file contains details of the changes in each new version of PRISM.
+The top of this file details the changes in new public versions of PRISM-games.
+The CHANGELOG for PRISM itself, on which this is based, is appended below.
+
+-----------------------------------------------------------------------------
+Version 2.1 (pending)
+-----------------------------------------------------------------------------
+
+* Merged latest changes from PRISM (up to v4.5 and slightly beyond),
+  including directory rearrangement (some files moved to top-level)
+* Examples tidied up (now in prism-examples/smgs directory)
+* Version number of PRISM-games properly reported/displayed
+* Some compositional functionality moved into separate branch for now
+
+-----------------------------------------------------------------------------
+Version 2.0 (first released 17/10/2015)
+-----------------------------------------------------------------------------
+
+* Multi-objective strategy synthesis
+* Assume-guarantee reasoning
+
+-----------------------------------------------------------------------------
+Version 1.0 (first released 18/10/2012)
+-----------------------------------------------------------------------------
+
+* First full release of PRISM-games
+
+
+=============================================================================
+=============================================================================
+
+
+Below are the details of the changes in each new version of PRISM.
 
 -----------------------------------------------------------------------------
 Version 4.5 (first released 19/4/2019)
