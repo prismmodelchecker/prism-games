@@ -48,7 +48,6 @@ public class ExpressionFunc extends Expression
 	public static final int MOD = 6;
 	public static final int LOG = 7;
 	public static final int MULTI = 8;
-	public static final int COMP = 9; // compositional property
 	public static final int OR = 10; // disjunction
 	public static final int AND = 11; // conjunction
 	public static final int NOT = 12; // negation
@@ -199,8 +198,6 @@ public class ExpressionFunc extends Expression
 			return evaluateLog(ec);
 		case MULTI:
 			throw new PrismLangException("Cannot evaluate \"multi\" function.", this);
-		case COMP:
-			throw new PrismLangException("Cannot evaluate \"comp\" function.", this);
 		case OR:
 			throw new PrismLangException("Cannot evaluate \"or\" function.", this);
 		case AND:
@@ -221,7 +218,6 @@ public class ExpressionFunc extends Expression
 	public boolean isPareto()
 	{
 		switch (code) {
-		case COMP:
 		case OR:
 		case AND:
 		case NOT:

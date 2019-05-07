@@ -36,7 +36,6 @@ import java.util.List;
 import dv.DoubleVector;
 import explicit.CTMC;
 import explicit.CTMCModelChecker;
-import explicit.CompositionalSMGModelChecker;
 import explicit.ConstructModel;
 import explicit.DTMC;
 import explicit.DTMCModelChecker;
@@ -59,9 +58,6 @@ import parser.PrismParser;
 import parser.State;
 import parser.Values;
 import parser.ast.Expression;
-import parser.ast.ExpressionFunc;
-import parser.ast.ExpressionStrategy;
-import parser.ast.ExpressionUnaryOp;
 import parser.ast.ForLoop;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
@@ -3030,26 +3026,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			return fauMC.check(prop.getExpression());
 		}
 
-		// For compositional verification/synthesis
-		if (currentModelType == ModelType.SMG && Expression.isFunc(prop.getExpression(), ExpressionFunc.COMP)) {
-			CompositionalSMGModelChecker compoMC;
-			compoMC = new CompositionalSMGModelChecker(this, currentModulesFile, propertiesFile, getSimulator());
-			compoMC.setCheckCompatibility(getCheckCompatibility());
-			compoMC.setComputeParetoSet(computePareto);
-			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
-			res = compoMC.check(e);
-
-			// saving strategy if it was generated.
-			if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
-				// one strategy
-				strategy = compoMC.getStrategy();
-				if (strategy != null)
-					strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: " + strategy.getMemorySize());
-			}
-			return res;
-
-		}
-
 		// Auto-switch engine if required
 		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
@@ -3069,16 +3045,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 			// resolve property references in the property
 			Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
-
-			// before building do a quick check whether the comp-operator is used with coalition
-			if (e instanceof ExpressionStrategy) {
-				for (Expression ee : ((ExpressionStrategy) e).getOperands()) {
-					while (Expression.isParenth(ee))
-						ee = ((ExpressionUnaryOp) ee).getOperand();
-					if (ee instanceof ExpressionFunc && ((ExpressionFunc) ee).getNameCode() == ExpressionFunc.COMP)
-						throw new PrismException("Cannot use the coalition operator outside the \"comp\" operator");
-				}
-			}
 
 			// Build model, if necessary
 			buildModelIfRequired();

@@ -2,7 +2,6 @@ package simulator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import parser.State;
 import parser.Values;
@@ -35,9 +34,6 @@ public class ModulesFileModelGenerator implements ModelGenerator
 	private LabelList labelList;
 	private List<String> labelNames;
 	
-	// Wwhether to use the "compositional" system construction (for SMGSs)
-	private boolean compositional = false;
-
 	// Model exploration info
 	
 	// State currently being explored
@@ -115,14 +111,6 @@ public class ModulesFileModelGenerator implements ModelGenerator
 	public ModulesFile getModulesFile()
 	{
 		return modulesFile;
-	}
-	
-	/**
-	 * Set whether to use the "compositional" system construction (for SMGSs) 
-	 */
-	public void setCompositional(boolean compositional)
-	{
-		this.compositional = compositional;
 	}
 	
 	// Methods for ModelInfo interface

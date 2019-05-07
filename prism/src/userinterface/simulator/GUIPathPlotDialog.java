@@ -510,34 +510,6 @@ public class GUIPathPlotDialog extends JDialog
 
 		// only the visible variables
 		List<ModulesFile> modulesFiles = null;
-		// extract system ... endsystem constructs
-		try {
-		    if(modulesFile != null && modulesFile.getModelType() == ModelType.SMG && modulesFile.getSystemDefn() != null) {
-			SystemDefn sys = modulesFile.getSystemDefn();
-			if (sys == null) throw new PrismException("Cannot simulate for empty system.");
-			while (sys instanceof SystemBrackets)
-			    sys = ((SystemBrackets) sys).getOperand();
-			ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
-			ModulesFile.extractSubsystemRefs(sys, sysRefs);
-			// Extract modules in each subsystem ...
-			int numComps = sysRefs.size();
-			List<List<String>> moduleNameLists = new ArrayList<List<String>>();
-			for (int i = 0; i < numComps; i++) {
-			    SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
-			    if (subsys == null) throw new PrismException("Unknown system reference" + sysRefs.get(i));
-			    ArrayList<String> moduleNames = new ArrayList<String>();
-			    ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
-			    moduleNameLists.add(moduleNames);
-			}
-			modulesFiles = new ArrayList<ModulesFile>(numComps);
-			for(int i = 0; i < numComps; i++) {
-			    ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
-			    modulesFiles.add(modulesFile_i);
-			}
-		    }
-		} catch (PrismException e) {
-		    // TODO
-		}
 
 		int i = 0;
 		for (int g = 0; g < modulesFile.getNumGlobals(); g++) {
@@ -545,30 +517,14 @@ public class GUIPathPlotDialog extends JDialog
 		    //visibleVariables.add(new Variable(i, modulesFile.getGlobal(g).getName(), modulesFile.getGlobal(g).getType()));
 		    i++;
 		}
-		if(modulesFile.getModelType() == ModelType.SMG && modulesFile.getSystemDefn() != null) {
-		    int numComps = modulesFiles.size();
-		    for(int k = 0; k < numComps; k++) {
-			ModulesFile modulesFile_k = modulesFiles.get(k);
-			for (int m = 0; m < modulesFile_k.getNumModules(); m++) {
-			    Module module = modulesFile_k.getModule(m);
-			    for (int v = 0; v < module.getNumDeclarations(); v++) {
+		for (int m = 0; m < modulesFile.getNumModules(); m++) {
+			Module module = modulesFile.getModule(m);
+			for (int v = 0; v < module.getNumDeclarations(); v++) {
 				varsCheckBoxes.add(new JCheckBox(module.getDeclaration(v).getName()));
 				//visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
 				i++;
-			    }
 			}
-		    }
-		} else {
-		    for (int m = 0; m < modulesFile.getNumModules(); m++) {
-			Module module = modulesFile.getModule(m);
-			for (int v = 0; v < module.getNumDeclarations(); v++) {
-			    varsCheckBoxes.add(new JCheckBox(module.getDeclaration(v).getName()));
-			    //visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
-			    i++;
-			}
-		    }
 		}
-
 
 		//for (int i = 0; i < modulesFile.getNumVars(); i++) {
 		//	varsCheckBoxes.add(new JCheckBox(modulesFile.getVarName(i)));

@@ -29,7 +29,6 @@ package explicit;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -38,11 +37,6 @@ import java.util.List;
 import parser.State;
 import parser.Values;
 import parser.VarList;
-import parser.ast.ModulesFile;
-import parser.ast.SystemBrackets;
-import parser.ast.SystemDefn;
-import parser.ast.SystemFullParallel;
-import parser.ast.SystemReference;
 import prism.ModelGenerator;
 import prism.ModelType;
 import prism.Prism;
@@ -200,13 +194,6 @@ public class ConstructModel extends PrismComponent
 
 		// Get model info
 		modelType = modelGen.getModelType();
-
-		// For PRISM SMGs with a system definition, we build compositionally
-		if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG
-				&& ((ModulesFileModelGenerator) modelGen).getModulesFile().getSystemDefn() != null) {
-			// default is to not check compatibility
-			return constructSMGModelCompositionally(((ModulesFileModelGenerator) modelGen).getModulesFile(), justReach);
-		}
 
 		// Display a warning if there are unbounded vars
 		VarList varList = modelGen.createVarList();
@@ -490,89 +477,6 @@ public class ConstructModel extends PrismComponent
 		// Attach labels/bitsets
 		for (int j = 0; j < numLabels; j++) {
 			model.addLabel(modelGen.getLabelName(j), bitsets[j]);
-		}
-	}
-
-	/**
-	 * Construct an explicit-state model for an SMG with a system definition (done compositionally).
-	 * If {@code justReach} is true, no model is built and null is returned;
-	 * the set of reachable states can be obtained with {@link #getStatesList()}.
-	 * @param modulesFile The PRISM model
-	 */
-	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach) throws PrismException
-	{
-		return constructSMGModelCompositionally(modulesFile, justReach, null, null, true);
-	}
-
-	/**
-	* Compositionally constructs the explicit-state model for an SMG with a system definition.
-	* Returns the component games in {@code subsystems} and the corresponding modules files in
-	* {@code subsystemModulesFiles}. If {@code buildFullModel} or {@code checkCompatibility} is
-	* {@code true}, the full model is constructed. Otherwise, the full model is not constructed
-	* and and only the components are returned.
-	**/
-	public Model constructSMGModelCompositionally(ModulesFile modulesFile, boolean justReach, List<SMG> subsystems, List<ModulesFile> subsystemModulesFiles,
-			boolean buildFullModel) throws PrismException
-	{
-		// if compatibility check or full model build is requested, need to build full model in any case
-		if ((checkCompatibility || buildFullModel) && subsystems == null)
-			subsystems = new ArrayList<SMG>();
-		if ((checkCompatibility || buildFullModel) && subsystemModulesFiles == null)
-			subsystemModulesFiles = new ArrayList<ModulesFile>();
-
-		// Extract subsystems from system definition
-		SystemDefn sys = modulesFile.getSystemDefn();
-		if (sys == null) {
-			throw new PrismException("Can only construct the model compositionally if there is a system definition");
-		}
-		while (sys instanceof SystemBrackets) {
-			sys = ((SystemBrackets) sys).getOperand();
-		}
-
-		ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
-		ModulesFile.extractSubsystemRefs(sys, sysRefs);
-
-		// Extract modules in each subsystem ...
-		int numComps = sysRefs.size();
-		ArrayList<List<String>> moduleNameLists = new ArrayList<List<String>>();
-		for (int i = 0; i < numComps; i++) {
-			SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
-			if (subsys == null) {
-				throw new PrismException("Unknown system reference" + sysRefs.get(i));
-			}
-			ArrayList<String> moduleNames = new ArrayList<String>();
-			ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
-			moduleNameLists.add(moduleNames);
-		}
-
-		// ... to build the subsystems individually.
-		setFixDeadlocks(false); // deadlocks not fixed
-		SMG m = null;
-		for (int i = 0; i < numComps; i++) {
-			// extract and store modules files for the composition later
-			ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(i));
-			if (subsystemModulesFiles != null)
-				subsystemModulesFiles.add(modulesFile_i);
-			// construct the models
-			ModulesFileModelGenerator modelGen = new ModulesFileModelGenerator(modulesFile_i, this);
-			modelGen.setCompositional(true);
-			m = (SMG) constructModel(modelGen, justReach);
-			// convert to normal form if necessary
-			if (m != null)
-				m.toNormalForm();
-			// add model to subsystem list
-			if (subsystems != null)
-				subsystems.add(m);
-		}
-		if (!justReach && (checkCompatibility || buildFullModel) && sys instanceof SystemFullParallel) {
-			// form composition and check compatibility (if requested)
-			double t0 = (double) System.nanoTime();
-			SMG smg_compositional = new SMG(modulesFile, subsystemModulesFiles, subsystems, mainLog, checkCompatibility);
-
-			mainLog.print(String.format("product construction took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
-			return smg_compositional;
-		} else {
-			return m;
 		}
 	}
 

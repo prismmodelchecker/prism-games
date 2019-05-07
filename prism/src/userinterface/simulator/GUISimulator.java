@@ -189,11 +189,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		});
 
 		pathTablePlaceHolder.addMouseListener(this);
-		try {
-			view.refreshToDefaultView(pathActive, parsedModel);
-		} catch (PrismException e) {
-			// TODO
-		}
+		view.refreshToDefaultView(pathActive, parsedModel);
 
 		setPathActive(false);
 		doEnables();

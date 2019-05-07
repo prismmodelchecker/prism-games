@@ -396,16 +396,6 @@ public class TypeCheck extends ASTTraverse
 				}
 			}
 			break;
-		case ExpressionFunc.COMP:
-			// All operands must be booleans, doubles, or ints
-			for (i = 0; i < n; i++) {
-				if (!(types[i] instanceof TypeBool || types[i] instanceof TypeDouble || types[i] instanceof TypeInt)) {
-					throw new PrismLangException("Type error: non-Boolean/Double/Integer argument to  function \"" + e.getName()
-							+ "\"", e.getOperand(i));
-				}
-			}
-			break;
-			
 		default:
 			throw new PrismLangException("Cannot type check unknown function", e);
 		}
@@ -446,10 +436,6 @@ public class TypeCheck extends ASTTraverse
 				e.setType(TypeDouble.getInstance());
 			else
 				e.setType(TypeVoid.getInstance());
-			break;
-		case ExpressionFunc.COMP:
-			// Resulting type is Pareto
-		    e.setType(TypeBool.getInstance());
 			break;
 		}
 	}

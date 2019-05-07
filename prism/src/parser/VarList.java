@@ -76,66 +76,15 @@ public class VarList
 			addVar(decl, -1, modulesFile.getConstantValues());
 		}
 
-		ModelType modelType = modulesFile.getModelType();
-
-		if(modelType == ModelType.SMG && modulesFile.getSystemDefn() != null) { // a system...endsystem construct
-		    SystemDefn sys = modulesFile.getSystemDefn();
-		    if (sys == null) {
-			throw new PrismLangException("Cannot build variable list for empty system.");
-		    }
-		    while (sys instanceof SystemBrackets) {
-			sys = ((SystemBrackets) sys).getOperand();
-		    }
-		    
-		    ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
-		    try {
-			ModulesFile.extractSubsystemRefs(sys, sysRefs);
-		    } catch (PrismException e) {
-			throw new PrismLangException(e.getMessage());
-		    }
-
-		    // Extract modules in each subsystem ...
-		    int numComps = sysRefs.size();
-		    ArrayList<List<String>> moduleNameLists = new ArrayList<List<String>>();
-		    for (i = 0; i < numComps; i++) {
-			SystemDefn subsys = modulesFile.getSystemDefnByName(sysRefs.get(i).getName());
-			if (subsys == null) {
-			    throw new PrismLangException("Unknown system reference" + sysRefs.get(i));
-			}
-			ArrayList<String> moduleNames = new ArrayList<String>();
-			try {
-			    ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
-			} catch (PrismException e) {
-			    throw new PrismLangException(e.getMessage());
-			}
-			moduleNameLists.add(moduleNames);
-		    }
-		    
-		    // ... to extract the variables of the subsystems individually
-		    for (int k = 0; k < numComps; k++) {
-			ModulesFile modulesFile_i = (ModulesFile) modulesFile.deepCopy(moduleNameLists.get(k));
-			n = modulesFile_i.getNumModules();
-			for (i = 0; i < n; i++) {
-			    module = modulesFile_i.getModule(i);
-			    n2 = module.getNumDeclarations();
-			    for (j = 0; j < n2; j++) {
-				decl = module.getDeclaration(j);
-				addVar(decl, i, modulesFile_i.getConstantValues());
-			    }
-			}
-		    }
-
-		} else {
-		    // Add all module variables to the list
-		    n = modulesFile.getNumModules();
-		    for (i = 0; i < n; i++) {
+		// Then add all module variables to the list
+		n = modulesFile.getNumModules();
+		for (i = 0; i < n; i++) {
 			module = modulesFile.getModule(i);
 			n2 = module.getNumDeclarations();
 			for (j = 0; j < n2; j++) {
-			    decl = module.getDeclaration(j);
-			    addVar(decl, i, modulesFile.getConstantValues());
+				decl = module.getDeclaration(j);
+				addVar(decl, i, modulesFile.getConstantValues());
 			}
-		    }
 		}
 	}
 

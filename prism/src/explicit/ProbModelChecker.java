@@ -1439,8 +1439,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		switch (((ExpressionFunc) expr).getNameCode()) {
 		case ExpressionFunc.MULTI:
 			throw new PrismException("Properties with \"multi\" no longer supported.");
-		case ExpressionFunc.COMP:
-			throw new PrismException("Cannot evaluate \"comp\" property on an atomic model.");
 		default:
 			throw new PrismException("Unsupported format for multi-objective query");
 		}
@@ -1454,8 +1452,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MULTI:
 			throw new PrismException("Properties with \"multi\" not supported.");
-		case ExpressionFunc.COMP:
-			throw new PrismException("Cannot evaluate \"comp\" property on an atomic model.");
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}

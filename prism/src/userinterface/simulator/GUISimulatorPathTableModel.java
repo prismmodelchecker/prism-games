@@ -37,10 +37,6 @@ import simulator.PathFullInfo;
 import userinterface.simulator.SimulationView.*;
 import userinterface.util.GUIGroupedTableModel;
 import parser.ast.*;
-import prism.ModelType;
-import prism.PrismException;
-import strat.StochasticUpdateStrategy;
-import strat.StochasticUpdateStrategyProduct;
 
 public class GUISimulatorPathTableModel extends AbstractTableModel implements GUIGroupedTableModel, Observer
 {
@@ -57,10 +53,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	private VariableValue variableValue;
 	private TimeValue timeValue;
 	private ActionValue actionValue;
-
-        // for system...endsystem constructs
-        private List<List<String>> moduleNameLists;
-        private List<ModulesFile> modulesFiles;
 
 	public GUISimulatorPathTableModel(GUISimulator simulator, SimulationView view)
 	{
@@ -82,35 +74,9 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		this.path = path;
 	}
 
-	public void setParsedModel(ModulesFile parsedModel) throws PrismException
+	public void setParsedModel(ModulesFile parsedModel)
 	{
 		this.parsedModel = parsedModel;
-		if(parsedModel != null && parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
-		    SystemDefn sys = parsedModel.getSystemDefn();
-		    if (sys == null) throw new PrismException("Cannot simulate for empty system.");
-
-		    while (sys instanceof SystemBrackets)
-			sys = ((SystemBrackets) sys).getOperand();
-		    
-		    ArrayList<SystemReference> sysRefs = new ArrayList<SystemReference>();
-				      
-		    ModulesFile.extractSubsystemRefs(sys, sysRefs);
-		    // Extract modules in each subsystem ...
-		    int numComps = sysRefs.size();
-		    moduleNameLists = new ArrayList<List<String>>();
-		    for (int i = 0; i < numComps; i++) {
-			SystemDefn subsys = parsedModel.getSystemDefnByName(sysRefs.get(i).getName());
-			if (subsys == null) throw new PrismException("Unknown system reference" + sysRefs.get(i));
-			ArrayList<String> moduleNames = new ArrayList<String>();
-		        ModulesFile.extractSubsystemModuleNames(subsys, moduleNames);
-			moduleNameLists.add(moduleNames);
-		    }
-		    modulesFiles = new ArrayList<ModulesFile>(numComps);
-		    for(int i = 0; i < numComps; i++) {
-			ModulesFile modulesFile_i = (ModulesFile) parsedModel.deepCopy(moduleNameLists.get(i));
-			modulesFiles.add(modulesFile_i);
-		    }
-		}
 	}
 
 	public boolean canShowTime()
@@ -136,10 +102,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			ArrayList<Variable> vars = view.getVisibleVariables();
 			Set<String> varNames = new HashSet<String>();
 
-			int i = 0;
 			for (Variable variable : vars) {
 				varNames.add(variable.getName());
-				i++;
 			}
 
 			for (int g = 0; g < parsedModel.getNumGlobals(); g++) {
@@ -148,31 +112,14 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 					break;
 				}
 			}
-			// if a system...endsystem construct
-		        if(parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
-			    int numComps = modulesFiles.size();
-			    for(i = 0; i < numComps; i++) {
-				ModulesFile modulesFile_i = modulesFiles.get(i);
-				for(int m = 0; m < modulesFile_i.getNumModules(); m++) {
-					parser.ast.Module module = modulesFile_i.getModule(m);
-				    for (int v = 0; v < module.getNumDeclarations(); v++) {
-					if (varNames.contains(module.getDeclaration(v).getName())) {
-					    groupCount++;
-					    break;
-					}
-				    }   
-				}
-			    }
-			} else {
-			    for (int m = 0; m < parsedModel.getNumModules(); m++) {
+			for (int m = 0; m < parsedModel.getNumModules(); m++) {
 				parser.ast.Module module = parsedModel.getModule(m);
 				for (int v = 0; v < module.getNumDeclarations(); v++) {
-				    if (varNames.contains(module.getDeclaration(v).getName())) {
-					groupCount++;
-					break;
-				    }
+					if (varNames.contains(module.getDeclaration(v).getName())) {
+						groupCount++;
+						break;
+					}
 				}
-			    }
 			}
 
 			if (view.getVisibleRewardColumns().size() > 0) {
@@ -234,38 +181,18 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 						break;
 					}
 				}
-				if(parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
-				    int numComps = modulesFiles.size();
-				    for(int i = 0; i < numComps; i++) {
-					ModulesFile modulesFile_i = modulesFiles.get(i);
-					for (int m = 0; m < modulesFile_i.getNumModules(); m++) {
-						parser.ast.Module module = modulesFile_i.getModule(m);
-					    for (int v = 0; v < module.getNumDeclarations(); v++) {
-						if (varNames.contains(module.getDeclaration(v).getName())) {
-						    if (groupCount == groupIndex) {
-							return "" + modulesFile_i.getModuleName(m) + "";
-						    }
-						    
-						    groupCount++;
-						    break;
-						}
-					    }
-					}
-				    }
-				} else {
-				    for (int m = 0; m < parsedModel.getNumModules(); m++) {
-				    	parser.ast.Module module = parsedModel.getModule(m);
+				for (int m = 0; m < parsedModel.getNumModules(); m++) {
+					parser.ast.Module module = parsedModel.getModule(m);
 					for (int v = 0; v < module.getNumDeclarations(); v++) {
-					    if (varNames.contains(module.getDeclaration(v).getName())) {
-						if (groupCount == groupIndex) {
-						    return "" + parsedModel.getModuleName(m) + "";
+						if (varNames.contains(module.getDeclaration(v).getName())) {
+							if (groupCount == groupIndex) {
+								return "" + parsedModel.getModuleName(m) + "";
+							}
+
+							groupCount++;
+							break;
 						}
-						
-						groupCount++;
-						break;
-					    }
 					}
-				    }
 				}
 			}
 
@@ -319,38 +246,18 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				break;
 			}
 		}
-		if(parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
-		    int numComps = modulesFiles.size();
-		    for(int i = 0; i < numComps; i++) {
-			ModulesFile modulesFile_i = modulesFiles.get(i);
-			for (int m = 0; m < modulesFile_i.getNumModules(); m++) {
-				parser.ast.Module module = modulesFile_i.getModule(m);
-			    for (int v = 0; v < module.getNumDeclarations(); v++) {
-				if (varNames.contains(module.getDeclaration(v).getName())) {
-				    if (groupCount == groupIndex) {
-					return "Variables of module \"" + modulesFile_i.getModuleName(m) + "\"";
-				    }
-				    
-				    groupCount++;
-				    break;
-				}
-			    }
-			}
-		    }
-		} else {
-		    for (int m = 0; m < parsedModel.getNumModules(); m++) {
-		    	parser.ast.Module module = parsedModel.getModule(m);
+		for (int m = 0; m < parsedModel.getNumModules(); m++) {
+			parser.ast.Module module = parsedModel.getModule(m);
 			for (int v = 0; v < module.getNumDeclarations(); v++) {
-			    if (varNames.contains(module.getDeclaration(v).getName())) {
-				if (groupCount == groupIndex) {
-				    return "Variables of module \"" + parsedModel.getModuleName(m) + "\"";
+				if (varNames.contains(module.getDeclaration(v).getName())) {
+					if (groupCount == groupIndex) {
+						return "Variables of module \"" + parsedModel.getModuleName(m) + "\"";
+					}
+
+					groupCount++;
+					break;
 				}
-				
-				groupCount++;
-				break;
-			    }
 			}
-		    }
 		}
 
 		// Add state and transitions rewards for each reward structure.
@@ -427,56 +334,27 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				groupCount++;
 			}
 
-			if(parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null) {
-			    int numComps = modulesFiles.size();
-			    for(int i = 0; i < numComps; i++) {
-				ModulesFile modulesFile_i = modulesFiles.get(i);
-				for (int m = 0; m < modulesFile_i.getNumModules(); m++) {
-					parser.ast.Module module = modulesFile_i.getModule(m);
-				    boolean atLeastOne = false;
-				    
-				    for (int v = 0; v < module.getNumDeclarations(); v++) {
-					boolean contained = varNames.contains(module.getDeclaration(v).getName());
-					if (!atLeastOne && contained) {
-					    atLeastOne = true;
-					}
-					
-					if (contained)
-					    visVarCount++;
-				    }
-				    
-				    if (atLeastOne && groupCount == groupIndex) {
-					return varStart + visVarCount - 1;
-				    }
-				    
-				    if (atLeastOne) {
-					groupCount++;
-				    }
-				}
-			    }
-			} else {
-			    for (int m = 0; m < parsedModel.getNumModules(); m++) {
-			    parser.ast.Module module = parsedModel.getModule(m);
+			for (int m = 0; m < parsedModel.getNumModules(); m++) {
+				parser.ast.Module module = parsedModel.getModule(m);
 				boolean atLeastOne = false;
 
 				for (int v = 0; v < module.getNumDeclarations(); v++) {
-				    boolean contained = varNames.contains(module.getDeclaration(v).getName());
-				    if (!atLeastOne && contained) {
-					atLeastOne = true;
-				    }
-				    
-				    if (contained)
-					visVarCount++;
+					boolean contained = varNames.contains(module.getDeclaration(v).getName());
+					if (!atLeastOne && contained) {
+						atLeastOne = true;
+					}
+
+					if (contained)
+						visVarCount++;
 				}
-				
+
 				if (atLeastOne && groupCount == groupIndex) {
-				    return varStart + visVarCount - 1;
+					return varStart + visVarCount - 1;
 				}
-				
+
 				if (atLeastOne) {
-				    groupCount++;
+					groupCount++;
 				}
-			    }
 			}
 		}
 
@@ -722,7 +600,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	 * Method is called when a new path is created.
 	 * The structure of the path may be for a different model etc.
 	 */
-	public void restartPathTable() throws PrismException
+	public void restartPathTable()
 	{
 		view.refreshToDefaultView(pathActive, parsedModel);
 	}
