@@ -222,6 +222,20 @@ public class TransitionList
 	}
 
 	/**
+	 * Get a string describing the action/module of a transition, specified by its index.
+	 * (form is "module M" or "action a")
+	 */
+	public String getTransitionModuleOrActionDescription(int index) throws PrismException
+	{
+		String modAct = getChoiceOfTransition(index).getModuleOrAction();
+		if (modAct.charAt(0) == '[') {
+			return "action " + modAct.substring(1, modAct.length() - 1);
+		} else {
+			return "module " + modAct;
+		}
+	}
+
+	/**
 	 * Get the index of the action/module of a transition, specified by its index.
 	 * (-i for independent in ith module, i for synchronous on ith action)
 	 * (in both cases, modules/actions are 1-indexed)

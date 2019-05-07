@@ -358,6 +358,12 @@ public class ModulesFileModelGenerator implements ModelGenerator
 		return transitions.getTransitionModuleOrAction(transitions.getTotalIndexOfTransition(i, offset));
 	}
 	
+	public String getTransitionModuleOrActionDescription(int i, int offset) throws PrismException
+	{
+		TransitionList transitions = getTransitionList();
+		return transitions.getTransitionModuleOrActionDescription(transitions.getTotalIndexOfTransition(i, offset));
+	}
+	
 	@Override
 	public double getTransitionProbability(int index, int offset) throws PrismException
 	{
@@ -387,44 +393,16 @@ public class ModulesFileModelGenerator implements ModelGenerator
 	@Override
     public int getPlayerNumberForChoice(int i) throws PrismException
 	{
-    		// Normal game
-		if (!compositional) {
-			String modAct = getTransitionModuleOrAction(i, 0);
-			// NB: 0-indexed to 1-indexed
-			return modulesFile.getPlayerForModuleOrAction(modAct) + 1;
+		String modAct = getTransitionModuleOrAction(i, 0);
+		int player = modulesFile.getPlayerForModuleOrAction(modAct);
+		if (player == -1) {
+			String errMsg = "No player owns state " + getExploreState();
+			errMsg += " (because no player owns " + getTransitionModuleOrActionDescription(i, 0) + ")"; 
+			throw new PrismException(errMsg);
 		}
-		// Compositional game
-		else {
-			// Get index of module/action (all transitions within choice have same action, so use offset 0)
-			int modAct = getTransitionModuleOrActionIndex(i, 0);
-
-			// Synchronous action
-			int player = -1;
-			if (modAct > 0) {
-				String actionName = modulesFile.getSynch(modAct - 1);
-				// get inputs and outputs of subsystem
-				Vector<String> inputs = new Vector<String>();
-				Vector<String> outputs = new Vector<String>();
-				for (int n = 0; n < modulesFile.getNumModules(); n++) {
-					inputs.addAll(modulesFile.getModule(n).getAllInputActions());
-					outputs.addAll(modulesFile.getModule(n).getAllOutputActions());
-				}
-				if (actionName == null || "".equals(actionName)) {
-					player = 2; // tau controlled by player 2
-				} else if (inputs.contains(actionName)) {
-					player = 2; // inputs controlled by player 2
-				} else if (outputs.contains(actionName)) {
-					player = 1; // outputs controlled by player 1
-				} else {
-					throw new PrismException("Action \"" + actionName + "\" is not assigned to any player");
-				}
-			}
-			// Asynchronous action
-			else {
-				player = 2; // tau controlled by player 2
-			}
-			return player;
-		}
+		
+		// NB: convert 0-indexed to 1-indexed
+		return player + 1;
 	}
 
 	@Override

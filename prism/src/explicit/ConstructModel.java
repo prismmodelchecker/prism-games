@@ -302,6 +302,10 @@ public class ConstructModel extends PrismComponent
 				if (nc == 0) {
 					player = 1;
 				}
+				// Make sure a valid player owns the state
+				if (player < 1 || player > modelGen.getNumPlayers()) {
+					throw new PrismException("State " + state + " owned by invalid player (" + player + ")");
+				}
 				if (modelType == ModelType.STPG) {
 					stpg.setPlayer(src, player);
 				} else if (modelType == ModelType.SMG) {
