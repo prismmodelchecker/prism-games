@@ -140,6 +140,15 @@ PPL_DIR = $(shell src/scripts/findppl.sh)
 #PPL_DIR = 		/usr/local/ppl/lib
 #PPL_DIR = 		/usr/local/lib
 
+# Expected names of (some) PPL files
+ifeq ($(OSTYPE),linux)
+	PPL_JAVA_LIB = libppl_java.so
+endif
+ifeq ($(OSTYPE),darwin)
+	PPL_JAVA_LIB = libppl_java.jnilib
+endif
+PPL_JAVA_JAR = ppl_java.jar
+
 ##################
 # Compilers etc. #
 ##################
@@ -328,7 +337,7 @@ EXT_PACKAGES = lpsolve55 lp_solve_5.5_java
 
 default: all
 
-all: cuddpackage extpackages prism
+all: cuddpackage ppl extpackages prism
 
 # Build our customised version of CUDD
 cuddpackage: checks
@@ -349,6 +358,34 @@ cuddpackageforce: checks
 	  cd $(CUDD_DIR) && \
 	  $(MAKE) C="$(C)" CC="$(C)" CPP="$(CPP)" \
 	  XCFLAGS="$(CUDD_XCFLAGS)";
+
+# Copy PPL libraries to lib dir
+# (only if not already there, to avoid repeated copying).
+# We check for PPL_JAVA_LIB, which is consistently named
+# and whose presence likely indicates that the files have already been copied.
+# If not found, we use a local copy of the JAR (in ext/ppl_java) since this is needed for compilation.
+ppl: checks
+	@echo Copying PPL files ...; \
+	if [ "$(PPL_DIR)" = "" ]; then \
+		echo "PPL_DIR not specified/detected: cannot copy files"; \
+	else \
+		if [ -f "$(LIB_DIR)"/"$(PPL_JAVA_LIB)" ]; then \
+			echo "PPL Java library $(LIB_DIR)/$(PPL_JAVA_LIB) detected: nothing to do"; \
+		else \
+			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_LIB)" "$(LIB_DIR)" || echo Failed to copy PPL Java library); \
+			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_JAR)" "$(LIB_DIR)" || echo Failed to copy PPL Java JAR); \
+			if [ "$(OSTYPE)" = "linux" ]; then \
+				(cp "$(PPL_DIR)"/libppl*so*[0-9] "$(LIB_DIR)" || echo Failed to copy PPL library); \
+			fi; \
+			if [ "$(OSTYPE)" = "darwin" ]; then \
+				(cp "$(PPL_DIR)"/libppl*[0-9]*lib "$(LIB_DIR)" || echo Failed to copy PPL library); \
+			fi; \
+		fi; \
+	fi ; \
+	if [ ! -f "$(LIB_DIR)"/"$(PPL_JAVA_JAR)" ]; then \
+		echo "PPL library files not copied; using local copy of JAR"; \
+		cp ext/ppl_java/"$(PPL_JAVA_JAR)" "$(LIB_DIR)"; \
+	fi
 
 # Use this to force a rebuild (with javacc) of the main parser
 parser:
@@ -403,7 +440,6 @@ make_dirs:
 	  CLASSES_DIR="$(CLASSES_DIR)" \
 	  OBJ_DIR="$(OBJ_DIR)" \
 	  LIB_DIR="$(LIB_DIR)" \
-	  PPL_DIR="$(PPL_DIR)" \
 	  INCLUDE_DIR="$(INCLUDE_DIR)" \
 	  JAVA_INCLUDES="$(JAVA_INCLUDES)" \
 	  JAVA_JNI_H_DIR="$(JAVA_JNI_H_DIR)" \
@@ -443,7 +479,7 @@ bin_scripts:
 	done;
 	@echo Copying "$(OBJ_DIR)/prism/ngprism$(EXE) -> bin/ngprism$(EXE)" && \
 	cp $(OBJ_DIR)/prism/ngprism$(EXE) bin/ngprism$(EXE)
-	@PPL_DIR=$(PPL_DIR) ./install.sh silent
+	@./install.sh silent
 
 # Some checks to make sure that the main settings are valid
 checks:
@@ -667,10 +703,14 @@ clean: checks
 celan: clean
 
 # Clean PRISM + CUDD and external libs
-clean_all: checks clean_cudd clean_ext clean
+clean_all: checks clean_cudd clean_ppl clean_ext clean
 
 clean_cudd:
 	@(cd $(CUDD_DIR) && $(MAKE) distclean)
+
+# Remove PPL libraries copied to lib
+clean_ppl:
+	@rm -f $(LIB_DIR)/libppl* $(LIB_DIR)/"$(PPL_JAVA_JAR)"
 
 clean_ext:
 	@(for ext in $(EXT_PACKAGES); do \
