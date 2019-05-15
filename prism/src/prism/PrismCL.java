@@ -1356,6 +1356,14 @@ public class PrismCL implements PrismModelListener
 				else if (sw.equals("ctmc")) {
 					typeOverride = ModelType.CTMC;
 				}
+				// override model type to stpg
+				else if (sw.equals("stpg")) {
+					typeOverride = ModelType.STPG;
+				}
+				// override model type to smg
+				else if (sw.equals("smg")) {
+					typeOverride = ModelType.SMG;
+				}
 
 				// EXPORT OPTIONS:
 
@@ -2434,6 +2442,8 @@ public class PrismCL implements PrismModelListener
 		mainLog.println("-dtmc .......................... Force imported/built model to be a DTMC");
 		mainLog.println("-ctmc .......................... Force imported/built model to be a CTMC");
 		mainLog.println("-mdp ........................... Force imported/built model to be an MDP");
+		mainLog.println("-stpg .......................... Force imported/built model to be an STPG");
+		mainLog.println("-smg ........................... Force imported/built model to be an SMG");
 		mainLog.println();
 		mainLog.println("EXPORT OPTIONS:");
 		mainLog.println("-exportresults <file[:options]>  Export the results of model checking to a file");

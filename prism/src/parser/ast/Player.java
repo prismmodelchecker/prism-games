@@ -53,6 +53,25 @@ public class Player extends ASTElement
 		actions = new ArrayList<String>();
 	}
 
+	/**
+	 * Generate the specification for a single player that controls all modules/actions
+	 * in the given ModulesFile.
+	 */
+	public static Player singlePlayerForEverything(ModulesFile mf)
+	{
+		Player player = new Player("p1");
+
+		for (int i = 0; i < mf.getNumModules(); i++) {
+			player.addModule(mf.getModuleName(i));
+		}
+
+		for (String a : mf.getSynchs()) {
+			player.addAction(a);
+		}
+
+		return player;
+	}
+
 	// Set methods
 
 	public void addModule(String moduleName)
