@@ -25,3 +25,9 @@ const int k;
 
 // RESULT: 0.15
 <<1>> Pmax=? [ F (h=2 & c=0) ]
+
+// RESULT: 1.0
+<<1,2>> Pmax=? [ F (h=2 & c=0) ]
+
+// RESULT: 1.0
+<<*>> Pmax=? [ F (h=2 & c=0) ]
