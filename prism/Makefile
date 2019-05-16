@@ -565,6 +565,10 @@ count_loc:
 test:
 	bin/prism ../prism-tests/functionality/verify/dtmcs/dtmc_pctl.pm ../prism-tests/functionality/verify/dtmcs/dtmc_pctl.pm.props -prop 2 -test
 
+# Run a single test case from the test suite that relies on PPL being properly installed
+testppl:
+	bin/prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism.props -prop 1 -test
+
 # Run all tests from the test suite (in ../prism-tests and ./tests)
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
 tests: testslocal
