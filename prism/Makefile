@@ -375,10 +375,10 @@ ppl: checks
 			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_LIB)" "$(LIB_DIR)" || echo Failed to copy PPL Java library); \
 			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_JAR)" "$(LIB_DIR)" || echo Failed to copy PPL Java JAR); \
 			if [ "$(OSTYPE)" = "linux" ]; then \
-				(cp "$(PPL_DIR)"/libppl*so*[0-9] "$(LIB_DIR)" || echo Failed to copy PPL library); \
+				(cp "$(PPL_DIR)"/lib/libppl.so.[0-9][0-9] "$(LIB_DIR)" || echo Failed to copy PPL library); \
 			fi; \
 			if [ "$(OSTYPE)" = "darwin" ]; then \
-				(cp "$(PPL_DIR)"/libppl*[0-9]*lib "$(LIB_DIR)" || echo Failed to copy PPL library); \
+				(cp "$(PPL_DIR)"/libppl.[0-9][0-9].dylib "$(LIB_DIR)" || echo Failed to copy PPL library); \
 			fi; \
 		fi; \
 	fi ; \
