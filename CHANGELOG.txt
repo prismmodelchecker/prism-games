@@ -7,9 +7,13 @@ Version 2.1 (pending)
 
 * Merged latest changes from PRISM (up to v4.5 and slightly beyond),
   including directory rearrangement (some files moved to top-level)
-* Examples tidied up (now in prism-examples/smgs directory)
+* Examples and tests tidied up (now in prism-examples/smgs directory
+  and prism-tests/functionality/verify/{smgs,smgs-multi})
+* Simplified dependencies on the PPL library
+  (in there are local copies, so releases are self-contained)
 * Version number of PRISM-games properly reported/displayed
 * Some compositional functionality moved into separate branch for now
+* Various bugfixes
 
 -----------------------------------------------------------------------------
 Version 2.0 (first released 17/10/2015)
