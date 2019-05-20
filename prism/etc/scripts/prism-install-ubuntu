@@ -5,16 +5,30 @@
 set -e # Abort if one of the commands fail
 set -x # Print commands as they are executed
 
-# Install dependencies: make/gcc/Java/git
+# Install dependencies: make/gcc/Java/git/GMP
 sudo apt-get -y update
-sudo apt -y install make gcc g++ default-jdk git
+sudo apt -y install make gcc g++ default-jdk git libppl-dev m4
 
 # Install Python (only needed for testing (prism-auto) currently)
 sudo apt -y install python
 
 # Download the latest development version from GitHub
-git clone https://github.com/prismmodelchecker/prism.git
+git clone https://github.com/prismmodelchecker/prism-games.git
 
-# Compile PRISM and run a single test
+# Find the Java directory
+export JAVA_HOME=`../prism-games/prism/src/scripts/findjavac.sh | sed 's/\/bin\/javac//'`
+
+# Download and build PPL
+wget http://www.bugseng.com/products/ppl/download/ftp/releases/1.2/ppl-1.2.tar.gz
+tar xfz ppl-1.2.tar.gz
+cd ppl-1.2
+./configure --enable-interfaces=java --with-java=$JAVA_HOME
+make
+sudo make install
+cd ..
+
+# Compile PRISM-games and run two tests
 # (should ultimately display: "Testing result: PASS")
-(cd prism/prism && make && make test)
+cd prism-games/prism
+make PPL_DIR=/usr/local/lib
+make test testppl
