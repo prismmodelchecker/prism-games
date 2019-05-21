@@ -2,7 +2,7 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
-Version 2.1 (pending)
+Version 2.1 (first released 21/5/2019)
 -----------------------------------------------------------------------------
 
 * Merged latest changes from PRISM (up to v4.5 and slightly beyond),
@@ -10,7 +10,7 @@ Version 2.1 (pending)
 * Examples and tests tidied up (now in prism-examples/smgs directory
   and prism-tests/functionality/verify/{smgs,smgs-multi})
 * Simplified dependencies on the PPL library
-  (in there are local copies, so releases are self-contained)
+  (in particular, local copies are stored, so binary releases are self-contained)
 * Version number of PRISM-games properly reported/displayed
 * Some compositional functionality moved into separate branch for now
 * Various bugfixes
