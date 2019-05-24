@@ -79,10 +79,8 @@ public class TypeDouble extends Type
 			return (BigRational) value;
 		if (value instanceof Integer)
 			return new Double(((Integer) value).intValue());
-		else {
-		    Thread.dumpStack();
-		    throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
-		}
+		else
+			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
 	}
 
 	@Override
