@@ -47,7 +47,6 @@ import prism.PrismNotSupportedException;
 import prism.PrismPrintStreamLog;
 import prism.ProgressDisplay;
 import prism.UndefinedConstants;
-import simulator.ModulesFileModelGenerator;
 
 /**
  * Class to perform explicit-state reachability and model construction.
@@ -221,13 +220,7 @@ public class ConstructModel extends PrismComponent
 				stpg.setVarList(varList);
 				break;
 			case SMG:
-				if (modelGen instanceof ModulesFileModelGenerator && modelType == ModelType.SMG
-						&& ((ModulesFileModelGenerator) modelGen).getModulesFile().getModuleNames() != null
-						&& ((ModulesFileModelGenerator) modelGen).getModulesFile().getModuleNames().length > 0) {
-					modelSimple = smg = new SMG(((ModulesFileModelGenerator) modelGen).getModulesFile().getModuleName(0));
-				} else {
-					modelSimple = smg = new SMG();
-				}
+				modelSimple = smg = new SMG();
 				smg.setVarList(varList);
 				// Add player info
 				HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
