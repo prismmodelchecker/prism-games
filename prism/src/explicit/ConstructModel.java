@@ -72,9 +72,6 @@ public class ConstructModel extends PrismComponent
 	/** Should labels be processed and attached to the model? */
 	protected boolean attachLabels = true;
 
-	/** Automatically check compatibility? */
-	protected boolean checkCompatibility = false;
-
 	// Details of built model:
 
 	/** Reachable states */
@@ -133,14 +130,6 @@ public class ConstructModel extends PrismComponent
 	public void setAttachLabels(boolean attachLabels)
 	{
 		this.attachLabels = attachLabels;
-	}
-
-	/**
-	 * Automatically check compatibility?
-	 */
-	public void setCheckCompatibility(boolean checkCompatibility)
-	{
-		this.checkCompatibility = checkCompatibility;
 	}
 
 	/**

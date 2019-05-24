@@ -124,7 +124,6 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_EXPORT_PARETO_FILENAME			= "prism.exportParetoFileName";
 
     // multi-objective synthesis for games
-	public static final     String PRISM_MULTI_COMP					= "prism.multiComp";
 	public static final     String PRISM_MULTI_GAUSS_SEIDEL					= "prism.multiGaussSeidel";
         // iteration control
         public static final	String PRISM_MULTI_MAX_C_ITER			= "prism.multiMaxCIter";
@@ -326,8 +325,6 @@ public class PrismSettings implements Observer
 			{ STRING_TYPE,		PRISM_EXPORT_PARETO_FILENAME,			"Pareto curve export filename",			"4.0.3",			"",															"0,",																						
 																			"If non-empty, any Pareto curve generated will be exported to this file." },
 			// MULTI-OBJECTIVE SYNTHESIS:
-			{ BOOLEAN_TYPE,		PRISM_MULTI_COMP,							"Check compatibility",				"4.0.3",		new Boolean(false),															"",																							
-																			"Whether to check compatibility of components automatically." },
 			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		new Boolean(true),															"",																							
 																			"Use Gauss-Seidel value iteration for solving multi-objective SGs. Only used for cumulative total rewards (Pareto set computation and strategy synthesis), and for strategy synthesis of average and ratio rewards." },
 			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			new Integer(500),															"0,",																						
@@ -1358,12 +1355,6 @@ public class PrismSettings implements Observer
 		}
 
 		// MULTI-OBJECTIVE SYNTHESIS OPTIONS:
-		else if (sw.equals("nocompatibility")) {
-			set(PRISM_MULTI_COMP, false);
-		}
-		else if (sw.equals("compatibility")) {
-			set(PRISM_MULTI_COMP, true);
-		}
 		else if (sw.equals("multimaxciter")) {
 			if (i < args.length - 1) {
 				try {

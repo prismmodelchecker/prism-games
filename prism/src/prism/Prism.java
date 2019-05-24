@@ -766,11 +766,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		return getEngine() == Prism.EXPLICIT;
 	}
 
-	public boolean getCheckCompatibility()
-	{
-		return settings.getBoolean(PrismSettings.PRISM_MULTI_COMP);
-	}
-
 	public boolean getFixDeadlocks()
 	{
 		return settings.getBoolean(PrismSettings.PRISM_FIX_DEADLOCKS);
@@ -2099,7 +2094,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 					ConstructModel constructModel = new ConstructModel(this);
 					constructModel.setFixDeadlocks(getFixDeadlocks());
-					constructModel.setCheckCompatibility(getCheckCompatibility());
 					currentModel = null;
 					currentModelExpl = constructModel.constructModel(new ModulesFileModelGenerator(currentModulesFile, this), false);
 				}
