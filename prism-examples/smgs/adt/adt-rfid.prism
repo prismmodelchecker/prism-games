@@ -1,0 +1,245 @@
+// Stochastic turn-based game for attack-defence tree model of
+// breaking in to an RFID-based goods management system
+// [Aslanyan/Parker 2016]
+
+// Example from:
+// * Zaruhi Aslanyan, Flemming Nielson and David Parker.
+//   Quantitative Verification and Synthesis of Attack-Defence Scenarios.
+//   In Proc. 29th IEEE Computer Security Foundations Symposium (CSF'16),
+//   pages 105-119, IEEE, 2016.
+// (see Section V)
+     
+// Tidied up version of auto-generated file
+
+smg
+
+const double pcf = 0.75;
+const double pbw = 0.6;
+const double puc = 0.6;
+const double ppc = 0.7;
+const double ptg = 0.4;
+const double ped = 0.5;
+const double pbs = 0.7;
+const double pld = 0.6;
+const double psc = 0.8;
+const double plc = 0.65;
+const double pvc = 0.75;
+const double peg = 0.8;
+
+player a
+	attacker,
+	[doAttackCF_UC_PC_TG],
+	[doAttackCF_UC_PC], [doAttackCF_UC_TG], [doAttackCF_PC_TG], [doAttackUC_PC_TG], 
+	[doAttackCF_UC], [doAttackCF_PC], [doAttackUC_PC],
+	[doAttackCF_TG], [doAttackUC_TG], [doAttackPC_TG],
+	[doAttackCF], [doAttackUC], [doAttackPC], [doAttackTG],
+	[dontDoAttackCF_UC_PC_TG],	
+	[doAttackED_LD], [doAttackED], [doAttackLD], [dontDoAttackED_LD],
+	[doAttackLC_VC], [doAttackLC], [doAttackVC], [dontDoAttackLC_VC],
+	[prob_t_GOP], [prob_t_BAE], [prob_Root],
+	[succeed], [fail]
+endplayer
+
+player d
+	[doDefenceBW], [dontDoDefenceBW], 
+	[doDefenceBS], [dontDoDefenceBS],
+	[doDefenceSC_EG], [doDefenceSC], [doDefenceEG], [dontDoDefenceSC_EG]
+endplayer
+
+module attacker
+
+	s:[0..10];
+
+	doCF : bool init false;
+	doBW : bool init false;
+	doUC : bool init false;
+	doPC : bool init false;
+	doTG : bool init false;
+	doED : bool init false;
+	doBS : bool init false;
+	doLD : bool init false;
+	doSC : bool init false;
+	doLC : bool init false;
+	doVC : bool init false;
+	doEG : bool init false;
+
+	//subtree t_GOP = (CF_AND_NEG_(BW_AND_NEG_(UC_OR_PC)))_OR_EG
+	success_t_GOP : bool init false;
+	//subtree t_BAE = t_GOP_PAND_((ED_AND_NEG_BS)_OR_LD)
+	success_t_BAE : bool init false;
+	//whole tree Root=t_BAE_PAND_NEG(SC_AND_NEG_(LC_OR_(VC_AND_NEG_EG)))
+	success_Root : bool init false;
+
+	//
+	//nondeterministic transactions of sub-tree (CF_AND_NEG_(BW_AND_NEG_(UC_OR_PC)))_OR_EG
+	[doDefenceBW] s=0 -> (s'=1)&(doBW'=true);
+	[dontDoDefenceBW] s=0 -> (s'=1);
+
+	[doAttackCF_UC_PC_TG] s=1 -> (s'=2)&(doCF'=true)&(doUC'=true)&(doPC'=true)&(doTG'=true);
+	[doAttackCF_UC_PC] s=1 -> (s'=2)&(doCF'=true)&(doUC'=true)&(doPC'=true);
+	[doAttackCF_UC_TG] s=1 -> (s'=2)&(doCF'=true)&(doUC'=true)&(doTG'=true);
+	[doAttackCF_PC_TG] s=1 -> (s'=2)&(doCF'=true)&(doPC'=true)&(doTG'=true);
+	[doAttackUC_PC_TG] s=1 -> (s'=2)&(doUC'=true)&(doPC'=true)&(doTG'=true);
+	[doAttackCF_UC] s=1 -> (s'=2)&(doCF'=true)&(doUC'=true);
+	[doAttackCF_PC] s=1 -> (s'=2)&(doCF'=true)&(doPC'=true);
+	[doAttackUC_PC] s=1 -> (s'=2)&(doUC'=true)&(doPC'=true);
+	[doAttackCF_TG] s=1 -> (s'=2)&(doCF'=true)&(doTG'=true);
+	[doAttackUC_TG] s=1 -> (s'=2)&(doUC'=true)&(doTG'=true);
+	[doAttackPC_TG] s=1 -> (s'=2)&(doPC'=true)&(doTG'=true);
+	[doAttackCF] s=1 -> (s'=2)&(doCF'=true);
+	[doAttackUC] s=1 -> (s'=2)&(doUC'=true);
+	[doAttackPC] s=1 -> (s'=2)&(doPC'=true);
+	[doAttackTG] s=1 -> (s'=2)&(doTG'=true);
+	[dontDoAttackCF_UC_PC_TG] s=1 -> (s'=2);
+
+	//
+	//probabilistic transactions of sub-tree t_GOP = (CF_AND_NEG_(BW_AND_NEG_(UC_OR_PC)))_OR_EG
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=true&doPC=true&doTG=true -> 1-(1-pcf*(1-(pbw*(1-puc)*(1-ppc))))*(1-ptg):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										(1-pcf*(1-(pbw*(1-puc)*(1-ppc))))*(1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=true&doPC=true&doTG=false -> pcf*(1-(pbw*(1-puc)*(1-ppc))):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false) + 
+										1-(pcf*(1-(pbw*(1-puc)*(1-ppc)))):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=true&doPC=false&doTG=true -> 1-(1-pcf*(1-(pbw*(1-puc))))*(1-ptg):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										(1-pcf*(1-(pbw*(1-puc))))*(1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=false&doPC=true&doTG=true -> 1-(1-pcf*(1-(pbw*(1-ppc))))*(1-ptg):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										(1-pcf*(1-(pbw*(1-ppc))))*(1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=true&doPC=true&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=true&doPC=false&doTG=false -> pcf*(1-(pbw*(1-puc))):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										1-(pcf*(1-(pbw*(1-puc)))):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=false&doPC=true&doTG=false -> pcf*(1-(pbw*(1-ppc))):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										1-(pcf*(1-(pbw*(1-ppc)))):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=true&doPC=true&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=false&doPC=false&doTG=true -> 1-(1-pcf*(1-pbw))*(1-ptg):(s'=3)&(success_t_GOP'=true)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false) + 
+										(1-pcf*(1-pbw))*(1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=true&doPC=false&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=false&doPC=true&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	[prob_t_GOP] s=2 & doBW=true&doCF=true&doUC=false&doPC=false&doTG=false -> pcf*(1-pbw):(s'=3)&(success_t_GOP'=true) + 1-pcf*(1-pbw):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=true&doPC=false&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=false&doPC=true&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=false&doPC=false&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = true&doCF=false&doUC=false&doPC=false&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//
+	[prob_t_GOP] s=2 & doBW=false&doCF=true&doTG=true -> 1-(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=true) + (1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doBW=false&doCF=true&doTG=false -> pcf:(s'=3)&(success_t_GOP'=true) + (1-pcf):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doCF=false&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+	[prob_t_GOP] s=2 & doCF=false&doTG=false -> (s'=3)&(success_t_GOP'=false)&(doBW'=false)&(doCF'=false)&(doUC'=false)&(doPC'=false)&(doTG'=false);
+
+	//[prob_t_GOP] s=2 & doBW = false&doCF=true&doUC=true&doPC=true&doTG=true -> 1-(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=true) + 
+	//									(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=true&doUC=true&doPC=true&doTG=false -> pcf:(s'=3)&(success_t_GOP'=true) + (1-pcf):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = false&doCF=true&doUC=true&doPC=false&doTG=true -> 1-(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=true) + 
+	//									(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = false&doCF=true&doUC=false&doPC=true&doTG=true -> 1-(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=true) + 
+	//									(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = false&doCF=false&doUC=true&doPC=true&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = false&doCF=true&doUC=true&doPC=false&doTG=false -> pcf:(s'=3)&(success_t_GOP'=true) + (1-pcf):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW = false&doCF=true&doUC=false&doPC=true&doTG=false -> pcf:(s'=3)&(success_t_GOP'=true) + (1-pcf):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=true&doPC=true&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=true&doUC=false&doPC=false&doTG=true -> 1-(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=true) + 
+	//									(1-pcf)*(1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=true&doPC=false&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=false&doPC=true&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=true&doUC=false&doPC=false&doTG=false -> pcf:(s'=3)&(success_t_GOP'=true) + (1-pcf):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=true&doPC=false&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=false&doPC=true&doTG=false -> (s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=false&doPC=false&doTG=true -> ptg:(s'=3)&(success_t_GOP'=true) + (1-ptg):(s'=3)&(success_t_GOP'=false);
+	//[prob_t_GOP] s=2 & doBW=false&doCF=false&doUC=false&doPC=false&doTG=false -> (s'=3)&(success_t_GOP'=false);
+
+
+	//
+	//nondeterministic transactions of sub-tree (ED_AND_NEG_BS)_OR_LD
+	[doDefenceBS] s=3 ->(s'=4)&(doBS'=true);
+	[dontDoDefenceBS] s=3 -> (s'=4);
+
+	[doAttackED_LD] s=4 ->(s'=5)&(doED'=true)&(doLD'=true);
+	[doAttackED] s=4 ->(s'=5)&(doED'=true);
+	[doAttackLD] s=4 ->(s'=5)&(doLD'=true);
+	[dontDoAttackED_LD] s=4 ->(s'=5);
+
+	//
+	//probabilistic transactions of sub-tree t_BAE = t_GOP_PAND_((ED_AND_NEG_BS)_OR_LD)
+	[prob_t_BAE] s=5 & success_t_GOP=true&doBS=true&doED=true&doLD=true -> 1-(1-ped*(1-pbs))*(1-pld):(s'=6)&(success_t_BAE'=true)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false) + 
+										(1-ped*(1-pbs))*(1-pld):(s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+	[prob_t_BAE] s=5 & success_t_GOP=true&doBS=true&doED=true&doLD=false -> ped*(1-pbs):(s'=6)&(success_t_BAE'=true)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false) + 
+										1-ped*(1-pbs):(s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+	[prob_t_BAE] s=5 & success_t_GOP=true&doED=false&doLD=true -> pld:(s'=6)&(success_t_BAE'=true)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false) + 
+										(1-pld):(s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+	//[prob_t_BAE] s=5 & success_t_GOP=true&doBS=true&doED=false&doLD=false -> (s'=6)&(success_t_BAE'=false);
+	[prob_t_BAE] s=5 & success_t_GOP=true&doBS=false&doED=true&doLD=true -> 1-(1-ped)*(1-pld):(s'=6)&(success_t_BAE'=true)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false) + 
+										(1-ped)*(1-pld):(s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+	[prob_t_BAE] s=5 & success_t_GOP=true&doBS=false&doED=true&doLD=false -> ped:(s'=6)&(success_t_BAE'=true)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false) +
+										(1-ped):(s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+	//[prob_t_BAE] s=5 & success_t_GOP=true&doBS=false&doED=false&doLD=true -> pld:(s'=6)&(success_t_BAE'=true) + (1-pld):(s'=6)&(success_t_BAE'=false);
+	//[prob_t_BAE] s=5 & success_t_GOP=true&doBS=false&doED=false&doLD=false -> (s'=6)&(success_t_BAE'=false);
+	[prob_t_BAE] s=5 & (success_t_GOP=false | (doED=false&doLD=false)) -> (s'=6)&(success_t_BAE'=false)&(success_t_GOP'=false)&(doBS'=false)&(doED'=false)&(doLD'=false);
+
+	//
+	//nondeterministic transactions of sub-tree NEG(SC_AND_NEG_(LC_OR_(VC_AND_NEG_EG)))
+	[doDefenceSC_EG] s=6 -> (s'=7)&(doSC'=true)&(doEG'=true);
+	[doDefenceSC] s=6 -> (s'=7)&(doSC'=true);
+	[doDefenceEG] s=6 -> (s'=7)&(doEG'=true);
+	[dontDoDefenceSC_EG] s=6 -> (s'=7);
+
+	[doAttackLC_VC] s=7 -> (s'=8)&(doLC'=true)&(doVC'=true);
+	[doAttackLC] s=7 -> (s'=8)&(doLC'=true);
+	[doAttackVC] s=7 -> (s'=8)&(doVC'=true);
+	[dontDoAttackLC_VC] s=7 -> (s'=8);
+
+	//
+	//probabilistic transactions of tree Root=t_BAE_PAND_NEG(SC_AND_NEG_(LC_OR_(VC_AND_NEG_EG)))
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=true&doLC=true&doVC=true -> 1-(psc*(1-plc)*(1-pvc*(1-peg))):(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+											psc*(1-plc)*(1-pvc*(1-peg)):(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doLC=true&doVC=false -> 1-(psc*(1-plc)):(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+										psc*(1-plc):(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=true&doLC=false&doVC=true -> 1-(psc*(1-pvc*(1-peg))):(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+											psc*(1-pvc*(1-peg)):(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doLC=false&doVC=false -> 1-psc:(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+											psc:(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=false&doLC=true&doVC=true -> 1-(psc*(1-plc)*(1-pvc)):(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+											psc*(1-plc)*(1-pvc):(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	//[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=false&doLC=true&doVC=false -> 1-(psc*(1-plc)):(s'=9)&(success_Root'=true) + 
+		//									psc*(1-plc):(s'=9)&(success_Root'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=false&doLC=false&doVC=true -> 1-(psc*(1-pvc)):(s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false) + 
+											psc*(1-pvc):(s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	//[prob_Root] s=8 & success_t_BAE=true&doSC=true&doEG=false&doLC=false&doVC=false -> 1-psc:(s'=9)&(success_Root'=true) + 
+		//									psc:(s'=9)&(success_Root'=false);
+	[prob_Root] s=8 & success_t_BAE=true&doSC=false -> (s'=9)&(success_Root'=true)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+	[prob_Root] s=8 & success_t_BAE=false -> (s'=9)&(success_Root'=false)&(success_t_BAE'=false)&(doSC'=false)&(doEG'=false)&(doLC'=false)&(doVC'=false);
+
+	[succeed] s=9&success_Root=true -> (s'=10);
+	[fail] s=9&success_Root=false -> (s'=10);
+
+endmodule
+
+// success state for an attacker
+label "success" = s=10&success_Root=true;
+label "end" = s=10;
+
+// attacker costs
+rewards "cost"
+	[doAttackCF_UC_PC_TG] true:300;
+	[doAttackCF_UC_PC] true:240;
+	[doAttackCF_UC_TG] true:200;
+	[doAttackCF_PC_TG] true:220;
+	[doAttackUC_PC_TG] true:240;
+	[doAttackCF_UC] true:140; 
+	[doAttackCF_PC] true:160; 
+	[doAttackUC_PC] true:180; 
+	[doAttackCF_TG] true:120; 
+	[doAttackUC_TG] true:140; 
+	[doAttackPC_TG] true:160; 
+	[doAttackCF] true:60; 
+	[doAttackUC] true:80; 
+	[doAttackPC] true:100; 
+	[doAttackTG] true:60;
+	[doAttackED_LD] true:125; 
+	[doAttackED] true:50; 
+	[doAttackLD] true:75;
+	[doAttackLC_VC] true:140;
+	[doAttackLC] true:70; 
+	[doAttackVC] true:70;
+endrewards
+
+// success probability, encoded as one-off reward
+rewards "success"
+	[succeed] true:1;
+endrewards

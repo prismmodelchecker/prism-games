@@ -1,0 +1,9 @@
+// What is the maximum success probability of an attack?
+<<a>> Pmax=? [ F "success" ]
+
+// What is the maximum success probability of an attack? (encoded as a reward)
+<<a>> Pmax=? [ F "success" ]
+
+// Is there an attack with expected cost at most 150
+// and success probability at least 0.01? (yes)
+<<a>> (R{"cost"}<=150 [ C ] & R{"success"}>=0.01 [ C ])

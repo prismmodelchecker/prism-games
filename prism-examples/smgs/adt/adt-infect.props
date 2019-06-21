@@ -1,0 +1,12 @@
+// Is there is an attack with success probability greater than or equal to 0.03? (no)
+<<a>> P>=0.03 [ F "success" ]
+
+// What is the maximum success probability of an attack? (0.68*0.3*0.75*0.15 = 0.02295)
+<<a>> Pmax=? [ F "success" ]
+
+// What is the maximum success probability of an attack? (as above)
+<<a>> R{"success"}max=? [ F "end" ]
+
+// Is there an attack with expected cost at most 500
+// and success probability at least 0.005? (yes)
+<<a>> (R{"cost"}<=500 [ C ] & R{"success"}>=0.005 [ C ])

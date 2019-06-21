@@ -1,0 +1,28 @@
+const double p;
+const double c;
+
+// What is the maximum success probability of an attack?
+Pmax=? [ F "success" ]
+
+// What is the maximum success probability of an attack? (encoded as a reward)
+R{"success"}max=? [ F "end" ]
+
+// What is the minimum expected cost of an attack?
+R{"cost"}min=? [ F "end" ]
+
+// What is the maximum expected cost of an attack?
+R{"cost"}max=? [ F "end" ]
+
+// What is the minimum expected cost of an attack that guarantees success probability p?
+// (try p = 0:0.025 in steps 0.001)
+multi(R{"cost"}min=? [ C ], P>=p [ F "success" ])
+
+// Pareto trade-off between minimum expected cost and maximum success probability
+multi(R{"cost"}min=? [ C ], Pmax=? [ F "success" ])
+
+// What is the maximum success probability that guarantees at most c?
+// (try c = 0:120 in steps 10)
+multi(Pmax=? [ F "success" ], R{"cost"}<=c [ C ])
+
+// Pareto trade-off between maximum success probability and minimum expected cost 
+multi(Pmax=? [ F "success" ], R{"cost"}min=? [ C ])
