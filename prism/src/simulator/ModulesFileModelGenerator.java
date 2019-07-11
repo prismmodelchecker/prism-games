@@ -429,14 +429,15 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	{
 		String modAct = getTransitionModuleOrAction(i, 0);
 		int player = modulesFile.getPlayerForModuleOrAction(modAct);
+		/*
 		if (player == -1) {
 			String errMsg = "No player owns state " + exploreState;
 			errMsg += " (because no player owns " + getTransitionModuleOrActionDescription(i, 0) + ")"; 
 			throw new PrismException(errMsg);
 		}
-		
+		*/
 		// NB: convert 0-indexed to 1-indexed
-		return player + 1;
+		return (player == -1) ? -1 : (player + 1);
 	}
 	
 	// Methods for RewardGenerator interface

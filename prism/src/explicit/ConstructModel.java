@@ -31,8 +31,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -262,14 +264,33 @@ public class ConstructModel extends PrismComponent
 				player = -1;
 				for (i = 0; i < nc; i++) {
 					int iPlayer = modelGen.getPlayerNumberForChoice(i);
-					if (player != -1 && iPlayer != player) {
+					if (player != -1 && iPlayer != -1 && iPlayer != player) {
 						throw new PrismException("PRISM-games only supports turn-based stochastic games, but there are choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
-					player = iPlayer;
+					if (iPlayer != -1) {
+						player = iPlayer;
+					}
 				}
 				// Assign deadlock states to player 1
 				if (nc == 0) {
 					player = 1;
+				}
+				// No assigned player: only allowed when the state is deterministic (one choice)
+				// (in which case, assign the state to player 1)
+				if (player == -1) {
+					if (nc == 1) {
+						player = 1;
+					} else {
+						Set<String> acts = new HashSet<>();
+						for (i = 0; i < nc; i++) {
+							int iPlayer = modelGen.getPlayerNumberForChoice(i);
+							if (iPlayer == -1) {
+								acts.add(modelGen.getChoiceAction(i).toString());
+							}
+						}
+						String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + state + " not assigned to any player"; 
+						throw new PrismException(errMsg);
+					}
 				}
 				// Make sure a valid player owns the state
 				if (player < 1 || player > modelGen.getNumPlayers()) {
