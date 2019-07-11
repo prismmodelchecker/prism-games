@@ -1398,6 +1398,10 @@ public class ModulesFile extends ASTElement implements ModelInfo
 
 		s += modelType.toString().toLowerCase() + "\n\n";
 
+		for (Player player : players) {
+			s += player + "\n\n";
+		}
+
 		tmp = "" + formulaList;
 		if (tmp.length() > 0)
 			tmp += "\n";
@@ -1431,10 +1435,6 @@ public class ModulesFile extends ASTElement implements ModelInfo
 			if (systemDefnNames.get(i) != null)
 				s += "\"" + systemDefnNames.get(i) + "\" ";
 			s += systemDefns.get(i) + " endsystem\n";
-		}
-
-		for (Player player : players) {
-			s += "\n" + player + "\n";
 		}
 
 		n = getNumRewardStructs();
