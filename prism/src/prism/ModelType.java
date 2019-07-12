@@ -144,6 +144,25 @@ public enum ModelType
 		{
 			return DTMC;
 		}
+	},
+	TPTG("turn-based probabilistic timed game") {
+		@Override
+		public boolean continuousTime()
+		{
+			return true;
+		}
+		
+		@Override
+		public boolean multiplePlayers()
+		{
+			return true;
+		}
+
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
 	};
 
 	private static final String PROBABILITY = "Probability";

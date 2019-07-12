@@ -2104,7 +2104,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public boolean modelCanBeBuilt()
 	{
-		if (currentModelType == ModelType.PTA)
+		if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG)
 			return false;
 		return true;
 	}
@@ -2154,8 +2154,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		clearBuiltModel();
 
 		try {
-			if (currentModelType == ModelType.PTA) {
-				throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
+			if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG) {
+				throw new PrismException("You cannot build a " + currentModelType + " model explicitly, only perform model checking");
 			}
 
 			mainLog.print("\nBuilding model...\n");
@@ -2304,13 +2304,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (!getExplicit()) {
 			StateList deadlocks = currentModel.getDeadlockStates();
 			if (deadlocks.size() > 0) {
-				throw new PrismException("Timelock in PTA, e.g. in state (" + deadlocks.getFirstAsValues() + ")");
+				throw new PrismException("Timelock in " + currentModelType + ", e.g. in state (" + deadlocks.getFirstAsValues() + ")");
 			}
 		} else {
 			if (currentModelExpl.getNumDeadlockStates() > 0) {
 				int dl = currentModelExpl.getFirstDeadlockState();
 				String dls = currentModelExpl.getStatesList().get(dl).toString(currentModelInfo);
-				throw new PrismException("Timelock in PTA, e.g. in state " + dls);
+				throw new PrismException("Timelock in " + currentModelType + ", e.g. in state " + dls);
 			}
 		}
 
@@ -2347,8 +2347,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		Model model;
 		List<State> statesList;
 
-		if (modulesFile.getModelType() == ModelType.PTA) {
-			throw new PrismException("You cannot build a PTA model explicitly, only perform model checking");
+		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.TPTG) {
+			throw new PrismException("You cannot build a " + modulesFile.getModelType() + " model explicitly, only perform model checking");
 		}
 
 		mainLog.print("\nBuilding model...\n");
@@ -3087,8 +3087,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Check that property is valid for the current model type
 		prop.getExpression().checkValid(currentModelType);
 
-		// For PTAs...
-		if (currentModelType == ModelType.PTA) {
+		// For PTAs (and similar models)...
+		if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG) {
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
@@ -3199,7 +3199,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		expr.checkValid(currentModelType);
 
 		// Digital clocks translation
-		if (settings.getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks")) {
+		if (currentModelType == ModelType.TPTG || settings.getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks")) {
 			digital = true;
 			ModulesFile oldModulesFile = currentModulesFile;
 			try {

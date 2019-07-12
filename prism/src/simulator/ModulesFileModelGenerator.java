@@ -65,9 +65,9 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	{
 		this.parent = parent;
 		
-		// No support for PTAs yet
-		if (modulesFile.getModelType() == ModelType.PTA) {
-			throw new PrismException("PTAs are not currently supported");
+		// No support for PTA (and similar) models yet
+		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.TPTG) {
+			throw new PrismException(modulesFile.getModelType() + "s are not currently supported");
 		}
 		// No support for system...endsystem yet
 		if (modulesFile.getSystemDefn() != null) {

@@ -494,6 +494,7 @@ TOKEN :
 |	< STPG:				"stpg" >
 |	< SMG:				"smg" >
 |	< SYSTEM:			"system" >
+|	< TPTG:				"tptg" >
 |	< TRUE:				"true" >
 |	< U:				"U" >
 |	< W:				"W" >
@@ -708,6 +709,7 @@ ModelType ModulesFileType() :
 	| <PTA> { modelType=ModelType.PTA; }
 	| <STPG> { modelType=ModelType.STPG; }
 	| <SMG> { modelType=ModelType.SMG; }
+	| <TPTG> { modelType=ModelType.TPTG; }
 	)
 	{ return modelType; }
 }

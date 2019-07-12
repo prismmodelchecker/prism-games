@@ -172,7 +172,16 @@ public class DigitalClocks
 		prop = (Expression) propertyToCheck.deepCopy();
 
 		// Change the model type
-		mf.setModelType(ModelType.MDP);
+		switch (modulesFile.getModelType()) {
+		case PTA:
+			mf.setModelType(ModelType.MDP);
+			break;
+		case TPTG:
+			mf.setModelType(ModelType.SMG);
+			break;
+		default:
+			throw new PrismLangException("Cannot perform digital clocks translation on a " + modulesFile.getModelType());
+		}
 
 		// Change all clock variable declarations to bounded integers
 		mf = (ModulesFile) mf.accept(new ASTTraverseModify()
