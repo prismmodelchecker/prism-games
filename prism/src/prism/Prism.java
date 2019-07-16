@@ -1097,6 +1097,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Get (exclusive) access to the PRISM parser.
+	 * Not usually used externally - use the ready-made model/property parse methods instead.
 	 */
 	public static PrismParser getPrismParser() throws InterruptedException
 	{
@@ -1607,8 +1608,19 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Parse a PRISM properties file. Typically, you need to pass in some info about the corresponding model 
-	 * (for access to constants, etc.). This is in the form of a ModelInfo object (e.g. a ModulesFile). If not required, this can be null.
+	 * Parse a PRISM properties file, using the currently loaded model
+	 * for context (i.e. definitions of variables, constants, labels, etc.). 
+	 * @param file File to read in
+	 */
+	public PropertiesFile parsePropertiesFile(File file) throws FileNotFoundException, PrismLangException
+	{
+		return parsePropertiesFile(currentModelInfo, file, true);
+	}
+
+	/**
+	 * Parse a PRISM properties file, using a specific ModelInfo object (e.g. ModulesFile)
+	 * for context (i.e. definitions of variables, constants, labels, etc.).
+	 * Usually, just use {@link #parsePropertiesFile(File)}, which uses the currently loaded model. 
 	 * @param modelInfo Accompanying model info (null if not needed)
 	 * @param file File to read in
 	 */
@@ -1618,10 +1630,24 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Parse a PRISM properties file. Typically, you need to pass in some info about the corresponding model 
-	 * (for access to constants, etc.). This is in the form of a ModelInfo object (e.g. a ModulesFile). If not required, this can be null.
+	 * Parse a PRISM properties file, using the currently loaded model
+	 * for context (i.e. definitions of variables, constants, labels, etc.). 
 	 * You can also choose whether to do "tidy", i.e. post-parse checks and processing
 	 * (this must be done at some point but may want to postpone to allow parsing of files with errors). 
+	 * @param file File to read in
+	 * @param tidy Whether or not to do "tidy" (post-parse checks and processing)
+	 */
+	public PropertiesFile parsePropertiesFile(File file, boolean tidy) throws FileNotFoundException, PrismLangException
+	{
+		return parsePropertiesFile(currentModelInfo, file, tidy);
+	}
+
+	/**
+	 * Parse a PRISM properties file, using a specific ModelInfo object (e.g. ModulesFile)
+	 * for context (i.e. definitions of variables, constants, labels, etc.).
+	 * You can also choose whether to do "tidy", i.e. post-parse checks and processing
+	 * (this must be done at some point but may want to postpone to allow parsing of files with errors). 
+	 * Usually, just use {@link #parsePropertiesFile(File, boolean)}, which uses the currently loaded model. 
 	 * @param modelInfo Accompanying model info (null if not needed)
 	 * @param file File to read in
 	 * @param tidy Whether or not to do "tidy" (post-parse checks and processing)
@@ -1657,8 +1683,19 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Parse a PRISM properties file form a string. Typically, you need to pass in some info about the corresponding model 
-	 * (for access to constants, etc.). This is in the form of a ModelInfo object (e.g. a ModulesFile). If not required, this can be null.
+	 * Parse a PRISM properties file from a string, using the currently loaded model
+	 * for context (i.e. definitions of variables, constants, labels, etc.). 
+	 * @param s String to parse
+	 */
+	public PropertiesFile parsePropertiesString(String s) throws PrismLangException
+	{
+		return parsePropertiesString(currentModelInfo, s);
+	}
+
+	/**
+	 * Parse a PRISM properties file from a string, using a specific ModelInfo object (e.g. ModulesFile)
+	 * for context (i.e. definitions of variables, constants, labels, etc.).
+	 * Usually, just use {@link #parsePropertiesString(String)}, which uses the currently loaded model. 
 	 * @param modelInfo Accompanying model info (null if not needed)
 	 * @param s String to parse
 	 */
@@ -2227,7 +2264,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 
 		/*// Create new model checker object and do model checking
-		PropertiesFile pf = parsePropertiesString(currentModelInfo, "filter(exists,!\"invariants\"); E[F!\"invariants\"]");
+		PropertiesFile pf = parsePropertiesString("filter(exists,!\"invariants\"); E[F!\"invariants\"]");
 		if (!getExplicit()) {
 			ModelChecker mc = new NondetModelChecker(this, currentModel, pf);
 			if (((Boolean) mc.check(pf.getProperty(0)).getResult()).booleanValue()) {
@@ -2959,7 +2996,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public Result modelCheck(String propertyString) throws PrismException
 	{
-		PropertiesFile propertiesFile = parsePropertiesString(currentModelInfo, propertyString);
+		PropertiesFile propertiesFile = parsePropertiesString(propertyString);
 		if (propertiesFile.getNumProperties() != 1) {
 			throw new PrismException("There should be exactly one property to check (there are " + propertiesFile.getNumProperties() + ")");
 		}
@@ -3122,12 +3159,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			try {
 				DigitalClocks dc = new DigitalClocks(this);
 				dc.translate(oldModulesFile, propertiesFile, expr);
-				currentModulesFile = dc.getNewModulesFile();
-				// evaluate constants (use exact evaluation if we are in exact computation mode)
-				currentModulesFile.setUndefinedConstants(oldModulesFile.getConstantValues(), settings.getBoolean(PrismSettings.PRISM_EXACT_ENABLED));
-				currentModelType = ModelType.MDP;
-				currentModelGenerator = new ModulesFileModelGenerator(currentModulesFile, this);
-				clearBuiltModel();
+				loadPRISMModel(dc.getNewModulesFile());
 				// If required, export generated PRISM model
 				if (exportDigital) {
 					try {
@@ -3140,11 +3172,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 						mainLog.printWarning("PRISM code export failed: " + e.getMessage());
 					}
 				}
-				return modelCheck(propertiesFile, expr);
+				return modelCheck(dc.getNewPropertiesFile(), dc.getNewPropertyToCheck());
 			} finally {
 				digital = false;
 				currentModulesFile = oldModulesFile;
-				currentModelType = ModelType.PTA;
+				currentModelType = oldModulesFile.getModelType();
 				clearBuiltModel();
 				currentModel = null;
 				currentModelExpl = null;
@@ -3927,7 +3959,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Create a dummy properties file if none exist
 		// (the symbolic model checkers rely on this to store e.g. model labels)
 		if (propertiesFile == null) {
-			propertiesFile = parsePropertiesString(currentModelInfo, "");
+			propertiesFile = parsePropertiesString("");
 		}
 		// Create model checker
 		StateModelChecker mc = StateModelChecker.createModelChecker(currentModelType, this, currentModel, propertiesFile);

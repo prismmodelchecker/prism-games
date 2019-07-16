@@ -443,6 +443,12 @@ public class ModulesFileModelGenerator implements ModelGenerator
 		return d;
 	}
 	
+	//@Override
+	public void calculateStateRewards(State state, double[] store) throws PrismLangException
+	{
+		updater.calculateStateRewards(state, store);
+	}
+	
 	// Local utility methods
 	
 	/**

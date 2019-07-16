@@ -330,7 +330,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			// Get valid/selected properties
 			String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString();
 			// Get PropertiesFile for valid/selected properties
-			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
+			parsedProperties = getPrism().parsePropertiesString(propertiesString);
 			// And get list of corresponding GUIProperty objects
 			validGUIProperties = propList.getValidSelectedProperties();
 			// Query user for undefined constant values (if required)
@@ -372,7 +372,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		ArrayList<Expression> simulatableExprs;
 		UndefinedConstants uCon;
 		try {
-			parsedProperties = getPrism().parsePropertiesString(parsedModel,
+			parsedProperties = getPrism().parsePropertiesString(
 					getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString());
 			validGUIProperties = propList.getValidSelectedProperties();
 			if (validGUIProperties.size() == 0) {
@@ -466,7 +466,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			}*/
 
 			// parse property to be used for experiment
-			parsedProperties = getPrism().parsePropertiesString(parsedModel,
+			parsedProperties = getPrism().parsePropertiesString(
 					getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString());
 			if (parsedProperties.getNumProperties() <= 0) {
 				error("There are no properties selected");
@@ -809,7 +809,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				error("No file selected");
 				return;
 			}
-			Thread t = new LoadPropertiesThread(this, parsedModel, file);
+			Thread t = new LoadPropertiesThread(this, file);
 			t.setPriority(Thread.NORM_PRIORITY);
 			t.start();
 		}
@@ -896,7 +896,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				error("No file selected");
 				return;
 			}
-			Thread t = new LoadPropertiesThread(this, parsedModel, file, true);
+			Thread t = new LoadPropertiesThread(this, file, true);
 			t.setPriority(Thread.NORM_PRIORITY);
 			t.start();
 		} else {
@@ -1199,7 +1199,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void a_newProperty()
 	{
-		GUIPropertyEditor ed = new GUIPropertyEditor(this, parsedModel, getInvalidPropertyStrategy());
+		GUIPropertyEditor ed = new GUIPropertyEditor(this, getInvalidPropertyStrategy());
 		ed.show();
 	}
 
@@ -1213,7 +1213,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				gp.setBeingEdited(true);
 				// Force repaint because we modified the GUIProperty directly
 				repaintList();
-				GUIPropertyEditor ed = new GUIPropertyEditor(this, parsedModel, gp, getInvalidPropertyStrategy());
+				GUIPropertyEditor ed = new GUIPropertyEditor(this, gp, getInvalidPropertyStrategy());
 				ed.show();
 			}
 		}
@@ -1290,7 +1290,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		exportLabelsAfterReceiveParseNotification = false;
 		try {
 			// Parse labels/constants
-			parsedProperties = getPrism().parsePropertiesString(parsedModel, getLabelsString() + "\n" + getConstantsString());
+			parsedProperties = getPrism().parsePropertiesString(getLabelsString() + "\n" + getConstantsString());
 			// Query user for undefined constant values (if required)
 			UndefinedConstants uCon = new UndefinedConstants(parsedModel, parsedProperties, true);
 			if (uCon.getMFNumUndefined() + uCon.getPFNumUndefined() > 0) {
@@ -1639,7 +1639,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private void checkForPropertiesToLoad()
 	{
 		if (argsPropertiesFile != null) {
-			Thread t = new LoadPropertiesThread(this, parsedModel, new File(argsPropertiesFile));
+			Thread t = new LoadPropertiesThread(this, new File(argsPropertiesFile));
 			t.setPriority(Thread.NORM_PRIORITY);
 			t.start();
 			//we clear the variable to avoid loading property file every time a model is parsed.
