@@ -1353,7 +1353,8 @@ public class SimulatorEngine extends PrismComponent
 	private int getImplicitPlayerNumber(int i) throws PrismException
 	{
 		String modAct = getTransitionModuleOrAction(i, 0);
-		return modulesFile.getPlayerForModuleOrAction(modAct) + 1;
+		int player = modulesFile.getPlayerForModuleOrAction(modAct);
+		return player == -1 ? -1 : player + 1;
 	}
 
 	private String getImplicitPlayer(int i) throws PrismException
