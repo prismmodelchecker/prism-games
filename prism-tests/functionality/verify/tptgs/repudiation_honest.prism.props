@@ -1,0 +1,28 @@
+const int K = 10;
+
+// RESULT (p=0.1): 1.0
+<<>>Pmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 1.0
+<<p1>>Pmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 1.0
+<<p2>>Pmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 1.0
+<<p1,p2>>Pmin=? [ F "terminated_successfully" ]
+
+// RESULT (p=0.1): 140.01127612925964
+<<>>Rmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 70.00350223861956
+<<p1>>Rmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 100.00626795308528
+<<p2>>Rmin=? [ F "terminated_successfully" ]
+// RESULT (p=0.1): 30.000945017864343
+<<p1,p2>>Rmin=? [ F "terminated_successfully" ]
+
+// RESULT (p=0.1): 0.0
+<<>>Pmax=? [ F<=K "terminated_successfully" ]
+// RESULT (p=0.1): 0.1
+<<p1>>Pmax=? [ F<=K "terminated_successfully" ]
+// RESULT (p=0.1): 0.1
+<<p2>>Pmax=? [ F<=K "terminated_successfully" ]
+// RESULT (p=0.1): 0.271
+<<p1,p2>>Pmax=? [ F<=K "terminated_successfully" ]

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+prism-games task_graph.prism task_graph.props
+prism-games task_graph_prob_fault.prism task_graph.props -const k1=1,k2=1,p=0.1

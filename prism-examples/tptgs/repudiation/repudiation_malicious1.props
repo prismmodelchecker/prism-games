@@ -1,0 +1,9 @@
+const int K;
+
+// Maximum probability that malicious recepient gains information
+<<p2>>Pmax=? [ F "gains_information" ]
+<<p1,p2>>Pmax=? [ F "gains_information" ]
+
+// Maximum probability that malicious recepient gains information within time K
+<<p2>>Pmax=? [ F<=K "gains_information" ]
+<<p1,p2>>Pmax=? [ F<=K "gains_information" ]

@@ -1,0 +1,93 @@
+// non-repudiation protocol (with malicious recipient) Markowitch & Roggeman [MR99]
+// extension and modification of the PTA model from R. Lanotte, A. Maggiolo-Schettini and A. Troina [LMT05]
+// malicious recipient can stop early
+
+tptg
+
+// originator
+player p1
+  originator, [message]
+endplayer
+
+// recipient
+player p2
+  recipient, [req], [ack], [end]
+endplayer
+
+// constants
+const double p; // parameter of geometric distribution (choose number of messages)
+const int ad = 1; // min time to send an ack
+const int AD = 5; // deadline (if ack not arrived then end protocol)
+const int md = 2; // min time to send a message
+const int MD = 9; // deadline (if message not arrived then end protocol)
+
+module originator
+
+	o : [0..4];
+	// 0 - init
+	// 1 - sending
+	// 2 - waiting
+	// 3 - finished
+	// 4 - error
+
+	x : clock;
+
+	invariant
+		(o=0 => true) &
+		(o=1 => x<=MD) &
+		(o=2 => x<=AD) &
+		(o=3 => true) &
+		(o=4 => true)
+	endinvariant
+
+	[req] o=0 -> (o'=1) & (x'=0); // receive a request from the recipient
+	[message] o=1 & x>=md -> (o'=2) & (x'=0); // send message
+	[ack] o=2 & x<=AD -> 1-p : (o'=1) & (x'=0)  // receive an ack and not last
+	                     + p : (o'=3) & (x'=0); // receive an ack and last
+
+	[end] o=2 & x>=AD -> (o'=4) & (x'=0); // ack not arrived within expected interval (stop)
+	
+endmodule
+
+module recipient
+
+	r : [0..5];
+	// 0 - requesting
+	// 1 - waiting for message
+	// 2 - sending ack
+	// 3 - decoding
+	// 4 - sending ack after decoding
+	// 5 - decoded and has complete message
+
+	y : clock;
+
+	invariant
+		(r=0 => y<=0) &
+		(r=1 => true) &
+		(r=2 => true) &
+		(r=3 => y<=10) &
+		(r=4 => true) &
+		(r=5 => true)
+	endinvariant
+
+	[req] r=0 & y=0 -> (r'=1); // initiate protocol
+	[message] r=1 -> (r'=2) & (y'=0); // receive message
+	[ack] r=2 -> (r'=1); // send ack (no time bound now as malicious)
+	[] r=2 -> (r'=3) & (y'=0); // decode
+	
+	// decoding (last and not last)
+	[] r=3 & y>=8 -> p : (r'=5) & (y'=0) + (1-p) : (r'=4) & (y'=0);
+
+	// decoded and not last (continue by sending ack)
+	// could combine with location 2, but would have the opportunity of decoding again 
+	// which is obviously a stupid thing to do so keep separate
+	[ack] r=4 -> (r'=1) & (y'=0);
+
+endmodule
+
+// decodes last (nth) message
+label "gains_information" = r=5;
+
+rewards "time"	
+	true : 1;
+endrewards

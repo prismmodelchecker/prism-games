@@ -1,0 +1,78 @@
+// non-repudiation protocol (with honest recipient) - turned-based game model
+// Markowitch & Roggeman [MR99]
+// extended version of the PTA model from
+// R. Lanotte, A. Maggiolo-Schettini and A. Troina
+// Second Workshop Quantitative Aspects of Programming Languages (QAPL 2004), 
+// ENTCS, vol. 112, pp. 113–129 (2005)
+
+tptg
+
+// originator
+player p1
+  originator, [message]
+endplayer
+
+// recipient
+player p2
+  recipient, [req], [ack]
+endplayer
+
+// constants
+const double p; // parameter of geometric distribution (choose number of messages)
+const int ad = 1; // min time to send an ack
+const int AD = 5; // deadline (if ack not arrived then end protocol)
+const int md = 2; // min time to send a message
+const int MD = 9; // max time to send a message
+
+module originator
+
+	o : [0..3];
+	// 0 - init
+	// 1 - sending
+	// 2 - waiting
+	// 3 - finished
+
+	x : clock; // local clock
+
+	invariant
+		(o=0 => true) &
+		(o=1 => x<=MD) &
+		(o=2 => x<=AD) &
+		(o=3 => true)
+	endinvariant
+
+	[req] o=0 -> (o'=1) & (x'=0); // init (receive a request from the recipient)
+	[message] o=1 & x>=md -> (o'=2) & (x'=0); // send (send first message immediately)
+	[ack]  o=2 & x<=AD -> 	1-p : (o'=1) & (x'=0)  // receive an ack and not last
+	                        + p : (o'=3) & (x'=0); // receive an ack and last
+	
+endmodule
+
+
+module recipient
+
+	r : [0..2];
+	// 0 - requesting
+	// 1 - waiting for message
+	// 2 - sending ack
+
+	y : clock;
+
+	invariant
+		(r=0 => y<=0) &
+		(r=1 => true) &
+		(r=2 => y<=AD) // means has to send ack (honest)
+	endinvariant
+
+	[req] r=0 & y=0 -> (r'=1); // initiate protocol
+	[message] r=1 -> (r'=2) & (y'=0); // receive message
+	[ack] r=2 & y>=ad -> (r'=1) & (y'=0); // send ack (which it always does)
+
+endmodule
+
+// received ack for final message sent
+label "terminated_successfully" = o=3;
+
+rewards "time"	
+	true : 1;
+endrewards

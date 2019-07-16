@@ -1,0 +1,19 @@
+const int K;
+
+// Minimum probability that the protocol terminates successfully
+<<>>Pmin=? [ F "terminated_successfully" ]
+<<p1>>Pmin=? [ F "terminated_successfully" ]
+<<p2>>Pmin=? [ F "terminated_successfully" ]
+<<p1,p2>>Pmin=? [ F "terminated_successfully" ]
+
+// Minimum expected time for the protocol to terminate successfully
+<<>>Rmin=? [ F "terminated_successfully" ]
+<<p1>>Rmin=? [ F "terminated_successfully" ]
+<<p2>>Rmin=? [ F "terminated_successfully" ]
+<<p1,p2>>Rmin=? [ F "terminated_successfully" ]
+
+// Maximum probability that the protocol terminates successfully within time K
+<<>>Pmax=? [ F<=K "terminated_successfully" ]
+<<p1>>Pmax=? [ F<=K "terminated_successfully" ]
+<<p2>>Pmax=? [ F<=K "terminated_successfully" ]
+<<p1,p2>>Pmax=? [ F<=K "terminated_successfully" ]

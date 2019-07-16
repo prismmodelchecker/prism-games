@@ -1,0 +1,192 @@
+// turn based probabilistic timed game model of the task graph from
+// Bouyer, Fahrenberg, Larsen and Markey
+// Quantitative analysis of real-time systems using priced timed automata
+// Communications of the ACM, 54(9):78–87, 2011
+// extended to allow processors to have faults that probabilistically cause failures
+
+tptg
+
+// scheduler
+player p1
+  scheduler, [p1_add], [p2_add], [p1_mult], [p2_mult]
+endplayer
+
+// environment
+player p2
+  P1, P2, [p1_done], [p2_done], [p1_fail], [p2_fail]
+endplayer
+
+const int k1; // number of possible faults for processor 1
+const int k2; // number of possible faults for processor 2
+const double p; // probability fault causes a failure
+
+module scheduler
+
+	turn : [0..1]; 	// use to classify player 1 and player 2 states
+
+	task1 : [0..3]; // A+B
+	task2 : [0..3]; // CxD
+	task3 : [0..3]; // Cx(A+B)
+	task4 : [0..3]; // (A+B)+(CxD)
+	task5 : [0..3]; // DxCx(A+B)
+	task6 : [0..3]; // (DxCx(A+B)) + ((A+B)+(CxD))
+	
+	// task status: 
+	// 0 - not started
+	// 1 - running on processor 1
+	// 2 - running on processor 2
+	// 3 - task complete
+
+	y : clock; // local clock
+	
+	invariant
+        	// cannot let time pass if a task is scheduled
+        	// as must pass over control to the environment
+        	((turn=0 & ((p1>1 | p2>1)|(task6!=3))) => y<=0)
+    endinvariant
+
+	// finished scheduling and hand control over to the environment
+	[] turn=0 -> (turn'=1);
+	
+	// start task 1
+	[p1_add] turn=0 & task1=0 -> (task1'=1);
+	[p2_add] turn=0 & task1=0 -> (task1'=2);
+
+	// start task 2
+	[p1_mult] turn=0 & task2=0 -> (task2'=1);
+	[p2_mult] turn=0 & task2=0 -> (task2'=2);
+	
+	// start task 3 (must wait for task 1 to complete)
+	[p1_mult] turn=0 & task3=0 & task1=3 -> (task3'=1);
+	[p2_mult] turn=0 & task3=0 & task1=3 -> (task3'=2);
+
+	// start task 4 (must wait for tasks 1 and 2 to complete)
+	[p1_add] turn=0 & task4=0 & task1=3 & task2=3 -> (task4'=1);
+	[p2_add] turn=0 & task4=0 & task1=3 & task2=3 -> (task4'=2);
+	
+	// start task 5 (must wait for task 3 to complete)
+	[p1_mult] turn=0 & task5=0 & task3=3 -> (task5'=1);
+	[p2_mult] turn=0 & task5=0 & task3=3 -> (task5'=2);
+	
+	// start task 6 (must wait for tasks 4 and 5 to complete)
+	[p1_add] turn=0 & task6=0 & task4=3 & task5=3 -> (task6'=1);
+	[p2_add] turn=0 & task6=0 & task4=3 & task5=3 -> (task6'=2);
+	
+	// a task finishes on processor 1
+	[p1_done] task1=1 -> (task1'=3) & (y'=0) & (turn'=0);
+	[p1_done] task2=1 -> (task2'=3) & (y'=0) & (turn'=0);
+	[p1_done] task3=1 -> (task3'=3) & (y'=0) & (turn'=0);
+	[p1_done] task4=1 -> (task4'=3) & (y'=0) & (turn'=0);
+	[p1_done] task5=1 -> (task5'=3) & (y'=0) & (turn'=0);
+	[p1_done] task6=1 -> (task6'=3) & (y'=0) & (turn'=0);
+
+	// a task finishes on processor 2
+	[p2_done] task1=2 -> (task1'=3) & (y'=0) & (turn'=0);
+	[p2_done] task2=2 -> (task2'=3) & (y'=0) & (turn'=0);
+	[p2_done] task3=2 -> (task3'=3) & (y'=0) & (turn'=0);
+	[p2_done] task4=2 -> (task4'=3) & (y'=0) & (turn'=0);
+	[p2_done] task5=2 -> (task5'=3) & (y'=0) & (turn'=0);
+	[p2_done] task6=2 -> (task6'=3) & (y'=0) & (turn'=0);
+
+	// a task fails on processor 1
+	[p1_fail] task1=1 -> (task1'=0) & (turn'=0);
+	[p1_fail] task2=1 -> (task2'=0) & (turn'=0);
+	[p1_fail] task3=1 -> (task3'=0) & (turn'=0);
+	[p1_fail] task4=1 -> (task4'=0) & (turn'=0);
+	[p1_fail] task5=1 -> (task5'=0) & (turn'=0);
+	[p1_fail] task6=1 -> (task6'=0) & (turn'=0);
+
+	// a task fails on processor 2
+	[p2_fail] task1=2 -> (task1'=0) & (turn'=0);
+	[p2_fail] task2=2 -> (task2'=0) & (turn'=0);
+	[p2_fail] task3=2 -> (task3'=0) & (turn'=0);
+	[p2_fail] task4=2 -> (task4'=0) & (turn'=0);
+	[p2_fail] task5=2 -> (task5'=0) & (turn'=0);
+	[p2_fail] task6=2 -> (task6'=0) & (turn'=0);
+	
+endmodule
+	
+// processor 1
+module P1
+
+	p1 : [0..2];
+	// 0 - idle
+	// 1 - add
+	// 2 - multiply
+	fail1 : [0..k2+1]; // number of failures
+
+	x1 : clock; // local clock
+		
+	invariant
+        	(p1=1 => x1<=2) &
+        	(p1=2 => x1<=3) &
+        	(p1=3 => x1<=0) &
+        	(p1=4 => x1<=0)
+    endinvariant
+
+	// addition
+	[p1_add] p1=0 -> (p1'=1) & (x1'=0); // start
+	[p1_done] turn=1 & (p1=1) & (x1<=2) -> (p1'=0) & (x1'=0); // finish
+	[] turn=1 & (p1=1) & (x1<=2) & (fail1<k1) -> p : (fail1'=fail1+1) & (p1'=3) & (x1'=0)
+										     + 1-p : (fail1'=fail1+1) & (p1'=1); // fault
+	// multiplication
+	[p1_mult] p1=0 -> (p1'=2) & (x1'=0); // start
+	[p1_done] turn=1 & (p1=2) & (x1<=3) -> (p1'=0) & (x1'=0);  // finish
+	[] turn=1 & (p1=2) & (x1<=3) & (fail1<k1) -> p : (fail1'=fail1+1) & (p1'=3) & (x1'=0)
+										     + 1-p : (fail1'=fail1+1) & (p1'=2); // fault
+	
+	// failure
+	[p1_fail] turn=1 & p1=3 -> (p1'=0);
+
+endmodule
+
+// processor 2 (could be done through renaming after adding constants)
+module P2
+
+	p2 : [0..3];
+	// 0 - idle
+	// 1 - add
+	// 2 - multiply	
+	fail2 : [0..k2+1]; // number of failures
+	
+	x2 : clock; // local clock
+	
+	invariant
+        	(p2=1 => x2<=5) &
+        	(p2=2 => x2<=7) &
+       		(p2=3 => x2<=0) &
+        	(p2=4 => x2<=0)
+    endinvariant
+
+	// addition
+	[p2_add] p2=0 -> (p2'=1) & (x2'=0); // start
+	[p2_done] turn=1 & (p2=1) & (x2<=5) -> (p2'=0) & (x2'=0); // finish
+	[] turn=1 & (p2=1) & (x2<=5) & (fail2<k2) -> p : (fail2'=fail2+1) & (p2'=3) & (x2'=0)
+										     + 1-p : (fail2'=fail2+1) & (p2'=1); // fault
+
+	// multiplication
+	[p2_mult] p2=0 -> (p2'=2) & (x2'=0); // start
+	[p2_done] turn=1 & (p2=2) & (x2<=7) -> (p2'=0) & (x2'=0);  // finish
+	[] turn=1 & (p2=2) & (x2<=7) & (fail2<k2) -> p : (fail2'=fail2+1) & (p2'=3) & (x2'=0)
+										     + 1-p : (fail2'=fail2+1) & (p2'=2); // fault
+
+	// failure
+	[p2_fail] turn=1 & p2=3 -> (p2'=0);
+
+endmodule
+
+// reward structure: elapsed time
+rewards "time"
+	true : 1;
+endrewards
+
+// reward structures: energy consumption
+rewards "energy"
+	p1=0 : 10/1000;
+	p1>0 : 90/1000;
+	p2=0 : 20/1000;
+	p2>0 : 30/1000;
+endrewards
+
+// target state (all tasks complete)
+label "tasks_complete" = (task6=3);

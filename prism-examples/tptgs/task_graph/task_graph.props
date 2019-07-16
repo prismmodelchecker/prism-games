@@ -1,0 +1,20 @@
+// Max probability all tasks complete
+<<p1>>Pmax=?[F "tasks_complete" ];
+
+// Min expected time to complete all tasks
+<<p1>>R{"time"}min=?[F "tasks_complete" ];
+
+// Min expected energy to complete all tasks
+<<p1>>R{"energy"}min=?[F "tasks_complete" ]; 
+
+// Min expected time to complete all tasks
+<<p2>>R{"time"}max=?[F "tasks_complete" ];
+
+// Min expected energy to complete all tasks
+<<p2>>R{"energy"}max=?[F "tasks_complete" ];
+
+// Min expected time to complete all tasks
+<<p1,p2>>R{"time"}min=?[F "tasks_complete" ];
+
+// Min expected energy to complete all tasks
+<<p1,p2>>R{"energy"}min=?[F "tasks_complete" ]; 

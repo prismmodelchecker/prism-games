@@ -1,0 +1,5 @@
+#!/bin/bash
+
+prism-games repudiation_honest.prism repudiation_honest.props -const p=0.1 -const K=10
+prism-games repudiation_malicious1.prism repudiation_malicious1.props -const p=0.1 -const K=20
+prism-games repudiation_malicious2.prism repudiation_malicious2.props -const p=0.1 -const K=20

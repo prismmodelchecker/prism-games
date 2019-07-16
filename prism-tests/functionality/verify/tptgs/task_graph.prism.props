@@ -1,0 +1,20 @@
+// RESULT: 1.0
+<<p1>>Pmax=? [ F "tasks_complete" ]
+
+// RESULT: 12.0
+<<p1>>R{"time"}min=? [ F "tasks_complete" ]
+
+// RESULT: 1.3200000000000003
+<<p1>>R{"energy"}min=? [ F "tasks_complete" ]
+
+// RESULT: 12.0
+<<p2>>R{"time"}max=? [ F "tasks_complete" ]
+
+// RESULT: 1.3200000000000003
+<<p2>>R{"energy"}max=? [ F "tasks_complete" ]
+
+// RESULT: 0.0
+<<p1,p2>>R{"time"}min=? [ F "tasks_complete" ]
+
+// RESULT: 0.0
+<<p1,p2>>R{"energy"}min=? [ F "tasks_complete" ]
