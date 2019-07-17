@@ -130,7 +130,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	//Current State
 	private boolean pathActive;
 	private ModulesFile parsedModel;
-	private explicit.Model model; // for explicit simulation
 	private boolean strategyGenerated = false;
 	private Strategy strategy = null;
 	private boolean newPathAfterReceiveParseNotification, newPathPlotAfterReceiveParseNotification;
@@ -472,18 +471,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			// initialise engine and check model is simulate-able
 			// (bail out now else causes problems below)		    
-			if (!doExplicitSimulation()) {
-				engine.checkModelForSimulation(parsedModel);
-			} else {
-				// make sure the strategy is preserved even if rebuilding
-				strategy = getPrism().getStrategy();
-				getPrism().buildModelIfRequired();
-				model = getPrism().getBuiltModelExplicit();
-				// set strategy back (needed below)
-				getPrism().setStrategy(strategy);
-				engine.setStrategy(strategy);
-				engine.checkModelForSimulation(model);
-			}
+			engine.checkModelForSimulation(parsedModel);
 			// Insert path table
 			tableScroll.setViewportView(pathTable);
 
@@ -495,35 +483,17 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				// get reference to the strategy
 				strategy = getPrism().getStrategy();
 				// store indices of states
-				if (model != null) {
-					if (strategy instanceof StochasticUpdateStrategyProduct)
-						((StochasticUpdateStrategyProduct) strategy).setComposition((SMG) model);
-				}
 				showStrategyCheck.setSelected(true);
 				// resetting strategy
 				strategy.reset();
 			}
 
 			// Create a new path in the simulator and add labels/properties 
-			if (model == null) {
-				engine.createNewPath(parsedModel);
-			} else {
-				engine.createNewPath(parsedModel, model);
-			}
+			engine.createNewPath(parsedModel);
 
 			parser.State initialStateObject = initialState == null ? null : new parser.State(initialState, parsedModel);
 			if (initialStateObject == null) {
-				if (model == null)
-					initialStateObject = parsedModel.getDefaultInitialState();
-				else
-					initialStateObject = model.getStatesList().get(model.getFirstInitialState());
-			} else if (model != null) { // find state in model's state list with same values
-				int initialStateIndex = model.getStatesList().indexOf(initialStateObject);
-				if (initialStateIndex < 0) {
-					a_clearPath();
-					throw new PrismException("Illegal initial state");
-				}
-				initialStateObject = model.getStatesList().get(initialStateIndex);
+				initialStateObject = parsedModel.getDefaultInitialState();
 			}
 			engine.initialisePath(initialStateObject);
 
@@ -832,11 +802,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			displayPathLoops = true;
 
 			// Load new path into the simulator 
-			if (model == null) {
-				engine.loadPath(parsedModel, pathNew);
-			} else {
-				engine.loadPath(parsedModel, model, pathNew);
-			}
+			engine.loadPath(parsedModel, pathNew);
 			engine.loadPath(parsedModel, pathNew);
 			// Update model/path/tables/lists
 			setPathActive(true);
@@ -943,29 +909,13 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			// initialise engine and check model is simulate-able
 			// (bail out now else causes problems below)		    
-			if (!doExplicitSimulation()) {
-				engine.checkModelForSimulation(parsedModel);
-			} else {
-				// make sure the strategy is preserved even if rebuilding
-				strategy = getPrism().getStrategy();
-				getPrism().buildModelIfRequired();
-				model = getPrism().getBuiltModelExplicit();
-				// set strategy back (needed below)
-				getPrism().setStrategy(strategy);
-				engine.setStrategy(strategy);
-				engine.checkModelForSimulation(model);
-			}
+			engine.checkModelForSimulation(parsedModel);
 
 			// check if we need to initialise a strategy
 			if (strategyGenerated && strategy != null && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
 				// get reference to the strategy
 				strategy = getPrism().getStrategy();
-				// store indices of states
-				if (model != null) {
-					if (strategy instanceof StochasticUpdateStrategyProduct)
-						((StochasticUpdateStrategyProduct) strategy).setComposition((SMG) model);
-				}
 				// resetting strategy
 				strategy.reset();
 			}
@@ -988,19 +938,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			getPrism().getMainLog().resetNumberOfWarnings();
 			parser.State initialStateObject = initialState == null ? null : new parser.State(initialState, parsedModel);
 			if (initialStateObject == null) {
-				if (model == null)
-					initialStateObject = parsedModel.getDefaultInitialState();
-				else
-					initialStateObject = model.getStatesList().get(model.getFirstInitialState());
-			} else if (model != null) { // find state in model's state list with same values
-				int initialStateIndex = model.getStatesList().indexOf(initialStateObject);
-				if (initialStateIndex < 0) {
-					a_clearPath();
-					throw new PrismException("Illegal initial state");
-				}
-				initialStateObject = model.getStatesList().get(initialStateIndex);
+				initialStateObject = parsedModel.getDefaultInitialState();
 			}
-			new SimPathPlotThread(this, engine, parsedModel, model, initialStateObject, simPathDetails, maxPathLength, graphModel).start();
+			new SimPathPlotThread(this, engine, parsedModel, initialStateObject, simPathDetails, maxPathLength, graphModel).start();
 
 			// store initial state for next time
 			lastInitialState = initialState;
@@ -2443,15 +2383,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		return ((GUISimulatorPathTable) pathTable).usingChangeRenderer();
 	}
 
-	/**
-	 * Determine whether explicit simulation is needed.
-	 */
-	private boolean doExplicitSimulation()
-	{
-		// For compositional SMGs only
-		return parsedModel != null && parsedModel.getModelType() == ModelType.SMG && parsedModel.getSystemDefn() != null;
-	}
-	
 	public void setRenderer(boolean displayStyleFast)
 	{
 		if (displayStyleFast) {

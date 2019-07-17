@@ -3491,7 +3491,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void generateSimulationPath(ModulesFile modulesFile, String details, long maxPathLength, File file) throws PrismException, PrismLangException
 	{
 		GenerateSimulationPath genPath = new GenerateSimulationPath(getSimulator(), mainLog);
-		genPath.generateSimulationPath(modulesFile, null, null, details, maxPathLength, file);
+		genPath.generateSimulationPath(modulesFile, null, details, maxPathLength, file);
 	}
 
 	/**

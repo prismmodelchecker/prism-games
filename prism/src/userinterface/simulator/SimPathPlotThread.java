@@ -32,25 +32,22 @@ import simulator.GenerateSimulationPath;
 import simulator.SimulatorEngine;
 import userinterface.GUIComputationThread;
 import userinterface.graph.Graph;
-import explicit.Model;
 
 public class SimPathPlotThread extends GUIComputationThread
 {
 	private SimulatorEngine engine;
 	private ModulesFile modulesFile;
-        private explicit.Model model;
 	private parser.State initialState;
 	private String simPathDetails;
 	private long maxPathLength;
 	private Graph graphModel;
 
-        public SimPathPlotThread(GUISimulator guiSim, SimulatorEngine engine, ModulesFile modulesFile, explicit.Model model, parser.State initialState, String simPathDetails,
+	public SimPathPlotThread(GUISimulator guiSim, SimulatorEngine engine, ModulesFile modulesFile, parser.State initialState, String simPathDetails,
 			long maxPathLength, Graph graphModel)
 	{
 		super(guiSim);
 		this.engine = engine;
 		this.modulesFile = modulesFile;
-		this.model = model;
 		this.initialState = initialState;
 		this.simPathDetails = simPathDetails;
 		this.maxPathLength = maxPathLength;
@@ -61,7 +58,7 @@ public class SimPathPlotThread extends GUIComputationThread
 	{
 		try {
 			GenerateSimulationPath genPath = new GenerateSimulationPath(engine, prism.getMainLog());
-			genPath.generateAndPlotSimulationPath(modulesFile, model, initialState, simPathDetails, maxPathLength, graphModel);
+			genPath.generateAndPlotSimulationPath(modulesFile, initialState, simPathDetails, maxPathLength, graphModel);
 			if (genPath.getNumWarnings() > 0) {
 				for (String msg : genPath.getWarnings()) {
 					plug.warning(msg);
