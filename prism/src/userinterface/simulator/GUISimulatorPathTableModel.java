@@ -37,6 +37,7 @@ import simulator.PathFullInfo;
 import userinterface.simulator.SimulationView.*;
 import userinterface.util.GUIGroupedTableModel;
 import parser.ast.*;
+import prism.ModelInfo;
 
 public class GUISimulatorPathTableModel extends AbstractTableModel implements GUIGroupedTableModel, Observer
 {
@@ -47,6 +48,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 
 	private boolean pathActive;
 	private ModulesFile parsedModel;
+	private ModelInfo modelInfo;
 	private PathFullInfo path; 
 
 	private RewardStructureValue rewardStructureValue;
@@ -77,6 +79,11 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	public void setParsedModel(ModulesFile parsedModel)
 	{
 		this.parsedModel = parsedModel;
+	}
+
+	public void setModelInfo(ModelInfo modelInfo)
+	{
+		this.modelInfo = modelInfo;
 	}
 
 	public boolean canShowTime()
@@ -432,7 +439,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 
 			// The step column
 			if (actionStart <= columnIndex && columnIndex < memoryStart) {
-				return "Action";
+				return modelInfo.getActionStringDescription();
 			} else if (memoryStart <= columnIndex && columnIndex < stepStart) {
 				return "Memory";
 			} else if (stepStart <= columnIndex && columnIndex < cumulativeTimeStart) {
@@ -510,7 +517,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 
 			// The action column
 			if (actionStart <= columnIndex && columnIndex < memoryStart) {
-				actionValue = view.new ActionValue(rowIndex == 0 ? "" : path.getModuleOrAction(rowIndex - 1));
+				actionValue = view.new ActionValue(rowIndex == 0 ? "" : path.getActionString(rowIndex - 1));
 				actionValue.setActionValueUnknown(false);
 				return actionValue;
 			}

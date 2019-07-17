@@ -27,9 +27,7 @@
 package simulator;
 
 import java.util.*;
-import java.util.Map.Entry;
 
-import explicit.Distribution;
 import parser.*;
 import prism.*;
 
@@ -43,8 +41,6 @@ public class TransitionList
 	private int numChoices = 0;
 	private int numTransitions = 0;
 	private double probSum = 0.0;
-	/** The probability with which a strategy picks each choice (optional) **/
-	private double strategyProbabilities[] = null;
 
 	// TODO: document this
 	public class Ref
@@ -63,7 +59,6 @@ public class TransitionList
 		numChoices = 0;
 		numTransitions = 0;
 		probSum = 0.0;
-		strategyProbabilities = null;
 	}
 
 	public void add(Choice tr)
@@ -87,21 +82,6 @@ public class TransitionList
 	{
 		for (int i = 0; i < numChoices; i++) {
 			getChoice(i).scaleProbabilitiesBy(d);
-		}
-	}
-	
-	/**
-	 * Add probabilities assigned to choices by a strategy. 
-	 */
-	public void addStrategyProbabilities(Distribution strategyDistribution)
-	{
-		// Extract choice probabilities from distribution into an array
-		strategyProbabilities = new double[numChoices];
-		Arrays.fill(strategyProbabilities, 0.0);
-		Iterator<Entry<Integer, Double>> it = strategyDistribution.iterator();
-		while (it.hasNext()) {
-			Entry<Integer, Double> entry = it.next();
-			strategyProbabilities[entry.getKey()] += entry.getValue();
 		}
 	}
 	
@@ -292,23 +272,6 @@ public class TransitionList
 	public State computeTransitionTarget(int index, State currentState) throws PrismLangException
 	{
 		return getChoiceOfTransition(index).computeTarget(transitionOffsets.get(index), currentState);
-	}
-	
-	/**
-	 * Check whether or not there is strategy choice info stored for these transitions.
-	 */
-	public boolean hasStrategyChoiceInfo()
-	{
-		return strategyProbabilities != null;
-	}
-	
-	/**
-	 * Get the probability assigned by a strategy to a choice, specified by its index.
-	 * This will return 1.0 if no strategy info has been attached (see {@link #hasStrategyChoiceInfo()}) 
-	 */
-	public double getStrategyProbabilityForChoice(int i)
-	{
-		return strategyProbabilities == null ? 1.0 : strategyProbabilities[i];
 	}
 	
 	// Other checks and queries

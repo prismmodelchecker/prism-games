@@ -26,6 +26,9 @@
 
 package simulator;
 
+import prism.ModelGenerator;
+import prism.PrismException;
+
 /**
  * Detects deterministic loops in a path though a model.
  * (Currently, only detects single-step loops.)
@@ -55,17 +58,26 @@ public class LoopDetector
 	/**
 	 * Update loop detector after a step has just been added to the path.
 	 */
-	public void addStep(Path path, TransitionList transitionList)
+	public void addStep(Path path, ModelGenerator modelGen)
+	
 	{
 		// If already looping, nothing to do
-		if (isLooping)
+		if (isLooping) {
 			return;
+		}
 		// Deterministic loops cannot occur in continuous-time models
-		if (path.continuousTime())
+		if (path.continuousTime()) {
 			return;
+		}
 		// Check transitions from previous step were deterministic
-		if (transitionList != null && !transitionList.isDeterministic())
+		try {
+			if (!modelGen.isDeterministic()) {
+				return;
+			}
+		} catch (PrismException e) {
+			// In case of problems, just don't check
 			return;
+		}
 		// Check successive states were identical, based on values
 		if (basedOnValues && path.getPreviousState().equals(path.getCurrentState())) {
 			isLooping = true;

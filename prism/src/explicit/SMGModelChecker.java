@@ -985,7 +985,7 @@ public class SMGModelChecker extends ProbModelChecker
 			return null;
 
 		int gameSize = model.numStates;
-		ConstructRewards constructRewards = new ConstructRewards(mainLog, modulesFile);
+		ConstructRewards constructRewards = new ConstructRewards(this);
 		SMGRewards smgreward = constructRewards.buildSMGRewardStructure(model, rewStruct, constantValues);
 		SMGRewardsSimple reward = null;
 		if (smgreward instanceof SMGRewardsSimple) {
@@ -1042,10 +1042,13 @@ public class SMGModelChecker extends ProbModelChecker
 		}
 
 		// Get reward structures from expression
-		RewardStruct reward_struct = exprReward.getRewardStructByIndexObject(modulesFile, constantValues);
+		
+		
+		RewardStruct reward_struct = modulesFile.getRewardStruct(exprReward.getRewardStructIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues));
 		SMGRewardsSimple reward = constructSMGRewards((SMG) model, reward_struct);
 		params.reward_names.add(reward_struct.getName());
-		RewardStruct divisor_struct = exprReward.getRewardStructDivByIndexObject(modulesFile, constantValues);
+		int divisor_struct_index = exprReward.getRewardStructDivIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues);
+		RewardStruct divisor_struct = divisor_struct_index == -1 ? null : modulesFile.getRewardStruct(divisor_struct_index);
 		SMGRewardsSimple divisor = constructSMGRewards((SMG) model, divisor_struct);
 		params.divisor_names.add(divisor_struct == null ? null : divisor_struct.getName());
 		// register reward structures

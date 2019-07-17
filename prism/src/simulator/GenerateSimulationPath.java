@@ -32,12 +32,16 @@ import java.util.List;
 
 import parser.State;
 import parser.VarList;
-import parser.ast.ModulesFile;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import userinterface.graph.Graph;
 
+/**
+ * Class to generate a path in the simulator (i.e., in an instance of SimulatorEngine).
+ * It is assumed that the model to be simulated has already been loaded into the simulator.
+ * Path generation is configurable via a command-line style string.
+ */
 public class GenerateSimulationPath
 {
 	// The simulator engine and a log for output
@@ -53,7 +57,6 @@ public class GenerateSimulationPath
 	};
 
 	// Basic info needed for path
-	private ModulesFile modulesFile;
 	private State initialState;
 	private long maxPathLength;
 	private File file;
@@ -101,14 +104,12 @@ public class GenerateSimulationPath
 
 	/**
 	 * Generate and export a random path through a model with the simulator.
-	 * @param modulesFile The model
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param details Information about the path to be generated
 	 * @param file File to output the path to (stdout if null)
 	 */
-	public void generateSimulationPath(ModulesFile modulesFile, State initialState, String details, long maxPathLength, File file) throws PrismException
+	public void generateSimulationPath(State initialState, String details, long maxPathLength, File file) throws PrismException
 	{
-		this.modulesFile = modulesFile;
 		this.initialState = initialState;
 		this.maxPathLength = maxPathLength;
 		this.file = file;
@@ -125,14 +126,12 @@ public class GenerateSimulationPath
 
 	/**
 	 * Generate and plot a random path through a model with the simulator.
-	 * @param modulesFile The model
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param details Information about the path to be generated
 	 */
-	public void generateAndPlotSimulationPath(ModulesFile modulesFile, State initialState, String details, long maxPathLength, Graph graphModel)
+	public void generateAndPlotSimulationPath(State initialState, String details, long maxPathLength, Graph graphModel)
 			throws PrismException
 	{
-		this.modulesFile = modulesFile;
 		this.initialState = initialState;
 		this.maxPathLength = maxPathLength;
 
@@ -146,14 +145,13 @@ public class GenerateSimulationPath
 
 	/**
 	 * Generate and plot a random path through a model with the simulator, in a separate thread.
-	 * @param modulesFile The model
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param details Information about the path to be generated
 	 */
-	public void generateAndPlotSimulationPathInThread(ModulesFile modulesFile, State initialState, String details, long maxPathLength, Graph graphModel)
+	public void generateAndPlotSimulationPathInThread(State initialState, String details, long maxPathLength, Graph graphModel)
 			throws PrismException
 	{
-		new GenerateAndPlotThread(modulesFile, initialState, details, maxPathLength, graphModel).start();
+		new GenerateAndPlotThread(initialState, details, maxPathLength, graphModel).start();
 	}
 
 	/**
@@ -202,7 +200,7 @@ public class GenerateSimulationPath
 			} else if (ss[i].indexOf("vars=") == 0) {
 				varsOptionGiven = true;
 				// Build list of indices of variables to display
-				VarList varList = modulesFile.createVarList();
+				VarList varList = engine.getModel().createVarList();
 				simVars = new ArrayList<Integer>();
 				done = false;
 				s = ss[i].substring(5);
@@ -362,7 +360,7 @@ public class GenerateSimulationPath
 		} else {
 			log = mainLog;
 		}
-		displayer = new PathToText(log, modulesFile);
+		displayer = new PathToText(log, engine.getModel(), engine.getRewardGenerator());
 		displayer.setColSep(simPathSep);
 		displayer.setVarsToShow(simVars);
 		displayer.setShowProbs(simPathShowProbs);
@@ -382,7 +380,7 @@ public class GenerateSimulationPath
 	{
 		PathToGraph displayer;
 
-		displayer = new PathToGraph(graphModel, modulesFile);
+		displayer = new PathToGraph(graphModel, engine.getModel(), engine.getRewardGenerator());
 		displayer.setVarsToShow(simVars);
 		displayer.setShowProbs(simPathShowProbs);
 		displayer.setShowRewards(simPathShowRewards);
@@ -412,14 +410,16 @@ public class GenerateSimulationPath
 			mainLog.println("\nGenerating random path with time limit " + simPathTime + "...");
 			break;
 		}
-		if (displayer instanceof PathToText && file == null)
-			mainLog.println();
 
 		// Create path
-		engine.createNewPath(modulesFile);
+		engine.createNewPath();
 		// Build path
 		path = engine.getPath();
 		engine.initialisePath(initialState);
+		
+		if (displayer instanceof PathToText && file == null) {
+			mainLog.println();
+		}
 		displayer.start(path.getCurrentState(), path.getCurrentStateRewards());
 		i = 0;
 		done = false;
@@ -428,8 +428,7 @@ public class GenerateSimulationPath
 			engine.automaticTransition();
 			i++;
 			if (simPathType != PathType.SIM_PATH_DEADLOCK) {
-
-				displayer.step(path.getTimeInPreviousState(), path.getTotalTime(), path.getPreviousModuleOrAction(), path.getPreviousProbability(),
+				displayer.step(path.getTimeInPreviousState(), path.getTotalTime(), path.getPreviousActionString(), path.getPreviousProbability(),
 						path.getPreviousTransitionRewards(), path.size(), path.getCurrentState(), path.getCurrentStateRewards());
 			}
 			// Check for termination (depending on type)
@@ -459,7 +458,7 @@ public class GenerateSimulationPath
 
 		// Print summary of path
 		mainLog.print("\nGenerated path: " + path.size() + " step" + (path.size() == 1 ? "" : "s"));
-		if (modulesFile.getModelType().continuousTime()) {
+		if (engine.getModel().getModelType().continuousTime()) {
 			mainLog.print(", total time " + path.getTotalTime());
 		}
 		if (file != null) {
@@ -487,7 +486,7 @@ public class GenerateSimulationPath
 		}
 
 		// Create path
-		engine.createNewPath(modulesFile);
+		engine.createNewPath();
 		// Build path
 		for (j = 0; j < simPathRepeat; j++) {
 			path = engine.getPath();
@@ -536,7 +535,7 @@ public class GenerateSimulationPath
 		else
 			mainLog.print("\nGenerated path: ");
 		mainLog.print(path.size() + " steps");
-		if (modulesFile.getModelType().continuousTime()) {
+		if (engine.getModel().getModelType().continuousTime()) {
 			mainLog.print(", total time " + path.getTotalTime());
 		}
 		if (file != null) {
@@ -548,15 +547,13 @@ public class GenerateSimulationPath
 
 	class GenerateAndPlotThread extends Thread
 	{
-		private ModulesFile modulesFile;
 		private parser.State initialState;
 		private String details;
 		private long maxPathLength;
 		private Graph graphModel;
 
-		public GenerateAndPlotThread(ModulesFile modulesFile, parser.State initialState, String details, long maxPathLength, Graph graphModel)
+		public GenerateAndPlotThread(parser.State initialState, String details, long maxPathLength, Graph graphModel)
 		{
-			this.modulesFile = modulesFile;
 			this.initialState = initialState;
 			this.details = details;
 			this.maxPathLength = maxPathLength;
@@ -566,7 +563,7 @@ public class GenerateSimulationPath
 		public void run()
 		{
 			try {
-				generateAndPlotSimulationPath(modulesFile, initialState, details, maxPathLength, graphModel);
+				generateAndPlotSimulationPath(initialState, details, maxPathLength, graphModel);
 			} catch (PrismException e) {
 				// Just report errors passively to log
 				mainLog.printWarning("Error occured during path plot: " + e.getMessage());

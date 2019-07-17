@@ -44,10 +44,12 @@ import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismUtils;
+import prism.RewardGenerator;
+import prism.RewardGenerator.RewardLookup;
 
 // Class representing parsed model file
 
-public class ModulesFile extends ASTElement implements ModelInfo
+public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerator
 {
 	// Model type (enum)
 	private ModelType modelType;
@@ -465,6 +467,42 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	}
 	
 	/**
+	 * Get the index of a module by its name
+	 * (indexed from 0, not from 1 like at the user (property language) level).
+	 * Returns -1 if name does not exist.
+	 */
+	public int getRewardStructIndex(String name)
+	{
+		int i, n;
+		n = rewardStructs.size();
+		for (i = 0; i < n; i++) {
+			if ((rewardStructs.get(i)).getName().equals(name))
+				return i;
+		}
+		return -1;
+	}
+
+	/**
+	 * Returns true if the {@code r}th reward structure defines state rewards.
+	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
+	 */
+	public boolean rewardStructHasStateRewards(int r)
+	{
+		RewardStruct rewStr = getRewardStruct(r);
+		return rewStr.getNumStateItems() > 0;
+	}
+
+	/**
+	 * Returns true if the {@code r}th reward structure defines transition rewards.
+	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
+	 */
+	public boolean rewardStructHasTransitionRewards(int r)
+	{
+		RewardStruct rewStr = getRewardStruct(r);
+		return rewStr.getNumTransItems() > 0;
+	}
+
+	/**
 	 * Get a reward structure by its index
 	 * (indexed from 0, not from 1 like at the user (property language) level).
 	 * Returns null if index is out of range.
@@ -480,22 +518,6 @@ public class ModulesFile extends ASTElement implements ModelInfo
 	public List<RewardStruct> getRewardStructs()
 	{
 		return rewardStructs;
-	}
-
-	/**
-	 * Get the index of a module by its name
-	 * (indexed from 0, not from 1 like at the user (property language) level).
-	 * Returns -1 if name does not exist.
-	 */
-	public int getRewardStructIndex(String name)
-	{
-		int i, n;
-		n = rewardStructs.size();
-		for (i = 0; i < n; i++) {
-			if ((rewardStructs.get(i)).getName().equals(name))
-				return i;
-		}
-		return -1;
 	}
 
 	/**
@@ -516,6 +538,12 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		return getRewardStruct(0);
 	}
 
+	@Override
+	public boolean isRewardLookupSupported(RewardLookup lookup)
+	{
+		return lookup == RewardLookup.BY_REWARD_STRUCT;
+	}
+	
 	/**
 	 * Get the expression used in init...endinit to define the initial states of the model.
 	 * This is null if absent, i.e. the model has a single initial state defined by the
@@ -957,6 +985,12 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		}
 	}
 
+	@Override
+	public String getActionStringDescription()
+	{
+		return "Module/[action]";
+	}
+	
 	// check constant identifiers
 
 	private void checkConstantIdents() throws PrismLangException
@@ -1359,13 +1393,6 @@ public class ModulesFile extends ASTElement implements ModelInfo
 		// Find all instances of variables, replace identifiers with variables.
 		// Also check variables valid, store indices, etc.
 		findAllVars(varNames, varTypes, noErrorOnVariableNotPresent);
-	}
-
-	@Override
-	public boolean rewardStructHasTransitionRewards(int i)
-	{
-		RewardStruct rewStr = getRewardStruct(i);
-		return rewStr.getNumTransItems() > 0;
 	}
 
 	/**

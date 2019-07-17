@@ -418,6 +418,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			((GUISimLabelList) stateLabelList).setEngine(engine);
 			((GUISimPathFormulaeList) pathFormulaeList).setEngine(engine);
 
+			// Check model is simulate-able
+			// (bail out now else causes problems below)
+			getPrism().checkModelForSimulation();
+
 			// get properties constants/labels
 			PropertiesFile pf;
 			try {
@@ -469,9 +473,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
-			// initialise engine and check model is simulate-able
-			// (bail out now else causes problems below)		    
-			engine.checkModelForSimulation(parsedModel);
 			// Insert path table
 			tableScroll.setViewportView(pathTable);
 
@@ -488,8 +489,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				strategy.reset();
 			}
 
-			// Create a new path in the simulator and add labels/properties 
-			engine.createNewPath(parsedModel);
+			// Create a new path in the simulator and add labels/properties
+			getPrism().loadModelIntoSimulator();
+			engine.createNewPath();
 
 			parser.State initialStateObject = initialState == null ? null : new parser.State(initialState, parsedModel);
 			if (initialStateObject == null) {
@@ -801,9 +803,9 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 			displayPathLoops = true;
 
-			// Load new path into the simulator 
-			engine.loadPath(parsedModel, pathNew);
-			engine.loadPath(parsedModel, pathNew);
+			// Load new path into the simulator
+			getPrism().loadModelIntoSimulator();
+			engine.loadPath(pathNew);
 			// Update model/path/tables/lists
 			setPathActive(true);
 			pathTableModel.setPath(engine.getPathFull());
@@ -876,6 +878,10 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			((GUISimLabelList) stateLabelList).setEngine(engine);
 			((GUISimPathFormulaeList) pathFormulaeList).setEngine(engine);
 
+			// Check model is simulate-able
+			// (bail out now else causes problems below)
+			getPrism().checkModelForSimulation();
+
 			// if necessary, get values for undefined constants from user
 			UndefinedConstants uCon = new UndefinedConstants(parsedModel, null);
 			if (uCon.getMFNumUndefined() > 0) {
@@ -907,10 +913,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				}
 			}
 
-			// initialise engine and check model is simulate-able
-			// (bail out now else causes problems below)		    
-			engine.checkModelForSimulation(parsedModel);
-
 			// check if we need to initialise a strategy
 			if (strategyGenerated && strategy != null && getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")
 					&& getPrism().getBuiltModelExplicit() != null) {
@@ -930,6 +932,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			long maxPathLength = pathPlotDialog.getMaxPathLength();
 
 			// Create a new path in the simulator and plot it 
+			getPrism().loadModelIntoSimulator();
 			a_clearPath();
 			setComputing(true);
 			guiProp.tabToFront();
@@ -940,7 +943,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			if (initialStateObject == null) {
 				initialStateObject = parsedModel.getDefaultInitialState();
 			}
-			new SimPathPlotThread(this, engine, parsedModel, initialStateObject, simPathDetails, maxPathLength, graphModel).start();
+			new SimPathPlotThread(this, engine, initialStateObject, simPathDetails, maxPathLength, graphModel).start();
 
 			// store initial state for next time
 			lastInitialState = initialState;
@@ -2106,6 +2109,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		this.parsedModel = parsedModel;
 		pathTableModel.setParsedModel(parsedModel);
+		pathTableModel.setModelInfo(parsedModel);
 	}
 
 	/**
@@ -2458,7 +2462,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 						return engine.getPlayerName(engine.getChoiceIndexOfTransition(rowIndex));
 						// Module/action
 					case 2:
-						return engine.getTransitionModuleOrAction(rowIndex);
+						return engine.getTransitionActionString(rowIndex);
 						// Prob/rate
 					case 3:
 						return "" + engine.getTransitionProbability(rowIndex);
@@ -2499,7 +2503,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				case 1:
 					return "Player";
 				case 2:
-					return "Module/[action]";
+					return engine.getModel().getActionStringDescription();
 				case 3:
 					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
 				case 4:

@@ -28,6 +28,9 @@ package simulator;
 
 import parser.State;
 import parser.ast.ModulesFile;
+import prism.ModelGenerator;
+import prism.ModelInfo;
+import prism.RewardGenerator;
 
 /**
  * Stores and manipulates a path though a model.
@@ -36,7 +39,7 @@ import parser.ast.ModulesFile;
 public class PathOnTheFly extends Path
 {
 	// Model to which the path corresponds
-	protected ModulesFile modulesFile;
+	protected ModelInfo modulesFile;
         protected explicit.Model model;
 	// Does model use continuous time?
 	protected boolean continuousTime;
@@ -47,7 +50,8 @@ public class PathOnTheFly extends Path
 	protected long size;
 	protected State previousState;
 	protected State currentState;
-	protected int previousModuleOrActionIndex;
+	protected Object previousAction;
+	protected String previousActionString;
 	protected double previousProbability;
 	protected double totalTime;
 	double timeInPreviousState;
@@ -63,13 +67,13 @@ public class PathOnTheFly extends Path
 	/**
 	 * Constructor: creates a new (empty) PathOnTheFly object for a specific model.
 	 */
-	public PathOnTheFly(ModulesFile modulesFile)
+	public PathOnTheFly(ModelInfo modulesFile, RewardGenerator rewardGen)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
 		this.model = null;
 		continuousTime = modulesFile.getModelType().continuousTime();
-		numRewardStructs = modulesFile.getNumRewardStructs();
+		numRewardStructs = rewardGen.getNumRewardStructs();
 		// Create State objects for current/previous state
 		previousState = new State(modulesFile.getNumVars());
 		currentState = new State(modulesFile.getNumVars());
@@ -89,14 +93,13 @@ public class PathOnTheFly extends Path
         public PathOnTheFly(ModulesFile modulesFile, explicit.Model model)
 	{
 		// Store model and info
-	        this.modulesFile = modulesFile;
-	        this.model = model;
+		this.modulesFile = modulesFile;
+		this.model = model;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		numRewardStructs = modulesFile.getNumRewardStructs();
 		// Create State objects for current/previous state
-	        previousState = model.getStatesList().get(model.getFirstInitialState());
+		previousState = model.getStatesList().get(model.getFirstInitialState());
 		currentState = previousState;
-	        int numVars = currentState.varValues.length;
 		// Create arrays to store totals
 		totalRewards = new double[numRewardStructs];
 		previousStateRewards = new double[numRewardStructs];
@@ -154,13 +157,13 @@ public class PathOnTheFly extends Path
 	}
 
 	@Override
-	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transRewards, State newState, double[] newStateRewards, TransitionList transitionList)
+	public void addStep(int choice, Object action, String actionString, double probability, double[] transRewards, State newState, double[] newStateRewards, ModelGenerator modelGen)
 	{
-		addStep(1.0, choice, moduleOrActionIndex, probability, transRewards, newState, newStateRewards, transitionList);
+		addStep(1.0, choice, action, actionString, probability, transRewards, newState, newStateRewards, modelGen);
 	}
 
 	@Override
-	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transRewards, State newState, double[] newStateRewards, TransitionList transitionList)
+	public void addStep(double time, int choice, Object action, String actionString, double probability, double[] transRewards, State newState, double[] newStateRewards, ModelGenerator modelGen)
 	{
 		size++;
 		if(model==null)
@@ -171,7 +174,8 @@ public class PathOnTheFly extends Path
 		    currentState.copy(newState);
 		else
 		    currentState = newState;
-		previousModuleOrActionIndex = moduleOrActionIndex;
+		previousAction = action;
+		previousActionString = actionString;
 		previousProbability = probability;
 		totalTime += time;
 		timeInPreviousState = time;
@@ -186,7 +190,7 @@ public class PathOnTheFly extends Path
 			currentStateRewards[i] = newStateRewards[i];
 		}
 		// Update loop detector
-		loopDet.addStep(this, transitionList);
+		loopDet.addStep(this, modelGen);
 	}
 
 	@Override
@@ -222,21 +226,15 @@ public class PathOnTheFly extends Path
 	}
 
 	@Override
-	public int getPreviousModuleOrActionIndex()
+	public Object getPreviousAction()
 	{
-		return previousModuleOrActionIndex;
+		return previousAction;
 	}
-
+		
 	@Override
-	public String getPreviousModuleOrAction()
+	public String getPreviousActionString()
 	{
-		int i = getPreviousModuleOrActionIndex();
-		if (i < 0)
-			return modulesFile.getModuleName(-i - 1);
-		else if (i > 0)
-			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
-		else
-		    return "\u03c4"; // TAU
+		return previousActionString;
 	}
 
 	@Override

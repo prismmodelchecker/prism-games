@@ -130,6 +130,7 @@ public class PrismCL implements PrismModelListener
 	private String importLabelsFilename = null;
 	private String importStateRewardsFilename = null;
 	private String importInitDistFilename = null;
+	private String importModelWarning = null;
 	private String propertiesFilename = null;
 	private String exportTransFilename = null;
 	private String exportStateRewardsFilename = null;
@@ -337,7 +338,7 @@ public class PrismCL implements PrismModelListener
 					if (!simMaxPathGiven)
 						simMaxPath = prism.getSettings().getLong(PrismSettings.SIMULATOR_DEFAULT_MAX_PATH);
 					File f = (simpathFilename.equals("stdout")) ? null : new File(simpathFilename);
-					prism.generateSimulationPath(modulesFile, simpathDetails, simMaxPath, f);
+					prism.generateSimulationPath(simpathDetails, simMaxPath, f);
 				} catch (PrismException e) {
 					error(e.getMessage());
 				}
@@ -595,6 +596,9 @@ public class PrismCL implements PrismModelListener
 		// parse model
 
 		try {
+			if (importModelWarning != null) {
+				mainLog.printWarning(importModelWarning);
+			}
 			if (importpepa) {
 				mainLog.print("\nImporting PEPA file \"" + modelFilename + "\"...\n");
 				modulesFile = prism.importPepaFile(new File(modelFilename));
@@ -605,9 +609,7 @@ public class PrismCL implements PrismModelListener
 				modulesFile = prism.importPrismPreprocFile(new File(modelFilename), prismppParamsList);
 				prism.loadPRISMModel(modulesFile);
 			} else if (importtrans) {
-				mainLog.print("\nImporting model (");
-				mainLog.print(typeOverride == null ? "MDP" : typeOverride);
-				mainLog.print(") from \"" + modelFilename + "\"");
+				mainLog.print("\nImporting model from \"" + modelFilename + "\"");
 				if (importstates) {
 					mainLog.print(", \"" + importStatesFilename + "\"");
 					sf = new File(importStatesFilename);
@@ -621,7 +623,7 @@ public class PrismCL implements PrismModelListener
 					srf = new File(importStateRewardsFilename);
 				}
 				mainLog.println("...");
-				modulesFile = prism.loadModelFromExplicitFiles(sf, new File(modelFilename), lf, srf, typeOverride);
+				prism.loadModelFromExplicitFiles(sf, new File(modelFilename), lf, srf, typeOverride);
 			} else {
 				mainLog.print("\nParsing model file \"" + modelFilename + "\"...\n");
 				modulesFile = prism.parseModelFile(new File(modelFilename), typeOverride);
@@ -1897,6 +1899,7 @@ public class PrismCL implements PrismModelListener
 		String extList = filesString.substring(i + 1);
 		String exts[] = extList.split(",");
 		// Process file extensions
+		importModelWarning = null;
 		for (String ext : exts) {
 			// Items to import
 			if (ext.equals("all")) {
@@ -1909,6 +1912,9 @@ public class PrismCL implements PrismModelListener
 				if (new File(basename + ".srew").exists()) {
 					importstaterewards = true;
 					importStateRewardsFilename = basename + ".srew";
+				}
+				if (new File(basename + ".trew").exists()) {
+					importModelWarning = "Import of transition rewards is not yet supported so " + basename + ".trew is being ignored";
 				}
 			} else if (ext.equals("tra")) {
 				importtrans = true;

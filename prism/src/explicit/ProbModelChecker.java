@@ -47,7 +47,6 @@ import parser.ast.ExpressionSS;
 import parser.ast.ExpressionStrategy;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
-import parser.ast.RewardStruct;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypePathBool;
@@ -957,13 +956,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		// Check if ratio reward
-	        if(expr.getRewardStructDivByIndexObject(modelInfo, constantValues) != null)
-		        throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
+		if (expr.getRewardStructIndexDiv() != null) {
+			throw new PrismException("Ratio rewards not supported with the selected engine and module type.");
+		}
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, coalition);
 
 		// Build rewards
-		int r = expr.getRewardStructIndexByIndexObject(modelInfo, constantValues);
+		int r = expr.getRewardStructIndexByIndexObject(rewardGen, constantValues);
 		mainLog.println("Building reward structure...");
 		Rewards rewards = constructRewards(model, r);
 
@@ -989,10 +989,10 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
-	 * Construct rewards for the reward structure with index r of the model generator and a model.
+	 * Construct rewards for the reward structure with index r of the reward generator and a model.
 	 * Ensures non-negative rewards.
 	 * <br>
-	 * Note: Relies on the stored ModelGenerator for constructing the reward structure.
+	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
 	 */
 	protected Rewards constructRewards(Model model, int r) throws PrismException
 	{
@@ -1000,67 +1000,18 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
-	 * Construct rewards for the reward structure with index r of the model generator and a model.
+	 * Construct rewards for the reward structure with index r of the reward generator and a model.
 	 * <br>
 	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative, i.e., weights.
 	 * <br>
-	 * Note: Relies on the stored ModelGenerator for constructing the reward structure.
+	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
 	 */
 	protected Rewards constructRewards(Model model, int r, boolean allowNegativeRewards) throws PrismException
 	{
-		ConstructRewards constructRewards = new ConstructRewards(mainLog);
+		ConstructRewards constructRewards = new ConstructRewards(this);
 		if (allowNegativeRewards)
 			constructRewards.allowNegativeRewards();
-		return constructRewards.buildRewardStructure(model, modelGen, r);
-	}
-
-	/**
-	 * Construct rewards from a (non-negative) reward structure and a model.
-	 * <br>
-	 * Note: Deprecated, use the methods with reward structure index r instead
-	 * to allow construction from model generators.
-	 */
-	@Deprecated
-	protected Rewards constructRewards(Model model, RewardStruct rewStruct) throws PrismException
-	{
-		return constructRewards(model, rewStruct, false);
-	}
-
-	/**
-	 * Construct rewards from a reward structure and a model.
-	 * <br>
-	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative, i.e., weights.
-	 * <br>
-	 * Note: Deprecated, use the methods with reward structure index r instead
-	 * to allow construction from model generators.
-	 */
-	@Deprecated
-	protected Rewards constructRewards(Model model, RewardStruct rewStruct, boolean allowNegativeRewards) throws PrismException
-	{
-		Rewards rewards;
-		ConstructRewards constructRewards = new ConstructRewards(mainLog, modulesFile);
-
-		if (allowNegativeRewards)
-			constructRewards.allowNegativeRewards();
-
-		switch (model.getModelType()) {
-		case CTMC:
-		case DTMC:
-			rewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, constantValues);
-			break;
-		case MDP:
-			rewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
-			break;
-		case STPG:
-			rewards = constructRewards.buildSTPGRewardStructure((STPG) model, rewStruct, constantValues);
-			break;
-		case SMG:
-			rewards = constructRewards.buildSMGRewardStructure((SMG) model, rewStruct, constantValues);
-			break;
-		default:
-			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
-		}
-		return rewards;
+		return constructRewards.buildRewardStructure(model, rewardGen, r);
 	}
 
 	/**

@@ -29,9 +29,11 @@ package simulator;
 import java.util.ArrayList;
 
 import parser.State;
-import parser.ast.ModulesFile;
+import prism.ModelGenerator;
+import prism.ModelInfo;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.RewardGenerator;
 import userinterface.graph.Graph;
 
 /**
@@ -41,7 +43,8 @@ import userinterface.graph.Graph;
 public class PathFull extends Path implements PathFullInfo
 {
 	// Model to which the path corresponds
-	private ModulesFile modulesFile;
+	private ModelInfo modulesFile;
+	private RewardGenerator rewardGen;
         private explicit.Model model;
 	// Does model use continuous time?
 	private boolean continuousTime;
@@ -60,13 +63,13 @@ public class PathFull extends Path implements PathFullInfo
 	 * Constructor: creates a new (empty) PathFull object for a specific model.
 	 */
 
-    public PathFull(ModulesFile modulesFile)
+    public PathFull(ModelInfo modulesFile, RewardGenerator rewardGen)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
 		this.model = null;
 		continuousTime = modulesFile.getModelType().continuousTime();
-		numRewardStructs = modulesFile.getNumRewardStructs();
+		numRewardStructs = rewardGen.getNumRewardStructs();
 		// Create list to store path
 		steps = new ArrayList<Step>(100);
 		// Initialise variables
@@ -77,13 +80,14 @@ public class PathFull extends Path implements PathFullInfo
 	/**
 	 * Constructor: creates a new (empty) PathFull object for a specific model.
 	 */
-    public PathFull(ModulesFile modulesFile, explicit.Model model)
+    public PathFull(ModelInfo modulesFile, RewardGenerator rewardGen, explicit.Model model)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
 	        this.model = model;
 		continuousTime = modulesFile.getModelType().continuousTime();
-		numRewardStructs = modulesFile.getNumRewardStructs();
+		this.rewardGen = rewardGen;
+		numRewardStructs = rewardGen.getNumRewardStructs();
 		// Create list to store path
 		steps = new ArrayList<Step>(100);
 		// Initialise variables
@@ -124,22 +128,23 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
-	public void addStep(int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
-			TransitionList transitionList)
+	public void addStep(int choice, Object action, String actionString, double probability, double[] transitionRewards, State newState, double[] newStateRewards,
+			ModelGenerator modelGen)
 	{
-		addStep(1.0, choice, moduleOrActionIndex, probability, transitionRewards, newState, newStateRewards, transitionList);
+		addStep(1.0, choice, action, actionString, probability, transitionRewards, newState, newStateRewards, modelGen);
 	}
 
 	@Override
-	public void addStep(double time, int choice, int moduleOrActionIndex, double probability, double[] transitionRewards, State newState,
-			double[] newStateRewards, TransitionList transitionList)
+	public void addStep(double time, int choice, Object action, String actionString, double probability, double[] transitionRewards, State newState,
+			double[] newStateRewards, ModelGenerator modelGen)
 	{
 		Step stepOld, stepNew;
 		// Add info to last existing step
 		stepOld = steps.get(steps.size() - 1);
 		stepOld.time = time;
 		stepOld.choice = choice;
-		stepOld.moduleOrActionIndex = moduleOrActionIndex;
+		stepOld.action = action;
+		stepOld.actionString = actionString;
 		stepOld.probability = probability;
 		stepOld.transitionRewards = transitionRewards.clone();
 		// Add new step item to the path
@@ -161,7 +166,7 @@ public class PathFull extends Path implements PathFullInfo
 		// Update size too
 		size++;
 		// Update loop detector
-		loopDet.addStep(this, transitionList);
+		loopDet.addStep(this, modelGen);
 	}
 
     @Override
@@ -187,7 +192,8 @@ public class PathFull extends Path implements PathFullInfo
 		Step last = steps.get(steps.size() - 1);
 		last.time = 0.0;
 		last.choice = -1;
-		last.moduleOrActionIndex = 0;
+		last.action = null;
+		last.actionString = null;
 		last.probability = 0.0;
 		for (i = 0; i < numRewardStructs; i++)
 			last.transitionRewards[i] = 0.0;
@@ -268,21 +274,15 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
-	public int getPreviousModuleOrActionIndex()
+	public Object getPreviousAction()
 	{
-		return steps.get(steps.size() - 2).moduleOrActionIndex;
+		return steps.get(steps.size() - 2).action;
 	}
 
 	@Override
-	public String getPreviousModuleOrAction()
+	public String getPreviousActionString()
 	{
-		int i = getPreviousModuleOrActionIndex();
-		if (i < 0)
-			return modulesFile.getModuleName(-i - 1);
-		else if (i > 0)
-			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
-		else
-		    return "\u03c4"; // TAU
+		return steps.get(steps.size() - 2).actionString;
 	}
 
 	@Override
@@ -435,21 +435,15 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
-	public int getModuleOrActionIndex(int step)
+	public Object getAction(int step)
 	{
-		return steps.get(step).moduleOrActionIndex;
+		return steps.get(step).action;
 	}
 
 	@Override
-	public String getModuleOrAction(int step)
+	public String getActionString(int step)
 	{
-		int i = steps.get(step).moduleOrActionIndex;
-		if (i < 0)
-			return modulesFile.getModuleName(-i - 1);
-		else if (i > 0)
-			return "[" + modulesFile.getSynchs().get(i - 1) + "]";
-		else
-		    return "\u03c4"; // TAU
+		return steps.get(step).actionString;
 	}
 
 	/**
@@ -537,7 +531,7 @@ public class PathFull extends Path implements PathFullInfo
 		int n = (int) nLong;
 		// Loop
 		for (int i = 1; i <= n; i++) {
-			displayer.step(getTime(i - 1), getCumulativeTime(i), getModuleOrAction(i - 1), getProbability(i - 1), getTransitionRewards(i), i, getState(i),
+			displayer.step(getTime(i - 1), getCumulativeTime(i), getActionString(i - 1), getProbability(i - 1), getTransitionRewards(i), i, getState(i),
 					getStateRewards(i));
 		}
 		displayer.end();
@@ -579,7 +573,7 @@ public class PathFull extends Path implements PathFullInfo
 	 */
 	public void exportToLog(PrismLog log, boolean showTimeCumul, boolean showRewards, String colSep, ArrayList<Integer> vars) throws PrismException
 	{
-		PathToText displayer = new PathToText(log, modulesFile);
+		PathToText displayer = new PathToText(log, modulesFile, rewardGen);
 		displayer.setShowTimeCumul(showTimeCumul);
 		displayer.setColSep(colSep);
 		displayer.setVarsToShow(vars);
@@ -593,7 +587,7 @@ public class PathFull extends Path implements PathFullInfo
 	 */
 	public void plotOnGraph(Graph graphModel) throws PrismException
 	{
-		PathToGraph displayer = new PathToGraph(graphModel, modulesFile);
+		PathToGraph displayer = new PathToGraph(graphModel, modulesFile, rewardGen);
 		displayThreaded(displayer);
 	}
 
@@ -622,7 +616,8 @@ public class PathFull extends Path implements PathFullInfo
 			rewardsCumul = new double[numRewardStructs];
 			time = 0.0;
 			choice = -1;
-			moduleOrActionIndex = 0;
+			action = null;
+			actionString = null;
 			probability = 0.0;
 			transitionRewards = new double[numRewardStructs];
 			strategyMemory = null;
@@ -640,11 +635,10 @@ public class PathFull extends Path implements PathFullInfo
 		public double time;
 		// Index of the choice taken
 		public int choice;
-		// Action label taken (i.e. the index in the model's list of all
-		// actions).
-		// This is 1-indexed, with 0 denoting an independent ("tau"-labelled)
-		// command.
-		public int moduleOrActionIndex;
+		// Action taken
+		public Object action;
+		// String describing the action taken
+		public String actionString;
 		// Probability or rate of step
 		public double probability;
 		// Transition rewards associated with step
