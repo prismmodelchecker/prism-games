@@ -40,7 +40,6 @@ public class PathOnTheFly extends Path
 {
 	// Model to which the path corresponds
 	protected ModelInfo modulesFile;
-        protected explicit.Model model;
 	// Does model use continuous time?
 	protected boolean continuousTime;
 	// Model info/stats
@@ -71,7 +70,6 @@ public class PathOnTheFly extends Path
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
-		this.model = null;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		numRewardStructs = rewardGen.getNumRewardStructs();
 		// Create State objects for current/previous state
@@ -94,7 +92,6 @@ public class PathOnTheFly extends Path
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
-		this.model = model;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		numRewardStructs = modulesFile.getNumRewardStructs();
 		// Create State objects for current/previous state
@@ -109,7 +106,6 @@ public class PathOnTheFly extends Path
 		clear();
 		// Create loop detector
 		loopDet = new LoopDetector();
-		loopDet.setBasedOnValues(false);
 	}
 
 
@@ -120,13 +116,8 @@ public class PathOnTheFly extends Path
 	{
 		// Initialise all path info
 		size = 0;
-		if(model == null) {
-		    previousState.clear();
-		    currentState.clear();
-		} else {
-		    previousState = null;
-		    currentState = null;
-		}
+	    previousState.clear();
+	    currentState.clear();
 		totalTime = 0.0;
 		timeInPreviousState = 0.0;
 		for (int i = 0; i < numRewardStructs; i++) {
@@ -145,10 +136,7 @@ public class PathOnTheFly extends Path
 	public void initialise(State initialState, double[] initialStateRewards)
 	{
 		clear();
-		if(model==null)
-		    currentState.copy(initialState);
-		else
-		    currentState = initialState;
+		currentState.copy(initialState);
 		for (int i = 0; i < numRewardStructs; i++) {
 			currentStateRewards[i] = initialStateRewards[i];
 		}
@@ -166,14 +154,8 @@ public class PathOnTheFly extends Path
 	public void addStep(double time, int choice, Object action, String actionString, double probability, double[] transRewards, State newState, double[] newStateRewards, ModelGenerator modelGen)
 	{
 		size++;
-		if(model==null)
-		    previousState.copy(currentState);
-		else
-		    previousState = currentState;
-		if(model==null)
-		    currentState.copy(newState);
-		else
-		    currentState = newState;
+		previousState.copy(currentState);
+		currentState.copy(newState);
 		previousAction = action;
 		previousActionString = actionString;
 		previousProbability = probability;

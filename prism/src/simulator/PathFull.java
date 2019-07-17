@@ -45,7 +45,6 @@ public class PathFull extends Path implements PathFullInfo
 	// Model to which the path corresponds
 	private ModelInfo modulesFile;
 	private RewardGenerator rewardGen;
-        private explicit.Model model;
 	// Does model use continuous time?
 	private boolean continuousTime;
 	// Model info/stats
@@ -62,29 +61,10 @@ public class PathFull extends Path implements PathFullInfo
 	/**
 	 * Constructor: creates a new (empty) PathFull object for a specific model.
 	 */
-
     public PathFull(ModelInfo modulesFile, RewardGenerator rewardGen)
 	{
 		// Store model and info
 		this.modulesFile = modulesFile;
-		this.model = null;
-		continuousTime = modulesFile.getModelType().continuousTime();
-		numRewardStructs = rewardGen.getNumRewardStructs();
-		// Create list to store path
-		steps = new ArrayList<Step>(100);
-		// Initialise variables
-		clear();
-		// Create loop detector
-		loopDet = new LoopDetector();
-	}
-	/**
-	 * Constructor: creates a new (empty) PathFull object for a specific model.
-	 */
-    public PathFull(ModelInfo modulesFile, RewardGenerator rewardGen, explicit.Model model)
-	{
-		// Store model and info
-		this.modulesFile = modulesFile;
-	        this.model = model;
 		continuousTime = modulesFile.getModelType().continuousTime();
 		this.rewardGen = rewardGen;
 		numRewardStructs = rewardGen.getNumRewardStructs();
@@ -94,7 +74,6 @@ public class PathFull extends Path implements PathFullInfo
 		clear();
 		// Create loop detector
 		loopDet = new LoopDetector();
-		loopDet.setBasedOnValues(false);
 	}
 
 	/**
@@ -116,7 +95,7 @@ public class PathFull extends Path implements PathFullInfo
 		Step step = new Step();
 		steps.add(step);
 		// Add (copies of) initial state and state rewards to new step
-		step.state = model==null ? new State(initialState) : initialState;
+		step.state = new State(initialState);
 		step.stateRewards = initialStateRewards.clone();
 		// Set cumulative time/reward (up until entering this state)
 		step.timeCumul = 0.0;
@@ -151,7 +130,7 @@ public class PathFull extends Path implements PathFullInfo
 		stepNew = new Step();
 		steps.add(stepNew);
 		// Add (copies of) new state and state rewards to new step
-		stepNew.state = model==null ? new State(newState) : newState;
+		stepNew.state = new State(newState);
 		stepNew.stateRewards = newStateRewards.clone();
 		// Set cumulative time/rewards (up until entering this state)
 		stepNew.timeCumul = stepOld.timeCumul + time;
