@@ -587,10 +587,14 @@ public class STPGModelChecker extends ProbModelChecker
 		// Print adversary
 		if (genAdv) {
 			PrismLog out = new PrismFileLog(exportAdvFilename);
-			for (i = 0; i < n; i++) {
-				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+			if (exportAdvFilename.lastIndexOf('.') != -1 && exportAdvFilename.substring(exportAdvFilename.lastIndexOf('.') + 1).equals("dot")) {
+				stpg.exportToDotFileWithStrat(out, null, adv);
+			} else {
+				for (i = 0; i < n; i++) {
+					out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+				}
+				out.println();
 			}
-			out.println();
 			out.close();
 		}
 
@@ -1052,10 +1056,14 @@ public class STPGModelChecker extends ProbModelChecker
 		// Print adversary
 		if (genAdv) {
 			PrismLog out = new PrismFileLog(exportAdvFilename);
-			for (i = 0; i < n; i++) {
-				out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+			if (exportAdvFilename.lastIndexOf('.') != -1 && exportAdvFilename.substring(exportAdvFilename.lastIndexOf('.') + 1).equals("dot")) {
+				stpg.exportToDotFileWithStrat(out, null, adv);
+			} else {
+				for (i = 0; i < n; i++) {
+					out.println(i + " " + (adv[i] != -1 ? stpg.getAction(i, adv[i]) : "-"));
+				}
+				out.println();
 			}
-			out.println();
 			out.close();
 		}
 
