@@ -102,7 +102,7 @@ public enum RelOp
 		@Override
 		public boolean isMax()
 		{
-			return false;
+			return true;
 		}
 
 		@Override

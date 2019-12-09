@@ -27,7 +27,6 @@
 package simulator;
 
 import parser.State;
-import parser.ast.ModulesFile;
 import prism.ModelGenerator;
 import prism.ModelInfo;
 import prism.RewardGenerator;
@@ -39,7 +38,7 @@ import prism.RewardGenerator;
 public class PathOnTheFly extends Path
 {
 	// Model to which the path corresponds
-	protected ModelInfo modulesFile;
+	protected ModelInfo modelInfo;
 	// Does model use continuous time?
 	protected boolean continuousTime;
 	// Model info/stats
@@ -66,15 +65,15 @@ public class PathOnTheFly extends Path
 	/**
 	 * Constructor: creates a new (empty) PathOnTheFly object for a specific model.
 	 */
-	public PathOnTheFly(ModelInfo modulesFile, RewardGenerator rewardGen)
+	public PathOnTheFly(ModelInfo modelInfo, RewardGenerator rewardGen)
 	{
 		// Store model and info
-		this.modulesFile = modulesFile;
-		continuousTime = modulesFile.getModelType().continuousTime();
+		this.modelInfo = modelInfo;
+		continuousTime = modelInfo.getModelType().continuousTime();
 		numRewardStructs = rewardGen.getNumRewardStructs();
 		// Create State objects for current/previous state
-		previousState = new State(modulesFile.getNumVars());
-		currentState = new State(modulesFile.getNumVars());
+		previousState = new State(modelInfo.getNumVars());
+		currentState = new State(modelInfo.getNumVars());
 		// Create arrays to store totals
 		totalRewards = new double[numRewardStructs];
 		previousStateRewards = new double[numRewardStructs];
@@ -85,29 +84,6 @@ public class PathOnTheFly extends Path
 		// Create loop detector
 		loopDet = new LoopDetector();
 	}
-	/**
-	 * Constructor: creates a new (empty) PathOnTheFly object for an explicit model
-	 */
-        public PathOnTheFly(ModulesFile modulesFile, explicit.Model model)
-	{
-		// Store model and info
-		this.modulesFile = modulesFile;
-		continuousTime = modulesFile.getModelType().continuousTime();
-		numRewardStructs = modulesFile.getNumRewardStructs();
-		// Create State objects for current/previous state
-		previousState = model.getStatesList().get(model.getFirstInitialState());
-		currentState = previousState;
-		// Create arrays to store totals
-		totalRewards = new double[numRewardStructs];
-		previousStateRewards = new double[numRewardStructs];
-		previousTransitionRewards = new double[numRewardStructs];
-		currentStateRewards = new double[numRewardStructs];
-		// Initialise path info
-		clear();
-		// Create loop detector
-		loopDet = new LoopDetector();
-	}
-
 
 	/**
 	 * Clear the path.
