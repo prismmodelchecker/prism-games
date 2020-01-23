@@ -544,6 +544,10 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Will we be quantifying universally or existentially over strategies/adversaries?
 		boolean forAll = !expr.isThereExists();
 		
+		// Multiple coalitions not supported
+		if (expr.getNumCoalitions() > 1) {
+			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator can only contain one coalition");
+		}
 		// Extract coalition info
 		Coalition coalition = expr.getCoalition();
 		// For non-games (i.e., models with a single player), deal with the coalition operator here and then remove it

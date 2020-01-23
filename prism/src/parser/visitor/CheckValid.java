@@ -116,9 +116,10 @@ public class CheckValid extends ASTTraverse
 		if (!modelType.nondeterministic())
 			throw new PrismLangException("The " + e.getOperatorString() + " operator is only meaningful for models with nondeterminism");
 		// Currently (for non-games), <<>> or [[]] can only contain "*" or "" 
-		Coalition coalition = e.getCoalition();
-		if (!modelType.multiplePlayers() && !(coalition.isAllPlayers() || coalition.isEmpty())) {
-			throw new PrismLangException("The " + e.getOperatorString() + " operator must contain either \"*\" or be empty for an " + modelType);
+		if (!modelType.multiplePlayers()) {
+			if (e.getNumCoalitions() > 1 || !(e.getCoalition(0).isAllPlayers() || e.getCoalition(0).isEmpty())) {
+				throw new PrismLangException("The " + e.getOperatorString() + " operator must contain either \"*\" or be empty for an " + modelType);
+			}
 		}
 	}
 }

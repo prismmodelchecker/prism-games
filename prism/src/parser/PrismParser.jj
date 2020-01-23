@@ -1864,6 +1864,7 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 {
 	ExpressionStrategy ret;
 	Expression expr;
+	List<Coalition> coalitions;
 	Token begin = null;
 }
 {
@@ -1871,8 +1872,9 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 	{ if (!prop) throw generateParseException(); }
 	(
 	// <<...>> or [[...]]
-	(( begin = <DLT> { ret = new ExpressionStrategy(true); } ExpressionStrategyCoalition(ret) <DGT> )
-	| (begin = <DLBRACKET> { ret = new ExpressionStrategy(false); } ExpressionStrategyCoalition(ret) <DRBRACKET> ))
+	(( begin = <DLT> { ret = new ExpressionStrategy(true); } coalitions = ExpressionStrategyCoalitionList() <DGT> )
+	| (begin = <DLBRACKET> { ret = new ExpressionStrategy(false); } coalitions = ExpressionStrategyCoalitionList() <DRBRACKET> ))
+	{ ret.setCoalitions(coalitions); }
 	// Child expression
 	(
 	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) )
@@ -1886,19 +1888,35 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 	}
 }
 	
+// List of coalitions (player lists) for a strategy (<<>> or [[]]) operator
+
+List<Coalition> ExpressionStrategyCoalitionList() :
+{
+	Coalition coalition;
+	List<Coalition> coalitions = new ArrayList<Coalition>();;
+}
+{
+	( coalition = ExpressionStrategyCoalition() { coalitions.add(coalition); }
+	(<COLON> coalition = ExpressionStrategyCoalition() { coalitions.add(coalition);} )*	)
+	{ return coalitions; }	
+}
+
 // Coalition (player list) for a strategy (<<>> or [[]]) operator
 
-void ExpressionStrategyCoalition(ExpressionStrategy exprStrat) :
+Coalition ExpressionStrategyCoalition() :
 {
-	List<String> coalition = new ArrayList<String>();
+	Coalition coalition = new Coalition();
+	List<String> players = new ArrayList<String>();
 	String s;
 }
 {
-	( <TIMES> ) { exprStrat.setCoalitionAllPlayers();}
+	( ( <TIMES> ) { coalition.setAllPlayers(); }
 	|
-	( s = ExpressionStrategyCoalitionPlayer() { coalition.add(s); }
-	( <COMMA> s = ExpressionStrategyCoalitionPlayer()  { coalition.add(s); } )* )?
-	{ exprStrat.setCoalition(coalition); }
+	( s = ExpressionStrategyCoalitionPlayer() { players.add(s); }
+	  ( <COMMA> s = ExpressionStrategyCoalitionPlayer() { players.add(s); } )*
+	  { coalition.setPlayers(players); }
+	)? )
+	{ return coalition; }
 }
 
 // Single player in a coalition for a strategy (<<>> or [[]]) operator

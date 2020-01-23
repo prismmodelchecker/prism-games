@@ -27,7 +27,9 @@
 package parser.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import param.BigRational;
 import parser.EvaluateContext;
@@ -44,7 +46,9 @@ public class ExpressionStrategy extends Expression
 	protected boolean thereExists = false;
 	
 	/** Coalition info (for game models) */
-	protected Coalition coalition = new Coalition(); 
+	/** Actually a non-empty list of coalitions; contains a single empty one by default */
+	/** So, to avoid confusion, there are only set, not add, methods for coalitions */
+	protected List<Coalition> coalitions = Collections.singletonList(new Coalition());
 	
 	/** Child expression(s) */
 	protected List<Expression> operands = new ArrayList<Expression>();
@@ -77,14 +81,44 @@ public class ExpressionStrategy extends Expression
 		this.thereExists = thereExists;
 	}
 	
-	public void setCoalitionAllPlayers()
+	/**
+	 * Set the (single) coalition, specified as a player list
+	 */
+	public void setCoalition(List<String> players)
 	{
-		this.coalition.setAllPlayers();
+		this.coalitions.clear();
+		this.coalitions.add(new Coalition(players));
+	}
+	
+	/**
+	 * Set the (single) coalition, specified as a player list
+	 */
+	public void setCoalition(Coalition coalition)
+	{
+		this.coalitions.clear();
+		this.coalitions.add(new Coalition(coalition));
+	}
+	
+	/**
+	 * Set the list of coalitions, specified as lists of player names/indices
+	 */
+	public void setCoalitionsFromPlayerLists(List<List<String>> coalitions)
+	{
+		this.coalitions = new ArrayList<>();
+		for (List<String> players : coalitions) {
+			this.coalitions.add(new Coalition(players));
+		}
 	}
 
-	public void setCoalition(List<String> coalition)
+	/**
+	 * Set the list of coalitions, copied from an existing list of Coalition objects 
+	 */
+	public void setCoalitions(List<Coalition> coalitions)
 	{
-		this.coalition.setPlayers(coalition);
+		this.coalitions = new ArrayList<>();
+		for (Coalition coalition : coalitions) {
+			this.coalitions.add(new Coalition(coalition));
+		}
 	}
 
 	public void setSingleOperand(Expression expression)
@@ -119,19 +153,53 @@ public class ExpressionStrategy extends Expression
 		return thereExists ? "<<>>" : "[[]]";
 	}
 
+	/**
+	 * Get the (or the first, if there are several) coalition 
+	 */
 	public Coalition getCoalition()
 	{
-		return coalition;
+		return coalitions.get(0);
 	}
 	
+	/**
+	 * Get the number of coalitions in the list
+	 * NB: <<>> means a single list of an empty coalition
+	 */
+	public int getNumCoalitions()
+	{
+		return coalitions.size();
+	}
+	
+	/**
+	 * Get the {@code i}th coalition
+	 */
+	public Coalition getCoalition(int i) 
+	{
+		return coalitions.get(i);
+	}
+	
+	/**
+	 * Get the list of all coalitions 
+	 */
+	public List<Coalition> getCoalitions() 
+	{
+		return coalitions;
+	}
+
+	/**
+	 * Check if the (or the first, if there are several) coalition is "*" (all players)
+	 */
 	public boolean coalitionIsAllPlayers()
 	{
-		return coalition.isAllPlayers();
+		return coalitions.get(0).isAllPlayers();
 	}
 	
+	/**
+	 * Get the (or the first, if there are several) coalition's players
+	 */
 	public List<String> getCoalitionPlayers()
 	{
-		return coalition.getPlayers();
+		return coalitions.get(0).getPlayers();
 	}
 	
 	public boolean hasSingleOperand()
@@ -205,7 +273,7 @@ public class ExpressionStrategy extends Expression
 	{
 		ExpressionStrategy expr = new ExpressionStrategy();
 		expr.setThereExists(isThereExists());
-		expr.coalition = new Coalition(coalition);
+		expr.setCoalitions(coalitions); // NB: setCoalitions copies anyway
 		for (Expression operand : operands) {
 			expr.addOperand((Expression) operand.deepCopy());
 		}
@@ -222,8 +290,8 @@ public class ExpressionStrategy extends Expression
 	{
 		String s = "";
 		s += (thereExists ? "<<" : "[[");
-		s += coalition;
-		s += (thereExists ? ">> " : "]] ");
+		s += coalitions.stream().map(Coalition::toString).collect(Collectors.joining(":"));
+		s += (thereExists ? ">>" : "]]");
 		if (singleOperand) {
 			s += operands.get(0);
 		} else {
@@ -246,7 +314,7 @@ public class ExpressionStrategy extends Expression
 	{
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((coalition == null) ? 0 : coalition.hashCode());
+		result = prime * result + ((coalitions == null) ? 0 : coalitions.hashCode());
 		result = prime * result + ((operands == null) ? 0 : operands.hashCode());
 		result = prime * result + (singleOperand ? 1231 : 1237);
 		result = prime * result + (thereExists ? 1231 : 1237);
@@ -263,10 +331,10 @@ public class ExpressionStrategy extends Expression
 		if (getClass() != obj.getClass())
 			return false;
 		ExpressionStrategy other = (ExpressionStrategy) obj;
-		if (coalition == null) {
-			if (other.coalition != null)
+		if (coalitions == null) {
+			if (other.coalitions != null)
 				return false;
-		} else if (!coalition.equals(other.coalition))
+		} else if (!coalitions.equals(other.coalitions))
 			return false;
 		if (operands == null) {
 			if (other.operands != null)

@@ -58,6 +58,15 @@ public class Coalition
 	}
 
 	/**
+	 * Constructor: (possibly empty) player list
+	 */
+	public Coalition(List<String> players)
+	{
+		this();
+		setPlayers(players);
+	}
+
+	/**
 	 * Copy constructor
 	 */
 	public Coalition(Coalition c)
