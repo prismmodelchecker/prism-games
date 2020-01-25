@@ -111,6 +111,7 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_EXACT_ENABLED					= "prism.exact.enabled";
 	public static final String PRISM_PTA_METHOD					= "prism.ptaMethod";
 	public static final String PRISM_TRANSIENT_METHOD				= "prism.transientMethod";
+	public static final String PRISM_SMT_SOLVER					= "prism.smtsolver";
 	public static final String PRISM_AR_OPTIONS					= "prism.arOptions";
 	public static final String PRISM_PATH_VIA_AUTOMATA				= "prism.pathViaAutomata";
 	public static final String PRISM_NO_DA_SIMPLIFY				= "prism.noDaSimplify";
@@ -262,6 +263,8 @@ public class PrismSettings implements Observer
 																			"Which method to use for model checking of PTAs." },
 			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",																
 																			"Which method to use for computing transient probabilities in CTMCs." },
+			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Yices",															"Z3,Yices",																
+																			"Which external solver to use for SMT problems." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
 																			"Which iterative method to use when solving linear equation systems." },
@@ -1081,6 +1084,20 @@ public class PrismSettings implements Observer
 					set(PRISM_TRANSIENT_METHOD, "Fast adaptive uniformisation");
 				else
 					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: unif, fau)");
+			} else {
+				throw new PrismException("No parameter specified for -" + sw + " switch");
+			}
+		}
+		// Solvers
+		else if (sw.equals("smtsolver")) {
+			if (i < args.length - 1) {
+				s = args[++i];
+				if (s.equals("z3"))
+					set(PRISM_SMT_SOLVER, "Z3");
+				else if (s.equals("yices"))
+					set(PRISM_SMT_SOLVER, "Yices");
+				else
+					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: z3, yices)");
 			} else {
 				throw new PrismException("No parameter specified for -" + sw + " switch");
 			}
@@ -1949,6 +1966,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-exact ......................... Perform exact (arbitrary precision) model checking");
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
 		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
+		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: yices]");
 		mainLog.println();
 		mainLog.println("SOLUTION METHODS (LINEAR EQUATIONS):");
 		mainLog.println("-power (or -pow, -pwr) ......... Use the Power method for numerical computation");
