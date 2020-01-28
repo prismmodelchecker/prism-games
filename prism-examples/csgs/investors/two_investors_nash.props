@@ -1,0 +1,3 @@
+<<investor1:investor2>>max=? (R{"profit1"}[F "finished1"] + R{"profit2"}[F "finished2"])
+<<investor1:investor2>>max=? (R{"profit1_lc"}[F "finished1"] + R{"profit2_ec"}[F "finished2"])
+<<investor1:investor2>>max=? (R{"profit1_lc"}[F "finished1"] + R{"profit2_mc"}[F "finished2"])

@@ -1,0 +1,6 @@
+// players maximise their cumulative capital
+<<p1:p2>>max=?(R{"done1"}[F k=kmax+1] + R{"done2"}[F k=kmax+1])
+
+// players maximise their capital in a specific round
+const int K;
+<<p1:p2>>max=?(R{"r1i"}[I=K] + R{"r2i"}[I=K])

@@ -1,0 +1,8 @@
+const int K;
+<<p1:p2:p3>>max=?(R{"r1i"}[I=K] + R{"r2i"}[I=K] + R{"r2i"}[I=K])
+<<p1:p2:p3>>min=?(R{"r1i"}[I=K] + R{"r2i"}[I=K] + R{"r2i"}[I=K])
+
+<<p1:p2:p3>>max=?(R{"done1"}[F k=kmax+1] + R{"done2"}[F k=kmax+1] + R{"done3"}[F k=kmax+1])
+<<p1:p2,p3>>max=?(R{"done1"}[F k=kmax+1] + R{"done23"}[F k=kmax+1])
+<<p1:p2:p3>>min=?(R{"done1"}[F k=kmax+1] + R{"done2"}[F k=kmax+1] + R{"done3"}[F k=kmax+1])
+<<p1:p2,p3>>min=?(R{"done1"}[F k=kmax+1] + R{"done23"}[F k=kmax+1])

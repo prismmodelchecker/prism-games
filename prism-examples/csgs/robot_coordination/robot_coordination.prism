@@ -1,0 +1,75 @@
+// two robots moving over a grid
+// one tries to move from sw corner to ne corner while the other does the reverse
+// when moving robit i can end up in an adjacent grid square with probability pi
+
+csg
+
+// the players
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+const double q; // probability of movement failure
+const int l; // size of grid
+
+// corner points
+const int xmin = 0;
+const int ymin = 0;
+const int xmax = l-1;
+const int ymax = l-1;
+
+// initial grid positions for the robots
+const int xi1 = xmin; const int yi1 = ymin;
+const int xi2 = xmax; const int yi2 = ymax;
+
+// goal grid positions for the robots
+const int xg1 = xmax; const int yg1 = ymax;
+const int xg2 = xmin; const int yg2 = ymin;
+
+// add labels for specifying properties
+label "goal1" = x1=xg1 & y1=yg1;
+label "goal2" = x2=xg2 & y2=yg2;
+
+// robots crash when they end up in same grid square
+label "crash" = x1=x2 & y1=y2;
+
+// first robot
+module m1
+
+	x1 : [xmin..xmax] init xi1; // x coordinate
+	y1 : [ymin..ymax] init yi1; // y coordinate
+
+	//[wait1] !(y1=yg1 & x1=xg1) -> true;
+	
+	[n1] y1<ymax -> (1-q) : (y1'=y1+1) + q/2 : (y1'=y1+1) & (x1'=min(xmax,x1+1)) + q/2 : (y1'=y1+1) & (x1'=max(xmin,x1-1));
+	[e1] x1<xmax -> (1-q) : (x1'=x1+1) + q/2 : (x1'=x1+1) & (y1'=min(ymax,y1+1)) + q/2 : (x1'=x1+1) & (y1'=max(ymin,y1-1));
+	[ne1] y1<ymax & x1<xmax -> (1-q) : (y1'=y1+1) & (x1'=x1+1) + q/2 : (y1'=y1+1) + q/2 : (x1'=x1+1);
+
+	[done1] y1=yg1 & x1=xg1 -> true;
+	
+endmodule
+
+// second robot
+module m2
+
+	x2 : [xmin..xmax] init xi2; // x coordinate
+	y2 : [ymin..ymax] init yi2; // y coordinate
+
+	//[wait2] !(y2=yg2 & x2=xg2) -> true;
+
+	[s2] y2>ymin -> (1-q) : (y2'=y2-1) + q/2 : (y2'=y2-1) & (x2'=min(xmax,x2+1)) + q/2 : (y2'=y2-1) & (x2'=max(xmin,x2-1));
+	[w2] x2>xmin -> (1-q) : (x2'=x2-1) + q/2 : (x2'=x2-1) & (y2'=min(ymax,y2+1)) + q/2 : (x2'=x2-1) & (y2'=max(ymin,y2-1));
+	[sw2] y2>ymin & x2>xmin -> (1-q) : (y2'=y2-1) & (x2'=x2-1) + q/2 : (y2'=y2-1) + q/2 : (x2'=x2-1);
+	
+	[done2] y2=yg2 & x2=xg2 -> true;
+
+endmodule
+
+rewards "time1"
+	[] !(x1=x2 & y1=y2) & !(y1=yg1 & x1=xg1) : 1;
+	[] x1=x2 & y1=y2 & !(y1=yg1 & x1=xg1) : 10; // crash
+endrewards
+
+rewards "time2"
+	[] !(x1=x2 & y1=y2) & !(y2=yg2 & x2=xg2) : 1;
+	[] x1=x2 & y1=y2 & !(y2=yg2 & x2=xg2) : 10; // crash
+endrewards

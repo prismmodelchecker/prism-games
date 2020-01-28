@@ -1,0 +1,15 @@
+// normal market
+<<investor1>>R{"profit1"}max=?[Fc "finished1"]
+<<investor1,investor2>>R{"profit12"}max=?[Fc "finished12"]
+
+// later cash-ins
+<<investor1>>R{"profit1_lc"}max=?[Fc "finished1"]
+<<investor1,investor2>>R{"profit12_lc"}max=?[Fc "finished12"]
+
+// later cash-ins with fluctuations
+<<investor1>>R{"profit1_mc"}max=?[Fc "finished1"]
+<<investor1,investor2>>R{"profit12_mc"}max=?[Fc "finished12"]
+
+// earlier cash-ins
+<<investor1>>R{"profit1_ec"}max=?[Fc "finished1"]
+<<investor1,investor2>>R{"profit12_ec"}max=?[Fc "finished12"]

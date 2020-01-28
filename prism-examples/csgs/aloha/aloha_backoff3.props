@@ -1,0 +1,43 @@
+// probability player 1 eventually sends a packet
+// and player two and three form a coalition to send two packets
+<<p1:p2,p3>>max=? (P[F s1=3] + P[F s2=3 & s3=3])
+// should be 1.0+1.0=2.0 as can collaborate
+// i.e. first one sends and then the other does afterwards as no deadline
+
+// expected time player 1 eventually sends a packet
+// and player two and three form a coalition to send two packets
+<<p1:p2,p3>>min=? (R{"time"}[F s1=3] + R{"time"}[F s2=3 & s3=3])
+
+// probability player 1 eventually sends a packet by a deadline
+// and player two and three form a coalition to send two packets by a deadline
+<<p1:p2,p3>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & s3=3 & t<=D)])
+
+// probability player 1 eventually sends a packet by a deadline
+// and player two and three form a coalition to send two packets
+<<p1:p2,p3>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & s3=3)])
+
+// probability player 1 eventually sends a packet
+// and player two and three form a coalition to send two packets by a deadline
+<<p1:p2,p3>>max=? (P[F (s1=3)] + P[F (s2=3 & s3=3 & t<=D)])
+
+// expected time each player eventually sends a packet
+<<p1:p2:p3>>max=? (R{"time"}[F s1=3] + R{"time"}[F s2=3] + R{"time"}[F s3=3])
+
+// probably each player eventually sents a packet
+<<p1:p2:p3>>max=? (P[F s1=3] + P[F s2=3] + P[F s3=3])
+
+// probably each player eventually sents a packet within a deadline
+<<p1:p2:p3>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & t<=D)] + P[F (s3=3 & t<=D)])
+
+// expected time player 1 eventually sends a packet
+<<p1>>R{"time"}min=?[F s1=3]
+
+// expected time player 1 eventually sends a packet
+<<p2,p3>>R{"time"}min=?[F s2=3 & s3=3]
+
+// probability player 1 eventually sends a packet by a deadline
+<<p1>>Pmax=?[F (s1=3 & t<=D)]
+
+// probability player 2 and 3 eventually sends a packet by a deadline
+<<p2,p3>>Pmax=?[F (s2=3 & s3=3 & t<=D)]
+

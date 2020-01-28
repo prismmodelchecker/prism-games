@@ -1,0 +1,22 @@
+const int k; // step bound
+
+// player 1 reach their goal without crashing
+<<p1>>Pmax=?[ !"crash" U "goal1" ]
+
+// player 1 reach their goal without crashing within a deadline
+<<p1>>Pmax=?[ !"crash" U<=k "goal1" ]
+
+// expected time a player to reach their goal without crashing
+<<p1>>R{"time1"}min=?[F "goal1" ]
+
+// eventually both players reach their goal without crashing
+<<p1:p2>>max=? (P[ !"crash" U "goal1" ] + P[ !"crash" U "goal2" ])
+
+// players reach their goals within a bounded number of steps
+<<p1:p2>>max=? (P[ !"crash" U<=k "goal1"] + P[ !"crash" U<=k "goal2"])
+
+// one bounded and one unbounded
+<<p1:p2>>max=? (P[!"crash" U<=k "goal1"] + P[!"crash" U "goal2"])
+
+// expected time both players reach their goal
+<<p1:p2>>min=? (R{"time1"}[F "goal1" ] + R{"time2"}[F "goal2" ])

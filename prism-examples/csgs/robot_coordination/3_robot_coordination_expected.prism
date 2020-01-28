@@ -1,0 +1,109 @@
+// three robots moving over a grid
+// one tries to move from sw corner to ne corner while the other does the reverse
+// when moving robit i can end up in an adjacent grid square with probability pi
+
+csg
+
+player p1
+	m1
+endplayer
+
+player p2	
+	m2
+endplayer
+
+player p3
+	m3
+endplayer
+
+const double q; // probability of movement failure
+const int l; // size of grid
+
+// corner points
+const int xmin = 0;
+const int ymin = 0;
+const int xmax = l-1;
+const int ymax = l-1;
+
+// initial grid positions for the robots
+const int xi1 = xmin; const int yi1 = ymin;
+const int xi2 = xmax; const int yi2 = ymax;
+const int xi3 = xmin; const int yi3 = ymax;
+
+// goal grid positions for the robots
+const int xg1 = xmax; const int yg1 = ymax;
+const int xg2 = xmin; const int yg2 = ymin;
+const int xg3 = xmax; const int yg3 = ymin;
+
+// add labels for specifying properties
+label "goal1" = (x1=xg1 & y1=yg1);
+label "goal2" = (x2=xg2 & y2=yg2);
+label "goal3" = (x3=xg3 & y3=yg3);
+label "crash1" = (x1=x2 & y1=y2) | (x1=x3 & y1=y3);
+label "crash2" = (x2=x1 & y2=y1) | (x2=x3 & y2=y3);
+label "crash3" = (x3=x1 & y3=y1) | (x3=x2 & y3=y2);
+
+// first robot
+module m1
+
+	x1 : [xmin..xmax] init xi1; // x coordinate
+	y1 : [ymin..ymax] init yi1; // y coordinate
+
+	[n1] y1<ymax -> (1-q) : (y1'=y1+1) + q/2 : (y1'=y1+1) & (x1'=min(xmax,x1+1)) + q/2 : (y1'=y1+1) & (x1'=max(xmin,x1-1));
+	[e1] x1<xmax -> (1-q) : (x1'=x1+1) + q/2 : (x1'=x1+1) & (y1'=min(ymax,y1+1)) + q/2 : (x1'=x1+1) & (y1'=max(ymin,y1-1));
+	//[ne1] y1<ymax & x1<xmax -> (1-q) : (y1'=y1+1) & (x1'=x1+1) + q/2 : (y1'=y1+1) + q/2 : (x1'=x1+1);
+	
+	[done1] y1=yg1 & x1=xg1 -> true;
+
+	
+endmodule
+
+// second robot
+module m2
+
+	x2 : [xmin..xmax] init xi2; // x coordinate
+	y2 : [ymin..ymax] init yi2; // y coordinate
+
+	[s2] y2>ymin -> (1-q) : (y2'=y2-1) + q/2 : (y2'=y2-1) & (x2'=min(xmax,x2+1)) + q/2 : (y2'=y2-1) & (x2'=max(xmin,x2-1));
+	[w2] x2>xmin -> (1-q) : (x2'=x2-1) + q/2 : (x2'=x2-1) & (y2'=min(ymax,y2+1)) + q/2 : (x2'=x2-1) & (y2'=max(ymin,y2-1));
+	//[sw2] y2>ymin & x2>xmin -> (1-q) : (y2'=y2-1) & (x2'=x2-1) + q/2 : (y2'=y2-1) + q/2 : (x2'=x2-1);
+	
+	[done2] y2=yg2 & x2=xg2 -> true;
+
+endmodule
+
+// third robot
+module m3
+
+	x3 : [xmin..xmax] init xi3; // x coordinate
+	y3 : [ymin..ymax] init yi3; // y coordinate
+
+	[s3] y3>ymin -> (1-q) : (y3'=y3-1) + q/2 : (y3'=y3-1) & (x3'=min(xmax,x3+1)) + q/2 : (y3'=y3-1) & (x3'=max(xmin,x3-1));
+	[e3] x3<xmax -> (1-q) : (x3'=x3+1) + q/2 : (x3'=x3+1) & (y3'=min(ymax,y3+1)) + q/2 : (x3'=x3+1) & (y3'=max(ymin,y3-1));
+	//[se3] y3>ymin & x3<xmax -> (1-q) : (y3'=y3-1) & (x3'=x3+1) + q/2 : (y3'=y3-1) + q/2 : (x3'=x3+1);
+
+	[done3] y3=yg3 & x3=xg3 -> true;
+
+endmodule
+
+// rewards for expected time (penalty if robots crash)
+rewards "time1"
+	[] !((x1=x2 & y1=y2) | (x1=x3 & y1=y3)) & !(y1=yg1 & x1=xg1) : 1;
+	[] !(x1=x2 & y1=y2) & x1=x3 & y1=y3 & !(y1=yg1 & x1=xg1) : 5;
+	[] x1=x2 & y1=y2 & !(x1=x3 & y1=y3) & !(y1=yg1 & x1=xg1) : 5;
+	[] x1=x2 & y1=y2 & x1=x3 & y1=y3 & !(y1=yg1 & x1=xg1) : 10;
+endrewards
+
+rewards "time2"
+	[] !((x2=x1 & y2=y1) | (x2=x3 & y2=y3)) & !(y2=yg2 & x2=xg2) : 1;
+	[] !(x3=x1 & y3=y1) & x3=x2 & y3=y2 & !(y2=yg2 & x2=xg2) : 5;
+	[] (x3=x1 & y3=y1) & !(x3=x2 & y3=y2) & !(y2=yg2 & x2=xg2) : 5;
+	[] x3=x1 & y3=y1 & x3=x2 & y3=y2 & !(y2=yg2 & x2=xg2) : 10;
+endrewards
+
+rewards "time3"
+	[] !((x3=x1 & y3=y1) | (x3=x2 & y3=y2)) & !(y2=yg2 & x2=xg2) : 1;
+	[] !(x3=x1 & y3=y1) & x3=x2 & y3=y2 & !(y2=yg2 & x2=xg2) : 5;
+	[] x3=x1 & y3=y1 & !(x3=x2 & y3=y2) & !(y2=yg2 & x2=xg2) : 5;
+	[] x3=x1 & y3=y1 & x3=x2 & y3=y2 & !(y2=yg2 & x2=xg2) : 10;
+endrewards

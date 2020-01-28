@@ -1,0 +1,5 @@
+// maximum probability the user can ensure that at least half there messages are sent
+<<user>> Pmax=? [ F sent>=slots/2 ]
+
+// maximum expected number of messages the user can ensure are sent
+<<user>> R{"rew"}max=? [ F t=slots+1 ]

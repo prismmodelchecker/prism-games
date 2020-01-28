@@ -1,0 +1,164 @@
+// Futures market investor (McIver and Morgan 2007)
+// Extended to two investors
+
+smg
+
+player investor1 [invest1], [noinvest1], [cashin1] endplayer
+player investor2 [invest2], [noinvest2], [cashin2] endplayer
+player market [nobar], [bar1], [bar2], [bar12], sched, [month], [done] endplayer
+
+const int months; // number of months
+
+module sched
+	m: [0..4];
+	// 0 choose who to schedule
+	// 1 schedule investor 1
+	// 2 schedule investor 2
+	// 3 decide on baring
+	// 4 month runs
+	s1 : [0..2]; // has investor 1 been scheduled
+	s2 : [0..2]; // has investor 2 been scheduled
+	r : [0..months];
+	cashin : [0..1]; // used for reward values (when both cash in during the same round
+	
+	// schedule investors
+	[] m=0 & s1=0 & s2!=1 & i1!=2 & (r<months | i1=1 & b1=0) -> (s1'=1);
+	[] m=0 & s2=0 & s1!=1 & i2!=2 & (r<months | i2=1 & b2=0) -> (s2'=1);
+	[] m=0 & (s1=2 | i1=2) & (s2=2 | i2=2) & r<months -> (m'=1) & (s1'=0) & (s2'=0) & (cashin'=0);
+	
+	// at the start of the month, investors makes decisions or cashes in
+	[noinvest1] s1=1 -> (s1'=2); 
+	[invest1] s1=1 -> (s1'=2);
+	[noinvest2] s2=1 -> (s2'=2); 
+	[invest2] s2=1 -> (s2'=2);
+	[cashin1] s1=1 -> (s1'=2) & (cashin'=1);
+	[cashin2] s2=1 -> (s2'=2) & (cashin'=1);
+	
+	// then, decision is made whether to bar or not
+	[nobar] m=1 -> (m'=2);
+	[bar1] m=1 -> (m'=2);
+	[bar2] m=1 -> (m'=2);
+	[bar12] m=1 -> (m'=2);
+	
+	// then, market changes
+	[month] m=2 & r<months -> (m'=0) & (r'=r+1);
+
+	// loop when finished
+	[done] m=0 & !(r<months | (i1=1 & b1=0) | (i2=1 & b2=0)) -> true;
+	// finished: either investors cashed in or reached final round and cannot cash in
+
+endmodule
+
+// investor 1
+module investor1
+	// State: 0 = no reservation
+	// 1 = made reservation
+	// 2 = finished
+	i1 : [0..2];
+	// Decide whether to do nothing or make reservation
+	[noinvest1] i1=0 | i1=1 & b1=1 -> (i1'=0);
+	[invest1] i1=0 | i1=1 & b1=1 -> (i1'=1);
+	// Cash in shares (if not barred)
+	[cashin1] i1=1 & b1=0 -> (i1'=2);
+endmodule
+
+// investor 2
+module investor2=investor1[i1=i2,b1=b2,noinvest1=noinvest2,invest1=invest2,cashin1=cashin2] 
+endmodule
+
+module market
+	// state: 0 = !barred, 1 = barred
+	b1 : [0..1] init 1;
+	b2 : [0..1] init 1;
+	// share value
+	v : [0..10] init 5;
+	// bar one or none of the investors
+	[nobar] true -> (b1'=0) & (b2'=0);
+	[bar1] b1=0 -> (b1'=1) & (b2'=0);
+	[bar2] b2=0 -> (b2'=1) & (b1'=0);
+	[bar12] b1=0 & b2=0 -> (b2'=1) & (b1'=1);
+	[month] true -> p/10 : (v'=min(v+1,c)) + (1-p/10) : (v'=min(max(v-1,0),c));
+endmodule
+
+module probability
+	// Probability is p/pmax and initially the probability is approx 1/2
+	p : [0..10] init 5;
+	[month] v<5 -> 2/3 : (p'=min(p+1,10)) + 1/3 : (p'=max(p-1,0));
+	[month] v=5 -> 1/2 : (p'=min(p+1,10)) + 1/2 : (p'=max(p-1,0));
+	[month] v>5 -> 1/3 : (p'=min(p+1,10)) + 2/3 : (p'=max(p-1,0));
+endmodule
+
+// cap on the value of the shares
+module cap
+	c : [0..10] init 10;
+	[month] true -> 1/2 : (c'=max(c-1,0)) + 1/2 : (c'=c); // probability 1/2 the cap decreases
+endmodule
+
+// labels
+label "finished1" = m=0 & (i1=2 | ((i1=0 | i1=1 & b1=1) & r=months));
+label "finished2" = m=0 & (i2=2 | ((i2=0 | i2=1 & b2=1) & r=months));
+label "finished12" = m=0 & (i1=2 | ((i1=0 | i1=1 & b1=1) & r=months)) & (i2=2 | ((i2=0 | i2=1 & b2=1) & r=months));
+
+// normal market - investor 1
+// (profit equals share value)
+rewards "profit1"
+	[cashin1] i1=1 & !(i2=1 & b2=0) : v;
+	[cashin1] i1=1 & i2=1 & b2=0 : v*0.75;
+endrewards
+
+// normal market - both investors
+// (profit equals share value)
+rewards "profit12"
+	[cashin1] i1=1 & cashin=0 & !(i2=1 & b2=0) : v;
+	[cashin1] i1=1 & (cashin=1 | (i2=1 & b2=0)) : v*0.75;
+	[cashin2] i2=1 & cashin=0 & !(i1=1 & b1=0) : v;
+	[cashin2] i2=1 & (cashin=1 | (i1=1 & b1=0)) : v*0.75;
+endrewards
+
+// later cash-ins
+// (profit increases for same share value if cashed-in later)
+rewards "profit1_lc"
+	[cashin1] i1=1 & !(i2=1 & b2=0) : v*(1 + (r-1)/months);
+	[cashin1] i1=1 & i2=1 & b2=0 : v*(1 + (r-1)/months)*0.75;
+endrewards
+
+// later cash-ins - both investors
+// (profit increases for same share value if cashed-in later)
+rewards "profit12_lc"
+	[cashin1] i1=1 & cashin=0 & !(i2=1 & b2=0) : v*(1 + (r-1)/months);
+	[cashin1] i1=1 & (cashin=1 | (i2=1 & b2=0)) : v*(1 + (r-1)/months)*0.75;
+	[cashin2] i2=1 & cashin=0 & !(i1=1 & b1=0) : v*(1 + (r-1)/months);
+	[cashin2] i2=1 & (cashin=1 | (i1=1 & b1=0)) : v*(1 + (r-1)/months)*0.75;
+endrewards
+
+// later cash-ins with fluctuations - investor 1
+//  (profit increases for same share value if cashed-in later but there are fluctuations)
+rewards "profit1_mc"
+	[cashin1] i1=1 & !(i2=1 & b2=0) : v*(1 + (r-1)/months)*(1 + mod(r,4)/3);
+	[cashin1] i1=1 & i2=1 & b2=0 : v*(1 + (r-1)/months)*(1 + mod(r,4)/3)*0.75;
+endrewards
+
+// later cash-ins with fluctuations - both investors
+//  (profit increases for same share value if cashed-in later but there are fluctuations)
+rewards "profit12_mc"
+	[cashin1] i1=1 & cashin=0 & !(i2=1 & b2=0) : v*(1 + (r-1)/months)*(1 + mod(r,4)/3);
+	[cashin1] i1=1 & (cashin=1 | (i2=1 & b2=0)) : v*(1 + (r-1)/months)*(1 + mod(r,4)/3)*0.75;
+	[cashin2] i2=1 & cashin=0 & !(i1=1 & b1=0) : v*(1 + (r-1)/months)*(1 + mod(r,4)/3);
+	[cashin2] i2=1 & (cashin=1 | (i1=1 & b1=0)) : v*(1 + (r-1)/months)*(1 + mod(r,4)/3)*0.75;
+endrewards
+
+// earlier cash-ins - investor 1
+//  (profit increases for same share value if cashed-in earlier)
+rewards "profit1_ec"
+	[cashin1] i1=1 & !(i2=1 & b2=0) : v*(1 + months/(5*(r+1)));
+	[cashin1] i1=1 & i2=1 & b2=0 : v*(1 + months/(5*(r+1)))*0.75;
+endrewards
+
+// earlier cash-ins - both investors
+//  (profit increases for same share value if cashed-in earlier)
+rewards "profit12_ec"
+	[cashin1] i1=1 & cashin=0 & !(i2=1 & b2=0) : v*(1 + months/(5*(r+1)));
+	[cashin1] i1=1 & (cashin=1 | (i2=1 & b2=0)) : v*(1 + months/(5*(r+1)))*0.75;
+	[cashin2] i2=1 & cashin=0 & !(i1=1 & b1=0) : v*(1 + months/(5*(r+1)));
+	[cashin2] i2=1 & (cashin=1 | (i1=1 & b1=0)) : v*(1 + months/(5*(r+1)))*0.75;
+endrewards

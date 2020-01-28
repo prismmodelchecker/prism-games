@@ -1,0 +1,18 @@
+// probability player eventually send their packets
+<<p1:p2>>max=? (P[F s1=3] + P[F s2=3])
+// should be 2.0 as can collaborate
+// i.e. first one sends and then the other does afterwards
+
+// probability players send packets within by a deadline
+<<p1:p2>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & t<=D)])
+
+// expected time players eventually send their packets
+<<p1:p2>>min=? (R{"time"}[F s1=3] + R{"time"}[F s2=3])
+
+// probability player 1 send packets within by a deadline
+// player 2 just tries to block
+<<p1>>Pmax=?[F (s1=3 & t<=D)]
+
+// expected time player 1 send packets
+// player 2 just tries to block
+<<p1>>R{"time"}min=?[F (s1=3 & t<=D)]

@@ -1,0 +1,8 @@
+// expected number of unpaid
+<<requesterm, requester1, requester2, requester3>> R{"nopayed"}max=? [Fc "finished"]
+
+// expected ration of unpaid
+<<requesterm, requester1, requester2, requester3>> R{"ratio"}max=? [Fc "finished"]
+
+// expected cost of services
+<<requesterm, requester1, requester2, requester3>> R{"cost"}min=? [F "finished"]

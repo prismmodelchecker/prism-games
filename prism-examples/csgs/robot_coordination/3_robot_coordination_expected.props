@@ -1,0 +1,1 @@
+<<p1:p2:p3>>min=? (R{"time1"}[F "goal1" ] + R{"time2"}[F "goal2" ] + R{"time3"}[F "goal3" ])

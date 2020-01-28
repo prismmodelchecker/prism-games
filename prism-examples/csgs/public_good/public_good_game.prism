@@ -1,0 +1,70 @@
+// public good game
+// players have an initial endowment
+// then in each round can share a portion of the current profit
+// the shares of the players are combined and the return is shared equally
+// gxn/ghrs 22/01/20
+
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+const int kmax; // number of rounds
+const int emax; // cap on the profit held by each player
+const int einit; // initial endowment 
+const int n = 2; // number of players 
+const double f; // multiplier
+
+module counter
+
+	k : [0..kmax+1] init 0; // round
+
+	[] k<=kmax -> (k'=k+1);
+
+endmodule
+
+// module for player 1
+module m1
+
+	c1 : [0..emax] init einit; // profit of the playere
+	s1 : [0..emax] init 0; // profit to be shared
+
+	[i1_0] k<kmax -> (s1'=0) & (c1'=min(emax,c1-s1'+floor((f/n)*(s1'+s2'))));	
+	[i1_25] k<kmax -> (s1'=floor(0.25*c1)) & (c1'=min(emax,c1-s1'+floor((f/n)*(s1'+s2'))));
+	[i1_50] k<kmax -> (s1'=floor(0.5*c1)) & (c1'=min(emax,c1-s1'+floor((f/n)*(s1'+s2'))));	
+	[i1_75] k<kmax -> (s1'=floor(0.75*c1)) & (c1'=min(emax,c1-s1'+floor((f/n)*(s1'+s2'))));
+	[i1_100] k<kmax -> (s1'=c1) & (c1'=min(emax,c1-s1'+floor((f/n)*(s1'+s2'))));
+	[done1] k>=kmax -> (c1'=0) & (s1'=0);
+	
+endmodule	
+
+// module for player 2
+module m2 = m1[c1=c2,
+		s1=s2,
+		s2=s1,
+		i1_0=i2_0,
+		i1_25=i2_25,
+		i1_50=i2_50,
+		i1_75=i2_75,
+		i1_100=i2_100,
+		done1=done2] endmodule
+		
+// total cumulative profit of player 1
+rewards "done1"
+	k=kmax : c1 - einit; 
+endrewards
+
+// total cumulative profit of player 1
+rewards "done2"
+	k=kmax : c2 - einit; 
+endrewards
+
+// profit at a specific instance of player 1
+rewards "r1i"
+	true : c1 - einit; 
+endrewards
+
+// profit at a specific instance of player 2
+rewards "r2i"
+	true : c2 - einit; 
+endrewards
