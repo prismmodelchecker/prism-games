@@ -54,6 +54,7 @@ Development of the tool is currently led from Birmingham by Dave Parker. Other c
 
 In addition, the following have worked specifically worked on PRISM-games:
 
+* Gabriel Santos (University of Oxford)
 * Aistis Simaitis (University of Oxford)
 * Vojtěch Forejt (University of Oxford)
 * Mateusz Ujma (University of Oxford)
