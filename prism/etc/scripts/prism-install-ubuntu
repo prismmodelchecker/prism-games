@@ -28,6 +28,29 @@ make
 sudo make install
 cd ..
 
+# Download and build Yices 2.6
+sudo apt -y install gperf
+wget https://yices.csl.sri.com/releases/2.6.0/yices-2.6.0-src.tar.gz
+tar xvfz yices-2.6.0-src.tar.gz
+cd yices-2.6.0
+./configure
+make
+sudo make install
+cd ..
+cp /usr/local/lib/libyices.so.2.6 prism-games/prism/lib
+
+# Download and build Z3 4.8.7
+sudo apt -y install python
+wget https://github.com/Z3Prover/z3/archive/z3-4.8.7.tar.gz
+tar xvfz z3-4.8.7.tar.gz
+cd z3-z3-4.8.7
+python scripts/mk_make.py --java
+cd build
+make
+sudo make install
+cd ..
+cp /usr/lib/libz3.so prism-games/prism/lib
+
 # Compile PRISM-games and run two tests
 # (should ultimately display: "Testing result: PASS")
 cd prism-games/prism
