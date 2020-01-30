@@ -1131,6 +1131,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		timerProb1 = System.currentTimeMillis();
+		
 		// identify infinite values
 		inf = prob1(stpg, null, target, !min1, !min2);
 		inf.flip(0, n);

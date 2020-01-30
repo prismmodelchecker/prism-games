@@ -263,7 +263,7 @@ public class PrismSettings implements Observer
 																			"Which method to use for model checking of PTAs." },
 			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",																
 																			"Which method to use for computing transient probabilities in CTMCs." },
-			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Yices",															"Z3,Yices",																
+			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Z3",															"Z3,Yices",																
 																			"Which external solver to use for SMT problems." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
@@ -1966,7 +1966,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-exact ......................... Perform exact (arbitrary precision) model checking");
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
 		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
-		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: yices]");
+		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: z3]");
 		mainLog.println();
 		mainLog.println("SOLUTION METHODS (LINEAR EQUATIONS):");
 		mainLog.println("-power (or -pow, -pwr) ......... Use the Power method for numerical computation");

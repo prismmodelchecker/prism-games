@@ -29,6 +29,7 @@ package explicit;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import prism.PrismNotSupportedException;
 import prism.PrismPrintStreamLog;
 import prism.ProgressDisplay;
 import prism.UndefinedConstants;
+import simulator.ModulesFileModelGenerator;
 
 /**
  * Class to perform explicit-state reachability and model construction.
@@ -175,6 +177,7 @@ public class ConstructModel extends PrismComponent
 		MDPSimple mdp = null;
 		CTMDPSimple ctmdp = null;
 		STPGExplicit stpg = null;
+		CSG csg = null;
 		SMG smg = null;
 		ModelExplicit model = null;
 		Distribution distr = null;
@@ -197,6 +200,11 @@ public class ConstructModel extends PrismComponent
 		progress.start();
 		timer = System.currentTimeMillis();
 
+		HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
+		
+		String[] players = new String[modelGen.getNumPlayers()];
+		int[] indexes = new int[modelGen.getNumPlayers()];
+		
 		// Create model storage
 		if (!justReach) {
 			// Create a (simple, mutable) model of the appropriate type
@@ -209,6 +217,17 @@ public class ConstructModel extends PrismComponent
 				modelSimple = ctmc = new CTMCSimple();
 				ctmc.setVarList(varList);
 				break;
+			case CSG:
+				// Add player info
+				players = new String[modelGen.getNumPlayers()];
+				for (i = 0; i < modelGen.getNumPlayers(); i++) {
+					players[i] = modelGen.getPlayer(i).getName();
+				}
+				Arrays.fill(indexes, -1);
+				modelSimple = csg = new CSG(players);
+				csg.setActions(((ModulesFileModelGenerator) modelGen).getModulesFile().getSynchs()); // not very pretty
+				csg.setVarList(varList);
+				break;			
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
 				mdp.setVarList(varList);
@@ -225,7 +244,6 @@ public class ConstructModel extends PrismComponent
 				modelSimple = smg = new SMG();
 				smg.setVarList(varList);
 				// Add player info
-				HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
 				for (i = 0; i < modelGen.getNumPlayers(); i++) {
 					playerNames.put(i + 1, modelGen.getPlayer(i).getName());
 				}
@@ -236,7 +254,7 @@ public class ConstructModel extends PrismComponent
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 		}
-
+		
 		// Initialise states storage
 		states = new IndexedSet<State>(true);
 		explore = new LinkedList<State>();
@@ -249,6 +267,7 @@ public class ConstructModel extends PrismComponent
 				modelSimple.addInitialState(modelSimple.getNumStates() - 1);
 			}
 		}
+
 		// Explore...
 		src = -1;
 		while (!explore.isEmpty()) {
@@ -260,12 +279,12 @@ public class ConstructModel extends PrismComponent
 			modelGen.exploreState(state);
 			nc = modelGen.getNumChoices();
 			// For games, first determine which player owns the state
-			if (modelType.multiplePlayers()) {
+			if (modelType.multiplePlayers() && !(modelType == ModelType.CSG)) {
 				player = -1;
 				for (i = 0; i < nc; i++) {
 					int iPlayer = modelGen.getPlayerNumberForChoice(i);
 					if (player != -1 && iPlayer != -1 && iPlayer != player) {
-						throw new PrismException("PRISM-games only supports turn-based stochastic games, but there are choices for both player " + player + " and " + iPlayer + " in state " + state);
+						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
 					}
 					if (iPlayer != -1) {
 						player = iPlayer;
@@ -302,6 +321,9 @@ public class ConstructModel extends PrismComponent
 					smg.setPlayer(src, player);
 				}
 			}
+			else if (modelType == ModelType.CSG) {
+				csg.setPlayer(src, 1);
+			}
 			// Look at each outgoing choice in turn
 			for (i = 0; i < nc; i++) {
 				// For nondet models, collect transitions in a Distribution
@@ -312,7 +334,6 @@ public class ConstructModel extends PrismComponent
 				nt = modelGen.getNumTransitions(i);
 				for (j = 0; j < nt; j++) {
 					stateNew = modelGen.computeTransitionTarget(i, j);
-
 					// Is this a new state?
 					if (states.add(stateNew)) {
 						// If so, add to the explore list
@@ -333,6 +354,8 @@ public class ConstructModel extends PrismComponent
 						case CTMC:
 							ctmc.addToProbability(src, dest, modelGen.getTransitionProbability(i, j));
 							break;
+						case CSG:
+							indexes = modelGen.getTransitionIndexes(i);
 						case MDP:
 						case CTMDP:
 						case STPG:
@@ -361,9 +384,17 @@ public class ConstructModel extends PrismComponent
 						}
 					} else if (modelType == ModelType.STPG) {
 						if (distinguishActions) {
-							stpg.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
+							stpg.addActionLabelledChoice(src, distr, indexes);
 						} else {
 							stpg.addChoice(src, distr);
+						}
+					}
+					else if (modelType == ModelType.CSG) {
+						if (distinguishActions) {
+							csg.addActionLabelledChoice(src, distr, indexes);
+						} 
+						else {
+							csg.addChoice(src, distr, indexes);	
 						}
 					} else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
@@ -386,12 +417,23 @@ public class ConstructModel extends PrismComponent
 		mainLog.print("Reachable states exploration" + (justReach ? "" : " and model construction"));
 		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
 		//mainLog.println(states);
-
+		
 		// Find/fix deadlocks (if required)
 		if (!justReach && findDeadlocks) {
-			modelSimple.findDeadlocks(fixDeadlocks);
+			if (modelType != ModelType.CSG) {
+				modelSimple.findDeadlocks(fixDeadlocks);
+			}
+			else {
+				modelSimple.findDeadlocks(false);
+				// Fixes deadlocks for concurrent games...this may have to be changed though
+				if(modelSimple.getNumDeadlockStates() > 0) {
+					for(Integer s : modelSimple.getDeadlockStates()) {
+						csg.fixDeadlock(s);
+					}			
+				}
+			}
 		}
-
+				
 		int permut[] = null;
 
 		if (sortStates) {
@@ -399,7 +441,7 @@ public class ConstructModel extends PrismComponent
 			mainLog.println("Sorting reachable states list...");
 			permut = states.buildSortingPermutation();
 			statesList = states.toPermutedArrayList(permut);
-			//mainLog.println(permut);
+			//mainLog.println("Arrays.toString(permut));
 		} else {
 			statesList = states.toArrayList();
 		}
@@ -407,8 +449,8 @@ public class ConstructModel extends PrismComponent
 		states = null;
 		//mainLog.println(permut);
 		//mainLog.println(statesList);
-
-		// Construct new explicit-state model (with correct state ordering, if desired)
+		
+		// Construct new explicit-state model (with correct state ordering)
 		if (!justReach) {
 			switch (modelType) {
 			case DTMC:
@@ -431,6 +473,9 @@ public class ConstructModel extends PrismComponent
 			case CTMDP:
 				model = sortStates ? new CTMDPSimple(ctmdp, permut) : mdp;
 				break;
+			case CSG:
+				model = sortStates ? new CSG(csg, permut) : csg;
+				break;
 			case STPG:
 				model = sortStates ? new STPGExplicit(stpg, permut) : stpg;
 				break;
@@ -445,12 +490,16 @@ public class ConstructModel extends PrismComponent
 			model.setConstantValues(new Values(modelGen.getConstantValues()));
 		}
 
+		// Add idle actions
+		if (modelType == ModelType.CSG) 
+			csg.addIdleIndexes();
+			
 		// Discard permutation
 		permut = null;
 
 		if (!justReach && attachLabels)
 			attachLabels(modelGen, model);
-
+				
 		return model;
 	}
 

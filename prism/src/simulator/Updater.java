@@ -27,14 +27,20 @@
 package simulator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
+import edu.jas.arith.ProductTest;
 import parser.State;
 import parser.VarList;
 import parser.ast.Command;
+import parser.ast.Expression;
 import parser.ast.Module;
 import parser.ast.ModulesFile;
 import parser.ast.RewardStruct;
@@ -77,7 +83,18 @@ public class Updater extends PrismComponent
 	// Element j of enabledModules is a BitSet showing modules which enable action j
 	// (where j=0 denotes independent, otherwise 1-indexed action label)
 	protected BitSet enabledModules[];
-
+	// Number of players
+	protected int numPlayers; 
+	
+	// Element i of playersIndexes is the index of the player for module i
+	protected int[] playersIndexes;
+	// Element i of playersActionsIndexes contains the indexes of the actions for player i
+	protected BitSet[] playersActionsIndexes;
+	// Entry i of actionIndexPlayerMap contains a mapping from indexes to players
+	protected Map<Integer,Integer> actionIndexPlayerMap;
+	
+	protected ArrayList<ArrayList<Set<BitSet>>> expansions;
+	
 	public Updater(ModulesFile modulesFile, VarList varList)
 	{
 		this(modulesFile, varList, null);
@@ -97,7 +114,7 @@ public class Updater extends PrismComponent
 		numSynchs = synchs.size();
 		numRewardStructs = modulesFile.getNumRewardStructs();
 		this.varList = varList;
-
+		
 		// Compute count of number of modules using each synch action
 		// First, compute and cache the synch actions for each of the modules
 		List<HashSet<String>> synchsPerModule = new ArrayList<HashSet<String>>(numModules);
@@ -114,7 +131,6 @@ public class Updater extends PrismComponent
 					synchModuleCounts[j]++;
 			}
 		}
-
 		// Build lists/bitsets for later use
 		updateLists = new ArrayList<List<List<Updates>>>(numModules);
 		for (int i = 0; i < numModules; i++) {
@@ -128,8 +144,68 @@ public class Updater extends PrismComponent
 		for (int j = 0; j < numSynchs + 1; j++) {
 			enabledModules[j] = new BitSet(numModules);
 		}
+		numPlayers = modulesFile.getNumPlayers();
 	}
 
+	/**
+	 * Initialise auxiliary variables for building CSGs.
+	 * @throws PrismLangException
+	 */
+	public void initialiseCSG() throws PrismLangException {
+		playersActionsIndexes = new BitSet[numPlayers];
+		actionIndexPlayerMap = new HashMap<Integer, Integer>();
+		expansions = new ArrayList<ArrayList<Set<BitSet>>>();
+		if (numPlayers > 0) {	
+			int index;
+			BitSet seen = new BitSet();
+			playersIndexes = new int[numModules];
+			Arrays.fill(playersIndexes, -1);
+			for (int p = 0; p < numPlayers; p++) {
+				playersActionsIndexes[p] = new BitSet();
+			}
+			for (int m = 0; m < numModules; m++) {
+				playersIndexes[m] = modulesFile.getPlayerForModule(modulesFile.getModuleName(m));
+				expansions.add(m, new ArrayList<Set<BitSet>>());
+				if (playersIndexes[m] != -1) {
+					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
+						expansions.get(m).add(c, new HashSet<BitSet>());
+						index = modulesFile.getModule(m).getCommand(c).getSynchIndices().get(0);
+						if (!seen.get(index) || playersActionsIndexes[playersIndexes[m]].get(index)) {
+							seen.set(index);
+							playersActionsIndexes[playersIndexes[m]].set(index);
+							actionIndexPlayerMap.put(index, playersIndexes[m]);
+						}
+						else
+							throw new PrismLangException("Action " + modulesFile.getModule(m).getCommand(c).getSynchs().get(0) + " of module "
+																   + modulesFile.getModule(m).getName() 
+																   + " had already been associated to a different module. Action sets must be disjoint");
+					}
+				}
+				else {
+					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
+						expansions.get(m).add(c, new HashSet<BitSet>());
+					}
+				}
+			}
+			//System.out.println("-- actionIndexPlayerMap");
+			//System.out.println(actionIndexPlayerMap);
+			//System.out.println("-- playersActionsIndexes");
+			//System.out.println(Arrays.toString(playersActionsIndexes));
+			for (int m = 0; m < numModules; m++) {
+				if (playersIndexes[m] == -1) {
+					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
+						for (int i : modulesFile.getModule(m).getCommand(c).getSynchIndices()) {
+							if (!actionIndexPlayerMap.keySet().contains(i) && i != 0)
+								throw new PrismLangException("Label \"" + modulesFile.getSynch(i - 1) + "\" of commandd " + c  
+																+ " of module " + modulesFile.getModuleName(m) + " is not associated to any player." 
+																+ " Independent modules can only synchronize on players' actions.");
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Set the precision to which we check that probabilities sum to 1.
 	 */
@@ -145,7 +221,7 @@ public class Updater extends PrismComponent
 	{
 		return sumRoundOff;
 	}
-
+	
 	/**
 	 * Determine the set of outgoing transitions from state 'state' and store in 'transitionList'.
 	 * @param state State from which to explore
@@ -155,7 +231,7 @@ public class Updater extends PrismComponent
 	{
 		List<ChoiceListFlexi> chs;
 		int i, j, k, l, n, count;
-
+		
 		// Clear lists/bitsets
 		transitionList.clear();
 		for (i = 0; i < numModules; i++) {
@@ -182,6 +258,7 @@ public class Updater extends PrismComponent
 					transitionList.add(ch);
 			}
 		}
+		
 		// Add synchronous transitions to list
 		chs = new ArrayList<ChoiceListFlexi>();
 		for (i = enabledSynchs.nextSetBit(1); i >= 0; i = enabledSynchs.nextSetBit(i + 1)) {
@@ -198,8 +275,9 @@ public class Updater extends PrismComponent
 					// Case where this is the first Choice created
 					if (chs.size() == 0) {
 						ChoiceListFlexi ch = processUpdatesAndCreateNewChoice(i, ups, state);
-						if (ch.size() > 0)
+						if (ch.size() > 0) {
 							chs.add(ch);
+						}
 					}
 					// Case where there are existing Choices
 					else {
@@ -215,8 +293,9 @@ public class Updater extends PrismComponent
 					if (chs.size() == 0) {
 						for (Updates ups : updateLists.get(j).get(i)) {
 							ChoiceListFlexi ch = processUpdatesAndCreateNewChoice(i, ups, state);
-							if (ch.size() > 0)
+							if (ch.size() > 0) {
 								chs.add(ch);
+							}
 						}
 					}
 					// Case where there are existing Choices
@@ -224,8 +303,9 @@ public class Updater extends PrismComponent
 						// Duplicate (count-1 copies of) current Choice list
 						n = chs.size();
 						for (k = 0; k < count - 1; k++)
-							for (l = 0; l < n; l++)
+							for (l = 0; l < n; l++) {
 								chs.add(new ChoiceListFlexi(chs.get(l)));
+							}
 						// Products with existing choices
 						for (k = 0; k < count; k++) {
 							Updates ups = updateLists.get(j).get(i).get(k);
@@ -259,7 +339,309 @@ public class Updater extends PrismComponent
 		
 		//System.out.println(transitionList);
 	}
+	
+	public void calculateEnabledCommands(int m, BitSet active, State state) throws PrismLangException 
+	{
+		//System.out.println("\n## calculateEnabledCommands, module " + m);
+		Module module;
+		Command command;
+		BitSet tmp = new BitSet();
+		BitSet indexes = new BitSet();
+		HashSet<BitSet> seen = new HashSet<BitSet>();
+		int i, e, n, p;
+		
+		module = modulesFile.getModule(m);
+		n = module.getNumCommands();
+		e = -1;
 
+		for (i = 0; i < n; i++) {
+			command = module.getCommand(i);
+			expansions.get(m).get(i).clear();
+			if (command.getSynchIndices().get(0) == 0) {
+				p = playersIndexes[m];
+				if (p != -1) {
+					throw new PrismLangException("Module " + modulesFile.getModuleName(m) 
+				   										   + " from to player " + p
+				   										   + " has an unlabelled command");
+				}
+				else if (command.getGuard().evaluateBoolean(state)) {
+					if (e == -1) {
+						active.set(i);
+						e = i;
+					}
+					else 
+						throw new PrismLangException("Module " + modulesFile.getModuleName(m) 
+															   + " has multiple unlabeled active commands in state " + state);
+				}
+			}
+			else {
+				if (command.getGuard().evaluateBoolean(state)) {
+					indexes.clear();
+					for(int j : command.getSynchIndices()) {
+						indexes.set(j);
+					}
+					for (p = 0; p < numPlayers; p++) {
+						tmp.clear();
+						tmp.or(indexes);
+						tmp.andNot(playersActionsIndexes[p]);
+						if (tmp.cardinality() < indexes.cardinality() - 1)
+							throw new PrismLangException("Module " + modulesFile.getModuleName(m) + " has multiple actions associated to player " 
+															   	   + modulesFile.getPlayer(p).getName() + " in command " + i);
+					}
+					if (!seen.contains(indexes)) {
+						seen.add((BitSet) indexes.clone());
+						active.set(i);
+					}
+					else 
+						throw new PrismLangException("Module " + modulesFile.getModuleName(m) + " has multiple active commands labeled "
+															   + command.getSynchs() + " in state " + state);
+				}
+			}
+		}
+	}
+		
+	/**
+	 * Makes the product of all indexes in indexes[p] (for player p) and stores the result in products.   
+	 * @param products Set where the products are stored. 
+	 * @param indexes Array of bitsets with the indexes of actions for each player. 
+	 * @param product A single product, passed recursively.  
+	 * @param p Index of player p
+	 */
+	public void indexProduct(Set<BitSet> products, BitSet[] indexes, BitSet product, int p) 
+	{
+		BitSet newproduct;
+		int i;
+		if (p < numPlayers - 1) {
+			if (!indexes[p].isEmpty()) {
+				for (i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {	
+					newproduct = new BitSet();
+					newproduct.or(product);
+					newproduct.set(i);
+					indexProduct(products, indexes, newproduct, p + 1);
+				}
+			}
+			else {
+				newproduct = new BitSet();
+				newproduct.or(product);
+				indexProduct(products, indexes, newproduct, p + 1);	
+			}
+		}
+		else {
+			if (!indexes[p].isEmpty()) {
+				for (i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {	
+					newproduct = new BitSet();
+					newproduct.or(product);
+					newproduct.set(i);
+					products.add(newproduct);
+				}
+			}
+			else {
+				newproduct = new BitSet();
+				newproduct.or(product);
+				products.add(newproduct);
+			}
+		}
+	}	
+	
+	public void expandCommand(Set<BitSet> products, int m, int c)
+	{
+		BitSet bidx = new BitSet();
+		BitSet tmp;
+		for (int i : modulesFile.getModule(m).getCommand(c).getSynchIndices())
+			if (i != 0)
+				bidx.set(i);
+		for (BitSet prod : products) {
+			tmp = new BitSet();
+			tmp.or(bidx);
+			tmp.andNot(prod);
+			if (tmp.isEmpty()) {
+				expansions.get(m).get(c).add(prod);
+			}
+		}
+	}
+	
+	public void calculateTransitionsCSG(State state, TransitionList transitionList) throws PrismLangException 
+	{
+		//System.out.println("\n## state " + state);
+		//System.out.println("## playersActionsIndexes " + Arrays.toString(playersActionsIndexes));
+		//System.out.println("## actionIndexPlayerMap " + actionIndexPlayerMap);
+		List<ChoiceListFlexi> chs = new ArrayList<ChoiceListFlexi>(); // used to store the final choices from a given state
+		List<Integer> indexes; // used to store the indexes of commands at different points
+		Set<BitSet> products = new HashSet<BitSet>(); // used to store store products of indexes at different points
+		Set<BitSet> synchs;
+		BitSet[] active = new BitSet[numModules];
+		BitSet[] moves = new BitSet[numPlayers]; // indexes of possible actions taken by each player
+		BitSet[] enabled  = new BitSet[numPlayers]; // number of actions which will be actually finally available for each player, used only for checking
+		BitSet tmp = new BitSet();
+		ChoiceListFlexi chfl;
+		Command cmd1, cmd2;
+		Updates ups; // (temp) used to store updates at different points
+		String warning, missing;
+		int[] actions; // (temp) used to store ordered indexes at different points
+		int cidx, i, id, j, m, n, nchs, p;
+		boolean[] msynch = new boolean[numModules];
+		transitionList.clear();				
+		Arrays.fill(moves, null);
+		for (m = 0; m < numModules; m++) {
+			active[m] = new BitSet();
+			calculateEnabledCommands(m, active[m], state);
+			p = playersIndexes[m];
+			if (p != -1) {
+				if (moves[p] == null)
+					moves[p] = new BitSet();
+				for (cidx = active[m].nextSetBit(0); cidx >= 0; cidx = active[m].nextSetBit(cidx + 1)) {	
+					indexes = modulesFile.getModule(m).getCommand(cidx).getSynchIndices();
+					moves[p].set(indexes.get(0));			
+				}
+			}
+		}
+		//System.out.println("-- active " + Arrays.toString(active));
+		//System.out.println("-- moves " + Arrays.toString(moves));
+		indexProduct(products, moves, new BitSet(), 0);
+		for (m = 0; m < numModules; m++) {
+			for (i = active[m].nextSetBit(0); i >= 0; i = active[m].nextSetBit(i + 1)) {	
+				//System.out.println(modulesFile.getModule(m).getCommand(i));
+				expandCommand(products, m, i);
+			}
+		}
+		for (m = 0; m < numModules; m++) {
+			for (i = active[m].nextSetBit(0); i >= 0; i = active[m].nextSetBit(i + 1)) {	
+				cmd1 = modulesFile.getModule(m).getCommand(i);
+				if (!(cmd1.getSynchIndices().get(0) == 0)) {
+					for (j = active[m].nextSetBit(0); j >= 0; j = active[m].nextSetBit(j + 1)) {	
+						cmd2 = modulesFile.getModule(m).getCommand(j);
+						if (i != j) {
+							for (BitSet prod : expansions.get(m).get(i)) {
+								if (!(cmd2.getSynchIndices().get(0) == 0)) {
+									if (cmd2.getSynchIndices().get(0) == cmd1.getSynchIndices().get(0)) {
+										if (cmd2.getSynchIndices().size() < cmd1.getSynchIndices().size()) {
+											expansions.get(m).get(j).remove(prod);
+										}
+									}
+								}
+								else { 
+									expansions.get(m).get(j).remove(prod);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//System.out.println("-- products " + products);
+		//System.out.println("-- expansions " + expansions);						
+		synchs = new HashSet<BitSet>(products);
+		for (BitSet prod : products) {
+			tmp.clear();
+			tmp.or(prod);
+			//System.out.println("-- product " + prod);
+			for (m = 0; m < numModules; m++) {
+				if (playersIndexes[m] != -1) {
+					if (active[m].isEmpty())
+						continue;
+					for (i = active[m].nextSetBit(0); i >= 0; i = active[m].nextSetBit(i + 1)) {	
+						if (expansions.get(m).get(i).contains(prod)) {
+							tmp.clear(modulesFile.getModule(m).getCommand(i).getSynchIndices().get(0));
+						}
+					}
+				}
+			}
+			//System.out.println("-- tmp " + tmp);
+			if (!tmp.isEmpty()) {
+				/*
+				warning = "Missing specification for action product [";
+				missing = "";
+				for (id = prod.nextSetBit(0); id >= 0; id = prod.nextSetBit(id + 1)) {	
+					missing += modulesFile.getSynch(id - 1) + ((prod.nextSetBit(id + 1) > 0)? "," : "]");
+				}
+				warning += missing;
+				warning += " in state " + state + ".";
+				mainLog.printWarning(warning);
+				*/
+				synchs.remove(prod);
+			}
+		}
+		nchs = 0;
+		//System.out.println("-- active " + Arrays.toString(active));
+		for (BitSet prod : synchs) {
+			actions = new int[numPlayers];
+			Arrays.fill(actions, -1);
+			chfl = null;
+			for (m = 0; m < numModules; m++) {
+				msynch[m] = false;
+				for (i = active[m].nextSetBit(0); i >= 0; i = active[m].nextSetBit(i + 1)) {	
+					ups = modulesFile.getModule(m).getCommand(i).getUpdates();
+					if (expansions.get(m).get(i).contains(prod)) {
+						if (!msynch[m]) {
+							if (chfl == null) {
+								chfl = processUpdatesAndCreateNewChoice(nchs, ups, state);
+								nchs++;
+							}
+							else
+								processUpdatesAndAddToProduct(ups, state, chfl);
+							msynch[m] = true;
+						}
+						else {
+							throw new PrismLangException("Mulitple commands enabled for module " +
+														  modulesFile.getModuleName(m) + " in state " + state);
+						}
+					}
+				}
+			}
+			for (i = prod.nextSetBit(0); i >= 0; i = prod.nextSetBit(i + 1)) {
+				actions[actionIndexPlayerMap.get(i)] = i;
+			}
+			if (chfl != null) {
+				//System.out.println("-- chfl " + chfl);
+				chfl.setActions(actions);
+				chs.add(chfl);
+			}
+		}	
+		n = 1;
+		for (p = 0; p < numPlayers; p++) {
+			enabled[p] = new BitSet();
+			for (ChoiceListFlexi ch : chs) { 
+				// Setting to size + 1 in the case of idle actions as they are given index -1 which cannot be set
+				enabled[p].set((ch.getActions()[p] > 0)? ch.getActions()[p] : modulesFile.getSynchs().size() + 1); 
+			}
+			n *= enabled[p].cardinality();
+		}				
+		products.clear();
+		/*
+		System.out.println("\n-- chs " + chs);
+		System.out.println(modulesFile.getSynchs());
+		for (ChoiceListFlexi ch : chs) {
+			System.out.println(ch);
+			System.out.println(Arrays.toString(ch.getActions()));
+		}	
+		*/
+		if (n != chs.size()) {
+			indexProduct(products, enabled, new BitSet(), 0);
+			BitSet tmp1 = new BitSet();
+			for (ChoiceListFlexi ch : chs) { 
+				tmp1.clear();
+				for (int idx : ch.getActions()) {
+					tmp1.set(idx);
+				}
+				products.remove(tmp1);
+			}
+			for (BitSet tmp2 : products) {
+				warning = "Missing specification for action product [";
+				missing = "";
+				for (id = tmp2.nextSetBit(0); id >= 0; id = tmp2.nextSetBit(id + 1)) {	
+					missing += modulesFile.getSynch(id - 1) + ((tmp2.nextSetBit(id + 1) > 0)? "," : "]");
+				}
+				warning += missing;
+				warning += " in state " + state + ".";
+				mainLog.printWarning(warning);
+			}
+			throw new PrismLangException("Error in model specification.");
+		}
+		for (ChoiceListFlexi ch : chs) {
+			transitionList.add(ch, ch.getActions());
+		}	
+	}
+	
 	/**
 	 * Calculate the state rewards for a given state.
 	 * @param state The state to compute rewards for
@@ -321,8 +703,9 @@ public class Updater extends PrismComponent
 		Module module;
 		Command command;
 		int i, j, n;
-
+		
 		module = modulesFile.getModule(m);
+		
 		n = module.getNumCommands();
 		for (i = 0; i < n; i++) {
 			command = module.getCommand(i);

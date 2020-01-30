@@ -111,13 +111,13 @@ public class Updates extends ASTElement
 	}
 
 	/**
-	 * Get access to the whole list of the updates
+	 * Get access to the whole list of the updates.
 	 */
 	public List<Update> getUpdates()
 	{
 		return updates;
 	}
-
+	
 	/**
 	 *  Get the probability (or rate) of the ith update (may be null, which should be interpreted as constant 1.0)
 	 */

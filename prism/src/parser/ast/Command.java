@@ -26,44 +26,103 @@
 
 package parser.ast;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import parser.visitor.*;
 import prism.PrismLangException;
 
 public class Command extends ASTElement
 {
-	// Action label
-	private String synch;
-	// Index of action label in model's list of all actions ("synchs")
-	// This is 1-indexed, with 0 denoting an independent ("tau"-labelled) command.
+	// Action label(s)
+	// Usually just 1 label, but can be more for concurrent games
+	// There is always at least one string in the list. We use "" for the unlabelled case.  
+	private List<String> synchs;
+	// Cached indices of each action label in the model's list of all actions ("synchs")
+	// This is 1-indexed, with 0 denoting independent (unlabelled).
 	// -1 denotes not (yet) known.
-	private int synchIndex;
+	private List<Integer> synchIndices;
 	// Guard
 	private Expression guard;
 	// List of updates
 	private Updates updates;
 	// Parent module
 	private Module parent;
-	
+		
 	// Constructor
 	
 	public Command()
 	{
-		synch = "";
-		synchIndex = -1;
+		setSynch("");
 		guard = null;
 		updates = null;
 	}
 	
 	// Set methods
 	
-	public void setSynch(String s)
+	/**
+	 * Set the synchronising action label for this command
+	 * (as a string; if it is unlabelled, then this is "", not null).
+	 * This is the method normally used for setting this;
+	 * {@link #setSynchs(List)} is for the multi-action case. 
+	 */
+	public void setSynch(String synch)
 	{
-		synch = s;
+		// Reset to a size 1 list containing just s
+		synchs = new ArrayList<String>(1);
+		synchs.add(synch);
+		// Also update synchIndices to matching size list (value -1)
+		synchIndices = new ArrayList<Integer>(1);
+		synchIndices.add(-1);
 	}
 	
-	public void setSynchIndex(int i)
+	/**
+	 * Set multiple synchronising action labels for this command
+	 * (each as a string; if it is unlabelled, then this is "").
+	 * These are passed in as a list, which is stored directly, not copied.
+	 * An empty list is treated as a singleton list containing "".
+	 */
+	public void setSynchs(List<String> synchs)
 	{
-		synchIndex = i;
+		// NB: Also update synchIndices to matching size list (value -1)
+		if (synchs.isEmpty()) {
+			this.synchs = new ArrayList<String>(1);
+			this.synchs.add("");
+			synchIndices = new ArrayList<Integer>(1);
+			synchIndices.add(-1);
+		} else {
+			this.synchs = synchs;
+			synchIndices = new ArrayList<>(Collections.nCopies(synchs.size(), -1));
+		}
+	}
+	
+	/**
+	 * Find and cache the index of any action labels,
+	 * using a passed in list of all synchronising actions for the index.
+	 * The cached index starts from 1; 0 means unlabelled, -1 means unknown.
+	 * Throws an exception if an action cannot be found.
+	 */
+	public void setSynchIndices(List<String> allSynchs) throws PrismLangException
+	{
+		int numSynchs = synchs.size();
+		for (int i = 0; i < numSynchs; i++) {
+			String synch = synchs.get(i);
+			// For independent actions, the index is 0
+			if (synch.equals("")) {
+				synchIndices.set(i, 0);
+				continue;
+			}
+			// Otherwise, see if action name exists
+			int j = allSynchs.indexOf(synch);
+			if (j != -1) {
+				// If so, set the index (starts from 1)
+				synchIndices.set(i, j + 1);
+				continue;
+			}
+			// Otherwise, there is a problem.
+			throw new PrismLangException("Unknown action name " + synch + " in command", this);
+		}
 	}
 	
 	public void setGuard(Expression g)
@@ -83,24 +142,42 @@ public class Command extends ASTElement
 	}
 
 	// Get methods
-
+	
 	/**
-	 * Get the action label for this command. For independent ("tau"-labelled) commands,
+	 * Get the action label for this command. For independent (unlabelled) commands,
 	 * this is the empty string "" (it should never be null).
 	 */
 	public String getSynch()
 	{
-		return synch;
+		// The list should never be non-empty
+		return synchs.get(0);
 	}
 	
 	/**
-	 * Get the index of the action label for this command (in the model's list of actions).
-	 * This is 1-indexed, with 0 denoting an independent ("tau"-labelled) command.
-	// -1 denotes not (yet) known.
+	 * Get the list of action labels for this command, if present.
+	 * It is a list of strings; "" denotes the independent (unlabelled) case.
+	 * Usually (apart from concurrent games), there is a single
+	 * action and you can just use {@link #getSynch()}.
+	 */
+	public List<String> getSynchs() 
+	{
+		return synchs;
+	}
+	
+	/**
+	 * Get the list of indices for all action labelsl for this command (in the model's list of actions).
+	 * Each is 1-indexed, with 0 denoting the independent (unlabelled) case.
+	 * -1 denotes not (yet) known.
 	 */
 	public int getSynchIndex()
 	{
-		return synchIndex;
+		// The list should never be non-empty
+		return synchIndices.get(0);
+	}
+	
+	public ArrayList<Integer> getSynchIndices() 
+	{
+		return (ArrayList<Integer>) synchIndices;
 	}
 	
 	public Expression getGuard()
@@ -133,9 +210,7 @@ public class Command extends ASTElement
 	 */
 	public String toString()
 	{
-		String s = "[" + synch;
-		s += "] " + guard + " -> " + updates;
-		return s;
+		return "[" + String.join(",", synchs) + "] " + guard + " -> " + updates;
 	}
 	
 	/**
@@ -144,8 +219,8 @@ public class Command extends ASTElement
 	public ASTElement deepCopy()
 	{
 		Command ret = new Command();
-		ret.setSynch(getSynch());
-		ret.setSynchIndex(getSynchIndex());
+		ret.synchs = new ArrayList<String>(getSynchs());
+		ret.synchIndices = new ArrayList<Integer>(getSynchIndices());
 		ret.setGuard(getGuard().deepCopy());
 		ret.setUpdates((Updates)getUpdates().deepCopy());
 		ret.setPosition(this);

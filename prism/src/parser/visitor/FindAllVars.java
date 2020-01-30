@@ -90,6 +90,7 @@ public class FindAllVars extends ASTTraverseModify
 			expr.setPosition(e);
 			// Store variable index
 			expr.setIndex(i);
+			expr.setPrime(e.getPrime());
 			return expr;
 		}
 		// Otherwise, leave it unchanged

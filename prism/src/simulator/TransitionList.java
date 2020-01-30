@@ -41,14 +41,14 @@ public class TransitionList
 	private int numChoices = 0;
 	private int numTransitions = 0;
 	private double probSum = 0.0;
+	/** The indexes of the actions for each transition in CSGs **/
+	private ArrayList<int[]> transitionIndexes = new ArrayList<int[]>(); // added for CSGs.
 
 	// TODO: document this
 	public class Ref
 	{
 		public int i;
 		public int offset;
-		//int index;
-		//Choice ch;
 	}
 
 	public void clear()
@@ -59,6 +59,7 @@ public class TransitionList
 		numChoices = 0;
 		numTransitions = 0;
 		probSum = 0.0;
+		transitionIndexes.clear();
 	}
 
 	public void add(Choice tr)
@@ -69,6 +70,21 @@ public class TransitionList
 		for (i = 0; i < n; i++) {
 			transitionIndices.add(choices.size() - 1);
 			transitionOffsets.add(i);
+		}
+		numChoices++;
+		numTransitions += tr.size();
+		probSum += tr.getProbabilitySum();
+	}
+	
+	public void add(Choice tr, int[] indexes)
+	{
+		int i, n;
+		choices.add(tr);
+		n = tr.size();
+		for (i = 0; i < n; i++) {
+			transitionIndices.add(choices.size() - 1);
+			transitionOffsets.add(i);
+			transitionIndexes.add(choices.size() - 1, indexes);
 		}
 		numChoices++;
 		numTransitions += tr.size();
@@ -159,6 +175,15 @@ public class TransitionList
 	public int getTotalIndexOfTransition(int i, int offset)
 	{
 		return transitionIndices.indexOf(i) + offset;
+	}
+	
+	/**
+	 * Get action indexes for CSG transitions
+	 */
+	
+	public int[] getTransitionActionIndexes(int i) 
+	{
+	    return transitionIndexes.get(i);
 	}
 
 	// Random selection of a choice 

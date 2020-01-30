@@ -1823,6 +1823,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// For some models, automatically switch engine
 		switch (currentModelType) {
+		case CSG:
 		case SMG:
 		case STPG:
 		case CTMDP:
@@ -3537,7 +3538,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void exportStrategy(Strategy strat, StrategyExportType exportType, File file) throws FileNotFoundException, PrismException
 	{
 		PrismLog tmpLog;
-
 		// Print message
 		mainLog.print("\nExporting strategy " + exportType.description() + " ");
 		mainLog.println(getDestinationStringForFile(file));

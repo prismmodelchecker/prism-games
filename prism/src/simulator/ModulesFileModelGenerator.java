@@ -1,6 +1,7 @@
 package simulator;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 import parser.State;
@@ -45,7 +46,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	protected TransitionList transitionList;
 	// Has the transition list been built? 
 	protected boolean transitionListBuilt;
-	
+		
 	/**
 	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a ModuleFile instance.
 	 * Throw an explanatory exception if this is not possible.
@@ -103,6 +104,8 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		
 		// Create data structures for exploring model
 		updater = new Updater(modulesFile, varList, parent);
+		if(modelType == ModelType.CSG)
+			updater.initialiseCSG();
 		transitionList = new TransitionList();
 		transitionListBuilt = false;
 	}
@@ -221,6 +224,12 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	public VarList createVarList()
 	{
 		return varList;
+	}
+	
+	@Override
+	public int[] getTransitionIndexes(int i) 
+	{
+		return transitionList.getTransitionActionIndexes(i);
 	}
 	
 	// Methods for ModelGenerator interface
@@ -483,23 +492,59 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	@Override
 	public double getStateActionReward(int r, State state, Object action) throws PrismException
 	{
+		double d = 0;
 		RewardStruct rewStr = modulesFile.getRewardStruct(r);
 		int n = rewStr.getNumItems();
-		double d = 0;
-		for (int i = 0; i < n; i++) {
-			if (rewStr.getRewardStructItem(i).isTransitionReward()) {
-				Expression guard = rewStr.getStates(i);
-				String cmdAction = rewStr.getSynch(i);
-				if (action == null ? (cmdAction.isEmpty()) : action.equals(cmdAction)) {
-					if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
-						double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
-						if (Double.isNaN(rew))
-							throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
-						d += rew;
+		Expression guard;
+
+		if (modelType != ModelType.CSG) {
+			String cmdAction;
+			for (int i = 0; i < n; i++) {
+				if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+					guard = rewStr.getStates(i);
+					cmdAction = rewStr.getSynch(i);
+					if (action == null ? (cmdAction.isEmpty()) : action.equals(cmdAction)) {
+						if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
+							double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+							d += rew;
+						}
 					}
 				}
 			}
 		}
+		else {
+			BitSet active = new BitSet();
+			BitSet indexes = new BitSet();
+			BitSet tmp;
+			int[] actions = (int[]) action;
+			for (int i = 0; i < actions.length; i++) {
+				if (actions[i] != -1)
+					active.set(actions[i]);
+			}
+			for (int i = 0; i < n; i++) {
+				if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+					guard = rewStr.getStates(i);
+					indexes.clear();
+					for (int j : rewStr.getRewardStructItem(i).getSynchIndices()) {
+						if (j != 0)
+							indexes.set(j);
+					}
+					tmp = (BitSet) indexes.clone();
+					tmp.andNot(active);
+					if (indexes.isEmpty() || (!indexes.isEmpty() && tmp.isEmpty())) {
+						if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
+							double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
+							if (Double.isNaN(rew))
+								throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+							d += rew;
+						}
+					}
+				}
+			}
+		}
+
 		return d;
 	}
 
@@ -512,9 +557,15 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	{
 		// Compute the current transition list, if required
 		if (!transitionListBuilt) {
-			updater.calculateTransitions(exploreState, transitionList);
+			if(modelType == ModelType.CSG) {
+				updater.calculateTransitionsCSG(exploreState, transitionList);
+			}
+			else {
+ 				updater.calculateTransitions(exploreState, transitionList);
+			}				
 			transitionListBuilt = true;
 		}
+
 		return transitionList;
 	}
 }

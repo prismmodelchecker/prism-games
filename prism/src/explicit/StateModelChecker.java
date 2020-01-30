@@ -207,6 +207,9 @@ public class StateModelChecker extends PrismComponent
 		case CTMDP:
 			mc = new CTMDPModelChecker(parent);
 			break;
+		case CSG:
+			mc = new CSGModelChecker(parent);
+			break;
 		case STPG:
 			mc = new STPGModelChecker(parent);
 			break;
@@ -651,7 +654,7 @@ public class StateModelChecker extends PrismComponent
 	public StateValues checkExpression(Model model, Expression expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res = null;
-
+		
 		// If-then-else
 		if (expr instanceof ExpressionITE) {
 			res = checkExpressionITE(model, (ExpressionITE) expr, statesOfInterest);
@@ -750,7 +753,6 @@ public class StateModelChecker extends PrismComponent
 	{
 		StateValues res1 = null, res2 = null;
 		int op = expr.getOperator();
-
 		// Check operands recursively
 		try {
 			res1 = checkExpression(model, expr.getOperand1(), statesOfInterest);
@@ -760,7 +762,6 @@ public class StateModelChecker extends PrismComponent
 				res1.clear();
 			throw e;
 		}
-
 		// Apply operation
 		res1.applyBinaryOp(op, res2);
 		res2.clear();

@@ -49,6 +49,10 @@ public class ChoiceListFlexi implements Choice
 	protected List<List<Update>> updates;
 	protected List<Double> probability;
 
+	/*** ***/	
+	protected int[] actions;
+	/*** ***/
+	
 	/**
 	 * Create empty choice.
 	 */
@@ -91,6 +95,13 @@ public class ChoiceListFlexi implements Choice
 		this.moduleOrActionIndex = moduleOrActionIndex;
 	}
 
+	/*** ***/
+	public void setActions(int[] actions) 
+	{
+		this.actions = actions;
+	}
+	/*** ***/
+	
 	/**
 	 * Add a transition to this choice.
 	 * @param probability Probability (or rate) of the transition
@@ -147,8 +158,9 @@ public class ChoiceListFlexi implements Choice
 			}
 			probability.set(j, pi * probability.get(j));
 		}
-	}
 
+	}
+	
 	// Get methods
 
 	@Override
@@ -210,21 +222,71 @@ public class ChoiceListFlexi implements Choice
 		}
 		return s;
 	}
-
+	
+	/*** ***/
+	public int[] getActions() 
+	{
+		return actions;
+	}
+	/*** ***/
+	
 	@Override
 	public State computeTarget(int i, State currentState) throws PrismLangException
 	{
+		//System.out.println("\n### Compute target currentState");
+		Set<String> variablesToUpdate = new HashSet<String>();
+		HashMap<String, HashSet<String>> dependencies = new HashMap<String, HashSet<String>>();
+		HashMap<String, Update> update = new HashMap<String, Update>();
+		for (Update up : updates.get(i)) {
+			for (int e = 0; e < up.getNumElements(); e++) {
+				if (!update.containsKey(up.getVar(e)))
+					update.put(up.getVar(e), new Update());
+				update.get(up.getVar(e)).addElement(up.getVarIdent(e), up.getExpression(e));
+				update.get(up.getVar(e)).setVar(0, up.getVarIdent(e));
+				update.get(up.getVar(e)).setVarIndex(0, up.getVarIndex(e));
+				if (!variablesToUpdate.contains(up.getVar(e)))
+					variablesToUpdate.add(up.getVar(e));
+				else 
+					throw new PrismLangException("Multiple updates of variable " + up.getVar(e) + " in state " + currentState);
+				dependencies.put(up.getVar(e), new HashSet<String>(up.getExpression(e).getPrimedVars()));
+			}
+		}
+		/*
+		System.out.println("variablesToUpdate " + variablesToUpdate);
+		System.out.println("dependencies " + dependencies);
+		System.out.println("update " + update);
+		*/
+		State newState = new State(currentState);
+		int size;
+		while (!variablesToUpdate.isEmpty()) {
+			size = variablesToUpdate.size();
+			for (String v : update.keySet()) {
+				if (variablesToUpdate.contains(v) && Collections.disjoint(dependencies.get(v), variablesToUpdate)) {
+					//System.out.println("-- updating " + v);
+					update.get(v).update(currentState, newState);
+					variablesToUpdate.remove(v);
+					//System.out.println(variablesToUpdate);
+				}
+			}
+			if (!(variablesToUpdate.size() < size)) 
+				throw new PrismLangException("Cyclic updates with variables " + variablesToUpdate.toString());
+		}
+		/*
 		State newState = new State(currentState);
 		for (Update up : updates.get(i))
 			up.update(currentState, newState);
+		*/
+		//System.out.println();
 		return newState;
 	}
 
 	@Override
 	public void computeTarget(int i, State currentState, State newState) throws PrismLangException
 	{
+		//System.out.println("\n### Compute target currentState, newState");
 		for (Update up : updates.get(i))
 			up.update(currentState, newState);
+		//System.out.println();
 	}
 
 	@Override

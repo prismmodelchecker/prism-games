@@ -217,12 +217,18 @@ public class Module extends ASTElement
 		}
 		// Otherwise, deduce syntactically
 		int i, n;
-		String s;
 		Vector<String> allSynchs = new Vector<String>();
 		n = getNumCommands();
 		for (i = 0; i < n; i++) {
+			/*** ***/
+			for (String s : getCommand(i).getSynchs()) {
+				if (!s.equals("") && !allSynchs.contains(s)) allSynchs.add(s);
+			}
+			/*
 			s = getCommand(i).getSynch();
 			if (!s.equals("") && !allSynchs.contains(s)) allSynchs.add(s);
+			*/
+			/*** ***/
 		}
 		return allSynchs;
 	}

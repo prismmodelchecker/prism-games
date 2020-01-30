@@ -27,6 +27,7 @@
 package parser.ast;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
@@ -84,7 +85,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	private Values undefinedConstantValues;
 	// Actual values of (some or all) constants
 	private Values constantValues;
-
+	
 	// Constructor
 
 	public ModulesFile()
@@ -609,7 +610,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		}
 		return -1;
 	}
-
+		
 	/**
 	 * Get the (index of the) player that owns module/action {@code a},
 	 * which is either of the form "[act]" or " module" for an action or module, respectively.

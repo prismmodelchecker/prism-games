@@ -40,4 +40,12 @@ public interface EvaluateContext
 	 * Return the value for a variable (by name or index); null if unknown.
 	 */
 	public Object getVarValue(String name, int index);
+	
+	/**
+	 * Return the value for a primed variable (by name or index); null if unknown.
+	 */
+	public default Object getPrimedVarValue(String name, int index)
+	{
+		return null;
+	}
 }

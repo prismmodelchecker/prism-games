@@ -339,4 +339,14 @@ public interface ModelGenerator extends ModelInfo
 		// No labels by default
 		throw new PrismException("Label number \"" + i + "\" not defined");
 	}
+	
+	/**
+	 * Returns the action indexes for CSG transitions
+	 * @param i the index of the transition
+	 * @return 
+	 */
+	public default int[] getTransitionIndexes(int i) 
+	{
+		return null;
+	}
 }

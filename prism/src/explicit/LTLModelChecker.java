@@ -29,7 +29,11 @@
 package explicit;
 
 import java.awt.Point;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -425,6 +429,51 @@ public class LTLModelChecker extends PrismComponent
 		return product;
 	}
 
+	
+	/**
+	 * Generate a deterministic automaton for the given LTL formula
+	 * and construct the product of this automaton with an CSG.
+	 *
+	 * @param mc a ProbModelChecker, used for checking maximal state formulas
+	 * @param model the model
+	 * @param expr a path expression
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @param allowedAcceptance the allowed acceptance conditions
+	 * @return the product with the DA
+	 * @throws PrismException
+	 */
+	public LTLProduct<CSG> constructProductCSG(ProbModelChecker mc, CSG model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		// Convert LTL formula to automaton
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		DA<BitSet,? extends AcceptanceOmega> da;
+		da = constructDAForLTLFormula(mc, model, expr, labelBS, allowedAcceptance);
+		
+		/*
+		Path currentRelativePath = Paths.get("");
+		String path = currentRelativePath.toAbsolutePath().toString();
+		
+		try(OutputStream out1 = 
+				new FileOutputStream(path + "/dra.dot")) {
+					try (PrintStream printStream = 
+							new PrintStream(out1)) {
+								da.printDot(printStream);
+								printStream.close();
+					}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		*/
+		
+		// Build product of model and automaton
+		mainLog.println("\nConstructing CSG-"+da.getAutomataType()+" product...");
+		LTLProduct<CSG> product = constructProductModel(da, model, labelBS, statesOfInterest);
+		mainLog.print("\n" + product.getProductModel().infoStringTable());
+
+		return product;
+	}
+	
 	/**
 	 * Generate a deterministic automaton for the given LTL formula
 	 * and construct the product of this automaton with a model.
@@ -467,7 +516,7 @@ public class LTLModelChecker extends PrismComponent
 		int numAPs = da.getAPList().size();
 		int modelNumStates = model.getNumStates();
 		int prodNumStates;
-		int s_1, s_2, q_1, q_2;
+		int s_1, s_2, q_1, q_2, t_2;
 		BitSet s_labels = new BitSet(numAPs);
 		List<State> prodStatesList = null, daStatesList = null;
 
@@ -496,6 +545,11 @@ public class LTLModelChecker extends PrismComponent
 		// Create a (simple, mutable) model of the appropriate type
 		ModelSimple prodModel = null;
 		switch (modelType) {
+		case CSG:
+			CSG csgProd = new CSG();
+			csgProd.setVarList(newVarList);
+			prodModel = csgProd;
+			break;
 		case DTMC: {
 			DTMCSimple dtmcProd = new DTMCSimple();
 			dtmcProd.setVarList(newVarList);
@@ -524,6 +578,14 @@ public class LTLModelChecker extends PrismComponent
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}
 
+		// Add player information for CSGs
+		if (modelType == ModelType.CSG) {
+			((CSG) prodModel).setActions(((CSG) model).getActions());
+			((CSG) prodModel).setPlayers(((CSG) model).getPlayers());
+			((CSG) prodModel).setIndexes(((CSG) model).getIndexes());
+			((CSG) prodModel).setIdles(((CSG) model).getIdles());
+		}
+		
 		// Encoding: 
 		// each state s' = <s, q> = s * daSize + q
 		// s(s') = s' / daSize
@@ -591,6 +653,9 @@ public class LTLModelChecker extends PrismComponent
 			for (int j = 0; j < numChoices; j++) {
 				Iterator<Map.Entry<Integer, Double>> iter;
 				switch (modelType) {
+				case CSG:
+					iter = ((CSG) model).getTransitionsIterator(s_1, j);
+					break;
 				case DTMC:
 					iter = ((DTMC) model).getTransitionsIterator(s_1);
 					break;
@@ -647,6 +712,7 @@ public class LTLModelChecker extends PrismComponent
 					case DTMC:
 						((DTMCSimple) prodModel).setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
 						break;
+					case CSG:
 					case MDP:
 					case STPG:
 					case SMG:
@@ -657,6 +723,10 @@ public class LTLModelChecker extends PrismComponent
 					}
 				}
 				switch (modelType) {
+				case CSG:
+					t_2 = ((CSG) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((CSG) model).getAction(s_1, j));
+					((CSG) prodModel).setIndexes(map[s_1 * daSize + q_1], t_2, ((CSG) model).getIndexes(s_1, j));
+					break;
 				case MDP:
 					((MDPSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((MDP) model).getAction(s_1, j));
 					break;
@@ -703,7 +773,7 @@ public class LTLModelChecker extends PrismComponent
 			BitSet liftedLabel = product.liftFromModel(model.getLabelStates(label));
 			prodModel.addLabel(label, liftedLabel);
 		}
-
+		
 		return product;
 	}
 

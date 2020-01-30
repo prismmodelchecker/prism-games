@@ -47,8 +47,7 @@ import prism.PrismLog;
 /**
  * Interface for (abstract) classes that provide (read-only) access to an explicit-state model.
  */
-public interface Model
-{
+public interface Model {
 	// Accessors
 
 	/**
@@ -255,7 +254,7 @@ public interface Model
 	 * @throws PrismException if the model is unable to fix deadlocks because it is non-mutable.
 	 */
 	public void findDeadlocks(boolean fix) throws PrismException;
-
+		
 	/**
 	 * Checks for deadlocks and throws an exception if any exist.
 	 */
@@ -368,7 +367,7 @@ public interface Model
 	{
 		explicit.graphviz.Decoration defaults = new explicit.graphviz.Decoration();
 		defaults.attributes().put("shape", "box");
-
+		
 		// Header
 		out.print("digraph " + getModelType() + " {\nnode " + defaults.toString() + ";\n");
 		int i, numStates;
@@ -376,7 +375,6 @@ public interface Model
 			// initialize
 			explicit.graphviz.Decoration d = new explicit.graphviz.Decoration(defaults);
 			d.setLabel(Integer.toString(i));
-
 			// run any decorators
 			if (decorators != null) {
 				for (Decorator decorator : decorators) {
@@ -389,8 +387,8 @@ public interface Model
 
 			// Transitions for state i
 			exportTransitionsToDotFile(i, out, decorators);
-		}
-
+		}	
+		
 		// Footer
 		out.print("}\n");
 	}

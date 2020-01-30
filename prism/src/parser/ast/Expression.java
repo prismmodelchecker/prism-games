@@ -221,6 +221,17 @@ public abstract class Expression extends ASTElement
 	}
 
 	/**
+	 * Evaluate this expression, based on values for variables (but not constants),
+	 * using both current/next (unprimed/primed) values for variables.
+	 * Variable values are supplied as State objects, i.e. arrays of variable values.
+	 * Note: assumes that constants have been evaluated and type checking has been done.
+	 */
+	public Object evaluate(State state, State nextState) throws PrismLangException
+	{
+		return evaluate(new EvaluateContextStateAndNextState(state, nextState));
+	}
+
+	/**
 	 * Evaluate this expression, based on values for some variables (but not constants).
 	 * Variable values are supplied as a State object, indexed over a subset of all variables,
 	 * and a mapping from indices (over all variables) to this subset (-1 if not in subset).

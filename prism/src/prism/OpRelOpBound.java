@@ -105,7 +105,7 @@ public class OpRelOpBound
 					}
 				}
 			} else {
-				if (modelType == ModelType.SMG) {
+				if (modelType == ModelType.SMG || modelType == ModelType.CSG) {
 					if (relOp == RelOp.EQ && isNumeric()) {
 						throw new PrismLangException("Can't use \"" + op + "=?\" for SMGs; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
 					}

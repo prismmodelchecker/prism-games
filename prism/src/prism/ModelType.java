@@ -79,6 +79,22 @@ public enum ModelType
 			return CTMC;
 		}
 	},
+	/*** ***/
+	CSG("concurrent stochastic game") {
+		@Override
+		public boolean multiplePlayers()
+		{
+			return true;
+		}
+		
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
+	}
+	,
+	/*** ***/
 	DTMC("discrete-time Markov chain") {
 		@Override
 		public boolean nondeterministic()

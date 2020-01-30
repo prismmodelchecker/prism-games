@@ -322,6 +322,18 @@ public abstract class ASTElement
 		return (ASTElement) accept(visitor);
 	}
 
+	/*** ***/
+	
+	public Vector<String> getPrimedVars() throws PrismLangException
+	{
+		Vector<String> v = new Vector<String>();
+		GetPrimedVars visitor = new GetPrimedVars(v);
+		accept(visitor);
+		return v;
+	}
+	
+	/*** ***/
+	
 	/**
 	 * Get all variables (i.e. ExpressionVar objects), store names in set.
 	 */

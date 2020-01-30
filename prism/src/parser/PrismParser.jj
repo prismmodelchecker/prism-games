@@ -431,6 +431,7 @@ TOKEN :
 |	< BOOL:				"bool" >
 |	< CLOCK:			"clock" >
 |	< CONST:			"const" >
+|	< CSG:				"csg" >
 |	< CTMC:				"ctmc" >
 |	< CTMDP:			"ctmdp" >
 |	< C:				"C" >
@@ -710,6 +711,7 @@ ModelType ModulesFileType() :
 	| <STPG> { modelType=ModelType.STPG; }
 	| <SMG> { modelType=ModelType.SMG; }
 	| <TPTG> { modelType=ModelType.TPTG; }
+	| <CSG> { modelType=ModelType.CSG; }
 	)
 	{ return modelType; }
 }
@@ -843,7 +845,7 @@ parser.ast.Module Module() :
 
 Command Command() :
 {
-	String synch = null;
+	List<String> synchs = null;
 	Expression guard = null;
 	Updates updates = null;
 	Command comm = new Command();
@@ -851,7 +853,7 @@ Command Command() :
 }
 {
 	// Synchronisation action-label
-	begin = <LBRACKET> ( synch = Identifier() { comm.setSynch(synch); } )? <RBRACKET>
+	begin = <LBRACKET> synchs = ActionList() { comm.setSynchs(synchs); } <RBRACKET>
 	// Guard/updates
 	guard = Expression(false, false) { comm.setGuard(guard); } <RARROW> updates = Updates() { comm.setUpdates(updates); } <SEMICOLON>
 	{ comm.setPosition(begin, getToken(0)); return comm; }
@@ -941,6 +943,7 @@ RewardStruct RewardStruct() :
 	RewardStruct rs = new RewardStruct();
 	RewardStructItem rsi;
 	Token begin = null, begin2 = null;
+	List<String> synchs = null;
 }
 {
 	begin = <REWARDS>
@@ -949,13 +952,26 @@ RewardStruct RewardStruct() :
 	// (which would not be allowed to appear here anyway)
 	( LOOKAHEAD(<DQUOTE>) <DQUOTE> name = Identifier() <DQUOTE> { rs.setName(name); } )?
 	// Reward structure items
-	( { begin2 = getToken(1); s = null; } ( <LBRACKET> { s = ""; } ( s=Identifier() )? <RBRACKET> )?
+	( { begin2 = getToken(1); synchs = null; }
+	( <LBRACKET> synchs = ActionList() <RBRACKET> )?
 	guard = Expression(false, false) <COLON> value = Expression(false, false) <SEMICOLON>
-	{ rsi = new RewardStructItem(s, guard, value); rsi.setPosition(begin2, getToken(0)); rs.addItem(rsi); } )*
+	{ rsi = new RewardStructItem(synchs, guard, value); rsi.setPosition(begin2, getToken(0)); rs.addItem(rsi); } )*
 	<ENDREWARDS>
 	{ rs.setPosition(begin, getToken(0)); return rs; }
 }
-	
+
+// Action list (0 or more comma-separated identifiers)
+
+List<String> ActionList() :
+{
+	String s;
+	List<String> list = new ArrayList<String>();
+}
+{
+	 ( s = Identifier() { list.add(s); } ( <COMMA> s = Identifier() { list.add(s); } )* )?
+	 { return list; }
+}
+
 // Initial states ("init...endinit" construct)
 
 Expression Init() :
@@ -1132,7 +1148,7 @@ Player Player() :
 {
 	{ begin = getToken(1); }
 	<PLAYER> name = Identifier() { player = new Player(name); }
-	( PlayerItem(player) ( <COMMA> PlayerItem(player) )* )?
+	( PlayerItem(player) ( <COMMA> PlayerItem(player) )* )? // should probably be changed to +
 	<ENDPLAYER>
 	{ player.setPosition(begin, getToken(0)); return player; }
 }
@@ -1471,10 +1487,14 @@ Expression ExpressionFuncOrIdent(boolean prop, boolean pathprop) :
 	String s = null;
 	Expression ret = null;
 	Token begin = null;
+	ExpressionIdent p;
 }
 {
 	// If there is no "(...)", this is an identifier
-	s = Identifier() { ret = new ExpressionIdent(s); begin = getToken(0); }
+	(
+	  s = Identifier() { ret = new ExpressionIdent(s); begin = getToken(0); }
+	| p = IdentifierPrime() { ret = p; ; begin = getToken(0); }
+	)
 	// If there is, it's a function
 	( <LPARENTH> { ret = new ExpressionFunc(s); } ExpressionFuncArgs(prop, pathprop, (ExpressionFunc)ret) <RPARENTH> )?
 	{ ret.setPosition(begin, getToken(0)); return ret; }
@@ -1822,6 +1842,108 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 	{ ret.setPosition(begin, getToken(0)); return ret; }
 }
 
+// (Property) expression: n-player Nash operator
+
+Expression ExpressionMultiNash(boolean prop, boolean pathprop) :
+{
+	ExpressionMultiNash ret = new ExpressionMultiNash();
+	Expression bound = null;
+	ArrayList<Expression> formulae = new ArrayList<Expression>();
+	ExpressionQuant expr;
+	String relOp = null;
+	boolean isBool;
+	int r;
+	int n = 0;
+}
+{
+  	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	(
+	<MIN> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "min="; isBool = false; } )
+	|	
+	<MAX> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "max="; isBool = false; } )
+	)
+	(
+		<LPARENTH>
+	  	(expr = ExpressionMultiNashProb(prop, true)
+	  	|
+	  	expr = ExpressionMultiNashReward(prop, true))
+	  	{ ret.addOperand(expr); }
+		(<PLUS>
+			(expr = ExpressionMultiNashProb(prop, true)
+			|
+			expr = ExpressionMultiNashReward(prop, true))
+			{ ret.addOperand(expr); }
+		)+
+		<RPARENTH>
+	)
+	{
+		ret.setBound(bound);
+		ret.setRelOp(relOp);
+		return ret;
+	}
+}
+
+// (Property) expression: probabilistic operator (n-player Nash)
+
+ExpressionQuant ExpressionMultiNashProb(boolean prop, boolean pathprop) :
+{
+	ExpressionMultiNashProb ret = new ExpressionMultiNashProb();
+	Expression expr = null;
+	Token begin;
+}
+{
+	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	// Various options for "P" keyword and attached symbols
+	(
+		begin = <P> <LBRACKET> expr = Expression(prop, true) <RBRACKET>
+	)
+	{
+		ret.setExpression(expr);
+		ret.setPosition(begin, getToken(0));
+		return ret;
+	}	
+}
+
+// (Property) expression: reward operator (n-player Nash)
+
+ExpressionQuant ExpressionMultiNashReward(boolean prop, boolean pathprop) :
+{
+	ExpressionMultiNashReward ret = new ExpressionMultiNashReward();
+	Expression expr = null;
+	Token begin;
+}
+{
+	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	// Various options for "R" keyword and attached symbols
+	(	  
+		begin = <R> MultiNashRewardIndexes(ret) <LBRACKET> expr = ExpressionRewardContents(prop, pathprop) <RBRACKET>
+	)
+	{
+		ret.setExpression(expr);
+		ret.setPosition(begin, getToken(0));
+		return ret;
+	}
+}
+
+// (Reward) structure index for equilibria
+
+void MultiNashRewardIndexes(ExpressionMultiNashReward exprMultiNash) :
+{
+  	Object index = null;
+}
+{
+  	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
+	(<LBRACE> 
+	(LOOKAHEAD(<DQUOTE>) (<DQUOTE> index = Identifier() <DQUOTE>) | index = Expression(false, false)) 
+	<RBRACE>)
+	{
+		exprMultiNash.setRewardStructIndex(index);
+	}
+}
+
 // (Property) expression: CTL existential operator E
 
 Expression ExpressionExists(boolean prop, boolean pathprop) :
@@ -1879,7 +2001,7 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 	{ ret.setCoalitions(coalitions); }
 	// Child expression
 	(
-	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) )
+	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) | expr = ExpressionMultiNash(prop,pathprop) )
 	{ ret.setSingleOperand(expr); }
 	| expr = ExpressionParenth(prop, pathprop)
 	{ ret.addOperand(expr); }
@@ -1889,7 +2011,7 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 		return ret;
 	}
 }
-	
+
 // List of coalitions (player lists) for a strategy (<<>> or [[]]) operator
 
 List<Coalition> ExpressionStrategyCoalitionList() :
@@ -2028,6 +2150,7 @@ ExpressionIdent IdentifierPrime() :
 		ExpressionIdent expr = new ExpressionIdent(s);
 		expr.setPosition(token);
 		expr.setEndColumn(expr.getEndColumn() - 1);
+		expr.setPrime(true);
 		return expr;
 	}
 }

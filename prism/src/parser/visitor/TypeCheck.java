@@ -538,6 +538,29 @@ public class TypeCheck extends ASTTraverse
 			e.setType(e.getReward() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
 		}
 	}
+	
+	public void visitPost(ExpressionMultiNash e) throws PrismLangException
+	{
+		// Check bound
+		if (e.getBound() != null && !TypeDouble.getInstance().canAssign(e.getBound().getType())) {
+			throw new PrismLangException("Type error: Equilibria operator bound is not a double", e.getBound());
+		}
+		
+		// Check reward struct ref(s) if any
+		for (ExpressionQuant eq : e.getOperands()) {
+			if (eq instanceof ExpressionMultiNashReward) {
+				if (((ExpressionMultiNashReward) eq).getRewardStructIndex() != null && ((ExpressionMultiNashReward) eq).getRewardStructIndex() instanceof Expression) {
+					Expression rsi = (Expression) ((ExpressionMultiNashReward) eq).getRewardStructIndex();
+					if (!(rsi.getType() instanceof TypeInt)) {
+						throw new PrismLangException("Type error: Reward structure index must be string or integer", rsi);
+					}
+				}
+			}
+		}
+		
+		// Set type
+		e.setType(e.getBound() == null ? TypeDouble.getInstance() : TypeBool.getInstance());
+	}
 
 	public void visitPost(ExpressionSS e) throws PrismLangException
 	{
@@ -616,7 +639,7 @@ public class TypeCheck extends ASTTraverse
 			e.setType(prop.getType());
 		}
 	}
-
+	
 	public void visitPost(ExpressionFilter e) throws PrismLangException
 	{
 		// Get type of operand

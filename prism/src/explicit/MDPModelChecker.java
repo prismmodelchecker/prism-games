@@ -394,7 +394,8 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting probabilistic reachability (" + (min ? "min" : "max") + ")...");
+		if(verbosity >=1)
+			mainLog.println("\nStarting probabilistic reachability (" + (min ? "min" : "max") + ")...");
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
 		mdp.checkForDeadlocks(target);
@@ -454,7 +455,8 @@ public class MDPModelChecker extends ProbModelChecker
 		// Print results of precomputation
 		numYes = yes.cardinality();
 		numNo = no.cardinality();
-		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
+		if(verbosity >=1)
+			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// If still required, store strategy for no/yes (0/1) states.
 		// This is just for the cases max=0 and min=1, where arbitrary choices suffice (denoted by -2)
@@ -522,7 +524,8 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Finished probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
+		if(verbosity >=1)
+			mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
 		// Store strategy
 		if (genStrat) {
@@ -1298,7 +1301,8 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting bounded probabilistic reachability (" + (min ? "min" : "max") + ")...");
+		if(verbosity >= 1)
+			mainLog.println("\nStarting bounded probabilistic reachability (" + (min ? "min" : "max") + ")...");
 
 		// Store num states
 		n = mdp.getNumStates();
@@ -1377,9 +1381,10 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Bounded probabilistic reachability (" + (min ? "min" : "max") + ")");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-
+		if(verbosity >= 1) {
+			mainLog.print("Bounded probabilistic reachability (" + (min ? "min" : "max") + ")");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 		// Creating strategy object
 		int[][] choices = null;
 		if (generateStrategy) {
@@ -2149,7 +2154,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting expected reachability (" + (min ? "min" : "max") + ")...");
+		mainLog.println("Starting expected reachability (" + (min ? "min" : "max") + ")...");
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
 		mdp.checkForDeadlocks(target);

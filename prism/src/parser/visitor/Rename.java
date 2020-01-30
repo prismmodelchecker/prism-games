@@ -26,7 +26,24 @@
 
 package parser.visitor;
 
-import parser.ast.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import parser.ast.Command;
+import parser.ast.Declaration;
+import parser.ast.ExpressionExists;
+import parser.ast.ExpressionForAll;
+import parser.ast.ExpressionFunc;
+import parser.ast.ExpressionIdent;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionReward;
+import parser.ast.ExpressionSS;
+import parser.ast.ExpressionStrategy;
+import parser.ast.ExpressionTemporal;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import parser.ast.RenamedModule;
+import parser.ast.Update;
 import prism.PrismLangException;
 
 /**
@@ -75,9 +92,14 @@ public class Rename extends ASTTraverseModify
 	
 	public void visitPost(Command e) throws PrismLangException
 	{
-		// Rename synchronising action of command
-		String s = rm.getNewName(e.getSynch());
-		if (s != null) e.setSynch(s);
+		// Rename synchronising action(s) of command
+		List<String> synchs = e.getSynchs();
+		List<String> synchsNew = new ArrayList<>();
+		for (String s : synchs) {
+			String sNew = rm.getNewName(s);
+			synchsNew.add(sNew == null ? s : sNew);
+		}
+		e.setSynchs(synchsNew);
 	}
 	
 	public void visitPost(Update e) throws PrismLangException

@@ -48,48 +48,14 @@ public class FindAllActions extends ASTTraverseModify
 	// This is ok because we can modify rather than create a new object so don't need to return it.
 	public void visitPost(Command e) throws PrismLangException
 	{
-		int i;
-		// For independent actions, the index is 0
-		if (e.getSynch().equals("")) {
-			e.setSynchIndex(0);
-			return;
-		}
-		// Otherwise, see if action name exists
-		i = synchs.indexOf(e.getSynch());
-		if (i != -1) {
-			// If so, set the index (starts from 1)
-			e.setSynchIndex(i + 1);
-			return;
-		}
-		// Otherwise, there is a problem.
-		// In theory, this can never occur since the set of action names is defined by existence in commands
-		throw new PrismLangException("Unknown action name " + e.getSynch() + " in command", e);
+		e.setSynchIndices(synchs);
 	}
 	
 	// Note that this is done with VisitPost, i.e. after recursively visiting children.
 	// This is ok because we can modify rather than create a new Command so don't need to return it.
 	public void visitPost(RewardStructItem e) throws PrismLangException
 	{
-		int i;
-		// Ignore state rewards
-		// (Note: This guarantees getSynch() is non-null)
-		if (!e.isTransitionReward())
-			return;
-		// For independent actions, the index is 0
-		if (e.getSynch().equals("")) {
-			e.setSynchIndex(0);
-			return;
-		}
-		// Otherwise, see if action name exists
-		i = synchs.indexOf(e.getSynch());
-		if (i != -1) {
-			// If so, set the index (starts from 1)
-			e.setSynchIndex(i + 1);
-			return;
-		}
-		// Otherwise, there is a problem.
-		throw new PrismLangException("Unknown action name " + e.getSynch() + " in reward structure item", e);
-		
+		e.setSynchIndices(synchs);
 	}
 }
 

@@ -276,7 +276,7 @@ public class Update extends ASTElement
 				// cast to Java data type
 				newValue = getExpression(i).getType().castFromBigRational(r);
 			} else {
-				newValue = getExpression(i).evaluate(oldState);
+				newValue = getExpression(i).evaluate(oldState, newState);
 			}
 			newState.setValue(getVarIndex(i), newValue);
 		}

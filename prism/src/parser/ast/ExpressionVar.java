@@ -39,6 +39,8 @@ public class ExpressionVar extends Expression
 	// The index of the variable in the model to which it belongs
 	private int index;
 	
+	private boolean prime;
+	
 	// Constructors
 	
 	public ExpressionVar(String n, Type t)
@@ -46,6 +48,7 @@ public class ExpressionVar extends Expression
 		setType(t);
 		name = n;
 		index = -1;
+		prime = false;
 	}
 			
 	// Set method
@@ -72,6 +75,16 @@ public class ExpressionVar extends Expression
 		return index;
 	}
 	
+	public void setPrime(boolean p) 
+	{
+		prime = p;
+	}
+	
+	public boolean getPrime() 
+	{
+		return prime;
+	}	
+	
 	// Methods required for Expression:
 	
 	@Override
@@ -89,7 +102,7 @@ public class ExpressionVar extends Expression
 	@Override
 	public Object evaluate(EvaluateContext ec) throws PrismLangException
 	{
-		Object res = ec.getVarValue(name, index);
+		Object res = prime ? ec.getPrimedVarValue(name, index) : ec.getVarValue(name, index);
 		if (res == null)
 			throw new PrismLangException("Could not evaluate variable", this);
 		return res;
@@ -124,6 +137,7 @@ public class ExpressionVar extends Expression
 		ExpressionVar expr = new ExpressionVar(name, type);
 		expr.setIndex(index);
 		expr.setPosition(this);
+		expr.setPrime(prime);
 		return expr;
 	}
 
@@ -132,7 +146,7 @@ public class ExpressionVar extends Expression
 	@Override
 	public String toString()
 	{
-		return name;
+		return name + (prime ? "'" : "");
 	}
 
 	@Override

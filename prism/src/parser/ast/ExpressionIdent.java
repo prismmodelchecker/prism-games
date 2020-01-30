@@ -34,11 +34,13 @@ import prism.PrismLangException;
 public class ExpressionIdent extends Expression
 {
 	protected String name;
+	protected boolean prime;
 	
 	// Constructors
 	
 	public ExpressionIdent()
 	{
+		prime = false;
 	}
 	
 	public ExpressionIdent(String n)
@@ -60,6 +62,16 @@ public class ExpressionIdent extends Expression
 		return name;
 	}
 
+	public void setPrime(boolean p) 
+	{
+		prime = p;
+	}
+	
+	public boolean getPrime() 
+	{
+		return prime;
+	}	
+	
 	// Methods required for Expression:
 	
 	@Override
@@ -113,6 +125,7 @@ public class ExpressionIdent extends Expression
 		ExpressionIdent expr = new ExpressionIdent(name);
 		expr.setType(type);
 		expr.setPosition(this);
+		expr.setPrime(prime);
 		return expr;
 	}
 
@@ -121,7 +134,7 @@ public class ExpressionIdent extends Expression
 	@Override
 	public String toString()
 	{
-		return name;
+		return name + (prime ? "'" : "");
 	}
 
 	@Override
