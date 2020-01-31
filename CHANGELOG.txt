@@ -2,6 +2,15 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.0 (beta first released 31/1/2020)
+-----------------------------------------------------------------------------
+
+* Support for concurrent stochastic games (CSGs)
+* Model checking for equilibria properties of CSGs
+* Support for turn-based timed probabilistic games (TPTGs)
+* Small change to SMG modelling: some actions can be be assigned to no player
+
+-----------------------------------------------------------------------------
 Version 2.1 (first released 21/5/2019)
 -----------------------------------------------------------------------------
 
