@@ -25,6 +25,7 @@ prism/prism-sources.txt
 # generated JAR files:
 prism/lib/lpsolve55j.jar
 prism/lib/ppl_java.jar
+prism/lib/com.microsoft.z3.jar
 prism/lib/prism.jar
 prism/lib/prism-sources.jar
 

@@ -332,7 +332,7 @@ export CFLAGS CXXFLAGS LDFLAGS JFLAGS LIBPREFIX LIBSUFFIX
 
 MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterface pepa/compiler simulator jltl2ba jltl2dstar explicit pta param strat automata common cex
 
-EXT_PACKAGES = lpsolve55 lp_solve_5.5_java
+EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3
 
 .PHONY: clean javadoc tests release
 
