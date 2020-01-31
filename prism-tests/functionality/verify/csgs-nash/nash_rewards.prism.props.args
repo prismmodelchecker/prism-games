@@ -1,0 +1,5 @@
+-const k1=1,k2=1 
+-const k1=2,k2=2
+-const k1=3,k2=3
+-const k1=1,k2=2
+-const k1=2,k2=1

@@ -1,0 +1,32 @@
+csg
+
+global s : bool init true;
+
+player p1
+	m1
+endplayer
+
+player p2
+	m2
+endplayer
+
+module m1
+	[c1] true -> true;
+	[d1] true -> true;
+endmodule
+
+module m2 = m1[c1=c2, d1=d2] endmodule
+
+rewards "r1"
+	[c1,c2] true : -1;
+	[c1,d2] true : -4;
+	[d1,c2] true : 0;
+	[d1,d2] true : -3;
+endrewards
+
+rewards "r2"
+	[c1,c2] true : -1;
+	[c1,d2] true : 0;
+	[d1,c2] true : -4;
+	[d1,d2] true : -3;
+endrewards
