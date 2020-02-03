@@ -5,4 +5,4 @@
 # Launch using main PRISM script
 PRISM_MAINCLASS="parser.PrismSyntaxHighlighter html"
 export PRISM_MAINCLASS
-prism "$@"
+prism-games "$@"
