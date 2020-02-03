@@ -313,6 +313,20 @@ public class SMG extends STPGExplicit implements STPG
 	}
 
 	/**
+	 * Set the info about players, provided as a list of names.
+	 * Names are optional and can be null or "" if undefined,
+	 * but all normally defined names should be unique.
+	 */
+	public void setPlayerInfo(List<String> playerNamesList)
+	{
+		this.playerNames = new HashMap<Integer, String>();
+		int numPlayers = playerNamesList.size();
+		for (int i = 0; i < numPlayers; i++) {
+			this.playerNames.put(i + 1, playerNamesList.get(i));
+		}
+	}
+
+	/**
 	 * Copy player info from another SMG.
 	 */
 	public void copyPlayerInfo(SMG smg)

@@ -29,6 +29,7 @@ package explicit;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -45,6 +46,7 @@ import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismPrintStreamLog;
@@ -181,6 +183,9 @@ public class ConstructModel extends PrismComponent
 		SMG smg = null;
 		ModelExplicit model = null;
 		Distribution distr = null;
+		// Game info
+		List<String> playerNames = null;
+		int[] indexes = null;
 		// Misc
 		int i, j, nc, nt, src, dest, player;
 		long timer;
@@ -200,10 +205,17 @@ public class ConstructModel extends PrismComponent
 		progress.start();
 		timer = System.currentTimeMillis();
 
-		HashMap<Integer, String> playerNames = new HashMap<Integer, String>();
-		
-		String[] players = new String[modelGen.getNumPlayers()];
-		int[] indexes = new int[modelGen.getNumPlayers()];
+		// For games, extract/check player info
+		if (modelType.multiplePlayers()) {
+			playerNames = new ArrayList<>();
+			for (i = 0; i < modelGen.getNumPlayers(); i++) {
+				String name = modelGen.getPlayer(i).getName();
+				if (!("".equals(name)) && playerNames.contains(name)) {
+					throw new PrismException("Duplicate player name \"" + name + "\""); 
+				}
+				playerNames.add(name);
+			}
+		}
 		
 		// Create model storage
 		if (!justReach) {
@@ -218,13 +230,9 @@ public class ConstructModel extends PrismComponent
 				ctmc.setVarList(varList);
 				break;
 			case CSG:
-				// Add player info
-				players = new String[modelGen.getNumPlayers()];
-				for (i = 0; i < modelGen.getNumPlayers(); i++) {
-					players[i] = modelGen.getPlayer(i).getName();
-				}
+				indexes = new int[modelGen.getNumPlayers()];
 				Arrays.fill(indexes, -1);
-				modelSimple = csg = new CSG(players);
+				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
 				csg.setActions(((ModulesFileModelGenerator) modelGen).getModulesFile().getSynchs()); // not very pretty
 				csg.setVarList(varList);
 				break;			
@@ -242,12 +250,8 @@ public class ConstructModel extends PrismComponent
 				break;
 			case SMG:
 				modelSimple = smg = new SMG();
-				smg.setVarList(varList);
-				// Add player info
-				for (i = 0; i < modelGen.getNumPlayers(); i++) {
-					playerNames.put(i + 1, modelGen.getPlayer(i).getName());
-				}
 				smg.setPlayerInfo(playerNames);
+				smg.setVarList(varList);
 				break;
 			case PTA:
 			case LTS:

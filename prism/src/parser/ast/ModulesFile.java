@@ -1092,6 +1092,15 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 			}
 		}
 		
+		// Check for duplicate player names
+		HashSet<String> playerNames = new HashSet<String>();
+		for (Player player : players) {
+			String name = player.getName();
+			if (!"".equals(name) && !playerNames.add(name)) {
+				throw new PrismLangException("Duplicate player name \"" + name + "\"", player); 
+			}
+		}
+		
 		List<String> modulesUsed = new ArrayList<String>();
 		List<String> actionsUsed = new ArrayList<String>();
 		for (Player player : players) {
