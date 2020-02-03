@@ -52,13 +52,14 @@ Development of the tool is currently led from Birmingham by Dave Parker. Other c
 
  * Joachim Klein (formerly Technische Universität Dresden)
 
-In addition, the following have worked specifically worked on PRISM-games:
+In addition, the following have worked specifically worked on PRISM-games
+(in approximately reverse chronological order):
 
-* Gabriel Santos (University of Oxford)
-* Aistis Simaitis (University of Oxford)
-* Vojtěch Forejt (University of Oxford)
-* Mateusz Ujma (University of Oxford)
-* Clemens Wiltsche (University of Oxford)
+* Gabriel Santos: concurrent stochastic games and equilibria
+* Clemens Wiltsche: multi-objective and compositional techniques
+* Mateusz Ujma: turn-based stochastic games
+* Vojtěch Forejt: turn-based stochastic games
+* Aistis Simaitis: turn-based stochastic games
 
 We gratefully acknowledge contributions to the PRISM code-base from various sources,
 including (in approximately reverse chronological order):
