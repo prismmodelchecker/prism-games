@@ -1,0 +1,5 @@
+#!/bin/bash
+
+prism-games power_control2.prism -const powmax=2,emax=10,fail=0.1 power_control2.props -prop 1
+prism-games power_control2.prism -const powmax=2,emax=10,fail=0.1 power_control2.props -prop 1 -exportstrat power_control_strat10_2.dot
+prism-games power_control2.prism -const powmax=2,emax=10,fail=0.1 power_control2.props -prop 2 -const k=5

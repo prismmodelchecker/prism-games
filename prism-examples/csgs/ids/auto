@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# cumulative expected damage (const K not used)
+
+prism-games ids_scenarios.prism ids.props -prop 1 -const scenario=1:2,rounds=1:25,K=1
+#prism-games ids_simple.prism ids.props -prop 1 -const rounds=1:25,K=1
+
+# expected damage in a specific round
+
+prism-games ids_scenarios.prism ids.props -prop 2 -const scenario=1:2,rounds=25,K=1:25
+#prism-games ids_simple.prism ids.props -prop 2 -const rounds=25,K=1:25
+
+# strategy synthesis examples
+
+prism-games ids_scenarios.prism ids.props -prop 1 -const scenario=1,rounds=1,K=1 -exportstrat ids_strat1_scenario1.dot
+prism-games ids_scenarios.prism ids.props -prop 1 -const scenario=1,rounds=2,K=1 -exportstrat ids_strat2_scenario1.dot
+prism-games ids_scenarios.prism ids.props -prop 1 -const scenario=2,rounds=1,K=1 -exportstrat ids_strat1_scenario2.dot

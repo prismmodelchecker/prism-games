@@ -1,0 +1,15 @@
+const int k;
+
+// both users maximise the expected reward before their battery becomes empty
+<<user1:user2>>max=? (R{"r1"}[F e1=0] + R{"r2"}[F e2=0])
+
+// both users maximise the expected reward for the first k steps
+<<user1:user2>>max=? (R{"r1"}[C<=k] + R{"r2"}[C<=k])
+
+// user 1 maximises the expected reward before their battery becomes empty
+// while user 2  maximises the expected reward for the first k steps
+<<user1:user2>>max=? (R{"r1"}[F e1=0] + R{"r2"}[C<=k])
+
+// both players maximise the probability their battery becomes empty
+// should be 1+1=2
+<<user1:user2>>max=? (P[F e1=0] + P[F e2=0])

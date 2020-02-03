@@ -8,7 +8,7 @@
 
 csg
 
-player user  user endplayer
+player user user endplayer
 player jammer jammer endplayer
 
 const int slots; // maximum time slots

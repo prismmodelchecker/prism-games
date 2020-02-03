@@ -1,0 +1,4 @@
+#!/bin/bash
+
+prism-games jamming4.prism jamming.props -const slots=5:5:25
+prism-games jamming6.prism jamming.props -const slots=5:5:25

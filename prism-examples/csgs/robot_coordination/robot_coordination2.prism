@@ -1,12 +1,13 @@
-// two robots moving over a grid
-// one tries to move from sw corner to ne corner while the other does the reverse
-// when moving robit i can end up in an adjacent grid square with probability pi
+// Two robots moving over a grid
+// One tries to move from the SW corner to the NE corner while the other does the reverse
+// When moving, a robot can end up in an adjacent grid square with probability q
 
+// concurrent game model
 csg
 
 // the players
-player p1 m1 endplayer
-player p2 m2 endplayer
+player robot1 robot1 endplayer
+player robot2 robot2 endplayer
 
 const double q; // probability of movement failure
 const int l; // size of grid
@@ -33,12 +34,10 @@ label "goal2" = x2=xg2 & y2=yg2;
 label "crash" = x1=x2 & y1=y2;
 
 // first robot
-module m1
+module robot1
 
 	x1 : [xmin..xmax] init xi1; // x coordinate
 	y1 : [ymin..ymax] init yi1; // y coordinate
-
-	//[wait1] !(y1=yg1 & x1=xg1) -> true;
 	
 	[n1] y1<ymax -> (1-q) : (y1'=y1+1) + q/2 : (y1'=y1+1) & (x1'=min(xmax,x1+1)) + q/2 : (y1'=y1+1) & (x1'=max(xmin,x1-1));
 	[e1] x1<xmax -> (1-q) : (x1'=x1+1) + q/2 : (x1'=x1+1) & (y1'=min(ymax,y1+1)) + q/2 : (x1'=x1+1) & (y1'=max(ymin,y1-1));
@@ -49,12 +48,10 @@ module m1
 endmodule
 
 // second robot
-module m2
+module robot2
 
 	x2 : [xmin..xmax] init xi2; // x coordinate
 	y2 : [ymin..ymax] init yi2; // y coordinate
-
-	//[wait2] !(y2=yg2 & x2=xg2) -> true;
 
 	[s2] y2>ymin -> (1-q) : (y2'=y2-1) + q/2 : (y2'=y2-1) & (x2'=min(xmax,x2+1)) + q/2 : (y2'=y2-1) & (x2'=max(xmin,x2-1));
 	[w2] x2>xmin -> (1-q) : (x2'=x2-1) + q/2 : (x2'=x2-1) & (y2'=min(ymax,y2+1)) + q/2 : (x2'=x2-1) & (y2'=max(ymin,y2-1));
@@ -64,12 +61,14 @@ module m2
 
 endmodule
 
+// rewards for robot 1
 rewards "time1"
 	[] !(x1=x2 & y1=y2) & !(y1=yg1 & x1=xg1) : 1;
-	[] x1=x2 & y1=y2 & !(y1=yg1 & x1=xg1) : 10; // crash
+	[] x1=x2 & y1=y2 & !(y1=yg1 & x1=xg1) : 10; // recovering from a crash takes 10 time units
 endrewards
 
+// rewards for robot 2
 rewards "time2"
 	[] !(x1=x2 & y1=y2) & !(y2=yg2 & x2=xg2) : 1;
-	[] x1=x2 & y1=y2 & !(y2=yg2 & x2=xg2) : 10; // crash
+	[] x1=x2 & y1=y2 & !(y2=yg2 & x2=xg2) : 10; // recovering from a crash takes 10 time units
 endrewards

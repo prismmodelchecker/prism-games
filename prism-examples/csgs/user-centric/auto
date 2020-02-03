@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# example commands given for K=2; try for K=1:9
+# (may need e.g. -javamaxmem 8g)
+
+# expected number of unpaid services
+
+prism-games user-centric.prism user-centric.props -prop 1 -const td=0,K=2
+prism-games user-centric.prism user-centric.props -prop 1 -const td=1,K=2
+prism-games user-centric.prism user-centric.props -prop 1 -const td=2,K=2
+
+# expected fraction of unpaid services
+
+prism-games user-centric.prism user-centric.props -prop 2 -const td=0,K=2
+prism-games user-centric.prism user-centric.props -prop 2 -const td=1,K=2
+prism-games user-centric.prism user-centric.props -prop 2 -const td=2,K=2

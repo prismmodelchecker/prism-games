@@ -1,0 +1,3 @@
+#!/bin/bash
+
+prism-games robot_coordination2.prism robot_coordination2.props -const l=5,q=0.1,k=10

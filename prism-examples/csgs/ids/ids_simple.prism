@@ -1,0 +1,74 @@
+// Intrusion detection system taken from
+// Dynamic Policy-Based IDS Configuration 
+// Quanyan Zhu and Tamer Basar
+// gxn 20/03/18
+
+// simple example from the paper with 2 libraries and attacks
+// and system can only be healthy or compromised 
+
+csg
+
+player policy policy endplayer
+player attacker attacker endplayer
+
+const int rounds;
+
+module rounds
+
+	r : [0..rounds]; // current time-step
+	
+	[] r<rounds -> (r'=r+1);
+	[] r=rounds -> true;
+	
+endmodule
+
+module csystem
+
+	s : [1..2]; // system state
+	// 1 - healthy
+	// 2 - compromised
+	
+	[defend1,attack1] true -> (s'=1);
+	[defend1,attack2] true -> (s'=2);
+	[defend2,attack1] true -> (s'=2);
+	[defend2,attack2] true -> (s'=1);
+	
+endmodule
+
+module policy
+	
+	[defend1] r<rounds -> true;
+	[defend2] r<rounds -> true;
+
+endmodule
+
+module attacker
+	
+	[attack1] r<rounds -> true;
+	[attack2] r<rounds -> true;
+	
+endmodule
+
+rewards "damage"
+	[defend1,attack1] s=1 : 0;
+	[defend1,attack2] s=1 : 1;
+	[defend2,attack1] s=1 : 0.5;
+	[defend2,attack2] s=1 : 0;
+	[defend1,attack1] s=2 : 1;
+	[defend1,attack2] s=2 : 2;
+	[defend2,attack1] s=2 : 1.5;
+	[defend2,attack2] s=2 : 1;
+endrewards
+
+const K;
+
+rewards "i_damage"
+	[defend1,attack1] r=K-1 & s=1 : 0;
+	[defend1,attack2] r=K-1 & s=1 : 1;
+	[defend2,attack1] r=K-1 & s=1 : 0.5;
+	[defend2,attack2] r=K-1 & s=1 : 0;
+	[defend1,attack1] r=K-1 & s=2 : 1;
+	[defend1,attack2] r=K-1 & s=2 : 2;
+	[defend2,attack1] r=K-1 & s=2 : 1.5;
+	[defend2,attack2] r=K-1 & s=2 : 1;
+endrewards	

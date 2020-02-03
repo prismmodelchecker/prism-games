@@ -1,0 +1,6 @@
+#!/bin/bash
+
+prism-games public_good_game2.prism -const kmax=2,emax=100,einit=4,f=1.66 public_good_game2.props -prop 1
+
+prism-games public_good_game2.prism -const kmax=2,emax=100,einit=4,f=1.66 public_good_game2.props -prop 2 -const K=1
+

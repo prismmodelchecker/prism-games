@@ -1,0 +1,47 @@
+// CSG model of power control in cellular networks
+// extends model of 
+// Brenguier, R.: PRALINE: A tool for computing Nash equilibria in concurrent games. 
+// In: Proc. CAV’13. LNCS, vol. 8044, pp. 890–895. Springer (2013)
+// now there is a probability increasing the power level fails
+// gxn/ghrs 24/07/2019
+
+csg
+
+player user1 user1 endplayer
+player user2 user2 endplayer
+
+const int powmax; // power levels
+const int emax; // initial energy level
+const double fail; // probability fail to increment
+
+// model for first user/mobile
+module user1
+	
+	e1 : [0..emax] init emax;
+	pow1 : [1..powmax] init 1; // power1
+	
+	// battery is empty
+	[done1] e1=0 -> true;
+	// battery no empty and do not increase battery level
+	[n1] e1>0 -> (e1'=max(0,e1-pow1));
+	// battery not empty and increase battery level
+	[inc1] e1>0 & (pow1<powmax) -> 1-fail : (pow1'=pow1+1) & (e1'=max(0,e1-pow1)) + fail : (e1'=max(0,e1-pow1));
+
+endmodule
+
+// construct module of second user through renaming
+module user2=user1[e1=e2,pow1=pow2,n1=n2,inc1=inc2,done1=done2] endmodule
+
+// reward structures: ri for user i
+// their own power level has a positive influence
+// while the power level of other users is detrimental through interference
+
+rewards "r1"
+	e1>0 & e2>0 : 1000*(1 - pow(2,-0.5*pow1 / (pow2 + 1)));
+	e1>0 & e2=0 : 1000*(1 - pow(2,-0.5*pow1));	
+endrewards
+
+rewards "r2"
+	e2>0 & e1>0 : 1000*(1 - pow(2,-0.5*pow2 / (pow1 + 1)));
+	e2>0 & e1=0 : 1000*(1 - pow(2,-0.5*pow2));
+endrewards

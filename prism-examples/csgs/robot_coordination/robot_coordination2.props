@@ -1,0 +1,23 @@
+const int k; // step bound
+
+// maximum probability robot 1 can guarantee to reach its goal without crashing
+<<robot1>>Pmax=? [ !"crash" U "goal1" ]
+
+// maximum probability robot 1 can guarantee to reach its goal without crashing within a deadline
+<<robot1>>Pmax=? [ !"crash" U<=k "goal1" ]
+
+// minimum expected time robot 1 can guarantee to reach its goal
+<<robot1>>R{"time1"}min=? [ F "goal1" ]
+
+// robots try to maximise the probability of reaching their goals without crashing
+<<robot1:robot2>>max=? (P[ !"crash" U "goal1" ] + P[ !"crash" U "goal2" ])
+
+// robots try to maximise the probability of reaching their goals without crashing within a bounded number of steps
+<<robot1:robot2>>max=? (P[ !"crash" U<=k "goal1"] + P[ !"crash" U<=k "goal2"])
+
+// robots try to maximise the probability of reaching their goals without crashing
+// where the first one only has a bounded number of steps to do so
+<<robot1:robot2>>max=? (P[!"crash" U<=k "goal1"] + P[!"crash" U "goal2"])
+
+// robots try to minimise the expected time to reach their goals
+<<robot1:robot2>>min=? (R{"time1"}[F "goal1" ] + R{"time2"}[F "goal2" ])
