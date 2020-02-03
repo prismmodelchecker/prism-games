@@ -6,12 +6,12 @@
 tptg
 
 // scheduler
-player p1
+player sched
   scheduler, [p1_add], [p2_add], [p1_mult], [p2_mult]
 endplayer
 
 // environment
-player p2
+player env
   P1, P2, [p1_done], [p2_done]
 endplayer
 
@@ -35,10 +35,10 @@ module scheduler
 	y : clock; // local clock
 	
 	invariant
-        	// cannot let time pass if a task is scheduled
-        	// as must pass over control to the environment
-        	((turn=0 & ((p1>1 | p2>1)|(task6!=3))) => y<=0)
-    endinvariant
+			// cannot let time pass if a task is scheduled
+			// as must pass over control to the environment
+			((turn=0 & ((p1>1 | p2>1)|(task6!=3))) => y<=0)
+	endinvariant
 
 	// finished scheduling and hand control over to the environment
 	[] turn=0 -> (turn'=1);
@@ -98,9 +98,9 @@ module P1
 	x1 : clock; // local clock
 	
 	invariant
-        	(p1=1 => x1<=2) &
-        	(p1=2 => x1<=3)
-    endinvariant
+			(p1=1 => x1<=2) &
+			(p1=2 => x1<=3)
+	endinvariant
 
 	// addition
 	[p1_add] p1=0 -> (p1'=1) & (x1'=0); // start
@@ -123,9 +123,9 @@ module P2
 	x2 : clock; // local clock
 	
 	invariant
-        (p2=1 => x2<=5) &
-        (p2=2 => x2<=7)
-    endinvariant
+		(p2=1 => x2<=5) &
+		(p2=2 => x2<=7)
+	endinvariant
 
 	// addition
 	[p2_add] p2=0 -> (p2'=1) & (x2'=0); // start

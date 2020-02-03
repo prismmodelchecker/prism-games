@@ -8,12 +8,12 @@
 tptg
 
 // originator
-player p1
+player o
   originator, [message]
 endplayer
 
 // recipient
-player p2
+player r
   recipient, [req], [ack]
 endplayer
 

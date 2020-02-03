@@ -7,12 +7,12 @@
 tptg
 
 // scheduler
-player p1
+player sched
   scheduler, [p1_add], [p2_add], [p1_mult], [p2_mult]
 endplayer
 
 // environment
-player p2
+player env
   P1, P2, [p1_done], [p2_done], [p1_fail], [p2_fail]
 endplayer
 
@@ -40,10 +40,10 @@ module scheduler
 	y : clock; // local clock
 	
 	invariant
-        	// cannot let time pass if a task is scheduled
-        	// as must pass over control to the environment
-        	((turn=0 & ((p1>1 | p2>1)|(task6!=3))) => y<=0)
-    endinvariant
+			// cannot let time pass if a task is scheduled
+			// as must pass over control to the environment
+			((turn=0 & ((p1>1 | p2>1)|(task6!=3))) => y<=0)
+	endinvariant
 
 	// finished scheduling and hand control over to the environment
 	[] turn=0 -> (turn'=1);
@@ -118,22 +118,22 @@ module P1
 	x1 : clock; // local clock
 		
 	invariant
-        	(p1=1 => x1<=2) &
-        	(p1=2 => x1<=3) &
-        	(p1=3 => x1<=0) &
-        	(p1=4 => x1<=0)
-    endinvariant
+			(p1=1 => x1<=2) &
+			(p1=2 => x1<=3) &
+			(p1=3 => x1<=0) &
+			(p1=4 => x1<=0)
+	endinvariant
 
 	// addition
 	[p1_add] p1=0 -> (p1'=1) & (x1'=0); // start
 	[p1_done] turn=1 & (p1=1) & (x1<=2) -> (p1'=0) & (x1'=0); // finish
 	[] turn=1 & (p1=1) & (x1<=2) & (fail1<k1) -> p : (fail1'=fail1+1) & (p1'=3) & (x1'=0)
-										     + 1-p : (fail1'=fail1+1) & (p1'=1); // fault
+											 + 1-p : (fail1'=fail1+1) & (p1'=1); // fault
 	// multiplication
 	[p1_mult] p1=0 -> (p1'=2) & (x1'=0); // start
 	[p1_done] turn=1 & (p1=2) & (x1<=3) -> (p1'=0) & (x1'=0);  // finish
 	[] turn=1 & (p1=2) & (x1<=3) & (fail1<k1) -> p : (fail1'=fail1+1) & (p1'=3) & (x1'=0)
-										     + 1-p : (fail1'=fail1+1) & (p1'=2); // fault
+											 + 1-p : (fail1'=fail1+1) & (p1'=2); // fault
 	
 	// failure
 	[p1_fail] turn=1 & p1=3 -> (p1'=0);
@@ -152,23 +152,23 @@ module P2
 	x2 : clock; // local clock
 	
 	invariant
-        	(p2=1 => x2<=5) &
-        	(p2=2 => x2<=7) &
-       		(p2=3 => x2<=0) &
-        	(p2=4 => x2<=0)
-    endinvariant
+			(p2=1 => x2<=5) &
+			(p2=2 => x2<=7) &
+	   		(p2=3 => x2<=0) &
+			(p2=4 => x2<=0)
+	endinvariant
 
 	// addition
 	[p2_add] p2=0 -> (p2'=1) & (x2'=0); // start
 	[p2_done] turn=1 & (p2=1) & (x2<=5) -> (p2'=0) & (x2'=0); // finish
 	[] turn=1 & (p2=1) & (x2<=5) & (fail2<k2) -> p : (fail2'=fail2+1) & (p2'=3) & (x2'=0)
-										     + 1-p : (fail2'=fail2+1) & (p2'=1); // fault
+											 + 1-p : (fail2'=fail2+1) & (p2'=1); // fault
 
 	// multiplication
 	[p2_mult] p2=0 -> (p2'=2) & (x2'=0); // start
 	[p2_done] turn=1 & (p2=2) & (x2<=7) -> (p2'=0) & (x2'=0);  // finish
 	[] turn=1 & (p2=2) & (x2<=7) & (fail2<k2) -> p : (fail2'=fail2+1) & (p2'=3) & (x2'=0)
-										     + 1-p : (fail2'=fail2+1) & (p2'=2); // fault
+											 + 1-p : (fail2'=fail2+1) & (p2'=2); // fault
 
 	// failure
 	[p2_fail] turn=1 & p2=3 -> (p2'=0);
