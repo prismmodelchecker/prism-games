@@ -103,7 +103,9 @@ public class CSGModelChecker extends ProbModelChecker {
 	protected BitSet[] coalitionIndexes;
 	protected BitSet[] actionIndexes;
 	
-	protected double minEntry;
+	protected double[] avgNumActions;
+	
+	protected double minEntry; 
 	
 	protected int numCoalitions;
 	protected int numPlayers;
@@ -359,8 +361,6 @@ public class CSGModelChecker extends ProbModelChecker {
 				}
 			}
 		}
-		//System.out.println("-- coalitions indexes " + Arrays.toString(coalitionIndexes));
-		//System.out.println("-- action indexes " + Arrays.toString(coalitionIndexes));
 		numCoalitions = 2;
 		findMaxRowsCols(csg);
 	}
@@ -369,18 +369,25 @@ public class CSGModelChecker extends ProbModelChecker {
 		int p, mc, mr, s;
 		maxRows = 0;
 		maxCols = 0;
+		avgNumActions = new double[numCoalitions];
+		Arrays.fill(avgNumActions, 0.0);
 		for (s = 0; s < csg.getNumStates(); s++) {
 			mc = 1;
 			mr = 1;
 			for (p = coalitionIndexes[0].nextSetBit(0); p >= 0; p = coalitionIndexes[0].nextSetBit(p + 1)) {
 				mr *= csg.getIndexesForPlayer(s, p).cardinality();
 			}
+			avgNumActions[0] += mr;
 			for (p = coalitionIndexes[1].nextSetBit(0); p >= 0; p = coalitionIndexes[1].nextSetBit(p + 1)) {
 				mc *= csg.getIndexesForPlayer(s, p).cardinality();		
 			}
+			avgNumActions[1] += mc;
 			maxRows = (maxRows < mr)? mr : maxRows;
 			maxCols = (maxCols < mc)? mc : maxCols;
 		}
+		avgNumActions[0] /= csg.getNumStates();
+		avgNumActions[1] /= csg.getNumStates();
+		mainLog.println("Max/avg (actions): " + "(" + maxRows + ","  + maxCols + ")/(" + PrismUtils.formatDouble2dp(avgNumActions[0]) + "," + PrismUtils.formatDouble2dp(avgNumActions[1]) + ")");
 	}
 	
 	public void buildStepGame(CSG csg, List<CSGRewards> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException {
