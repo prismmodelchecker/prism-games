@@ -345,6 +345,7 @@ public class Updater extends PrismComponent
 	
 	public void calculateEnabledCommands(int m, BitSet active, State state) throws PrismLangException 
 	{
+		//System.out.println("\n## state " + state);
 		//System.out.println("\n## calculateEnabledCommands, module " + m);
 		Module module;
 		Command command;
@@ -551,7 +552,6 @@ public class Updater extends PrismComponent
 			}
 			//System.out.println("-- tmp " + tmp);
 			if (!tmp.isEmpty()) {
-				/*
 				warning = "Missing specification for action product [";
 				missing = "";
 				for (id = prod.nextSetBit(0); id >= 0; id = prod.nextSetBit(id + 1)) {	
@@ -560,7 +560,6 @@ public class Updater extends PrismComponent
 				warning += missing;
 				warning += " in state " + state + ".";
 				mainLog.printWarning(warning);
-				*/
 				synchs.remove(prod);
 			}
 		}
@@ -570,12 +569,20 @@ public class Updater extends PrismComponent
 			actions = new int[numPlayers];
 			Arrays.fill(actions, -1);
 			chfl = null;
+			//System.out.println("\n-- prod");
+			//System.out.println(prod);
 			for (m = 0; m < numModules; m++) {
 				msynch[m] = false;
+				//System.out.println("--\n module " + m + " " + modulesFile.getModuleName(m));
 				for (i = active[m].nextSetBit(0); i >= 0; i = active[m].nextSetBit(i + 1)) {	
 					ups = modulesFile.getModule(m).getCommand(i).getUpdates();
+					//System.out.println(modulesFile.getModule(m).getCommand(i));
+					//System.out.println("-- expansions " + i);
+					//System.out.println(expansions.get(m).get(i));
+					//System.out.println(modulesFile.getModule(m).getCommand(i).getSynchIndices());
 					if (expansions.get(m).get(i).contains(prod)) {
 						if (!msynch[m]) {
+							//System.out.println("## selected " + i);
 							if (chfl == null) {
 								chfl = processUpdatesAndCreateNewChoice(nchs, ups, state);
 								nchs++;
@@ -585,8 +592,10 @@ public class Updater extends PrismComponent
 							msynch[m] = true;
 						}
 						else {
-							throw new PrismLangException("Mulitple commands enabled for module " +
-														  modulesFile.getModuleName(m) + " in state " + state);
+							//System.out.println();
+							//System.out.println(prod);
+							throw new PrismLangException("Module " + modulesFile.getModuleName(m) + " has multiple active commands for action "
+																								  + "\'" + modulesFile.getModule(m).getCommand(i).getSynch() + "\'" + " in state " + state);
 						}
 					}
 				}
