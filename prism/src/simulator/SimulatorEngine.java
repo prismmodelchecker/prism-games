@@ -320,8 +320,7 @@ public class SimulatorEngine extends PrismComponent
 				throw new PrismNotSupportedException("Random choice of multiple initial states not yet supported");
 			}
 		}
-		// Start model exploration and get initial state reward
-		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
+		// Get initial state reward
 		calculateStateRewards(currentState, tmpStateRewards);
 		// Initialise stored path
 		path.initialise(currentState, tmpStateRewards);
@@ -339,6 +338,8 @@ public class SimulatorEngine extends PrismComponent
 			}
 			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
+		// Explore initial state in model generator
+		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
 		// Reset and then update samplers for any loaded properties
 		resetSamplers();
 		updateSamplers();
