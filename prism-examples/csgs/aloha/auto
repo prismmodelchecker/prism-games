@@ -1,0 +1,4 @@
+#!/bin/bash
+
+prism-games aloha_backoff2.prism aloha_backoff2.props -const bcmax=2,D=8,q=0.9
+prism-games aloha_backoff3.prism aloha_backoff3.props -const bcmax=2,D=8,q=0.9

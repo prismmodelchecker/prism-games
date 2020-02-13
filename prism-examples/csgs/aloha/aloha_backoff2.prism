@@ -3,8 +3,8 @@
 
 csg
 
-player p1 user1 endplayer 
-player p2 user2 endplayer
+player usr1 user1 endplayer
+player usr2 user2 endplayer
 
 const int bcmax; // backoff limit
 const int M=pow(2,bcmax)-1; // backoff counter (slots to wait)
@@ -548,7 +548,7 @@ module user1
  	// backs off
  	[boff1] tick & s1=2 & bc1>0 -> (bc1'=bc1-1); // decrement counter
  	[boff1] tick & s1=2 & bc1=0 -> (tr1'=1) & (s1'=0); // finish backoff so transmit 
- 		                
+	
 endmodule
 
 // construct further users through renaming
@@ -557,6 +557,7 @@ module user2=user1[s1=s2,s2=s1,tr1=tr2,tr2=tr1,bc1=bc2,cd1=cd2,wait1=wait2,trans
 
 // module for counting when time passes (slots)
 module timer
+
 	t : [0..D+1];
 
 	[] tick -> (t'=min(D+1,t+1));

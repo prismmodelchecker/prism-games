@@ -3,9 +3,9 @@
 
 csg
 
-player p1 user1 endplayer 
-player p2 user2 endplayer
-player p3 user3 endplayer
+player usr1 user1 endplayer
+player usr2 user2 endplayer
+player usr3 user3 endplayer
 
 const int bcmax; // backoff limit
 const int M=pow(2,bcmax)-1; // backoff counter (slots to wait)
@@ -14,7 +14,7 @@ const int M=pow(2,bcmax)-1; // backoff counter (slots to wait)
 formula tick = (s1=0 | s1=2 | s1=3) & (s2=0 | s2=2 | s2=3) & (s3=0 | s3=2 | s3=3) & (tr1=0 & tr2=0 & tr3=0);
 
 const int D; // deadline
- 
+
 // probability of successful transmission	
 const double beta=1;
 const double q;
@@ -30,10 +30,10 @@ module user1
 	t1 : [0..2]; // can only wait for two time units before trying
 	
 	// wait or decide to try and transmit
-	[wait1] tick & (s1=0 | s1=3) & t1<2  -> (t1'=t1+1); 
+	[wait1] tick & (s1=0 | s1=3) & t1<2 -> (t1'=t1+1); 
 	[trans1] tick & s1=0 -> (tr1'=1) & (t1'=0); 
 	// transmit
- 	[try1] tr1=1 -> (rn/n) : (s1'=3) & (tr1'=0) 
+ 	[try1] tr1=1 -> (rn/n) : (s1'=3) & (tr1'=0)
  	            + (1-rn/n) : (s1'=1) & (tr1'=0) & (cd1'=min(bcmax,cd1+1));  	 			
  	// set backoff counter
 	[sbc1] s1=1 & cd1=1 -> 1/2 : (s1'=2) & (bc1'=0) 
@@ -549,7 +549,7 @@ module user1
  	// backs off
  	[boff1] tick & s1=2 & bc1>0 -> (bc1'=bc1-1); // decrement counter
  	[boff1] tick & s1=2 & bc1=0 -> (tr1'=1) & (s1'=0); // finish backoff so transmit again
-	                
+	
 endmodule
 
 // construct further users through renaming
