@@ -1,0 +1,7 @@
+const int k; // number of rounds
+
+// max utility of player 1 over k rounds
+<<player1>> R{"utility1"}max=?[C<=k] // acting alone
+<<player1,player2>> R{"utility1"}max=?[C<=k] // coalition between players 1 and 2
+<<player1,player2,player3>> R{"utility1"}max=?[C<=k] // coalition with all players
+

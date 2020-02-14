@@ -1,0 +1,7 @@
+// probability a player wins at least one of k rounds
+<<player1>>Pmax=?[F win=1 & rounds<=k ]
+<<player2>>Pmax=?[F win=2 & rounds<=k ]
+
+// expected utility of a player over k rounds
+<<player1>> R{"utility1"}max=?[F rounds=k ]
+<<player2>> R{"utility2"}max=?[F rounds=k ]

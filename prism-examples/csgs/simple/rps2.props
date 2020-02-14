@@ -1,0 +1,14 @@
+// maximum probability a player eventually wins a rounds
+<<player1>> Pmax=? [ F win=1 ]
+<<player2>> Pmax=? [ F win=2 ]
+
+// maximum probability player wins a round first
+<<player1>> Pmax=? [ win!=2 U win=1 ]
+<<player2>> Pmax=? [ win!=1 U win=2 ]
+
+const int k; // number of rounds
+
+// max utility of a player over k rounds
+// when K=1 have a single round, i.e. the matrix game
+<<player1>>R{"utility1"}max=?[C<=k]
+<<player2>>R{"utility2"}max=?[C<=k]

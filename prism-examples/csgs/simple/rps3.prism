@@ -1,0 +1,55 @@
+// rock-paper-scissors CSG
+// gxn/ghrs/dxp 31/03/18
+
+csg
+
+player player1 m1 endplayer
+player player2 m2 endplayer
+player player3 m3 endplayer
+
+// need a variable for the system
+global v : [0..1];
+
+// first player
+module m1
+
+	[r1] true -> true; // rock 
+	[p1] true -> true; // paper	
+	[s1] true -> true; // scissors
+	
+endmodule
+
+// second and third players constructed through renaming
+module m2 = m1[r1=r2,p1=p2,s1=s2,t1=t2] endmodule
+module m3 = m1[r1=r3,p1=p3,s1=s3,t1=t3] endmodule
+
+// utility of player 1
+rewards "utility1"
+	 [r1,r2,r3] true : 0;
+	 [r1,r2,p3] true : -1;
+	 [r1,r2,s3] true : 1;
+	 [r1,p2,r3] true : -1;
+	 [r1,p2,p3] true : -2;
+	 [r1,p2,s3] true : 0;
+	 [r1,s2,r3] true : 1;
+	 [r1,s2,p3] true : 0;
+	 [r1,s2,s3] true : 2;
+	 [p1,r2,r3] true : 2;
+	 [p1,r2,p3] true : 1;
+	 [p1,r2,s3] true : 0;
+	 [p1,p2,r3] true : 1;
+	 [p1,p2,p3] true : 0;
+	 [p1,p2,s3] true : -1;
+	 [p1,s2,r3] true : 0;
+	 [p1,s2,p3] true : -1;
+	 [p1,s2,s3] true : -2;
+	 [s1,r2,r3] true : -2;
+	 [s1,r2,p3] true : 0;
+	 [s1,r2,s3] true : -1;
+	 [s1,p2,r3] true : 0;
+	 [s1,p2,p3] true : 2;
+	 [s1,p2,s3] true : 1;
+	 [s1,s2,r3] true : -1;
+	 [s1,s2,p3] true : 1;
+	 [s1,s2,s3] true : 0;
+endrewards

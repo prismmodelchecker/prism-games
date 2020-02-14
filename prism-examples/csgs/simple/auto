@@ -2,3 +2,9 @@
 
 prism-games medium_access2.prism medium_access2.props -const emax=2,q1=0.9,q2=0.75 -prop 1 -const k=10
 prism-games medium_access2.prism medium_access2.props -const emax=2,q1=0.9,q2=0.75 -prop 2
+
+prism-games rps2.prism rps2.props
+prism-games rps2.prism rps2.props -prop 4 -exportstrat rps2_strat4.dot
+prism-games rps2_rounds.prism rps2_rounds.props -const k=1
+prism-games rps2_rounds.prism rps2_rounds.props -const k=1 -prop 3 -exportstrat rps2_strat3.dot
+prism-games rps3.prism rps3.props -const k=10
