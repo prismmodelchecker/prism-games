@@ -1,0 +1,17 @@
+const int k;
+
+// each player wants to maximise the probability of sending smax messages within k steps
+// (with players 2 and 3 forming a coalition)
+<<p1:p2,p3>>max=? (P[F<=k sent1=smax] + P[F<=k sent2+sent3=2*smax])
+
+// each player wants to maximise the probability of sending smax messages
+// (with players 2 and 3 forming a coalition)
+<<p1:p2,p3>>max=? (P[F sent1=smax] + P[F sent2+sent3=2*smax])
+
+// one bounded and one unbounded
+// (with players 2 and 3 forming a coalition)
+<<p1:p2,p3>>max=? (P[F<=k sent1=smax] + P[F sent2+sent3=2*smax])
+
+// one bounded and one unbounded
+// (with players 2 and 3 forming a coalition)
+<<p1:p2,p3>>max=? (P[F sent1=smax] + P[F<=k sent2+sent3=2*smax])

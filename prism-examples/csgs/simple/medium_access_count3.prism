@@ -1,0 +1,70 @@
+// CSG model of medium access control 
+// extends model of 
+// Brenguier, R.: PRALINE: A tool for computing Nash equilibria in concurrent games. 
+// In: Proc. CAV’13. LNCS, vol. 8044, pp. 890–895. Springer (2013)
+// with probability of failure with one or both players transmit
+
+csg 
+
+player p1 mac1 endplayer
+player p2 mac2 endplayer
+player p3 mac3 endplayer
+
+const int smax; // bound on messages sent
+const int emax; // energy bound
+const double q1; // probability single user successfully transmits
+const double q2; // probability two users successfully transmit
+const double q3; // probability three users successfully transmit
+
+module channel // used to compute joint probability distribution for transmission failure
+
+	c : bool init false; // is there a collision?
+
+	[t1,w2,w3] true -> q1 : (c'=false) + (1-q1) : (c'=true);
+	[w1,t2,w3] true -> q1 : (c'=false) + (1-q1) : (c'=true);
+	[w1,w2,t3] true -> q1 : (c'=false) + (1-q1) : (c'=true);
+
+	[t1,t2,w3] true -> q2 : (c'=false) + (1-q2) : (c'=true);
+	[w1,t2,t3] true -> q2 : (c'=false) + (1-q2) : (c'=true);
+	[t1,w2,t3] true -> q2 : (c'=false) + (1-q2) : (c'=true);
+
+	[t1,t2,t3] true -> q3 : (c'=false) + (1-q3) : (c'=true);
+
+endmodule
+
+module mac1 // user 1
+	
+	s1 : [0..1]; // has player 1 sent?
+	e1 : [0..emax] init emax; // energy level of player 1
+	sent1 : [0..smax+1]; // number of messages sent by player 1
+	
+	[w1] true -> (s1'=0);
+	[t1] e1>0 -> (s1'=c'?0:1) & (e1'=e1-1) & (sent1'=c'?sent1:(min(sent1+1,smax+1)));
+	
+endmodule
+
+// construct other users with renaming
+module mac2 = mac1 [ s1=s2, e1=e2, sent1=sent2, w1=w2, t1=t2 ] endmodule
+module mac3 = mac1 [ s1=s3, e1=e3, sent1=sent3, w1=w3, t1=t3 ] endmodule
+
+// reward structure for player 1
+rewards "r1"
+	s1=1 : 1;
+endrewards
+
+// reward structure for player 2
+rewards "r2"
+	s2=1 : 1;
+endrewards
+
+// reward structure for player 3
+rewards "r3"
+	s3=1 : 1;
+endrewards
+
+// reward structure for coalition 2,3
+rewards "r23"
+	s2=1 & s3=1 : 2;
+	s2=1 & s3=0 : 1;
+	s2=0 & s3=1 : 1;
+endrewards
