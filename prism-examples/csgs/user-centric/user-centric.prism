@@ -20,7 +20,7 @@ const int td; // trust model
 const double alpha_all = 0.8; // recommendation influence parameter
 const int st_init_all = med; // initial service trust for all providers
 const int reduct_all = td; // trust decrease for all providers
-const bool hide_all = false; // allow information hiding
+const bool hide_all = true; // allow information hiding
 const double cancel = 0.05; // probability to cancel fair request
 const bool init_know_all = true; // sharing of initial trust
 const double die_prob = 0; // probability provider dies after serving a request
