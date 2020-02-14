@@ -1,0 +1,10 @@
+const int k;
+
+// each players want to minimise the probability of sending smax messages within t steps
+<<p1:p2>>max=? (P[F<=k sent1=smax] + P[F<=k sent2=smax])
+
+// each players want to minimise the probability of sending smax messages
+<<p1:p2>>max=? (P[F sent1=smax] + P[F sent2=smax])
+
+// one bounded and one unbounded
+<<p1:p2>>max=? (P[F<=k sent1=smax] + P[F sent2=smax])

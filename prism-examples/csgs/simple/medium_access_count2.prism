@@ -9,6 +9,7 @@ csg
 player p1 mac1 endplayer
 player p2 mac2 endplayer
 
+const int smax; // bound on messages sent
 const int emax; // energy bound
 const double q1; // probability single user successfully transmits
 const double q2; // probability two users successfully transmit
@@ -25,16 +26,17 @@ endmodule
 
 module mac1 // user 1
 	
-	s1 : [0..1] init 0; // has player 1 sent?
+	s1 : [0..1]; // has player 1 sent?
 	e1 : [0..emax] init emax; // energy level of player 1
+	sent1 : [0..smax+1]; // number of messages sent by player 1
 	
-	[w1] true -> (s1'=0); // wait
-	[t1] e1>0 -> (s1'=c'?0:1) & (e1'=e1-1); // transmit
+	[w1] true -> (s1'=0);
+	[t1] e1>0 -> (s1'=c'?0:1) & (e1'=e1-1) & (sent1'=c'?sent1:(min(sent1+1,smax+1)));
 	
 endmodule
 
 // construct second user with renaming
-module mac2 = mac1 [ s1=s2, e1=e2, w1=w2, t1=t2 ] endmodule
+module mac2 = mac1 [ s1=s2, e1=e2, sent1=sent2, w1=w2, t1=t2 ] endmodule
 
 // reward structure for player 1
 rewards "r1"
