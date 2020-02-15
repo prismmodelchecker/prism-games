@@ -374,7 +374,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		} else if (a > 0) {
 			return "[" + modulesFile.getSynchs().get(a - 1) + "]";
 		} else {
-		    return "\u03c4"; // TAU
+			return "?";
 		}
 	}
 	
