@@ -408,7 +408,7 @@ public class SimulatorEngine extends PrismComponent
 				// Resolve nondeterminism randomly
 				i = rng.randomUnifInt(modelGen.getNumChoices());
 			} else {
-				if ((modelType == ModelType.STPG || modelType == ModelType.SMG) && getPlayerNumber(0) == 1) {
+				if ((modelType == ModelType.STPG || modelType == ModelType.SMG) && modelGen.getPlayerOwningState() == 0) {
 					// Pick a random choice as specified by the player 1 strategy
 					try {
 						Distribution next = strategy.getNextMove(getStateIndex(currentState));
@@ -638,7 +638,7 @@ public class SimulatorEngine extends PrismComponent
 		// If there is a strategy loaded, stored probabilities assigned to choices
 		if (strategy != null) {
 			// For games, we just show player 1
-			if (!modelType.multiplePlayers() || getPlayerNumber(0) == 1) {
+			if (!modelType.multiplePlayers() || modelGen.getPlayerOwningState() == 0) {
 				try {
 					strategy.setMemory(stratMem);
 					addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
@@ -1246,25 +1246,25 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
-	 * Get (the number of) the player owning choice i. Returns -1 if unknown.
-	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
+	 * For turn-based game models, get the player that owns/controls the current state.
+	 * This is returned as the (zero-indexed) index of the player.
+	 * Returns -1 if not known or not applicable.
 	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
 	 */
-	public int getPlayerNumber(int i) throws PrismException
+	public int getPlayerOwningState() throws PrismException
 	{
-		return modelGen.getPlayerNumberForChoice(i);
+		return modelGen.getPlayerOwningState();
 	}
 
 	/**
-	 * Get the name of the player owning choice i. Returns null if unknown.
-	 * Assuming a turn-based game model, this will give the same result for all choices in the same state.
+	 * For turn-based game models, get the name of the player that owns/controls the current state.
+	 * Returns null if not known or not applicable.
 	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
-	 * Returns the name of the player owning choice {@index} in the state viewed by the simulator.
 	 */
-	public String getPlayerName(int i) throws PrismException
+	public String getNameOfPlayerOwningState() throws PrismException
 	{
-		int player = getPlayerNumber(i);
-		return (player == -1) ? null : modelGen.getPlayerName(player - 1);
+		int player = getPlayerOwningState();
+		return (player == -1) ? null : modelGen.getPlayerName(player);
 	}
 
 	/**

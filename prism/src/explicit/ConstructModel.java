@@ -282,47 +282,13 @@ public class ConstructModel extends PrismComponent
 			// Explore all choices/transitions from this state
 			modelGen.exploreState(state);
 			nc = modelGen.getNumChoices();
-			// For games, first determine which player owns the state
-			if (modelType.multiplePlayers() && !(modelType == ModelType.CSG)) {
-				player = -1;
-				for (i = 0; i < nc; i++) {
-					int iPlayer = modelGen.getPlayerNumberForChoice(i);
-					if (player != -1 && iPlayer != -1 && iPlayer != player) {
-						throw new PrismException("Choices for both player " + player + " and " + iPlayer + " in state " + state);
-					}
-					if (iPlayer != -1) {
-						player = iPlayer;
-					}
-				}
-				// Assign deadlock states to player 1
-				if (nc == 0) {
-					player = 1;
-				}
-				// No assigned player: only allowed when the state is deterministic (one choice)
-				// (in which case, assign the state to player 1)
-				if (player == -1) {
-					if (nc == 1) {
-						player = 1;
-					} else {
-						Set<String> acts = new HashSet<>();
-						for (i = 0; i < nc; i++) {
-							int iPlayer = modelGen.getPlayerNumberForChoice(i);
-							if (iPlayer == -1) {
-								acts.add(modelGen.getChoiceAction(i).toString());
-							}
-						}
-						String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + state + " not assigned to any player"; 
-						throw new PrismException(errMsg);
-					}
-				}
-				// Make sure a valid player owns the state
-				if (player < 1 || player > modelGen.getNumPlayers()) {
-					throw new PrismException("State " + state + " owned by invalid player (" + player + ")");
-				}
+			// For turn-based games, first determine which player owns the state
+			if (modelType.multiplePlayers() && !modelType.concurrent()) {
+				player = modelGen.getPlayerOwningState();
 				if (modelType == ModelType.STPG) {
-					stpg.setPlayer(src, player);
+					stpg.setPlayer(src, player + 1);
 				} else if (modelType == ModelType.SMG) {
-					smg.setPlayer(src, player);
+					smg.setPlayer(src, player + 1);
 				}
 			}
 			else if (modelType == ModelType.CSG) {

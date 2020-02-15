@@ -1,7 +1,9 @@
 package simulator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import param.Function;
 import param.FunctionFactory;
@@ -292,6 +294,57 @@ public class ModulesFileModelGeneratorSymbolic implements ModelGeneratorSymbolic
 	}
 	
 	@Override
+    public int getPlayerOwningState() throws PrismException
+    {
+		// Turn-based games only
+		if (modelType.concurrent()) {
+			return -1;
+		}
+		// Determine which player owns the state
+		int player = -1;
+		param.TransitionList transitions = getTransitionList();
+		int nc = getNumChoices();
+		for (int i = 0; i < nc; i++) {
+			String modAct = transitions.getTransitionModuleOrAction(transitions.getTotalIndexOfTransition(i, 0));
+			int iPlayer = modulesFile.getPlayerForModuleOrAction(modAct);
+			if (player != -1 && iPlayer != -1 && iPlayer != player) {
+				throw new PrismException("Choices for both player " + (player + 1) + " and " + (iPlayer + 1) + " in state " + exploreState);
+			}
+			if (iPlayer != -1) {
+				player = iPlayer;
+			}
+		}
+		// Assign deadlock states to player 1
+		if (nc == 0) {
+			player = 0;
+		}
+		// No assigned player: only allowed when the state is deterministic (one choice)
+		// (in which case, assign the state to player 1)
+		if (player == -1) {
+			if (nc == 1) {
+				player = 0;
+			}
+			// Otherwise, it's an error
+			else {
+				Set<String> acts = new HashSet<>();
+				for (int i = 0; i < nc; i++) {
+					String modAct = transitions.getTransitionModuleOrAction(transitions.getTotalIndexOfTransition(i, 0));
+					if (modulesFile.getPlayerForModuleOrAction(modAct) == -1) {
+						acts.add(getChoiceAction(i).toString());
+					}
+				}
+				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player"; 
+				throw new PrismException(errMsg);
+			}
+		}
+		// Make sure a valid player owns the state
+		if (player < 0 || player >= getNumPlayers()) {
+			throw new PrismException("State " + exploreState + " owned by invalid player (" + (player + 1) + ")");
+		}
+		return player;
+    }
+	
+	@Override
 	public int getNumChoices() throws PrismException
 	{
 		return getTransitionList().getNumChoices();
@@ -428,8 +481,7 @@ public class ModulesFileModelGeneratorSymbolic implements ModelGeneratorSymbolic
 		return getTransitionList().getChoice(index).computeTarget(offset, exploreState);
 	}
 
-	@Override
-    public int getPlayerNumberForChoice(int i) throws PrismException
+    protected int getPlayerNumberForChoice(int i) throws PrismException
 	{
     	throw new PrismException("Not implemented");
 	}

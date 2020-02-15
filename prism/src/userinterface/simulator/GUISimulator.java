@@ -2459,7 +2459,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 						return engine.getStrategyUpdateString(rowIndex, df);
 						// Player
 					case 1:
-						return engine.getPlayerName(engine.getChoiceIndexOfTransition(rowIndex));
+						return engine.getNameOfPlayerOwningState();
 						// Module/action
 					case 2:
 						return engine.getTransitionActionString(rowIndex);

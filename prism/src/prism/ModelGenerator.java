@@ -74,6 +74,18 @@ public interface ModelGenerator extends ModelInfo
 	public void exploreState(State exploreState) throws PrismException;
 
 	/**
+	 * For turn-based game models, get the player that owns/controls the current state.
+	 * This is returned as the (zero-indexed) index of the player;
+	 * use {@link #getPlayerName(int)} to find the player name.
+	 * Returns -1 if not known or not applicable.
+	 */
+	public default int getPlayerOwningState() throws PrismException
+	{
+		// By default, assume not known
+		return -1;
+	}
+    
+	/**
 	 * Get the number of nondeterministic choices in the current state.
 	 */
 	public int getNumChoices() throws PrismException;
@@ -308,13 +320,6 @@ public interface ModelGenerator extends ModelInfo
 	 */
 	public State computeTransitionTarget(int i, int offset) throws PrismException;
 	
-	/**
-	 * Get (the number of) the player owning choice i (indexed from 1).
-	 * Can return -1 for a choice that is not assigned to any player.
-	 * For a turn-based game model, this will give the same (non -1) result for all choices in a state.
-	 */
-    public int getPlayerNumberForChoice(int i) throws PrismException;
-    
 	/**
 	 * Is label {@code label} true in the state currently being explored?
 	 * @param label The name of the label to check 

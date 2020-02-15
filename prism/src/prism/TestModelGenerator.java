@@ -194,11 +194,4 @@ public class TestModelGenerator implements ModelGenerator
 		}
 
 	}
-
-	@Override
-	public int getPlayerNumberForChoice(int i) throws PrismException
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }

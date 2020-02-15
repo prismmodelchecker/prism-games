@@ -2,7 +2,9 @@ package simulator;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -275,6 +277,57 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	}
 	
 	@Override
+    public int getPlayerOwningState() throws PrismException
+    {
+		// Turn-based games only
+		if (modelType.concurrent()) {
+			return -1;
+		}
+		// Determine which player owns the state
+		int player = -1;
+		TransitionList transitions = getTransitionList();
+		int nc = getNumChoices();
+		for (int i = 0; i < nc; i++) {
+			String modAct = transitions.getChoiceModuleOrAction(i);
+			int iPlayer = modulesFile.getPlayerForModuleOrAction(modAct);
+			if (player != -1 && iPlayer != -1 && iPlayer != player) {
+				throw new PrismException("Choices for both player " + (player + 1) + " and " + (iPlayer + 1) + " in state " + exploreState);
+			}
+			if (iPlayer != -1) {
+				player = iPlayer;
+			}
+		}
+		// Assign deadlock states to player 1
+		if (nc == 0) {
+			player = 0;
+		}
+		// No assigned player: only allowed when the state is deterministic (one choice)
+		// (in which case, assign the state to player 1)
+		if (player == -1) {
+			if (nc == 1) {
+				player = 0;
+			}
+			// Otherwise, it's an error
+			else {
+				Set<String> acts = new HashSet<>();
+				for (int i = 0; i < nc; i++) {
+					String modAct = transitions.getChoiceModuleOrAction(i);
+					if (modulesFile.getPlayerForModuleOrAction(modAct) == -1) {
+						acts.add(getChoiceAction(i).toString());
+					}
+				}
+				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player"; 
+				throw new PrismException(errMsg);
+			}
+		}
+		// Make sure a valid player owns the state
+		if (player < 0 || player >= getNumPlayers()) {
+			throw new PrismException("State " + exploreState + " owned by invalid player (" + (player + 1) + ")");
+		}
+		return player;
+    }
+	
+	@Override
 	public int getNumChoices() throws PrismException
 	{
 		return getTransitionList().getNumChoices();
@@ -334,24 +387,6 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		return a < 0 ? null : modulesFile.getSynch(a - 1);
 	}
 
-	public int getTransitionModuleOrActionIndex(int i, int offset) throws PrismException
-	{
-		TransitionList transitions = getTransitionList();
-		return transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
-	}
-	
-	public String getTransitionModuleOrAction(int i, int offset) throws PrismException
-	{
-		TransitionList transitions = getTransitionList();
-		return transitions.getTransitionModuleOrAction(transitions.getTotalIndexOfTransition(i, offset));
-	}
-	
-	public String getTransitionModuleOrActionDescription(int i, int offset) throws PrismException
-	{
-		TransitionList transitions = getTransitionList();
-		return transitions.getTransitionModuleOrActionDescription(transitions.getTotalIndexOfTransition(i, offset));
-	}
-	
 	@Override
 	public String getChoiceActionString(int index) throws PrismException
 	{
@@ -424,22 +459,6 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	{
 		Expression expr = labelList.getLabel(i);
 		return expr.evaluateBoolean(exploreState);
-	}
-	
-	@Override
-    public int getPlayerNumberForChoice(int i) throws PrismException
-	{
-		String modAct = getTransitionModuleOrAction(i, 0);
-		int player = modulesFile.getPlayerForModuleOrAction(modAct);
-		/*
-		if (player == -1) {
-			String errMsg = "No player owns state " + exploreState;
-			errMsg += " (because no player owns " + getTransitionModuleOrActionDescription(i, 0) + ")"; 
-			throw new PrismException(errMsg);
-		}
-		*/
-		// NB: convert 0-indexed to 1-indexed
-		return (player == -1) ? -1 : (player + 1);
 	}
 	
 	// Methods for RewardGenerator interface

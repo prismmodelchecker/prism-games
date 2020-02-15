@@ -160,6 +160,12 @@ public class ModelModelGenerator implements ModelGenerator
 	}
 	
 	@Override
+	public int getPlayerOwningState() throws PrismException
+	{
+		throw new PrismException("Stochastic games not supported yet");
+	}
+	
+	@Override
 	public int getNumChoices() throws PrismException
 	{
 		return trans.size();
@@ -187,11 +193,5 @@ public class ModelModelGenerator implements ModelGenerator
 	public State computeTransitionTarget(int i, int offset) throws PrismException
 	{
 		return model.getStatesList().get(trans.get(i).succs.get(offset));
-	}
-
-	@Override
-	public int getPlayerNumberForChoice(int i) throws PrismException
-	{
-		throw new PrismException("Stochastic games not supported yet");
 	}
 }
