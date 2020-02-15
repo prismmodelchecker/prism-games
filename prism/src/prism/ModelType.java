@@ -88,6 +88,12 @@ public enum ModelType
 		}
 		
 		@Override
+		public boolean concurrent()
+		{
+			return true;
+		}
+		
+		@Override
 		public ModelType removeNondeterminism()
 		{
 			return DTMC;
@@ -236,6 +242,16 @@ public enum ModelType
 	 * Does this model have more than 1 player?
 	 */
 	public boolean multiplePlayers()
+	{
+		return false;
+	}
+
+	/**
+	 * For game models, do the players make choices in a concurrent
+	 * (rather than turn-based) fashion? Note that this can only be true
+	 * for games so,if true, this also implies that multiplePlayers() is true.
+	 */
+	public boolean concurrent()
 	{
 		return false;
 	}
