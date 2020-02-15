@@ -14,7 +14,6 @@ import parser.ast.ConstantList;
 import parser.ast.Expression;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
-import parser.ast.Player;
 import parser.ast.RewardStruct;
 import parser.type.Type;
 import prism.ModelGeneratorSymbolic;
@@ -224,21 +223,15 @@ public class ModulesFileModelGeneratorSymbolic implements ModelGeneratorSymbolic
 	}
 	
 	@Override
-	public VarList createVarList()
+	public List<String> getPlayerNames()
 	{
-		return varList;
-	}
-	
-	@Override
-	public int getNumPlayers()
-	{
-		return modulesFile.getNumPlayers();
+		return modulesFile.getPlayerNames();
 	}
 
 	@Override
-	public Player getPlayer(int i)
+	public VarList createVarList()
 	{
-		return modulesFile.getPlayer(i);
+		return varList;
 	}
 	
 	// Methods for ModelGenerator interface

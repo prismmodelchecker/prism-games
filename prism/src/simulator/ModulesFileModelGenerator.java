@@ -10,7 +10,6 @@ import parser.VarList;
 import parser.ast.Expression;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
-import parser.ast.Player;
 import parser.ast.RewardStruct;
 import parser.type.Type;
 import prism.ModelGenerator;
@@ -209,17 +208,11 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	}
 	
 	@Override
-	public int getNumPlayers()
+	public List<String> getPlayerNames()
 	{
-		return modulesFile.getNumPlayers();
+		return modulesFile.getPlayerNames();
 	}
 
-	@Override
-	public Player getPlayer(int i)
-	{
-		return modulesFile.getPlayer(i);
-	}
-	
 	@Override
 	public VarList createVarList()
 	{

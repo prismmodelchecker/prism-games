@@ -210,23 +210,15 @@ public class PropertiesSemanticCheck extends SemanticCheck
 		for (Coalition coalition : e.getCoalitions()) {
 			if (coalition != null && !coalition.isAllPlayers()) {
 				for (String player : coalition.getPlayers()) {
-					int numPlayers = modelInfo.getNumPlayers();
 					// Valid player references are either integers
 					// in the range 1..numPlayers or a name of player from the model
 					try {
 						int playerNum = Integer.parseInt(player);
-						if (playerNum < 1 || playerNum > numPlayers) {
+						if (playerNum < 1 || playerNum > modelInfo.getNumPlayers()) {
 							throw new PrismLangException("Invalid player index \"" + player + "\"");
 						}
 					} catch (NumberFormatException ex) {
-						boolean found = false;
-						for (int i = 0; i < numPlayers; i++) {
-							if (player.equals(modelInfo.getPlayer(i).getName())) {
-								found = true;
-								break;
-							}
-						}
-						if (!found) {
+						if (modelInfo.getPlayerIndex(player) == -1) {
 							throw new PrismLangException("Unknown player \"" + player + "\"");
 						}
 					}

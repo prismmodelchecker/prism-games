@@ -209,7 +209,7 @@ public class ConstructModel extends PrismComponent
 		if (modelType.multiplePlayers()) {
 			playerNames = new ArrayList<>();
 			for (i = 0; i < modelGen.getNumPlayers(); i++) {
-				String name = modelGen.getPlayer(i).getName();
+				String name = modelGen.getPlayerName(i);
 				if (!("".equals(name)) && playerNames.contains(name)) {
 					throw new PrismException("Duplicate player name \"" + name + "\""); 
 				}

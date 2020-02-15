@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 
 import parser.Values;
-import parser.ast.Player;
 import parser.VarList;
 import parser.type.Type;
 
@@ -204,15 +203,49 @@ public interface ModelInfo
 	}
 	
 	/**
-	 * Get the number of "player" definitions in the model.
+	 * Get the number of players in the model. 
 	 */
-	public int getNumPlayers();
+	public default int getNumPlayers()
+	{
+		// Default implementation just extracts from getPlayerNames() 
+		return getPlayerNames().size();
+	}
+	
+	/**
+	 * Get the names of all the players in the model.
+	 */
+	public default List<String> getPlayerNames()
+	{
+		// Assume just one (unnamed) player for nondeterministic models
+		if (getModelType().nondeterministic()) {
+			return Collections.singletonList("");
+		}
+		// Otherwise none
+		else {
+			return Collections.emptyList();
+		}
+	}
+	
+	/**
+	 * Look up the index of a player in the model by name.
+	 * Returns -1 if there is no such player.
+	 */
+	public default int getPlayerIndex(String name)
+	{
+		// Default implementation just extracts from getPlayerNames() 
+		return getPlayerNames().indexOf(name);
+	}
 
 	/**
-	 * Get the {@code i}th "player" definition.
+	 * Get the name of the {@code i}th player in the model.
+	 * {@code i} should always be between 0 and getNumPlayers() - 1. 
 	 */
-	public Player getPlayer(int i);
-	
+	public default String getPlayerName(int i)
+	{
+		// Default implementation just extracts from getPlayerNames() 
+		return getPlayerNames().get(i);
+	}
+
 	// TODO: can we remove this?
 	public VarList createVarList() throws PrismException;
 }

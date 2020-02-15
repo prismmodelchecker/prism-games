@@ -1264,7 +1264,7 @@ public class SimulatorEngine extends PrismComponent
 	public String getPlayerName(int i) throws PrismException
 	{
 		int player = getPlayerNumber(i);
-		return (player == -1) ? null : modelGen.getPlayer(player - 1).getName();
+		return (player == -1) ? null : modelGen.getPlayerName(player - 1);
 	}
 
 	/**

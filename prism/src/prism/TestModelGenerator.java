@@ -201,18 +201,4 @@ public class TestModelGenerator implements ModelGenerator
 		// TODO Auto-generated method stub
 		return 0;
 	}
-
-	@Override
-	public int getNumPlayers()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public Player getPlayer(int i)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

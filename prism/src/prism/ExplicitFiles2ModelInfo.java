@@ -44,7 +44,6 @@ import parser.ast.DeclarationInt;
 import parser.ast.DeclarationType;
 import parser.ast.Expression;
 import parser.ast.ExpressionIdent;
-import parser.ast.Player;
 import parser.type.Type;
 import parser.type.TypeBool;
 import parser.type.TypeInt;
@@ -152,18 +151,6 @@ public class ExplicitFiles2ModelInfo extends PrismComponent
 			public List<String> getLabelNames()
 			{
 				return labelNames;
-			}
-
-			@Override
-			public int getNumPlayers()
-			{
-				return 0;
-			}
-
-			@Override
-			public Player getPlayer(int i)
-			{
-				return null;
 			}
 		};
 		

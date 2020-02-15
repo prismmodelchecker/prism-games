@@ -386,7 +386,7 @@ public class Updater extends PrismComponent
 						tmp.andNot(playersActionsIndexes[p]);
 						if (tmp.cardinality() < indexes.cardinality() - 1)
 							throw new PrismLangException("Module " + modulesFile.getModuleName(m) + " has multiple actions associated to player " 
-															   	   + modulesFile.getPlayer(p).getName() + " in command " + i);
+															   	   + modulesFile.getPlayerName(p) + " in command " + i);
 					}
 					if (!seen.contains(indexes)) {
 						seen.add((BitSet) indexes.clone());

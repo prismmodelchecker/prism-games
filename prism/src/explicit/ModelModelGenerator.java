@@ -33,7 +33,6 @@ import java.util.Map;
 
 import parser.State;
 import parser.VarList;
-import parser.ast.Player;
 import parser.type.Type;
 import prism.ModelGenerator;
 import prism.ModelInfo;
@@ -97,15 +96,9 @@ public class ModelModelGenerator implements ModelGenerator
 	}
 
 	@Override
-	public int getNumPlayers()
+	public List<String> getPlayerNames()
 	{
-		return modelInfo.getNumPlayers();
-	}
-
-	@Override
-	public Player getPlayer(int i)
-	{
-		return modelInfo.getPlayer(i);
+		return modelInfo.getPlayerNames();
 	}
 
 	@Override

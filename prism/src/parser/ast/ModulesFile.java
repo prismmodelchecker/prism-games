@@ -67,6 +67,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	private List<String> rewardStructNames; // Names of reward structures
 	private Expression initStates; // Initial states specification
 	private List<Player> players; // Player definitions
+	private List<String> playerNames; // Player names
 
 	// Lists of all identifiers used
 	private Vector<String> formulaIdents;
@@ -102,6 +103,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		rewardStructNames = new ArrayList<String>();
 		initStates = null;
 		players = new ArrayList<Player>();
+		playerNames = new ArrayList<String>();
 		formulaIdents = new Vector<String>();
 		constantIdents = new Vector<String>();
 		varIdents = new Vector<String>();
@@ -248,11 +250,13 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	public void addPlayer(Player p)
 	{
 		players.add(p);
+		playerNames.add(p.getName());
 	}
 
 	public void addPlayer(int index, Player p)
 	{
 		players.add(index, p);
+		playerNames.add(index, p.getName());
 	}
 
 	/**
@@ -261,6 +265,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	public void setPlayer(int i, Player p)
 	{
 		players.set(i, p);
+		playerNames.set(i, p.getName());
 	}
 
 	// Get methods
@@ -557,19 +562,17 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	}
 
 	/**
-	 * Get the number of "player" definitions in the model.
-	 */
-	public int getNumPlayers()
-	{
-		return players.size();
-	}
-
-	/**
 	 * Get the {@code i}th "player" definition.
 	 */
 	public Player getPlayer(int i)
 	{
 		return players.get(i);
+	}
+
+	@Override
+	public List<String> getPlayerNames()
+	{
+		return playerNames;
 	}
 
 	/**
