@@ -151,6 +151,21 @@ public interface ModelInfo
 	}
 
 	/**
+	 * Get a list of possible actions that may label choices/transitions in the model.
+	 * This can be a superset of the ones that actually end up being used.
+	 * This is optional - the default implementation just returns null,
+	 * which means that this info is not being provided by this class.
+	 * But it can help for more efficient processing of actions (in conjunction with
+	 * implementation of {@link ModelGenerator#getChoiceActionIndex} etc. in ModelGenerator).
+	 * It is also required for concurrent games.       
+	 */
+	public default List<Object> getActions()
+	{
+		// Default implementation just says that info is unavailable 
+		return null;
+	}
+	
+	/**
 	 * Get a short description of the action strings associated with transitions/choices.
 	 * For example, for a PRISM model, this is "Module/[action]".
 	 * The default implementation just returns "Action".

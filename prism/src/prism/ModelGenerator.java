@@ -184,6 +184,34 @@ public interface ModelGenerator extends ModelInfo
 	public Object getTransitionAction(int i, int offset) throws PrismException;
 
 	/**
+	 * Get the action label of a transition within a choice, specified by its index/offset.
+	 * This method provides the index of the action in the list of all actions,
+	 * available from {@link #getActions()}. This information is optional - only
+	 * {@link #getTransitionAction} has to be implemented, but if {@link #getActions()}
+	 * returns non-null, then you can rely on this method to work.
+	 * Absence of an action label is denoted by -1.
+	 * Note: For most types of models, the action label will be the same for all transitions within
+	 * the same nondeterministic choice (i.e. for each different value of {@code offset}),
+	 * but for Markov chains this may not necessarily be the case.
+	 * @param i Index of the nondeterministic choice
+	 * @param offset Index of the transition within the choice
+	 */
+	public default int getTransitionActionIndex(int i, int offset) throws PrismException
+	{
+		List<Object> actions;
+		if ((actions = getActions()) != null) {
+			int a = actions.indexOf(getTransitionAction(i, offset));
+			if (a != -1) {
+				return i;
+			} else {
+				throw new PrismException("Action name \"" + getTransitionAction(i, offset) + "\" is not in the list of actions");
+			}
+		} else {
+			throw new PrismException("Action index information not available");
+		}
+	}
+
+	/**
 	 * Get a description for the action label of a choice, specified by its index/offset.
 	 * This might be displayed in a representation of a path, e.g. in the simulator UI.
 	 * By default this, will be {@code toString()} for {@link #getChoiceAction(int, int)},
@@ -216,6 +244,24 @@ public interface ModelGenerator extends ModelInfo
 	{
 		// Default implementation 
 		return getTransitionAction(i, 0);
+	}
+
+	/**
+	 * Get the action label of a choice, specified by its index.
+	 * This method provides the index of the action in the list of all actions,
+	 * available from {@link #getActions()}. This information is optional - only
+	 * {@link #getTransitionAction} has to be implemented, but if {@link #getActions()}
+	 * returns non-null, then you can rely on this method to work.
+	 * Absence of an action label is denoted by -1.
+	 * Note: If the model has different actions for different transitions within a choice
+	 * (as can be the case for Markov chains), this method returns the action for the first transition.
+	 * So, this method is essentially equivalent to {@code getTransitionAction(i, 0)}. 
+	 * @param i Index of the nondeterministic choice
+	 */
+	public default int getChoiceActionIndex(int i) throws PrismException
+	{
+		// Default implementation 
+		return getTransitionActionIndex(i, 0);
 	}
 
 	/**
