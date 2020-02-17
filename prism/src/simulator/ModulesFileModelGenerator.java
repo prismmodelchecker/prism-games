@@ -227,12 +227,6 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		return varList;
 	}
 	
-	@Override
-	public int[] getTransitionIndexes(int i) 
-	{
-		return transitionList.getTransitionActionIndexes(i);
-	}
-	
 	// Methods for ModelGenerator interface
 	
 	@Override
@@ -447,6 +441,12 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		}
 	}
 
+	@Override
+	public int[] getTransitionIndexes(int i) 
+	{
+		return transitionList.getTransitionActionIndexes(i);
+	}
+	
 	/**
 	 * Utility method to get a description for an action label:
 	 * "[a]" for a synchronous action a and "M" for an unlabelled
