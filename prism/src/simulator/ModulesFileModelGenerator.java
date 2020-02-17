@@ -373,48 +373,78 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	public Object getTransitionAction(int i, int offset) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
-		return a < 0 ? null : getActions().get(a - 1);
+		int index = transitions.getTotalIndexOfTransition(i, offset);
+		if (!modelType.concurrent()) {
+			int a = transitions.getTransitionModuleOrActionIndex(index);
+			return a < 0 ? null : getActions().get(a - 1);
+		} else {
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			return as;
+		}
 	}
 
 	@Override
 	public int getTransitionActionIndex(int i, int offset) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
-		return a < 0 ? -1 : a - 1;
+		if (!modelType.concurrent()) {
+			int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
+			return a < 0 ? -1 : a - 1;
+		} else {
+			throw new PrismException("Action index info not available"); 
+		}
 	}
 
 	@Override
 	public String getTransitionActionString(int i, int offset) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
-		return getDescriptionForModuleOrActionIndex(a);
+		int index = transitions.getTotalIndexOfTransition(i, offset);
+		if (!modelType.concurrent()) {
+			int a = transitions.getTransitionModuleOrActionIndex(index);
+			return getDescriptionForModuleOrActionIndex(a);
+		} else {
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			return getDescriptionForActionIndexList(as);
+		}
 	}
 	
 	@Override
 	public Object getChoiceAction(int index) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getChoiceModuleOrActionIndex(index);
-		return a < 0 ? null : getActions().get(a - 1);
+		if (!modelType.concurrent()) {
+			int a = transitions.getChoiceModuleOrActionIndex(index);
+			return a < 0 ? null : getActions().get(a - 1);
+		} else {
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			return as;
+		}
 	}
 
 	@Override
 	public int getChoiceActionIndex(int index) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getChoiceModuleOrActionIndex(index);
-		return a < 0 ? -1 : a - 1;
+		if (!modelType.concurrent()) {
+			int a = transitions.getChoiceModuleOrActionIndex(index);
+			return a < 0 ? -1 : a - 1;
+		} else {
+			throw new PrismException("Action index info not available"); 
+		}
 	}
 
 	@Override
 	public String getChoiceActionString(int index) throws PrismException
 	{
 		TransitionList transitions = getTransitionList();
-		int a = transitions.getChoiceModuleOrActionIndex(index);
-		return getDescriptionForModuleOrActionIndex(a);
+		if (!modelType.concurrent()) {
+			int a = transitions.getChoiceModuleOrActionIndex(index);
+			return getDescriptionForModuleOrActionIndex(a);
+		} else {
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			return getDescriptionForActionIndexList(as);
+		}
 	}
 
 	/**
@@ -433,6 +463,27 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		} else {
 			return "?";
 		}
+	}
+	
+	/**
+	 * Utility method to get a description for list of (concurrent) actions,
+	 * given as an array of (1-indexed) indices into the list of all actions.
+	 * An index of -1 indicates that a player idles.
+	 * The format is "[a1,b2,-,c3]" with "-" denoting idle.
+	 */
+	private String getDescriptionForActionIndexList(int as[])
+	{
+		String s = "[";
+		int n = as.length;
+		if (n > 0) {
+			s += as[0] == -1 ? "-" : getActions().get(as[0] - 1);
+		}
+		for (int i = 1; i < n; i++) {
+			s += ",";
+			s += as[i] == -1 ? "-" : getActions().get(as[i] - 1);
+		}
+		s += "]";
+		return s;
 	}
 	
 	@Override
