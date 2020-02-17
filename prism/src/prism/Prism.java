@@ -3250,11 +3250,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		} catch (PrismException e) {
 			throw new PrismException("Simulation not possible: "+ e.getMessage());
 		}
-		// For CSGs, a model geneartor can be built,
-		// but simulation is not yet supported
-		if (currentModelType == ModelType.CSG) {
-			throw new PrismException("Simulation not yet supported for "+ currentModelType + "s");
-		}
 	}
 
 	/**
@@ -3269,11 +3264,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			modelGenForSim = getModelGenerator();
 		} catch (PrismException e) {
 			throw new PrismException("Simulation not possible: "+ e.getMessage());
-		}
-		// For CSGs, a model geneartor can be built,
-		// but simulation is not yet supported
-		if (currentModelType == ModelType.CSG) {
-			throw new PrismException("Simulation not yet supported for "+ currentModelType + "s");
 		}
 		// Load into simulator
 		getSimulator().loadModel(modelGenForSim, currentRewardGenerator);

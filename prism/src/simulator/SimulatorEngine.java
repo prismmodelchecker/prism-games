@@ -404,6 +404,7 @@ public class SimulatorEngine extends PrismComponent
 		case MDP:
 		case STPG:
 		case SMG:
+		case CSG:
 			if (strategy == null) {
 				// Resolve nondeterminism randomly
 				i = rng.randomUnifInt(modelGen.getNumChoices());

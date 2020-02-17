@@ -2418,7 +2418,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				int cols = 3;
 				if (showStrategyCheck.isSelected() && strategyGenerated && strategy != null)
 					cols++;
-				if (parsedModel.getModelType().multiplePlayers())
+				if (parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent())
 					cols++;
 				return cols;
 			} else {
@@ -2446,7 +2446,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 					if (!showStrat)
 						offset++;
 					// Player
-					boolean showPlayer = parsedModel.getModelType().multiplePlayers();
+					boolean showPlayer = parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent();
 					if (!showPlayer)
 						offset++;
 					// Might have strategy but not player
@@ -2490,7 +2490,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 				if (!showStrat)
 					offset++;
 				// Player
-				boolean showPlayer = parsedModel.getModelType().multiplePlayers();
+				boolean showPlayer = parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent();
 				if (!showPlayer)
 					offset++;
 				// Might have strategy but not player
