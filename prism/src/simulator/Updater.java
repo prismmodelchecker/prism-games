@@ -168,6 +168,9 @@ public class Updater extends PrismComponent
 				expansions.add(m, new ArrayList<Set<BitSet>>());
 				if (playersIndexes[m] != -1) {
 					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
+						if (modulesFile.getModule(m).getCommand(c).isUnlabelled()) {
+							throw new PrismLangException("Commands in a player-owned module cannot be unlabelled", modulesFile.getModule(m).getCommand(c));
+						}
 						expansions.get(m).add(c, new HashSet<BitSet>());
 						index = modulesFile.getModule(m).getCommand(c).getSynchIndices().get(0);
 						if (!seen.get(index) || playersActionsIndexes[playersIndexes[m]].get(index)) {
