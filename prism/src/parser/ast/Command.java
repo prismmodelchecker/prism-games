@@ -187,6 +187,18 @@ public class Command extends ASTElement
 		return (ArrayList<Integer>) synchIndices;
 	}
 	
+	/**
+	 * Returns true is this is an unlabelled command ("[] ..."),
+	 * i.e. there is no synchronous action label attached to it.
+	 */
+	public boolean isUnlabelled()
+	{
+		// NB: this works even for concurrent games,
+		// because the modelling language requires either a non-empty list
+		// of action labels or a single empty action ("")  
+		return "".equals(getSynch());
+	}
+	
 	public Expression getGuard()
 	{
 		return guard;
