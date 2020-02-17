@@ -165,9 +165,9 @@ public class Command extends ASTElement
 	}
 	
 	/**
-	 * Get the list of indices for all action labelsl for this command (in the model's list of actions).
-	 * Each is 1-indexed, with 0 denoting the independent (unlabelled) case.
-	 * -1 denotes not (yet) known.
+	 * Get the index of the action label for this command, if present
+	 * (in the model's list of actions). It is 1-indexed, with 0 denoting
+	 * the independent (unlabelled) case. -1 denotes not (yet) known.
 	 */
 	public int getSynchIndex()
 	{
@@ -175,6 +175,13 @@ public class Command extends ASTElement
 		return synchIndices.get(0);
 	}
 	
+	/**
+	 * Get the list of indices for the action labels for this command, if present
+	 * (in the model's list of actions). Each is 1-indexed, with 0 denoting
+	 * the independent (unlabelled) case. -1 denotes not (yet) known.
+	 * Usually (apart from concurrent games), there is a single
+	 * action and you can just use {@link #getSynchIndex()}.
+	 */
 	public ArrayList<Integer> getSynchIndices() 
 	{
 		return (ArrayList<Integer>) synchIndices;
