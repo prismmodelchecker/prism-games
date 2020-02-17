@@ -201,6 +201,12 @@ public class ModulesFileModelGeneratorSymbolic implements ModelGeneratorSymbolic
 	}
 
 	@Override
+	public List<Object> getActions()
+	{
+		return modulesFile.getActions();
+	}
+
+	@Override
 	public int getNumLabels()
 	{
 		return labelList.size();	

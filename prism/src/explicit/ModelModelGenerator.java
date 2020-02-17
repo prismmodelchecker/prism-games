@@ -96,6 +96,12 @@ public class ModelModelGenerator implements ModelGenerator
 	}
 
 	@Override
+	public List<Object> getActions()
+	{
+		return modelInfo.getActions();
+	}
+
+	@Override
 	public List<String> getPlayerNames()
 	{
 		return modelInfo.getPlayerNames();

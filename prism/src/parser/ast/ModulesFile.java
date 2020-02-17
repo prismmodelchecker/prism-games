@@ -75,8 +75,9 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	private Vector<String> varIdents; // TODO: don't need?
 	// List of all module names
 	private String[] moduleNames;
-	// List of synchronising actions
+	// List of synchronising actions (also stored as Object list for ModelInfo)
 	private Vector<String> synchs;
+	private List<Object> actions;
 	// Lists of variable info (declaration, name, type)
 	private Vector<Declaration> varDecls;
 	private Vector<String> varNames;
@@ -987,8 +988,17 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		if (defaultSystemDefn != null) {
 			defaultSystemDefn.getSynchs(synchs, this);
 		}
+		
+		// store same info in actions list (for ModelInfo)
+		actions = new ArrayList<Object>(synchs);
 	}
 
+	@Override
+	public List<Object> getActions()
+	{
+		return actions;
+	}
+	
 	@Override
 	public String getActionStringDescription()
 	{
@@ -1532,6 +1542,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		ret.varIdents = (varIdents == null) ? null : (Vector<String>)varIdents.clone();
 		ret.moduleNames = (moduleNames == null) ? null : moduleNames.clone();
 		ret.synchs = (synchs == null) ? null : (Vector<String>)synchs.clone();
+		ret.actions = (actions == null) ? null : new ArrayList<Object>(actions);
 		if (varDecls != null) {
 			ret.varDecls = new Vector<Declaration>();
 			for (Declaration d : varDecls)
