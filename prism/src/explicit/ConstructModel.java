@@ -185,7 +185,6 @@ public class ConstructModel extends PrismComponent
 		Distribution distr = null;
 		// Game info
 		List<String> playerNames = null;
-		int[] indexes = null;
 		// Misc
 		int i, j, nc, nt, src, dest, player;
 		long timer;
@@ -230,8 +229,6 @@ public class ConstructModel extends PrismComponent
 				ctmc.setVarList(varList);
 				break;
 			case CSG:
-				indexes = new int[modelGen.getNumPlayers()];
-				Arrays.fill(indexes, -1);
 				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
 				csg.setActions(((ModulesFileModelGenerator) modelGen).getModulesFile().getSynchs()); // not very pretty
 				csg.setVarList(varList);
@@ -324,12 +321,11 @@ public class ConstructModel extends PrismComponent
 						case CTMC:
 							ctmc.addToProbability(src, dest, modelGen.getTransitionProbability(i, j));
 							break;
-						case CSG:
-							indexes = modelGen.getTransitionIndexes(i);
 						case MDP:
 						case CTMDP:
 						case STPG:
 						case SMG:
+						case CSG:
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
 						case PTA:
@@ -354,17 +350,17 @@ public class ConstructModel extends PrismComponent
 						}
 					} else if (modelType == ModelType.STPG) {
 						if (distinguishActions) {
-							stpg.addActionLabelledChoice(src, distr, indexes);
+							stpg.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
 						} else {
 							stpg.addChoice(src, distr);
 						}
 					}
 					else if (modelType == ModelType.CSG) {
 						if (distinguishActions) {
-							csg.addActionLabelledChoice(src, distr, indexes);
+							csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
 						} 
 						else {
-							csg.addChoice(src, distr, indexes);	
+							csg.addChoice(src, distr, modelGen.getTransitionIndexes(i));
 						}
 					} else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
