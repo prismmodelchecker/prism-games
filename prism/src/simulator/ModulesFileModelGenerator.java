@@ -111,15 +111,6 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		transitionListBuilt = false;
 	}
 	
-	/**
-	 * Get access to the ModulesFile being used to generate the model.
-	 * @return
-	 */
-	public ModulesFile getModulesFile()
-	{
-		return modulesFile;
-	}
-	
 	// Methods for ModelInfo interface
 	
 	@Override

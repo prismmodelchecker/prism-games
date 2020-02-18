@@ -216,6 +216,11 @@ public class ConstructModel extends PrismComponent
 			}
 		}
 		
+		// For CSGs, action names mucst be provided
+		if (modelType.concurrent() && modelGen.getActions() == null) {
+			throw new PrismException("Model generator must implement getActions() for concurrent games");
+		}
+		
 		// Create model storage
 		if (!justReach) {
 			// Create a (simple, mutable) model of the appropriate type
@@ -230,7 +235,7 @@ public class ConstructModel extends PrismComponent
 				break;
 			case CSG:
 				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
-				csg.setActions(((ModulesFileModelGenerator) modelGen).getModulesFile().getSynchs()); // not very pretty
+				csg.setActions(modelGen.getActions());
 				csg.setVarList(varList);
 				break;			
 			case MDP:

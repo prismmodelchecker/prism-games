@@ -235,6 +235,13 @@ public class CSG extends STPGExplicit {
 		this.players = players;
 	}
 	
+	public void setActions(List<Object> actions) {
+		this.actions = new Vector<String>();
+		for (Object action : actions) {
+			this.actions.add(action.toString());
+		}
+	}
+	
 	public void setActions(Vector<String> actions) {
 		this.actions = new Vector<String>(actions);
 	}
