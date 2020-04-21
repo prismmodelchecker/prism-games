@@ -9,6 +9,8 @@ Version 3.0 (beta first released 31/1/2020)
 * Model checking for equilibria properties of CSGs
 * Support for turn-based timed probabilistic games (TPTGs)
 * Small change to SMG modelling: some actions can be be assigned to no player
+* Merged latest changes from PRISM (up to v4.6)
+* Various bugfixes
 
 -----------------------------------------------------------------------------
 Version 2.1 (first released 21/5/2019)
