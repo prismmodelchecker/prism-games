@@ -167,6 +167,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public static final int LOCKSTEP = 2;
 	public static final int SCCFIND = 3;
 
+	// state space cut-off to trigger MTBDD engine
+	protected static final int MTBDD_STATES_THRESHOLD = 100000000;
+	
 	// Options for type of strategy export
 	public enum StrategyExportType {
 		ACTIONS, INDICES, INDUCED_MODEL, DOT_FILE, MATLAB;
@@ -3074,7 +3077,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		Result res = null;
 		Values definedPFConstants = propertiesFile.getConstantValues();
-		boolean engineSwitch = false;
+		boolean engineSwitch = false, switchToMTBDDEngine = false;
 		int lastEngine = -1;
 
 		if (!digital)
@@ -3103,7 +3106,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
 			return fauMC.check(prop.getExpression());
 		}
+		// Heuristic choices of engine/method
+		if (settings.getString(PrismSettings.PRISM_HEURISTIC).equals("Speed")) {
+			mainLog.printWarning("Switching to sparse engine and (backwards) Gauss Seidel (default for heuristic=speed).");
+			engineSwitch = true;
+			lastEngine = getEngine();
+			setEngine(Prism.SPARSE);
+			settings.set(PrismSettings.PRISM_LIN_EQ_METHOD, "Backwards Gauss-Seidel");
 
+		}
 		// Auto-switch engine if required
 		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
@@ -3118,6 +3129,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			engineSwitch = true;
 			lastEngine = getEngine();
 			setEngine(Prism.EXPLICIT);
+		}
+		if (settings.getBoolean(PrismSettings.PRISM_INTERVAL_ITER)) {
+			if (currentModelType == ModelType.MDP && Expression.containsMinReward(prop.getExpression())) {
+				mainLog.printWarning("Switching to explicit engine to allow interval iteration on Rmin operator.");
+				engineSwitch = true;
+				lastEngine = getEngine();
+				setEngine(Prism.EXPLICIT);
+			}
 		}
 		try {
 
@@ -3135,14 +3154,26 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 							+ "Either switch to the explicit engine or add more action labels to the model");
 			}
 
-			if (!getExplicit() && !engineSwitch && getEngine() != MTBDD) {
-				// check if we need to switch to MTBDD engine
+			// Check if we need to switch to MTBDD engine
+			if (!getExplicit() && getEngine() != MTBDD) {
 				long n = currentModel.getNumStates();
+				// Either because number of states is two big for double-valued solution vectors
 				if (n == -1 || n > Integer.MAX_VALUE) {
 					mainLog.printWarning("Switching to MTBDD engine, as number of states is too large for " + engineStrings[getEngine()] + " engine.");
+					switchToMTBDDEngine = true;
+				}
+				// Or based on heuristic choices of engine/method
+				// (sparse/hybrid typically v slow if need to work with huge state spaces)
+				else if (settings.getString(PrismSettings.PRISM_HEURISTIC).equals("Speed") && n > MTBDD_STATES_THRESHOLD) {
+					mainLog.printWarning("Switching to MTBDD engine (default for heuristic=speed and this state space size).");
+					switchToMTBDDEngine = true;
+				}
+				// NB: Need to make sure solution methods supported for MTBDDs are used
+				if (switchToMTBDDEngine) {
 					engineSwitch = true;
 					lastEngine = getEngine();
 					setEngine(Prism.MTBDD);
+					settings.set(PrismSettings.PRISM_LIN_EQ_METHOD, "Jacobi");
 				}
 			}
 
@@ -3728,8 +3759,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
 		if (time < 0)
 			throw new PrismException("Cannot compute transient probabilities for negative time value");
-		if (fileOut != null && getEngine() == MTBDD)
-			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
 		if (exportType == EXPORT_MRMC)
 			exportType = EXPORT_PLAIN; // no specific states format for MRMC
 		if (exportType == EXPORT_ROWS)
@@ -3825,8 +3854,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Do some checks
 		if (!(currentModelType == ModelType.CTMC || currentModelType == ModelType.DTMC))
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-		if (fileOut != null && getEngine() == MTBDD)
-			throw new PrismException("Transient probability export only supported for sparse/hybrid engines");
 		if (exportType == EXPORT_MRMC)
 			exportType = EXPORT_PLAIN; // no specific states format for MRMC
 		if (exportType == EXPORT_ROWS)
