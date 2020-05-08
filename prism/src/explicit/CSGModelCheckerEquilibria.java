@@ -2035,6 +2035,12 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			if (!(zeroA && zeroB)) {
 				result = new double[1][2];
 				if(bMaxRow || bMaxCol) {
+					double v1 = Double.NEGATIVE_INFINITY;
+					double v2 = Double.NEGATIVE_INFINITY;
+					double vsum = Double.NEGATIVE_INFINITY; 
+					double tv1 = Double.NEGATIVE_INFINITY;
+					double tv2 = Double.NEGATIVE_INFINITY;
+					double tvsum = Double.NEGATIVE_INFINITY;  
 					if (zeroA) {
 						mIndxs = findMaxIndexes(val2s);
 						mrow = mIndxs[0];
@@ -2051,11 +2057,31 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 					} 
 					else if (bMaxRow) {
 						mrow = maxRow[0];
-						mcol = getMaxIndex(val2s[mrow]);
+						mcol = -1;
+						for (int c = 0; c < ncols; c++) {
+							tv1 = val1s[mrow][c];
+							tv2 = val2s[mrow][c];
+							tvsum = tv1 + tv2;
+							if (Double.compare(tv2, v2) > 0 || (Double.compare(tv2, v2) == 0 && Double.compare(tvsum, vsum) > 0)) {
+					 			mcol = c;
+								v2 = tv2;
+								vsum = tvsum;
+							}       
+						}
 					}
 					else {
+						mrow = -1;
 						mcol = maxCol[0];
-						mrow = getMaxIndex(getCol(val1s, mcol));
+						for (int r = 0; r < nrows; r++) {
+							tv1 = val1s[r][mcol];
+							tv2 = val2s[r][mcol];
+							tvsum = tv1 + tv2;
+							if (Double.compare(tv1, v1) > 0 || (Double.compare(tv1, v1) == 0 && Double.compare(tvsum, vsum) > 0)) {
+								mrow = r;
+								v1 = tv1;
+								vsum = tvsum;
+							}       
+						}
 					}
 					result[0][0] = val1s[mrow][mcol];
 					result[0][1] = val2s[mrow][mcol];
