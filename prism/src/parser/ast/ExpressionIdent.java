@@ -33,7 +33,9 @@ import prism.PrismLangException;
 
 public class ExpressionIdent extends Expression
 {
+	// Identifier name
 	protected String name;
+	// Whether this reference is to name' rather than name
 	protected boolean prime;
 	
 	// Constructors
@@ -143,6 +145,7 @@ public class ExpressionIdent extends Expression
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + (this.prime ? 1231 : 1237);
 		return result;
 	}
 
@@ -161,9 +164,11 @@ public class ExpressionIdent extends Expression
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (prime != other.prime)
+			return false;
 		return true;
 	}
-	
+
 	// Static utility methods
 	
 	public static boolean isLegalIdentifierName(String name)
