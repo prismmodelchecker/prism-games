@@ -389,7 +389,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 			int a = transitions.getTransitionModuleOrActionIndex(index);
 			return getDescriptionForModuleOrActionIndex(a);
 		} else {
-			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(i)).getActions();
 			return getDescriptionForActionIndexList(as);
 		}
 	}
