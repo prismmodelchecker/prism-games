@@ -2,7 +2,7 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
-Version 3.0 (beta first released 31/1/2020)
+Version 3.0 (first released 31/1/2020)
 -----------------------------------------------------------------------------
 
 * Support for concurrent stochastic games (CSGs)
