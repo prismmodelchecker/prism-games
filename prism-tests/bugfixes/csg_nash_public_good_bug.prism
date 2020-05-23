@@ -1,0 +1,115 @@
+// Public good game
+// Players receive a capital of einit, which they can invest into a common stock, entirely or in parts. An examiner then multiplies the invested amount by a factor f and distribute it among all the participants equally.
+
+csg
+
+player p1
+	m1
+endplayer
+
+player p2
+	m2
+endplayer
+
+player p3
+	m3
+endplayer
+
+const int kmax = 1; // number of rounds
+const int emax = 300; // cap on the captial held by ecah player
+const int einit1=5; // initial capital
+const int einit2=5; // initial capital
+const int einit3=5; // initial capital
+const int n = 3; // number of players 
+const double f = 3; // multiplier
+
+module cc
+	k : [0..kmax+1] init 0; // round
+	[] k<kmax -> (k'=min(kmax,k+1));
+	[] k=kmax -> (k'=k+1);
+endmodule
+
+module m1
+	e1 : [0..emax] init einit1;
+	l1 : [0..emax] init 0;
+
+	[i1_0] k<kmax -> (l1'=0) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));	
+//	[i1_1] k<kmax -> (l1'=floor(0.1*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));	
+//	[i1_2] k<kmax -> (l1'=floor(0.2*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+//	[i1_3] k<kmax -> (l1'=floor(0.3*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+//	[i1_4] k<kmax -> (l1'=floor(0.4*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+	[i1_5] k<kmax -> (l1'=floor(0.5*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+//	[i1_6] k<kmax -> (l1'=floor(0.6*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));	
+//	[i1_7] k<kmax -> (l1'=floor(0.7*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+//	[i1_8] k<kmax -> (l1'=floor(0.8*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+//	[i1_9] k<kmax -> (l1'=floor(0.9*e1)) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+	[i1_10] k<kmax -> (l1'=e1) & (e1'=min(emax,e1-l1'+floor((f/n)*(l1'+l2'+l3'))));
+	[done1] k>=kmax -> (e1'=0) & (l1'=0);
+	
+endmodule	
+
+module m2 = m1[e1=e2,l1=l2,l2=l3,l3=l1,
+		einit1=einit2,
+		i1_0=i2_0,
+//		i1_1=i2_1,
+//		i1_2=i2_2,
+//		i1_3=i2_3,
+//		i1_4=i2_4,
+		i1_5=i2_5,
+//		i1_6=i2_6,
+//		i1_7=i2_7,
+//		i1_8=i2_8,
+//		i1_9=i2_9,
+		i1_10=i2_10,
+		done1=done2] endmodule
+
+module m3 = m1[e1=e3,l1=l3,l2=l1,l3=l2,
+		einit1=einit3,
+		i1_0=i3_0,
+//		i1_1=i3_1,
+//		i1_2=i3_2,
+//		i1_3=i3_3,
+//		i1_4=i3_4,
+		i1_5=i3_5,
+//		i1_6=i3_6,
+//		i1_7=i3_7,
+//		i1_8=i3_8,
+//		i1_9=i3_9,
+		i1_10=i3_10,
+		done1=done3] endmodule
+
+// inst reward for player 1
+rewards "r1i"
+	true : e1; 
+endrewards
+
+// inst reward for player 2
+rewards "r2i"
+	true : e2; 
+endrewards
+
+// inst reward for player 3
+rewards "r3i"
+	true : e3; 
+endrewards
+
+// inst reward for player 2,3
+rewards "r23i"
+	true : e2+e3; 
+endrewards
+
+rewards "done1"
+	k=kmax : e1; 
+endrewards
+
+rewards "done2"
+	k=kmax : e2; 
+endrewards
+
+rewards "done3"
+	k=kmax : e3; 
+endrewards
+
+rewards "done23"
+	k=kmax : e2+e3; 
+endrewards

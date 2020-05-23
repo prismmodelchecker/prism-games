@@ -397,10 +397,8 @@ public class Property extends ASTElement
 					doubleExp = Double.NaN;
 				}
 				// See if it's a fraction
-				else if (strExpectedValue.matches("[0-9]+/[0-9]+")) {
-					int numer = Integer.parseInt(strExpectedValue.substring(0, strExpectedValue.indexOf('/')));
-					int denom = Integer.parseInt(strExpectedValue.substring(strExpectedValue.indexOf('/') + 1));
-					doubleExp = ((double) numer) / denom;
+				else if (strExpectedValue.matches("-?[0-9]+/[0-9]+")) {
+					doubleExp = new BigRational(strExpectedValue).doubleValue();
 					simple = false;  // complex expression
 				}
 				// Otherwise, see if it's just a double
@@ -455,6 +453,7 @@ public class Property extends ASTElement
 				if (strExpectedValue.equals("NaN")) {
 					if (!rationalRes.isNaN())
 						throw new PrismException("Wrong result (expected NaN, got " + rationalRes + ")");
+					rationalExp = BigRational.NAN;
 				}
 				// For integers/rationals/doubles, parse with BigRational
 				else {

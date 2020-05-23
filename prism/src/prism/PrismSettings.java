@@ -72,6 +72,7 @@ public class PrismSettings implements Observer
 	
 	//PRISM
 	public static final	String PRISM_ENGINE							= "prism.engine";
+	public static final	String PRISM_HEURISTIC						= "prism.heuristic";
 	public static final	String PRISM_VERBOSE						= "prism.verbose";
 	public static final	String PRISM_FAIRNESS						= "prism.fairness";
 	public static final	String PRISM_PRECOMPUTATION					= "prism.precomputation";
@@ -259,6 +260,8 @@ public class PrismSettings implements Observer
 			// ENGINES/METHODS:
 			{ CHOICE_TYPE,		PRISM_ENGINE,							"Engine",								"2.1",			"Hybrid",																	"MTBDD,Sparse,Hybrid,Explicit",																		
 																			"Which engine (hybrid, sparse, MTBDD, explicit) should be used for model checking." },
+			{ CHOICE_TYPE,		PRISM_HEURISTIC,						"Heuristic mode",							"4.5",			"None",																		"None,Speed,Memory",																		
+																			"Which heuristic mode to use for picking engines/settings (none, speed, memory)." },
 			{ BOOLEAN_TYPE,		PRISM_EXACT_ENABLED,					"Do exact model checking",			"4.2.1",			new Boolean(false),															"",
 																			"Perform exact model checking." },
 																			
@@ -1103,6 +1106,20 @@ public class PrismSettings implements Observer
 					set(PRISM_SMT_SOLVER, "Yices");
 				else
 					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: z3, yices)");
+			}
+		}
+		// Heuristic modes
+		else if (sw.equals("heuristic")) {
+			if (i < args.length - 1) {
+				s = args[++i];
+				if (s.equals("none"))
+					set(PRISM_HEURISTIC, "None");
+				else if (s.equals("speed"))
+					set(PRISM_HEURISTIC, "Speed");
+				else if (s.equals("memory"))
+					set(PRISM_HEURISTIC, "Memory");
+				else
+					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: none, speed, memory)");
 			} else {
 				throw new PrismException("No parameter specified for -" + sw + " switch");
 			}
@@ -1986,6 +2003,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
 		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
 		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: z3]");
+		mainLog.println("-heuristic <mode> .............. Automatic choice of engines/settings (none, speed, memory) [default: none]");
 		mainLog.println();
 		mainLog.println("SOLUTION METHODS (LINEAR EQUATIONS):");
 		mainLog.println("-power (or -pow, -pwr) ......... Use the Power method for numerical computation");
