@@ -81,6 +81,7 @@ import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import prism.PrismSettings;
 import strat.CSGStrategy;
 import strat.CSGStrategy.CSGStrategyType;
 import strat.MDStrategyArray;
@@ -106,6 +107,7 @@ public class CSGModelChecker extends ProbModelChecker {
 	protected double[] avgNumActions;
 	
 	protected double minEntry; 
+	protected double scaleFactor = getSettings().getDouble(PrismSettings.PRISM_ZS_LP_SCALE_FACTOR);
 	
 	protected int numCoalitions;
 	protected int numPlayers;
@@ -561,14 +563,14 @@ public class CSGModelChecker extends ProbModelChecker {
 		// Builds each column considering the n + 1 constraints as a matrix
 		for (int j = 0; j < ncols; j++) {
 			vari[k] = 1;
-			row[k] = 1.0;
+			row[k] = scaleFactor;
 			for(int i = 0; i < nrows; i++) {
 				k++;
 				vari[k] = k+1;
 				if (min)
-					row[k] = -1.0 * mgame.get(j).get(i); 
+					row[k] = -1.0 * scaleFactor * mgame.get(j).get(i); 
 				else
-					row[k] = -1.0 * mgame.get(i).get(j); 
+					row[k] = -1.0 * scaleFactor * mgame.get(i).get(j); 
 			}
 			if (min)
 				lp.addConstraintex(nrows+1, row, vari, LpSolve.GE, 0.0);

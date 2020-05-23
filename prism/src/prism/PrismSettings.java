@@ -125,6 +125,9 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_PARETO_EPSILON					= "prism.paretoEpsilon";
 	public static final	String PRISM_EXPORT_PARETO_FILENAME			= "prism.exportParetoFileName";
 
+	// csg and equilibria
+	public static final String PRISM_ZS_LP_SCALE_FACTOR			= "prism.lpscalefactor";
+
     // multi-objective synthesis for games
 	public static final     String PRISM_MULTI_GAUSS_SEIDEL					= "prism.multiGaussSeidel";
         // iteration control
@@ -351,7 +354,9 @@ public class PrismSettings implements Observer
 																			"Value iteration starts computing points rounded to the maximum reward in each dimension divided by the baseline accuracy, and this accuracy is increased by the increase factor after every iteration." },
 			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			new Double(1.01),															"0,",																						
 																			"Accuracy of conjunctive query value iteration is increased by the increase factor after every iteration." },
-
+			// CSG ZERO-SUM LP SCALE FACTOR
+			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR, 					"Scale factor for LPs",			"4.5", 				new Double(1.0), 			"1,",
+																			"Scale factor used when building linear programs for solving matrix games"},
 
 			// OUTPUT OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_VERBOSE,							"Verbose output",						"2.1",		new Boolean(false),															"",																							
@@ -1158,6 +1163,20 @@ public class PrismSettings implements Observer
 		} else if (sw.equals("linprog") || sw.equals("lp")) {
 			set(PRISM_MDP_SOLN_METHOD, "Linear programming");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Linear programming");
+		}
+		else if (sw.equals("lpscalefactor")) {// Scale factor for LPs (zero-sum)
+			if (i < args.length - 1) {
+				try {
+					d = Double.parseDouble(args[++i]);
+					if (Double.compare(d, 1.0) < 0)
+						throw new NumberFormatException("");
+					set(PRISM_ZS_LP_SCALE_FACTOR, d);
+				} catch (NumberFormatException e) {
+					throw new PrismException("Invalid value for -" + sw + " switch");
+				}
+			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
 		}
 
 		// Interval iterations
@@ -2039,7 +2058,6 @@ public class PrismSettings implements Observer
 		mainLog.println("-ltl2dasyntax <x> .............. Specify output format for -ltl2datool switch (lbt, spin, spot, rabinizer)");
 		mainLog.println("-exportiterations .............. Export vectors for iteration algorithms to file");
 		mainLog.println("-pmaxquotient .................. For Pmax computations in MDPs, compute in the MEC quotient");
-		
 		mainLog.println();
 		mainLog.println("MULTI-OBJECTIVE MODEL CHECKING:");
 		mainLog.println("-linprog (or -lp) .............. Use linear programming for multi-objective model checking");
@@ -2060,6 +2078,9 @@ public class PrismSettings implements Observer
 		mainLog.println("-multirounding ................. Enable rounding for the multi-objective engine.");
 		mainLog.println("-baselineaccuracy <n> .......... Baseline accuracy for CQs.");
 		mainLog.println("-increasefactor <x> ............ Factor by which accuracy is increased every iteration for CQs.");
+		mainLog.println();
+		mainLog.println("CSG EQUILIBRIA COMPUTATION");
+		mainLog.println("-lpscalefactor <n> ............. Scale factor used when building linear programs for solving matrix games [default: 1.0]");
 		mainLog.println();
 		mainLog.println("OUTPUT OPTIONS:");
 		mainLog.println("-verbose (or -v) ............... Verbose mode: print out state lists and probability vectors");
