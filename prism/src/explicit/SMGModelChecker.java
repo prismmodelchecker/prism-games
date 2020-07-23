@@ -32,7 +32,6 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +41,13 @@ import java.util.Set;
 
 import org.apache.commons.math3.fraction.BigFraction;
 
+import acceptance.AcceptanceReach;
+import acceptance.AcceptanceType;
+import explicit.rewards.ConstructRewards;
+import explicit.rewards.Rewards;
+import explicit.rewards.SMGRewards;
+import explicit.rewards.SMGRewardsSimple;
+import explicit.rewards.StateRewardsConstant;
 import parma_polyhedra_library.C_Polyhedron;
 import parma_polyhedra_library.Coefficient;
 import parma_polyhedra_library.Constraint;
@@ -53,19 +59,15 @@ import parma_polyhedra_library.Linear_Expression;
 import parma_polyhedra_library.Linear_Expression_Coefficient;
 import parma_polyhedra_library.Linear_Expression_Sum;
 import parma_polyhedra_library.Linear_Expression_Times;
-import parma_polyhedra_library.Parma_Polyhedra_Library;
 import parma_polyhedra_library.Polyhedron;
 import parma_polyhedra_library.Relation_Symbol;
 import parma_polyhedra_library.Variable;
-import parser.State;
 import parser.VarList;
 import parser.ast.Coalition;
 import parser.ast.Declaration;
 import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
 import parser.ast.ExpressionConstant;
-import parser.ast.ExpressionFunc;
-import parser.ast.ExpressionLiteral;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
@@ -79,21 +81,11 @@ import prism.PointList;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
+import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.PrismUtils;
-import prism.PrismFileLog;
-import strat.ExactValueStrategy;
-import strat.InvalidStrategyStateException;
 import strat.StochasticUpdateStrategy;
-import strat.Strategy;
-import explicit.rewards.ConstructRewards;
-import acceptance.AcceptanceReach;
-import acceptance.AcceptanceType;
-import explicit.rewards.Rewards;
-import explicit.rewards.SMGRewards;
-import explicit.rewards.SMGRewardsSimple;
-import explicit.rewards.StateRewardsConstant;
 
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
@@ -853,124 +845,6 @@ public class SMGModelChecker extends ProbModelChecker
 
 	}
 
-    /*
-	// test strategy through simulation
-	public void testStrategy(SMG model, Strategy strategy, MultiParameters params) throws PrismException
-	{
-		//MultiParameters params = initialiseRewards(model, convertMQToCNF(expr));
-
-		if (strategy != null) {
-			List<List<Entry<State, Integer>>> samples = null;
-			int num_samples = 1000;
-			int maxlength = 100;
-			try {
-				samples = simulateSMG((SMG) model, strategy, null, null, num_samples, maxlength);
-			} catch (InvalidStrategyStateException e) {
-				throw new PrismException(e.getLocalizedMessage());
-			}
-			Map<SMGRewards, Double> sample_rewards = new HashMap<SMGRewards, Double>();
-			for (List<Entry<State, Integer>> sample : samples) {
-				for (int i = 0; i < params.rewards.size(); i++) {
-					SMGRewards reward = params.rewards.get(i);
-					double r = 0.0;
-					if (params.reward_types.get(params.rewards.indexOf(reward)) == MultiParameters.EAR) {
-						r = getPathReward((SMG) model, sample, reward) / ((double) (sample.size() * 2));
-					} else if (params.reward_types.get(params.rewards.indexOf(reward)) == MultiParameters.ERCR) {
-						SMGRewards divisor = params.divisors.get(i);
-						double d = getPathReward((SMG) model, sample, divisor);
-						if (d == 0.0)
-							r = Double.POSITIVE_INFINITY;
-						else
-							r = getPathReward((SMG) model, sample, reward) / getPathReward((SMG) model, sample, divisor);
-					} else if (params.reward_types.get(params.rewards.indexOf(reward)) == MultiParameters.ETCR) {
-						r = getPathReward((SMG) model, sample, reward);
-					}
-					if (sample_rewards.containsKey(reward)) {
-						sample_rewards.put(reward, sample_rewards.get(reward) + r);
-					} else {
-						sample_rewards.put(reward, r);
-					}
-				}
-			}
-			for (SMGRewards reward : sample_rewards.keySet()) {
-				sample_rewards.put(reward, sample_rewards.get(reward) / ((double) num_samples));
-			}
-
-			for (SMGRewards reward : sample_rewards.keySet()) {
-				int i = params.rewards.indexOf(reward);
-				int type = params.reward_types.get(i);
-				String rn = params.reward_names.get(i);
-				String dn = params.divisor_names.get(i);
-				mainLog.print(String.format("E[%s(%s)] = %f\n", type == MultiParameters.ETCR ? "rew" : type == MultiParameters.ERCR ? "ratio" : "mp",
-						type == MultiParameters.ERCR ? (rn + "/" + dn) : rn, sample_rewards.get(reward)));
-			}
-		}
-
-	}
-    */
-    /*
-	    public void testStrategy_QEST(SMG model, Strategy strategy, MultiParameters params) throws PrismException
-	    {
-		// TEST STRATEGY: QEST
-		BitSet terminals = findTerminalStates(model);
-		List<List<Entry<State,Integer>>> samples = null;
-		int num_samples = 10000;
-		int maxlength = 1000;
-		try {
-		    samples = simulateSMG((SMG) model, strategy, null, terminals, num_samples, maxlength);
-		} catch (InvalidStrategyStateException e) {
-		    throw new PrismException(e.getLocalizedMessage());
-		}
-		List<List<Integer>> new_samples = new ArrayList<List<Integer>>();
-		Map<SMGRewards, Double> sample_rewards = new HashMap<SMGRewards, Double>();
-		for(List<Entry<State,Integer>> sample : samples) {
-		    for(SMGRewards reward : params.rewards) {
-			double r = getPathReward((SMG)model, sample, reward) / ((double)maxlength);
-			if(sample_rewards.containsKey(reward)) {
-			    sample_rewards.put(reward, sample_rewards.get(reward) + r);
-			} else {
-			    sample_rewards.put(reward, r);
-			}
-		    }
-		    int last_road = -1;
-		    List<Integer> new_sample = new ArrayList<Integer>();
-		    go_through_new_states:
-		    for(Entry<State,Integer> new_si : sample) {
-		        State new_s = new_si.getKey();
-			try {
-			    //int orig_s = (Integer) new_s.varValues[0];
-			    //int current_road = (Integer)((SMG)model).statesList.get(orig_s).varValues[1];
-			    int current_road = (Integer) new_s.varValues[1];
-			    if(current_road==last_road) {
-				continue go_through_new_states;
-			    } else {
-				new_sample.add(current_road);
-			    }
-			    last_road = current_road;
-			} catch (Exception e) {
-			}
-		    }
-		    new_samples.add(new_sample);
-		}
-		for(SMGRewards reward : sample_rewards.keySet()) {
-		    System.out.printf("reward %d: %f\n", params.rewards.indexOf(reward), sample_rewards.get(reward) / ((double) num_samples));
-		}
-		Map<List<Integer>, Double> c_samples = collateSamples(new_samples);
-		for(List<Integer> c_sample : c_samples.keySet()) {
-		    System.out.printf("S[%f]: (", c_samples.get(c_sample));
-		    boolean comma = false;
-		    for(Integer new_s : c_sample) {
-			if(comma)
-			    System.out.printf(", ");
-			System.out.printf("%d", new_s);
-			comma = true;
-		    }
-		    System.out.printf(")\n");
-		}
-
-	}
-    */
-
 	/**
 	 * Resolves StateRewardsConstant in reward structure.
 	 * 
@@ -1136,139 +1010,6 @@ public class SMGModelChecker extends ProbModelChecker
 			}
 		}
 		return shift;
-	}
-
-	public List<List<Entry<State, Integer>>> simulateSMG(SMG smg, Strategy strat1, Strategy strat2, BitSet terminals, int samples, int maxlength)
-			throws PrismException, InvalidStrategyStateException
-	{
-		List<List<Entry<State, Integer>>> paths = new ArrayList<List<Entry<State, Integer>>>(samples);
-
-		// get initial state
-		int initial_state = smg.getFirstInitialState();
-
-		// sample paths
-		for (int sample = 0; sample < samples; sample++) {
-			if (strat1 != null)
-				strat1.init(initial_state); // initialise strategy of player 1
-			if (strat2 != null)
-				strat2.init(initial_state); // initialise strategy of player 2
-
-			List<Entry<State, Integer>> path = new ArrayList<Entry<State, Integer>>();
-			int current_state = initial_state;
-			int action = 0; // next action to be played
-			extending_path: while (path.size() < maxlength) {
-				if (smg.getPlayer(current_state) == 1 && strat1 != null) {
-					action = strat1.getNextMove(current_state).sampleFromDistribution();
-				} else if (smg.getPlayer(current_state) != 1 && strat2 != null) {
-					action = strat2.getNextMove(current_state).sampleFromDistribution();
-				} else {
-					// uniformly assign between actions
-					int actions = smg.getNumChoices(current_state); // get number of actions
-					double r = Math.random();
-					get_action: for (int a = 0; a < actions; a++) {
-						r -= 1.0 / (double) actions;
-						if (r <= 0) {
-							action = a;
-							break get_action;
-						}
-					}
-				}
-				// add next state to path
-				path.add(new SimpleEntry(smg.statesList.get(current_state), action));
-				// get new distribution
-				Distribution d_iter = smg.getChoice(current_state, action); // next distribution to be played
-				int next_state = d_iter.sampleFromDistribution();
-				// update strategy memory
-				if (strat1 != null)
-					strat1.updateMemory(action, next_state);
-				if (strat2 != null)
-					strat2.updateMemory(action, next_state);
-				// evaluate termination conditions
-				// 1. does next state have any choice?
-				if (smg.getChoices(next_state).size() == 0) {
-					break extending_path;
-				}
-				// 2. is next state terminal?
-				if (terminals != null && terminals.get(next_state)) {
-					break extending_path;
-				}
-				// advance current_state
-				current_state = next_state;
-			}
-			paths.add(path);
-		}
-
-		return paths;
-
-	}
-
-	private Map<List<Integer>, Double> collateSamples(List<List<Integer>> samples)
-	{
-		Map<List<Integer>, Double> result = new HashMap<List<Integer>, Double>();
-		go_through_samples: for (List<Integer> sample : samples) {
-			// first, check if sample is alrady assigned a probability in the results
-			check_if_already_assigned: for (List<Integer> c_sample : result.keySet()) {
-				if (c_sample.size() != sample.size()) {
-					// definitely not equal
-					continue check_if_already_assigned;
-				} else { // go through all states and check
-					for (int s = 0; s < c_sample.size(); s++) {
-						// compare on road index
-						if (c_sample.get(s) != sample.get(s)) {
-							// definitely not equal
-							continue check_if_already_assigned;
-						}
-					}
-					// fall through only if equal
-					result.put(c_sample, result.get(c_sample) + 1.0);
-					continue go_through_samples;
-				}
-			}
-			// if not already assigned
-			result.put(sample, 1.0);
-		}
-		// divide by total number of samples
-		double num_samples = samples.size();
-		for (List<Integer> c_sample : result.keySet()) {
-			result.put(c_sample, result.get(c_sample) / num_samples);
-		}
-		return result;
-	}
-
-	private double getPathReward(SMG G, List<Entry<State, Integer>> path, SMGRewards smg_reward)
-	{
-		double reward = 0.0;
-		List<State> S = G.getStatesList();
-		for (Entry<State, Integer> sa : path) {
-			if (sa != null) {
-				if (sa.getKey() != null) {
-					// state reward
-					reward += smg_reward.getStateReward(indexOf(S, sa.getKey()));
-					// transition reward
-					if (sa.getValue() != null) {
-						reward += smg_reward.getTransitionReward(indexOf(S, sa.getKey()), sa.getValue());
-					}
-				}
-			}
-		}
-		return reward;
-	}
-
-	/**
-	 * Like indexOf of list, but using reference, rather than .equals function.
-	 * 
-	 * @param list List of objects.
-	 * @param o Object for which index in list is required.
-	 * @return Index of object in list, using reference comparison.
-	 */
-	private <T> int indexOf(List<T> list, T o)
-	{ // indexOf based on reference, not equals(o) function
-		for (int i = 0; i < list.size(); i++) {
-			if (list.get(i) == o) {
-				return i;
-			}
-		}
-		return -1; // not in list
 	}
 
 	protected StochasticUpdateStrategy constructStrategy(SMG G, List<Double> bounds, Pareto[] X, List<Pareto>[] Y, MultiParameters params,
