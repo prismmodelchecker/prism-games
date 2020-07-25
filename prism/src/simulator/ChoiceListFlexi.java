@@ -201,7 +201,7 @@ public class ChoiceListFlexi implements Choice
 					first = false;
 				else
 					s += ", ";
-				s += up.getVar(j) + "'=" + nextState.varValues[i];
+				s += up.getVar(j) + "'=" + nextState.varValues[up.getVarIndex(j)];
 			}
 		}
 		return s;
