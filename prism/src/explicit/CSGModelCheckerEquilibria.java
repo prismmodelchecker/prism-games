@@ -859,7 +859,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			ps.clear(p);
 			goals[p] = new Declaration("_" + p, new DeclarationBool());
 			buildSubGames(games, ps, p);
-			newvarlist.addVar(goals[p], 0, csg.getConstantValues());
+			newvarlist.addVar(goals[p].getName(), goals[p].getDeclType(), 0, csg.getConstantValues());
 		}
 		games.add((BitSet) players.clone());
 		unsat.set(0, csg.getNumStates());		
@@ -899,17 +899,17 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				
 		if (unsat.get(s)) {
 			for (p = 0; p < numCoalitions; p++) {
-				initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), false);
+				initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
 			}	
 		}
 		else {	
 			for (p = 0; p < numCoalitions; p++) {
 				if (targets[p].get(s)) {
-					initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), true);
+					initial.setValue(newvarlist.getIndex(goals[p].getName()), true);
 					isubgame.set(p);
 				}
 				else {
-					initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), false);
+					initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
 				}
 			}
 		}
@@ -1157,7 +1157,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				}
 				for (p = 0; p < numCoalitions; p++) {
 					if (targets[p].get(u)) {
-						ustate.setValue(newvarlist.getIndexFromDeclaration(goals[p]), true);
+						ustate.setValue(newvarlist.getIndex(goals[p].getName()), true);
 						usubgame.set(p);
 					}
 				}

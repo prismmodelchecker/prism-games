@@ -1201,7 +1201,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected Rewards constructRewards(Model model, int r) throws PrismException
 	{
-		return constructRewards(model, r, false);
+		return constructRewards(model, r, model.getModelType() == ModelType.CSG);
 	}
 
 	/**

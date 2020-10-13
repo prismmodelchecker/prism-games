@@ -67,12 +67,10 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import explicit.SMG;
 import parser.Values;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
-import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismSettings;
@@ -81,14 +79,12 @@ import prism.PrismUtils;
 import prism.UndefinedConstants;
 import simulator.PathFullInfo;
 import simulator.SimulatorEngine;
-import simulator.networking.SimulatorNetworkHandler;
 import strat.StochasticUpdateStrategy;
 import strat.StochasticUpdateStrategyProduct;
 import strat.Strategy;
 import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
-import userinterface.OptionsPanel;
 import userinterface.graph.Graph;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModel;
@@ -96,7 +92,6 @@ import userinterface.properties.GUIMultiProperties;
 import userinterface.properties.GUIPropertiesEvent;
 import userinterface.properties.GUIPropertiesList;
 import userinterface.properties.GUIProperty;
-import userinterface.simulator.networking.GUINetworkEditor;
 import userinterface.util.GUIComputationEvent;
 import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
@@ -252,10 +247,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		displayStyleFast = true;
 		displayPathLoops = true;
-
-		GUINetworkEditor netEdit = new GUINetworkEditor(getGUI(), new SimulatorNetworkHandler());
-
-		getPrism().getSettings().setFileSelector(PrismSettings.SIMULATOR_NETWORK_FILE, netEdit);
 
 		autoTimeCheck.setSelected(true);
 		showStrategyCheck.setSelected(true);
@@ -1037,11 +1028,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	public javax.swing.JMenu getMenu()
 	{
 		return simulatorMenu;
-	}
-
-	public OptionsPanel getOptions()
-	{
-		return null;
 	}
 
 	public String getTabText()

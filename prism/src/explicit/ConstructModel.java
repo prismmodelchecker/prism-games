@@ -30,13 +30,9 @@ package explicit;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -46,13 +42,11 @@ import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
-import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismPrintStreamLog;
 import prism.ProgressDisplay;
 import prism.UndefinedConstants;
-import simulator.ModulesFileModelGenerator;
 
 /**
  * Class to perform explicit-state reachability and model construction.
@@ -227,11 +221,9 @@ public class ConstructModel extends PrismComponent
 			switch (modelType) {
 			case DTMC:
 				modelSimple = dtmc = new DTMCSimple();
-				dtmc.setVarList(varList);
 				break;
 			case CTMC:
 				modelSimple = ctmc = new CTMCSimple();
-				ctmc.setVarList(varList);
 				break;
 			case CSG:
 				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
@@ -240,11 +232,9 @@ public class ConstructModel extends PrismComponent
 				break;			
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
-				mdp.setVarList(varList);
 				break;
 			case CTMDP:
 				modelSimple = ctmdp = new CTMDPSimple();
-				ctmdp.setVarList(varList);
 				break;
 			case STPG:
 				modelSimple = stpg = new STPGExplicit();
@@ -259,6 +249,8 @@ public class ConstructModel extends PrismComponent
 			case LTS:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
+			// Attach variable info
+	        ((ModelExplicit) modelSimple).setVarList(varList);
 		}
 		
 		// Initialise states storage

@@ -109,7 +109,6 @@ import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.GUISimulationPicker;
-import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Graph.SeriesKey;
@@ -1515,11 +1514,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public JMenu getMenu()
 	{
 		return propMenu;
-	}
-
-	public OptionsPanel getOptions()
-	{
-		return null;
 	}
 
 	public String getTabText()

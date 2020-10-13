@@ -185,7 +185,7 @@ public class PrismParser
 		}
 		// Override type of model if requested
 		if (typeOverride != null) {
-			mf.setModelType(typeOverride);
+			mf.setModelTypeInFile(typeOverride);
 		}
 		
 		return mf;
@@ -555,7 +555,7 @@ TOKEN :
 
 ModulesFile ModulesFile() throws PrismLangException :
 {
-	ModelType type = ModelType.MDP;
+	ModelType type = null;
 	int typeCount = 0;
 	Token typeDupe = null;
 	Declaration global;
@@ -601,8 +601,8 @@ ModulesFile ModulesFile() throws PrismLangException :
 			throw new PrismLangException("There were multiple init...endinit constructs", initDupe);
 		}
 		
-		// Set model type (note default is MDP)
-		mf.setModelType(type);
+		// Set model type (might be null, i.e., unspecified)
+		mf.setModelTypeInFile(type);
 		
 		// Return completed ModulesFile object
 		mf.setPosition(begin != null? begin: getToken(0), getToken(0));
@@ -901,9 +901,11 @@ void UpdateElement(Update update) :
 {
 	ExpressionIdent var = null;
 	Expression expr = null;
+	Token begin = null;
 }
 {
-	<LPARENTH> var = IdentifierPrime() <EQ> expr = Expression(false, false) <RPARENTH> { update.addElement(var, expr); }
+	begin = <LPARENTH> var = IdentifierPrime() <EQ> expr = Expression(false, false) <RPARENTH>
+	{ UpdateElement ue = new UpdateElement(var, expr); ue.setPosition(begin, getToken(0)); update.addElement(ue); }
 }
 
 // Module renaming
