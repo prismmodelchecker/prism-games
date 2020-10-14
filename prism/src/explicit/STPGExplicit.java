@@ -673,11 +673,6 @@ public class STPGExplicit extends MDPSimple implements STPG
 		out.print("}\n");
 	}
 
-	public boolean deadlocksAllowed()
-	{
-		return false;
-	}
-
 	@Override
 	public void checkForDeadlocks(BitSet except) throws PrismException
 	{

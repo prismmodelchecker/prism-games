@@ -238,8 +238,7 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println("\nStarting probabilistic reachability...");
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
-		if (!stpg.deadlocksAllowed())
-			stpg.checkForDeadlocks(target); // CLEMENS: don't see what breaks yet ...
+		stpg.checkForDeadlocks(target);
 
 		// Store num states
 		n = stpg.getNumStates();

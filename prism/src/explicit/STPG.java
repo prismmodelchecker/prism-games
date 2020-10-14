@@ -309,9 +309,4 @@ public interface STPG extends NondetModel
 	 * @return true if all successors are, false otherwise
 	 */
 	public boolean allSuccessorsInSet(int s, int c, BitSet set);
-
-    /**
-     * If this returns true, the probabilistic reachability model checking does not check for deadlocks first
-     **/
-    public boolean deadlocksAllowed();
 }

@@ -791,10 +791,4 @@ public class SMG extends STPGExplicit implements STPG
 		}
 		return local_state;
 	}
-
-	public boolean deadlocksAllowed()
-	{
-		return false;
-	}
-
 }
