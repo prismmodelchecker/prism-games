@@ -80,7 +80,6 @@ import prism.UndefinedConstants;
 import simulator.PathFullInfo;
 import simulator.SimulatorEngine;
 import strat.StochasticUpdateStrategy;
-import strat.StochasticUpdateStrategyProduct;
 import strat.Strategy;
 import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
@@ -452,7 +451,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			// yes, but strategy tailored to initial state: bail out
 			else if (chooseInitialState && strategyGenerated
-					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy || getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct)) {
+					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy)) {
 				throw new PrismException("Strategy tailored to initial state - cannot manually select");
 			}
 			// yes: user chooses 
@@ -892,7 +891,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			// yes, but strategy tailored to initial state: bail out
 			else if (chooseInitialState && strategyGenerated
-					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy || getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct)) {
+					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy)) {
 				throw new PrismException("Strategy tailored to initial state - cannot manually select");
 			}
 			// yes: user chooses 
@@ -1106,14 +1105,14 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		newPath.setEnabled(parsedModel != null && !computing);
 
-		if (strategy instanceof StochasticUpdateStrategy || strategy instanceof StochasticUpdateStrategyProduct)
+		if (strategy instanceof StochasticUpdateStrategy)
 			newPathFromState.setEnabled(false); // not possible for stochastic update strategies
 		else
 			newPathFromState.setEnabled(parsedModel != null && !computing);
 
 		newPathPlot.setEnabled(parsedModel != null && !computing);
 
-		if (strategy instanceof StochasticUpdateStrategy || strategy instanceof StochasticUpdateStrategyProduct)
+		if (strategy instanceof StochasticUpdateStrategy)
 			newPathPlotFromState.setEnabled(false); // not possible for stochastic update strategies
 		else
 			newPathPlotFromState.setEnabled(parsedModel != null && !computing);

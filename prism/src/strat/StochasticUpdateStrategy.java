@@ -59,23 +59,22 @@ import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 
-import parma_polyhedra_library.Generator;
-import parma_polyhedra_library.Generator_System;
-import parma_polyhedra_library.Generator_Type;
-import parma_polyhedra_library.Linear_Expression;
-import parma_polyhedra_library.Variable;
-import parser.Values;
-import prism.PrismException;
-import prism.PrismLangException;
-import prism.PrismLog;
-import prism.PrismUtils;
-import prism.Prism.StrategyExportType;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.PPLSupport;
 import explicit.Pareto;
 import explicit.SMG;
 import explicit.rewards.SMGRewards;
+import parma_polyhedra_library.Generator;
+import parma_polyhedra_library.Generator_System;
+import parma_polyhedra_library.Generator_Type;
+import parma_polyhedra_library.Linear_Expression;
+import parma_polyhedra_library.Variable;
+import prism.Prism.StrategyExportType;
+import prism.PrismException;
+import prism.PrismLangException;
+import prism.PrismLog;
+import prism.PrismUtils;
 
 public class StochasticUpdateStrategy implements Strategy
 {
@@ -1733,69 +1732,6 @@ public class StochasticUpdateStrategy implements Strategy
 			result.add(e.getKey(), e.getValue() / total);
 		}
 		return result;
-	}
-
-	/** 
-	 * converts this to normal form
-	 * needs to correspond to SMG.java:toNormalForm
-	 **/
-	public void toNormalForm() throws PrismException
-	{
-		int gameSize = pi_n.length;
-
-		// first get the new game size to resize arrays
-		int new_gameSize = gameSize;
-		for (int s = 0; s < gameSize; s++) {
-			if (pi_n[s] != null) { // a P1 state
-				new_gameSize++;
-			}
-		}
-
-		Map<Integer, Distribution>[] pi_n_new = new Map[new_gameSize];
-		Map<Integer, Map<Integer, Distribution>>[] pi_t_new = new Map[new_gameSize];
-		Map<Integer, Map<Integer, Map<Integer, Distribution>>>[] pi_u_new = new Map[new_gameSize];
-
-		int new_s = gameSize - 1;
-		for (int s = 0; s < gameSize; s++) {
-			if (pi_n[s] != null) { // a P1 state
-				new_s++;
-
-				// next state function
-				pi_n_new[new_s] = pi_n[s]; // new P1 state attached to end of list
-				pi_n[s] = null; // turns into a P2 state
-
-				// memory update for player states
-				pi_t_new[new_s] = pi_t[s]; // carry over the exact same memory update
-				// memory update for stochastic states
-				pi_u_new[new_s] = pi_u[s]; // carry over the exact same memory update
-
-				// at the original state, s, need to insert a memory update function that does not change the memory
-				Map<Integer, Map<Integer, Distribution>> dt = new HashMap<Integer, Map<Integer, Distribution>>();
-				Map<Integer, Map<Integer, Map<Integer, Distribution>>> du = new HashMap<Integer, Map<Integer, Map<Integer, Distribution>>>();
-				for (Integer p : pi_t[s].keySet()) {
-					// there is only one choice at s left, a TAU action
-					Distribution d1 = new Distribution();
-					Distribution d2 = new Distribution();
-					d1.add(p, 1.0);
-					d2.add(p, 1.0);
-					Map<Integer, Distribution> dtu = new HashMap<Integer, Distribution>();
-					dtu.put(0, d1); // only one move
-					dt.put(p, dtu); // p -> p
-
-					Map<Integer, Map<Integer, Distribution>> duq = new HashMap<Integer, Map<Integer, Distribution>>();
-
-					Map<Integer, Distribution> duqs = new HashMap<Integer, Distribution>();
-					duqs.put(new_s, d2); // next state is new_s (the new P1 state)
-
-					duq.put(p, duqs); // p -> p
-
-					du.put(0, duq); // only one move
-				}
-				pi_t[s] = dt; // this distribution leaves the memory unchanged
-				pi_u[s] = du; // this distribution leaves the memory unchanged
-
-			}
-		}
 	}
 
 	@Override

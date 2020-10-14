@@ -48,13 +48,7 @@ public class Strategies
 				} else if (type.equals(FORMAT_STRING_EXACT_VALUE_MD_STRAT)) {
 					return new ExactValueStrategy(scan);
 				} else if (type.equals(FORMAT_STRING_SU_STRAT_MONO)) {
-				        return new StochasticUpdateStrategy(scan);
-				} else if (type.equals(FORMAT_STRING_SU_STRAT_COMP)) {
-				        try {
-					        return new StochasticUpdateStrategyProduct(scan);
-				        } catch (PrismException e) {
-					        throw new IllegalArgumentException(e.getMessage());
-					}
+					return new StochasticUpdateStrategy(scan);
 				}
 				throw new IllegalArgumentException("Format not supported");
 			} finally {

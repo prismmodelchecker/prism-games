@@ -65,7 +65,6 @@ import simulator.method.SimulationMethod;
 import simulator.sampler.Sampler;
 import strat.InvalidStrategyStateException;
 import strat.StochasticUpdateStrategy;
-import strat.StochasticUpdateStrategyProduct;
 import strat.Strategy;
 import userinterface.graph.Graph;
 
@@ -1301,8 +1300,6 @@ public class SimulatorEngine extends PrismComponent
 				return "";
 			} else if (strategy instanceof StochasticUpdateStrategy) {
 				return ((StochasticUpdateStrategy) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
-			} else if (strategy instanceof StochasticUpdateStrategyProduct) {
-				return ((StochasticUpdateStrategyProduct) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
 			} else {
 				return df.format(getStrategyProbabilityForChoice(choice));
 			}
