@@ -28,7 +28,6 @@ package explicit;
 
 import java.util.BitSet;
 import java.util.Iterator;
-import java.util.PrimitiveIterator;
 import java.util.function.IntPredicate;
 
 import prism.PrismLog;
@@ -49,12 +48,26 @@ public interface NondetModel extends Model
 	/**
 	 * Get the maximum number of nondeterministic choices in any state.
 	 */
-	public int getMaxNumChoices();
+	default int getMaxNumChoices()
+	{
+		int maxNumChoices = 0;
+		for (int state = 0, numStates = getNumStates(); state < numStates; state++) {
+			maxNumChoices = Math.max(maxNumChoices, getNumChoices(state));
+		}
+		return maxNumChoices;
+	}
 
 	/**
 	 * Get the total number of nondeterministic choices over all states.
 	 */
-	public int getNumChoices();
+	default int getNumChoices()
+	{
+		int numChoices = 0;
+		for (int state = 0, numStates = getNumStates(); state < numStates; state++) {
+			numChoices += getNumChoices(state);
+		}
+		return numChoices;
+	}
 
 	/**
 	 * Get the action label (if any) for choice {@code i} of state {@code s}.
@@ -70,26 +83,6 @@ public interface NondetModel extends Model
 	 * Get the number of transitions from choice {@code i} of state {@code s}.
 	 */
 	public int getNumTransitions(int s, int i);
-
-	/**
-	 * Get the number of transitions leaving a set of states.
-	 * <br>
-	 * Default implementation: Iterate over the states s and choices i
-	 * and sum the result of getNumTransitions(s,i).
-	 * @param states The set of states, specified by a OfInt iterator
-	 * @return the number of transitions
-	 */
-	public default long getNumTransitions(PrimitiveIterator.OfInt states)
-	{
-		long count = 0;
-		while (states.hasNext()) {
-			int s = states.nextInt();
-			for (int choice = 0, numChoices = getNumChoices(s); choice < numChoices; choice++) {
-				count += getNumTransitions(s, choice);
-			}
-		}
-		return count;
-	}
 
 	/**
 	 * Check if all the successor states from choice {@code i} of state {@code s} are in the set {@code set}.

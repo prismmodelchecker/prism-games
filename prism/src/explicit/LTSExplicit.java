@@ -29,11 +29,8 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Iterator;
 
-import prism.ModelType;
 import prism.PrismException;
-import prism.PrismLog;
 import strat.MDStrategy;
 
 /**
@@ -109,11 +106,6 @@ public class LTSExplicit extends ModelExplicit implements LTS
 		throw new IllegalArgumentException();
 	}
 
-	public int getNumTransitions(int s)
-	{
-		return getNumChoices(s);
-	}
-
 	@Override
 	public boolean allSuccessorsInSet(int s, int i, BitSet set)
 	{
@@ -142,12 +134,6 @@ public class LTSExplicit extends ModelExplicit implements LTS
 	}
 
 	@Override
-	public void exportToDotFileWithStrat(PrismLog out, BitSet mark, int[] strat)
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public SuccessorsIterator getSuccessors(int s)
 	{
 		return SuccessorsIterator.from(successors.get(s).iterator(), false);
@@ -166,15 +152,15 @@ public class LTSExplicit extends ModelExplicit implements LTS
 	}
 
 	@Override
-	public ModelType getModelType()
-	{
-		return ModelType.LTS;
-	}
-
-	@Override
 	public int getNumTransitions()
 	{
 		return numTransitions;
+	}
+
+	@Override
+	public int getNumTransitions(int s)
+	{
+		return getNumChoices(s);
 	}
 
 	@Override
@@ -182,28 +168,4 @@ public class LTSExplicit extends ModelExplicit implements LTS
 	{
 		throw new UnsupportedOperationException();
 	}
-
-	@Override
-	public void exportToPrismExplicitTra(PrismLog out)
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void exportTransitionsToDotFile(int s, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
-	{
-		for (Iterator<Integer> it = getSuccessorsIterator(s); it.hasNext(); ) {
-			Integer successor = it.next();
-
-			// we ignore decorators here
-			out.println(s + " -> " + successor + ";");
-		}
-	}
-
-	@Override
-	public void exportToPrismLanguage(String filename) throws PrismException
-	{
-		throw new UnsupportedOperationException();
-	}
-
 }

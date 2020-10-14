@@ -478,6 +478,12 @@ public class MDPSparse extends MDPExplicit
 		return numTransitions;
 	}
 
+	@Override
+	public int getNumTransitions(int s)
+	{
+		return choiceStarts[rowStarts[s + 1]] - choiceStarts[rowStarts[s]];
+	}
+
 	private SuccessorsIterator colsIterator(int start, int end, boolean distinct)
 	{
 		return new SuccessorsIterator() {
@@ -578,6 +584,14 @@ public class MDPSparse extends MDPExplicit
 	public int getNumTransitions(int s, int i)
 	{
 		return choiceStarts[rowStarts[s] + i + 1] - choiceStarts[rowStarts[s] + i];
+	}
+
+	@Override
+	public void forEachTransition(int s, int i, TransitionConsumer c)
+	{
+		for (int col = choiceStarts[rowStarts[s] + i], stop = choiceStarts[rowStarts[s] + i + 1]; col < stop; col++) {
+			c.accept(s, cols[col], nonZeros[col]);
+		}
 	}
 
 	@Override
@@ -841,7 +855,7 @@ public class MDPSparse extends MDPExplicit
 				d += nonZeros[k] * vect[cols[k]];
 			}
 			// Store strategy info if value matches
-			if (PrismUtils.doublesAreClose(val, d, 1e-12, false)) {
+			if (PrismUtils.doublesAreEqual(val, d)) {
 				res.add(j - l1);
 			}
 		}
@@ -1089,7 +1103,7 @@ public class MDPSparse extends MDPExplicit
 			}
 			d += mdpRewards.getStateReward(s);
 			// Store strategy info if value matches
-			if (PrismUtils.doublesAreClose(val, d, 1e-12, false)) {
+			if (PrismUtils.doublesAreEqual(val, d)) {
 				res.add(j - l1);
 			}
 		}

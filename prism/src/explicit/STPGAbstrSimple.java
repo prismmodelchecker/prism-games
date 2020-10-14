@@ -38,18 +38,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
-import prism.ModelType;
+import common.IterableStateSet;
+import explicit.rewards.STPGRewards;
 import prism.PrismException;
-import prism.PrismNotSupportedException;
 import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
-
-import common.IterableStateSet;
-
-import explicit.rewards.STPGRewards;
 
 /**
  * Simple explicit-state representation of a stochastic two-player game (STPG),
@@ -285,12 +280,6 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	// Accessors (for ModelSimple)
 
 	@Override
-	public ModelType getModelType()
-	{
-		return ModelType.STPG;
-	}
-
-	@Override
 	public int getNumTransitions()
 	{
 		return numTransitions;
@@ -375,37 +364,6 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public void exportToPrismExplicitTra(PrismLog out)
-	{
-		int i, j, k;
-		TreeMap<Integer, Double> sorted;
-		// Output transitions to .tra file
-		out.print(numStates + " " + numDistrSets + " " + numDistrs + " " + numTransitions + "\n");
-		sorted = new TreeMap<Integer, Double>();
-		for (i = 0; i < numStates; i++) {
-			j = -1;
-			for (DistributionSet distrs : trans.get(i)) {
-				j++;
-				k = -1;
-				for (Distribution distr : distrs) {
-					k++;
-					// Extract transitions and sort by destination state index (to match PRISM-exported files)
-					for (Map.Entry<Integer, Double> e : distr) {
-						sorted.put(e.getKey(), e.getValue());
-					}
-					// Print out (sorted) transitions
-					for (Map.Entry<Integer, Double> e : distr) {
-						// Note use of PrismUtils.formatDouble to match PRISM-exported files
-						out.print(i + " " + j + " " + k + " " + e.getKey() + " "
-								+ PrismUtils.formatDouble(e.getValue()) + "\n");
-					}
-					sorted.clear();
-				}
-			}
-		}
-	}
-
-	@Override
 	public void exportTransitionsToDotFile(int i, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
 	{
 		int j, k;
@@ -438,12 +396,6 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 		throw new RuntimeException("Not yet supported");
 	}
 	
-	@Override
-	public void exportToPrismLanguage(String filename) throws PrismException
-	{
-		throw new PrismNotSupportedException("Export to STPG PRISM models not supported");
-	}
-
 	@Override
 	public String infoString()
 	{
@@ -680,8 +632,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset,
-			boolean complement, int adv[])
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		for (int s : new IterableStateSet(subset, numStates, complement)) {
 			result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
@@ -757,7 +708,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 			}
 			// Store strategy info if value matches
 			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
-			if (PrismUtils.doublesAreClose(val, minmax2, 1e-12, false)) {
+			if (PrismUtils.doublesAreEqual(val, minmax2)) {
 				res.add(j);
 				//res.add(distrs.getAction());
 			}
@@ -767,8 +718,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement,
-			boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
 	{
 		double d, diff, maxDiff = 0.0;
 		for (int s : new IterableStateSet(subset, numStates, complement)) {
@@ -824,8 +774,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[],
-			BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		for (int s : new IterableStateSet(subset, numStates, complement)) {
 			result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
@@ -833,8 +782,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2,
-			int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
 	{
 		int dsIter, dIter, k;
 		double d, prob, minmax1, minmax2;
@@ -875,8 +823,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1,
-			boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
 	{
 		int dsIter, dIter, k;
 		double d, prob, minmax2;
@@ -911,7 +858,7 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 			minmax2 += rewards.getTransitionReward(s, dsIter);
 			// Store strategy info if value matches
 			//if (PrismUtils.doublesAreClose(val, d, termCritParam, termCrit == TermCrit.ABSOLUTE)) {
-			if (PrismUtils.doublesAreClose(val, minmax2, 1e-12, false)) {
+			if (PrismUtils.doublesAreEqual(val, minmax2)) {
 				res.add(dsIter);
 				//res.add(distrs.getAction());
 			}

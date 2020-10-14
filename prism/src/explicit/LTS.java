@@ -26,9 +26,71 @@
 
 package explicit;
 
+import java.util.BitSet;
+import java.util.Iterator;
+
+import prism.ModelType;
+import prism.PrismException;
+import prism.PrismLog;
+
 /**
  * Interface for classes that provide (read) access to an explicit-state labelled transition system (LTS).
  */
 public interface LTS extends NondetModel
 {
+	// Accessors (for Model) - default implementations
+	
+	@Override
+	default ModelType getModelType()
+	{
+		return ModelType.LTS;
+	}
+
+	@Override
+	default void exportToPrismExplicitTra(PrismLog out)
+	{
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	default void exportTransitionsToDotFile(int s, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
+	{
+		for (Iterator<Integer> it = getSuccessorsIterator(s); it.hasNext(); ) {
+			Integer successor = it.next();
+			// we ignore decorators here
+			out.println(s + " -> " + successor + ";");
+		}
+	}
+	
+	@Override
+	default void exportToPrismLanguage(String filename) throws PrismException
+	{
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	default String infoString()
+	{
+		String s = "";
+		s += getNumStates() + " states (" + getNumInitialStates() + " initial)";
+		s += ", " + getNumTransitions() + " transitions";
+		return s;
+	}
+
+	@Override
+	default String infoStringTable()
+	{
+		String s = "";
+		s += "States:      " + getNumStates() + " (" + getNumInitialStates() + " initial)\n";
+		s += "Transitions: " + getNumTransitions() + "\n";
+		return s;
+	}
+
+	// Accessors (for NondetModel) - default implementations
+	
+	@Override
+	default void exportToDotFileWithStrat(PrismLog out, BitSet mark, int[] strat)
+	{
+		throw new UnsupportedOperationException();
+	}
 }

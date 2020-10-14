@@ -34,9 +34,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import prism.PrismException;
 import parser.State;
+import prism.PrismException;
 import prism.PrismUtils;
+
 /**
  * Explicit representation of a probability distribution.
  * Basically, a mapping from (integer-valued) indices to (non-zero, double-valued) probabilities. 
@@ -206,7 +207,7 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 	/**
 	 * Get the mean of the distribution.
 	 */
-	public double mean()
+	/*public double mean()
 	{
 		double d = 0.0;
 		Iterator<Entry<Integer, Double>> i = iterator();
@@ -215,12 +216,12 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 			d += e.getValue() * e.getKey();
 		}
 		return d;
-	}
+	}*/
 	
 	/**
 	 * Get the variance of the distribution.
 	 */
-	public double variance()
+	/*public double variance()
 	{
 		double mean = mean();
 		double meanSq = 0.0;
@@ -230,24 +231,24 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 			meanSq += e.getValue() * e.getKey() * e.getKey();
 		}
 		return Math.abs(meanSq - mean * mean);
-	}
+	}*/
 	
 	/**
 	 * Get the standard deviation of the distribution.
 	 */
-	public double standardDeviation()
+	/*public double standardDeviation()
 	{
 		return Math.sqrt(variance());
-	}
+	}*/
 	
 	/**
 	 * Get the relative standard deviation of the distribution,
 	 * i.e., as a percentage of the mean.
 	 */
-	public double standardDeviationRelative()
+	/*public double standardDeviationRelative()
 	{
 		return 100.0 * standardDeviation() / mean();
-	}
+	}*/
 	
 	/**
 	 * Get the sum of the probabilities in the distribution.
@@ -314,7 +315,7 @@ public class Distribution implements Iterable<Entry<Integer, Double>>
 			Map.Entry<Integer, Double> e = i.next();
 			d1 = e.getValue();
 			d2 = d.map.get(e.getKey());
-			if (d2 == null || !PrismUtils.doublesAreClose(d1, d2, 1e-12, false))
+			if (d2 == null || !PrismUtils.doublesAreEqual(d1, d2))
 				return false;
 		}
 		return true;
