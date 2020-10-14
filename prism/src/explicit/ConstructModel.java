@@ -228,7 +228,6 @@ public class ConstructModel extends PrismComponent
 			case CSG:
 				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
 				csg.setActions(modelGen.getActions());
-				csg.setVarList(varList);
 				break;			
 			case MDP:
 				modelSimple = mdp = new MDPSimple();
@@ -238,12 +237,10 @@ public class ConstructModel extends PrismComponent
 				break;
 			case STPG:
 				modelSimple = stpg = new STPGExplicit();
-				stpg.setVarList(varList);
 				break;
 			case SMG:
 				modelSimple = smg = new SMG();
 				smg.setPlayerInfo(playerNames);
-				smg.setVarList(varList);
 				break;
 			case PTA:
 			case LTS:
