@@ -290,10 +290,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 
 		if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
 			if (groupCount == groupIndex) {
-			        if (view.showActions() && view.showMemory() && path.storesStrategyMemory() && view.showSteps())
-					return stepStart + 2;
-				else
-					return stepStart;
+				int stepColCount = (view.showActions() ? 1 : 0) + (view.showMemory() && path.storesStrategyMemory() ? 1 : 0) + (view.showSteps() ? 1 : 0);
+				return stepStart + stepColCount - 1;
 			}
 
 			groupCount++;
