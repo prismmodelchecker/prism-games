@@ -14,8 +14,7 @@ import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
 import explicit.NondetModel;
-import explicit.SMG;
-import explicit.STPGExplicit;
+import explicit.SMGSimple;
 import parser.State;
 import prism.Prism.StrategyExportType;
 import prism.PrismException;
@@ -305,22 +304,18 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		if (model.getClass().equals(MDPSparse.class)) {
 			return this.buildProductMDPSparse((MDPSparse) model);
 		}
-		if (model.getClass().equals(STPGExplicit.class)) {
-			return this.buildProductSTPGExplicit((STPGExplicit) model);
-		}
-		if (model.getClass().equals(SMG.class)) {
-			return this.buildProductSMG((SMG) model);
+		if (model.getClass().equals(SMGSimple.class)) {
+			return this.buildProductSMGSimple((SMGSimple) model);
 		}
 
 		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 	}
 
-	private Model buildProductSMG(SMG model) throws PrismException
+	private Model buildProductSMGSimple(SMGSimple model) throws PrismException
 	{
 		// construct a new SMG of size ModelSize * MemorySize
-		SMG smg = new SMG(model.getStatesList().size() * bound);
+		SMGSimple smg = new SMGSimple(model.getStatesList().size() * bound);
 		smg.copyPlayerInfo(model);
-		smg.copyCoalitionInfo(model);
 		int n = smg.getNumStates();
 
 		List<State> oldStates = model.getStatesList();
@@ -400,91 +395,6 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		smg.addInitialState(0);
 
 		return smg;
-	}
-
-	private Model buildProductSTPGExplicit(STPGExplicit model)
-	{
-		// construct a new STPG of size ModelSize * MemorySize
-		STPGExplicit stpg = new STPGExplicit(model.getStatesList().size() * bound);
-		int n = stpg.getNumStates();
-
-		List<State> oldStates = model.getStatesList();
-
-		// creating helper states for constructing the product
-		State[] mem = new State[bound];
-		for (int i = bound; i >= 1; i--) {
-			mem[bound - i] = new State(1);
-			mem[bound - i].setValue(0, i);
-		}
-
-		// creating product state list
-		List<State> newStates = new ArrayList<State>(n);
-		for (int j = 0; j < bound; j++)
-			for (int i = 0; i < oldStates.size(); i++) {
-				newStates.add(new State(oldStates.get(i), mem[j]));
-				stpg.setPlayer(newStates.size() - 1, model.getPlayer(i));
-			}
-
-		// setting the states list to STPG
-		stpg.setStatesList(newStates);
-
-		// adding choices for the product STPG
-
-		// adding transitions to the state with the next memory element
-		Distribution distr, newDistr;
-		for (int j = bound; j >= 1; j--) {
-			// setting memory
-			this.memory = j;
-			for (int i = 0; i < oldStates.size(); i++) {
-				// if the state belongs to player 1 retrieving choice chosen by
-				// the optimal strategy
-				if (model.getPlayer(i) == 1) {
-					try {
-						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
-
-						// create a new distribution for the product
-						newDistr = new Distribution();
-						for (Integer succ : distr.keySet())
-							// adding transition to the state with the memory
-							// element one larger smaller than the current one
-							// (j)
-							// except for the case where j==1, when we add
-							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + succ, distr.get(succ));
-
-						// adding the choice
-						stpg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
-
-					} catch (InvalidStrategyStateException error) {
-						// TODO Auto-generated catch block
-						error.printStackTrace();
-					}
-				} else // otherwise copying all distributions
-				{
-					for (int k = 0; k < model.getNumChoices(i); k++) {
-						distr = model.getChoice(i, k);
-
-						// create a new distribution for the product
-						newDistr = new Distribution();
-						for (Integer succ : distr.keySet())
-							// adding transition to the state with the memory
-							// element one larger smaller than the current one
-							// (j)
-							// except for the case where j==1, when we add
-							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + succ, distr.get(succ));
-
-						// adding the choice
-						stpg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
-					}
-				}
-			}
-		}
-
-		// setting initial state for the game
-		stpg.addInitialState(0);
-
-		return stpg;
 	}
 
 	/**

@@ -156,7 +156,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			actionIndexes[c] = new BitSet();
 			for (p = 0; p < numPlayers; p++) {
 				if (!coalitionIndexes[c].get(p)) {					
-					if (coalitions.get(c).isPlayerIndexInCoalition(p + 1, pmap)) {
+					if (coalitions.get(c).isPlayerIndexInCoalition(p, pmap)) {
 						coalitionIndexes[c].set(p);
 						actionIndexes[c].or(csg.getIndexes()[p]);
 						actionIndexes[c].set(csg.getIdleForPlayer(p));

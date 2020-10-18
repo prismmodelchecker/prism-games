@@ -341,7 +341,7 @@ public class CSGModelChecker extends ProbModelChecker {
 		}
 		for (p = 0; p < numPlayers; p++) {
 			if (min) {
-				if(coalition.isPlayerIndexInCoalition(p + 1, pmap)) {
+				if(coalition.isPlayerIndexInCoalition(p, pmap)) {
 					coalitionIndexes[1].set(p);
 					actionIndexes[1].or(csg.getIndexes()[p]);
 					actionIndexes[1].set(csg.getIdleForPlayer(p));
@@ -353,7 +353,7 @@ public class CSGModelChecker extends ProbModelChecker {
 				}
 			}
 			else {
-				if(coalition.isPlayerIndexInCoalition(p + 1, pmap)) {
+				if(coalition.isPlayerIndexInCoalition(p, pmap)) {
 					coalitionIndexes[0].set(p);
 					actionIndexes[0].or(csg.getIndexes()[p]);
 					actionIndexes[0].set(csg.getIdleForPlayer(p));
@@ -1456,15 +1456,6 @@ public class CSGModelChecker extends ProbModelChecker {
 				if (r > maximumReward)
 					maximumReward = r;
 				allNonzero = allNonzero && rewards.getTransitionReward(i, j) > 0;
-
-				for (int k = 0; k < csg.getNumNestedChoices(i, j); k++) {
-					r = rewards.getNestedTransitionReward(i, j, k);
-					if (r > 0.0 && r < minimumReward)
-						minimumReward = r;
-					if (r > maximumReward)
-						maximumReward = r;
-					allNonzero = allNonzero && r > 0;
-				}
 			}
 		}
 		

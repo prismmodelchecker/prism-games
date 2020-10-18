@@ -2,8 +2,8 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-// * Clemens Wiltsche <clemens.wiltsche@cs.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
+//	* Clemens Wiltsche <clemens.wiltsche@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -244,7 +244,7 @@ public class SMGModelChecker extends ProbModelChecker
 	**/
 	private boolean isControllableMultichain(SMG smg) throws PrismException
 	{
-		int gameSize = smg.numStates;
+		int gameSize = smg.getNumStates();
 		int initial = smg.getFirstInitialState();
 
 		// first need all strongly connected components (SCCs)
@@ -269,16 +269,16 @@ public class SMGModelChecker extends ProbModelChecker
 			BitSet uj = new BitSet(gameSize);
 			BitSet covered = new BitSet(gameSize);
 			for (int i = 0; i < gameSize; i++) {
-				if (scc.get(i) && smg.getPlayer(i) == 1) {
+				if (scc.get(i) && smg.getPlayer(i) == 0) {
 					p1state_exists = true;
 					// first get all states reachable in one step from i
 					ui.clear();
 					ui.set(i);
 					uj.clear();
-					((STPGExplicit) smg).reachpositivestep(ui, false, true, uj);
+					smg.reachpositivestep(ui, false, true, uj);
 					for (int j = uj.nextSetBit(0); j != -1; j = uj.nextSetBit(j + 1)) { // go through all states reachable in one step from i
-						if (smg.getPlayer(j) != 1 && !covered.get(j)) {
-							BitSet subtree = getSubtree((STPG) smg, j, 2); // get P2-closed subtree
+						if (smg.getPlayer(j) != 0 && !covered.get(j)) {
+							BitSet subtree = getSubtree((STPG) smg, j, 1); // get P2-closed subtree
 							subtree.set(i); // put the P1 state (the initial root) into the subtree
 							subtrees.add(subtree); // get P2-closed subtree
 							covered.or(subtree);
@@ -328,13 +328,13 @@ public class SMGModelChecker extends ProbModelChecker
 	/**
 	 * Determine the states of an STPG which, with min/max probability strictly greater than 0,
 	 * are reached from a state in {@code origin}, while remaining in sates of {@code remain}.
-	 * @param stpg The STPG
+	 * @param smg The STPG
 	 * @param remain The states to remain in
 	 * @param origin Origin states
 	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public BitSet reachpositive(STPG stpg, BitSet remain, BitSet origin, boolean min1, boolean min2)
+	public BitSet reachpositive(SMG smg, BitSet remain, BitSet origin, boolean min1, boolean min2)
 	{
 		int n, iters;
 		BitSet u, soln;
@@ -348,12 +348,12 @@ public class SMGModelChecker extends ProbModelChecker
 
 		// Special case: no origin states
 		if (origin.cardinality() == 0) {
-			soln = new BitSet(stpg.getNumStates());
+			soln = new BitSet(smg.getNumStates());
 			return soln; // all zeroes
 		}
 
 		// Initialise vectors
-		n = stpg.getNumStates();
+		n = smg.getNumStates();
 		u = new BitSet(n);
 		soln = new BitSet(n);
 
@@ -367,7 +367,7 @@ public class SMGModelChecker extends ProbModelChecker
 		while (!u_done) {
 			iters++;
 			// Single step of ReachPositive
-			((STPGExplicit) stpg).reachpositivestep(u, min1, min2, soln);
+			smg.reachpositivestep(u, min1, min2, soln);
 			// ensure to remain in set
 			if (remain != null)
 				soln.and(remain);
@@ -410,7 +410,7 @@ public class SMGModelChecker extends ProbModelChecker
 		soln.set(s);
 		while (!u_done) {
 			// Single step of ReachPositive
-			((STPGExplicit) stpg).subtreeStep(u, closedPlayer, soln);
+			((SMGSimple) stpg).subtreeStep(u, closedPlayer, soln);
 			// Check termination
 			u_done = soln.equals(u);
 			// u = soln
@@ -853,7 +853,7 @@ public class SMGModelChecker extends ProbModelChecker
 		if (rewStruct == null)
 			return null;
 
-		int gameSize = model.numStates;
+		int gameSize = model.getNumStates();
 		ConstructRewards constructRewards = new ConstructRewards(this);
 		SMGRewards smgreward = constructRewards.buildSMGRewardStructure(model, rewStruct, constantValues);
 		SMGRewardsSimple reward = null;
@@ -894,7 +894,7 @@ public class SMGModelChecker extends ProbModelChecker
 		}
 		params.nested.add(nested);
 		
-		int gameSize = ((SMG) model).numStates;
+		int gameSize = model.getNumStates();
 
 		RelOp relOp = exprReward.getRelOp(); // direction and strictness of operator
 		boolean minimize = false;
@@ -1442,7 +1442,7 @@ public class SMGModelChecker extends ProbModelChecker
 	**/
 	private void shiftRewards(Model model, MultiParameters params, boolean revert_direction, boolean construct_energy_strategy)
 	{
-		int gameSize = ((SMG) model).numStates;
+		int gameSize = model.getNumStates();
 
 		// apply shift to rewards
 		// if not constructing strategy for an energy objective, use the standard shifts

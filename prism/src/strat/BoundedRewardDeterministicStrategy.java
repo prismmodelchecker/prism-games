@@ -7,13 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import parser.State;
-import prism.PrismException;
 import explicit.Distribution;
 import explicit.Model;
 import explicit.NondetModel;
 import explicit.SMG;
+import explicit.SMGSimple;
 import explicit.rewards.STPGRewards;
+import parser.State;
+import prism.PrismException;
 
 /**
  * 
@@ -121,18 +122,17 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	{
 
 		if (model.getClass().equals(SMG.class)) {
-			return this.buildProductSMG((SMG) model);
+			return this.buildProductSMGSimple((SMGSimple) model);
 		}
 
 		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 	}
 
-	private Model buildProductSMG(SMG model) throws PrismException
+	private Model buildProductSMGSimple(SMGSimple model) throws PrismException
 	{
 		// construct a new SMG of size ModelSize * MemorySize
-		SMG smg = new SMG(model.getStatesList().size() * bound);
+		SMGSimple smg = new SMGSimple(model.getStatesList().size() * bound);
 		smg.copyPlayerInfo(model);
-		smg.copyCoalitionInfo(model);
 		int n = smg.getNumStates();
 
 		List<State> oldStates = model.getStatesList();

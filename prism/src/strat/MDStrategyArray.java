@@ -45,8 +45,7 @@ import explicit.MDPSimple;
 import explicit.MDPSparse;
 import explicit.Model;
 import explicit.NondetModel;
-import explicit.SMG;
-import explicit.STPGExplicit;
+import explicit.SMGSimple;
 import prism.Prism.StrategyExportType;
 import prism.PrismLog;
 
@@ -168,11 +167,8 @@ public class MDStrategyArray extends MDStrategy
 		if (model.getClass().equals(MDPSparse.class)) {
 			return this.buildProductMDPSparse((MDPSparse) model);
 		}
-		if (model.getClass().equals(STPGExplicit.class)) {
-			return this.buildProductSTPGExplicit((STPGExplicit) model);
-		}
-		if (model.getClass().equals(SMG.class)) {
-			return this.buildProductSMG((SMG) model);
+		if (model.getClass().equals(SMGSimple.class)) {
+			return this.buildProductSMGSimple((SMGSimple) model);
 		}
 		throw new UnsupportedOperationException("The product building is not supported for this class of models");
 	}
@@ -219,49 +215,13 @@ public class MDStrategyArray extends MDStrategy
 	}
 
 	/**
-	 * Builds product between the given two player game and the strategy
-	 * Implements strategy for player 1 only, thus returning MDP
-	 * 
-	 * @param model
-	 *            the model
-	 * @return strategy
-	 */
-	private Model buildProductSTPGExplicit(STPGExplicit model)
-	{
-		STPGExplicit stpg = new STPGExplicit(model);
-		int n = stpg.getNumStates();
-		int c;
-		Distribution distr;
-
-		for (int s = 0; s < n; s++) {
-			// checking if the state belong to player 1
-			if (stpg.getPlayer(s) != 1)
-				// if not then doing nothing
-				continue;
-
-			c = getChoiceIndex(s);
-
-			// if for adversary choice is undefined, taking the first one as
-			// default
-			if (c < 0)
-				c = 0;
-
-			// replacing the choices with the one prescribed by the strategy
-			distr = stpg.getChoice(s, c);
-			stpg.clearState(s);
-			stpg.addChoice(s, distr);
-		}
-		return stpg;
-	}
-
-	/**
 	 * 
 	 * @param model
 	 * @return
 	 */
-	private Model buildProductSMG(SMG model)
+	private Model buildProductSMGSimple(SMGSimple model)
 	{
-		SMG smg = new SMG(model);
+		SMGSimple smg = new SMGSimple(model);
 		int n = smg.getNumStates();
 		int c;
 		Distribution distr;

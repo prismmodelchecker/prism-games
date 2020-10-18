@@ -29,11 +29,7 @@
 package explicit;
 
 import java.awt.Point;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -44,6 +40,19 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
+import acceptance.AcceptanceBuchi;
+import acceptance.AcceptanceGenRabin;
+import acceptance.AcceptanceOmega;
+import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceReach;
+import acceptance.AcceptanceStreett;
+import acceptance.AcceptanceType;
+import automata.DA;
+import automata.LTL2DA;
+import automata.LTL2WDBA;
+import common.IterableStateSet;
+import common.StopWatch;
+import jltl2ba.SimpleLTL;
 import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
@@ -56,25 +65,12 @@ import parser.ast.ExpressionUnaryOp;
 import parser.type.TypeBool;
 import parser.type.TypePathBool;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
-import acceptance.AcceptanceBuchi;
-import acceptance.AcceptanceGenRabin;
-import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceRabin;
-import acceptance.AcceptanceReach;
-import acceptance.AcceptanceStreett;
-import acceptance.AcceptanceType;
-import automata.DA;
-import automata.LTL2DA;
-import automata.LTL2WDBA;
-import jltl2ba.SimpleLTL;
-
-import common.IterableStateSet;
-import common.StopWatch;
 
 /**
  * LTL model checking functionality
@@ -590,13 +586,13 @@ public class LTLModelChecker extends PrismComponent
 			break;
 		}
 		case STPG: {
-			STPGExplicit stpgProd = new STPGExplicit();
+			STPGSimple stpgProd = new STPGSimple();
 			stpgProd.setVarList(newVarList);
 			prodModel = stpgProd;
 			break;
 		}
 		case SMG: {
-			SMG smgProd = new SMG();
+			SMGSimple smgProd = new SMGSimple();
 			smgProd.setVarList(newVarList);
 			prodModel = smgProd;
 			break;
@@ -650,10 +646,10 @@ public class LTLModelChecker extends PrismComponent
 			queue.add(new Point(s_0, q_0));
 			switch (modelType) {
 			case STPG:
-				((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
+				((STPGSimple) prodModel).addState(((STPG) model).getPlayer(s_0));
 				break;
 			case SMG:
-				((SMG) prodModel).addState(((SMG) model).getPlayer(s_0));
+				((SMGSimple) prodModel).addState(((SMG) model).getPlayer(s_0));
 				break;
 			default:
 				prodModel.addState();
@@ -720,10 +716,10 @@ public class LTLModelChecker extends PrismComponent
 						queue.add(new Point(s_2, q_2));
 						switch (modelType) {
 						case STPG:
-							((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_2));
+							((STPGSimple) prodModel).addState(((STPG) model).getPlayer(s_2));
 							break;
 						case SMG:
-							((SMG) prodModel).addState(((SMG) model).getPlayer(s_2));
+							((SMGSimple) prodModel).addState(((SMG) model).getPlayer(s_2));
 							break;
 						default:
 							prodModel.addState();
@@ -758,10 +754,10 @@ public class LTLModelChecker extends PrismComponent
 					((MDPSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((MDP) model).getAction(s_1, j));
 					break;
 				case STPG:
-					((STPGExplicit) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((STPG) model).getAction(s_1, j));
+					((STPGSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((STPG) model).getAction(s_1, j));
 					break;
 				case SMG:
-					((SMG) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((SMG) model).getAction(s_1, j));
+					((SMGSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((SMG) model).getAction(s_1, j));
 					break;
 				default:
 					break;
@@ -769,12 +765,16 @@ public class LTLModelChecker extends PrismComponent
 			}
 		}
 
-		// For SMGs, copy player/coalition info too
-		if (modelType == ModelType.SMG) {
-			((SMG) prodModel).copyPlayerInfo((SMG) model);
-			((SMG) prodModel).copyCoalitionInfo((SMG) model);
+		// For games with player/coalition info, copy this too
+		if (model instanceof PlayerInfoOwner) {
+			if (modelType == ModelType.STPG) {
+				((STPGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
+			if (modelType == ModelType.SMG) {
+				((SMGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
 		}
-
+		
 		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
 		int invMap[] = new int[prodModel.getNumStates()];
 		for (int i = 0; i < map.length; i++) {

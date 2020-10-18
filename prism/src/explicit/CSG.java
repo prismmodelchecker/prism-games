@@ -28,6 +28,7 @@
 package explicit;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
@@ -35,12 +36,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import java.util.Arrays;
-import explicit.STPGExplicit;
 import prism.ModelType;
-import prism.PrismException;
 
-public class CSG extends STPGExplicit {
+public class CSG extends MDPSimple {
 
 	protected Map<Integer, Map<String, Map<String, Map<String, Double>>>> rewards; 
 	
