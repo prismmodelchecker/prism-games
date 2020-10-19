@@ -2,9 +2,7 @@ package simulator;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import parser.State;
 import parser.Values;
@@ -318,11 +316,11 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 			}
 			// Otherwise, it's an error
 			else {
-				Set<String> acts = new HashSet<>();
+				List<String> acts = new ArrayList<>();
 				for (int i = 0; i < nc; i++) {
 					String modAct = transitions.getChoiceModuleOrAction(i);
 					if (modulesFile.getPlayerForModuleOrAction(modAct) == -1) {
-						acts.add(getChoiceAction(i).toString());
+						acts.add(getChoiceActionString(i));
 					}
 				}
 				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player"; 
