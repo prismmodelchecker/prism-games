@@ -27,19 +27,11 @@
 
 package explicit;
 
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -47,46 +39,29 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.math3.util.Precision;
 
-import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceOmega.LiftBitSet;
-import acceptance.AcceptanceRabin.RabinPair;
 import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceRabin.RabinPair;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import automata.DASimplifyAcceptance;
-import automata.LTL2DA;
-import automata.LTL2NBA;
-import automata.LTL2RabinLibrary;
 import explicit.LTLModelChecker.LTLProduct;
-import explicit.ProbModelChecker.TermCrit;
 import explicit.rewards.CSGRewards;
 import explicit.rewards.CSGRewardsSimple;
-import explicit.rewards.MDPRewards;
-import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.StateRewardsConstant;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import parser.State;
-import parser.VarList;
 import parser.ast.Coalition;
-import parser.ast.Declaration;
-import parser.ast.DeclarationInt;
-import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import prism.IntegerBound;
 import prism.PrismComponent;
 import prism.PrismException;
-import prism.PrismFileLog;
 import prism.PrismLangException;
-import prism.PrismLog;
-import prism.PrismUtils;
 import prism.PrismSettings;
+import prism.PrismUtils;
 import strat.CSGStrategy;
 import strat.CSGStrategy.CSGStrategyType;
-import strat.MDStrategyArray;
-import strat.MemorylessDeterministicStrategy;
-import strat.Strategy;
 
 public class CSGModelChecker extends ProbModelChecker {
 
@@ -1665,8 +1640,8 @@ public class CSGModelChecker extends ProbModelChecker {
 			product = ltlmc.constructProductCSG(this, csg, exprs.get(index), null, allowedAcceptance);
 		}
 		
-		product.productModel.clearInitialStates();
-		product.productModel.addInitialState(product.getModelState(csg.getFirstInitialState()));
+		((ModelExplicit) product.productModel).clearInitialStates();
+		((ModelExplicit) product.productModel).addInitialState(product.getModelState(csg.getFirstInitialState()));
 
 		//product.productModel.exportToDotFile(path + "/product.dot");
 	
@@ -1855,7 +1830,7 @@ public class CSGModelChecker extends ProbModelChecker {
 	protected HashMap<Integer, Integer> map_state;
 	protected List<State> list_state;
 	 
-	public void filterStates(CSG csg, CSG csg_rm, List<CSGRewards> rewards, List<CSGRewards> rew_rm, int s) {
+	public void filterStates(CSG csg, CSGSimple csg_rm, List<CSGRewards> rewards, List<CSGRewards> rew_rm, int s) {
 		Distribution d;
 		int i;
 		list_state.add(csg.getStatesList().get(s));

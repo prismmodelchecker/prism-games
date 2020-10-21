@@ -174,7 +174,7 @@ public class ConstructModel extends PrismComponent
 		POMDPSimple pomdp = null;
 		CTMDPSimple ctmdp = null;
 		STPGSimple stpg = null;
-		CSG csg = null;
+		CSGSimple csg = null;
 		SMGSimple smg = null;
 		LTSSimple lts = null;
 		ModelExplicit model = null;
@@ -232,7 +232,7 @@ public class ConstructModel extends PrismComponent
 				modelSimple = ctmc = new CTMCSimple();
 				break;
 			case CSG:
-				modelSimple = csg = new CSG(playerNames.toArray(new String[0]));
+				modelSimple = csg = new CSGSimple(playerNames.toArray(new String[0]));
 				csg.setActions(modelGen.getActions());
 				break;			
 			case MDP:
@@ -474,7 +474,7 @@ public class ConstructModel extends PrismComponent
 				model = sortStates ? new CTMDPSimple(ctmdp, permut) : ctmdp;
 				break;
 			case CSG:
-				model = sortStates ? new CSG(csg, permut) : csg;
+				model = sortStates ? new CSGSimple(csg, permut) : csg;
 				break;
 			case STPG:
 				model = sortStates ? new STPGSimple(stpg, permut) : stpg;

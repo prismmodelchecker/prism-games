@@ -569,7 +569,7 @@ public class LTLModelChecker extends PrismComponent
 		ModelSimple prodModel = null;
 		switch (modelType) {
 		case CSG:
-			CSG csgProd = new CSG();
+			CSGSimple csgProd = new CSGSimple();
 			csgProd.setVarList(newVarList);
 			prodModel = csgProd;
 			break;
@@ -603,10 +603,10 @@ public class LTLModelChecker extends PrismComponent
 
 		// Add player information for CSGs
 		if (modelType == ModelType.CSG) {
-			((CSG) prodModel).setActions(((CSG) model).getActions());
-			((CSG) prodModel).setPlayers(((CSG) model).getPlayers());
-			((CSG) prodModel).setIndexes(((CSG) model).getIndexes());
-			((CSG) prodModel).setIdles(((CSG) model).getIdles());
+			((CSGSimple) prodModel).setActions(((CSG) model).getActions());
+			((CSGSimple) prodModel).setPlayers(((CSG) model).getPlayers());
+			((CSGSimple) prodModel).setIndexes(((CSG) model).getIndexes());
+			((CSGSimple) prodModel).setIdles(((CSG) model).getIdles());
 		}
 		
 		// Encoding: 
@@ -747,8 +747,8 @@ public class LTLModelChecker extends PrismComponent
 				}
 				switch (modelType) {
 				case CSG:
-					t_2 = ((CSG) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((CSG) model).getAction(s_1, j));
-					((CSG) prodModel).setIndexes(map[s_1 * daSize + q_1], t_2, ((CSG) model).getIndexes(s_1, j));
+					t_2 = ((CSGSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((CSG) model).getAction(s_1, j));
+					((CSGSimple) prodModel).setIndexes(map[s_1 * daSize + q_1], t_2, ((CSG) model).getIndexes(s_1, j));
 					break;
 				case MDP:
 					((MDPSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((MDP) model).getAction(s_1, j));

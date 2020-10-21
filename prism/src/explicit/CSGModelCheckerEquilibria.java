@@ -886,7 +886,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		//System.out.println("-- common " + common);
 		
-		CSG newmodel = new CSG();
+		CSGSimple newmodel = new CSGSimple();
 		newmodel.setActions(csg.getActions());
 		newmodel.setPlayers(csg.getPlayers());
 		newmodel.setIndexes(csg.getIndexes());
@@ -1142,7 +1142,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return false;
 	}
 	
-	public void exploreSat(CSG csg, CSG newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
+	public void exploreSat(CSG csg, CSGSimple newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
 									VarList newvarlist, Declaration[] goals, BitSet[] targets, BitSet explored, BitSet subgame, int s) {
 		Distribution d;
 		int l, m, p, t, v;
