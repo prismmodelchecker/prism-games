@@ -286,7 +286,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		SMG smg = new SMG();
 		smg.copyFrom(this);
-		smg.actions = new ArrayList<List<Object>>(this.actions);
+		smg.actions = new ChoiceActionsSimple(this.actions);
 		smg.allowDupes = this.allowDupes;
 		smg.maxNumDistrs = this.maxNumDistrs;
 		smg.maxNumDistrsOk = this.maxNumDistrsOk;

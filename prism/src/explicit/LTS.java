@@ -27,8 +27,8 @@
 package explicit;
 
 import java.util.BitSet;
-import java.util.Iterator;
 
+import explicit.graphviz.Decorator;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
@@ -49,19 +49,42 @@ public interface LTS extends NondetModel
 	@Override
 	default void exportToPrismExplicitTra(PrismLog out)
 	{
-		throw new UnsupportedOperationException();
+		// Output transitions to .tra file
+		int numStates = getNumStates();
+		out.print(numStates + " " + getNumChoices() + "\n");
+		for (int i = 0; i < numStates; i++) {
+			int numChoices = getNumChoices(i);
+			for (int j = 0; j < numChoices; j++) {
+				out.print(i + " " + j + " " + getSuccessor(i, j));
+				Object action = getAction(i, j);
+				out.print(action == null ? "\n" : (" " + action + "\n"));
+			}
+		}
 	}
 
 	@Override
-	default void exportTransitionsToDotFile(int s, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
+	default void exportTransitionsToDotFile(int i, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
 	{
-		for (Iterator<Integer> it = getSuccessorsIterator(s); it.hasNext(); ) {
-			Integer successor = it.next();
-			// we ignore decorators here
-			out.println(s + " -> " + successor + ";");
+		// Iterate through outgoing transitions (i.e. choices) for this state
+		int numChoices = getNumChoices(i);
+		for (int j = 0; j < numChoices; j++) {
+			Object action = getAction(i, j);
+			// Print a new dot file line for the arrow for this transition
+			out.print(i + " -> " + getSuccessor(i, j));
+			// Annotate this with the choice index/action 
+			explicit.graphviz.Decoration d = new explicit.graphviz.Decoration();
+			d.setLabel(j + (action != null ? ":" + action : ""));
+			// Apply any other decorators requested
+			if (decorators != null) {
+				for (Decorator decorator : decorators) {
+					d = decorator.decorateTransition(i, j, d);
+				}
+			}
+			// Append to the dot file line
+			out.println(" " + d.toString() + ";");
 		}
 	}
-	
+
 	@Override
 	default void exportToPrismLanguage(String filename) throws PrismException
 	{
@@ -93,4 +116,11 @@ public interface LTS extends NondetModel
 	{
 		throw new UnsupportedOperationException();
 	}
+	
+	// Accessors
+	
+	/**
+	 * Get the successor state for the {@code i}th choice/transition from state {@code s}.
+	 */
+	public int getSuccessor(int s, int i);
 }

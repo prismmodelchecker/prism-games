@@ -165,12 +165,6 @@ public class LTSFromDA extends ModelExplicit implements LTS
 	}
 
 	@Override
-	public boolean areAllChoiceActionsUnique()
-	{
-		return false;
-	}
-
-	@Override
 	public int getNumTransitions(int s, int i)
 	{
 		return 1;
@@ -198,5 +192,13 @@ public class LTSFromDA extends ModelExplicit implements LTS
 	public Model constructInducedModel(MDStrategy strat)
 	{
 		throw new RuntimeException("Not implemented yet");
+	}
+	
+	// Methods to implement LTS
+	
+	@Override
+	public int getSuccessor(int s, int i)
+	{
+		return da.getEdgeDest(s, i); 
 	}
 }
