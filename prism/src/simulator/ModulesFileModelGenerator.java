@@ -578,7 +578,8 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 					if (!Double.isFinite(rew)) {
 						throw new PrismLangException("Reward structure is not finite at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
 					}
-					if (rew < 0) {
+					// NB: for now, disable negative reward check for CSGs 
+					if (modelType != ModelType.CSG && rew < 0) {
 						throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
 					}
 					d += rew;
