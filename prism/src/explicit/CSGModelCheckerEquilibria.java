@@ -1950,13 +1950,14 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				bMaxRow = allEqual(maxRow);
 				if (bMaxRow) {
 					int maxr = maxRow[0];
+					/*
 					if (maxr != 0) {	
 						for (int r = 0; r < nrows; r++) { // is this actually needed?
 							if (r != maxr) 
 								uRow = uRow && !Arrays.equals(val1s[r], val1s[maxRow[0]]);
 						}	 
 					}
-					else {
+					else {*/
 						for (int r = 0; r < nrows; r++) { 
 							if (r != maxr) {
 								for (int c = 0; c < ncols; c++) {
@@ -1965,7 +1966,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 								}
 							}
 						} 
-					}
+					//}
 				}
 				bMaxRow = bMaxRow && uRow; // maximal and unique
 				
@@ -1992,6 +1993,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				bMaxCol = allEqual(maxCol);
 				if(bMaxCol) {
 					int maxc = maxCol[0];
+					/*
 					if (maxc != 0) {
 						for (int c = 0; c < ncols; c++) { // is this actually needed?
 							if (c != maxc) {
@@ -1999,7 +2001,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 							}
 						}
 					}
-					else {
+					else {*/
 						for (int c = 0; c < ncols; c++) { // is this actually needed?
 							if (c != maxc) {
 								for (int r = 0; r < nrows; r++) {
@@ -2008,7 +2010,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 								}
 							}
 						} 
-					}
+					//}
 				}
 				bMaxCol = bMaxCol && uCol; // maximal and unique
 				
