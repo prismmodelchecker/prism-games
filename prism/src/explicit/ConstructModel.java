@@ -175,6 +175,7 @@ public class ConstructModel extends PrismComponent
 		STPGExplicit stpg = null;
 		CSG csg = null;
 		SMG smg = null;
+		LTSSimple lts = null;
 		ModelExplicit model = null;
 		Distribution distr = null;
 		// Game info
@@ -235,6 +236,9 @@ public class ConstructModel extends PrismComponent
 			case CTMDP:
 				modelSimple = ctmdp = new CTMDPSimple();
 				break;
+			case LTS:
+				modelSimple = lts = new LTSSimple();
+				break;
 			case STPG:
 				modelSimple = stpg = new STPGExplicit();
 				break;
@@ -243,7 +247,6 @@ public class ConstructModel extends PrismComponent
 				smg.setPlayerInfo(playerNames);
 				break;
 			case PTA:
-			case LTS:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 			// Attach variable info
@@ -322,8 +325,14 @@ public class ConstructModel extends PrismComponent
 						case CSG:
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
-						case PTA:
 						case LTS:
+							if (distinguishActions) {
+								lts.addActionLabelledTransition(src, dest, modelGen.getChoiceAction(i));
+							} else {
+								lts.addTransition(src, dest);
+							}
+							break;
+						case PTA:
 							throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 						}
 					}
@@ -442,8 +451,10 @@ public class ConstructModel extends PrismComponent
 			case SMG:
 				model = sortStates ? new SMG(smg, permut) : smg;
 				break;
-			case PTA:
 			case LTS:
+				model = sortStates ? new LTSSimple(lts, permut) : lts;
+				break;
+			case PTA:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 			}
 			model.setStatesList(statesList);

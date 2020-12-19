@@ -79,13 +79,15 @@ public class ChoiceActionsSimple
 	{
 		actions = null;
 		if (cas.actions != null) {
-			int numStates = cas.actions.size();
+			// NB: permut.length is a more reliable source of numStates
+			// since cas.actions may be undersized
+			int numStates = permut.length;
 			actions = new ArrayList<ArrayList<Object>>(numStates);
 			for (int s = 0; s < numStates; s++) {
 				actions.add(null);
 			}
 			for (int s = 0; s < numStates; s++) {
-				if (cas.actions.get(s) != null) {
+				if (s < cas.actions.size() && cas.actions.get(s) != null) {
 					actions.set(permut[s], new ArrayList<>(cas.actions.get(s)));
 				}
 			}
@@ -142,12 +144,17 @@ public class ChoiceActionsSimple
 	
 	public Object getAction(int s, int i)
 	{
-		// Empty list means no (null) actions everywhere
+		// Null list means no (null) actions everywhere
 		if (actions == null) {
 			return null;
 		}
 		try {
-			return actions.get(s).get(i);
+			ArrayList<Object> list = actions.get(s);
+			// Null list means no (null) actions in this state
+			if (list == null) {
+				return null;
+			}
+			return list.get(i);
 		}
 		// Lists may be under-sized, indicating no action added 
 		catch (IndexOutOfBoundsException e) {
@@ -159,6 +166,8 @@ public class ChoiceActionsSimple
 	 * Convert to "sparse" storage for a given model,
 	 * i.e., a single array where all actions are stored in
 	 * order, per state and then per choice.
+	 * A corresponding NondetModel is required because the
+	 * number of states and choices per state may be unknown.
 	 * If this action storage is completely empty,
 	 * then this method may simply return null.
 	 */
@@ -173,7 +182,7 @@ public class ChoiceActionsSimple
 			for (int s = 0; s < numStates; s++) {
 				int numChoices = model.getNumChoices(s);
 				for (int i = 0; i < numChoices; i++) {
-					arr[count++] = model.getAction(s, i);
+					arr[count++] = getAction(s, i);
 				}
 			}
 			return arr;
