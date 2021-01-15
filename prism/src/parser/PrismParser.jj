@@ -442,6 +442,7 @@ TOKEN :
 |	< ENDINIT:			"endinit" >
 |	< ENDINVARIANT:		"endinvariant" >
 |	< ENDMODULE:		"endmodule" >
+|	< ENDOBSERVABLES:	"endobservables" >
 |	< ENDPLAYER:		"endplayer" >
 |	< ENDREWARDS:		"endrewards" >
 |	< ENDSYSTEM:		"endsystem" >
@@ -469,6 +470,7 @@ TOKEN :
 |	< MODULE:			"module" >
 |	< X:				"X" >
 |	< NONDETERMINISTIC:	"nondeterministic" >
+|	< OBSERVABLES:		"observables" >
 //|	< OF:				"of" >
 |	< PMAXMAX:			"Pmaxmax" >
 |	< PMAXMIN:			"Pmaxmin" >
@@ -478,6 +480,8 @@ TOKEN :
 |	< PMIN:				"Pmin" >
 |	< P:				"P" >
 |	< PLAYER:			"player" >
+|	< POMDP:			"pomdp" >
+|	< POPTA:			"popta" >
 |	< PROBABILISTIC:	"probabilistic" >
 |	< PROB:				"prob" >
 |	< PTA:				"pta" >
@@ -585,6 +589,8 @@ ModulesFile ModulesFile() throws PrismLangException :
 	rs = RewardStruct() { mf.addRewardStruct(rs); } |
 	// Initial states ("init...endinit" construct)
 	init = Init() { mf.setInitialStates(init); initCount++; if (initCount == 2) initDupe = init; } |
+	// Observables
+	Observables(mf) |
 	// System definition ("system...endsystem" construct)
 	SystemEndsystem(mf) |
 	// Player definition
@@ -708,6 +714,8 @@ ModelType ModulesFileType() :
 	| (<CTMC>|<STOCHASTIC>) { modelType=ModelType.CTMC; }
 	| <CTMDP> { modelType=ModelType.CTMDP; }
 	| <PTA> { modelType=ModelType.PTA; }
+	| <POMDP> { modelType=ModelType.POMDP; }
+	| <POPTA> { modelType=ModelType.POPTA; }
 	| <STPG> { modelType=ModelType.STPG; }
 	| <SMG> { modelType=ModelType.SMG; }
 	| <TPTG> { modelType=ModelType.TPTG; }
@@ -982,6 +990,19 @@ Expression Init() :
 }
 {
 	<INIT> expr = Expression(false, false) <ENDINIT> { return expr; }
+}
+
+// Observable variables
+
+void Observables(ModulesFile mf) :
+{
+	String name = null;
+}
+{
+	(<OBSERVABLES> { mf.setHasObservables(true); }
+	( name = Identifier() { mf.addObservableVar(name); }
+	( <COMMA> name = Identifier() { mf.addObservableVar(name); } )* )?
+	<ENDOBSERVABLES>)
 }
 
 // System definition ("system...endsystem" construct)

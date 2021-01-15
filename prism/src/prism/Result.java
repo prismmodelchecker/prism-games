@@ -40,6 +40,8 @@ public class Result
 {
 	// The result of model checking
 	private Object result;
+	// Accuracy of the result
+	private Accuracy accuracy;
 	// Explanatory text for result (optional)
 	private String explanation;
 	// Counterexample (optional)
@@ -70,6 +72,14 @@ public class Result
 	{
 		this();
 		setResult(result);
+	}
+	
+	/**
+	 * Set the accuracy.
+	 */
+	public void setAccuracy(Accuracy accuracy)
+	{
+		this.accuracy = accuracy;
 	}
 	
 	/**
@@ -133,6 +143,14 @@ public class Result
 	}
 
 	/**
+	 * Get the accuracy.
+	 */
+	public Accuracy getAccuracy()
+	{
+		return accuracy;
+	}
+
+	/**
 	 * Get the explanatory text string (null denotes absent).
 	 */
 	public String getExplanation()
@@ -187,6 +205,21 @@ public class Result
 		if (explanation != null)
 			s += " (" + explanation +")";
 		return s;
+	}
+	
+	/**
+	 * Get a string of the result and its accuracy
+	 */
+	public String getResultAndAccuracy()
+	{
+		if (accuracy != null) {
+			String accuracyString = accuracy.toString(result);
+			if (accuracyString != null && !"".equals(accuracyString)) {
+				return result.toString() + " (" + accuracy.toString(result) + ")";
+			}
+		}
+		// If accuracy is missing or blank, omit it
+		return result.toString();
 	}
 	
 	/**

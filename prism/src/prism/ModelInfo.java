@@ -224,6 +224,16 @@ public interface ModelInfo
 	}
 	
 	/**
+	 * Get a list of the names of variables that have been declared to be observable
+	 * (for partially observable models)
+	 */
+	public default List<String> getObservableVars()
+	{
+		// Default implementation assumes no observable variables 
+		return Collections.emptyList();
+	}
+	
+	/**
 	 * Get a list of possible actions that may label choices/transitions in the model.
 	 * This can be a superset of the ones that actually end up being used.
 	 * This is optional - the default implementation just returns null,

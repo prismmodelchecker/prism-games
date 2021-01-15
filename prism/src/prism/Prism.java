@@ -63,6 +63,7 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
+import prism.Accuracy.AccuracyLevel;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
@@ -482,6 +483,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		settings.set(PrismSettings.PRISM_MAX_ITERS, i);
 	}
 
+	public void setGridResolution(int i) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_GRID_RESOLUTION, i);
+	}
+
 	public void setCUDDMaxMem(String s) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_CUDD_MAX_MEM, s);
@@ -821,6 +827,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		return settings.getInteger(PrismSettings.PRISM_MAX_ITERS);
 	}
 
+	public int getGridResolution()
+	{
+		return settings.getInteger(PrismSettings.PRISM_GRID_RESOLUTION);
+	}
+	
 	public boolean getVerbose()
 	{
 		return settings.getBoolean(PrismSettings.PRISM_VERBOSE);
@@ -1823,6 +1834,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.print(currentModulesFile.getVarName(i) + " ");
 		}
 		mainLog.println();
+		if (currentModulesFile.getModelType().partiallyObservable()) {
+			mainLog.println("Observables: " + String.join(" ", currentModulesFile.getObservableVars()));
+		}
 
 		// For some models, automatically switch engine
 		switch (currentModelType) {
@@ -1831,6 +1845,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		case STPG:
 		case CTMDP:
 		case LTS:
+		case POMDP:
 			if (!getExplicit()) {
 				mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
 				engineOld = getEngine();
@@ -2108,7 +2123,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public boolean modelCanBeBuilt()
 	{
-		if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG)
+		if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG)
 			return false;
 		return true;
 	}
@@ -2158,7 +2173,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		clearBuiltModel();
 
 		try {
-			if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG) {
+			if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
 				throw new PrismException("You cannot build a " + currentModelType + " model explicitly, only perform model checking");
 			}
 
@@ -2351,7 +2366,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		Model model;
 		List<State> statesList;
 
-		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.TPTG) {
+		if (modulesFile.getModelType() == ModelType.PTA || currentModelType == ModelType.POPTA || modulesFile.getModelType() == ModelType.TPTG) {
 			throw new PrismException("You cannot build a " + modulesFile.getModelType() + " model explicitly, only perform model checking");
 		}
 
@@ -3091,8 +3106,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Check that property is valid for the current model type
 		prop.getExpression().checkValid(currentModelType);
 
-		// For PTAs (and similar models)...
-		if (currentModelType == ModelType.PTA || currentModelType == ModelType.TPTG) {
+		// PTA model checking is handled separately
+		if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
@@ -3231,7 +3246,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		expr.checkValid(currentModelType);
 
 		// Digital clocks translation
-		if (currentModelType == ModelType.TPTG || settings.getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks")) {
+		if (settings.getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks") || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
 			digital = true;
 			ModulesFile oldModulesFile = currentModulesFile;
 			try {
@@ -3335,8 +3350,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public Result modelCheckSimulator(PropertiesFile propertiesFile, Expression expr, Values definedPFConstants, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
 	{
-		Object res = null;
-
 		// Print info
 		mainLog.printSeparator();
 		mainLog.println("\nSimulating: " + expr);
@@ -3354,9 +3367,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// Do simulation
 		loadModelIntoSimulator();
-		res = getSimulator().modelCheckSingleProperty(propertiesFile, expr, initialState, maxPathLength, simMethod);
+		Result res = getSimulator().modelCheckSingleProperty(propertiesFile, expr, initialState, maxPathLength, simMethod);
 
-		return new Result(res);
+		return res;
 	}
 
 	/**
@@ -3376,8 +3389,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public Result[] modelCheckSimulatorSimultaneously(PropertiesFile propertiesFile, List<Expression> exprs, Values definedPFConstants, State initialState,
 			long maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
-		Object[] res = null;
-
 		// Print info
 		mainLog.printSeparator();
 		mainLog.print("\nSimulating");
@@ -3404,11 +3415,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// Do simulation
 		loadModelIntoSimulator();
-		res = getSimulator().modelCheckMultipleProperties(propertiesFile, exprs, initialState, maxPathLength, simMethod);
+		Result[] resArray = getSimulator().modelCheckMultipleProperties(propertiesFile, exprs, initialState, maxPathLength, simMethod);
 
-		Result[] resArray = new Result[res.length];
-		for (int i = 0; i < res.length; i++)
-			resArray[i] = new Result(res[i]);
 		return resArray;
 	}
 
@@ -3490,17 +3498,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// There should be just one region since no parameters are used
 		ParamResult paramResult = (ParamResult) result.getResult();
 		result.setResult(paramResult.getSimpleResult(prop.getType()));
+		result.setAccuracy(new Accuracy(AccuracyLevel.EXACT));
 
 		// Print result to log
 		String resultString = "Result";
-		if (!("Result".equals(prop.getExpression().getResultName())))
-			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
-		resultString += ": " + result.getResultString();
-		mainLog.println("\n" + resultString);
-
+		resultString += ": " + result.getResultAndAccuracy();
 		if (result.getResult() instanceof BigRational) {
-			mainLog.println(" As floating point: " + ((BigRational)result.getResult()).toApproximateString());
+			resultString += " (" + ((BigRational) result.getResult()).toApproximateString() + ")";
 		}
+		mainLog.println("\n" + resultString);
 
 		return result;
 	}

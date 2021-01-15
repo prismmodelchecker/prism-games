@@ -84,6 +84,7 @@ public class ConstructRewards extends PrismComponent
 		case CTMC:
 			return buildMCRewardStructure((DTMC) model, rewardGen, r);
 		case MDP:
+		case POMDP:
 			return buildMDPRewardStructure((MDP) model, rewardGen, r);
 		case STPG:
 			return buildSTPGRewardStructure((STPG) model, rewardGen, r);
@@ -313,6 +314,7 @@ public class ConstructRewards extends PrismComponent
 		case CTMC:
 			return buildMCRewardStructure((DTMC) model, rewStr, constantValues);
 		case MDP:
+		case POMDP:
 			return buildMDPRewardStructure((MDP) model, rewStr, constantValues);
 		case STPG:
 			return buildSTPGRewardStructure((STPG) model, rewStr, constantValues);

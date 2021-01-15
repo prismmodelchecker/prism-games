@@ -177,11 +177,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies all states");
 			JDD.Ref(reach);
 			JDD.Deref(statesOfInterest);
-			return new StateValuesMTBDD(reach, model);
+			return new StateValuesMTBDD(reach, model, AccuracyFactory.doublesFromQualitative());
 		} else if (opInfo.isTriviallyFalse()) {
 			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies no states");
 			JDD.Deref(statesOfInterest);
-			return new StateValuesMTBDD(JDD.Constant(0), model);
+			return new StateValuesMTBDD(JDD.Constant(0), model, AccuracyFactory.doublesFromQualitative());
 		}
 
 		// Print a warning if Pmin/Pmax used
@@ -316,10 +316,10 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (opInfo.isTriviallyTrue()) {
 			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies all states");
 			JDD.Ref(reach);
-			return new StateValuesMTBDD(reach, model);
+			return new StateValuesMTBDD(reach, model, AccuracyFactory.doublesFromQualitative());
 		} else if (opInfo.isTriviallyFalse()) {
 			mainLog.printWarning("Checking for probability " + opInfo.relOpBoundString() + " - formula trivially satisfies no states");
-			return new StateValuesMTBDD(JDD.Constant(0), model);
+			return new StateValuesMTBDD(JDD.Constant(0), model, AccuracyFactory.doublesFromQualitative());
 		}
 
 		try {
@@ -734,7 +734,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			// the trivial case: windowSize = 0
 			// prob is 1 in b2 states, 0 otherwise
 			JDD.Ref(b2);
-			probs = new StateValuesMTBDD(b2, model);
+			probs = new StateValuesMTBDD(b2, model, AccuracyFactory.doublesFromQualitative());
 		} else {
 			try {
 				probs = computeBoundedUntilProbs(trans, trans01, b1, b2, windowSize);
@@ -857,7 +857,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// a trivial case: "<=0"
 		if (time == 0) {
-			rewards = new StateValuesMTBDD(JDD.Constant(0), model);
+			rewards = new StateValuesMTBDD(JDD.Constant(0), model, AccuracyFactory.doublesFromQualitative());
 		} else {
 			// compute rewards
 			try {
@@ -1365,6 +1365,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		JDD.Ref(tr);
 		tmp = JDD.MatrixMultiply(tr, tmp, allDDColVars, JDD.BOULDER);
 		probs = new StateValuesMTBDD(tmp, model);
+		probs.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 
 		return probs;
 	}
@@ -1400,6 +1401,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		ddX.clear();
 		probs = new StateValuesMTBDD(tmp, model);
+		probs.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 		return probs;
 	}
 
@@ -1456,6 +1458,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (maybe.equals(JDD.ZERO)) {
 			JDD.Ref(yes);
 			probs = new StateValuesMTBDD(yes, model);
+			probs.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		}
 		// otherwise explicitly compute the remaining probabilities
 		else {
@@ -1479,6 +1482,8 @@ public class ProbModelChecker extends NonProbModelChecker
 				default:
 					throw new PrismException("Unknown engine");
 				}
+				// Set accuracy info
+				probs.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 			} catch (PrismException e) {
 				JDD.Deref(yes);
 				JDD.Deref(no);
@@ -1551,6 +1556,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			JDD.Ref(yes);
 			JDD.Ref(maybe);
 			probs = new StateValuesMTBDD(JDD.Apply(JDD.PLUS, yes, JDD.Apply(JDD.TIMES, maybe, JDD.Constant(0.5))), model);
+			// No accuracy info, but should end up as a Boolean, not numerical, value anyway 
 		}
 
 		// derefs
@@ -1641,6 +1647,8 @@ public class ProbModelChecker extends NonProbModelChecker
 				probs = new StateValuesDV(yes, model);
 				break;
 			}
+			// Set accuracy info
+			probs.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		}
 		// otherwise we compute the actual probabilities
 		else {
@@ -1675,6 +1683,12 @@ public class ProbModelChecker extends NonProbModelChecker
 					break;
 				default:
 					throw new PrismException("Unknown engine");
+				}
+				// Set accuracy info
+				if (doIntervalIteration) {
+					probs.setAccuracy(AccuracyFactory.guaranteedNumericalIterative(PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
+				} else {
+					probs.setAccuracy(AccuracyFactory.valueIteration(PrismNative.getTermCritParam(), PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
 				}
 			} catch (PrismException e) {
 				JDD.Deref(yes);
@@ -1720,6 +1734,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			default:
 				throw new PrismException("Unknown engine");
 			}
+			// Set accuracy info
+			rewards.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 		} catch (PrismException e) {
 			throw e;
 		}
@@ -1780,6 +1796,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (maybe.equals(JDD.ZERO)) {
 			JDD.Ref(inf);
 			rewards = new StateValuesMTBDD(JDD.ITE(inf, JDD.PlusInfinity(), JDD.Constant(0)), model);
+			rewards.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		}
 		// Otherwise we compute the actual rewards
 		else {
@@ -1809,6 +1826,8 @@ public class ProbModelChecker extends NonProbModelChecker
 				JDD.Deref(maybe);
 				throw e;
 			}
+			// Set accuracy info
+			rewards.setAccuracy(AccuracyFactory.valueIteration(PrismNative.getTermCritParam(), PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
 		}
 
 		// Tidy up
@@ -1836,6 +1855,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (time == 0) {
 			JDD.Ref(sr);
 			rewards = new StateValuesMTBDD(sr, model);
+			rewards.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		}
 		// otherwise we compute the actual rewards
 		else {
@@ -1862,6 +1882,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			} catch (PrismException e) {
 				throw e;
 			}
+			// Set accuracy info
+			rewards.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 		}
 
 		return rewards;
@@ -2306,6 +2328,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (maybe.equals(JDD.ZERO)) {
 			JDD.Ref(inf);
 			rewards = new StateValuesMTBDD(JDD.ITE(inf, JDD.PlusInfinity(), JDD.Constant(0)), model);
+			rewards.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		}
 		// otherwise we compute the actual rewards
 		else {
@@ -2363,6 +2386,12 @@ public class ProbModelChecker extends NonProbModelChecker
 					break;
 				default:
 					throw new PrismException("Unknown engine");
+				}
+				// Set accuracy info
+				if (doIntervalIteration) {
+					rewards.setAccuracy(AccuracyFactory.guaranteedNumericalIterative(PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
+				} else {
+					rewards.setAccuracy(AccuracyFactory.valueIteration(PrismNative.getTermCritParam(), PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
 				}
 			} catch (PrismException e) {
 				JDD.Deref(inf);
@@ -2666,6 +2695,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			default:
 				throw new PrismException("Unknown engine");
 			}
+			// Set accuracy info
+			probs.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 		} catch (PrismException e) {
 			throw e;
 		}

@@ -68,6 +68,8 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	private ArrayList<RewardStruct> rewardStructs; // Rewards structures
 	private List<String> rewardStructNames; // Names of reward structures
 	private Expression initStates; // Initial states specification
+	private boolean hasObservables; // Observables info
+	private List<String> obsVars;
 	private List<Player> players; // Player definitions
 	private List<String> playerNames; // Player names
 
@@ -104,6 +106,8 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		rewardStructs = new ArrayList<RewardStruct>();
 		rewardStructNames = new ArrayList<String>();
 		initStates = null;
+		hasObservables = false;
+		obsVars = new ArrayList<String>();
 		players = new ArrayList<Player>();
 		playerNames = new ArrayList<String>();
 		identUsage = new HashMap<>();
@@ -261,6 +265,16 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		initStates = e;
 	}
 
+	public void setHasObservables(boolean hasObservables)
+	{
+		this.hasObservables = hasObservables;
+	}
+	
+	public void addObservableVar(String n)
+	{
+		obsVars.add(n);
+	}
+	
 	/**
 	 * Add a "player" definition.
 	 */
@@ -584,6 +598,21 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	}
 
 	/**
+	 * Does this model have an observables...endobservables block?
+	 * (i.e., is it a partially observable model?)
+	 */
+	public boolean hasObservables()
+	{
+		return hasObservables;
+	}
+	
+	@Override
+	public List<String> getObservableVars()
+	{
+		return obsVars;
+	}
+	
+	/**
 	 * Get the {@code i}th "player" definition.
 	 */
 	public Player getPlayer(int i)
@@ -794,6 +823,16 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		return false;
 	}
 
+	public boolean isVarObservable(int i)
+	{
+		return obsVars.contains(varNames.get(i));
+	}
+	
+	public boolean isVarObservable(String s)
+	{
+		return obsVars.contains(s);
+	}
+	
 	@Override
 	public boolean containsUnboundedVariables()
 	{
@@ -801,6 +840,17 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		for (int i = 0; i < n; i++) {
 			DeclarationType declType = getVarDeclaration(i).getDeclType();
 			if (declType instanceof DeclarationClock || declType instanceof DeclarationIntUnbounded) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean containsClockVariables()
+	{
+		int n = getNumVars();
+		for (int i = 0; i < n; i++) {
+			if (getVarDeclaration(i).getDeclType() instanceof DeclarationClock) {
 				return true;
 			}
 		}
@@ -876,9 +926,10 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		//  is non-null; methods before this point cannot)
 		finaliseModelType();
 		
+		// Check observables
+		checkObservables();
 		// Check player info
 		checkPlayerDefns();
-
 		// Various semantic checks 
 		doSemanticChecks();
 		// Type checking
@@ -1219,6 +1270,19 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	}
 	
 	/**
+	 * Check "observables...endobservables" construct
+	 */
+	private void checkObservables() throws PrismLangException
+	{
+		if (getModelType().partiallyObservable() && !hasObservables) {
+			throw new PrismLangException(getModelType() + "s must specify observables");
+		}
+		if (hasObservables() && !getModelType().partiallyObservable()) {
+			throw new PrismLangException(getModelType() + "s cannot specify observables");
+		}
+	}
+	
+	/**
 	  * Perform any required semantic checks.
 	  * These checks are done *before* any undefined constants have been defined.
 	 */
@@ -1464,15 +1528,31 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	 */
 	private void finaliseModelType()
 	{
-		// If unspecified, auto-detect model type
+		// First, fix a "base" model type
+		// If unspecified, auto-detect
 		if (modelTypeInFile == null) {
-			boolean nonProb = isNonProbabilistic();
-			// MDP/LTS depending if probabilistic
-			modelType = nonProb ? ModelType.LTS : ModelType.MDP;
+			boolean isNonProb = isNonProbabilistic();
+			modelType = isNonProb ? ModelType.LTS : ModelType.MDP;
 		}
 		// Otherwise, it's just whatever was specified
 		else {
 			modelType = modelTypeInFile;
+		}
+		// Then, even if already specified, update the model type
+		// based on the existence of certain features
+		boolean isRealTime = containsClockVariables();
+		boolean isPartObs = hasObservables();
+		if (isRealTime) {
+			if (modelType == ModelType.MDP || modelType == ModelType.LTS) {
+				modelType = ModelType.PTA;
+			}
+		}
+		if (isPartObs) {
+			if (modelType == ModelType.MDP || modelType == ModelType.LTS) {
+				modelType = ModelType.POMDP;
+			} else if (modelType == ModelType.PTA) {
+				modelType = ModelType.POPTA;
+			}
 		}
 	}
 	
@@ -1545,6 +1625,10 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 			tmp += "\n";
 		s += tmp;
 
+		if (hasObservables()) {
+			s += "observables " + String.join(",", obsVars) + " endobservables\n\n";
+		}
+
 		n = getNumGlobals();
 		for (i = 0; i < n; i++) {
 			s += "global " + getGlobal(i) + ";\n";
@@ -1613,6 +1697,9 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		}
 		if (initStates != null)
 			ret.setInitialStates(initStates.deepCopy());
+		ret.hasObservables = hasObservables;
+		for (String ov : obsVars)
+			ret.addObservableVar(ov);
 		for (Player player : players)
 			ret.addPlayer(player.deepCopy());
 		// Copy other (generated) info

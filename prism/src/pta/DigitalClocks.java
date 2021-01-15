@@ -176,6 +176,9 @@ public class DigitalClocks
 		case PTA:
 			mf.setModelTypeInFile(ModelType.MDP);
 			break;
+		case POPTA:
+			mf.setModelTypeInFile(ModelType.POMDP);
+			break;
 		case TPTG:
 			mf.setModelTypeInFile(ModelType.SMG);
 			break;
@@ -376,6 +379,10 @@ public class DigitalClocks
 			timerModule.addCommand(timeCommand);
 			// Finally add module to model
 			mf.addModule(timerModule);
+			// For POPTAs, the variable needs to be observable
+			if (modulesFile.getModelType().partiallyObservable()) {
+				mf.addObservableVar(timerVarName);
+			}
 			
 			// Then modify the property
 			

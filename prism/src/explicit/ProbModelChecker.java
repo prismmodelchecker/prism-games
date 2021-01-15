@@ -58,6 +58,7 @@ import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypePathBool;
 import parser.type.TypePathDouble;
+import prism.AccuracyFactory;
 import prism.IntegerBound;
 import prism.ModelType;
 import prism.OpRelOpBound;
@@ -87,6 +88,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected double termCritParam = 1e-8;
 	// Max iterations for numerical solution
 	protected int maxIters = 100000;
+	// Resolution for POMDP fixed grid approximation algorithm
+	protected int gridResolution = 10;
 	// Use precomputation algorithms in model checking?
 	protected boolean precomp = true;
 	protected boolean prob0 = true;
@@ -233,6 +236,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			setTermCritParam(settings.getDouble(PrismSettings.PRISM_TERM_CRIT_PARAM));
 			// PRISM_MAX_ITERS
 			setMaxIters(settings.getInteger(PrismSettings.PRISM_MAX_ITERS));
+			// PRISM_GRID_RESOLUTION
+			setGridResolution(settings.getInteger(PrismSettings.PRISM_GRID_RESOLUTION));
 			// PRISM_PRECOMPUTATION
 			setPrecomp(settings.getBoolean(PrismSettings.PRISM_PRECOMPUTATION));
 			// PRISM_PROB0
@@ -274,6 +279,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		setTermCrit(other.getTermCrit());
 		setTermCritParam(other.getTermCritParam());
 		setMaxIters(other.getMaxIters());
+		setGridResolution(other.getGridResolution());
 		setPrecomp(other.getPrecomp());
 		setProb0(other.getProb0());
 		setProb1(other.getProb1());
@@ -293,6 +299,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		mainLog.print("termCrit = " + termCrit + " ");
 		mainLog.print("termCritParam = " + termCritParam + " ");
 		mainLog.print("maxIters = " + maxIters + " ");
+		mainLog.print("gridResolution = " + gridResolution + " ");
 		mainLog.print("precomp = " + precomp + " ");
 		mainLog.print("prob0 = " + prob0 + " ");
 		mainLog.print("prob1 = " + prob1 + " ");
@@ -361,6 +368,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	public void setMaxIters(int maxIters)
 	{
 		this.maxIters = maxIters;
+	}
+
+	/**
+	 * Set resolution for POMDP fixed grid approximation algorithm.
+	 */
+	public void setGridResolution(int gridResolution)
+	{
+		this.gridResolution = gridResolution;
 	}
 
 	/**
@@ -459,6 +474,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	public int getMaxIters()
 	{
 		return maxIters;
+	}
+
+	public int getGridResolution()
+	{
+		return gridResolution;
 	}
 
 	public boolean getPrecomp()
@@ -952,7 +972,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1013,7 +1033,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 			result.setStrategy(res.strat);
-			sv = StateValues.createFromDoubleArray(res.soln, model);
+			sv = StateValues.createFromDoubleArrayResult(res, model);
 		} else if (windowSize == 0) {
 			// A trivial case: windowSize=0 (prob is 1 in target states, 0 otherwise)
 			sv = StateValues.createFromBitSetAsDoubles(target, model);
@@ -1040,7 +1060,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 			result.setStrategy(res.strat);
-			sv = StateValues.createFromDoubleArray(res.soln, model);
+			sv = StateValues.createFromDoubleArrayResult(res, model);
 		}
 
 		// perform lowerBound restricted next-step computations to
@@ -1066,6 +1086,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 
 			sv = StateValues.createFromDoubleArray(probs, model);
+			sv.setAccuracy(AccuracyFactory.boundedNumericalIterations());
 		}
 
 		return sv;
@@ -1092,6 +1113,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case MDP:
 			res = ((MDPModelChecker) this).computeUntilProbs((MDP) model, remain, target, minMax.isMin());
 			break;
+		case POMDP:
+			res = ((POMDPModelChecker) this).computeReachProbs((POMDP) model, target, minMax.isMin());
+			break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
 			break;
@@ -1105,7 +1129,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1292,7 +1316,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					+ "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1324,7 +1348,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Compute/return the rewards
 		// A trivial case: "C<=0" (prob is 1 in target states, 0 otherwise)
 		if (timeInt == 0 || timeDouble == 0) {
-			return new StateValues(TypeDouble.getInstance(), model.getNumStates(), new Double(0));
+			StateValues res = new StateValues(TypeDouble.getInstance(), model.getNumStates(), 0.0);
+			res.setAccuracy(AccuracyFactory.doublesFromQualitative());
+			return res;
 		}
 		// Otherwise: numerical solution
 		ModelCheckerResult res = null;
@@ -1346,7 +1372,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					+ "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1379,7 +1405,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					+ "s");
 		}
 		//result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1400,7 +1426,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the steady-state reward operator for " + model.getModelType() + "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**
@@ -1449,6 +1475,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case MDP:
 			res = ((MDPModelChecker) this).computeReachRewards((MDP) model, (MDPRewards) modelRewards, target, minMax.isMin());
 			break;
+		case POMDP:
+			res = ((POMDPModelChecker) this).computeReachRewards((POMDP) model, (MDPRewards) modelRewards, target, minMax.isMin());
+			break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2());
 			break;
@@ -1480,7 +1509,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					+ "s");
 		}
 		result.setStrategy(res.strat);
-		return StateValues.createFromDoubleArray(res.soln, model);
+		return StateValues.createFromDoubleArrayResult(res, model);
 	}
 
 	/**

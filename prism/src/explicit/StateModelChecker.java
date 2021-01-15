@@ -65,6 +65,7 @@ import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.visitor.ASTTraverseModify;
 import parser.visitor.ReplaceLabels;
+import prism.Accuracy;
 import prism.Filter;
 import prism.ModelInfo;
 import prism.ModelType;
@@ -203,6 +204,9 @@ public class StateModelChecker extends PrismComponent
 			break;
 		case CTMC:
 			mc = new CTMCModelChecker(parent);
+			break;
+		case POMDP:
+			mc = new POMDPModelChecker(parent);
 			break;
 		case CTMDP:
 			mc = new CTMDPModelChecker(parent);
@@ -635,7 +639,7 @@ public class StateModelChecker extends PrismComponent
 		resultString = "Result";
 		if (!("Result".equals(expr.getResultName())))
 			resultString += " (" + expr.getResultName().toLowerCase() + ")";
-		resultString += ": " + result.getResultString();
+		resultString += ": " + result.getResultAndAccuracy();
 		mainLog.print("\n" + resultString + "\n");
 
 		// Clean up
@@ -1083,6 +1087,7 @@ public class StateModelChecker extends PrismComponent
 		boolean b = false;
 		String resultExpl = null;
 		Object resObj = null;
+		Accuracy resAcc = null; 
 		switch (op) {
 		case PRINT:
 		case PRINTALL:
@@ -1124,8 +1129,7 @@ public class StateModelChecker extends PrismComponent
 			resultExpl = "Minimum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			// Also find states that (are close to) selected value for display to log
-			// TODO: un-hard-code precision once StateValues knows hoe precise it is
-			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
+			bsMatch = vals.getBitSetFromCloseValue(resObj);
 			bsMatch.and(bsFilter);
 			break;
 		case MAX:
@@ -1137,8 +1141,7 @@ public class StateModelChecker extends PrismComponent
 			resultExpl = "Maximum value over " + filterStatesString;
 			mainLog.println("\n" + resultExpl + ": " + resObj);
 			// Also find states that (are close to) selected value for display to log
-			// TODO: un-hard-code precision once StateValues knows hoe precise it is
-			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
+			bsMatch = vals.getBitSetFromCloseValue(resObj);
 			bsMatch.and(bsFilter);
 			break;
 		case ARGMIN:
@@ -1146,8 +1149,7 @@ public class StateModelChecker extends PrismComponent
 			resObj = vals.minOverBitSet(bsFilter);
 			mainLog.print("\nMinimum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			// TODO: un-hard-code precision once StateValues knows hoe precise it is
-			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
+			bsMatch = vals.getBitSetFromCloseValue(resObj);
 			bsMatch.and(bsFilter);
 			// Store states in vector; for ARGMIN, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
@@ -1161,8 +1163,7 @@ public class StateModelChecker extends PrismComponent
 			resObj = vals.maxOverBitSet(bsFilter);
 			mainLog.print("\nMaximum value over " + filterStatesString + ": " + resObj);
 			// Find states that (are close to) selected value
-			// TODO: un-hard-code precision once StateValues knows hoe precise it is
-			bsMatch = vals.getBitSetFromCloseValue(resObj, 1e-5, false);
+			bsMatch = vals.getBitSetFromCloseValue(resObj);
 			bsMatch.and(bsFilter);
 			// Store states in vector; for ARGMAX, don't store a single value (in resObj)
 			// Also, don't bother with explanation string
@@ -1281,6 +1282,7 @@ public class StateModelChecker extends PrismComponent
 			// Find first (only) value
 			// Store as object/vector
 			resObj = vals.firstFromBitSet(bsFilter);
+			resAcc = vals.accuracy;
 			resVals = new StateValues(expr.getType(), resObj, model);
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";
@@ -1313,6 +1315,7 @@ public class StateModelChecker extends PrismComponent
 		// Store result
 		result.setResult(resObj);
 		result.setParameterString(parsed_params != null ? parsed_params.getParameterString() : null);
+		result.setAccuracy(resAcc);
 		// Set result explanation (if none or disabled, clear)
 		if (expr.getExplanationEnabled() && resultExpl != null) {
 			result.setExplanation(resultExpl.toLowerCase());

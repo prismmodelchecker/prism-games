@@ -67,7 +67,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		this.parent = parent;
 		
 		// No support for PTA (and similar) models yet
-		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.TPTG) {
+		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.POPTA || modulesFile.getModelType() == ModelType.TPTG) {
 			throw new PrismException(modulesFile.getModelType() + "s are not currently supported");
 		}
 		// No support for system...endsystem yet
@@ -190,6 +190,12 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	public VarList createVarList() throws PrismException
 	{
 		return varList;
+	}
+	
+	@Override
+	public List<String> getObservableVars()
+	{
+		return modulesFile.getObservableVars();
 	}
 	
 	@Override
