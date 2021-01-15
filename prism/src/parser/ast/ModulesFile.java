@@ -1545,6 +1545,8 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		if (isRealTime) {
 			if (modelType == ModelType.MDP || modelType == ModelType.LTS) {
 				modelType = ModelType.PTA;
+			} else if (modelType == ModelType.SMG || modelType == ModelType.STPG) {
+				modelType = ModelType.TPTG;
 			}
 		}
 		if (isPartObs) {
