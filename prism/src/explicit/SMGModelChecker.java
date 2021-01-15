@@ -1080,7 +1080,7 @@ public class SMGModelChecker extends ProbModelChecker
 		mcProduct = new SMGModelChecker(this);
 		mcProduct.inheritSettings(this);
 		res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
-		rewardsProduct = StateValues.createFromDoubleArray(res.soln, product.getProductModel());
+		rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
 		
 		// Mapping rewards in the original model
 		rewards = product.projectToOriginalModel(rewardsProduct);

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import parser.ast.Expression;
+import prism.AccuracyFactory;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -47,7 +48,6 @@ import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
 
 import common.IterableBitSet;
-
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
@@ -132,6 +132,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Store results/strategy
 		res = new ModelCheckerResult();
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
 		res.soln = soln2;
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
@@ -292,9 +293,8 @@ public class STPGModelChecker extends ProbModelChecker
 		} else {
 			res = new ModelCheckerResult();
 			res.numIters = 0;
-			res.soln = new double[n];
-			for (int k = 0; k < n; k++)
-				res.soln[k] = (yes.get(k)) ? 1.0 : 0.0;
+			res.soln = Utils.bitsetToDoubleArray(yes, n);
+			res.accuracy = AccuracyFactory.doublesFromQualitative();
 			mainLog.println("Bound is 1, hence I am skipping the computation of other values than 1.");
 		}
 
@@ -577,6 +577,8 @@ public class STPGModelChecker extends ProbModelChecker
 		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
+		double maxDiff = PrismUtils.measureSupNorm(soln, soln2, termCrit == TermCrit.ABSOLUTE);
+		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		if (generateStrategy) {
@@ -617,7 +619,7 @@ public class STPGModelChecker extends ProbModelChecker
 		ModelCheckerResult res;
 		BitSet unknown;
 		int i, n, iters;
-		double soln[], initVal, maxDiff;
+		double soln[], initVal, maxDiff = Double.POSITIVE_INFINITY;
 		boolean done;
 		long timer;
 
@@ -685,6 +687,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;
+		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		return res;
@@ -864,6 +867,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.lastSoln = soln2;
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
@@ -1076,6 +1080,8 @@ public class STPGModelChecker extends ProbModelChecker
 		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
+		double maxDiff = PrismUtils.measureSupNorm(soln, soln2, termCrit == TermCrit.ABSOLUTE);
+		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		if (generateStrategy) {
