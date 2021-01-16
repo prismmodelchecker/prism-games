@@ -32,47 +32,56 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prism.ModelType;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 
-public class CSGSimple extends MDPSimple implements CSG {
-
-	protected Map<Integer, Map<String, Map<String, Map<String, Double>>>> rewards; 
-	
+/**
+ * Simple explicit-state representation of a (multi-player) concurrent stochastic game (CSG).
+ */
+public class CSGSimple extends MDPSimple implements CSG
+{
+	/** List of player action indices for each state/choice */
 	protected List<List<int[]>> transIndexes;
+	/** List of all action labels */
+	protected Vector<String> actions;
 	
 	protected BitSet[] indexes; // indexes of actions for each player
-	protected Vector<String> actions; // names of actions
- 	
+
 	protected int[] idles;
-	
+
 	/**
 	 * Player information (coalition part not used for now)
 	 */
 	protected PlayerInfo playerInfo;
-	
-	public CSGSimple() {
+
+	// Constructors
+
+	/**
+	 * Constructor: empty CSG.
+	 */
+	public CSGSimple()
+	{
 		super();
 		transIndexes = new ArrayList<List<int[]>>();
 		playerInfo = new PlayerInfo();
 	}
-	
-	public CSGSimple(CSGSimple csg, int[] permut) {
+
+	/**
+	 * Construct a CSG from an existing one and a state index permutation,
+	 * i.e. in which state index i becomes index permut[i].
+	 * Player and coalition info is also copied across.
+	 */
+	public CSGSimple(CSGSimple csg, int[] permut)
+	{
 		super(csg, permut);
-		//int idle;
-		//System.out.println("-- permut " + Arrays.toString(permut));
 		transIndexes = new ArrayList<List<int[]>>();
 		for (int s = 0; s < csg.getNumStates(); s++) {
 			transIndexes.add(s, null);
 		}
 		for (int s = 0; s < csg.getNumStates(); s++) {
-			//System.out.println("-- state " + s);
-			//csg.getTransIndexes(s).stream().map(t -> Arrays.toString(t)).forEach(System.out::println);
 			transIndexes.set(permut[s], csg.getTransIndexes(s));
 		}
 		indexes = csg.getIndexes();
@@ -87,7 +96,112 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		*/
 	}
-	
+
+	// Mutators
+
+	@Override
+	public void clearState(int s)
+	{
+		super.clearState(s);
+		transIndexes.set(s, new ArrayList<int[]>());
+	}
+
+	@Override
+	public int addState()
+	{
+		int i = super.addState();
+		transIndexes.add(new ArrayList<int[]>());
+		return i;
+	}
+
+	@Override
+	public void addStates(int numToAdd)
+	{
+		super.addStates(numToAdd);
+		for (int i = 0; i < numToAdd; i++) {
+			transIndexes.add(new ArrayList<int[]>());
+		}
+	}
+
+	public int addChoice(int s, Distribution distr, int[] indexes)
+	{
+		int i = super.addChoice(s, distr);
+		for (int j = 0; j < indexes.length; j++) {
+			if (indexes[j] >= 0)
+				this.indexes[j].set(indexes[j]);
+		}
+		transIndexes.get(s).add(i, indexes);
+		return i;
+	}
+
+	public int addActionLabelledChoice(int s, Distribution distr, int[] indexes)
+	{
+		int i, j;
+		String label = "";
+		for (j = 0; j < indexes.length; j++) {
+			if (indexes[j] >= 0)
+				label += "[" + actions.get(indexes[j] - 1) + "]";
+			else
+				label += "<" + j + ">";
+		}
+		i = super.addActionLabelledChoice(s, distr, label);
+		//System.out.println("-- label" + label);
+		for (j = 0; j < indexes.length; j++) {
+			if (indexes[j] >= 0)
+				this.indexes[j].set(indexes[j]);
+			//else 
+			//this.indexes[j].set(idles[j]);
+		}
+		transIndexes.get(s).add(i, indexes);
+		return i;
+	}
+
+	/**
+	 * Set the list of player action indices for choice {@code i} of state {@code s}
+	 */
+	public void setIndexes(int s, int i, int[] indexes)
+	{
+		this.transIndexes.get(s).add(i, indexes);
+	}
+
+	/**
+	 * Set the list of all action labels
+	 */
+	public void setActions(List<Object> actions)
+	{
+		this.actions = new Vector<String>();
+		for (Object action : actions) {
+			this.actions.add(action.toString());
+		}
+	}
+
+	/**
+	 * Set the list of all action labels
+	 */
+	public void setActions(Vector<String> actions)
+	{
+		this.actions = new Vector<String>(actions);
+	}
+
+	public void setIndexes(BitSet[] indexes)
+	{
+		this.indexes = indexes;
+	}
+
+	public void setIdles(int[] idles)
+	{
+		this.idles = idles;
+	}
+
+	public void addIdleIndexes()
+	{
+		int max = actions.size() + 1;
+		for (int p = 0; p < idles.length; p++) {
+			actions.add(max - 1, "<" + p + ">");
+			idles[p] = max++;
+		}
+	}
+
 	@Override
 	public void setPlayerNames(List<String> playerNames)
 	{
@@ -95,7 +209,7 @@ public class CSGSimple extends MDPSimple implements CSG {
 		CSG.super.setPlayerNames(playerNames);
 		initIndexes();
 	}
-	
+
 	/**
 	 * Copy the player info from another model
 	 */
@@ -104,8 +218,9 @@ public class CSGSimple extends MDPSimple implements CSG {
 		playerInfo = new PlayerInfo(model.getPlayerInfo());
 		initIndexes();
 	}
-	
-	protected void initIndexes() {
+
+	protected void initIndexes()
+	{
 		int numPlayers = getNumPlayers();
 		idles = new int[numPlayers];
 		indexes = new BitSet[numPlayers];
@@ -113,7 +228,7 @@ public class CSGSimple extends MDPSimple implements CSG {
 			indexes[j] = new BitSet();
 		}
 	}
-	
+
 	// Accessors (for PlayerInfoOwner)
 
 	@Override
@@ -121,55 +236,77 @@ public class CSGSimple extends MDPSimple implements CSG {
 	{
 		return playerInfo;
 	}
-	
+
 	// Accessors (for CSG)
-	
-	public BitSet[] getIndexes() {
-		return indexes;
+
+	/**
+	 * Get the list of player action indices for all states/choices
+	 */
+	public List<List<int[]>> getTransIndexes()
+	{
+		return transIndexes;
 	}
-	
-	public Vector<String> getActions() {
+
+	/**
+	 * Get the list of player action indices for the choices of state {@code s}
+	 */
+	public List<int[]> getTransIndexes(int s)
+	{
+		return transIndexes.get(s);
+	}
+
+	/**
+	 * Get the list of player action indices for choice {@code i} of state {@code s}
+	 */
+	public int[] getIndexes(int s, int i)
+	{
+		return transIndexes.get(s).get(i);
+	}
+
+	/**
+	 * Get the list of all action labels
+	 */
+	public Vector<String> getActions()
+	{
 		return actions;
 	}
 
-	public List<List<int[]>> getTransIndexes() {
-		return transIndexes;
+	public BitSet[] getIndexes()
+	{
+		return indexes;
 	}
-	
-	public List<int[]> getTransIndexes(int s) {
-		return transIndexes.get(s);
-	}
-	
-	public int[] getIndexes(int s, int i) {
-		return transIndexes.get(s).get(i);
-	}
-	
-	public int[] getIdles() {
+
+	public int[] getIdles()
+	{
 		return idles;
 	}
-	
-	public int getIdleForPlayer(int p) {
+
+	public int getIdleForPlayer(int p)
+	{
 		return idles[p];
 	}
-	
-	public String[] getActions(int s, int i) {
+
+	public String[] getActions(int s, int i)
+	{
 		int[] indexes = getIndexes(s, i);
 		String[] result = new String[indexes.length];
 		for (int a = 0; a < indexes.length; a++) {
-			result[a] = (indexes[a] > 0)? actions.get(indexes[a] - 1) : "<" + a + ">";
+			result[a] = (indexes[a] > 0) ? actions.get(indexes[a] - 1) : "<" + a + ">";
 		}
 		return result;
 	}
-	
-	public List<String> getActionsForPlayer(int p) {
+
+	public List<String> getActionsForPlayer(int p)
+	{
 		List<String> result = new ArrayList<String>();
-		for (int i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {	
+		for (int i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {
 			result.add(actions.get(i));
 		}
 		return result;
 	}
-	
-	public Set<String> getActionsForPlayer(int s, int p) {
+
+	public Set<String> getActionsForPlayer(int s, int p)
+	{
 		Set<String> result = new HashSet<String>();
 		String[] actions;
 		for (int t = 0; t < getNumChoices(s); t++) {
@@ -179,21 +316,23 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		return result;
 	}
-	
-	public BitSet getIndexesForPlayer(int s, int p) {
+
+	public BitSet getIndexesForPlayer(int s, int p)
+	{
 		BitSet result = new BitSet();
 		int[] indexes;
 		for (int t = 0; t < getNumChoices(s); t++) {
 			indexes = getIndexes(s, t);
 			if (indexes[p] > 0)
 				result.set(indexes[p]);
-			else 
+			else
 				result.set(idles[p]);
 		}
 		return result;
 	}
-	
-	public int[] getNumActions(int s) {
+
+	public int[] getNumActions(int s)
+	{
 		int numPlayers = getNumPlayers();
 		BitSet[] acc = new BitSet[numPlayers];
 		int[] tmp;
@@ -213,8 +352,9 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		return result;
 	}
-	
-	public BitSet getActivePlayers(int s) {
+
+	public BitSet getActivePlayers(int s)
+	{
 		BitSet result = new BitSet();
 		int[] numActions = getNumActions(s);
 		int numPlayers = getNumPlayers();
@@ -224,8 +364,9 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		return result;
 	}
-	
-	public BitSet getConcurrentPlayers(int s) {
+
+	public BitSet getConcurrentPlayers(int s)
+	{
 		BitSet result = new BitSet();
 		int[] numActions = getNumActions(s);
 		int numPlayers = getNumPlayers();
@@ -235,80 +376,9 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		return result;
 	}
-	
-	public void setIndexes(int s, int t, int[] indexes) {
-		this.transIndexes.get(s).add(t, indexes);
-	}
-	
-	public void setIndexes(BitSet[] indexes) {
-		this.indexes = indexes;
-	}
-	
-	public void setIdles(int[] idles) {
-		this.idles = idles;
-	}
-	
-	public void setActions(List<Object> actions) {
-		this.actions = new Vector<String>();
-		for (Object action : actions) {
-			this.actions.add(action.toString());
-		}
-	}
-	
-	public void setActions(Vector<String> actions) {
-		this.actions = new Vector<String>(actions);
-	}
-	
-	@Override
-	public int addState() {
-		addStates(1);
-		transIndexes.add(numStates - 1, new ArrayList<int[]>());
-		return numStates - 1;
-	}
-	
-	public int addChoice(int s, Distribution distr, int[] indexes) {
-		int i = super.addChoice(s, distr);
-		for (int j = 0; j < indexes.length; j++) {
-			if (indexes[j] >= 0)
-				this.indexes[j].set(indexes[j]);
-		}
-		transIndexes.get(s).add(i, indexes);
-		return i;
-	}
-	
-	public void addIdleIndexes() {
-		int max = actions.size() + 1;
-		for (int p = 0; p < idles.length; p++) {
-			actions.add(max - 1, "<" + p + ">");
-			idles[p] = max++;
-		}
-	}
-	
-	public int addActionLabelledChoice(int s, Distribution distr, int[] indexes) {
-		//System.out.println("\n-- Adding choice for state " + s);
-		//System.out.println("-- distr " + distr);
-		//System.out.println("-- indexes " + Arrays.toString(indexes));		
-		int i, j;
-		String label = "";
-		for (j = 0; j < indexes.length; j++) {
-			if(indexes[j] >= 0)
-				label += "[" +  actions.get(indexes[j] - 1) + "]";
-			else 
-				label += "<" + j + ">";
-		} 
-		i = super.addActionLabelledChoice(s, distr, label);
-		//System.out.println("-- label" + label);
-		for (j = 0; j < indexes.length; j++) {
-			if (indexes[j] >= 0)
-				this.indexes[j].set(indexes[j]);
-			//else 
-				//this.indexes[j].set(idles[j]);
-		}
-		transIndexes.get(s).add(i, indexes);
-		return i;
-	}
-	
-	public void fixDeadlock(int s) {
+
+	public void fixDeadlock(int s)
+	{
 		int numPlayers = getNumPlayers();
 		Distribution distr = new Distribution();
 		distr.add(s, 1.0);
@@ -318,8 +388,9 @@ public class CSGSimple extends MDPSimple implements CSG {
 		}
 		addActionLabelledChoice(s, distr, indexes);
 	}
-	
-	public void printModelInfo() {
+
+	public void printModelInfo()
+	{
 		System.out.println(actions);
 		for (int s = 0; s < getNumStates(); s++) {
 			System.out.print("\n## state " + s + " : " + Arrays.toString(getNumActions(s)));
