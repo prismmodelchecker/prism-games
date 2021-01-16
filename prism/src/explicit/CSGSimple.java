@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import prism.ModelType;
+import prism.PlayerInfo;
+import prism.PlayerInfoOwner;
 
 public class CSGSimple extends MDPSimple implements CSG {
 
@@ -45,23 +47,21 @@ public class CSGSimple extends MDPSimple implements CSG {
 	protected List<List<int[]>> transIndexes;
 	
 	protected BitSet[] indexes; // indexes of actions for each player
-	protected String[] players; // names of each player
 	protected Vector<String> actions; // names of actions
  	
 	protected int[] idles;
 	
+	/**
+	 * Player information (coalition part not used for now)
+	 */
+	protected PlayerInfo playerInfo;
+	
 	public CSGSimple() {
 		super();
 		transIndexes = new ArrayList<List<int[]>>();
+		playerInfo = new PlayerInfo();
 	}
 	
-	public CSGSimple(String[] players) {
-		super();
-		transIndexes = new ArrayList<List<int[]>>();
-		this.players = players;
-		initIndexes();
-	}
-
 	public CSGSimple(CSGSimple csg, int[] permut) {
 		super(csg, permut);
 		//int idle;
@@ -76,7 +76,7 @@ public class CSGSimple extends MDPSimple implements CSG {
 			transIndexes.set(permut[s], csg.getTransIndexes(s));
 		}
 		indexes = csg.getIndexes();
-		players = csg.getPlayers();
+		playerInfo = new PlayerInfo(csg.playerInfo);
 		actions = csg.getActions();
 		idles = csg.getIdles();
 		/*
@@ -88,34 +88,50 @@ public class CSGSimple extends MDPSimple implements CSG {
 		*/
 	}
 	
-	public void initIndexes() {
-		idles = new int[players.length];
-		indexes = new BitSet[players.length];
-		for (int j = 0; j < players.length; j++) {
+	@Override
+	public void setPlayerNames(List<String> playerNames)
+	{
+		// Override setPlayerNames because we need to set up indexing
+		CSG.super.setPlayerNames(playerNames);
+		initIndexes();
+	}
+	
+	/**
+	 * Copy the player info from another model
+	 */
+	public void copyPlayerInfo(PlayerInfoOwner model)
+	{
+		playerInfo = new PlayerInfo(model.getPlayerInfo());
+		initIndexes();
+	}
+	
+	protected void initIndexes() {
+		int numPlayers = getNumPlayers();
+		idles = new int[numPlayers];
+		indexes = new BitSet[numPlayers];
+		for (int j = 0; j < numPlayers; j++) {
 			indexes[j] = new BitSet();
 		}
 	}
 	
-	public BitSet[] getIndexes() {
-		return indexes;
+	// Accessors (for PlayerInfoOwner)
+
+	@Override
+	public PlayerInfo getPlayerInfo()
+	{
+		return playerInfo;
 	}
 	
-	public String[] getPlayers() {
-		return players;
+	// Accessors (for CSG)
+	
+	public BitSet[] getIndexes() {
+		return indexes;
 	}
 	
 	public Vector<String> getActions() {
 		return actions;
 	}
 
-	public int getNumPlayers() {
-		return players.length;
-	}
-	
-	public String getPlayerName(int p) {
-		return players[p];
-	}
-	
 	public List<List<int[]>> getTransIndexes() {
 		return transIndexes;
 	}
@@ -178,11 +194,12 @@ public class CSGSimple extends MDPSimple implements CSG {
 	}
 	
 	public int[] getNumActions(int s) {
-		BitSet[] acc = new BitSet[players.length];
+		int numPlayers = getNumPlayers();
+		BitSet[] acc = new BitSet[numPlayers];
 		int[] tmp;
-		int[] result = new int[players.length];
+		int[] result = new int[numPlayers];
 		Arrays.fill(result, 0);
-		for (int p = 0; p < players.length; p++) {
+		for (int p = 0; p < numPlayers; p++) {
 			acc[p] = new BitSet();
 			for (int t = 0; t < getNumChoices(s); t++) {
 				tmp = transIndexes.get(s).get(t);
@@ -200,7 +217,8 @@ public class CSGSimple extends MDPSimple implements CSG {
 	public BitSet getActivePlayers(int s) {
 		BitSet result = new BitSet();
 		int[] numActions = getNumActions(s);
-		for (int p = 0; p < players.length; p++) {
+		int numPlayers = getNumPlayers();
+		for (int p = 0; p < numPlayers; p++) {
 			if (numActions[p] > 0)
 				result.set(p);
 		}
@@ -210,7 +228,8 @@ public class CSGSimple extends MDPSimple implements CSG {
 	public BitSet getConcurrentPlayers(int s) {
 		BitSet result = new BitSet();
 		int[] numActions = getNumActions(s);
-		for (int p = 0; p < players.length; p++) {
+		int numPlayers = getNumPlayers();
+		for (int p = 0; p < numPlayers; p++) {
 			if (numActions[p] >= 2)
 				result.set(p);
 		}
@@ -227,10 +246,6 @@ public class CSGSimple extends MDPSimple implements CSG {
 	
 	public void setIdles(int[] idles) {
 		this.idles = idles;
-	}
-	
-	public void setPlayers(String[] players) {
-		this.players = players;
 	}
 	
 	public void setActions(List<Object> actions) {
@@ -294,10 +309,11 @@ public class CSGSimple extends MDPSimple implements CSG {
 	}
 	
 	public void fixDeadlock(int s) {
+		int numPlayers = getNumPlayers();
 		Distribution distr = new Distribution();
 		distr.add(s, 1.0);
-		int[] indexes = new int[players.length];
-		for (int p = 0; p < players.length; p++) {
+		int[] indexes = new int[numPlayers];
+		for (int p = 0; p < numPlayers; p++) {
 			indexes[p] = -1;
 		}
 		addActionLabelledChoice(s, distr, indexes);

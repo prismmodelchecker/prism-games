@@ -601,10 +601,22 @@ public class LTLModelChecker extends PrismComponent
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}
 
-		// Add player information for CSGs
+		// For games with player/coalition info, copy this too
+		if (model instanceof PlayerInfoOwner) {
+			if (modelType == ModelType.STPG) {
+				((STPGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
+			if (modelType == ModelType.SMG) {
+				((SMGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
+			if (modelType == ModelType.CSG) {
+				((CSGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
+		}
+		
+		// Add more player information for CSGs
 		if (modelType == ModelType.CSG) {
 			((CSGSimple) prodModel).setActions(((CSG) model).getActions());
-			((CSGSimple) prodModel).setPlayers(((CSG) model).getPlayers());
 			((CSGSimple) prodModel).setIndexes(((CSG) model).getIndexes());
 			((CSGSimple) prodModel).setIdles(((CSG) model).getIdles());
 		}
@@ -765,16 +777,6 @@ public class LTLModelChecker extends PrismComponent
 			}
 		}
 
-		// For games with player/coalition info, copy this too
-		if (model instanceof PlayerInfoOwner) {
-			if (modelType == ModelType.STPG) {
-				((STPGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
-			}
-			if (modelType == ModelType.SMG) {
-				((SMGSimple) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
-			}
-		}
-		
 		// Build a mapping from state indices to states (s,q), encoded as (s * daSize + q) 
 		int invMap[] = new int[prodModel.getNumStates()];
 		for (int i = 0; i < map.length; i++) {

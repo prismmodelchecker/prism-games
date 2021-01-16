@@ -33,7 +33,7 @@ import java.util.Vector;
 import prism.ModelType;
 import prism.PlayerInfoOwner;
 
-public interface CSG extends MDP //, PlayerInfoOwner
+public interface CSG extends MDP, PlayerInfoOwner
 {
 	// Accessors (for Model) - default implementations
 	
@@ -47,13 +47,7 @@ public interface CSG extends MDP //, PlayerInfoOwner
 	
 	public BitSet[] getIndexes();
 	
-	public String[] getPlayers();
-	
 	public Vector<String> getActions();
-	
-	public int getNumPlayers();
-	
-	public String getPlayerName(int p);
 	
 	public int getIdleForPlayer(int p);
 	

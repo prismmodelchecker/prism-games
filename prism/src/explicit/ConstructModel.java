@@ -39,6 +39,7 @@ import parser.Values;
 import parser.VarList;
 import prism.ModelGenerator;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -232,7 +233,7 @@ public class ConstructModel extends PrismComponent
 				modelSimple = ctmc = new CTMCSimple();
 				break;
 			case CSG:
-				modelSimple = csg = new CSGSimple(playerNames.toArray(new String[0]));
+				modelSimple = csg = new CSGSimple();
 				csg.setActions(modelGen.getActions());
 				break;			
 			case MDP:
@@ -249,15 +250,17 @@ public class ConstructModel extends PrismComponent
 				break;
 			case STPG:
 				modelSimple = stpg = new STPGSimple();
-				stpg.setPlayerNames(playerNames);
 				break;
 			case SMG:
 				modelSimple = smg = new SMGSimple();
-				smg.setPlayerNames(playerNames);
 				break;
 			case PTA:
 			case POPTA:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
+			}
+			// Attach player info, if needed
+			if (modelSimple instanceof PlayerInfoOwner) {
+				((PlayerInfoOwner) modelSimple).setPlayerNames(playerNames);
 			}
 			// Attach variable info
 	        ((ModelExplicit) modelSimple).setVarList(varList);

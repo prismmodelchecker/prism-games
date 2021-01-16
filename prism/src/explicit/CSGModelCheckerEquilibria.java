@@ -890,8 +890,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		//System.out.println("-- common " + common);
 		
 		CSGSimple newmodel = new CSGSimple();
+		newmodel.copyPlayerInfo(csg);
 		newmodel.setActions(csg.getActions());
-		newmodel.setPlayers(csg.getPlayers());
 		newmodel.setIndexes(csg.getIndexes());
 		newmodel.setIdles(csg.getIdles());
 		
