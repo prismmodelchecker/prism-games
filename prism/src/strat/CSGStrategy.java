@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -372,13 +373,12 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		else {
 			n = onmap.get(s);
 		}
-		for (int t = 0; t < model.getNumChoices(s); t++) {
-			for (int u : model.getChoice(s, t).getSupport()) {
-				if (goals[0].get(s))
-					goals[0].set(u);
-				if (goals[1].get(s))
-					goals[1].set(u);
-			}
+		for (Iterator<Integer> iter = model.getSuccessorsIterator(s); iter.hasNext(); ) {
+			int u = iter.next();
+			if (goals[0].get(s))
+				goals[0].set(u);
+			if (goals[1].get(s))
+				goals[1].set(u);
 		}
 		explored.set(s);
 		if (goals[p].get(s) && goals[(p + 1) % 2].get(s)) {
@@ -396,7 +396,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 			c = prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport().size();
 			for (int t : prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport()) {
 				v = prechoices[(p + 1) % 2].strat.getNextMove(s).get(t);
-				for (int u : model.getChoice(s, t).getSupport()) {
+				for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+					Map.Entry<Integer, Double> e = iter.next();
+					int u = e.getKey();
 					if (!onmap.containsKey(u)) {
 						m = mdp.addState();
 						onmap.put(u, m);
@@ -407,7 +409,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					}
 					if (!explored.get(u))
 						addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, u);							
-					d.add(m, v * model.getChoice(s, t).get(u));
+					d.add(m, v * e.getValue());
 				}
 				for (i = 0; i < model.getActions(s, t).length; i++) {
 					joint += "[" + model.getActions(s, t)[i] + "]";
@@ -490,7 +492,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {						
-						for (int u : model.getChoice(s, t).getSupport()) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+							Map.Entry<Integer, Double> e = iter.next();
+							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -500,10 +504,10 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							}
 							else {
 								m = onmap.get(u);
-								if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
+								if (m == n && model.getNumChoices(s) == 1 && model.getNumTransitions(s, t) == 1)
 									loop = true;
 							}
-							d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
+							d.add(m, e.getValue() * prods.get(tmp));
 						}
 					}
 				}
@@ -537,7 +541,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		String joint = null;
 		BitSet tmp = new BitSet();
 		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		int c, i, m, n, p, q, t;
+		int c, i, n, p, q, t;
 		boolean chck = true;
 		n = onmap.get(s);
 		explored.set(s);
@@ -576,7 +580,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {
-						for (int u : model.getChoice(s, t).getSupport()) {
+						model.forEachTransition(s, t, (__, u, pr) -> {
+							int m;
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -587,8 +592,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							else {
 								m = onmap.get(u);
 							}
-							d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
-						}
+							d.add(m, pr * prods.get(tmp));
+						});
 					}
 				}
 				if (!d.isEmpty()) {
@@ -651,7 +656,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					tmp2.andNot(tmp1);
 					if (tmp2.isEmpty()) {
 						d = new Distribution();
-						for (int u : model.getChoice(s, t).getSupport()) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+							Map.Entry<Integer, Double> e = iter.next();
+							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -662,7 +669,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							else {
 								m = onmap.get(u);
 							}
-							d.add(m, model.getChoice(s, t).get(u) * csgchoices.get(p).get(k).get(s).get(act));
+							d.add(m, e.getValue() * csgchoices.get(p).get(k).get(s).get(act));
 						}
 						for (i = tmp1.nextSetBit(0); i >= 0; i = tmp1.nextSetBit(i + 1)) {
 							if (act.get(i))

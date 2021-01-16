@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -432,8 +433,10 @@ public class CSGModelChecker extends ProbModelChecker {
 			probabilities.put(jidx, new ArrayList<Distribution>());
 			v = 0.0;
 			if (val != null) {
-				for (int d : csg.getChoice(s, t).getSupport()) 
-					v += csg.getChoice(s, t).get(d) * val[d];
+				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext(); ) {
+					Map.Entry<Integer, Double> e = iter.next();
+					v += e.getValue() * val[e.getKey()];
+				}
 			}
 			if (rewards != null)
 				v += rewards.get(0).getTransitionReward(s, t);
@@ -1691,7 +1694,8 @@ public class CSGModelChecker extends ProbModelChecker {
 						case ExpressionTemporal.R_I:
 							for (s = 0; s < product.productModel.getNumStates(); s++){
 								for (t = 0; t < product.productModel.getNumChoices(s); t++) {
-									for (int u : product.productModel.getChoice(s, t).getSupport()) {
+									for (Iterator<Integer> iter = product.productModel.getSuccessorsIterator(s, t); iter.hasNext(); ) {
+										int u = iter.next();
 										if (newtargets[index].get(u)) {
 											((CSGRewardsSimple) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
 										}
@@ -1831,18 +1835,17 @@ public class CSGModelChecker extends ProbModelChecker {
 	protected List<State> list_state;
 	 
 	public void filterStates(CSG csg, CSGSimple csg_rm, List<CSGRewards> rewards, List<CSGRewards> rew_rm, int s) {
-		Distribution d;
 		int i;
 		list_state.add(csg.getStatesList().get(s));
    		for (int c = 0; c < csg.getNumChoices(s); c++) { // gets all choices
-   			d = new Distribution();
-			for (int t : csg.getChoice(s, c).getSupport()) { // gets all targets
+   			Distribution d = new Distribution();
+   			csg.forEachTransition(s, c, (__, t, pr) -> { // gets all targets
 				if(!map_state.keySet().contains(t)) { //if not yet explored
 					map_state.put(t, csg_rm.addState());
 					filterStates(csg, csg_rm, rewards, rew_rm, t);
 				}
-				d.add(map_state.get(t), csg.getChoice(s, c).get(t)); // adds target to distribution
-			}
+				d.add(map_state.get(t), pr); // adds target to distribution
+			});
 			i = csg_rm.addActionLabelledChoice(map_state.get(s), d, csg.getAction(s, c));
 			csg_rm.setIndexes(map_state.get(s), i, csg.getIndexes(s, c));
 			if (rewards != null && rew_rm != null) {	

@@ -36,6 +36,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -367,8 +368,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			utilities.put(jidx, new ArrayList<Double>());
 			for (c = 0; c < numCoalitions; c++) {
 				v = 0.0;
-				for (int d : csg.getChoice(s, t).getSupport()) {
-					v += csg.getChoice(s, t).get(d) * val[c][d];
+				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext(); ) {
+					Map.Entry<Integer, Double> e = iter.next();
+					v += e.getValue() * val[c][e.getKey()];
 				}
 				if (rewards != null) {
 					if (rewards.get(c) != null)
@@ -575,8 +577,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				v = 0.0;
 				for (t = 0; t < csg.getNumChoices(s); t++) {
 					sum = 0.0;
-					for (int u : csg.getChoice(s, t).keySet()) {
-						sum += csg.getChoice(s, t).get(u) * sol2[u];
+					for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext(); ) {
+						Map.Entry<Integer, Double> e = iter.next();
+						sum += e.getValue() * sol2[e.getKey()];
 					}
 					v = (sum > v)? sum : v;
 				}
@@ -1144,29 +1147,32 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 	
 	public void exploreSat(CSG csg, CSGSimple newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
 									VarList newvarlist, Declaration[] goals, BitSet[] targets, BitSet explored, BitSet subgame, int s) {
-		Distribution d;
-		int l, m, p, t, v;
+		int l;
 		explored.set(s);
 		if (!subgame.isEmpty()) { 
 			if (!subgames.containsKey(subgame))
 				subgames.put(subgame, new BitSet());
 			subgames.get(subgame).set(s);
 		}
-		for (t = 0; t < csg.getNumChoices(nomap.get(s)); t++) {
-			d = new Distribution();
-			for (int u : csg.getChoice(nomap.get(s), t).getSupport()) {
+		for (int t = 0; t < csg.getNumChoices(nomap.get(s)); t++) {
+			Distribution d = new Distribution();
+			
+			for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(nomap.get(s), t); iter.hasNext(); ) {
+				Map.Entry<Integer, Double> e = iter.next();
+				int u = e.getKey();
 				State ustate = new State(newstatelist.get(s));
 				BitSet usubgame = new BitSet();
 				usubgame.or(subgame);
-				for (v = 0; v < csg.getVarList().getNumVars(); v++) {
+				for (int v = 0; v < csg.getVarList().getNumVars(); v++) {
 					ustate.setValue(v, csg.getStatesList().get(u).varValues[v]);
 				}
-				for (p = 0; p < numCoalitions; p++) {
+				for (int p = 0; p < numCoalitions; p++) {
 					if (targets[p].get(u)) {
 						ustate.setValue(newvarlist.getIndex(goals[p].getName()), true);
 						usubgame.set(p);
 					}
 				}
+				int m;
 				if (!extmap.containsKey(ustate.hashCode())) {
 					m = newmodel.addState();
 					nomap.put(m, u);
@@ -1178,8 +1184,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				}
 				if (!explored.get(m)) 
 					exploreSat(csg, newmodel, nomap, extmap, subgames, newstatelist, newvarlist, goals, targets, explored, usubgame, m);
-				d.add(m, csg.getChoice(nomap.get(s), t).get(u));
-			}	
+				d.add(m, e.getValue());
+			}
 			l = newmodel.addActionLabelledChoice(s, d, csg.getAction(nomap.get(s), t));
 			newmodel.setIndexes(s, l, csg.getIndexes(nomap.get(s), t));
 		}
