@@ -188,9 +188,9 @@ public class PropertiesFile extends ASTElement
 		return properties.size();
 	}
 
-        public Property getPropertyObject(int i)
+	public Property getPropertyObject(int i)
 	{
-	        return properties.get(i);
+		return properties.get(i);
 	}
 
 	public Expression getProperty(int i)
@@ -245,8 +245,8 @@ public class PropertiesFile extends ASTElement
 	 * Look up a property by name, currently just locally like {@link #getPropertyObjectByName}.
 	 * Returns null if not found.
 	 */
-	public Property lookUpPropertyObjectByName(String name) throws PrismLangException
-	{ 
+	public Property lookUpPropertyObjectByName(String name)
+	{
 		return getPropertyObjectByName(name);
 	}
 
@@ -638,9 +638,7 @@ public class PropertiesFile extends ASTElement
 
 		n = getNumProperties();
 		for (i = 0; i < n; i++) {
-			String t;
-			t = getPropertyObject(i).toString();
-			s += t + ";\n";
+			s += getPropertyObject(i) + ";\n";
 			if (i < n - 1)
 				s += "\n";
 		}
@@ -664,7 +662,7 @@ public class PropertiesFile extends ASTElement
 		ret.setConstantList((ConstantList) constantList.deepCopy());
 		n = getNumProperties();
 		for (i = 0; i < n; i++) {
-		    ret.addProperty((Property) getPropertyObject(i).deepCopy());
+			ret.addProperty((Property) getPropertyObject(i).deepCopy());
 		}
 		// Copy other (generated) info
 		ret.identUsage = (identUsage == null) ? null : identUsage.deepCopy();
