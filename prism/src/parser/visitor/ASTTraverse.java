@@ -62,6 +62,14 @@ public class ASTTraverse implements ASTVisitor
 			if (e.getRewardStruct(i) != null) e.getRewardStruct(i).accept(this);
 		}
 		if (e.getInitialStates() != null) e.getInitialStates().accept(this);
+		n = e.getNumObservableVarLists();
+		for (i = 0; i < n; i++) {
+			if (e.getObservableVarList(i) != null) e.getObservableVarList(i).accept(this);
+		}
+		n = e.getNumObservableDefinitions();
+		for (i = 0; i < n; i++) {
+			if (e.getObservableDefinition(i) != null) e.getObservableDefinition(i).accept(this);
+		}
 		n = e.getNumPlayers();
 		for (i = 0; i < n; i++) {
 			if (e.getPlayer(i) != null) e.getPlayer(i).accept(this);
@@ -306,6 +314,29 @@ public class ASTTraverse implements ASTVisitor
 		return null;
 	}
 	public void visitPost(RewardStructItem e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(ObservableVars e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ObservableVars e) throws PrismLangException
+	{
+		visitPre(e);
+		int i, n = e.getNumVars();
+		for (i = 0; i < n; i++) {
+			if (e.getVar(i) != null) e.getVar(i).accept(this);
+		}
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(ObservableVars e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(Observable e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(Observable e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getDefinition() != null) e.getDefinition().accept(this);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(Observable e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(Player e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(Player e) throws PrismLangException
@@ -609,6 +640,15 @@ public class ASTTraverse implements ASTVisitor
 		return null;
 	}
 	public void visitPost(ExpressionLabel e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionObs e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionObs e) throws PrismLangException
+	{
+		visitPre(e);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(ExpressionObs e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionProp e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionProp e) throws PrismLangException

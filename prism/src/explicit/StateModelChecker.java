@@ -53,6 +53,7 @@ import parser.ast.ExpressionITE;
 import parser.ast.ExpressionIdent;
 import parser.ast.ExpressionLabel;
 import parser.ast.ExpressionLiteral;
+import parser.ast.ExpressionObs;
 import parser.ast.ExpressionProp;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.ExpressionVar;
@@ -702,6 +703,10 @@ public class StateModelChecker extends PrismComponent
 		else if (expr instanceof ExpressionVar) {
 			res = checkExpressionVar(model, (ExpressionVar) expr, statesOfInterest);
 		}
+		// Observables
+		else if (expr instanceof ExpressionObs) {
+			res = checkExpressionObs(model, (ExpressionObs) expr, statesOfInterest);
+		}
 		// Labels
 		else if (expr instanceof ExpressionLabel) {
 			res = checkExpressionLabel(model, (ExpressionLabel) expr, statesOfInterest);
@@ -955,6 +960,24 @@ public class StateModelChecker extends PrismComponent
 		return res;
 	}
 
+	/**
+	 * Model check an observable reference.
+	 * @param statesOfInterest the states of interest, see checkExpression()
+	 */
+	protected StateValues checkExpressionObs(Model model, ExpressionObs expr, BitSet statesOfInterest) throws PrismException
+	{
+		PartiallyObservableModel poModel = (PartiallyObservableModel) model;
+		int iObservable = modelInfo.getObservableIndex(expr.getName());
+		int numStates = model.getNumStates();
+		StateValues res = new StateValues(expr.getType(), model);
+		for (int i = 0; i < numStates; i++) {
+			State observation = poModel.getObservationAsState(i);
+			Object val = observation.varValues[iObservable];
+			res.setValue(i, val);
+		}
+		return res;
+	}
+	
 	/**
 	 * Model check a label.
 	 * @param statesOfInterest the states of interest, see checkExpression()

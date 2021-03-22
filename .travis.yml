@@ -6,10 +6,10 @@ dist: xenial
 sudo: required
 language: java
 
-# we test for JDK 8,10,11
-# (usually, but PPL is only building on Java 8 for now)
+# we test for JDK 10,11
+# (this config is currently broken since PRISM needs Java >=9
+# but building PPL from source seems to need Java 8 for now)
 jdk:
-  - openjdk8
 #  - openjdk10
 #  - openjdk11
 

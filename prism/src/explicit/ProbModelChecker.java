@@ -1114,7 +1114,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeUntilProbs((MDP) model, remain, target, minMax.isMin());
 			break;
 		case POMDP:
-			res = ((POMDPModelChecker) this).computeReachProbs((POMDP) model, target, minMax.isMin());
+			res = ((POMDPModelChecker) this).computeReachProbs((POMDP) model, remain, target, minMax.isMin(), statesOfInterest);
 			break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG) model, remain, target, minMax.isMin1(), minMax.isMin2(), minMax.getBound());
@@ -1476,7 +1476,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeReachRewards((MDP) model, (MDPRewards) modelRewards, target, minMax.isMin());
 			break;
 		case POMDP:
-			res = ((POMDPModelChecker) this).computeReachRewards((POMDP) model, (MDPRewards) modelRewards, target, minMax.isMin());
+			res = ((POMDPModelChecker) this).computeReachRewards((POMDP) model, (MDPRewards) modelRewards, target, minMax.isMin(), statesOfInterest);
 			break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeReachRewards((STPG) model, (STPGRewards) modelRewards, target, minMax.isMin1(), minMax.isMin2());

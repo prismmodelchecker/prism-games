@@ -41,6 +41,7 @@ import prism.ModelInfo;
 import simulator.PathFull;
 import simulator.PathFullInfo;
 import userinterface.simulator.SimulationView.ActionValue;
+import userinterface.simulator.SimulationView.Observ;
 import userinterface.simulator.SimulationView.RewardStructureColumn;
 import userinterface.simulator.SimulationView.RewardStructureValue;
 import userinterface.simulator.SimulationView.TimeValue;
@@ -53,11 +54,11 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	private static final long serialVersionUID = 1L;
 
 	enum PathTableModelGroupType {
-		STEP, TIME, VARIABLES, REWARDS
+		STEP, TIME, VARIABLES, OBSERVABLES, REWARDS
 	};
 	
 	enum GUISimulatorPathTableModelColumn {
-		ACTION, MEMORY, STEP, TIME_CUMUL, TIME, VARIABLE, REWARD
+		ACTION, MEMORY, STEP, TIME_CUMUL, TIME, VARIABLE, OBSERVABLE, REWARD
 	};
 	
 	class PathTableModelGroup {
@@ -169,6 +170,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			case VARIABLES:
 				int module = (Integer) visibleGroups.get(groupIndex).info;
 				return module == -1 ? "Globals" : modelInfo.getModuleName(module);
+			case OBSERVABLES:
+				return "Observables";
 			case REWARDS:
 				return "Rewards";
 			default:
@@ -191,6 +194,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			case VARIABLES:
 				int module = (Integer) visibleGroups.get(groupIndex).info;
 				return module == -1 ? "Global variables" : "Variables of module " + modelInfo.getModuleName(module);
+			case OBSERVABLES:
+				return null;
 			case REWARDS:
 				return "State, transition and cumulative rewards";
 			default:
@@ -261,6 +266,9 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			case VARIABLE:
 				Variable var = (Variable) visibleColumns.get(columnIndex).info;
 				return var.toString();
+			case OBSERVABLE:
+				Observ obs = (Observ) visibleColumns.get(columnIndex).info;
+				return obs.toString();
 			case REWARD:
 				RewardStructureColumn rewardColumn = (RewardStructureColumn) visibleColumns.get(columnIndex).info;
 				return rewardColumn.getColumnName();
@@ -288,7 +296,10 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				return "Time spent in state";
 			case VARIABLE:
 				Variable var = (Variable) visibleColumns.get(columnIndex).info;
-				return "Value of variable \"" + var.toString() + "\"";
+				return "Value of variable " + var.toString();
+			case OBSERVABLE:
+				Observ obs = (Observ) visibleColumns.get(columnIndex).info;
+				return "Value of observable " + obs.toString();
 			case REWARD:
 				RewardStructureColumn rewardColumn = (RewardStructureColumn) visibleColumns.get(columnIndex).info;
 				String rewardName = rewardColumn.getRewardStructure().getColumnName();
@@ -359,6 +370,14 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				variableValue.setVariable(var);
 				variableValue.setValue(result);
 				variableValue.setChanged(rowIndex == 0 || !path.getState(rowIndex - 1).varValues[var.getIndex()].equals(result));
+				return variableValue;
+			case OBSERVABLE:
+				// An observable column
+				Observ obs = (Observ) visibleColumns.get(columnIndex).info;
+				Object resultO = path.getObservation(rowIndex).varValues[obs.getIndex()];
+				variableValue.setVariable(obs);
+				variableValue.setValue(resultO);
+				variableValue.setChanged(rowIndex == 0 || !path.getObservation(rowIndex - 1).varValues[obs.getIndex()].equals(resultO));
 				return variableValue;
 			case REWARD:
 				// A reward column
@@ -456,6 +475,13 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 						visibleGroups.add(new PathTableModelGroup(PathTableModelGroupType.VARIABLES, v.getModuleIndex(), visibleColumns.size() - 1));
 					}
 				}
+			}
+			// Variables
+			if (view.getVisibleObservables().size() > 0) {
+				for (Observ o : view.getVisibleObservables()) {
+					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.OBSERVABLE, o));
+				}
+				visibleGroups.add(new PathTableModelGroup(PathTableModelGroupType.OBSERVABLES, null, visibleColumns.size() - 1));
 			}
 			// Rewards
 			if (view.getVisibleRewardColumns().size() > 0) {
