@@ -30,9 +30,12 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -170,14 +173,64 @@ public class PrismUtils
 	}
 
 	/**
+	 * See if two maps to doubles are all within epsilon of each other (relative or absolute error).
+	 */
+	public static <X> boolean doublesAreClose(HashMap<X,Double> map1, HashMap<X,Double> map2, double epsilon, boolean abs)
+	{
+		Set<Entry<X,Double>> entries = map1.entrySet();
+		for (Entry<X,Double> entry : entries) {
+			double d1 = (double) entry.getValue();
+			if (map2.get(entry.getKey()) != null) {
+				double d2 = (double) map2.get(entry.getKey());
+				if (abs) {
+					if (!PrismUtils.doublesAreCloseAbs(d1, d2, epsilon))
+						return false;
+				} else {
+					if (!PrismUtils.doublesAreCloseRel(d1, d2, epsilon))
+						return false;
+				}
+			} else {
+				// Only check over common elements
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Measure supremum norm, either absolute or relative,
+	 * return the maximum difference.
+	 */
+	public static <X> double measureSupNorm(HashMap<X,Double> map1, HashMap<X,Double> map2, boolean abs)
+	{
+		double value = 0;
+		Set<Entry<X,Double>> entries = map1.entrySet();
+		for (Entry<X,Double> entry : entries) {
+			double diff;
+			double d1 = entry.getValue();
+			if (map2.get(entry.getKey()) != null) {
+				double d2 = map2.get(entry.getKey());
+				if (abs) {
+					diff = measureSupNormAbs(d1, d2);
+				} else {
+					diff = measureSupNormRel(d1, d2);
+				}
+				if (diff > value) {
+					value = diff;
+				}
+			} else {
+				// Only check over common elements
+			}
+		}
+		return value;
+	}
+
+	/**
 	 * Measure supremum norm, either absolute or relative,
 	 * return the maximum difference.
 	 */
 	public static double measureSupNorm(double[] d1, double[] d2, boolean abs)
 	{
-		int n = d1.length;
-		assert( n == d2.length);
-
+		int n = Math.min(d1.length, d2.length);
 		double value = 0;
 		if (abs) {
 			for (int i=0; i < n; i++) {
@@ -222,9 +275,6 @@ public class PrismUtils
 	 */
 	public static double measureSupNormInterval(double[] lower, double[] upper, boolean abs, PrimitiveIterator.OfInt indizes)
 	{
-		int n = lower.length;
-		assert( n== upper.length);
-
 		double value = 0;
 		while (indizes.hasNext()) {
 			int i = indizes.nextInt();
@@ -241,9 +291,7 @@ public class PrismUtils
 	 */
 	public static double measureSupNormInterval(double[] lower, double[] upper, boolean abs)
 	{
-		int n = lower.length;
-		assert( n== upper.length);
-
+		int n = Math.min(lower.length, upper.length);
 		double value = 0;
 		for (int i=0; i < n; i++) {
 			double diff = measureSupNormInterval(lower[i], upper[i], abs);

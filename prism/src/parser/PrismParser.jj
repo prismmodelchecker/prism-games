@@ -442,6 +442,7 @@ TOKEN :
 |	< ENDINIT:			"endinit" >
 |	< ENDINVARIANT:		"endinvariant" >
 |	< ENDMODULE:		"endmodule" >
+|	< ENDOBSERVABLES:	"endobservables" >
 |	< ENDPLAYER:		"endplayer" >
 |	< ENDREWARDS:		"endrewards" >
 |	< ENDSYSTEM:		"endsystem" >
@@ -469,6 +470,8 @@ TOKEN :
 |	< MODULE:			"module" >
 |	< X:				"X" >
 |	< NONDETERMINISTIC:	"nondeterministic" >
+|	< OBSERVABLE:		"observable" >
+|	< OBSERVABLES:		"observables" >
 //|	< OF:				"of" >
 |	< PMAXMAX:			"Pmaxmax" >
 |	< PMAXMIN:			"Pmaxmin" >
@@ -478,6 +481,8 @@ TOKEN :
 |	< PMIN:				"Pmin" >
 |	< P:				"P" >
 |	< PLAYER:			"player" >
+|	< POMDP:			"pomdp" >
+|	< POPTA:			"popta" >
 |	< PROBABILISTIC:	"probabilistic" >
 |	< PROB:				"prob" >
 |	< PTA:				"pta" >
@@ -563,6 +568,8 @@ ModulesFile ModulesFile() throws PrismLangException :
 	RenamedModule rm = null;
 	RewardStruct rs = null;
 	Expression init = null;
+	ObservableVars obsVars = null;
+	Observable obs = null;
 	int initCount = 0;
 	Expression initDupe = null;
 	Player player = null;
@@ -585,6 +592,9 @@ ModulesFile ModulesFile() throws PrismLangException :
 	rs = RewardStruct() { mf.addRewardStruct(rs); } |
 	// Initial states ("init...endinit" construct)
 	init = Init() { mf.setInitialStates(init); initCount++; if (initCount == 2) initDupe = init; } |
+	// Observables
+	obsVars = ObservableVars() { mf.addObservableVarList(obsVars); } |
+	obs = Observable() {mf.addObservableDefinition(obs); } |
 	// System definition ("system...endsystem" construct)
 	SystemEndsystem(mf) |
 	// Player definition
@@ -708,6 +718,8 @@ ModelType ModulesFileType() :
 	| (<CTMC>|<STOCHASTIC>) { modelType=ModelType.CTMC; }
 	| <CTMDP> { modelType=ModelType.CTMDP; }
 	| <PTA> { modelType=ModelType.PTA; }
+	| <POMDP> { modelType=ModelType.POMDP; }
+	| <POPTA> { modelType=ModelType.POPTA; }
 	| <STPG> { modelType=ModelType.STPG; }
 	| <SMG> { modelType=ModelType.SMG; }
 	| <TPTG> { modelType=ModelType.TPTG; }
@@ -982,6 +994,37 @@ Expression Init() :
 }
 {
 	<INIT> expr = Expression(false, false) <ENDINIT> { return expr; }
+}
+
+// Observable variables list (for partially observable models)
+
+ObservableVars ObservableVars() :
+{
+	Token begin = null;
+	ObservableVars obsVars = null;
+	Expression exprVar = null;
+}
+{
+	{ begin = getToken(1); }
+	<OBSERVABLES> { obsVars = new ObservableVars(); }
+	exprVar = IdentifierExpression() { obsVars.addVar(exprVar); }
+	( <COMMA> exprVar = IdentifierExpression() { obsVars.addVar(exprVar); } )*
+	<ENDOBSERVABLES>
+	{ obsVars.setPosition(begin, getToken(0)); return obsVars; }	
+}
+
+// Individual observable (for partially observable models)
+
+Observable Observable() :
+{
+	Token begin = null;
+	String name = null;
+	Expression defn = null;
+}
+{
+	{ begin = getToken(1); }
+	( <OBSERVABLE> <DQUOTE> name = Identifier() <DQUOTE> <EQ> defn = Expression(false, false) <SEMICOLON> )
+	{ Observable obs = new Observable(name, defn); obs.setPosition(begin, getToken(0)); return obs; }
 }
 
 // System definition ("system...endsystem" construct)

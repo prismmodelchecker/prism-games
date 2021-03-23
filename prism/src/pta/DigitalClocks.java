@@ -31,6 +31,7 @@ import java.util.*;
 import parser.*;
 import parser.ast.*;
 import parser.ast.Module;
+import parser.ast.Observable;
 import parser.type.*;
 import parser.visitor.*;
 import prism.*;
@@ -175,6 +176,9 @@ public class DigitalClocks
 		switch (modulesFile.getModelType()) {
 		case PTA:
 			mf.setModelTypeInFile(ModelType.MDP);
+			break;
+		case POPTA:
+			mf.setModelTypeInFile(ModelType.POMDP);
 			break;
 		case TPTG:
 			mf.setModelTypeInFile(ModelType.SMG);
@@ -376,6 +380,10 @@ public class DigitalClocks
 			timerModule.addCommand(timeCommand);
 			// Finally add module to model
 			mf.addModule(timerModule);
+			// For POPTAs, the variable needs to be observable
+			if (modulesFile.getModelType().partiallyObservable()) {
+				mf.addObservableDefinition(new Observable(timerVarName, new ExpressionVar(timerVarName, TypeInt.getInstance())));
+			}
 			
 			// Then modify the property
 			

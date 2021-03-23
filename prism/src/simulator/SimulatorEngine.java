@@ -58,6 +58,7 @@ import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
+import prism.Result;
 import prism.ResultsCollection;
 import prism.RewardGenerator;
 import prism.UndefinedConstants;
@@ -319,10 +320,12 @@ public class SimulatorEngine extends PrismComponent
 				throw new PrismNotSupportedException("Random choice of multiple initial states not yet supported");
 			}
 		}
+		// Get initial observation
+		State currentObs = modelGen.getObservation(currentState);
 		// Get initial state reward
 		calculateStateRewards(currentState, tmpStateRewards);
 		// Initialise stored path
-		path.initialise(currentState, tmpStateRewards);
+		path.initialise(currentState, currentObs, tmpStateRewards);
 		strategy = prism.getStrategy();
 		path.storesStrategyMemory(strategy != null && strategy.getMemorySize() > 0);
 		if (strategy != null) {
@@ -401,6 +404,7 @@ public class SimulatorEngine extends PrismComponent
 			executeTransition(ref.i, ref.offset, -1);
 			break;
 		case MDP:
+		case POMDP:
 		case STPG:
 		case SMG:
 		case CSG:
@@ -436,6 +440,12 @@ public class SimulatorEngine extends PrismComponent
 			getChoiceIndexByProbabilitySum(d, ref);
 			// Execute
 			executeTimedTransition(ref.i, ref.offset, rng.randomExpDouble(r), -1);
+			break;
+		case LTS:
+			// Pick a random choice
+			i = rng.randomUnifInt(modelGen.getNumChoices());
+			// Execute
+			executeTransition(i, 0, -1);
 			break;
 		default:
 			throw new PrismNotSupportedException(modelType + " not supported");
@@ -915,6 +925,8 @@ public class SimulatorEngine extends PrismComponent
 		calculateTransitionRewards(path.getCurrentState(), action, tmpTransitionRewards);
 		// Compute next state
 		currentState.copy(modelGen.computeTransitionTarget(i, offset));
+		// Compute observation for new state
+		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
 		// Update strategy
@@ -926,7 +938,7 @@ public class SimulatorEngine extends PrismComponent
 			}
 		}
 		// Update path
-		path.addStep(index, action, actionString, p, tmpTransitionRewards, currentState, tmpStateRewards, modelGen);
+		path.addStep(index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
 		if (strategy != null) {
 			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
@@ -962,6 +974,8 @@ public class SimulatorEngine extends PrismComponent
 		calculateTransitionRewards(path.getCurrentState(), action, tmpTransitionRewards);
 		// Compute next state
 		currentState.copy(modelGen.computeTransitionTarget(i, offset));
+		// Compute observation for new state
+		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
 		// Update strategy
@@ -973,7 +987,7 @@ public class SimulatorEngine extends PrismComponent
 			}
 		}
 		// Update path
-		path.addStep(time, index, action, actionString, p, tmpTransitionRewards, currentState, tmpStateRewards, modelGen);
+		path.addStep(time, index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
 		if (strategy != null) {
 			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
 		}
@@ -1401,6 +1415,16 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
+	 * Get the observation at a given step of the path.
+	 * (Not applicable for on-the-fly paths)
+	 * @param step Step index (0 = initial state/step of path)
+	 */
+	public State getObservationOfPathStep(int step)
+	{
+		return ((PathFull) path).getObservation(step);
+	}
+
+	/**
 	 * Get a state reward for the state at a given step of the path.
 	 * (Not applicable for on-the-fly paths)
 	 * @param step Step index (0 = initial state/step of path)
@@ -1661,19 +1685,19 @@ public class SimulatorEngine extends PrismComponent
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-	public Object modelCheckSingleProperty(PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength,
+	public Result modelCheckSingleProperty(PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
 	{
 		ArrayList<Expression> exprs;
-		Object res[];
+		Result res[];
 
 		// Just do this via the 'multiple properties' method
 		exprs = new ArrayList<Expression>();
 		exprs.add(expr);
 		res = modelCheckMultipleProperties(propertiesFile, exprs, initialState, maxPathLength, simMethod);
 
-		if (res[0] instanceof PrismException)
-			throw (PrismException) res[0];
+		if (res[0].getResult() instanceof PrismException)
+			throw (PrismException) res[0].getResult();
 		else
 			return res[0];
 	}
@@ -1682,7 +1706,7 @@ public class SimulatorEngine extends PrismComponent
 	 * Perform statistical/approximate model checking of properties on the current model, using the simulator.
 	 * Sampling starts from the initial state provided or, if null, the default
 	 * initial state is used, selecting randomly (each time) if there are more than one.
-	 * Returns an array of results, some of which may be Exception objects if there were errors.
+	 * Returns an array of results, some of which may contain Exception objects if there were errors.
 	 * In the case of an error which affects all properties, an exception is thrown.
 	 * Note: All constants in the model/property files must have already been defined.
 	 * @param propertiesFile Properties file containing property to check, constants defined
@@ -1691,7 +1715,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @param maxPathLength The maximum path length for sampling
 	 * @param simMethod Object specifying details of method to use for simulation
 	 */
-	public Object[] modelCheckMultipleProperties(PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
+	public Result[] modelCheckMultipleProperties(PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
 			long maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
 		// Create path to be used
@@ -1707,7 +1731,7 @@ public class SimulatorEngine extends PrismComponent
 		mainLog.println("Simulation parameters: max path length=" + maxPathLength);
 
 		// Add the properties to the simulator (after a check that they are valid)
-		Object[] results = new Object[exprs.size()];
+		Result[] results = new Result[exprs.size()];
 		int[] indices = new int[exprs.size()];
 		int validPropsCount = 0;
 		for (int i = 0; i < exprs.size(); i++) {
@@ -1729,7 +1753,7 @@ public class SimulatorEngine extends PrismComponent
 					throw e;
 				}
 			} catch (PrismException e) {
-				results[i] = e;
+				results[i] = new Result(e);
 				indices[i] = -1;
 			}
 		}
@@ -1741,55 +1765,41 @@ public class SimulatorEngine extends PrismComponent
 
 		// Process the results
 		for (int i = 0; i < results.length; i++) {
-			// If there was an earlier error, nothing to do
+			// If there was no earlier error, extract result etc.
 			if (indices[i] != -1) {
 				Sampler sampler = propertySamplers.get(indices[i]);
-				//mainLog.print("Simulation results: mean: " + sampler.getMeanValue());
-				//mainLog.println(", variance: " + sampler.getVariance());
 				SimulationMethod sm = sampler.getSimulationMethod();
 				// Compute/print any missing parameters that need to be done after simulation
 				sm.computeMissingParameterAfterSim();
 				// Extract result from SimulationMethod and store
 				try {
-					results[i] = sm.getResult(sampler);
+					results[i] = new Result(sm.getResult(sampler));
+					results[i].setAccuracy(sampler.getSimulationMethod().getResultAccuracy(sampler));
 				} catch (PrismException e) {
-					results[i] = e;
+					results[i] = new Result(e);
 				}
 			}
 		}
 
-		String resultNote = "";
+		// Warning for nondeterministic models
 		if (results.length > 0) {
 			ModelType currentModelType = modelGen.getModelType();
 			if (currentModelType.nondeterministic() && currentModelType.removeNondeterminism() != currentModelType) {
-				resultNote += " (with nondeterminism in " + currentModelType.name() + " being resolved uniformly)";
+				mainLog.println("Warning: Nondeterminism in " + currentModelType.name() + " was resolved uniformly");
 			}
 		}
 
+		
 		// Display results to log
 		if (results.length == 1) {
-			mainLog.print("\nSimulation method parameters: ");
-			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0]).getSimulationMethod().getParametersString());
-			mainLog.print("\nSimulation result details: ");
-			mainLog.println((indices[0] == -1) ? "no simulation" : propertySamplers.get(indices[0]).getSimulationMethodResultExplanation());
-			if (!(results[0] instanceof PrismException))
-				mainLog.println("\nResult: " + results[0] + resultNote);
+			if (!(results[0].getResult() instanceof PrismException))
+				mainLog.println("\nResult: " + results[0].getResultAndAccuracy());
 		} else {
-			mainLog.println("\nSimulation method parameters:");
-			for (int i = 0; i < results.length; i++) {
-				mainLog.print(exprs.get(i) + " : ");
-				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethod().getParametersString());
-			}
-			mainLog.println("\nSimulation result details:");
-			for (int i = 0; i < results.length; i++) {
-				mainLog.print(exprs.get(i) + " : ");
-				mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethodResultExplanation());
-			}
 			mainLog.println("\nResults:");
 			for (int i = 0; i < results.length; i++)
-				mainLog.println(exprs.get(i) + " : " + results[i] + resultNote);
+				mainLog.println(exprs.get(i) + " : " + results[i].getResultAndAccuracy());
 		}
-
+		
 		return results;
 	}
 
@@ -1831,7 +1841,7 @@ public class SimulatorEngine extends PrismComponent
 		// Add the properties to the simulator (after a check that they are valid)
 		int n = undefinedConstants.getNumPropertyIterations();
 		Values definedPFConstants = new Values();
-		Object[] results = new Object[n];
+		Result[] results = new Result[n];
 		Values[] pfcs = new Values[n];
 		int[] indices = new int[n];
 
@@ -1860,7 +1870,7 @@ public class SimulatorEngine extends PrismComponent
 					throw e;
 				}
 			} catch (PrismException e) {
-				results[i] = e;
+				results[i] = new Result(e);
 				indices[i] = -1;
 			}
 			undefinedConstants.iterateProperty();
@@ -1873,38 +1883,29 @@ public class SimulatorEngine extends PrismComponent
 
 		// Process the results
 		for (int i = 0; i < n; i++) {
-			// If there was an earlier error, nothing to do
+			// If there was no earlier error, extract result etc.
 			if (indices[i] != -1) {
 				Sampler sampler = propertySamplers.get(indices[i]);
-				//mainLog.print("Simulation results: mean: " + sampler.getMeanValue());
-				//mainLog.println(", variance: " + sampler.getVariance());
 				SimulationMethod sm = sampler.getSimulationMethod();
 				// Compute/print any missing parameters that need to be done after simulation
 				sm.computeMissingParameterAfterSim();
 				// Extract result from SimulationMethod and store
 				try {
-					results[i] = sm.getResult(sampler);
+					results[i] = new Result(sm.getResult(sampler));
+					results[i].setAccuracy(sampler.getSimulationMethod().getResultAccuracy(sampler));
 				} catch (PrismException e) {
-					results[i] = e;
+					results[i] = new Result(e);
 				}
 			}
 			// Store result in the ResultsCollection
-			resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
+			resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i].getResult());
 		}
 
 		// Display results to log
-		mainLog.println("\nSimulation method parameters:");
-		for (int i = 0; i < results.length; i++) {
-			mainLog.print(pfcs[i] + " : ");
-			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethod().getParametersString());
-		}
-		mainLog.println("\nSimulation result details:");
-		for (int i = 0; i < results.length; i++) {
-			mainLog.print(pfcs[i] + " : ");
-			mainLog.println((indices[i] == -1) ? "no simulation" : propertySamplers.get(indices[i]).getSimulationMethodResultExplanation());
-		}
 		mainLog.println("\nResults:");
-		mainLog.print(resultsCollection.toStringPartial(undefinedConstants.getMFConstantValues(), true, " ", " : ", false));
+		for (int i = 0; i < results.length; i++)
+			mainLog.println(pfcs[i] + " : " + results[i].getResultAndAccuracy());
+		//mainLog.print(resultsCollection.toStringPartial(undefinedConstants.getMFConstantValues(), true, " ", " : ", false));
 	}
 
 	/**

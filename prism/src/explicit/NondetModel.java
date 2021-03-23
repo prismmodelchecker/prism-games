@@ -26,9 +26,11 @@
 
 package explicit;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.IntPredicate;
 
 import prism.PrismLog;
@@ -74,6 +76,40 @@ public interface NondetModel extends Model
 	 * Get the action label (if any) for choice {@code i} of state {@code s}.
 	 */
 	public Object getAction(int s, int i);
+
+	/**
+	 * Get a list of the actions labelling the choices of state {@code s}.
+	 */
+	public default List<Object> getAvailableActions(int s)
+	{
+		List<Object> actions = new ArrayList<>();
+		int numChoices = getNumChoices(s);
+		for (int i = 0; i < numChoices; i++) {
+			actions.add(getAction(s, i));
+		}
+		return actions;
+	}
+
+	/**
+	 * Get the index of the (first) choice in state {@code s} with action label {@code action}.
+	 * Action labels (which are {@link Object}s) are tested for equality using {@link Object#equals()}.
+	 * Returns -1 if there is no matching action.
+	 */
+	public default int getChoiceByAction(int s, Object action)
+	{
+		int numChoices = getNumChoices(s);
+		for (int i = 0; i < numChoices; i++) {
+			Object a = getAction(s, i);
+			if (a == null) {
+				if (action == null) {
+					return i;
+				}
+			} else if (a.equals(action)) {
+				return i;
+			}
+		}
+		return -1;
+	}
 
 	/**
 	 * Do all choices in in each state have a unique action label?

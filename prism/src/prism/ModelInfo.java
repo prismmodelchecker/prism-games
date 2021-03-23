@@ -27,11 +27,13 @@
 
 package prism;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import parser.Values;
 import parser.VarList;
+import parser.ast.ASTElement;
 import parser.ast.DeclarationBool;
 import parser.ast.DeclarationIntUnbounded;
 import parser.ast.DeclarationType;
@@ -224,6 +226,80 @@ public interface ModelInfo
 	}
 	
 	/**
+	 * Is the {@code i}th variable declared as observable?
+	 * (for partially observable models)
+	 * Technically, the only info needed to verify partially observable
+	 * models is {@link #getObservableNames()} and {@link #getObservableTypes()}
+	 * but in practice this is needed too to construct belief states efficiently.
+	 */
+	public default boolean isVarObservable(int i)
+	{
+		// Assume false (inefficient but safe)
+		return false;
+	}
+	
+	/**
+	 * Get the number of variables declared as observable
+	 * (for partially observable models)
+	 * (derived from {@link #isVarObservable(int)} by default)
+	 */
+	public default int getNumObservableVars()
+	{
+		int count = 0;
+		int numVars = getNumVars();
+		for (int i = 0; i < numVars; i++) {
+			if (isVarObservable(i)) {
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	/**
+	 * Get the number of variables _not_ declared as observable
+	 * (for partially observable models)
+	 * (derived from {@link #isVarObservable(int)} by default)
+	 */
+	public default int getNumUnobservableVars()
+	{
+		return getNumVars() - getNumObservableVars();
+	}
+	
+	/**
+	 * Get the names of the variables declared as observable
+	 * (for partially observable models)
+	 * (derived from {@link #isVarObservable(int)} by default)
+	 */
+	public default List<String> getObservableVars()
+	{
+		List<String> list = new ArrayList<>();
+		int numVars = getNumVars();
+		for (int i = 0; i < numVars; i++) {
+			if (isVarObservable(i)) {
+				list.add(getVarName(i));
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * Get the names of the variables _not_ declared as observable
+	 * (for partially observable models)
+	 * (derived from {@link #isVarObservable(int)} by default)
+	 */
+	public default List<String> getUnobservableVars()
+	{
+		List<String> list = new ArrayList<>();
+		int numVars = getNumVars();
+		for (int i = 0; i < numVars; i++) {
+			if (!isVarObservable(i)) {
+				list.add(getVarName(i));
+			}
+		}
+		return list;
+	}
+	
+	/**
 	 * Get a list of possible actions that may label choices/transitions in the model.
 	 * This can be a superset of the ones that actually end up being used.
 	 * This is optional - the default implementation just returns null,
@@ -291,6 +367,73 @@ public interface ModelInfo
 	}
 	
 	/**
+	 * Get the number of observables defined for the model
+	 * (for partially observable models only)
+	 */
+	public default int getNumObservables()
+	{
+		// Default implementation just extracts from getObservableNames()
+		return getObservableNames().size();
+	}
+	
+	/**
+	 * Get the names of all the observables in the model
+	 * (for partially observable models only)
+	 */
+	public default List<String> getObservableNames()
+	{
+		// No observables by default
+		return Collections.emptyList();
+	}
+	
+	/**
+	 * Get the name of the {@code i}th observable of the model
+	 * (for partially observable models only)
+	 * {@code i} should always be between 0 and getNumObservables() - 1.
+	 */
+	public default String getObservableName(int i) throws PrismException
+	{
+		// Default implementation just extracts from getObservableNames()
+		try {
+			return getObservableNames().get(i);
+		} catch (IndexOutOfBoundsException e) {
+			throw new PrismException("Observable number " + i + " not defined");
+		}
+	}
+	
+	/**
+	 * Get the index of the observable with name {@code name}
+	 * (for partially observable models only)
+	 * Indexed from 0. Returns -1 if observable of that name does not exist.
+	 */
+	public default int getObservableIndex(String name)
+	{
+		// Default implementation just extracts from getObservableNames()
+		return getObservableNames().indexOf(name);
+	}
+	
+	/**
+	 * Get the types of all the observables in the model.
+	 * (for partially observable models only)
+	 */
+	public default List<Type> getObservableTypes()
+	{
+		// No observables by default
+		return Collections.emptyList();
+	}
+
+	/**
+	 * Get the type of the {@code i}th observable in the model.
+	 * (for partially observable models only)
+	 * {@code i} should always be between 0 and getNumObservables() - 1.
+	 */
+	public default Type getObservableType(int i)
+	{
+		// Default implementation just extracts from getObservableTypes()
+		return getObservableTypes().get(i);
+	}
+	
+	/**
 	 * Get the number of players in the model. 
 	 */
 	public default int getNumPlayers()
@@ -332,5 +475,65 @@ public interface ModelInfo
 	{
 		// Default implementation just extracts from getPlayerNames() 
 		return getPlayerNames().get(i);
+	}
+
+	/**
+	 * Check if an identifier is used in the model
+	 * (e.g., as a constant or variable)
+	 */
+	public default boolean isIdentUsed(String ident)
+	{
+		// Default implementation looks up any vars/consts
+		if (getVarIndex(ident) != -1) {
+			return true;
+		}
+		Values v = getConstantValues();
+		if (v != null & v.contains(ident)) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Check if an identifier is already used in the model
+	 * (e.g., as a constant or variable) and throw an exception if it is.
+	 * @param ident The name of the identifier to check
+	 * @param decl Where the identifier is declared in the model (for the error message)
+	 * @param use Optionally, the identifier's usage (e.g. "constant")
+	 */
+	public default void checkIdent(String ident, ASTElement decl, String use) throws PrismLangException
+	{
+		// Default implementation via isIdentUsed
+		if (isIdentUsed(ident)) {
+			throw new PrismLangException("Identifier " + ident + " is already used in the model", decl);
+		}
+	}
+	
+	/**
+	 * Check if an identifier (in double quotes) is used in the model
+	 * (e.g., as a label)
+	 */
+	public default boolean isQuotedIdentUsed(String ident)
+	{
+		// Default implementation looks up any labels
+		if (getLabelIndex(ident) != -1) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Check if an identifier (in double quotes) is already used in the model
+	 * (e.g., as a label) and throw an exception if it is.
+	 * @param ident The name of the identifier to check
+	 * @param decl Where the identifier is declared in the model (for the error message)
+	 * @param use Optionally, the identifier's usage (e.g. "constant")
+	 */
+	public default void checkQuotedIdent(String ident, ASTElement decl, String use) throws PrismLangException
+	{
+		// Default implementation via isQuotedIdentUsed
+		if (isQuotedIdentUsed(ident)) {
+			throw new PrismLangException("Identifier \"" + ident + "\" is already used in the model", decl);
+		}
 	}
 }

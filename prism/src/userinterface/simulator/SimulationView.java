@@ -28,10 +28,14 @@
 
 package userinterface.simulator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Observable;
+import java.util.TreeSet;
 
-import parser.ast.*;
+import parser.ast.ModulesFile;
+import parser.ast.RewardStruct;
 import parser.type.Type;
+import prism.PrismException;
 import prism.PrismSettings;
 import userinterface.simulator.GUIViewDialog.RewardListItem;
 
@@ -45,6 +49,8 @@ public class SimulationView extends Observable
 	private ArrayList<Variable> visibleVariables;
 	private ArrayList<Variable> hiddenVariables;
 
+	private ArrayList<Observ> visibleObservables;
+	
 	private ArrayList<RewardStructureColumn> visibleRewardColumns;
 	private ArrayList<RewardStructure> rewards;
 
@@ -61,7 +67,7 @@ public class SimulationView extends Observable
 
 		this.visibleVariables = new ArrayList<Variable>();
 		this.hiddenVariables = new ArrayList<Variable>();
-
+		this.visibleObservables = new ArrayList<>();
 		this.visibleRewardColumns = new ArrayList<RewardStructureColumn>();
 		this.rewards = new ArrayList<RewardStructure>();
 
@@ -159,6 +165,11 @@ public class SimulationView extends Observable
 		this.notifyObservers();
 	}
 
+	public ArrayList<Observ> getVisibleObservables()
+	{
+		return visibleObservables;
+	}
+
 	public ArrayList<RewardStructureColumn> getVisibleRewardColumns()
 	{
 		return visibleRewardColumns;
@@ -214,28 +225,23 @@ public class SimulationView extends Observable
 				simulator.setRenderer(useChangeRenderer);
 			}
 
+			try {
+				
 			// Time-wise we have a problem.
 			if (!parsedModel.getModelType().continuousTime() && (showTime || showCumulativeTime))
 				canUseCurrentView = false;
 
 			// Make a set of all variable names.
 			TreeSet<String> allVarNames = new TreeSet<String>();
-
 			for (Variable var : visibleVariables)
 				allVarNames.add(var.getName());
 			for (Variable var : hiddenVariables)
 				allVarNames.add(var.getName());
-
+			
 			// Cannot use current view if a variable is not there.
-			for (int g = 0; g < parsedModel.getNumGlobals(); g++) {
-				if (!allVarNames.remove(parsedModel.getGlobal(g).getName()))
+			for (int i = 0; i < parsedModel.getNumVars(); i++) {
+				if (!allVarNames.remove(parsedModel.getVarName(i))) {
 					canUseCurrentView = false;
-			}
-			for (int m = 0; m < parsedModel.getNumModules(); m++) {
-				parser.ast.Module module = parsedModel.getModule(m);
-				for (int v = 0; v < module.getNumDeclarations(); v++) {
-					if (!allVarNames.remove(module.getDeclaration(v).getName()))
-						canUseCurrentView = false;
 				}
 			}
 
@@ -243,9 +249,24 @@ public class SimulationView extends Observable
 			if (allVarNames.size() > 0)
 				canUseCurrentView = false;
 
+			// Make a set of all observable names.
+			TreeSet<String> allObsNames = new TreeSet<String>();
+			for (Observ obs : visibleObservables)
+				allObsNames.add(obs.getName());
+			
+			// Cannot use current view if an observable is not there.
+			for (int i = 0; i < parsedModel.getNumObservables(); i++) {
+				if (!allObsNames.remove(parsedModel.getObservableName(i))) {
+					canUseCurrentView = false;
+				}
+			}
+
+			// Cannot use current view if we have too many observable.
+			if (allObsNames.size() > 0)
+				canUseCurrentView = false;
+
 			// Make a list of all reward structures
 			ArrayList<RewardStructure> allrew = new ArrayList<RewardStructure>();
-
 			for (RewardStructure rew : rewards) {
 				allrew.add(rew);
 			}
@@ -253,10 +274,8 @@ public class SimulationView extends Observable
 			for (int r = 0; r < parsedModel.getNumRewardStructs(); r++) {
 				RewardStruct rewardStruct = parsedModel.getRewardStruct(r);
 				String rewardName = rewardStruct.getName();
-
 				boolean hasStates = parsedModel.getRewardStruct(r).getNumStateItems() != 0;
 				boolean hasTrans = parsedModel.getRewardStruct(r).getNumTransItems() != 0;
-
 				boolean foundReward = false;
 
 				for (RewardStructure rew : rewards) {
@@ -273,30 +292,29 @@ public class SimulationView extends Observable
 
 			if (allrew.size() > 0)
 				canUseCurrentView = false;
-
+			
+			} catch (PrismException e) {
+				canUseCurrentView = false;
+			}
 		}
 
 		if (!canUseCurrentView && pathActive) {
 			visibleVariables.clear();
 			hiddenVariables.clear();
+			visibleObservables.clear();
 			visibleRewardColumns.clear();
-
 			rewards.clear();
-
 			{
-				int i = 0;
-				for (int g = 0; g < parsedModel.getNumGlobals(); g++) {
-					visibleVariables.add(new Variable(i, parsedModel.getGlobal(g).getName(), parsedModel.getGlobal(g).getType()));
-					i++;
+				for (int i = 0; i < parsedModel.getNumVars(); i++) {
+					visibleVariables.add(new Variable(i, parsedModel.getVarName(i), parsedModel.getVarType(i), parsedModel.getVarModuleIndex(i)));
 				}
-				for (int m = 0; m < parsedModel.getNumModules(); m++) {
-					parser.ast.Module module = parsedModel.getModule(m);
-					for (int v = 0; v < module.getNumDeclarations(); v++) {
-						visibleVariables.add(new Variable(i, module.getDeclaration(v).getName(), module.getDeclaration(v).getType()));
-						i++;
+				for (int i = 0; i < parsedModel.getNumObservables(); i++) {
+					try { 
+						visibleObservables.add(new Observ(i, parsedModel.getObservableName(i), parsedModel.getObservableType(i)));
+					} catch (PrismException e) {
+						// Don't add if error (should not happen)
 					}
 				}
-
 				for (int r = 0; r < parsedModel.getNumRewardStructs(); r++) {
 					RewardStruct rewardStruct = parsedModel.getRewardStruct(r);
 					String rewardName = rewardStruct.getName();
@@ -330,15 +348,17 @@ public class SimulationView extends Observable
 	 */
 	public class Variable
 	{
-		private int index;
-		private String name;
-		private Type type;
+		protected int index;
+		protected String name;
+		protected Type type;
+		protected int moduleIndex;
 
-		public Variable(int index, String name, Type type)
+		public Variable(int index, String name, Type type, int moduleIndex)
 		{
 			this.index = index;
 			this.name = name;
 			this.type = type;
+			this.moduleIndex = moduleIndex;
 		}
 
 		public int getIndex()
@@ -356,6 +376,11 @@ public class SimulationView extends Observable
 			return type;
 		}
 
+		public int getModuleIndex()
+		{
+			return moduleIndex;
+		}
+		
 		public String toString()
 		{
 			return name;
@@ -411,6 +436,19 @@ public class SimulationView extends Observable
 		}
 	}
 
+	public class Observ extends Variable
+	{
+		public Observ(int index, String name, Type type)
+		{
+			super(index, name, type, -1);
+		}
+		
+		public String toString()
+		{
+			return "\"" + name + "\"";
+		}
+	}
+	
 	public class ActionValue
 	{
 		private String value;

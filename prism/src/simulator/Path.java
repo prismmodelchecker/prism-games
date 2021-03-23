@@ -40,22 +40,22 @@ public abstract class Path
 	// MUTATORS
 	
 	/**
-	 * Initialise the path with an initial state and rewards.
-	 * Note: State object and array will be copied, not stored directly.
+	 * Initialise the path with an initial state, observation and rewards.
+	 * Note: State objects and array will be copied, not stored directly.
 	 */
-	public abstract void initialise(State initialState, double[] initialStateRewards);
+	public abstract void initialise(State initialState, State initialObs, double[] initialStateRewards);
 
 	/**
 	 * Add a step to the path.
 	 * Note: State object and arrays will be copied, not stored directly.
 	 */
-	public abstract void addStep(int choice, Object action, String actionString, double probability, double[] transRewards, State newState, double[] newStateRewards, ModelGenerator modelGen);
+	public abstract void addStep(int choice, Object action, String actionString, double probability, double[] transRewards, State newState, State newObs, double[] newStateRewards, ModelGenerator modelGen);
 
 	/**
 	 * Add a timed step to the path.
 	 * Note: State object and arrays will be copied, not stored directly.
 	 */
-	public abstract void addStep(double time, int choice, Object action, String actionString, double probability, double[] transRewards, State newState, double[] newStateRewards, ModelGenerator modelGen);
+	public abstract void addStep(double time, int choice, Object action, String actionString, double probability, double[] transRewards, State newState, State newObs, double[] newStateRewards, ModelGenerator modelGen);
 
 	/**
 	 * Specify whether the memory of some strategy is stored for each state.
@@ -91,6 +91,11 @@ public abstract class Path
 	 * Get the current state, i.e. the current final state of the path.
 	 */
 	public abstract State getCurrentState();
+
+	/**
+	 * Get the observation for the current state, i.e. for the current final state of the path.
+	 */
+	public abstract State getCurrentObservation();
 
 	/**
 	 * Get the action taken in the previous step.

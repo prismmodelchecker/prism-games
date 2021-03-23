@@ -67,7 +67,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		this.parent = parent;
 		
 		// No support for PTA (and similar) models yet
-		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.TPTG) {
+		if (modulesFile.getModelType() == ModelType.PTA || modulesFile.getModelType() == ModelType.POPTA || modulesFile.getModelType() == ModelType.TPTG) {
 			throw new PrismException(modulesFile.getModelType() + "s are not currently supported");
 		}
 		// No support for system...endsystem yet
@@ -193,6 +193,12 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	}
 	
 	@Override
+	public boolean isVarObservable(int i)
+	{
+		return modulesFile.isVarObservable(i);
+	}
+	
+	@Override
 	public List<Object> getActions()
 	{
 		return modulesFile.getActions();
@@ -226,6 +232,12 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	public int getLabelIndex(String label)
 	{
 		return labelList.getLabelIndex(label);
+	}
+	
+	@Override
+	public List<String> getObservableNames()
+	{
+		return modulesFile.getObservableNames();
 	}
 	
 	@Override
@@ -539,6 +551,21 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	{
 		Expression expr = labelList.getLabel(i);
 		return expr.evaluateBoolean(exploreState);
+	}
+	
+	@Override
+	public State getObservation(State state) throws PrismException
+	{
+		if (!modelType.partiallyObservable()) {
+			return null;
+		}
+		int numObservables = getNumObservables();
+		State sObs = new State(numObservables);
+		for (int i = 0; i < numObservables; i++) {
+			Object oObs = modulesFile.getObservable(i).getDefinition().evaluate(modulesFile.getConstantValues(), state);
+			sObs.setValue(i, oObs);
+		}
+		return sObs;
 	}
 	
 	// Methods for RewardGenerator interface
