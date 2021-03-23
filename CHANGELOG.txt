@@ -2,6 +2,16 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.1 (first released ?)
+-----------------------------------------------------------------------------
+
+* Add switch -lpscalefactor for LPs in zero-sum model checking
+* Merged latest changes from PRISM (up to v4.7) and extensions:
+  - reporting of model checking accuracy for STPGs/SMGs
+  - model auto-detection for TPTGs
+* Various bugfixes + tidying
+
+-----------------------------------------------------------------------------
 Version 3.0 (first released 31/1/2020)
 -----------------------------------------------------------------------------
 
