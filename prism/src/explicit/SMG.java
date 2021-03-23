@@ -31,14 +31,13 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.commons.math3.fraction.BigFraction;
 
+import explicit.rewards.SMGRewards;
 import parma_polyhedra_library.C_Polyhedron;
 import parma_polyhedra_library.Coefficient;
 import parma_polyhedra_library.Constraint;
@@ -51,14 +50,10 @@ import parma_polyhedra_library.Linear_Expression_Times;
 import parma_polyhedra_library.Polyhedron;
 import parma_polyhedra_library.Relation_Symbol;
 import parma_polyhedra_library.Variable;
-import parser.State;
 import parser.ast.Coalition;
-import parser.ast.ModulesFile;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
-import prism.PrismUtils;
-import explicit.rewards.SMGRewards;
 
 /**
  * Simple explicit-state representation of a (turn-based) stochastic multi-player game (SMG).
@@ -84,13 +79,6 @@ public class SMG extends STPGExplicit implements STPG
 	// is stored as {@code coalitionPlayerMap[p]}, regardless of the
 	// range of player indices actually used.
 	protected int[] coalitionPlayerMap;
-
-	// for compositional strategy synthesis need additional state information
-	protected List<Integer> controlled_by; // maps (global state) -> component index
-	protected List<List<Integer>> local_state; // maps (global state, component) -> local state
-	protected List<List<List<Integer>>> l_action; // maps (global state, global action, component) -> local action
-
-        public final static String TAU = "tau";
 
 	// Constructors
 
@@ -124,10 +112,6 @@ public class SMG extends STPGExplicit implements STPG
 		super(smg, permut);
 		playerNames = new HashMap<Integer, String>(smg.playerNames);
 		coalitionPlayerMap = smg.coalitionPlayerMap == null ? null : smg.coalitionPlayerMap.clone(); 
-		// force recomputation of the strategy-related items
-		l_action = null;
-		local_state = null;
-		controlled_by = null;
 	}
 
 	/**
@@ -138,8 +122,6 @@ public class SMG extends STPGExplicit implements STPG
 		super(smg);
 		playerNames = new HashMap<Integer, String>(smg.playerNames);
 		coalitionPlayerMap = smg.coalitionPlayerMap == null ? null : smg.coalitionPlayerMap.clone(); 
-		controlled_by = new ArrayList<Integer>(smg.getControlledBy());
-		local_state = new ArrayList<List<Integer>>(smg.getLocalState());
 	}
 
 	/**
@@ -187,98 +169,8 @@ public class SMG extends STPGExplicit implements STPG
 		return disabled;
 		*/
 	}
-	
-	/** 
-	 * converts this to normal form
-	 * needs to correspond to StochasticUpdateStrategy.java:toNormalForm
-	 * if the game is already in normal form, then nothing is done
-	 * if the game is not in normal form, but consists of several components already, an exception is thrown
-	 **/
-	public void toNormalForm() throws PrismException
-	{
-	        if (isNormalForm())
-			return; // already in normal form
-		if (getNumComponents() > 1)
-			throw new PrismException("normal form conversion only possible in atomic games");
-		int gameSize = numStates;
-		for (int s = 0; s < gameSize; s++) {
-			if (stateOwners.get(s) == 1) {
-				// P1 states are split
-				// attach new P1 state at end of list
-				addState(1);
-				statesList.add(statesList.get(s));
-				// take all outgoing moves of s and attach them to the new state
-				for (Distribution d : trans.get(s)) {
-					trans.get(numStates - 1).add(d);
-				}
-				actions.set(numStates - 1, new ArrayList<Object>());
-				for (Object a : actions.get(s)) {
-					actions.get(numStates - 1).add(a);
-				}
-				// the original state becomes a P2 state
-				stateOwners.set(s, 2);
-				// clear original transitions
-				trans.get(s).clear();
-				actions.get(s).clear();
-				// add tau-Dirac transition
-				Distribution d = new Distribution();
-				d.add(numStates - 1, 1.0);
-				addActionLabelledChoice(s, d, TAU);
-			}
-		}
-		// force recomputation of the strategy-related items
-		l_action = null;
-		getLAction();
-		local_state = null;
-		getLocalState();
-		controlled_by = null;
-		getControlledBy();
-	}
 
 	// Mutators
-
-	/**
-	 * Tests whether the game is in normal form
-	 */
-	public boolean isNormalForm() throws PrismException
-	{
-		for (int s = 0; s < initialStates.size(); s++) {
-		        if (stateOwners.get(initialStates.get(s)) != 2)
-				return false; // initial state not P2
-		}
-
-		for (int s = 0; s < numStates; s++) { // for every state
-		        if(actions.get(s) == null) { // fill in TAUs
-			    actions.set(s, new ArrayList<Object>());
-			    for(int c = 0; c < getNumChoices(s); c++)
-				actions.get(s).add(TAU);
-		        }
-			for (int c = 0; c < getNumChoices(s); c++) { // for every successor
-				Distribution d = trans.get(s).get(c);
-				if(actions.get(s) == null) {
-				    throw new PrismException("Transitions must be labelled");
-				} else if (actions.get(s).get(c) == null || actions.get(s).get(c).equals(TAU)) {
-				    actions.get(s).set(c, TAU);
-				        if (stateOwners.get(s) != 2)
-						return false; // tau-transition does not originate from P2
-					if (d.size() != 1 || !PrismUtils.doublesAreEqual(d.sum(), 1.0))
-						return false; // not Dirac
-					for (Integer t : d.getSupport()) {
-					        if (stateOwners.get(t) != 1)
-							return false; // tau-transition does not lead to P1
-					}
-				} else {
-					for (Integer t : d.getSupport()) {
-					        if (stateOwners.get(t) == 1)
-							return false; // non-tau-transition assigns nonzero probability to P1
-					}
-				}
-			}
-		}
-
-		// fall through only if all conditions for normal form are met
-		return true;
-	}
 
 	/**
 	 * Add a new (player 1) state and return its index.
@@ -394,7 +286,7 @@ public class SMG extends STPGExplicit implements STPG
 	{
 		SMG smg = new SMG();
 		smg.copyFrom(this);
-		smg.actions = new ArrayList<List<Object>>(this.actions);
+		smg.actions = new ChoiceActionsSimple(this.actions);
 		smg.allowDupes = this.allowDupes;
 		smg.maxNumDistrs = this.maxNumDistrs;
 		smg.maxNumDistrsOk = this.maxNumDistrsOk;
@@ -402,7 +294,6 @@ public class SMG extends STPGExplicit implements STPG
 		smg.numTransitions = this.numTransitions;
 		smg.stateOwners = new ArrayList<Integer>(this.stateOwners);
 		smg.trans = new ArrayList<List<Distribution>>(this.trans);
-		smg.controlled_by = new ArrayList<Integer>(this.getControlledBy());
 		return smg;
 	}
 
@@ -735,66 +626,4 @@ public class SMG extends STPGExplicit implements STPG
 		s += " ]\n";
 		return s;
 	}
-	// which component controls the current state
-	public int controlledBy(int i)
-	{
-		return getControlledBy().get(i);
-	}
-
-	public List<Integer> getControlledBy()
-	{
-		if (controlled_by == null) { // fill with default
-			controlled_by = new ArrayList<Integer>(numStates);
-			for (int i = 0; i < numStates; i++) {
-				if (stateOwners.get(i).intValue() == 1) {
-					controlled_by.add(0); // P1 is component zero by default
-				} else {
-					controlled_by.add(-1); // P2 is irrelevant
-				}
-			}
-		}
-		return controlled_by;
-	}
-
-	// returns the number of components
-	public int getNumComponents()
-	{
-		return getLocalState().get(0).size();
-	}
-
-	// mapping from global to local action
-	public List<List<List<Integer>>> getLAction()
-	{
-		if (l_action == null) { // fill with default
-			l_action = new ArrayList<List<List<Integer>>>(numStates);
-			for (int i = 0; i < numStates; i++) {
-				l_action.add(new ArrayList<List<Integer>>(trans.get(i).size()));
-				for (int a = 0; a < trans.get(i).size(); a++) {
-					l_action.get(i).add(new ArrayList<Integer>(1));
-					l_action.get(i).get(a).add(a); // identity mapping is default
-				}
-			}
-		}
-		return l_action;
-	}
-
-	// mapping from global states to local state
-	public List<List<Integer>> getLocalState()
-	{
-		if (local_state == null) { // fill with default
-			local_state = new ArrayList<List<Integer>>(numStates);
-			for (int i = 0; i < numStates; i++) {
-				List<Integer> gs = new ArrayList<Integer>(1); // one component
-				gs.add(i); // identity mapping is default
-				local_state.add(gs);
-			}
-		}
-		return local_state;
-	}
-
-	public boolean deadlocksAllowed()
-	{
-		return false;
-	}
-
 }

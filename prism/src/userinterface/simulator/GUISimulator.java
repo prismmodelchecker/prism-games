@@ -45,6 +45,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.AbstractAction;
@@ -67,12 +69,10 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import explicit.SMG;
 import parser.Values;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
-import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismSettings;
@@ -81,14 +81,11 @@ import prism.PrismUtils;
 import prism.UndefinedConstants;
 import simulator.PathFullInfo;
 import simulator.SimulatorEngine;
-import simulator.networking.SimulatorNetworkHandler;
 import strat.StochasticUpdateStrategy;
-import strat.StochasticUpdateStrategyProduct;
 import strat.Strategy;
 import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
-import userinterface.OptionsPanel;
 import userinterface.graph.Graph;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModel;
@@ -96,7 +93,6 @@ import userinterface.properties.GUIMultiProperties;
 import userinterface.properties.GUIPropertiesEvent;
 import userinterface.properties.GUIPropertiesList;
 import userinterface.properties.GUIProperty;
-import userinterface.simulator.networking.GUINetworkEditor;
 import userinterface.util.GUIComputationEvent;
 import userinterface.util.GUIEvent;
 import userinterface.util.GUIExitEvent;
@@ -252,10 +248,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 
 		displayStyleFast = true;
 		displayPathLoops = true;
-
-		GUINetworkEditor netEdit = new GUINetworkEditor(getGUI(), new SimulatorNetworkHandler());
-
-		getPrism().getSettings().setFileSelector(PrismSettings.SIMULATOR_NETWORK_FILE, netEdit);
 
 		autoTimeCheck.setSelected(true);
 		showStrategyCheck.setSelected(true);
@@ -461,7 +453,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			// yes, but strategy tailored to initial state: bail out
 			else if (chooseInitialState && strategyGenerated
-					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy || getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct)) {
+					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy)) {
 				throw new PrismException("Strategy tailored to initial state - cannot manually select");
 			}
 			// yes: user chooses 
@@ -901,7 +893,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			// yes, but strategy tailored to initial state: bail out
 			else if (chooseInitialState && strategyGenerated
-					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy || getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct)) {
+					&& (getPrism().getStrategy() instanceof StochasticUpdateStrategy)) {
 				throw new PrismException("Strategy tailored to initial state - cannot manually select");
 			}
 			// yes: user chooses 
@@ -1039,11 +1031,6 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		return simulatorMenu;
 	}
 
-	public OptionsPanel getOptions()
-	{
-		return null;
-	}
-
 	public String getTabText()
 	{
 		return "Simulator";
@@ -1120,14 +1107,14 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 	{
 		newPath.setEnabled(parsedModel != null && !computing);
 
-		if (strategy instanceof StochasticUpdateStrategy || strategy instanceof StochasticUpdateStrategyProduct)
+		if (strategy instanceof StochasticUpdateStrategy)
 			newPathFromState.setEnabled(false); // not possible for stochastic update strategies
 		else
 			newPathFromState.setEnabled(parsedModel != null && !computing);
 
 		newPathPlot.setEnabled(parsedModel != null && !computing);
 
-		if (strategy instanceof StochasticUpdateStrategy || strategy instanceof StochasticUpdateStrategyProduct)
+		if (strategy instanceof StochasticUpdateStrategy)
 			newPathPlotFromState.setEnabled(false); // not possible for stochastic update strategies
 		else
 			newPathPlotFromState.setEnabled(parsedModel != null && !computing);
@@ -2400,8 +2387,13 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		repaint();
 	}
 
+	enum UpdateTableModelColumn {
+		STRAT, PLAYER, ACTION, PROB, UPDATE
+	};
+	
 	class UpdateTableModel extends AbstractTableModel
 	{
+		private List<UpdateTableModelColumn> visibleColumns = new ArrayList<>();
 		public boolean oldUpdate;
 		private int oldStep;
 
@@ -2415,12 +2407,7 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		public int getColumnCount()
 		{
 			if (pathActive) {
-				int cols = 3;
-				if (showStrategyCheck.isSelected() && strategyGenerated && strategy != null)
-					cols++;
-				if (parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent())
-					cols++;
-				return cols;
+				return visibleColumns.size();
 			} else {
 				return 0;
 			}
@@ -2439,35 +2426,16 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		{
 			if (pathActive) {
 				try {
-					// First 2 columns are optional, so adjust index
-					int offset = 0;
-					// Strategy choice
-					boolean showStrat = showStrategyCheck.isSelected() && strategyGenerated & strategy != null; 
-					if (!showStrat)
-						offset++;
-					// Player
-					boolean showPlayer = parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent();
-					if (!showPlayer)
-						offset++;
-					// Might have strategy but not player
-					if (showStrat && !showPlayer && columnIndex == 0)
-						offset--;
-
-					switch (columnIndex + offset) {
-						// Strategy choice
-					case 0:
+					switch (visibleColumns.get(columnIndex)) {
+					case STRAT:
 						return engine.getStrategyUpdateString(rowIndex, df);
-						// Player
-					case 1:
+					case PLAYER:
 						return engine.getNameOfPlayerOwningState();
-						// Module/action
-					case 2:
+					case ACTION:
 						return engine.getTransitionActionString(rowIndex);
-						// Prob/rate
-					case 3:
+					case PROB:
 						return "" + engine.getTransitionProbability(rowIndex);
-						// Update
-					case 4:
+					case UPDATE:
 						return engine.getTransitionUpdateString(rowIndex);
 					default:
 						return "";
@@ -2480,39 +2448,25 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		}
 
 		@Override
-		public String getColumnName(int column)
+		public String getColumnName(int columnIndex)
 		{
 			if (pathActive) {
-				// First 2 columns are optional, so adjust index
-				int offset = 0;
-				// Strategy choice
-				boolean showStrat = showStrategyCheck.isSelected() && strategyGenerated & strategy != null; 
-				if (!showStrat)
-					offset++;
-				// Player
-				boolean showPlayer = parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent();
-				if (!showPlayer)
-					offset++;
-				// Might have strategy but not player
-				if (showStrat && !showPlayer && column == 0)
-					offset--;
-
-				switch (column + offset) {
-				case 0:
+				switch (visibleColumns.get(columnIndex)) {
+				case STRAT:
 					return "Strategy";
-				case 1:
+				case PLAYER:
 					return "Player";
-				case 2:
+				case ACTION:
 					return engine.getModel().getActionStringDescription();
-				case 3:
+				case PROB:
 					return parsedModel == null ? "Probability" : parsedModel.getModelType().probabilityOrRate();
-				case 4:
+				case UPDATE:
 					return "Update";
 				default:
 					return "";
 				}
-			} else
-				return "";
+			}
+			return "";
 		}
 
 		/**
@@ -2525,13 +2479,11 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 			oldUpdate = false;
 			oldStep = -1;
-
+			setVisibleColumns();
 			doEnables();
 			fireTableDataChanged();
-
 			currentUpdatesTable.setEnabled(true);
 			currentUpdatesTable.setToolTipText("Double click on an update to manually execute it");
-
 			if (getRowCount() > 0) {
 				currentUpdatesTable.getSelectionModel().setSelectionInterval(0, 0);
 			}
@@ -2542,19 +2494,18 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 		 */
 		public void updateUpdatesTable(int oldStep) throws PrismException
 		{
-			if (oldStep == pathTable.getRowCount() - 1) // if current state selected
-			{
+			if (oldStep == pathTable.getRowCount() - 1) {
+				// if current state selected
 				updateUpdatesTable();
 			} else {
 				this.oldStep = oldStep;
 				oldUpdate = true;
+				setVisibleColumns();
 				doEnables();
 				engine.computeTransitionsForStep(oldStep);
 				fireTableDataChanged();
-
 				currentUpdatesTable.setEnabled(false);
 				currentUpdatesTable.setToolTipText(null);
-
 				if (getRowCount() > 0) {
 					int selectThis = engine.getChoiceOfPathStep(oldStep);
 					currentUpdatesTable.getSelectionModel().setSelectionInterval(selectThis, selectThis);
@@ -2562,6 +2513,22 @@ public class GUISimulator extends GUIPlugin implements MouseListener, ListSelect
 			}
 		}
 
+		public void setVisibleColumns()
+		{
+			visibleColumns.clear();
+			if (showStrategyCheck.isSelected() && strategyGenerated && strategy != null) {
+				visibleColumns.add(UpdateTableModelColumn.STRAT);
+			}
+			if (parsedModel != null && parsedModel.getModelType().multiplePlayers() && !parsedModel.getModelType().concurrent()) {
+				visibleColumns.add(UpdateTableModelColumn.PLAYER);
+			}
+			visibleColumns.add(UpdateTableModelColumn.ACTION);
+			if (parsedModel != null && parsedModel.getModelType().isProbabilistic()) {
+				visibleColumns.add(UpdateTableModelColumn.PROB);
+			}
+			visibleColumns.add(UpdateTableModelColumn.UPDATE);
+		}
+		
 		public void restartUpdatesTable()
 		{
 			fireTableStructureChanged();

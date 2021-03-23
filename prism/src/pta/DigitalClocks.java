@@ -108,7 +108,7 @@ public class DigitalClocks
 	/**
 	 * Main method - translate.
 	 */
-	public void translate(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression propertyToCheck) throws PrismLangException
+	public void translate(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression propertyToCheck) throws PrismException
 	{
 		int i, n;
 		ASTElement ast;
@@ -174,10 +174,10 @@ public class DigitalClocks
 		// Change the model type
 		switch (modulesFile.getModelType()) {
 		case PTA:
-			mf.setModelType(ModelType.MDP);
+			mf.setModelTypeInFile(ModelType.MDP);
 			break;
 		case TPTG:
-			mf.setModelType(ModelType.SMG);
+			mf.setModelTypeInFile(ModelType.SMG);
 			break;
 		default:
 			throw new PrismLangException("Cannot perform digital clocks translation on a " + modulesFile.getModelType());

@@ -2,13 +2,12 @@ package simulator;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import parser.State;
 import parser.Values;
 import parser.VarList;
+import parser.ast.DeclarationType;
 import parser.ast.Expression;
 import parser.ast.LabelList;
 import parser.ast.ModulesFile;
@@ -93,7 +92,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 	 * (Re-)Initialise the class ready for model exploration
 	 * (can only be done once any constants needed have been provided)
 	 */
-	private void initialise() throws PrismLangException
+	private void initialise() throws PrismException
 	{
 		// Evaluate constants on (a copy) of the modules file, insert constant values and optimize arithmetic expressions
 		modulesFile = (ModulesFile) modulesFile.deepCopy().replaceConstants(mfConstants).simplify();
@@ -170,6 +169,29 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		return modulesFile.getVarTypes();
 	}
 
+	public DeclarationType getVarDeclarationType(int i) throws PrismException
+	{
+		return modulesFile.getVarDeclarationType(i);
+	}
+	
+	@Override
+	public int getVarModuleIndex(int i)
+	{
+		return modulesFile.getVarModuleIndex(i);
+	}
+	
+	@Override
+	public String getModuleName(int i)
+	{
+		return modulesFile.getModuleName(i);
+	}
+	
+	@Override
+	public VarList createVarList() throws PrismException
+	{
+		return varList;
+	}
+	
 	@Override
 	public List<Object> getActions()
 	{
@@ -212,12 +234,6 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 		return modulesFile.getPlayerNames();
 	}
 
-	@Override
-	public VarList createVarList()
-	{
-		return varList;
-	}
-	
 	// Methods for ModelGenerator interface
 	
 	@Override
@@ -300,11 +316,11 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 			}
 			// Otherwise, it's an error
 			else {
-				Set<String> acts = new HashSet<>();
+				List<String> acts = new ArrayList<>();
 				for (int i = 0; i < nc; i++) {
 					String modAct = transitions.getChoiceModuleOrAction(i);
 					if (modulesFile.getPlayerForModuleOrAction(modAct) == -1) {
-						acts.add(getChoiceAction(i).toString());
+						acts.add(getChoiceActionString(i));
 					}
 				}
 				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player"; 
@@ -389,7 +405,7 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 			int a = transitions.getTransitionModuleOrActionIndex(index);
 			return getDescriptionForModuleOrActionIndex(a);
 		} else {
-			int as[] = ((ChoiceListFlexi) transitions.getChoice(index)).getActions();
+			int as[] = ((ChoiceListFlexi) transitions.getChoice(i)).getActions();
 			return getDescriptionForActionIndexList(as);
 		}
 	}
@@ -556,8 +572,16 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 				Expression guard = rewStr.getStates(i);
 				if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
 					double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
-					if (Double.isNaN(rew))
-						throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+					// Check reward is finite/non-negative (would be checked at model construction time,
+					// but more fine grained error reporting can be done here)
+					// Note use of original model since modulesFile may have been simplified
+					if (!Double.isFinite(rew)) {
+						throw new PrismLangException("Reward structure is not finite at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+					}
+					// NB: for now, disable negative reward check for CSGs 
+					if (modelType != ModelType.CSG && rew < 0) {
+						throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+					}
 					d += rew;
 				}
 			}
@@ -582,8 +606,15 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 					if (action == null ? (cmdAction.isEmpty()) : action.equals(cmdAction)) {
 						if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
 							double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
-							if (Double.isNaN(rew))
-								throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+							// Check reward is finite/non-negative (would be checked at model construction time,
+							// but more fine grained error reporting can be done here)
+							// Note use of original model since modulesFile may have been simplified
+							if (!Double.isFinite(rew)) {
+								throw new PrismLangException("Reward structure is not finite at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+							}
+							if (rew < 0) {
+								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+							}
 							d += rew;
 						}
 					}
@@ -612,8 +643,16 @@ public class ModulesFileModelGenerator implements ModelGenerator, RewardGenerato
 					if (indexes.isEmpty() || (!indexes.isEmpty() && tmp.isEmpty())) {
 						if (guard.evaluateBoolean(modulesFile.getConstantValues(), state)) {
 							double rew = rewStr.getReward(i).evaluateDouble(modulesFile.getConstantValues(), state);
-							if (Double.isNaN(rew))
-								throw new PrismLangException("Reward structure evaluates to NaN at state " + state, rewStr.getReward(i));
+							// Check reward is finite/non-negative (would be checked at model construction time,
+							// but more fine grained error reporting can be done here)
+							// Note use of original model since modulesFile may have been simplified
+							if (!Double.isFinite(rew)) {
+								throw new PrismLangException("Reward structure is not finite at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+							}
+							// NB: for now, disable negative reward check for CSGs 
+//							if (rew < 0) {
+//								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+//							}
 							d += rew;
 						}
 					}

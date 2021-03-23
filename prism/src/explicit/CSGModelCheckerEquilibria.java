@@ -859,7 +859,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			ps.clear(p);
 			goals[p] = new Declaration("_" + p, new DeclarationBool());
 			buildSubGames(games, ps, p);
-			newvarlist.addVar(goals[p], 0, csg.getConstantValues());
+			newvarlist.addVar(goals[p].getName(), goals[p].getDeclType(), 0, csg.getConstantValues());
 		}
 		games.add((BitSet) players.clone());
 		unsat.set(0, csg.getNumStates());		
@@ -899,17 +899,17 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				
 		if (unsat.get(s)) {
 			for (p = 0; p < numCoalitions; p++) {
-				initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), false);
+				initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
 			}	
 		}
 		else {	
 			for (p = 0; p < numCoalitions; p++) {
 				if (targets[p].get(s)) {
-					initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), true);
+					initial.setValue(newvarlist.getIndex(goals[p].getName()), true);
 					isubgame.set(p);
 				}
 				else {
-					initial.setValue(newvarlist.getIndexFromDeclaration(goals[p]), false);
+					initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
 				}
 			}
 		}
@@ -1157,7 +1157,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				}
 				for (p = 0; p < numCoalitions; p++) {
 					if (targets[p].get(u)) {
-						ustate.setValue(newvarlist.getIndexFromDeclaration(goals[p]), true);
+						ustate.setValue(newvarlist.getIndex(goals[p].getName()), true);
 						usubgame.set(p);
 					}
 				}
@@ -1950,13 +1950,14 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				bMaxRow = allEqual(maxRow);
 				if (bMaxRow) {
 					int maxr = maxRow[0];
+					/*
 					if (maxr != 0) {	
 						for (int r = 0; r < nrows; r++) { // is this actually needed?
 							if (r != maxr) 
 								uRow = uRow && !Arrays.equals(val1s[r], val1s[maxRow[0]]);
 						}	 
 					}
-					else {
+					else {*/
 						for (int r = 0; r < nrows; r++) { 
 							if (r != maxr) {
 								for (int c = 0; c < ncols; c++) {
@@ -1965,7 +1966,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 								}
 							}
 						} 
-					}
+					//}
 				}
 				bMaxRow = bMaxRow && uRow; // maximal and unique
 				
@@ -1992,6 +1993,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				bMaxCol = allEqual(maxCol);
 				if(bMaxCol) {
 					int maxc = maxCol[0];
+					/*
 					if (maxc != 0) {
 						for (int c = 0; c < ncols; c++) { // is this actually needed?
 							if (c != maxc) {
@@ -1999,7 +2001,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 							}
 						}
 					}
-					else {
+					else {*/
 						for (int c = 0; c < ncols; c++) { // is this actually needed?
 							if (c != maxc) {
 								for (int r = 0; r < nrows; r++) {
@@ -2008,7 +2010,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 								}
 							}
 						} 
-					}
+					//}
 				}
 				bMaxCol = bMaxCol && uCol; // maximal and unique
 				

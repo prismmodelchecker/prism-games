@@ -153,7 +153,7 @@ public class PrismParser implements PrismParserConstants {
                 }
                 // Override type of model if requested
                 if (typeOverride != null) {
-                        mf.setModelType(typeOverride);
+                        mf.setModelTypeInFile(typeOverride);
                 }
 
                 return mf;
@@ -373,7 +373,7 @@ public class PrismParser implements PrismParserConstants {
 
 // Modules file
   static final public 
-ModulesFile ModulesFile() throws ParseException, PrismLangException {ModelType type = ModelType.MDP;
+ModulesFile ModulesFile() throws ParseException, PrismLangException {ModelType type = null;
         int typeCount = 0;
         Token typeDupe = null;
         Declaration global;
@@ -511,8 +511,8 @@ mf.addPlayer(player);
                         {if (true) throw new PrismLangException("There were multiple init...endinit constructs", initDupe);}
                 }
 
-                // Set model type (note default is MDP)
-                mf.setModelType(type);
+                // Set model type (might be null, i.e., unspecified)
+                mf.setModelTypeInFile(type);
 
                 // Return completed ModulesFile object
                 mf.setPosition(begin != null? begin: getToken(0), getToken(0));
@@ -1303,12 +1303,13 @@ update.setPosition(begin, getToken(0)); {if ("" != null) return update;}
 
   static final public void UpdateElement(Update update) throws ParseException {ExpressionIdent var = null;
         Expression expr = null;
-    jj_consume_token(LPARENTH);
+        Token begin = null;
+    begin = jj_consume_token(LPARENTH);
     var = IdentifierPrime();
     jj_consume_token(EQ);
     expr = Expression(false, false);
     jj_consume_token(RPARENTH);
-update.addElement(var, expr);
+UpdateElement ue = new UpdateElement(var, expr); ue.setPosition(begin, getToken(0)); update.addElement(ue);
   }
 
 // Module renaming
@@ -4535,13 +4536,6 @@ fl.setLHS(s);
     return false;
   }
 
-  static private boolean jj_3_3()
- {
-    if (jj_scan_token(LABEL)) return true;
-    if (jj_scan_token(DQUOTE)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_268()
  {
     if (jj_scan_token(P)) return true;
@@ -4554,6 +4548,13 @@ fl.setLHS(s);
   static private boolean jj_3R_165()
  {
     if (jj_scan_token(MIN)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_3()
+ {
+    if (jj_scan_token(LABEL)) return true;
+    if (jj_scan_token(DQUOTE)) return true;
     return false;
   }
 
@@ -5029,15 +5030,6 @@ fl.setLHS(s);
     return false;
   }
 
-  static private boolean jj_3_2()
- {
-    if (jj_scan_token(DQUOTE)) return true;
-    if (jj_3R_33()) return true;
-    if (jj_scan_token(DQUOTE)) return true;
-    if (jj_scan_token(COLON)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_132()
  {
     Token xsp;
@@ -5079,6 +5071,15 @@ fl.setLHS(s);
     }
     }
     }
+    return false;
+  }
+
+  static private boolean jj_3_2()
+ {
+    if (jj_scan_token(DQUOTE)) return true;
+    if (jj_3R_33()) return true;
+    if (jj_scan_token(DQUOTE)) return true;
+    if (jj_scan_token(COLON)) return true;
     return false;
   }
 
@@ -5603,14 +5604,6 @@ fl.setLHS(s);
     return false;
   }
 
-  static private boolean jj_3_1()
- {
-    if (jj_scan_token(MODULE)) return true;
-    if (jj_3R_33()) return true;
-    if (jj_scan_token(EQ)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_36()
  {
     if (jj_3R_33()) return true;
@@ -5648,6 +5641,14 @@ fl.setLHS(s);
     }
     }
     }
+    return false;
+  }
+
+  static private boolean jj_3_1()
+ {
+    if (jj_scan_token(MODULE)) return true;
+    if (jj_3R_33()) return true;
+    if (jj_scan_token(EQ)) return true;
     return false;
   }
 
@@ -6087,12 +6088,6 @@ fl.setLHS(s);
     return false;
   }
 
-  static private boolean jj_3_5()
- {
-    if (jj_3R_34()) return true;
-    return false;
-  }
-
   static private boolean jj_3R_79()
  {
     if (jj_3R_86()) return true;
@@ -6113,14 +6108,9 @@ fl.setLHS(s);
     return false;
   }
 
-  static private boolean jj_3R_34()
+  static private boolean jj_3_5()
  {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3R_38()) {
-    jj_scanpos = xsp;
-    if (jj_scan_token(71)) return true;
-    }
+    if (jj_3R_34()) return true;
     return false;
   }
 
@@ -6135,6 +6125,17 @@ fl.setLHS(s);
   static private boolean jj_3R_254()
  {
     if (jj_scan_token(TIMES)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_34()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3R_38()) {
+    jj_scanpos = xsp;
+    if (jj_scan_token(71)) return true;
+    }
     return false;
   }
 

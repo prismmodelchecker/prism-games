@@ -38,7 +38,7 @@ public class ExpressionVar extends Expression
 	private String name;
 	// The index of the variable in the model to which it belongs
 	private int index;
-	
+	// Whether this reference is to name' rather than name
 	private boolean prime;
 	
 	// Constructors
@@ -75,12 +75,12 @@ public class ExpressionVar extends Expression
 		return index;
 	}
 	
-	public void setPrime(boolean p) 
+	public void setPrime(boolean p)
 	{
 		prime = p;
 	}
 	
-	public boolean getPrime() 
+	public boolean getPrime()
 	{
 		return prime;
 	}	
@@ -156,6 +156,7 @@ public class ExpressionVar extends Expression
 		int result = 1;
 		result = prime * result + index;
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + (this.prime ? 1231 : 1237);
 		return result;
 	}
 
@@ -175,6 +176,8 @@ public class ExpressionVar extends Expression
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
+			return false;
+		if (prime != other.prime)
 			return false;
 		return true;
 	}

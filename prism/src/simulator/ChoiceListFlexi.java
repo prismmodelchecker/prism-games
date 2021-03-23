@@ -190,6 +190,7 @@ public class ChoiceListFlexi implements Choice
 	@Override
 	public String getUpdateString(int i, State currentState) throws PrismLangException
 	{
+		State nextState = computeTarget(i, currentState);
 		int j, n;
 		String s = "";
 		boolean first = true;
@@ -200,7 +201,7 @@ public class ChoiceListFlexi implements Choice
 					first = false;
 				else
 					s += ", ";
-				s += up.getVar(j) + "'=" + up.getExpression(j).evaluate(currentState);
+				s += up.getVar(j) + "'=" + nextState.varValues[up.getVarIndex(j)];
 			}
 		}
 		return s;

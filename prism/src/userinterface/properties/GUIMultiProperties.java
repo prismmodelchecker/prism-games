@@ -102,14 +102,12 @@ import prism.PrismSettingsListener;
 import prism.TileList;
 import prism.UndefinedConstants;
 import strat.StochasticUpdateStrategy;
-import strat.StochasticUpdateStrategyProduct;
 import strat.Strategies;
 import userinterface.GUIClipboardEvent;
 import userinterface.GUIConstantsPicker;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.GUISimulationPicker;
-import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Graph.SeriesKey;
@@ -961,8 +959,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		// check if strategy implementation is enabled
 		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && getPrism().getStrategy() != null) {
 		    // check if strategy is stochastic memory update
-		    if(getPrism().getStrategy() instanceof StochasticUpdateStrategy ||
-		       getPrism().getStrategy() instanceof StochasticUpdateStrategyProduct) {
+		    if (getPrism().getStrategy() instanceof StochasticUpdateStrategy) {
 			JOptionPane.showMessageDialog(this, "Cannot verify under a stochastic update strategy.", "Operation not supported.", JOptionPane.ERROR_MESSAGE);
 			return;
 		    }
@@ -1515,11 +1512,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public JMenu getMenu()
 	{
 		return propMenu;
-	}
-
-	public OptionsPanel getOptions()
-	{
-		return null;
 	}
 
 	public String getTabText()

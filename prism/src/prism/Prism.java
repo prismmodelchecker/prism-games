@@ -313,7 +313,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private int engineOld = -1;
 	private boolean engineSwitched = false;
 
-	// ------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------
 	// Constructors + options methods
 	//------------------------------------------------------------------------------
 
@@ -1830,18 +1830,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		case SMG:
 		case STPG:
 		case CTMDP:
-   		        if(!getExplicit()) { // not using explicit engine already
-			        mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
+		case LTS:
+			if (!getExplicit()) {
+				mainLog.println("\nSwitching to explicit engine, which supports " + currentModelType + "s...");
 				engineOld = getEngine();
-
 				engineSwitched = true;
 				try {
-				        setEngine(Prism.EXPLICIT);
+					setEngine(Prism.EXPLICIT);
 				} catch (PrismException e) {
-				        // Won't happen
+					// Won't happen
 				}
 			}
-		    break;
+			break;
 		// For other models, switch engine back if changed earlier
 		default:
 			if (engineSwitched) {
@@ -2620,7 +2620,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 		
 		if (getExplicit())
-			throw new PrismException("Export of transition rewards not yet supported by explicit engine");
+			throw new PrismNotSupportedException("Export of transition rewards not yet supported by explicit engine");
 
 		// Can only do ordered version of export for MDPs
 		if (currentModelType == ModelType.MDP) {
