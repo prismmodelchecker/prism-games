@@ -679,8 +679,6 @@ public class ProbModelChecker extends NonProbModelChecker
 					switch (exprTemp.getOperator()) {
 						case ExpressionTemporal.P_X:
 							bounded.set(p);
-							targets[p] = new BitSet();
-							targets[p].set(0, ((CSG) model).getNumStates());
 							bounds[p] = 1;
 							break;
 						case ExpressionTemporal.P_U:
@@ -757,7 +755,7 @@ public class ProbModelChecker extends NonProbModelChecker
 					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG) model, coalitions, rewards, exprs, bounds, min);
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG) model, coalitions, targets, remain, bounds, min);				
+					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG) model, coalitions, exprs, targets, remain, bounds, min);			
 				}
 			}
 			else {

@@ -136,7 +136,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		// eqssmt = new CSGSupportEnumerationIpopt();
 	}
 
-	public void buildCoalitions(CSG csg, List<Coalition> coalitions) throws PrismLangException {
+	public void buildCoalitions(CSG csg, List<Coalition> coalitions) throws PrismException {
+		if (coalitions == null || coalitions.isEmpty())
+			throw new PrismException("Coalitions must not be empty");
 		int c, p, all;
 		all = 0;
 		numPlayers = csg.getNumPlayers();
@@ -574,10 +576,36 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		long currentTime, timePrecomp;		
 		
 		rew = rewards != null;
-		pindx.set(0, numCoalitions);
+		pindx.set(0, numCoalitions); // review this
+		buildCoalitions(csg, coalitions);
+		
+		// Case next
+		if ((exprs.get(0).getOperator() == ExpressionTemporal.P_X) || (exprs.get(1).getOperator() == ExpressionTemporal.P_X)) {
+			for (i = 0; i < 2; i++) {
+				if (exprs.get(i).getOperator() == ExpressionTemporal.P_X) {
+					for (s = 0; s < csg.getNumStates(); s++) {
+						sol[i][s] = targets[i].get(s)? 1.0 : 0.0;
+					}
+				}
+				else {
+					sol[i] = mdpmc.computeBoundedUntilProbs(csg, remain[i], targets[i], bounds[i]-1, min).soln;
+				}
+			}
+			for (s = 0; s < csg.getNumStates(); s++) {
+				eq = stepEquilibria(csg, null, null, null, eqs, null, sol, s, min);
+				sw = swne(eq, null, min);
+				tmp[0][s] = sw[1];
+				tmp[1][s] = sw[2];
+				r[s] = sw[1] + sw[2];
+			}
+			mainLog.println("\nCoalition results (initial state): (" + tmp[0][csg.getFirstInitialState()] + "," + tmp[1][csg.getFirstInitialState()] + ")");
+			res.soln = r;
+			res.numIters = 1;
+			return res;		
+		}
 		
 		if (!rew) {
-			for (i = 0; i < 2; i++) { //
+			for (i = 0; i < 2; i++) {
 				phi1[i] = new BitSet();
 				if (remain[i] == null) 
 					phi1[i].set(0, csg.getNumStates());
@@ -615,9 +643,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 			cpy.clear();
 		}
-		
-		buildCoalitions(csg, coalitions);
-		
+				
 		k = Math.abs(bounds[0] - bounds[1]);
 		n1 = (bounds[0] > bounds[1])? k : 0;
 		n2 = (bounds[1] > bounds[0])? k : 0;

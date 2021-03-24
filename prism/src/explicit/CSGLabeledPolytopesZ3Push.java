@@ -323,7 +323,7 @@ public class CSGLabeledPolytopesZ3Push implements CSGLabeledPolytopes {
 		}
 		else if (model.getConstInterp(expr) instanceof AlgebraicNum) {
 			v2 = (AlgebraicNum) model.getConstInterp(expr);
-			v1 = v2.toUpper(9);
+			v1 = v2.toUpper(12);
 			return (Double) (v1.getBigIntNumerator().doubleValue() / v1.getBigIntDenominator().doubleValue());
 		}
 		else
