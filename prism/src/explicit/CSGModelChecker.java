@@ -324,7 +324,9 @@ public class CSGModelChecker extends ProbModelChecker {
 		return x;
 	}
 	
-	public void buildCoalitions(CSG csg, Coalition coalition, boolean min) throws PrismLangException {
+	public void buildCoalitions(CSG csg, Coalition coalition, boolean min) throws PrismException {
+		if (coalition == null || coalition.isEmpty())
+			throw new PrismException("Coalitions must not be empty");
 		int p;
 		numPlayers = csg.getNumPlayers();
 		coalitionIndexes = new BitSet[2];
@@ -1540,10 +1542,10 @@ public class CSGModelChecker extends ProbModelChecker {
 		return res;
 	}
 	
-	public ModelCheckerResult computeProbBoundedEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException {
+	public ModelCheckerResult computeProbBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException {
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, null, targets, remain, bounds, min);
+		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, exprs, targets, remain, bounds, min);
 		return res;		
 	}
 	
