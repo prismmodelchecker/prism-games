@@ -16,7 +16,7 @@ import com.microsoft.z3.RealExpr;
 import com.microsoft.z3.Solver;
 import com.microsoft.z3.Status;
 
-public class CSGLabeledPolytopesZ3Push implements CSGLabeledPolytopes {
+public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes {
 
 	private RealExpr[] payvars;
 	private ArithExpr[] payoffs;
@@ -63,11 +63,11 @@ public class CSGLabeledPolytopesZ3Push implements CSGLabeledPolytopes {
 	private HashMap<String,ArrayList<Double>> eqs;
     private ArrayList<ArrayList<Distribution>> strat;
     
-    public CSGLabeledPolytopesZ3Push() {
+    public CSGLabeledPolytopesZ3Stack() {
     	
     }
     
-    public CSGLabeledPolytopesZ3Push(int nrows, int ncols) {
+    public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) {
     	cfg = new HashMap<String, String>();
         cfg.put("model", "true");
         cfg.put("auto_config", "true");
