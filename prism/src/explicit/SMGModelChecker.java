@@ -1031,18 +1031,13 @@ public class SMGModelChecker extends ProbModelChecker
 		SMGRewards productRewards;
 		StateValues rewardsProduct, rewards;
 		SMGModelChecker mcProduct;
-		LTLModelChecker.LTLProduct<SMG> product;
 		ModelCheckerResult res;
 
 		// For LTL model checking routines
 		mcLtl = new LTLModelChecker(this);
 
 		// Build product of SMG and automaton
-		AcceptanceType[] allowedAcceptance = {
-				AcceptanceType.RABIN,
-				AcceptanceType.REACH
-		};
-		product = mcLtl.constructDAProductForLTLFormula(this, (SMG) model, expr, statesOfInterest, allowedAcceptance);
+		LTLModelChecker.LTLProduct<SMG> product = mcLtl.constructDFAProductForCosafetyReward(this, (SMG) model, expr, statesOfInterest);
 		
 		// Adapt reward info to product model
 		productRewards = ((SMGRewards) modelRewards).liftFromModel(product);
@@ -1079,7 +1074,7 @@ public class SMGModelChecker extends ProbModelChecker
 		mainLog.println("\nComputing reachability rewards...");
 		mcProduct = new SMGModelChecker(this);
 		mcProduct.inheritSettings(this);
-		res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+		res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 		rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
 		
 		// Mapping rewards in the original model
