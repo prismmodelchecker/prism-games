@@ -42,7 +42,6 @@ import java.util.Set;
 import org.apache.commons.math3.fraction.BigFraction;
 
 import acceptance.AcceptanceReach;
-import acceptance.AcceptanceType;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.Rewards;
 import explicit.rewards.SMGRewards;
@@ -62,10 +61,7 @@ import parma_polyhedra_library.Linear_Expression_Times;
 import parma_polyhedra_library.Polyhedron;
 import parma_polyhedra_library.Relation_Symbol;
 import parma_polyhedra_library.Variable;
-import parser.VarList;
 import parser.ast.Coalition;
-import parser.ast.Declaration;
-import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
 import parser.ast.ExpressionConstant;
 import parser.ast.ExpressionProb;
@@ -78,10 +74,8 @@ import parser.ast.RewardStruct;
 import prism.ModelType;
 import prism.OpRelOpBound;
 import prism.PointList;
-import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
-import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.PrismUtils;
@@ -1027,58 +1021,22 @@ public class SMGModelChecker extends ProbModelChecker
 	 */
 	protected StateValues checkRewardCoSafeLTL(Model model, Rewards modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
-		LTLModelChecker mcLtl;
-		SMGRewards productRewards;
-		StateValues rewardsProduct, rewards;
-		SMGModelChecker mcProduct;
-		ModelCheckerResult res;
-
-		// For LTL model checking routines
-		mcLtl = new LTLModelChecker(this);
-
-		// Build product of SMG and automaton
+		// Build product of SMG and DFA for the LTL formula, convert rewards and do any required exports
+		LTLModelChecker mcLtl = new LTLModelChecker(this);
 		LTLModelChecker.LTLProduct<SMG> product = mcLtl.constructDFAProductForCosafetyReward(this, (SMG) model, expr, statesOfInterest);
-		
-		// Adapt reward info to product model
-		productRewards = ((SMGRewards) modelRewards).liftFromModel(product);
-		
-		// Output product, if required
-		if (getExportProductTrans()) {
-				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
-				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
-		}
-		if (getExportProductStates()) {
-			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
-			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
-			String daVar = "_da";
-			while (newVarList.getIndex(daVar) != -1) {
-				daVar = "_" + daVar;
-			}
-			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
-			out.close();
-		}
-		
+		SMGRewards productRewards = ((SMGRewards) modelRewards).liftFromModel(product);
+		doProductExports(product);
+
 		// Find accepting states + compute reachability rewards
-		BitSet acc;
-		if (product.getAcceptance() instanceof AcceptanceReach) {
-			// For a DFA, just collect the accept states
-			mainLog.println("\nSkipping end component detection since DRA is a DFA...");
-			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
-		} else {
-			// Usually, we have to detect end components in the product
-			mainLog.println("\nFinding accepting end components...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
-		}
+		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
 		mainLog.println("\nComputing reachability rewards...");
-		mcProduct = new SMGModelChecker(this);
+		SMGModelChecker mcProduct = new SMGModelChecker(this);
 		mcProduct.inheritSettings(this);
-		res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
-		rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+		ModelCheckerResult res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+		StateValues rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
 		
 		// Mapping rewards in the original model
-		rewards = product.projectToOriginalModel(rewardsProduct);
+		StateValues rewards = product.projectToOriginalModel(rewardsProduct);
 		rewardsProduct.clear();
 		
 		return rewards;
