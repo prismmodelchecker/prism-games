@@ -1671,7 +1671,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MULTI:
-			throw new PrismException("Properties with \"multi\" not supported.");
+			throw new PrismNotSupportedException("Properties with \"multi\" not supported.");
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
