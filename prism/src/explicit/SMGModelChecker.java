@@ -1042,7 +1042,7 @@ public class SMGModelChecker extends ProbModelChecker
 				AcceptanceType.RABIN,
 				AcceptanceType.REACH
 		};
-		product = mcLtl.constructProductSMG(this, (SMG)model, expr, statesOfInterest, allowedAcceptance);
+		product = mcLtl.constructDAProductForLTLFormula(this, (SMG) model, expr, statesOfInterest, allowedAcceptance);
 		
 		// Adapt reward info to product model
 		productRewards = ((SMGRewards) modelRewards).liftFromModel(product);

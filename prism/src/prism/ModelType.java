@@ -155,6 +155,12 @@ public enum ModelType
 		}
 		
 		@Override
+		public boolean realTime()
+		{
+			return true;
+		}
+		
+		@Override
 		public boolean partiallyObservable()
 		{
 			return true;
@@ -169,6 +175,12 @@ public enum ModelType
 	PTA("probabilistic timed automaton") {
 		@Override
 		public boolean continuousTime()
+		{
+			return true;
+		}
+		
+		@Override
+		public boolean realTime()
 		{
 			return true;
 		}
@@ -202,6 +214,12 @@ public enum ModelType
 	TPTG("turn-based probabilistic timed game") {
 		@Override
 		public boolean continuousTime()
+		{
+			return true;
+		}
+		
+		@Override
+		public boolean realTime()
 		{
 			return true;
 		}
@@ -258,6 +276,14 @@ public enum ModelType
 	 * Are time delays continuous for this model type?
 	 */
 	public boolean continuousTime()
+	{
+		return false;
+	}
+
+	/**
+	 * Is this a "real time" (timed automata like) model type?
+	 */
+	public boolean realTime()
 	{
 		return false;
 	}

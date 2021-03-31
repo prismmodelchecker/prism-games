@@ -2123,7 +2123,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public boolean modelCanBeBuilt()
 	{
-		if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG)
+		if (currentModelType.realTime())
 			return false;
 		return true;
 	}
@@ -2173,7 +2173,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		clearBuiltModel();
 
 		try {
-			if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
+			if (currentModelType.realTime()) {
 				throw new PrismException("You cannot build a " + currentModelType + " model explicitly, only perform model checking");
 			}
 
@@ -2366,7 +2366,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		Model model;
 		List<State> statesList;
 
-		if (modulesFile.getModelType() == ModelType.PTA || currentModelType == ModelType.POPTA || modulesFile.getModelType() == ModelType.TPTG) {
+		if (modulesFile.getModelType().realTime()) {
 			throw new PrismException("You cannot build a " + modulesFile.getModelType() + " model explicitly, only perform model checking");
 		}
 
@@ -3106,8 +3106,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Check that property is valid for the current model type
 		prop.getExpression().checkValid(currentModelType);
 
-		// PTA model checking is handled separately
-		if (currentModelType == ModelType.PTA || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
+		// PTA (and similar) model checking is handled separately
+		if (currentModelType.realTime()) {
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
 		}
 
@@ -3779,10 +3779,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// FAU
 		if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+			if (fileIn != null) {
+				throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
+			}
 			ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(currentModulesFile, this);
 			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 			fau.setConstantValues(currentModulesFile.getConstantValues());
-			probsExpl = fau.doTransient(time, fileIn, currentModel);
+			probsExpl = fau.doTransient(time);
 		}
 		// Symbolic
 		else if (!getExplicit()) {
@@ -3885,11 +3888,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 			// FAU
 			if (currentModelType == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+				if (fileIn != null) {
+					throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
+				}
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(currentModulesFile, this);
 				FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 				fau.setConstantValues(currentModulesFile.getConstantValues());
 				if (i == 0) {
-					probsExpl = fau.doTransient(timeDouble, fileIn, currentModel);
+					probsExpl = fau.doTransient(timeDouble);
 					initTimeDouble = 0.0;
 				} else {
 					probsExpl = fau.doTransient(timeDouble - initTimeDouble, probsExpl);
