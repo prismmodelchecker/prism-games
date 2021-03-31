@@ -1016,6 +1016,17 @@ public class SMGModelChecker extends ProbModelChecker
 				energy_objective ? varepsilon : 0.0, logStrategy, mainLog);
 	}
 
+	@Override
+	protected StateValues checkProbPathFormulaCosafeLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		SMG smg = (SMG) model;
+		smg.setCoalition(minMax.getCoalition());
+		StateValues probs = createSTPGModelChecker().checkProbPathFormulaCosafeLTL(model, expr, qual, minMax, statesOfInterest);
+		smg.setCoalition(null);
+		return probs;
+	}
+	
 	/**
 	 * Compute rewards for a co-safe LTL reward operator.
 	 */
