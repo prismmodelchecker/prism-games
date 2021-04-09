@@ -380,8 +380,8 @@ public interface MDP extends MDPGeneric<Double>
 		}
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null && !first) {
-			// For max and games, only remember strictly better choices
-			if (min || this instanceof STPG) {
+			// For max, only remember strictly better choices
+			if (min) {
 				strat[s] = stratCh;
 			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
@@ -543,8 +543,8 @@ public interface MDP extends MDPGeneric<Double>
 		}
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null && !first) {
-			// For max and games, only remember strictly better choices
-			if (min || this instanceof STPG) {
+			// For max, only remember strictly better choices
+			if (min) {
 				strat[s] = stratCh;
 			} else if (strat[s] == -1 || minmax > vect[s]) {
 				strat[s] = stratCh;
