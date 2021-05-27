@@ -4,106 +4,104 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import com.sri.yices.Config;
-import com.sri.yices.Context;
-import com.sri.yices.Status;
-import com.sri.yices.Terms;
-import com.sri.yices.Yices;
+import com.microsoft.z3.AlgebraicNum;
+import com.microsoft.z3.ArithExpr;
+import com.microsoft.z3.BoolExpr;
+import com.microsoft.z3.Context;
+import com.microsoft.z3.Expr;
+import com.microsoft.z3.IntExpr;
+import com.microsoft.z3.Model;
+import com.microsoft.z3.RatNum;
+import com.microsoft.z3.RealExpr;
+import com.microsoft.z3.Solver;
+import com.microsoft.z3.Status;
 
-import prism.PrismSettings;
+public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes {
 
-public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytopes {
+	private RealExpr[] payvars;
+	private ArithExpr[] payoffs;
+	private RealExpr[] vars;
+	private RealExpr[] p1vars;
+	private RealExpr[] p2vars;
+	private IntExpr zero;
+	private IntExpr one;
+	private BoolExpr ytrue;
+	private BoolExpr yfalse;
+	private BoolExpr[] xlabels;
+	private BoolExpr[] ylabels;
+	private ArithExpr[] xexps;
+	private ArithExpr[] yexps;
+	private ArithExpr curr;
 
-	private Config cfg;
-	private Context ctx;
+	private BoolExpr eq;
+	private int nrows = 0;
+	private int ncols = 0;
 	
-	private int realType;
-	private int boolType;
+	private BoolExpr[] tmpc;
+	private BoolExpr[] tmpr;
 	
-	private int zero;
-	private int one;
-	private int ytrue;
-	private int yfalse;
+	private Model model;
 	
-	private int eq;
+	private Expr xctr;
+	private Expr yctr;
+	private BoolExpr c1;
+	private BoolExpr c2; 
 	
-	private int curr;
-	
-	private int[] xlabels;
-	private int[] ylabels;
-		
-	private int[] vars;
-	private int[] xexps;
-	private int[] yexps;
-	
-	private int[] tmpc;
-	private int[] tmpr;
-	
-	private com.sri.yices.Model model;
-	
-	private int xctr;
-	private int yctr;
-	private int c1;
-	private int c2; 
-	
-	private String[] lvp1;
-	private String[] lvp2;
-	
-	private double[][] a;
-	private double[][] b;
-
+	private int neq = 0;
 	private double[] p1p;
 	private double[] p2p;
-		
-	private int neq;
-	private int nrows;
-	private int ncols;
+	private double[][] a;
+	private double[][] b;
+	
+	private String[] lvp1;
+    private String[] lvp2;
+    
+    private HashMap<String, String> cfg;
+    private Context ctx;
+    private Solver s;
 	
 	private HashMap<String,ArrayList<Double>> eqs;
     private ArrayList<ArrayList<Distribution>> strat;
-	
-	protected String eqPolicy;
     
-    public CSGLabeledPolytopesYicesBindingsStack() {
+    public CSGLabeledPolytopesZ3Stack() {
     	
     }
     
-    public CSGLabeledPolytopesYicesBindingsStack(int nrows, int ncols) {    	
-		cfg = new Config("QF_LRA");
-		cfg.set("mode", "push-pop");
-		ctx = new Context(cfg);
-		cfg.close();
+    public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) {
+    	cfg = new HashMap<String, String>();
+        cfg.put("model", "true");
+        cfg.put("auto_config", "true");
+        ctx = new Context(cfg);
+        s = ctx.mkSolver(); 
         eqs = new HashMap<String,ArrayList<Double>>();
-        realType = Yices.realType();
-        boolType = Yices.boolType();
-		zero = Terms.intConst(0);
-		one = Terms.intConst(1);
-		vars = new int[nrows+ncols];
+		zero = ctx.mkInt(0);
+	    one = ctx.mkInt(1);
+		vars = new RealExpr[nrows+ncols];
 		lvp1 = new String[nrows];
 		lvp2 = new String[ncols];
-		tmpc = new int[ncols-1];
-		tmpr = new int[nrows-1];
-		xlabels = new int[nrows+ncols];
-		ylabels = new int[nrows+ncols];
-		yexps = new int[nrows];
-		xexps = new int[ncols];
+		tmpc = new BoolExpr[ncols-1];
+		tmpr = new BoolExpr[nrows-1];
+		xlabels = new BoolExpr[nrows+ncols];
+		ylabels = new BoolExpr[nrows+ncols];
+		yexps = new ArithExpr[nrows];
+		xexps = new ArithExpr[ncols];
 		xctr = zero;
 		yctr = zero;
-		ytrue = Yices.mkTrue();
-		yfalse = Yices.mkFalse();
+		ytrue = ctx.mkTrue();
+		yfalse = ctx.mkFalse();
 		int i = 0, j = 0;
 		for(; i < nrows; i++) {
-			vars[i] = Terms.newUninterpretedTerm(realType);
+			vars[i] = ctx.mkRealConst("x" + i);
 			lvp1[i] = "x_" + i;
 		}
 		for(; j < ncols; j++) {
-			vars[i] = Terms.newUninterpretedTerm(realType);
+			vars[i] = ctx.mkRealConst("y" + j);
 			lvp2[j] = "y_" + j;
 			i++;
 		}
-		for(int v : vars) {
-			ctx.assertFormula(Terms.arithLeq(v, one));
-			ctx.assertFormula(Terms.arithGeq(v, zero));
+		for(RealExpr v : vars) {
+			s.add(ctx.mkLe(v, one));
+			s.add(ctx.mkGe(v, zero));
 		}
     }
     
@@ -119,19 +117,19 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
 		int j = 0;
 		for(int i = 0; i < nrows+ncols; i++) {
 			if(i < nrows) {
-				xlabels[i] = Terms.arithEq(vars[i], zero);
+				xlabels[i] = ctx.mkEq(vars[i], zero);
 			}
 			else {
 				for(int k = 0; k < ncols; k++) {
 					if(j != k) {
-						tmpc[l] = Terms.arithGeq(xexps[j], xexps[k]);
+						tmpc[l] = ctx.mkGe(xexps[j], xexps[k]);
 						l++;
 					}
 				}
 				xlabels[i] = tmpc[0];
 				if(ncols-1 > 1) {
 					for(int m = 1; m < ncols-1; m++) {
-						xlabels[i] = Terms.and(xlabels[i], tmpc[m]);
+						xlabels[i] = ctx.mkAnd(xlabels[i], tmpc[m]);
 					}
 				}
 				j++;
@@ -147,34 +145,35 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
 			if(i < nrows) {
 				for(int k = 0; k < nrows; k++) {
 					if(j != k) {
-						tmpr[l] = Terms.arithGeq(yexps[j], yexps[k]);
+						tmpr[l] = ctx.mkGe(yexps[j], yexps[k]);
 						l++;
 					}
 				}
 				ylabels[i] = tmpr[0];
 				if(nrows-1 > 1) {
 					for(int m = 1; m < nrows-1; m++) {
-						ylabels[i] = Terms.and(ylabels[i], tmpr[m]);
+						ylabels[i] = ctx.mkAnd(ylabels[i], tmpr[m]);
 					}
 				}
 				j++;
 				l = 0;
 			}
 			else {
-				ylabels[i] = Terms.arithEq(vars[i], zero);
+				ylabels[i] = ctx.mkEq(vars[i], zero);
 			}
 		}
 	}
-	
+    
 	private void vMult() {
 		for(int i = 0; i < nrows; i++) {
 			curr = zero;
 			for(int j = 0; j < ncols; j++) {
 				try {
-					curr = Terms.add(curr, Terms.mul(vars[nrows+j], 
-													Terms.parseFloat(String.valueOf(a[i][j]))));
+					curr = ctx.mkAdd(curr, ctx.mkMul(vars[nrows+j], ctx.mkReal(String.valueOf(a[i][j]))));
 				}
 				catch(Exception e) {
+					System.out.println(a[i][j]);
+					System.out.println(String.valueOf(a[i][j]));
 					e.printStackTrace();
 				}
 			}
@@ -183,18 +182,19 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
 		for(int j = 0; j < ncols; j++) {
 			curr = zero;
 			for(int i = 0; i < nrows; i++) {
-				try {		
-					curr = Terms.add(curr, Terms.mul(vars[i], 
-													Terms.parseFloat(String.valueOf(b[i][j]))));
+				try {
+					curr = ctx.mkAdd(curr, ctx.mkMul(vars[i], ctx.mkReal(String.valueOf(b[i][j]))));
 				}
 				catch(Exception e) {
+					System.out.println(a[i][j]);
+					System.out.println(String.valueOf(a[i][j]));
 					e.printStackTrace();
 				}
 			}
 			xexps[j] = curr;
 		}
 	}
-
+	
 	public void compEq() {
 		ArrayList<Distribution> dists;
 		Distribution dist1;
@@ -204,42 +204,42 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
 		vMult();
 		xLabels();
 		yLabels();
-		ctx.push();
+		s.push();
 		eq = ytrue;
 		xctr = zero;
 		yctr = zero;
 		for(i = 0; i < nrows+ncols; i++) {
-			eq = Terms.and(eq, Terms.or(xlabels[i],ylabels[i]));
+			/*
+			if (st == 1)
+				System.out.println(xlabels[i]);
+			*/
+			eq = ctx.mkAnd(eq, ctx.mkOr(xlabels[i], ylabels[i]));
 		}
 		for(i = 0; i < nrows; i++) {
-			xctr = Terms.add(xctr, vars[i]);
+			xctr = ctx.mkAdd((ArithExpr) xctr, vars[i]);
 		}
-		xctr = Terms.arithEq(xctr, one);
+		xctr = ctx.mkEq(xctr, one);
 		for(j = i; j < nrows+ncols; j++) {
-			yctr = Terms.add(yctr, vars[j]);
+			yctr = ctx.mkAdd((ArithExpr) yctr, vars[j]);
 		}
-		yctr = Terms.arithEq(yctr, one);			
-		ctx.assertFormula(xctr);
-		ctx.assertFormula(yctr);
-		ctx.assertFormula(eq);
+		yctr = ctx.mkEq(yctr, one);			
+		s.add((BoolExpr) xctr);
+		s.add((BoolExpr) yctr);
+		s.add(eq);
         strat = new ArrayList<ArrayList<Distribution>>();
 		eqs.clear();
         j = 0; 
-        while (ctx.check() == Status.SAT) {
-        	model = ctx.getModel();        
+        while (Status.SATISFIABLE == s.check()) {
+            model = s.getModel();
             c1 = ytrue;
             c2 = ytrue;
             dists = new ArrayList<Distribution>();
             dist1 = new Distribution();
             dist2 = new Distribution();
     		//System.out.println("---");
-            //String prt = "(";
             for (i = 0; i < nrows+ncols; i++) {            	
         		//p = model.bigRationalValue(vars[i]).doubleValue();
-            	p = model.doubleValue(vars[i]);
-        		//prt += p;
-        		//if (i < vars.length - 1)
-        			//prt += ",";
+            	p = getDoubleValue(model, vars[i]);
         		//System.out.println(p);
         		if(p > 0) {
         			if(i < nrows)
@@ -266,32 +266,23 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
                		}
        			}
             }
-            //prt += ")";
-            //System.out.println(prt);
-            if (eqPolicy == "first_found") {
-                dists.add(0, dist1);
-                dists.add(1, dist2);
-                strat.add(j, dists);
-        		j++;
-        		break;
-            }
             for(i = 0; i < nrows+ncols; i++) {
 				if (i < nrows) {
         			//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
         			if (Double.compare(eqs.get(lvp1[i]).get(j), 0.0) != 0) {
-        				c1 = Terms.and(c1, Terms.not(Terms.arithEq(vars[i], zero)));
+        				c1 = ctx.mkAnd(c1, ctx.mkNot(ctx.mkEq(vars[i], zero)));
         			}
             		else {
-            			c1 = Terms.and(c1, Terms.arithEq(vars[i], zero));
+            			c1 = ctx.mkAnd(c1, ctx.mkEq(vars[i], zero));
             		}
 				} 
 				else {
     				//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
     				if (Double.compare(eqs.get(lvp2[i-nrows]).get(j), 0.0) != 0) {
-    					c2 = Terms.and(c2, Terms.not(Terms.arithEq(vars[i], zero)));
+    					c2 = ctx.mkAnd(c2, ctx.mkNot(ctx.mkEq(vars[i], zero)));
             		}
             		else {
-            			c2 = Terms.and(c2, Terms.arithEq(vars[i], zero));
+            			c2 = ctx.mkAnd(c2, ctx.mkEq(vars[i], zero));
             		}
 				}
             }
@@ -299,16 +290,13 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
             dists.add(1, dist2);
             strat.add(j, dists);
     		j++;
-            ctx.assertFormula(Terms.or(Terms.not(c1), Terms.not(c2)));
+            s.add(ctx.mkOr(ctx.mkNot(c1), ctx.mkNot(c2)));
         }
-        ctx.pop();
-		model.close();
 		//System.out.println(eqs);
+        s.pop();
+        //YicesWrapper.garbage_collect();
+        //YicesWrapper.yices_exit();
         neq = j;
-        
-        compPayoffs();
-        //System.out.println(Arrays.toString(p1p));
-        //System.out.println(Arrays.toString(p2p));
 	}
 
 	public void compPayoffs() {
@@ -326,6 +314,22 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
         }			
 	}
 
+	public double getDoubleValue(Model model, Expr expr) {
+		RatNum v1;
+		AlgebraicNum v2;
+		if(model.getConstInterp(expr) instanceof RatNum) {
+			v1 = (RatNum) model.getConstInterp(expr);
+			return (Double) (v1.getBigIntNumerator().doubleValue() / v1.getBigIntDenominator().doubleValue());
+		}
+		else if (model.getConstInterp(expr) instanceof AlgebraicNum) {
+			v2 = (AlgebraicNum) model.getConstInterp(expr);
+			v1 = v2.toUpper(12);
+			return (Double) (v1.getBigIntNumerator().doubleValue() / v1.getBigIntDenominator().doubleValue());
+		}
+		else
+			return Double.NaN;
+	}
+	
 	public ArrayList<ArrayList<Distribution>> getStrat() {
 		return strat;
 	}
@@ -345,9 +349,5 @@ public class CSGLabeledPolytopesYicesBindingsStack implements CSGLabeledPolytope
 	public void clear() {
 		
 	}
-
-	public void setPolicy(String s) {
-		this.eqPolicy = s;
-	}
-
+	
 }

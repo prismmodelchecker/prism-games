@@ -17,7 +17,5 @@ public interface CSGLabeledPolytopes {
 	public double[] getP2p(); 
 	
 	public int getNeq();
-
-	public void clear();
 	
 }

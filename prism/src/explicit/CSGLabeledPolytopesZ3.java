@@ -146,12 +146,6 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 		}
 	}
 	
-	@Override
-	public void clear() {
-		// TODO Auto-generated method stub
-		
-	}
-	
 	private void xLabels() {
 		/*
 		System.out.println("-- xexps");
