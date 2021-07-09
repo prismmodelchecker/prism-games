@@ -30,20 +30,27 @@ make
 sudo make install
 cd ..
 
-# Download and build Yices 2.6
-# Commented out for now since not enabled
-# sudo apt -y install gperf
-# wget https://yices.csl.sri.com/releases/2.6.0/yices-2.6.0-src.tar.gz
-# tar xvfz yices-2.6.0-src.tar.gz
-# cd yices-2.6.0
+# Download and build Yices 2.6.2 + Java wrapper
+# Commented out for now since yices binaries are included
+# sudo apt -y install gperf libgmp-dev
+# wget https://yices.csl.sri.com/releases/2.6.2/yices-2.6.2-src.tar.gz
+# tar xvfz yices-2.6.2-src.tar.gz
+# cd yices-2.6.2
 # ./configure
 # make
 # sudo make install
+# cp /usr/local/lib/libyices.so.2.6 ../prism-games/prism/ext/yices
 # cd ..
-# cp /usr/local/lib/libyices.so.2.6 prism-games/prism/lib
+# git clone https://github.com/SRI-CSL/yices2_java_bindings
+# cd yices2_java_bindings
+# ./ant.sh
+# jar cvfm dist/lib/yices.jar MANIFEST.txt -C build/classes .
+# cp dist/lib/libyices2java.so ../prism-games/prism/ext/yices
+# cp dist/lib/yices.jar ../prism-games/prism/ext/yices
+# cd ..
 
 # Download and build Z3 4.8.7
-# Commented out for now since z3 is included
+# Commented out for now since z3 binaries are included
 # sudo apt -y install python
 # wget https://github.com/Z3Prover/z3/archive/z3-4.8.7.tar.gz
 # tar xvfz z3-4.8.7.tar.gz
@@ -52,11 +59,11 @@ cd ..
 # cd build
 # make
 # sudo make install
+# cp /usr/lib/libz3.so ../prism-games/prism/lib
 # cd ..
-# cp /usr/lib/libz3.so prism-games/prism/lib
 
 # Compile PRISM-games and run two tests
 # (should ultimately display: "Testing result: PASS")
 cd prism-games/prism
 make PPL_DIR=/usr/local/lib
-make test testppl
+make test testppl testyices testz3

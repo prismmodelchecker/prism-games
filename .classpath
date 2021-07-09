@@ -19,5 +19,6 @@
 	<classpathentry kind="lib" path="prism/lib/ppl_java.jar"/>
 	<classpathentry kind="lib" path="prism/lib/commons-math3-3.3.jar"/>
 	<classpathentry kind="lib" path="prism/lib/com.microsoft.z3.jar"/>
+	<classpathentry kind="lib" path="prism/lib/yices.jar"/>
 	<classpathentry kind="output" path="prism/classes"/>
 </classpath>

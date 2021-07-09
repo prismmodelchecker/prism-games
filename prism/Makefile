@@ -350,7 +350,7 @@ export CFLAGS CXXFLAGS LDFLAGS JFLAGS LIBPREFIX LIBSUFFIX
 
 MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterface pepa/compiler simulator jltl2ba jltl2dstar explicit pta param strat automata common cex
 
-EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3
+EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3 yices
 
 .PHONY: clean javadoc tests release
 
@@ -549,6 +549,14 @@ test:
 # Run a single test case from the test suite that relies on PPL being properly installed
 testppl:
 	bin/prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism.props -prop 1 -test
+
+# Run a single test case from the test suite that relies on Z3 being properly installed
+testz3:
+	bin/prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver z3 -test
+	
+# Run a single test case from the test suite that relies on Yices being properly installed
+testyices:
+	bin/prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver yices -test
 
 # Run all tests from the test suite (in ../prism-tests and ./tests)
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
