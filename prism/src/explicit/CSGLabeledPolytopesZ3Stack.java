@@ -15,9 +15,14 @@ import com.microsoft.z3.RatNum;
 import com.microsoft.z3.RealExpr;
 import com.microsoft.z3.Solver;
 import com.microsoft.z3.Status;
+import com.microsoft.z3.Version;
 
-public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes {
+import prism.PrismException;
 
+public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
+{
+	private String solverName = "Z3";
+	
 	private RealExpr[] payvars;
 	private ArithExpr[] payoffs;
 	private RealExpr[] vars;
@@ -56,22 +61,15 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes {
 	private String[] lvp1;
     private String[] lvp2;
     
-    private HashMap<String, String> cfg;
     private Context ctx;
     private Solver s;
 	
 	private HashMap<String,ArrayList<Double>> eqs;
     private ArrayList<ArrayList<Distribution>> strat;
     
-    public CSGLabeledPolytopesZ3Stack() {
-    	
-    }
-    
-    public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) {
-    	cfg = new HashMap<String, String>();
-        cfg.put("model", "true");
-        cfg.put("auto_config", "true");
-        ctx = new Context(cfg);
+    public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) throws PrismException
+    {
+    	initSolver();
         s = ctx.mkSolver(); 
         eqs = new HashMap<String,ArrayList<Double>>();
 		zero = ctx.mkInt(0);
@@ -103,6 +101,28 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes {
 			s.add(ctx.mkLe(v, one));
 			s.add(ctx.mkGe(v, zero));
 		}
+    }
+    
+    /**
+     * Initialise the solver
+     */
+    private void initSolver() throws PrismException
+    {
+    	HashMap<String, String> cfg = new HashMap<String, String>();
+        cfg.put("model", "true");
+        cfg.put("auto_config", "true");
+        try {
+        	ctx = new Context(cfg);
+        	solverName = Version.getFullVersion();
+        } catch (UnsatisfiedLinkError e) {
+        	throw new PrismException("Could not initialise Z3: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public String getSolverName()
+    {
+    	return solverName;
     }
     
 	public void update(int nrows, int ncols, double[][] a, double[][] b) {

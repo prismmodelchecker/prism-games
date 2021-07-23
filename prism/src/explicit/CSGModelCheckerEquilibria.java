@@ -613,6 +613,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		buildCoalitions(csg, coalitions);
 		findMaxRowsCols(csg);
 		setSolver();
+		mainLog.println("Starting bounded equilibria computation (solver=" + eqslps.getSolverName() + ")...");
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
 		
@@ -706,15 +707,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			}
 		}	
 		timePrecomp = System.currentTimeMillis() - timePrecomp;
-		
-		findMaxRowsCols(csg);
-		switch (smtSolver) {
-			case "Z3":
-				eqslps = new CSGLabeledPolytopesZ3Stack(maxRows, maxCols);
-				break;
-			case "Yices":
-				eqslps = new CSGLabeledPolytopesYicesStack();
-		}
 		
 		while (true) {
 			currentTime = System.currentTimeMillis();
@@ -1279,6 +1271,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		mainLog.println();
 		findMaxRowsCols(csg);
 		setSolver();
+		mainLog.println("Starting equilibria computation (solver=" + eqslps.getSolverName() + ")...");
+		
 		// Add an exception somewhere for reachability rewards and states with positive rewards that do not reach the targets
 		k = 0;
 		if (rew) {

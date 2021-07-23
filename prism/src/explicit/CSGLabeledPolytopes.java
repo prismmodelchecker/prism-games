@@ -2,11 +2,15 @@ package explicit;
 
 import java.util.ArrayList;
 
+import prism.PrismException;
+
 public interface CSGLabeledPolytopes {
 	
+    public String getSolverName();
+    
 	public void update(int nrows, int ncols, double[][] a, double[][] b);
 	
-	public void compEq();
+	public void compEq() throws PrismException;
 	
 	public void compPayoffs();
 	

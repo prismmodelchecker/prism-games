@@ -8,13 +8,15 @@ import com.sri.yices.Config;
 import com.sri.yices.Context;
 import com.sri.yices.Status;
 import com.sri.yices.Terms;
+import com.sri.yices.Version;
 import com.sri.yices.Yices;
 
-import prism.PrismSettings;
+import prism.PrismException;
 
-public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
+public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
+{
+	private String solverName = "Yices";
 
-	private Config cfg;
 	private Context ctx;
 	
 	private int realType;
@@ -68,11 +70,9 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
     	
     }
     
-    public CSGLabeledPolytopesYicesStack(int nrows, int ncols) {    	
-		cfg = new Config("QF_LRA");
-		cfg.set("mode", "push-pop");
-		ctx = new Context(cfg);
-		cfg.close();
+    public CSGLabeledPolytopesYicesStack(int nrows, int ncols) throws PrismException
+    {
+    	initSolver();
         eqs = new HashMap<String,ArrayList<Double>>();
         realType = Yices.realType();
         boolType = Yices.boolType();
@@ -107,11 +107,9 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 		}
     }
     
-    public void clear() {
-		cfg = new Config("QF_LRA"); 
-		cfg.set("mode", "push-pop");
-		ctx = new Context(cfg);
-		cfg.close();
+    public void clear() throws PrismException
+    {
+    	initSolver();
         eqs = new HashMap<String,ArrayList<Double>>();
         realType = Yices.realType();
         boolType = Yices.boolType();
@@ -144,6 +142,29 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 			ctx.assertFormula(Terms.arithLeq(v, one));
 			ctx.assertFormula(Terms.arithGeq(v, zero));
 		}
+    }
+    
+    /**
+     * Initialise the solver
+     */
+    private void initSolver() throws PrismException
+    {
+        try {
+        	Config cfg = new Config("QF_LRA");
+    		cfg.set("mode", "push-pop");
+    		ctx = new Context(cfg);
+    		System.out.println("NEW");
+    		cfg.close();
+        	solverName = "Yices " + Version.versionString;
+        } catch (UnsatisfiedLinkError e) {
+        	throw new PrismException("Could not initialise Yices: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public String getSolverName()
+    {
+    	return solverName;
     }
     
 	public void update(int nrows, int ncols, double[][] a, double[][] b) {
@@ -234,7 +255,8 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 		}
 	}
 
-	public void compEq() {
+	public void compEq() throws PrismException
+	{
 		ArrayList<Distribution> dists;
 		Distribution dist1;
 		Distribution dist2;
