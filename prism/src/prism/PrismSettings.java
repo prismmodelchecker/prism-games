@@ -2071,6 +2071,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-aroptions <string> ............ Abstraction-refinement engine options string");
 		mainLog.println("-pathviaautomata ............... Handle all path formulas via automata constructions");
 		mainLog.println("-nodasimplify .................. Do not attempt to simplify deterministic automata, acceptance conditions");
+		mainLog.println("-exportstrat <file> ............ Export a strategy");
 		mainLog.println("-exportadv <file> .............. Export an adversary from MDP model checking (as a DTMC)");
 		mainLog.println("-exportadvmdp <file> ........... Export an adversary from MDP model checking (as an MDP)");
 		mainLog.println("-ltl2datool <exec> ............. Run executable <exec> to convert LTL formulas to deterministic automata");
