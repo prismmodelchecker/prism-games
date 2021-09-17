@@ -1,0 +1,24 @@
+smg
+
+player p1 M, [a1], [b1] endplayer
+player p2 [a2], [b2] endplayer
+player p3 [a3], [b3] endplayer
+
+module M
+
+	s : [0..3] init 0;
+	p : [0..3] init 0;
+
+	[] s=0 -> 1/8:(s'=1)&(p'=1) + 1/4:(s'=1)&(p'=2) + 5/8:(s'=1)&(p'=3);
+	[] s=0 -> 1/8:(s'=1)&(p'=3) + 1/4:(s'=2)&(p'=2) + 5/8:(s'=1)&(p'=1);
+	
+	[a1] s=1 & p=1 -> (s'=2);
+	[b1] s=1 & p=1 -> (s'=3);
+	[a2] s=1 & p=2 -> (s'=2);
+	[b2] s=1 & p=2 -> (s'=3);
+	[a3] s=1 & p=3 -> (s'=2);
+	[b3] s=1 & p=3 -> (s'=3);
+	
+	[] s>1 -> true;
+	
+endmodule
