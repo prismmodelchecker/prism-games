@@ -71,6 +71,7 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionVar;
 import parser.ast.RelOp;
 import parser.ast.RewardStruct;
+import parser.type.TypePareto;
 import prism.ModelType;
 import prism.OpRelOpBound;
 import prism.PointList;
@@ -592,7 +593,7 @@ public class SMGModelChecker extends ProbModelChecker
 			mainLog.print("Resulting Pareto set:\n");
 			PPLSupport.printReachabilityPolyhedron(pareto, params.rewards.size(), init, mainLog);
 			mainLog.flush();
-			return StateValues.createFromParetoArray(pareto, model);
+			return StateValues.createFromObjectArray(TypePareto.getInstance(), pareto, model);
 		} else {
 			// CHECK MQ AND COMPUTE STRATEGY (if requested)
 			double t0 = (double) System.nanoTime();

@@ -50,6 +50,7 @@ import explicit.rewards.MCRewardsFromMDPRewards;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.Rewards;
 import parser.ast.Expression;
+import parser.type.TypeDouble;
 import prism.AccuracyFactory;
 import prism.OptionsIntervalIteration;
 import prism.Prism;
@@ -117,8 +118,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Subtract from 1 if we're model checking a negated formula for regular Pmin
 		if (minMax.isMin()) {
-			probsProduct.timesConstant(-1.0);
-			probsProduct.plusConstant(1.0);
+			probsProduct.applyFunction(TypeDouble.getInstance(), v -> 1.0 - (double) v);
 		}
 
 		// Output vector over product, if required
@@ -361,7 +361,9 @@ public class MDPModelChecker extends ProbModelChecker
 			List<BitSet> labels = Arrays.asList(bsInit, target);
 			List<String> labelNames = Arrays.asList("init", "target");
 			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
+			PrismLog out = new PrismFileLog(getExportTargetFilename());
+			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, out);
+			out.close();
 		}
 
 		// If required, create/initialise strategy storage
@@ -1553,7 +1555,7 @@ public class MDPModelChecker extends ProbModelChecker
 		for (int scc = 0, numSCCs = sccs.getNumSCCs(); scc < numSCCs; scc++) {
 			IntSet statesForSCC = sccs.getStatesForSCC(scc);
 
-			int cardinality = statesForSCC.cardinality();
+			int cardinality = Math.toIntExact(statesForSCC.cardinality());
 
 			PrimitiveIterator.OfInt itSCC = statesForSCC.iterator();
 			while (itSCC.hasNext()) {
@@ -1665,7 +1667,7 @@ public class MDPModelChecker extends ProbModelChecker
 			double q = 0;
 			double p = 1;
 
-			int cardinality = statesForSCC.cardinality();
+			int cardinality = Math.toIntExact(statesForSCC.cardinality());
 
 			PrimitiveIterator.OfInt itSCC = statesForSCC.iterator();
 			while (itSCC.hasNext()) {
@@ -2124,7 +2126,9 @@ public class MDPModelChecker extends ProbModelChecker
 			List<BitSet> labels = Arrays.asList(bsInit, target);
 			List<String> labelNames = Arrays.asList("init", "target");
 			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
+			PrismLog out = new PrismFileLog(getExportTargetFilename());
+			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, out);
+			out.close();
 		}
 
 		// If required, create/initialise strategy storage

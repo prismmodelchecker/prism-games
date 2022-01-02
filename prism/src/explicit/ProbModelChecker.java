@@ -618,7 +618,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	
 	protected StateValues checkExpressionMultiNash(Model model, ExpressionMultiNash expr, List<Coalition> coalitions) throws PrismException {
 		ModelCheckerResult res = new ModelCheckerResult();
-		StateValues sv = new StateValues();
 		List<ExpressionQuant> formulae = expr.getOperands();
 		List<CSGRewards> rewards = new ArrayList<CSGRewards>();
 		BitSet[] remain = new BitSet[coalitions.size()];
@@ -775,7 +774,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		result.setStrategy(res.strat);
-		sv =  StateValues.createFromDoubleArray(res.soln, model);
+		StateValues sv = StateValues.createFromDoubleArray(res.soln, model);
 		
 		// Print out probabilities
 		if (getVerbosity() > 5) {
@@ -783,16 +782,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			sv.print(mainLog);
 		}
 		
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return sv;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			sv.applyPredicate(v -> opInfo.apply((double) v, sv.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = sv.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			sv.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return sv;
 	}
 	
 	/**
@@ -849,16 +843,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			probs.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return probs;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			probs.applyPredicate(v -> opInfo.apply((double) v, probs.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			probs.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return probs;
 	}
 
 	/**
@@ -935,8 +924,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (negated) {
 			// Subtract from 1 for negation
-			probs.timesConstant(-1.0);
-			probs.plusConstant(1.0);
+			probs.applyFunction(TypeDouble.getInstance(), v -> 1.0 - (double) v);
 		}
 
 		return probs;
@@ -1217,16 +1205,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			rews.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return rews;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			rews.applyPredicate(v -> opInfo.apply((double) v, rews.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = rews.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			rews.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return rews;
 	}
 
 	/**
@@ -1360,7 +1343,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Compute/return the rewards
 		// A trivial case: "C<=0" (prob is 1 in target states, 0 otherwise)
 		if (timeInt == 0 || timeDouble == 0) {
-			StateValues res = new StateValues(TypeDouble.getInstance(), model.getNumStates(), 0.0);
+			StateValues res = StateValues.createFromSingleValue(TypeDouble.getInstance(), 0.0, model);
 			res.setAccuracy(AccuracyFactory.doublesFromQualitative());
 			return res;
 		}
@@ -1551,16 +1534,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			probs.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return probs;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			probs.applyPredicate(v -> opInfo.apply((double) v, probs.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			probs.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return probs;
 	}
 
 	/**
@@ -1707,10 +1685,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (distFile != null) {
 			mainLog.println("\nImporting probability distribution from file \"" + distFile + "\"...");
-			// Build an empty vector 
-			dist = new StateValues(TypeDouble.getInstance(), model);
-			// Populate vector from file
-			dist.readFromFile(distFile);
+			dist = StateValues.createFromFile(TypeDouble.getInstance(), distFile, model);
 		}
 
 		return dist;
@@ -1723,17 +1698,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	public StateValues buildInitialDistribution(Model model) throws PrismException
 	{
-		StateValues dist = null;
-
-		// Build an empty vector 
-		dist = new StateValues(TypeDouble.getInstance(), model);
-		// Populate vector (equiprobable over initial states)
-		double d = 1.0 / model.getNumInitialStates();
-		for (int in : model.getInitialStates()) {
-			dist.setDoubleValue(in, d);
+		int numStates = model.getNumStates();
+		if (numStates == 1) {
+			int sInit = model.getFirstInitialState();
+			return StateValues.create(TypeDouble.getInstance(), s -> s == sInit ? 1.0 : 0.0, model);
+		} else {
+			double pInit = 1.0 / numStates;
+			return StateValues.create(TypeDouble.getInstance(), s -> model.isInitialState(s) ? pInit : 0.0, model);
 		}
-
-		return dist;
 	}
 	
 	/**

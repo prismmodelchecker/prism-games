@@ -14,7 +14,8 @@
 	<classpathentry kind="lib" path="prism/lib/pepa.zip"/>
 	<classpathentry kind="lib" path="prism/lib/lpsolve55j.jar"/>
 	<classpathentry kind="lib" path="prism/lib/jas.jar"/>
-	<classpathentry kind="lib" path="prism/lib/log4j.jar"/>
+	<classpathentry kind="lib" path="prism/lib/log4j-api.jar"/>
+	<classpathentry kind="lib" path="prism/lib/log4j-core.jar"/>
 	<classpathentry kind="lib" path="prism/lib/nailgun-server.jar"/>
 	<classpathentry kind="lib" path="prism/lib/ppl_java.jar"/>
 	<classpathentry kind="lib" path="prism/lib/commons-math3-3.3.jar"/>
