@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -295,11 +295,10 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		int result[] = new int[2];
 		result[0] = 0;
 		result[1] = 0;	
-		double value = 0.0;
+		double value = Double.NEGATIVE_INFINITY;
 		for(int r = 0; r < a.length; r++) {
 			for(int c = 0; c < a[r].length; c++) {
 				if(Double.compare(a[r][c], value) > 0) {
-				//if(a[r][c] > value) {
 					value = a[r][c];
 					result[0] = r;
 					result[1] = c;	
