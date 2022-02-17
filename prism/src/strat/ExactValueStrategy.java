@@ -730,14 +730,14 @@ public class ExactValueStrategy implements Strategy
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out)
+	public void exportInducedModel(PrismLog out, int precision)
 	{
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out)
+	public void exportDotFile(PrismLog out, int precision)
 	{
 		// TODO Auto-generated method stub
 		

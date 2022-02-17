@@ -1279,7 +1279,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			vals.filter(ddFilter);
 			d = vals.getNNZ();
 			// Store as object/vector
-			resObj = new Integer((int) d);
+			resObj = Integer.valueOf((int) d);
 			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
 			// Create explanation of result and print some details to log
 			resultExpl = filterTrue ? "Count of satisfying states" : "Count of satisfying states also in filter";
@@ -1299,7 +1299,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			// Compute average
 			d = vals.sumOverBDD(ddFilter) / JDD.GetNumMinterms(ddFilter, allDDRowVars.n());
 			// Store as object/vector
-			resObj = new Double(d);
+			resObj = Double.valueOf(d);
 			resVals = new StateValuesMTBDD(JDD.Constant(d), model);
 			// Create explanation of result and print some details to log
 			resultExpl = "Average over " + filterStatesString;
@@ -1348,7 +1348,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			states = new StateListMTBDD(dd, model);
 			b = dd.equals(ddFilter);
 			// Store as object/vector
-			resObj = new Boolean(b);
+			resObj = Boolean.valueOf(b);
 			resVals = new StateValuesMTBDD(JDD.Constant(b ? 1.0 : 0.0), model);
 			// Set vals to null so that is not clear()-ed twice
 			vals = null;
@@ -1382,7 +1382,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			dd = JDD.And(dd, ddFilter);
 			b = !dd.equals(JDD.ZERO);
 			// Store as object/vector
-			resObj = new Boolean(b);
+			resObj = Boolean.valueOf(b);
 			resVals = new StateValuesMTBDD(JDD.Constant(b ? 1.0 : 0.0), model);
 			// Set vals to null so that is not clear()-ed twice
 			vals = null;
@@ -1566,7 +1566,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			stateRewards = model.getStateRewards(0);
 		} else if (rs instanceof Expression) {
 			int i = ((Expression) rs).evaluateInt(constantValues);
-			rs = new Integer(i); // for better error reporting below
+			rs = Integer.valueOf(i); // for better error reporting below
 			stateRewards = model.getStateRewards(i - 1);
 		} else if (rs instanceof String) {
 			stateRewards = model.getStateRewards((String) rs);
@@ -1589,7 +1589,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			transRewards = model.getTransRewards(0);
 		} else if (rs instanceof Expression) {
 			int i = ((Expression) rs).evaluateInt(constantValues);
-			rs = new Integer(i); // for better error reporting below
+			rs = Integer.valueOf(i); // for better error reporting below
 			transRewards = model.getTransRewards(i - 1);
 		} else if (rs instanceof String) {
 			transRewards = model.getTransRewards((String) rs);

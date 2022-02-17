@@ -20,6 +20,7 @@ export PRISM_LIB_DIR     = lib
 export PRISM_INCLUDE_DIR = include
 export PRISM_IMAGES_DIR  = images
 export PRISM_DTDS_DIR    = dtds
+export PRISM_TESTS_DIR   = unit-tests
 
 # Location of CUDD (used to be variable; now mainly fixed with the git repo layout)
 
@@ -202,6 +203,7 @@ else
 endif
 LD = $(CXX)
 JAVAC = javac
+JAVA = java
 
 export CC CXX LD JAVAC JAVACC
 
@@ -451,6 +453,14 @@ make_dirs:
 		(dos2unix $(PRISM_INCLUDE_DIR)/jni/*.h) \
 	fi;
 
+# Compile unit tests
+make_tests:
+	@echo Making $(PRISM_TESTS_DIR) ...; \
+	(cd $(PRISM_TESTS_DIR) && \
+	$(MAKE) \
+	CLASSPATHSEP="$(CLASSPATHSEP)") \
+	|| exit 1;
+
 # Copy/modify the launch scripts and put in the bin directory
 bin_scripts:
 	@for target in $(BIN_TARGETS); do \
@@ -542,6 +552,11 @@ count_loc:
 # Testing #
 ###########
 
+# Run all unit tests
+unittests: make_tests
+	# Provide Regex to match our test classes. If none is given, only certain test classes are excluded by default.
+	$(JAVA) -jar lib/junit-platform-console-standalone.jar -cp classes --include-classname '^(Test.*|.+[.$$]Test.*|.+Tests?[.$$].+|.*Tests?)$$' -scan-classpath
+
 # Run a single test case from the test suite (useful quick check that the build was ok)
 test:
 	bin/prism ../prism-tests/functionality/verify/dtmcs/dtmc_pctl.pm ../prism-tests/functionality/verify/dtmcs/dtmc_pctl.pm.props -prop 2 -test
@@ -562,7 +577,7 @@ testyices:
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
 tests: testslocal
 	@if [ -d ../prism-tests ]; then \
-	  cd ../prism-tests && "$(PWD)"/etc/scripts/prism-auto -t -m . -p "$(PWD)"/bin/prism --nailgun --ngprism "$(PWD)"/bin/ngprism $(TESTS_ARGS); \
+	  etc/scripts/prism-auto -t -m ../prism-tests -p bin/prism --nailgun --ngprism bin/ngprism $(TESTS_ARGS); \
 	else \
 	  echo "Skipping tests"; \
 	fi
@@ -570,13 +585,13 @@ tests: testslocal
 # Just display the command to run the test suite on this version of PRISM
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
 testsecho:
-	@echo etc/scripts/prism-auto -t -m --nailgun --ngprism bin/ngprism ../prism-tests -p bin/prism $(TESTS_ARGS)
+	@echo etc/scripts/prism-auto -t -m ../prism-tests -p bin/prism --nailgun --ngprism bin/ngprism $(TESTS_ARGS)
 
 # Run local tests (in ./tests)
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
 testslocal:
 	@if [ -d tests ]; then \
-	  cd tests && "$(PWD)"/etc/scripts/prism-auto -t -m . -p "$(PWD)"/bin/prism --nailgun --ngprism "$(PWD)"/bin/ngprism $(TESTS_ARGS); \
+	  etc/scripts/prism-auto -t -m tests -p bin/prism --nailgun --ngprism bin/ngprism $(TESTS_ARGS); \
 	else \
 	  echo "Skipping local tests"; \
 	fi
@@ -587,10 +602,9 @@ testslocal:
 # - We run with --test-all, as failures for some engines should not abort the tests
 # - We run with a timeout of 1 minute, as some engines take a long time for some properties
 testsfull:
-	cd ../prism-tests && \
-	"$(PWD)"/etc/scripts/prism-auto -t -m . \
-	--skip-export-runs --skip-duplicate-runs --test-all -a all-engines.args --timeout 1m \
-	-p "$(PWD)"/bin/prism --nailgun $(TESTS_ARGS);
+	etc/scripts/prism-auto -t -m ../prism-tests \
+	--skip-export-runs --skip-duplicate-runs --test-all -a ../prism-tests/all-engines.args --timeout 1m \
+	-p bin/prism --nailgun $(TESTS_ARGS);
 
 ##########################
 # Building distributions #
@@ -696,7 +710,7 @@ clean: checks
 celan: clean
 
 # Clean PRISM + CUDD and external libs
-clean_all: checks clean_cudd clean_ppl clean_ext clean
+clean_all: checks clean_cudd clean_ppl clean_ext clean clean_tests
 
 clean_cudd:
 	@(cd $(CUDD_DIR) && $(MAKE) distclean)
@@ -712,6 +726,9 @@ clean_ext:
 	  $(MAKE) -s clean) \
 	  || exit 1; \
 	done )
+
+clean_tests:
+	@(cd $(PRISM_TESTS_DIR) && $(MAKE) clean)
 
 # Remove just the prism.jar binary
 clean_binary:
