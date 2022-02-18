@@ -33,7 +33,7 @@ z3:
 	fi)
 	@(if [ "$(OSTYPE)" = "darwin" ]; then \
 	  echo "Copying Z3 libraries for MacOS"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
+	  cp "$(OSTYPE)/$(ARCH)/$(Z3_LIB)" "$(OSTYPE)/$(ARCH)/$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
 	fi)
 	@(if [ "$(OSTYPE)" = "cygwin" ]; then \
 	  echo "Copying Z3 libraries for Cywgin"; \
