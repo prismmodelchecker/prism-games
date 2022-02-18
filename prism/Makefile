@@ -563,7 +563,7 @@ test:
 
 # Run a single test case from the test suite that relies on PPL being properly installed
 testppl:
-	bin/prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism.props -prop 1 -test
+	bin/prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism ../prism-tests/functionality/verify/smgs-multi/ratio.prism.props.disabled -prop 1 -test
 
 # Run a single test case from the test suite that relies on Z3 being properly installed
 testz3:
