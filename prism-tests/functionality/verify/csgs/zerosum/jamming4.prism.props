@@ -1,0 +1,9 @@
+// maximum probability the user can ensure that at least half their messages are sent
+
+// RESULT (slots=5): 0.632270470262
+<<user>> Pmax=? [ F sent>=slots/2 ];
+
+// maximum expected number of messages the user can ensure are sent
+
+// RESULT (slots=5): 2.726039886476
+<<user>> R{"rew"}max=? [ F t=slots+1 ];
