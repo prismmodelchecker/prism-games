@@ -104,6 +104,7 @@ public class MinMax
 		neg.setMin(!isMin());
 		neg.setMinMin(!isMin1(), !isMin2());
 		neg.setBound(bound == -1 ? -1 : 1.0 - bound);
+		neg.setCoalition(coalition);
 		return neg;
 	}
 	

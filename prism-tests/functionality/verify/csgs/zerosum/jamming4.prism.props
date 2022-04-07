@@ -3,6 +3,11 @@
 // RESULT (slots=5): 0.632270470262
 <<user>> Pmax=? [ F sent>=slots/2 ];
 
+// Equivalent:
+
+// RESULT (slots=5): 0.632270470262
+1 - <<user>> Pmin=? [ G sent<slots/2 ];
+
 // maximum expected number of messages the user can ensure are sent
 
 // RESULT (slots=5): 2.726039886476

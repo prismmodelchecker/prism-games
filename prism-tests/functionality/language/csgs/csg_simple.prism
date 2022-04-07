@@ -1,0 +1,33 @@
+csg
+
+player P1 M1 endplayer
+player P2 M2 endplayer
+
+module M1
+
+	s1 : [0..2];
+	
+	// choose between a/b	
+	[a1] s1=0 -> (s1'=1);
+	[b1] s1=0 -> (s1'=1);
+	// choose between c/d	
+	[c1] s1=1 -> (s1'=2);
+	[d1] s1=1 -> (s1'=2);
+	// then loop
+	[loop1] s1>=2 -> true;
+	
+endmodule
+
+module M2
+
+	s2 : [0..2];
+	
+	// choose between a/b	
+	[a2] s2=0 -> (s2'=1);
+	[b2] s2=0 -> (s2'=1);
+	// update s2 to 2 or 3 depending on M2's action
+	[e2,c1] s2=1 -> (s2'=2);
+	[e2,d1] s2=1 -> (s2'=3);
+	// then idle
+
+endmodule
