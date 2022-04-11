@@ -153,7 +153,6 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
         	Config cfg = new Config("QF_LRA");
     		cfg.set("mode", "push-pop");
     		ctx = new Context(cfg);
-    		System.out.println("NEW");
     		cfg.close();
         	solverName = "Yices " + Version.versionString;
         } catch (UnsatisfiedLinkError e) {
