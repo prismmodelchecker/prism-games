@@ -1,3 +1,30 @@
+//==============================================================================
+//	
+//	Copyright (c) 2002-
+//	Authors:
+//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package explicit;
 
 import java.util.ArrayList;
@@ -24,8 +51,8 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 
 	private HashMap<String, String> cfg;
 	private Context ctx;
-    private Solver s;
-    
+	private Solver s;
+
 	private ArrayList<ArithExpr> payoffs;	
 	private ArrayList<ArrayList<ArithExpr>> strategies;
 	private HashMap<Integer, HashMap<Integer, ArithExpr>> assertions;
@@ -33,38 +60,38 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 
 	private IntNum zero;
 	private IntNum one;
-	
+
 	private BitSet players;
 	private BoolExpr support;
-	
+
 	private int numPlayers;
 	private Params params;
-	
-    private ArrayList<Distribution> strat;
-    
-    private int ndigits = 9;
-	
+
+	private ArrayList<Distribution> strat;
+
+	private int ndigits = 9;
+
 	public CSGSupportEnumerationZ3() {
-    	cfg = new HashMap<String, String>();
-        cfg.put("model", "true");
-        ctx = new Context(cfg);
-        s = ctx.mkSolver();        
-        
-        params = ctx.mkParams();
+		cfg = new HashMap<String, String>();
+		cfg.put("model", "true");
+		ctx = new Context(cfg);
+		s = ctx.mkSolver();        
+
+		params = ctx.mkParams();
 		params.add("timeout", 20);
 		s.setParameters(params);
-		
+
 		assertions = new HashMap<Integer, HashMap<Integer, ArithExpr>>();
 		strategies = new ArrayList<ArrayList<ArithExpr>>();
 		payoffs = new ArrayList<ArithExpr>();
 		players = new BitSet();
 		strat = new ArrayList<Distribution>();
 	}
-	
+
 	public void init() {
 		s.reset();
 		s.setParameters(params);
-		
+
 		players.clear();
 		players.set(0, numPlayers);
 		strategies.clear();
@@ -88,7 +115,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		//System.out.println(indexes);
 		//System.out.println(strategies);
 	}
-	
+
 	public void computeConstraints(BitSet supp) {
 		for(int p = 0; p < indexes.size(); p++) {
 			for(int a = 0; a < indexes.get(p).size(); a++) {
@@ -116,7 +143,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		}
 		s.add(support);
 	}
-	
+
 	public Pair<CSGResultStatus, ArrayList<Double>> computeEquilibria(BitSet supp, HashMap<Integer, int[]> map, int st) {
 		s.push();
 		computeConstraints(supp);
@@ -126,12 +153,12 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		for(int i = 0; i < s.getNumAssertions(); i++) {
 			System.out.println(s.getAssertions()[i]);
 		}
-		*/
+		 */
 		Model model;
 		ArrayList<Double> eq = new ArrayList<>();
 		Distribution d;
 		double v;
-		
+
 		Status result = s.check();
 		if(result == Status.SATISFIABLE) {
 			model = s.getModel();
@@ -149,10 +176,10 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		}
 		s.pop();
 		return new Pair<CSGResultStatus, ArrayList<Double>>((result == Status.SATISFIABLE)? CSGResultStatus.SAT : 
-															(result == Status.UNKNOWN)? CSGResultStatus.UNKNOWN :
-																						CSGResultStatus.UNSAT, new ArrayList<Double>(eq));	
+			(result == Status.UNKNOWN)? CSGResultStatus.UNKNOWN :
+				CSGResultStatus.UNSAT, new ArrayList<Double>(eq));	
 	}
-	
+
 	public double getDoubleValue(Model model, Expr expr) {
 		RatNum v1;
 		AlgebraicNum v2;
@@ -168,7 +195,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		else
 			return Double.NaN;
 	}
-  	
+
 	public void translateAssertions(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> assertionsIdx, HashMap<Integer, int[]> map) {
 		assertions.clear();
 		ArithExpr sum, prod;
@@ -188,18 +215,18 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 			}
 		}
 	}
-	
+
 	public ArithExpr getRealValue(double v) {
 		ArithExpr result;
 		result = ctx.mkReal((long) (Math.pow(10, ndigits) * v));
 		result = ctx.mkDiv(result, ctx.mkReal((long) (Math.pow(10, ndigits))));
 		return result;
 	}
-	
+
 	public void setNumPlayers(int n) {
 		this.numPlayers = n;
 	}
-	
+
 	public void setIndexes(ArrayList<ArrayList<Integer>> a) {
 		this.indexes = a;
 	}
@@ -207,17 +234,17 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 	public ArrayList<Distribution> getStrat() {
 		return new ArrayList<Distribution>(this.strat);
 	}
-	
+
 	@Override
 	public void setGradient(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> gradient) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void setAssertions(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> assertions) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
