@@ -35,6 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import acceptance.AcceptanceReach;
+import common.IterableBitSet;
+import explicit.rewards.MDPRewardsSimple;
+import explicit.rewards.STPGRewards;
+import explicit.rewards.STPGRewardsSimple;
+import explicit.rewards.StateRewardsConstant;
 import parser.ast.Expression;
 import prism.AccuracyFactory;
 import prism.PrismComponent;
@@ -46,12 +52,6 @@ import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.MemorylessDeterministicStrategy;
 import strat.StepBoundedDeterministicStrategy;
-
-import common.IterableBitSet;
-import explicit.rewards.MDPRewardsSimple;
-import explicit.rewards.STPGRewards;
-import explicit.rewards.STPGRewardsSimple;
-import explicit.rewards.StateRewardsConstant;
 
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
@@ -88,7 +88,38 @@ public class STPGModelChecker extends ProbModelChecker
 	@Override
 	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
-		throw new PrismNotSupportedException("LTL model checking not yet supported for stochastic games");
+		throw new PrismNotSupportedException("Full LTL model checking not yet supported for stochastic games");
+	}
+
+	@Override
+	protected StateValues checkProbPathFormulaCosafeLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	{
+		// Build product of STPG and DFA for the LTL formula, and do any required exports
+		LTLModelChecker mcLtl = new LTLModelChecker(this);
+		LTLModelChecker.LTLProduct<STPG> product = mcLtl.constructDFAProductForCosafetyProbLTL(this, (STPG) model, expr, statesOfInterest);
+		doProductExports(product);
+		
+		// Find accepting states + compute reachability probabilities
+		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
+		mainLog.println("\nComputing reachability probabilities...");
+		STPGModelChecker mcProduct = new STPGModelChecker(this);
+		mcProduct.inheritSettings(this);
+		ModelCheckerResult res = mcProduct.computeReachProbs(product.getProductModel(), acc, minMax.isMin1(), minMax.isMin2());
+		StateValues probsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+
+		// Output vector over product, if required
+		if (getExportProductVector()) {
+				mainLog.println("\nExporting product solution vector matrix to file \"" + getExportProductVectorFilename() + "\"...");
+				PrismFileLog out = new PrismFileLog(getExportProductVectorFilename());
+				probsProduct.print(out, false, false, false, false);
+				out.close();
+		}
+
+		// Mapping probabilities in the original model
+		StateValues probs = product.projectToOriginalModel(probsProduct);
+		probsProduct.clear();
+
+		return probs;
 	}
 
 	// Numerical computation functions

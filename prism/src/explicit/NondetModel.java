@@ -36,6 +36,8 @@ import java.util.function.IntPredicate;
 import prism.PrismLog;
 import strat.MDStrategy;
 
+import static prism.PrismSettings.DEFAULT_EXPORT_MODEL_PRECISION;
+
 /**
  * Interface for (abstract) classes that provide (read-only) access to an explicit-state model with nondeterminism.
  */
@@ -140,6 +142,19 @@ public interface NondetModel extends Model
 	 * Get the number of transitions from choice {@code i} of state {@code s}.
 	 */
 	public int getNumTransitions(int s, int i);
+
+	@Override
+	public default int getNumTransitions(int s)
+	{
+		// Re-implement this because the method in the superclass (Model)
+		// would not count successors duplicated across choices
+		int numTransitions = 0;
+		int n = getNumChoices(s);
+		for (int i = 0; i < n; i++) {
+			numTransitions += getNumTransitions(s, i);
+		}
+		return numTransitions;
+	}
 
 	/**
 	 * Check if all the successor states from choice {@code i} of state {@code s} are in the set {@code set}.
@@ -296,5 +311,14 @@ public interface NondetModel extends Model
 	/**
 	 * Export to a dot file, highlighting states in 'mark' and choices for a (memoryless) strategy.
 	 */
-	public void exportToDotFileWithStrat(PrismLog out, BitSet mark, int strat[]);
+	default void exportToDotFileWithStrat(PrismLog out, BitSet mark, int strat[])
+	{
+		exportToDotFileWithStrat(out, mark, strat, DEFAULT_EXPORT_MODEL_PRECISION);
+	}
+
+	/**
+	 * Export to a dot file, highlighting states in 'mark' and choices for a (memoryless) strategy.
+	 * @param precision number of significant digits >= 1
+	 */
+	public void exportToDotFileWithStrat(PrismLog out, BitSet mark, int strat[], int precision);
 }

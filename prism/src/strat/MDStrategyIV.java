@@ -151,8 +151,7 @@ public class MDStrategyIV extends MDStrategy
 		}*/
 	}
 	
-	@Override
-	public void exportInducedModel(PrismLog out)
+	public void exportInducedModel(PrismLog out, int precision)
 	{
 		/*try {
 			model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_INDUCED, true, null);
@@ -164,10 +163,10 @@ public class MDStrategyIV extends MDStrategy
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out)
+	public void exportDotFile(PrismLog out, int precision)
 	{
 		/*try {
-			model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_DOT, true, null);
+			model.exportToFile(Prism.EXPORT_DOT, true, new java.io.File("a.dot"), precision);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (PrismException e) {

@@ -1,0 +1,12 @@
+// Zero-sum properties
+
+// maximum probability user 1 can guarantee to send a packet within a deadline
+// player 2 just tries to block
+
+// RESULT: 0.9809446788718071
+<<usr1>>Pmax=?[F (s1=3 & t<=D)]
+
+// Equivalent:
+
+// RESULT: 0.9809446788718071
+1 - <<usr1>>Pmin=?[G !(s1=3 & t<=D)]

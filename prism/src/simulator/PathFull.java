@@ -239,6 +239,12 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
+	public long numStates()
+	{
+		return steps.size();
+	}
+
+	@Override
 	public State getPreviousState()
 	{
 	    if(steps.size() >= 2)

@@ -2,6 +2,18 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.1 (first released 22/7/2021)
+-----------------------------------------------------------------------------
+
+* Add support for co-safe probabilistic LTL on STPGs/SMGs
+* Add switch -lpscalefactor for LPs in zero-sum model checking
+* Allow use of Yices for CSG equilibria computation (-smtsolver yices)
+* Merged latest changes from PRISM (up to v4.7) and extensions:
+  - reporting of model checking accuracy for STPGs/SMGs
+  - model auto-detection for TPTGs
+* Various bugfixes + tidying
+
+-----------------------------------------------------------------------------
 Version 3.0 (first released 31/1/2020)
 -----------------------------------------------------------------------------
 
