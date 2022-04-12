@@ -194,10 +194,10 @@ public abstract class MDStrategy implements Strategy
 	}
 	
 	@Override
-	public abstract void exportInducedModel(PrismLog out);
+	public abstract void exportInducedModel(PrismLog out, int precision);
 	
 	@Override
-	public abstract void exportDotFile(PrismLog out);
+	public abstract void exportDotFile(PrismLog out, int precision);
 	
 	@Override
 	public abstract void exportStratToFile(File file, StrategyExportType exportType);

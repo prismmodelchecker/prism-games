@@ -643,11 +643,16 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		polyCache = new HashMap<SeriesKey, LinkedList<double[]>>();
 		keyToSeries = new HashMap<SeriesKey, XYSeries>();
 		keyToGraphSeries = new HashMap<SeriesKey, SeriesSettings>();
-		graphTitle = new MultipleLineStringSetting("title", title, "The main title heading for the chart.", this, false);
-		titleFont = new FontColorSetting("title font", new FontColorPair(new Font("SansSerif", Font.PLAIN, 14), Color.black), "The font for the chart's title",
+		graphTitle = new MultipleLineStringSetting("title", title,
+				"The main title heading for the chart.", this, false);
+		titleFont = new FontColorSetting("title font", new FontColorPair(
+				new Font("SansSerif", Font.PLAIN, 14), Color.black),
+				"The font for the chart's title", this, false);
+		legendVisible = new BooleanSetting(
+				"legend visible?",
+				Boolean.valueOf(true),
+				"Should the legend, which displays all of the series headings, be displayed?",
 				this, false);
-		legendVisible = new BooleanSetting("legend visible?", new Boolean(true),
-				"Should the legend, which displays all of the series headings, be displayed?", this, false);
 
 		String[] choices = { "Left", "Right", "Bottom", "Top" };
 		legendPosition = new ChoiceSetting("legend position", choices, choices[RIGHT], "The position of the legend", this, false);

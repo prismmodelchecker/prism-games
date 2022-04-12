@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -67,19 +67,19 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 	private double[][] b;
     
 	private String[] lvp1;
-    private String[] lvp2;
+   	private String[] lvp2;
     
-    private HashMap<String, String> cfg;
-    private Context ctx;
-    private Solver s;
+    	private HashMap<String, String> cfg;
+    	private Context ctx;
+    	private Solver s;
     
-    private ArithExpr cp1;
-    private ArithExpr cp2;
-    private double time;
+    	private ArithExpr cp1;
+    	private ArithExpr cp2;
+    	private double time;
         
-    private int ndigits = 9;
+    	private int ndigits = 9;
     
-    private ArrayList<ArrayList<Distribution>> strat;
+    	private ArrayList<ArrayList<Distribution>> strat;
     
     public CSGLabeledPolytopesZ3() {
     	cfg = new HashMap<String, String>();
@@ -121,7 +121,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
     
 	private void initialize() {
 		zero = ctx.mkInt(0);
-	    one = ctx.mkInt(1);
+	    	one = ctx.mkInt(1);
 		vars = new RealExpr[nrows+ncols];
 		p1vars = new RealExpr[nrows];
 		p2vars = new RealExpr[ncols];
@@ -250,27 +250,27 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 	}
 	
 	public void compEq() {
-        ArrayList<Distribution> dists;
-        Distribution dist1;
-        Distribution dist2;
-        double p;
-        Model model = null;                
-        BoolExpr rstr;
-        BoolExpr prstr;
-        long start, end;
+        	ArrayList<Distribution> dists;
+        	Distribution dist1;
+        	Distribution dist2;
+        	double p;
+        	Model model = null;                
+        	BoolExpr rstr;
+        	BoolExpr prstr;
+        	long start, end;
 		int i,j;
         
-        BoolExpr c1;
-        BoolExpr c2;
+        	BoolExpr c1;
+        	BoolExpr c2;
         
-        BoolExpr p1;
-        BoolExpr p2; 
+        	BoolExpr p1;
+        	BoolExpr p2; 
 		
-        //in order to check for indifference
-        BoolExpr xeqrst = ctx.mkTrue();
-        BoolExpr yeqrst = ctx.mkTrue();
+        	//in order to check for indifference
+        	BoolExpr xeqrst = ctx.mkTrue();
+        	BoolExpr yeqrst = ctx.mkTrue();
         
-        start = new Date().getTime();
+        	start = new Date().getTime();
         
 		vMult();
 		xLabels();

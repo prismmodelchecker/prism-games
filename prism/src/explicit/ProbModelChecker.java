@@ -70,6 +70,8 @@ import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 
+import static prism.PrismSettings.DEFAULT_EXPORT_MODEL_PRECISION;
+
 /**
  * Super class for explicit-state probabilistic model checkers.
  */
@@ -618,7 +620,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	
 	protected StateValues checkExpressionMultiNash(Model model, ExpressionMultiNash expr, List<Coalition> coalitions) throws PrismException {
 		ModelCheckerResult res = new ModelCheckerResult();
-		StateValues sv = new StateValues();
 		List<ExpressionQuant> formulae = expr.getOperands();
 		List<CSGRewards> rewards = new ArrayList<CSGRewards>();
 		BitSet[] remain = new BitSet[coalitions.size()];
@@ -775,7 +776,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		result.setStrategy(res.strat);
-		sv =  StateValues.createFromDoubleArray(res.soln, model);
+		StateValues sv = StateValues.createFromDoubleArray(res.soln, model);
 		
 		// Print out probabilities
 		if (getVerbosity() > 5) {
@@ -783,16 +784,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			sv.print(mainLog);
 		}
 		
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return sv;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			sv.applyPredicate(v -> opInfo.apply((double) v, sv.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = sv.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			sv.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return sv;
 	}
 	
 	/**
@@ -849,16 +845,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			probs.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return probs;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			probs.applyPredicate(v -> opInfo.apply((double) v, probs.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			probs.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return probs;
 	}
 
 	/**
@@ -887,7 +878,12 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (useSimplePathAlgo) {
 			return checkProbPathFormulaSimple(model, expr, minMax, statesOfInterest);
 		} else {
-			return checkProbPathFormulaLTL(model, expr, false, minMax, statesOfInterest);
+			// Some model checkers will behave differently for cosafe vs full LTL
+			if (Expression.isCoSafeLTLSyntactic(expr, true)) {
+				return checkProbPathFormulaCosafeLTL(model, expr, false, minMax, statesOfInterest);
+			} else {
+				return checkProbPathFormulaLTL(model, expr, false, minMax, statesOfInterest);
+			}
 		}
 	}
 
@@ -930,8 +926,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (negated) {
 			// Subtract from 1 for negation
-			probs.timesConstant(-1.0);
-			probs.plusConstant(1.0);
+			probs.applyFunction(TypeDouble.getInstance(), v -> 1.0 - (double) v);
 		}
 
 		return probs;
@@ -1140,6 +1135,15 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	/**
+	 * Compute probabilities for a co-safe LTL path formula
+	 */
+	protected StateValues checkProbPathFormulaCosafeLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	{
+		// Just treat as an arbitrary LTL formula by default
+		return checkProbPathFormulaLTL(model, expr, qual, minMax, statesOfInterest);
+	}
+
+	/**
 	 * Compute probabilities for an LTL path formula
 	 */
 	protected StateValues checkProbBoundedRewardFormula(Model model, ExpressionReward expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
@@ -1203,16 +1207,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			rews.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return rews;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			rews.applyPredicate(v -> opInfo.apply((double) v, rews.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = rews.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			rews.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return rews;
 	}
 
 	/**
@@ -1346,7 +1345,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Compute/return the rewards
 		// A trivial case: "C<=0" (prob is 1 in target states, 0 otherwise)
 		if (timeInt == 0 || timeDouble == 0) {
-			StateValues res = new StateValues(TypeDouble.getInstance(), model.getNumStates(), 0.0);
+			StateValues res = StateValues.createFromSingleValue(TypeDouble.getInstance(), 0.0, model);
 			res.setAccuracy(AccuracyFactory.doublesFromQualitative());
 			return res;
 		}
@@ -1537,16 +1536,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			probs.print(mainLog);
 		}
 
-		// For =? properties, just return values
-		if (opInfo.isNumeric()) {
-			return probs;
+		// For =? properties, just return values; otherwise compare against bound
+		if (!opInfo.isNumeric()) {
+			probs.applyPredicate(v -> opInfo.apply((double) v, probs.getAccuracy()));
 		}
-		// Otherwise, compare against bound to get set of satisfying states
-		else {
-			BitSet sol = probs.getBitSetFromInterval(opInfo.getRelOp(), opInfo.getBound());
-			probs.clear();
-			return StateValues.createFromBitSet(sol, model);
-		}
+		return probs;
 	}
 
 	/**
@@ -1655,7 +1649,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MULTI:
-			throw new PrismException("Properties with \"multi\" not supported.");
+			throw new PrismNotSupportedException("Properties with \"multi\" not supported.");
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
@@ -1693,10 +1687,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (distFile != null) {
 			mainLog.println("\nImporting probability distribution from file \"" + distFile + "\"...");
-			// Build an empty vector 
-			dist = new StateValues(TypeDouble.getInstance(), model);
-			// Populate vector from file
-			dist.readFromFile(distFile);
+			dist = StateValues.createFromFile(TypeDouble.getInstance(), distFile, model);
 		}
 
 		return dist;
@@ -1709,19 +1700,17 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	public StateValues buildInitialDistribution(Model model) throws PrismException
 	{
-		StateValues dist = null;
-
-		// Build an empty vector 
-		dist = new StateValues(TypeDouble.getInstance(), model);
-		// Populate vector (equiprobable over initial states)
-		double d = 1.0 / model.getNumInitialStates();
-		for (int in : model.getInitialStates()) {
-			dist.setDoubleValue(in, d);
+		int numStates = model.getNumStates();
+		if (numStates == 1) {
+			int sInit = model.getFirstInitialState();
+			return StateValues.create(TypeDouble.getInstance(), s -> s == sInit ? 1.0 : 0.0, model);
+		} else {
+			double pInit = 1.0 / numStates;
+			return StateValues.create(TypeDouble.getInstance(), s -> model.isInitialState(s) ? pInit : 0.0, model);
 		}
-
-		return dist;
 	}
-	
+
+
 	/**
 	 * Export (non-zero) state rewards for one reward structure of a model.
 	 * @param model The model
@@ -1730,6 +1719,19 @@ public class ProbModelChecker extends NonProbModelChecker
 	 * @param out Where to export
 	 */
 	public void exportStateRewardsToFile(Model model, int r, int exportType, PrismLog out) throws PrismException
+	{
+		exportStateRewardsToFile(model, r, exportType, out, DEFAULT_EXPORT_MODEL_PRECISION);
+	}
+
+	/**
+	 * Export (non-zero) state rewards for one reward structure of a model.
+	 * @param model The model
+	 * @param r Index of reward structure to export (0-indexed)
+	 * @param exportType The format in which to export
+	 * @param out Where to export
+	 * @param precision number of significant digits >= 1
+	 */
+	public void exportStateRewardsToFile(Model model, int r, int exportType, PrismLog out, int precision) throws PrismException
 	{
 		int numStates = model.getNumStates();
 		int nonZeroRews = 0;
@@ -1753,7 +1755,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			for (int s = 0; s < numStates; s++) {
 				double d = mcRewards.getStateReward(s);
 				if (d != 0) {
-					out.println(s + " " + PrismUtils.formatDouble(d));
+					out.println(s + " " + PrismUtils.formatDouble(precision, d));
 				}
 			}
 			break;
@@ -1770,7 +1772,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			for (int s = 0; s < numStates; s++) {
 				double d = mdpRewards.getStateReward(s);
 				if (d != 0) {
-					out.println(s + " " + PrismUtils.formatDouble(d));
+					out.println(s + " " + PrismUtils.formatDouble(precision, d));
 				}
 			}
 			break;

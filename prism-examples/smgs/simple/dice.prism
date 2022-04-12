@@ -46,7 +46,7 @@ module player2
     [toss2] s2=1 -> 1/6:(y'=1)&(s2'=2) + 1/6:(y'=2)&(s2'=2) + 1/6:(y'=3)&(s2'=2)
                   + 1/6:(y'=4)&(s2'=2) + 1/6:(y'=5)&(s2'=2) + 1/6:(y'=6)&(s2'=2);
     // Decide whether to accept the die value
-    [again2] s2=2 & j<i-1 -> (j'=j+1)&(s2'=2);
+    [again2] s2=2 & j<i-1 -> (j'=j+1)&(s2'=1);
     [done2] s2=2 & j<i-1 -> (s2'=3);
     // No more throws allowed
     [done2] s2=2 & j>=i-1 -> (s2'=3);

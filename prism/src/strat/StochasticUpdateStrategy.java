@@ -1747,7 +1747,7 @@ public class StochasticUpdateStrategy implements Strategy
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out)
+	public void exportInducedModel(PrismLog out, int precision)
 	{
 		// TODO
 	}
@@ -1760,7 +1760,7 @@ public class StochasticUpdateStrategy implements Strategy
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out)
+	public void exportDotFile(PrismLog out, int precision)
 	{
 		// TODO Auto-generated method stub
 

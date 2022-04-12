@@ -8,11 +8,16 @@ import com.sri.yices.Config;
 import com.sri.yices.Context;
 import com.sri.yices.Status;
 import com.sri.yices.Terms;
+import com.sri.yices.Version;
 import com.sri.yices.Yices;
 
 import prism.PrismSettings;
+import prism.PrismException;
 
-public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
+
+public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
+{
+	private String solverName = "Yices";
 
 	private Config cfg;
 	private Context ctx;
@@ -60,22 +65,20 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 	private int ncols;
 	
 	private HashMap<String,ArrayList<Double>> eqs;
-    private ArrayList<ArrayList<Distribution>> strat;
+	private ArrayList<ArrayList<Distribution>> strat;
 	
 	protected String eqPolicy;
     
-    public CSGLabeledPolytopesYicesStack() {
+   	public CSGLabeledPolytopesYicesStack() {
     	
-    }
+    	}
     
-    public CSGLabeledPolytopesYicesStack(int nrows, int ncols) {    	
-		cfg = new Config("QF_LRA");
-		cfg.set("mode", "push-pop");
-		ctx = new Context(cfg);
-		cfg.close();
-        eqs = new HashMap<String,ArrayList<Double>>();
-        realType = Yices.realType();
-        boolType = Yices.boolType();
+    	public CSGLabeledPolytopesYicesStack(int nrows, int ncols) throws PrismException
+    	{
+    		initSolver();
+        	eqs = new HashMap<String,ArrayList<Double>>();
+        	realType = Yices.realType();
+        	boolType = Yices.boolType();
 		zero = Terms.intConst(0);
 		one = Terms.intConst(1);
 		vars = new int[nrows+ncols];
@@ -105,16 +108,14 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 			ctx.assertFormula(Terms.arithLeq(v, one));
 			ctx.assertFormula(Terms.arithGeq(v, zero));
 		}
-    }
+    	}
     
-    public void clear() {
-		cfg = new Config("QF_LRA"); 
-		cfg.set("mode", "push-pop");
-		ctx = new Context(cfg);
-		cfg.close();
-        eqs = new HashMap<String,ArrayList<Double>>();
-        realType = Yices.realType();
-        boolType = Yices.boolType();
+	public void clear() throws PrismException
+    	{
+    		initSolver();
+        	eqs = new HashMap<String,ArrayList<Double>>();
+        	realType = Yices.realType();
+        	boolType = Yices.boolType();
 		zero = Terms.intConst(0);
 		one = Terms.intConst(1);
 		vars = new int[nrows+ncols];
@@ -144,7 +145,29 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 			ctx.assertFormula(Terms.arithLeq(v, one));
 			ctx.assertFormula(Terms.arithGeq(v, zero));
 		}
-    }
+    	}
+    
+    	/**
+	* Initialise the solver
+     	*/
+    	private void initSolver() throws PrismException
+    	{
+        	try {
+        		Config cfg = new Config("QF_LRA");
+    			cfg.set("mode", "push-pop");
+    			ctx = new Context(cfg);
+    			cfg.close();
+        		solverName = "Yices " + Version.versionString;
+        	} catch (UnsatisfiedLinkError e) {
+        		throw new PrismException("Could not initialise Yices: " + e.getMessage());
+        	}
+    	}
+    
+    	@Override
+    	public String getSolverName()
+    	{
+    		return solverName;
+    	}
     
 	public void update(int nrows, int ncols, double[][] a, double[][] b) {
 		this.nrows = nrows;
@@ -234,7 +257,8 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 		}
 	}
 
-	public void compEq() {
+	public void compEq() throws PrismException
+	{
 		ArrayList<Distribution> dists;
 		Distribution dist1;
 		Distribution dist2;
@@ -261,31 +285,32 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes {
 		ctx.assertFormula(xctr);
 		ctx.assertFormula(yctr);
 		ctx.assertFormula(eq);
-        strat = new ArrayList<ArrayList<Distribution>>();
+        	strat = new ArrayList<ArrayList<Distribution>>();
 		eqs.clear();
-        j = 0; 
+        
+	j = 0; 
         while (ctx.check() == Status.SAT) {
-        	model = ctx.getModel();        
+            model = ctx.getModel();        
             c1 = ytrue;
             c2 = ytrue;
             dists = new ArrayList<Distribution>();
             dist1 = new Distribution();
             dist2 = new Distribution();
-    		//System.out.println("---");
+    	    //System.out.println("---");
             //String prt = "(";
             for (i = 0; i < nrows+ncols; i++) {            	
-        		//p = model.bigRationalValue(vars[i]).doubleValue();
+        	//p = model.bigRationalValue(vars[i]).doubleValue();
             	p = model.doubleValue(vars[i]);
-        		//prt += p;
-        		//if (i < vars.length - 1)
-        			//prt += ",";
-        		//System.out.println(p);
-        		if(p > 0) {
-        			if(i < nrows)
-        				dist1.add(i, p);
-        			else 
-        				dist2.add(i - nrows, p);
-        		}
+        	//prt += p;
+        	//if (i < vars.length - 1)
+        		//prt += ",";
+        	//System.out.println(p);
+        	if(p > 0) {
+        		if(i < nrows)
+        			dist1.add(i, p);
+        		else 
+        			dist2.add(i - nrows, p);
+        	}
                 if (j == 0) {
         			if (i < nrows) {
                 		eqs.put(lvp1[i], new ArrayList<Double>());

@@ -35,11 +35,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PrimitiveIterator;
 import java.util.PrimitiveIterator.OfInt;
-import java.util.Vector;
 
-import parser.VarList;
-import parser.ast.Declaration;
-import parser.ast.DeclarationIntUnbounded;
+import acceptance.AcceptanceReach;
+import acceptance.AcceptanceType;
+import common.IntSet;
+import common.IterableBitSet;
+import common.StopWatch;
+import explicit.modelviews.DTMCAlteredDistributions;
+import explicit.modelviews.MDPFromDTMC;
+import explicit.rewards.MCRewards;
+import explicit.rewards.MDPRewards;
+import explicit.rewards.Rewards;
 import parser.ast.Expression;
 import prism.AccuracyFactory;
 import prism.ModelType;
@@ -48,21 +54,10 @@ import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
+import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
-import acceptance.AcceptanceReach;
-import acceptance.AcceptanceType;
-import automata.DA;
-import common.IntSet;
-import common.StopWatch;
-import common.IterableBitSet;
-import explicit.LTLModelChecker.LTLProduct;
-import explicit.modelviews.DTMCAlteredDistributions;
-import explicit.modelviews.MDPFromDTMC;
-import explicit.rewards.MCRewards;
-import explicit.rewards.MDPRewards;
-import explicit.rewards.Rewards;
 
 /**
  * Explicit-state model checker for discrete-time Markov chains (DTMCs).
@@ -82,15 +77,8 @@ public class DTMCModelChecker extends ProbModelChecker
 	@Override
 	protected StateValues checkProbPathFormulaLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
-		LTLModelChecker mcLtl;
-		StateValues probsProduct, probs;
-		LTLModelChecker.LTLProduct<DTMC> product;
-		DTMCModelChecker mcProduct;
-
-		// For LTL model checking routines
-		mcLtl = new LTLModelChecker(this);
-
-		// Build product of Markov chain and automaton
+		// Build product of Markov chain and DA for the LTL formula, and do any required exports
+		LTLModelChecker mcLtl = new LTLModelChecker(this);
 		AcceptanceType[] allowedAcceptance = {
 				AcceptanceType.RABIN,
 				AcceptanceType.REACH,
@@ -98,25 +86,8 @@ public class DTMCModelChecker extends ProbModelChecker
 				AcceptanceType.STREETT,
 				AcceptanceType.GENERIC
 		};
-		product = mcLtl.constructProductMC(this, (DTMC)model, expr, statesOfInterest, allowedAcceptance);
-
-		// Output product, if required
-		if (getExportProductTrans()) {
-				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
-				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
-		}
-		if (getExportProductStates()) {
-			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
-			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
-			String daVar = "_da";
-			while (newVarList.getIndex(daVar) != -1) {
-				daVar = "_" + daVar;
-			}
-			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
-			out.close();
-		}
+		LTLModelChecker.LTLProduct<DTMC> product = mcLtl.constructDAProductForLTLFormula(this, (DTMC) model, expr, statesOfInterest, allowedAcceptance);
+		doProductExports(product);
 		
 		// Find accepting states + compute reachability probabilities
 		BitSet acc;
@@ -128,10 +99,10 @@ public class DTMCModelChecker extends ProbModelChecker
 			acc = mcLtl.findAcceptingBSCCs(product.getProductModel(), product.getAcceptance());
 		}
 		mainLog.println("\nComputing reachability probabilities...");
-		mcProduct = new DTMCModelChecker(this);
+		DTMCModelChecker mcProduct = new DTMCModelChecker(this);
 		mcProduct.inheritSettings(this);
 		ModelCheckerResult res = mcProduct.computeReachProbs(product.getProductModel(), acc); 
-		probsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+		StateValues probsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
 
 		// Output vector over product, if required
 		if (getExportProductVector()) {
@@ -142,7 +113,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		}
 		
 		// Mapping probabilities in the original model
-		probs = product.projectToOriginalModel(probsProduct);
+		StateValues probs = product.projectToOriginalModel(probsProduct);
 		probsProduct.clear();
 
 		return probs;
@@ -153,55 +124,20 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	protected StateValues checkRewardCoSafeLTL(Model model, Rewards modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
-		LTLModelChecker mcLtl;
-		MCRewards productRewards;
-		StateValues rewardsProduct, rewards;
-		DTMCModelChecker mcProduct;
-		LTLProduct<DTMC> product;
-
-		// For LTL model checking routines
-		mcLtl = new LTLModelChecker(this);
-
-		// Model check maximal state formulas and construct DFA, with the special
-		// handling needed for cosafety reward translation
-		Vector<BitSet> labelBS = new Vector<BitSet>();
-		DA<BitSet, AcceptanceReach> da = mcLtl.constructDFAForCosafetyRewardLTL(this, model, expr, labelBS);
-
-		StopWatch timer = new StopWatch(mainLog);
-		mainLog.println("\nConstructing " + model.getModelType() + "-" + da.getAutomataType() + " product...");
-		timer.start(model.getModelType() + "-" + da.getAutomataType() + " product");
-		product = mcLtl.constructProductModel(da, (DTMC)model, labelBS, statesOfInterest);
-		timer.stop("product has " + product.getProductModel().infoString());
-
-		// Adapt reward info to product model
-		productRewards = ((MCRewards) modelRewards).liftFromModel(product);
-
-		// Output product, if required
-		if (getExportProductTrans()) {
-				mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
-				product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
-		}
-		if (getExportProductStates()) {
-			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
-			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
-			String daVar = "_da";
-			while (newVarList.getIndex(daVar) != -1) {
-				daVar = "_" + daVar;
-			}
-			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
-			out.close();
-		}
+		// Build product of MC and DFA for the LTL formula, convert rewards and do any required exports
+		LTLModelChecker mcLtl = new LTLModelChecker(this);
+		LTLModelChecker.LTLProduct<DTMC> product = mcLtl.constructDFAProductForCosafetyReward(this, (DTMC) model, expr, statesOfInterest);
+		MCRewards productRewards = ((MCRewards) modelRewards).liftFromModel(product);
+		doProductExports(product);
 
 		// Find accepting states + compute reachability rewards
 		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
 
 		mainLog.println("\nComputing reachability rewards...");
-		mcProduct = new DTMCModelChecker(this);
+		DTMCModelChecker mcProduct = new DTMCModelChecker(this);
 		mcProduct.inheritSettings(this);
 		ModelCheckerResult res = mcProduct.computeReachRewards((DTMC)product.getProductModel(), productRewards, acc);
-		rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+		StateValues rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
 
 		// Output vector over product, if required
 		if (getExportProductVector()) {
@@ -212,7 +148,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		}
 
 		// Mapping rewards in the original model
-		rewards = product.projectToOriginalModel(rewardsProduct);
+		StateValues rewards = product.projectToOriginalModel(rewardsProduct);
 		rewardsProduct.clear();
 
 		return rewards;
@@ -657,7 +593,9 @@ public class DTMCModelChecker extends ProbModelChecker
 			List<BitSet> labels = Arrays.asList(bsInit, target);
 			List<String> labelNames = Arrays.asList("init", "target");
 			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-			exportLabels(dtmc, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
+			PrismLog out = new PrismFileLog(getExportTargetFilename());
+			exportLabels(dtmc, labels, labelNames, Prism.EXPORT_PLAIN, out);
+			out.close();
 		}
 
 		if (precomp && (prob0 || prob1) && preRel) {
@@ -1455,7 +1393,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		for (int scc = 0, numSCCs = sccs.getNumSCCs(); scc < numSCCs; scc++) {
 			IntSet statesForSCC = sccs.getStatesForSCC(scc);
 
-			int cardinality = statesForSCC.cardinality();
+			int cardinality = Math.toIntExact(statesForSCC.cardinality());
 
 			PrimitiveIterator.OfInt itSCC = statesForSCC.iterator();
 			while (itSCC.hasNext()) {
@@ -1562,7 +1500,7 @@ public class DTMCModelChecker extends ProbModelChecker
 
 			double q = 0;
 			double p = 1;
-			int cardinality = statesForSCC.cardinality();
+			int cardinality = Math.toIntExact(statesForSCC.cardinality());
 
 			PrimitiveIterator.OfInt itSCC = statesForSCC.iterator();
 			while (itSCC.hasNext()) {

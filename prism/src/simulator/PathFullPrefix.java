@@ -93,6 +93,12 @@ public class PathFullPrefix extends Path
 	@Override
 	public long size()
 	{
+		return prefixLength + 1;
+	}
+
+	@Override
+	public long numStates()
+	{
 		return prefixLength;
 	}
 

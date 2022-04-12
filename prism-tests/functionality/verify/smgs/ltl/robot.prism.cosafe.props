@@ -1,0 +1,26 @@
+// RESULT: 1.0
+<<one>> Pmax=? [ (F "goal1") | (F "goal2") ]
+
+// RESULT: 1.0
+<<one>> Pmin=? [ (F "goal1") | (F "goal2") ]
+
+// RESULT: 1.0
+<<one>> Pmax=? [ X F ("goal1" | "goal2") ]
+
+// RESULT: 0.96
+<<one>> Pmax=? [ X X "goal2" ]
+
+// RESULT: 0.99
+<<one>> Pmax=? [ X X X "goal2" ]
+
+// RESULT: 0.5
+<<one>> Pmax=? [ X F "goal1" ]
+
+// RESULT: 0.1
+<<one>> Pmax=? [ X X "goal1" ]
+
+// RESULT: 0.01
+<<one>> Pmax=? [ !"hazard" U ("goal1" & (X "goal1")) ]
+
+// RESULT: 0.1
+<<one>> Pmax=? [ !"hazard" U ("goal1" & (X X "goal1")) ]

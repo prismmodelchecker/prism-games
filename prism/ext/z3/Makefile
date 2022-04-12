@@ -9,9 +9,11 @@ default: all
 
 all: checks z3
 
+# Cygwin libs
 ifeq ($(OSTYPE),cygwin)
     Z3_LIB = $(LIBPREFIX)libz3$(LIBSUFFIX)
     Z3_JAVA_LIB = $(LIBPREFIX)libz3java$(LIBSUFFIX)
+# Anything else (including unsupported OSs) - Mac/Linux libs
 else
     Z3_LIB = $(LIBPREFIX)z3$(LIBSUFFIX)
     Z3_JAVA_LIB = $(LIBPREFIX)z3java$(LIBSUFFIX)
@@ -25,14 +27,13 @@ checks:
 	fi; 
 
 z3:
-	@echo Making sure lpsolve55 Java wrapper is compatible with $(OSTYPE) $(ARCH)
 	@(if [ "$(OSTYPE)" = "linux" ]; then \
 	  echo "Copying Z3 libraries for Linux"; \
 	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
 	fi)
 	@(if [ "$(OSTYPE)" = "darwin" ]; then \
 	  echo "Copying Z3 libraries for MacOS"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
+	  cp "$(OSTYPE)/$(ARCH)/$(Z3_LIB)" "$(OSTYPE)/$(ARCH)/$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
 	fi)
 	@(if [ "$(OSTYPE)" = "cygwin" ]; then \
 	  echo "Copying Z3 libraries for Cywgin"; \

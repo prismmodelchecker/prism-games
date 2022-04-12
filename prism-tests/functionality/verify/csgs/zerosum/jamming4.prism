@@ -1,0 +1,78 @@
+// radio jamming CSG model taken from
+// A Stochastic Game Model for Jamming in Multi-Channel Cognitive Radio Systems
+// Quanyan Zhu, Husheng Li, Zhu Han and Tamer Basar
+// gxn 20/03/18
+
+// user channels 1..3
+// jamming channels 2..4
+
+csg
+
+player user user endplayer
+player jammer jammer endplayer
+
+const int slots; // maximum time slots
+
+// probabilities that channels change state
+const double p01=0.75; // moves from free to busy
+const double p10=0.75; // moves from busy to free
+const double p00=1-p01;
+const double p11=1-p10;
+
+module time_slots // module to count the time slots
+
+	t : [0..slots+1];
+	
+	[] t<=slots -> (t'=t+1);
+
+endmodule
+
+module channel1 // module for channel 1
+
+	s1 : [0..1] init 1; // 0 - free and 1 in use (initially in use)
+	
+	[] t<slots & s1=0 -> p00 : (s1'=0) + p01 : (s1'=1);
+	[] t<slots & s1=1 -> p10 : (s1'=0) + p11 : (s1'=1);
+
+endmodule
+
+// construct further channels with renaming
+module channel2 = channel1[s1=s2] endmodule
+module channel3 = channel1[s1=s3] endmodule
+module channel4 = channel1[s1=s4] endmodule
+
+module counter // module to count the number of messages sent correctly
+
+	sent : [0..slots];
+
+	[send1,jam2] t<slots -> (sent'=min(slots,(s1'=0)?sent+1:sent));
+	[send1,jam3] t<slots -> (sent'=min(slots,(s1'=0)?sent+1:sent));
+	[send1,jam4] t<slots -> (sent'=min(slots,(s1'=0)?sent+1:sent));
+
+	[send2,jam3] t<slots -> (sent'=min(slots,(s2'=0)?sent+1:sent));
+	[send2,jam4] t<slots -> (sent'=min(slots,(s2'=0)?sent+1:sent));
+
+	[send3,jam2] t<slots -> (sent'=min(slots,(s3'=0)?sent+1:sent));
+	[send3,jam4] t<slots -> (sent'=min(slots,(s3'=0)?sent+1:sent));
+	
+endmodule
+
+module user // user
+	
+	[send1] t<slots -> true;
+	[send2] t<slots -> true;
+	[send3] t<slots -> true;
+
+endmodule
+
+module jammer // jammer module
+
+	[jam2] t<slots -> true;
+	[jam3] t<slots -> true;
+	[jam4] t<slots -> true;
+
+endmodule
+
+rewards "rew" // reward for messages sent correctly
+	t=slots : sent;
+endrewards

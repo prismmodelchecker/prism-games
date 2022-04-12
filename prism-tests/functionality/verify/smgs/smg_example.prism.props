@@ -3,6 +3,9 @@ const int k;
 // RESULT: true
 <<1>> P>=0.99 [ F<=5 c=2 ]
 
+// RESULT: true
+<<1>> P>=0.99 [ F<=5 c=2 ]
+
 // RESULT (k=0): 0.0
 // RESULT (k=1): 0.85
 // RESULT (k=2): 0.85
@@ -17,6 +20,12 @@ const int k;
 // RESULT: 0.0
 <<1>> Pmin=? [ F<=3 c=2 ]
 
+// RESULT: 1.0
+<<1>> Pmax=? [ G<=3 c!=2 ]
+
+// RESULT: 1.0
+<<2>> Pmin=? [ G<=3 c!=2 ]
+
 // RESULT: 0.0
 <<1>> Pmin=? [ F c=2 ]
 
@@ -25,6 +34,12 @@ const int k;
 
 // RESULT: 0.15
 <<1>> Pmax=? [ F (h=2 & c=0) ]
+
+// RESULT: 0.15
+<<2>> Pmin=? [ F (h=2 & c=0) ]
+
+// RESULT: 0.85
+<<1>> Pmin=? [ G !(h=2 & c=0) ]
 
 // RESULT: 1.0
 <<1,2>> Pmax=? [ F (h=2 & c=0) ]
