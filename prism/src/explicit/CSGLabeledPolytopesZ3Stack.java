@@ -49,7 +49,7 @@ import prism.PrismException;
 
 public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 {
-	private final String solverName = "Z3";
+	private String solverName;
 
 	private RealExpr[] payvars;
 	private ArithExpr[] payoffs;
