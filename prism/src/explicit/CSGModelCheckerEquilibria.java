@@ -1275,14 +1275,17 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		mainLog.println("Starting equilibria computation (solver=" + eqslps.getSolverName() + ")...");
 		
 		mainLog.println("Checking whether all objctives are reachable...");
+		
 		for (i = 0; i < targets.length; i++) {
-			BitSet target_check = new BitSet();
+			temp.clear();
 			if (!rew) {
-				target_check.or(remain[i]);
-				target_check.flip(0, csg.getNumStates());
+				temp.or(remain[i]);
+				temp.flip(0, csg.getNumStates());
 			}
-			target_check.or(targets[i]);
-			if (mdpmc.prob1((MDP) csg, null, target_check, true, null).cardinality() != csg.numStates)
+			temp.or(targets[i]);
+			System.out.println(temp);
+			System.out.println(mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality());
+			if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
 				throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
 		}
 		
