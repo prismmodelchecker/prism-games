@@ -1283,8 +1283,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				temp.flip(0, csg.getNumStates());
 			}
 			temp.or(targets[i]);
-			System.out.println(temp);
-			System.out.println(mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality());
 			if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
 				throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
 		}
