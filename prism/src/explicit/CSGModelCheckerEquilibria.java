@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -1274,9 +1274,20 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		mainLog.println("Starting equilibria computation (solver=" + eqslps.getSolverName() + ")...");
 		
-		// Add an exception somewhere for reachability rewards and states with positive rewards that do not reach the targets
+		mainLog.println("Checking whether all objctives are reachable...");
+		for (i = 0; i < targets.length; i++) {
+			BitSet target_check = new BitSet();
+			if (!rew) {
+				target_check.or(remain[i]);
+				target_check.flip(0, csg.getNumStates());
+			}
+			target_check.or(targets[i]);
+			if (mdpmc.prob1((MDP) csg, null, target_check, true, null).cardinality() != csg.numStates)
+				throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
+		}
+		
 		k = 0;
-		if (rew) {
+		if (rew) {			
 			// Precompuation for rewards
 			timePrecomp = System.currentTimeMillis();
 			for (i = 0; i < targets.length; i++) {
