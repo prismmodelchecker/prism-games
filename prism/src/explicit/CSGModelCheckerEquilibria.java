@@ -1279,7 +1279,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		for (i = 0; i < targets.length; i++) {
 			temp.clear();
 			if (!rew) {
-				temp.or(remain[i]);
+				if (remain[i] != null)
+					temp.or(remain[i]);
 				temp.flip(0, csg.getNumStates());
 			}
 			temp.or(targets[i]);
