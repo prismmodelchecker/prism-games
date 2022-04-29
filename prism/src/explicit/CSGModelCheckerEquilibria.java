@@ -1276,12 +1276,13 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		mainLog.println("Checking whether all objctives are reachable...");
 		
-		for (i = 0; i < targets.length; i++) {
+   		for (i = 0; i < targets.length; i++) {
 			temp.clear();
 			if (!rew) {
-				if (remain[i] != null)
+				if (remain[i] != null) {
 					temp.or(remain[i]);
-				temp.flip(0, csg.getNumStates());
+					temp.flip(0, csg.getNumStates());
+				}
 			}
 			temp.or(targets[i]);
 			if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
