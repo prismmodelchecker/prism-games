@@ -134,7 +134,8 @@ public class PrismSettings implements Observer
 
 	// csg and equilibria
 	public static final String PRISM_ZS_LP_SCALE_FACTOR			= "prism.lpscalefactor";
-
+	public static final String PRISM_EQ_ASSUMPTION_CHECK 			= "prism.eqassumptioncheck";
+	
     // multi-objective synthesis for games
 	public static final     String PRISM_MULTI_GAUSS_SEIDEL					= "prism.multiGaussSeidel";
         // iteration control
@@ -145,7 +146,7 @@ public class PrismSettings implements Observer
         public static final	String PRISM_MULTI_MIN_M         		= "prism.multiMinM";
         public static final	String PRISM_MULTI_MAX_M         		= "prism.multiMaxM";
         // rounding
-	public static final     String PRISM_MULTI_ROUNDING					= "prism.multiRounding";
+        public static final String PRISM_MULTI_ROUNDING					= "prism.multiRounding";
         public static final	String PRISM_MULTI_BASELINE_ACCURACY 		= "prism.baselineAccuracy";
         public static final	String PRISM_MULTI_INCREASE_FACTOR		= "prism.increaseFactor";
         // logging
@@ -368,7 +369,8 @@ public class PrismSettings implements Observer
 			// CSG ZERO-SUM LP SCALE FACTOR
 			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR, 					"Scale factor for LPs",			"4.5", 				Double.valueOf(1.0), 			"1,",
 																			"Scale factor used when building linear programs for solving matrix games"},
-
+			{ BOOLEAN_TYPE,		PRISM_EQ_ASSUMPTION_CHECK, 					"Assumption check for equilirbia",			"4.5", 				Boolean.valueOf(true), 			"",
+																			"Assumption check for unbouded equilibria formulae."},
 			// OUTPUT OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_VERBOSE,							"Verbose output",						"2.1",		Boolean.valueOf(false),															"",																							
 																			"Display verbose output to log." },
@@ -1175,6 +1177,8 @@ public class PrismSettings implements Observer
 			set(PRISM_MDP_SOLN_METHOD, "Linear programming");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Linear programming");
 		}
+		
+		// CSG-specific 
 		else if (sw.equals("lpscalefactor")) {// Scale factor for LPs (zero-sum)
 			if (i < args.length - 1) {
 				try {
@@ -1188,6 +1192,10 @@ public class PrismSettings implements Observer
 			} else {
 				throw new PrismException("No value specified for -" + sw + " switch");
 			}
+		}
+		
+		else if (sw.equals("eqassumptioncheck")) {
+			set(PRISM_EQ_ASSUMPTION_CHECK, false); 
 		}
 
 		// Interval iterations

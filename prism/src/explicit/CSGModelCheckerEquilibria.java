@@ -97,6 +97,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 	
 	protected String smtSolver;
 		
+	protected boolean assumptionCheck = true;
+	
 	public enum CSGResultStatus {
 		SAT, UNKNOWN, UNSAT;
 	}
@@ -117,6 +119,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		mdpmc.setVerbosity(0);
 		mdpmc.setSilentPrecomputations(true);
 		
+		assumptionCheck = getSettings().getBoolean(PrismSettings.PRISM_EQ_ASSUMPTION_CHECK);
+
 		smtSolver = getSettings().getString(PrismSettings.PRISM_SMT_SOLVER);
 		switch (smtSolver) {
 			case "Z3":
@@ -1276,17 +1280,19 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		mainLog.println("Checking whether all objctives are reachable...");
 		
-   		for (i = 0; i < targets.length; i++) {
-			temp.clear();
-			if (!rew) {
-				if (remain[i] != null) {
-					temp.or(remain[i]);
-					temp.flip(0, csg.getNumStates());
-				}
-			}
-			temp.or(targets[i]);
-			if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
-				throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
+		if (assumptionCheck) {
+   			for (i = 0; i < targets.length; i++) {
+   				temp.clear();
+   				if (!rew) {
+   					if (remain[i] != null) {
+   						temp.or(remain[i]);
+   						temp.flip(0, csg.getNumStates());
+   					}
+   				}
+   				temp.or(targets[i]);
+   				if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
+   					throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
+   			}
 		}
 		
 		k = 0;
