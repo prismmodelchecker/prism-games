@@ -109,19 +109,19 @@ endmodule
 // processor 1
 module P1
 
-	p1 : [0..2];
+	p1 : [0..3];
 	// 0 - idle
 	// 1 - add
 	// 2 - multiply
-	fail1 : [0..k2+1]; // number of failures
+	// 3 - failed
+	fail1 : [0..k1+1]; // number of failures
 
 	x1 : clock; // local clock
 		
 	invariant
 			(p1=1 => x1<=2) &
 			(p1=2 => x1<=3) &
-			(p1=3 => x1<=0) &
-			(p1=4 => x1<=0)
+			(p1=3 => x1<=0)
 	endinvariant
 
 	// addition
@@ -147,6 +147,7 @@ module P2
 	// 0 - idle
 	// 1 - add
 	// 2 - multiply	
+	// 3 - failed
 	fail2 : [0..k2+1]; // number of failures
 	
 	x2 : clock; // local clock
@@ -154,8 +155,7 @@ module P2
 	invariant
 			(p2=1 => x2<=5) &
 			(p2=2 => x2<=7) &
-	   		(p2=3 => x2<=0) &
-			(p2=4 => x2<=0)
+	   		(p2=3 => x2<=0)
 	endinvariant
 
 	// addition
