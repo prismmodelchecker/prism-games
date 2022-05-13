@@ -28,12 +28,26 @@ package parser.ast;
 
 import jltl2ba.SimpleLTL;
 import param.BigRational;
-import parser.*;
-import parser.visitor.*;
+import parser.BooleanUtils;
+import parser.EvaluateContext;
+import parser.EvaluateContextConstants;
+import parser.EvaluateContextState;
+import parser.EvaluateContextStateAndNextState;
+import parser.EvaluateContextSubstate;
+import parser.EvaluateContextValues;
+import parser.State;
+import parser.Values;
+import parser.type.TypeBool;
+import parser.type.TypeDouble;
+import parser.type.TypeInt;
+import parser.type.TypePathBool;
+import parser.visitor.ASTTraverse;
+import parser.visitor.CheckValid;
+import parser.visitor.ConvertForJltl2ba;
+import parser.visitor.ExpressionTraverseNonNested;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
-import parser.type.*;
 
 // Abstract class for PRISM language expressions
 
