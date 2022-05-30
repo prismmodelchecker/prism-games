@@ -1287,27 +1287,32 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		// Compute/return the rewards
 		ModelCheckerResult res = null;
+		int k = -1;
+		double t = -1;
+		if (model.getModelType().continuousTime()) {
+			t = expr.getUpperBound().evaluateDouble(constantValues);
+		} else {
+			k = expr.getUpperBound().evaluateInt(constantValues);
+		}
 		switch (model.getModelType()) {
-		case DTMC: {
-			int k = expr.getUpperBound().evaluateInt(constantValues);
+		case DTMC:
 			res = ((DTMCModelChecker) this).computeInstantaneousRewards((DTMC) model, (MCRewards) modelRewards, k, statesOfInterest);
 			break;
-		}
-		case CTMC: {
-			double t = expr.getUpperBound().evaluateDouble(constantValues);
+		case CTMC:
 			res = ((CTMCModelChecker) this).computeInstantaneousRewards((CTMC) model, (MCRewards) modelRewards, t);
 			break;
-		}
-		case MDP: {
-			int k = expr.getUpperBound().evaluateInt(constantValues);
+		case MDP:
 			res = ((MDPModelChecker) this).computeInstantaneousRewards((MDP) model, (MDPRewards) modelRewards, k, minMax.isMin());
 			break;
-		}
-		case CSG: {
-			int k = expr.getUpperBound().evaluateInt(constantValues);
+		case STPG:
+			res = ((STPGModelChecker) this).computeInstantaneousRewards((STPG) model, (STPGRewards) modelRewards, k, minMax.isMin1(), minMax.isMin2());
+			break;
+		case SMG:
+			res = ((SMGModelChecker) this).computeInstantaneousRewards((SMG) model, (SMGRewards) modelRewards, k, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+			break;
+		case CSG:
 			res = ((CSGModelChecker) this).computeInstantaneousRewards((CSG) model, (CSGRewards) modelRewards, minMax.coalition, k, minMax.isMin1(), minMax.isMin2());
 			break;
-		}
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
@@ -1360,6 +1365,12 @@ public class ProbModelChecker extends NonProbModelChecker
 			break;
 		case MDP:
 			res = ((MDPModelChecker) this).computeCumulativeRewards((MDP) model, (MDPRewards) modelRewards, timeInt, minMax.isMin());
+			break;
+		case STPG:
+			res = ((STPGModelChecker) this).computeCumulativeRewards((STPG) model, (STPGRewards) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2());
+			break;
+		case SMG:
+			res = ((SMGModelChecker) this).computeCumulativeRewards((SMG) model, (SMGRewards) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeCumulativeRewards((CSG) model, (CSGRewards) modelRewards, minMax.getCoalition(), timeInt, minMax.isMin1(), minMax.isMin2(), false);

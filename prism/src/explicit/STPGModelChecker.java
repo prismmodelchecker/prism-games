@@ -38,9 +38,11 @@ import java.util.Map.Entry;
 import acceptance.AcceptanceReach;
 import common.IterableBitSet;
 import explicit.rewards.MDPRewardsSimple;
+import explicit.rewards.SMGRewards;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
 import explicit.rewards.StateRewardsConstant;
+import parser.ast.Coalition;
 import parser.ast.Expression;
 import prism.AccuracyFactory;
 import prism.PrismComponent;
@@ -1981,6 +1983,121 @@ public class STPGModelChecker extends ProbModelChecker
 		return result;
 	}
 
+	/**
+	 * Compute expected instantaneous rewards
+	 * i.e. compute the min/max expected reward of the states after {@code k} steps.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeInstantaneousRewards(STPG stpg, STPGRewards rewards, int k, boolean min1, boolean min2) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		int i, n, iters;
+		double soln[], soln2[], tmpsoln[];
+		long timer;
+
+		// Store num states
+		n = stpg.getNumStates();
+
+		// Start backwards transient computation
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting backwards instantaneous rewards computation...");
+
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = rewards.getStateReward(i);
+
+		// Start iterations
+		for (iters = 0; iters < k; iters++) {
+			// Matrix-vector multiply
+			stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, null);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished backwards transient computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Backwards transient instantaneous rewards computation");
+		mainLog.println(" took " + iters + " iters and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.lastSoln = soln2;
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		res.timePre = 0.0;
+		return res;
+	}
+	
+	/**
+	 * Compute expected cumulative (step-bounded) rewards.
+	 * i.e. compute the min/max reward accumulated within {@code k} steps.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeCumulativeRewards(STPG stpg, STPGRewards rewards, int k, boolean min1, boolean min2) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		int i, n, iters;
+		long timer;
+		double soln[], soln2[], tmpsoln[];
+
+		// Start expected cumulative reward
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+
+		// Store num states
+		n = stpg.getNumStates();
+
+		// Create/initialise solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+		for (i = 0; i < n; i++)
+			soln[i] = soln2[i] = 0.0;
+
+		// Start iterations
+		iters = 0;
+		while (iters < k) {
+			iters++;
+			// Matrix-vector multiply and min/max ops
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, null, false, null);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished value iteration
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
+	
 	/**
 	 * Simple test program.
 	 */

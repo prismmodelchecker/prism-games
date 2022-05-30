@@ -2356,6 +2356,44 @@ public class SMGModelChecker extends ProbModelChecker
 		return res;
 	}
 	
+	/**
+	 * Compute expected instantaneous rewards
+	 * i.e. compute the min/max expected reward of the states after {@code k} steps.
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeInstantaneousRewards(SMG smg, SMGRewards rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = createSTPGModelChecker().computeInstantaneousRewards(smg, rewards, k, min1, min2);
+		smg.setCoalition(null);
+		return res;
+	}
+	
+	/**
+	 * Compute expected cumulative (step-bounded) rewards.
+	 * i.e. compute the min/max reward accumulated within {@code k} steps.
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 */
+	public ModelCheckerResult computeCumulativeRewards(SMG smg, SMGRewards rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = createSTPGModelChecker().computeCumulativeRewards(smg, rewards, k, min1, min2);
+		smg.setCoalition(null);
+		return res;
+	}
+	
 	// Utility methods
 	
 	/**
