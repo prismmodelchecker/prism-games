@@ -41,7 +41,7 @@ public class SamplerRewardCumulDisc extends SamplerDouble
 	 * Reward structure index should also be specified.
 	 * All constants should have already been evaluated/replaced.
 	 */
-        public SamplerRewardCumulDisc(ExpressionTemporal expr, int rewardStructIndex) throws PrismException
+	public SamplerRewardCumulDisc(ExpressionTemporal expr, int rewardStructIndex) throws PrismException
 	{
 		// Make sure expression is of the correct type
 		// Then extract other required info
