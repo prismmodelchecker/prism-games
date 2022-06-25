@@ -1,8 +1,8 @@
 //==============================================================================
 //	
-//	Copyright (c) 2018-
+//	Copyright (c) 2022-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ox.ac.uk> (University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -27,20 +27,42 @@
 package parser;
 
 /**
- * Information required to evaluate an expression, where no variable value info is available.
- * Constant values (if needed/present) are stored in a Values object.
+ * Information required to evaluate an expression,
+ * supporting all aspects defined in {@link EvaluateContext}.
  */
-public class EvaluateContextConstants extends EvaluateContext
+public class EvaluateContextFull extends EvaluateContextState
 {
-	public EvaluateContextConstants(Values constantValues)
+	/**
+	 * Observable values
+	 */
+	private Object[] obsValues;
+
+	/**
+	 * Constructor
+	 */
+	public EvaluateContextFull(State state, State obs)
 	{
-		setConstantValues(constantValues);
+		super(state);
+		if (obs != null) {
+			setObservation(obs);
+		}
+	}
+
+	/**
+	 * Set the observable values. The array of observable values is extracted and stored, not copied.
+	 * Returns a copy of this EvaluateContext to allow chaining of method calls.
+	 */
+	public EvaluateContext setObservation(State obs)
+	{
+		this.obsValues = obs.varValues;
+		return this;
 	}
 
 	@Override
-	public Object getVarValue(String name, int index)
+	public Object getObservableValue(String name, int index)
 	{
-		// No variable info available
-		return null;
+		// There is no observable name info available,
+		// so use index if provided; otherwise unknown
+		return (index == -1 || obsValues == null) ? null : obsValues[index];
 	}
 }

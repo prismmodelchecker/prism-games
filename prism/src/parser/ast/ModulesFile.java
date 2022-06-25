@@ -1630,11 +1630,6 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	 */
 	public void recomputeVariableinformation() throws PrismLangException
 	{
-		recomputeVariableinformation(false);
-	}
-
-	public void recomputeVariableinformation(boolean noErrorOnVariableNotPresent) throws PrismLangException
-	{
 		int i, n;
 
 		// Recompute lists of all variables and types
@@ -1661,7 +1656,7 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		}
 		// Find all instances of variables, replace identifiers with variables.
 		// Also check variables valid, store indices, etc.
-		findAllVars(varNames, varTypes, noErrorOnVariableNotPresent);
+		findAllVars(varNames, varTypes);
 	}
 
 	/**

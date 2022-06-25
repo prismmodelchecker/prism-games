@@ -115,6 +115,12 @@ public class PathFullPrefix extends Path
 	}
 
 	@Override
+	public State getPreviousObservation()
+	{
+		return pathFull.getObservation(prefixLength - 1);
+	}
+
+	@Override
 	public State getCurrentObservation()
 	{
 		return pathFull.getObservation(prefixLength);
