@@ -108,16 +108,6 @@ public interface PathFullInfo
 	public abstract double getTransitionReward(int step, int rsi);
 	
 	/**
-	 * Is the memory of some strategy is stored for each state?
-	 */ 
-	public abstract boolean storesStrategyMemory();
-	
-	/**
-	 * Get the strategy memory for the state at a given step of the path (if stored; null if not).
-	 */
-	public abstract Object getStrategyMemory(int step);
-
-	/**
 	 * Does the path contain a deterministic loop?
 	 * If no loop info is stored ({@link #hasLoopInfo()} is false), returns false. 
 	 */

@@ -67,14 +67,12 @@ import parser.ast.PropertiesFile;
 import parser.ast.Property;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
-import parser.type.TypeInt;
 import parser.visitor.ASTTraverseModify;
 import parser.visitor.ReplaceLabels;
 import prism.Accuracy;
 import prism.Filter;
 import prism.ModelInfo;
 import prism.ModelType;
-import prism.OpRelOpBound;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -84,9 +82,7 @@ import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.Result;
-import prism.ResultTesting;
 import prism.RewardGenerator;
-import strat.Strategy;
 
 /**
  * Super class for explicit-state model checkers.
@@ -127,8 +123,6 @@ public class StateModelChecker extends PrismComponent
 
 	// Strategy generation
 	protected boolean generateStrategy = false;
-	protected boolean implementStrategy = false;
-	protected Strategy strategy = null;
 
 	// Stored Pareto sets
 	protected Pareto pareto_set = null;
@@ -368,32 +362,6 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Method sets the strategy to be used by the model checker
-	 * @param strategy strategy
-	 * Set flag of whether to generate a strategy.
-	 */
-	public void setGenerateStrategy(boolean b)
-	{
-		this.generateStrategy = b;
-	}
-
-	/**
-	 * Set flag of whether to implement the strategy when model checking
-	 */
-	public void setImplementStrategy(boolean b)
-	{
-		this.implementStrategy = b;
-	}
-
-	/**
-	 * Method sets the strategy to be used by the model checker
-	 */
-	public void setStrategy(Strategy strategy)
-	{
-		this.strategy = strategy;
-	}
-
-	/**
 	 * Specify whether or not to do topological value iteration.
 	 */
 	public void setDoTopologicalValueIteration(boolean doTopologicalValueIteration)
@@ -584,14 +552,6 @@ public class StateModelChecker extends PrismComponent
 			constantValues.addValues(modelInfo.getConstantValues());
 		if (propertiesFile != null)
 			constantValues.addValues(propertiesFile.getConstantValues());
-	}
-
-	/**
-	 * Method to retrieve the strategy that has been generated
-	 */
-	public Strategy getStrategy()
-	{
-		return strategy;
 	}
 
 	/**
@@ -1033,18 +993,6 @@ public class StateModelChecker extends PrismComponent
 		// Check if filter state set is empty; we treat this as an error
 		if (bsFilter.isEmpty()) {
 			throw new PrismException("Filter satisfies no states");
-		}
-
-		// Remove states which have non-initial strategy memory elements
-		if (implementStrategy && strategy != null) {
-			for (int i = 0; i < model.getNumStates(); i++) {
-				// if state does not contain initial memory element - remove it
-				// from the filter
-				if ((bsFilter.get(i) && strategy.getInitialStateOfTheProduct(i) != -1 && ((Integer) model.getStatesList().get(i).varValues[model
-						.getStatesList().get(i).varValues.length - 1]) != strategy.getInitialStateOfTheProduct(i))) {
-					bsFilter.set(i, false);
-				}
-			}
 		}
 
 		// Remember whether filter is for the initial state and, if so, whether there's just one

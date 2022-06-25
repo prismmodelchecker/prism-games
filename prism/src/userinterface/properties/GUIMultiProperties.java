@@ -171,9 +171,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private JTextField fileTextField;
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, computePareto, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, parametric, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
-			exportResultsMatrixText, exportResultsMatrixCSV, exportResultsDataFrameCSV, exportResultsComment, importResultsDataFrameCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab,
-			exportStratProduct, exportStratPlain, strategyInfo, generateStrategy, implementStrategy, importStrategy, strategyExperiment;
-	private JMenu strategiesMenu;
+			exportResultsMatrixText, exportResultsMatrixCSV, exportResultsDataFrameCSV, exportResultsComment, importResultsDataFrameCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab;
 
 	// Current properties
 	private GUIPropertiesList propList;
@@ -958,41 +956,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 	public void a_verifySelected()
 	{
-		// check if strategy implementation is enabled
-		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && getPrism().getStrategy() != null) {
-		    // check if strategy is stochastic memory update
-		    if (getPrism().getStrategy() instanceof StochasticUpdateStrategy) {
-			JOptionPane.showMessageDialog(this, "Cannot verify under a stochastic update strategy.", "Operation not supported.", JOptionPane.ERROR_MESSAGE);
-			return;
-		    }
-			int n = JOptionPane.showOptionDialog(this, "The product of the model and strategy will be built.\nDo you want to continue?", "Use strategy?",
-					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Yes", "No" }, "Yes");
-
-			// if no do nothing
-			if (n == 1)
-				return;
-
-			// set the settings option
-			try {
-				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
-			} catch (PrismException error) {
-				// TODO Auto-generated catch block
-				error.printStackTrace();
-			}
-		} else {
-			// disabling strategy implementation
-			// showing error message
-			//			JOptionPane.showMessageDialog(this, "No strategy generated.");
-			//			return;
-			//			try {
-			//				getPrism().getSettings().set(
-			//						PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
-			//			} catch (PrismException error) {
-			//				// TODO Auto-generated catch block
-			//				error.printStackTrace();
-			//			}
-		}
-
 		consTable.correctEditors();
 		labTable.correctEditors();
 		// Bail out if there are no valid properties to verify
@@ -1003,17 +966,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 		// Reset warnings counter
 		getPrism().getMainLog().resetNumberOfWarnings();
-
-		// set strategy generation flag
-		//try {
-			//			getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY,
-			//					generateStrategy.isSelected());
-			//getPrism().getSettings().set(PrismSettings.PRISM_EXPORT_ADV, "MDP");
-		//} catch (PrismException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		//}
-
 		// Request a parse
 		verifyAfterReceiveParseNotification = true;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
@@ -1037,29 +989,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		    }
 		}
 
-		// if strategy generation was enabled notifying the simulator
-		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY) && getPrism().getStrategy() != null
-				&& getPrism().getSettings().getString(PrismSettings.PRISM_ENGINE).equals("Explicit")) {
-			simulator.setStrategyGenerated(true);
-			simulator.setStrategy(getPrism().getStrategy());
-			// disabling strategy generation
-			try {
-				getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
-			} catch (PrismException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		// if strategy implementation was enabled - disabling this too
-		if (getPrism().getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY)) {
-			try {
-				getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
-			} catch (PrismException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
 		// How to plot a parametric result...
 		/*if (selected.length == 1) {
 			GUIProperty gp = propList.getProperty(selected[0]);
@@ -1410,109 +1339,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
-	public void a_exportStratProduct()
-	{
-		// checking if everything is available
-		if (getPrism().getStrategy() == null) {
-			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-		if (getPrism().getBuiltModelExplicit() == null) {
-			JOptionPane.showMessageDialog(this, "No model is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-		if (getPrism().getStrategy().getType().equals(Strategies.FORMAT_STRING_SU_STRAT_MONO)
-		    || getPrism().getStrategy().getType().equals(Strategies.FORMAT_STRING_SU_STRAT_COMP)) {
-		    JOptionPane.showMessageDialog(this, "Strategy has stochastic memory update. Cannot form product with model.", "Cannot export", JOptionPane.ERROR_MESSAGE);
-		    return;
-		}
-
-		// choosing file and exporting
-		if (showSaveFileDialog(traFilters.values(), traFilters.get("tra")) == JFileChooser.APPROVE_OPTION) {
-			final File file = getChooserFile();
-			Thread t = new Thread()
-			{
-				@Override
-				public void run()
-				{
-					try {
-						getPrism().getStrategy().buildProduct(getPrism().getBuiltModelExplicit()).exportToPrismExplicitTra(file);
-					} catch (PrismException e) {
-						JOptionPane.showMessageDialog(GUIMultiProperties.this, "Strategy export failed", "Cannot export", JOptionPane.ERROR_MESSAGE);
-					}
-				}
-			};
-			t.start();
-		}
-	}
-
-	public void a_exportStratPlain()
-	{
-		if (getPrism().getStrategy() == null) {
-			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-
-		// choosing file and exporting
-		if (showSaveFileDialog(advFilters.values(), advFilters.get("adv")) == JFileChooser.APPROVE_OPTION) {
-			final File file = getChooserFile();
-			Thread t = new Thread()
-			{
-				@Override
-				public void run()
-				{
-					getPrism().getStrategy().exportToFile(file.getAbsolutePath());
-				}
-			};
-			t.start();
-		}
-	}
-
-	public void a_importStrategy()
-	{
-		if (getPrism().getBuiltModelExplicit() == null) {
-			JOptionPane.showMessageDialog(this, "No model in memory, please build the model first.", "Cannot import", JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-		
-		// choosing file and exporting
-		if (showOpenFileDialog(advFilters.values(), advFilters.get("adv")) == JFileChooser.APPROVE_OPTION) {
-			final File file = getChooserFile();
-			//	 set strategies everywhere
-			try {
-				getPrism().setStrategy(Strategies.loadStrategyFromFile(file.getAbsolutePath()));
-			} catch (IllegalArgumentException error) {
-				JOptionPane.showMessageDialog(this, "Problem reading the file", "Cannot import", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			simulator.setStrategyGenerated(true);
-			simulator.setStrategy(getPrism().getStrategy());
-			
-		}
-	}
-
-	public void a_showStrategyInfo()
-	{
-		if (getPrism().getStrategy() == null) {
-			JOptionPane.showMessageDialog(this, "No strategy is in memory.", "No Strategy", JOptionPane.ERROR_MESSAGE);
-		} else {
-			JOptionPane.showMessageDialog(this, getPrism().getStrategy().getInfo(), "Strategy info", JOptionPane.INFORMATION_MESSAGE);
-		}
-	}
-
-	public void a_strategyExperimentSelected()
-	{
-		try {
-			getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
-		} catch (PrismException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		getPrism().getMainLog().resetNumberOfWarnings();
-		experimentAfterReceiveParseNotification = true;
-		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
-	}
-	
 	// METHODS TO IMPLEMENT GUIPlugin INTERFACE
 
 	public boolean displaysTab()
@@ -2095,7 +1921,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.add(new JSeparator());
 			propMenu.add(verifySelected);
 			propMenu.add(computePareto);
-			propMenu.add(generateStrategy);
 			propMenu.add(simulate);
 			propMenu.add(newExperiment);
 			//propMenu.add(parametric);
@@ -2137,41 +1962,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		propertiesPopup.add(newExperiment);
 		//propertiesPopup.add(parametric);
 		propertiesPopup.add(details);
-
-		// strategies
-		strategiesMenu = new JMenu("Strategies");
-		strategiesMenu.setMnemonic('S');
-		strategiesMenu.setIcon(GUIPrism.getIconFromImage("smallStrategy.png"));
-
-		// add strategy info
-		strategiesMenu.add(strategyInfo);
-		strategiesMenu.add(new JSeparator());
-
-		// a group of radio button menu items
-		strategiesMenu.add(generateStrategy);
-		strategiesMenu.add(implementStrategy);
-		strategiesMenu.add(strategyExperiment);
-
-		// adding import menu
-		strategiesMenu.add(new JSeparator());
-		strategiesMenu.add(importStrategy);
-		
-		// adding export menu
-		strategiesMenu.add(new JSeparator());
-		strategiesMenu.add(exportStratPlain);
-		strategiesMenu.add(exportStratProduct);
-		
-		//		JMenu stratExportMenu = new JMenu("Export strategy");
-		//		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
-		//		stratExportMenu.add(exportStratPlain);
-		//		stratExportMenu.add(exportStratProduct);
-		//		strategiesMenu.add(stratExportMenu);
-		//		JMenu stratExportMenu = new JMenu("Export strategy");
-		//		stratExportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
-
-		// add to the main menu
-		propertiesPopup.add(strategiesMenu);
-
 		// standard actions
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCutAction());
@@ -2322,13 +2112,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-			        try{
-					getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
-				        getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
-				} catch (PrismException e1) {
-				        e1.printStackTrace();
-				}
-
 				a_verifySelected();
 			}
 		};
@@ -2348,14 +2131,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				try {
-				        // Strategy computation and Pareto set computation are different methods
-				        getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, false);
-				} catch (PrismException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-
 				a_computePareto();
 			}
 		};
@@ -2620,103 +2395,6 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		stopExperiment.putValue(Action.LONG_DESCRIPTION, "Stops the Experiment that is currently running");
 		stopExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStop.png"));
 		stopExperiment.setEnabled(false);
-
-		strategyInfo = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_showStrategyInfo();
-			}
-		};
-		strategyInfo.putValue(Action.NAME, "Strategy info");
-		strategyInfo.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallInfo.png"));
-
-		generateStrategy = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				try {
-					getPrism().getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, true);
-
-				} catch (PrismException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				a_verifySelected();
-
-			}
-		};
-		generateStrategy.putValue(Action.LONG_DESCRIPTION, "Generate the strategy for the property.");
-		generateStrategy.putValue(Action.NAME, "Generate strategy");
-		generateStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallConstruct.png"));
-
-		implementStrategy = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				if (getPrism().getStrategy() == null) {
-					JOptionPane.showMessageDialog(GUIMultiProperties.this, "No strategy is in memory.", "Cannot export", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
-				try {
-					getPrism().getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, true);
-				} catch (PrismException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				a_verifySelected();
-			}
-		};
-		implementStrategy.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
-		implementStrategy.putValue(Action.NAME, "Verify under strategy");
-		implementStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallImplement.png"));
-
-		strategyExperiment = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				
-				a_strategyExperimentSelected();
-			}
-		};
-		strategyExperiment.putValue(Action.LONG_DESCRIPTION, "Verify the property under strategy");
-		strategyExperiment.putValue(Action.NAME, "Perform experiment under strategy");
-		strategyExperiment.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExperiment.png"));
-
-		
-		exportStratProduct = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_exportStratProduct();
-			}
-		};
-		exportStratProduct.putValue(Action.LONG_DESCRIPTION, "Export the product of the model and strategy to .tra file");
-		exportStratProduct.putValue(Action.NAME, "Export product...");
-		exportStratProduct.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExport.png"));
-
-		exportStratPlain = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_exportStratPlain();
-			}
-		};
-		exportStratPlain.putValue(Action.LONG_DESCRIPTION, "Export the strategy to .adv file");
-		exportStratPlain.putValue(Action.NAME, "Export strategy...");
-		exportStratPlain.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallExport.png"));
-
-		importStrategy = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_importStrategy();
-			}
-		};
-		importStrategy.putValue(Action.LONG_DESCRIPTION, "Import strategy from text file.");
-		importStrategy.putValue(Action.NAME, "Import strategy...");
-		importStrategy.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallAdd.png"));
-
 	}
 
 	/**

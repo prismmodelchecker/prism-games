@@ -132,18 +132,6 @@ public class CexPathStates implements PathFullInfo
 	{
 		return 0.0;
 	}
-
-	@Override
-	public boolean storesStrategyMemory()
-	{
-		return false;
-	}
-
-	@Override
-	public Object getStrategyMemory(int step)
-	{
-		return null;
-	}
 	
 	@Override
 	public boolean isLooping()

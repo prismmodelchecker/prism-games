@@ -27,17 +27,10 @@
 package simulator;
 
 import java.io.File;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import explicit.Distribution;
 import parser.State;
 import parser.Values;
 import parser.VarList;
@@ -51,7 +44,6 @@ import parser.ast.PropertiesFile;
 import parser.type.Type;
 import prism.ModelGenerator;
 import prism.ModelType;
-import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -65,8 +57,6 @@ import prism.RewardGenerator;
 import prism.UndefinedConstants;
 import simulator.method.SimulationMethod;
 import simulator.sampler.Sampler;
-import strat.InvalidStrategyStateException;
-import strat.StochasticUpdateStrategy;
 import strat.Strategy;
 import userinterface.graph.Graph;
 
@@ -127,6 +117,12 @@ public class SimulatorEngine extends PrismComponent
 	// Constant definitions from model file
 	private Values mfConstants;
 
+	// Objects from model checking
+	// Reachable states
+	private List<State> reachableStates;
+	// Strategy
+	private Strategy strategy;
+
 	// Labels + properties info
 	protected List<Expression> labels;
 	private List<Expression> properties;
@@ -144,9 +140,6 @@ public class SimulatorEngine extends PrismComponent
 	// (if null, just the default - i.e. the last state in the current path)
 	protected State transitionListState;
 	
-	/** The probability with which a strategy picks each choice (optional) **/
-	private double strategyProbabilities[] = null;
-	
 	// Temporary storage for manipulating states/rewards
 	protected double tmpStateRewards[];
 	protected double tmpTransitionRewards[];
@@ -154,14 +147,6 @@ public class SimulatorEngine extends PrismComponent
 	// Random number generator
 	private RandomNumberGenerator rng;
 
-	// strategy information
-	private Strategy strategy;
-	private Map<State, Integer> stateIds;
-	private List<State> states;
-
-	// TODO: remove this (not in trunk any more)
-	private Prism prism;
-	
 	/**
 	 * Utility class to store a reference to a transition,
 	 * broken up into the index of its (nondetermnistic) choice {@code i}
@@ -180,10 +165,9 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Constructor for the simulator engine.
 	 */
-	public SimulatorEngine(PrismComponent parent, Prism prism)
+	public SimulatorEngine(PrismComponent parent)
 	{
 		super(parent);
-		this.prism = prism;
 		modelGen = null;
 		modelType = null;
 		varList = null;
@@ -199,7 +183,6 @@ public class SimulatorEngine extends PrismComponent
 		tmpStateRewards = null;
 		tmpTransitionRewards = null;
 		rng = new RandomNumberGenerator();
-		strategy = null;
 	}
 
 	/**
@@ -327,25 +310,13 @@ public class SimulatorEngine extends PrismComponent
 		calculateStateRewards(currentState, tmpStateRewards);
 		// Initialise stored path
 		path.initialise(currentState, currentObs, tmpStateRewards);
-		strategy = prism.getStrategy();
-		path.storesStrategyMemory(strategy != null && strategy.getMemorySize() > 0);
-		if (strategy != null) {
-			// initialising the strategy
-			try {
-				if (stateIds == null || stateIds.isEmpty())
-					this.setStrategy(strategy);
-				strategy.init(stateIds.get(currentState));
-			} catch (InvalidStrategyStateException error) {
-				// TODO Auto-generated catch block
-				error.printStackTrace();
-			}
-			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
-		}
 		// Explore initial state in model generator
-		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
+		computeTransitionsForState(currentState);
 		// Reset and then update samplers for any loaded properties
 		resetSamplers();
 		updateSamplers();
+		// Initialise the strategy (if loaded)
+		initialiseStrategy();
 	}
 
 	/**
@@ -409,23 +380,8 @@ public class SimulatorEngine extends PrismComponent
 		case STPG:
 		case SMG:
 		case CSG:
-			if (strategy == null) {
-				// Resolve nondeterminism randomly
-				i = rng.randomUnifInt(modelGen.getNumChoices());
-			} else {
-				if ((modelType == ModelType.STPG || modelType == ModelType.SMG) && modelGen.getPlayerOwningState() == 0) {
-					// Pick a random choice as specified by the player 1 strategy
-					try {
-						Distribution next = strategy.getNextMove(getStateIndex(currentState));
-						i = next.sampleFromDistribution();
-					} catch (InvalidStrategyStateException e) {
-						throw new PrismException(e.getMessage());
-					}
-				} else {
-					// Pick a random choice
-					i = rng.randomUnifInt(modelGen.getNumChoices());
-				}
-			}
+			// Pick a random choice
+			i = rng.randomUnifInt(modelGen.getNumChoices());
 			// Pick a random transition from this choice
 			d = rng.randomUnifDouble();
 			j = getTransitionIndexByProbabilitySum(i, d);
@@ -562,7 +518,7 @@ public class SimulatorEngine extends PrismComponent
 		// Update current state
 		currentState.copy(path.getCurrentState());
 		// Re-explore current state in model generator
-		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
+		computeTransitionsForState(currentState);
 		// Recompute samplers for any loaded properties
 		recomputeSamplers();
 	}
@@ -628,7 +584,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForStep(int step) throws PrismException
 	{
-		computeTransitionsForState(((PathFull) path).getState(step), ((PathFull) path).getStrategyMemory(step));
+		computeTransitionsForState(((PathFull) path).getState(step));
 	}
 
 	/**
@@ -636,45 +592,38 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void computeTransitionsForCurrentState() throws PrismException
 	{
-		computeTransitionsForState(path.getCurrentState(), path.getStrategyMemoryForCurrentState());
+		computeTransitionsForState(path.getCurrentState());
 	}
 
 	/**
 	 * Re-compute the transition table for a particular state.
 	 */
-	private void computeTransitionsForState(State state, Object stratMem) throws PrismException
+	private void computeTransitionsForState(State state) throws PrismException
 	{
 		modelGen.exploreState(state);
 		transitionListState = state;
-		// If there is a strategy loaded, stored probabilities assigned to choices
-		if (strategy != null) {
-			// For games, we just show player 1
-			if (!modelType.multiplePlayers() || modelGen.getPlayerOwningState() == 0) {
-				try {
-					strategy.setMemory(stratMem);
-					addStrategyProbabilities(strategy.getNextMove(getStateIndex(state)));
-				} catch (InvalidStrategyStateException e) {
-					// Don't add info if there is a problem with the strategy
-				}
-			}
-		}
+	}
+
+	// ------------------------------------------------------------------------------
+	// Methods for loading objects from model checking: paths, strategies, etc.
+	// ------------------------------------------------------------------------------
+
+	/**
+	 * Load the set of reachable states for the currently loaded model into the simulator.
+	 */
+	public void loadReachableStates(List<State> reachableStates)
+	{
+		this.reachableStates = reachableStates;
 	}
 
 	/**
-	 * Add probabilities assigned to choices by a strategy. 
+	 * Load a strategy for the currently loaded model into the simulator.
 	 */
-	private void addStrategyProbabilities(Distribution strategyDistribution) throws PrismException
+	public void loadStrategy(Strategy strategy)
 	{
-		// Extract choice probabilities from distribution into an array
-		strategyProbabilities = new double[getNumChoices()];
-		Arrays.fill(strategyProbabilities, 0.0);
-		Iterator<Entry<Integer, Double>> it = strategyDistribution.iterator();
-		while (it.hasNext()) {
-			Entry<Integer, Double> entry = it.next();
-			strategyProbabilities[entry.getKey()] += entry.getValue();
-		}
+		this.strategy = strategy;
 	}
-	
+
 	/**
 	 * Construct a path through the currently loaded model to match a supplied path,
 	 * specified as a PathFullInfo object. createNewPath() should have already been called.
@@ -846,12 +795,7 @@ public class SimulatorEngine extends PrismComponent
 	public boolean queryIsInitial() throws PrismException
 	{
 		// Currently multiple initial states are not supported so this is easy to check
-		State current = path.getCurrentState();
-		if (current != null) {
-			return current.equals(modelGen.getInitialState());
-		} else {
-			return false;
-		}
+		return path.getCurrentState().equals(modelGen.getInitialState());
 	}
 
 	/**
@@ -862,12 +806,7 @@ public class SimulatorEngine extends PrismComponent
 	public boolean queryIsInitial(int step) throws PrismException
 	{
 		// Currently multiple initial states are not supported so this is easy to check
-		State state = ((PathFull) path).getState(step);
-		if (state != null) {
-			return state.equals(modelGen.getInitialState());
-		} else {
-			return false;
-		}
+		return ((PathFull) path).getState(step).equals(modelGen.getInitialState());
 	}
 
 	/**
@@ -957,23 +896,14 @@ public class SimulatorEngine extends PrismComponent
 		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
-		// Update strategy
-		if (strategy != null) {
-			try {
-				strategy.updateMemory(i, stateIds.get(currentState));
-			} catch (InvalidStrategyStateException error) {
-				throw new PrismException("Strategy update failed");
-			}
-		}
 		// Update path
 		path.addStep(index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
-		if (strategy != null) {
-			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
-		}
 		// Explore new state in model generator
-		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
+		computeTransitionsForState(currentState);
 		// Update samplers for any loaded properties
 		updateSamplers();
+		// Update strategy (if loaded)
+		updateStrategy();
 	}
 
 	/**
@@ -1006,23 +936,14 @@ public class SimulatorEngine extends PrismComponent
 		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
-		// Update strategy
-		if (strategy != null) {
-			try {
-				strategy.updateMemory(i, stateIds.get(currentState));
-			} catch (InvalidStrategyStateException error) {
-				throw new PrismException("Strategy update failed");
-			}
-		}
 		// Update path
 		path.addStep(time, index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
-		if (strategy != null) {
-			path.setStrategyMemoryForCurrentState(strategy.getCurrentMemoryElement());
-		}
 		// Explore new state in model generator
-		computeTransitionsForState(currentState, path.getStrategyMemoryForCurrentState());
+		computeTransitionsForState(currentState);
 		// Update samplers for any loaded properties
 		updateSamplers();
+		// Update strategy (if loaded)
+		updateStrategy();
 	}
 
 	/**
@@ -1081,6 +1002,31 @@ public class SimulatorEngine extends PrismComponent
 		}
 	}
 
+	/**
+	 * Initialise the state of the loaded strategy, if present, based on the current state.
+	 */
+	private void initialiseStrategy()
+	{
+		if (strategy != null) {
+			State state = getCurrentState();
+			int s = reachableStates.indexOf(state);
+			//strategy.initialise(s);
+		}
+	}
+
+	/**
+	 * Update the state of the loaded strategy, if present, based on the last step that occurred.
+	 */
+	private void updateStrategy()
+	{
+		if (strategy != null) {
+			State state = getCurrentState();
+			int s = reachableStates.indexOf(state);
+			Object action = path.getPreviousAction();
+			//strategy.update(action, s);
+		}
+	}
+
 	// ------------------------------------------------------------------------------
 	// Queries regarding model
 	// ------------------------------------------------------------------------------
@@ -1120,14 +1066,6 @@ public class SimulatorEngine extends PrismComponent
 		return varList.getIndex(name);
 	}
 
-	/**
-	 * Get the currently loaded strategy (null if none loaded).
-	 */
-	public Strategy getStrategy()
-	{
-		return strategy;
-	}
-	
 	// ------------------------------------------------------------------------------
 	// Querying of current state and its available choices/transitions
 	// ------------------------------------------------------------------------------
@@ -1320,48 +1258,6 @@ public class SimulatorEngine extends PrismComponent
 	{
 		int player = getPlayerOwningState();
 		return (player == -1) ? null : modelGen.getPlayerName(player);
-	}
-
-	/**
-	 * Check whether or not there is strategy choice info stored for the transitions in the current state.
-	 */
-	public boolean hasStrategyChoiceInfo() throws PrismException
-	{
-		return strategyProbabilities != null;
-	}
-
-	/**
-	 * Get the probability assigned to a choice of the current state by the currently loaded strategy.
-	 * This will return 1.0 if no strategy information is available (i.e., if {@link #hasStrategyChoiceInfo()} returns false. 
-	 */
-	public double getStrategyProbabilityForChoice(int i) throws PrismException
-	{
-		return strategyProbabilities == null ? 1.0 : strategyProbabilities[i];
-	}
-
-	/**
-	 * Get a string describing the updates to be made by the current loaded strategy
-	 * with respect to a transition, specified by its index.
-	 * This will return "" if no strategy is loaded (i.e., if {@link #getStrategy()} returns null. 
-	 */
-	public String getStrategyUpdateString(int index, NumberFormat df) throws PrismException
-	{
-		int choice = getChoiceIndexOfTransition(index);
-		int stateIndex = getStateIndex(getTransitionListState());
-		State next = computeTransitionTarget(index);
-		int nextIndex = getStateIndex(next);
-		try {
-			if (!hasStrategyChoiceInfo()) {
-				return "";
-			} else if (strategy instanceof StochasticUpdateStrategy) {
-				return ((StochasticUpdateStrategy) strategy).memoryUpdateString(stateIndex, choice, nextIndex, df);
-			} else {
-				return df.format(getStrategyProbabilityForChoice(choice));
-			}
-		} catch (InvalidStrategyStateException e) {
-			// happens if no memory update is available
-			return df.format(getStrategyProbabilityForChoice(choice));
-		}
 	}
 
 	// ------------------------------------------------------------------------------
@@ -2093,37 +1989,5 @@ public class SimulatorEngine extends PrismComponent
 	public void stopSampling()
 	{
 		// TODO
-	}
-
-	/**
-	 * Update strategy reference
-	 *
-	 * @param strategy
-	 */
-	public void setStrategy(Strategy strategy)
-	{
-		this.strategy = strategy;
-		if (strategy != null && prism.getBuiltModelExplicit() != null) {
-			stateIds = new HashMap<State, Integer>();
-			java.util.List<State> stateslist = prism.getBuiltModelExplicit().getStatesList();
-			int i = 0;
-			for (State s : stateslist)
-				stateIds.put(s, i++);
-		}
-	}
-	
-	private int getStateIndex(State state)
-	{
-		return stateIds.get(state);
-	}
-
-	private <T> int indexOf(List<T> list, T o)
-	{ // indexOf based on reference, not equals(o) function
-		for (int i = 0; i < list.size(); i++) {
-			if (list.get(i) == o) {
-				return i;
-			}
-		}
-		return -1; // not in list
 	}
 }

@@ -429,12 +429,6 @@ public class GUIExperiment
 			// catch and ignore possible exception from invokeAndWait calls
 			catch (java.lang.reflect.InvocationTargetException e) {
 			}
-			try {
-				prism.getSettings().set(PrismSettings.PRISM_IMPLEMENT_STRATEGY, false);
-			} catch (PrismException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 	}
 }

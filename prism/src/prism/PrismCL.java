@@ -2181,7 +2181,6 @@ public class PrismCL implements PrismModelListener
 		exportstrat = true;
 		exportStratFilename = fileString;
 		prism.setGenStrat(true);
-		prism.getSettings().set(PrismSettings.PRISM_GENERATE_STRATEGY, true);
 		// Process options
 		String options[] = optionsString.split(",");
 		for (String opt : options) {

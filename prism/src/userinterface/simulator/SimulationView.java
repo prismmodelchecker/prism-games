@@ -55,7 +55,6 @@ public class SimulationView extends Observable
 	private ArrayList<RewardStructure> rewards;
 
 	private boolean stepsVisible;
-	private boolean memoryVisible;
 	private boolean actionsVisible;
 	private boolean showTime;
 	private boolean showCumulativeTime;
@@ -72,7 +71,6 @@ public class SimulationView extends Observable
 		this.rewards = new ArrayList<RewardStructure>();
 
 		this.stepsVisible = true;
-		this.memoryVisible = true;
 		this.actionsVisible = true;
 		this.showTime = false;
 		this.showCumulativeTime = true;
@@ -89,19 +87,6 @@ public class SimulationView extends Observable
 	public void showSteps(boolean stepsVisible)
 	{
 		this.stepsVisible = stepsVisible;
-
-		this.setChanged();
-		this.notifyObservers();
-	}
-
-	public boolean showMemory()
-	{
-		return memoryVisible;
-	}
-
-	public void showMemory(boolean memoryVisible)
-	{
-		this.memoryVisible = memoryVisible;
 
 		this.setChanged();
 		this.notifyObservers();

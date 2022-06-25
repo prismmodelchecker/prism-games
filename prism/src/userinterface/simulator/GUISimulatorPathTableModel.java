@@ -28,7 +28,6 @@
 
 package userinterface.simulator;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
@@ -38,7 +37,6 @@ import javax.swing.table.AbstractTableModel;
 
 import parser.ast.ModulesFile;
 import prism.ModelInfo;
-import simulator.PathFull;
 import simulator.PathFullInfo;
 import userinterface.simulator.SimulationView.ActionValue;
 import userinterface.simulator.SimulationView.Observ;
@@ -58,7 +56,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	};
 	
 	enum GUISimulatorPathTableModelColumn {
-		ACTION, MEMORY, STEP, TIME_CUMUL, TIME, VARIABLE, OBSERVABLE, REWARD
+		ACTION, STEP, TIME_CUMUL, TIME, VARIABLE, OBSERVABLE, REWARD
 	};
 	
 	class PathTableModelGroup {
@@ -255,8 +253,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			switch (visibleColumns.get(columnIndex).type) {
 			case ACTION:
 				return modelInfo.getActionStringDescription();
-			case MEMORY:
-				return "Memory";
 			case STEP:
 				return "#";
 			case TIME_CUMUL:
@@ -286,8 +282,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			switch (visibleColumns.get(columnIndex).type) {
 			case ACTION:
 				return "Module name or [action] label";
-			case MEMORY:
-				return "Memory of strategy";
 			case STEP:
 				return "Index of state in path";
 			case TIME_CUMUL:
@@ -329,27 +323,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				actionValue = view.new ActionValue(rowIndex == 0 ? "" : path.getActionString(rowIndex - 1));
 				actionValue.setActionValueUnknown(false);
 				return actionValue;
-			case MEMORY:
-				// The memory column
-				if (path instanceof PathFull) {
-					Object stratmem = ((PathFull) path).getStrategyMemory(rowIndex);
-					if (stratmem instanceof SimpleEntry) {
-						return String.format("(%d, %d)", ((SimpleEntry) stratmem).getKey(), ((SimpleEntry) stratmem).getValue());
-					} else if (stratmem instanceof List) {
-						String mem = "[";
-						for (int i = 0; i < ((List) stratmem).size(); i++) {
-							SimpleEntry<Integer, Integer> sm = (SimpleEntry) ((List) stratmem).get(i);
-							if (i > 0) {
-								mem += ", ";
-							}
-							mem += String.format("(%d, %d)", sm.getKey(), sm.getValue());
-						}
-						return mem + "]";
-					} else {
-						return String.format("%s", ((PathFull) path).getStrategyMemory(rowIndex));
-					}
-				}
-				return "";
 			case STEP:
 				// The step column
 				return "" + rowIndex;
@@ -442,12 +415,9 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		visibleGroups.clear();
 		if (pathActive) {
 			// Step
-			if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
+			if (view.showActions() || view.showSteps()) {
 				if (view.showActions()) {
 					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.ACTION, null));
-				}
-				if (view.showMemory() && path.storesStrategyMemory()) {
-					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.MEMORY, null));
 				}
 				if (view.showSteps()) {
 					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.STEP, null));

@@ -259,10 +259,6 @@ public class ProbModelChecker extends NonProbModelChecker
 				setExportAdv(true);
 			// PRISM_EXPORT_ADV_FILENAME
 			setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
-
-			// Strategy stuff
-			setGenerateStrategy(settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY));
-			setImplementStrategy(settings.getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY));
 		}
 	}
 

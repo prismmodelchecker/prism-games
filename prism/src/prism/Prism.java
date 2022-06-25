@@ -295,11 +295,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
 
-	// Info about the strategy that was generated
-	private strat.Strategy strategy;
-	// in case we want to simulate strategies from the command line
-	private List<strat.Strategy> subsystemStrategies;
-
 	// Info for explicit files load
 	private File explicitFilesStatesFile = null;
 	private File explicitFilesTransFile = null;
@@ -1156,7 +1151,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public SimulatorEngine getSimulator()
 	{
 		if (theSimulator == null) {
-			theSimulator = new SimulatorEngine(this, this);
+			theSimulator = new SimulatorEngine(this);
 		}
 		return theSimulator;
 	}
@@ -1939,16 +1934,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public explicit.Model getBuiltModelExplicit()
 	{
 		return currentModelExpl;
-	}
-
-	/**
-	 * Get the currently stored strategy
-	 * 
-	 * @return
-	 */
-	public strat.Strategy getStrategy()
-	{
-		return strategy;
 	}
 
 	/**
@@ -3039,28 +3024,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			} else {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
 				mc.setComputeParetoSet(computePareto);
-				// if implement strategy option is enabled, build a product with
-				// strategy before model checking
-
-				if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
-					try {
-						mc.setStrategy(strategy);
-						res = mc.check(strategy.buildProduct(currentModelExpl), e);
-					} catch (UnsupportedOperationException uoe) {
-						// Note: this also gets thrown if the strategy is stochastic update
-						throw new PrismException("Building the product of the model and strategy failed");
-					}
-				} else {
-					res = mc.check(currentModelExpl, e);
-				}
-				// saving strategy if it was generated.
-				if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
-					// one strategy
-					strategy = res.getStrategy();
-					if (strategy != null)
-						strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: "
-								+ strategy.getMemorySize());
-				}
+				res = mc.check(currentModelExpl, e);
 			}
 		} finally {
 			// Undo auto-switch (if any)
@@ -3455,15 +3419,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		loadModelIntoSimulator();
 		GenerateSimulationPath genPath = new GenerateSimulationPath(getSimulator(), mainLog);
 		genPath.generateSimulationPath(null, details, maxPathLength, file);
-	}
-
-	/**
-	 *  Sets the strategy that will be available for this prism session
-	 * @param strat the strategy
-	 */
-	public void setStrategy(strat.Strategy strat)
-	{
-		this.strategy = strat;
 	}
 
 	/**
@@ -3879,10 +3834,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			currentModel = null;
 		}
 		currentModelExpl = null;
-
-		// nullify the strategy
-		strategy = null;
-		getSimulator().setStrategy(null);
 	}
 
 	/**

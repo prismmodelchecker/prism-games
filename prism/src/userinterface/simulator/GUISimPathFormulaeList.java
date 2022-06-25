@@ -54,12 +54,6 @@ public class GUISimPathFormulaeList extends JList<GUISimPathFormulaeList.SimPath
 		setCellRenderer(new SimPathFormulaRenderer());
 	}
 
-    public void setEngine(SimulatorEngine engine)
-    {
-	this.engine = engine;
-    }
-
-
 	public void clearList()
 	{
 		listModel.clear();

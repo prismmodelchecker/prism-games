@@ -125,8 +125,6 @@ public class PrismSettings implements Observer
 	public static final String PRISM_NO_DA_SIMPLIFY				= "prism.noDaSimplify";
 	public static final String PRISM_EXPORT_ADV					= "prism.exportAdv";
 	public static final String PRISM_EXPORT_ADV_FILENAME			= "prism.exportAdvFilename";
-	public static final String PRISM_GENERATE_STRATEGY				= "prism.generateStrategy";
-	public static final String PRISM_IMPLEMENT_STRATEGY				= "prism.implementStrategy";
 	
 	public static final	String PRISM_MULTI_MAX_POINTS				= "prism.multiMaxIters";
 	public static final	String PRISM_PARETO_EPSILON					= "prism.paretoEpsilon";
@@ -402,11 +400,6 @@ public class PrismSettings implements Observer
 																			"Type of adversary to generate and export during MDP model checking" },
 			{ STRING_TYPE,		PRISM_EXPORT_ADV_FILENAME,				"Adversary export filename",			"3.3",			"adv.tra",																	"",															
 																			"Name of file for MDP adversary export (if enabled)" },
-			{ BOOLEAN_TYPE,		PRISM_GENERATE_STRATEGY,				"Generate Strategy",			"4.1",			Boolean.valueOf(false),																	"",															
-																			"Generate an optimal strategy when model checking an MDP/game" },
-			{ BOOLEAN_TYPE,		PRISM_IMPLEMENT_STRATEGY,				"Implements Strategy",			"4.1",			Boolean.valueOf(false),																	"",
-
-																			"Use composition verification/synythesis methods." },																		
 			// LTL2DA TOOLS
 			{ STRING_TYPE,		PRISM_LTL2DA_TOOL,						"Use external LTL->DA tool",		"4.2.1",			"",		null,
 																			"If non-empty, the path to the executable for the external LTL->DA tool."},

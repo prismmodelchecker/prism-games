@@ -39,9 +39,6 @@ import prism.PrismLangException;
  */
 public abstract class Path
 {
-	/** Is the memory of some strategy stored for each state? */ 
-	protected boolean storesStrategyMemory = false;
-	
 	// MUTATORS
 	
 	/**
@@ -62,19 +59,6 @@ public abstract class Path
 	 */
 	public abstract void addStep(double time, int choice, Object action, String actionString, double probability, double[] transRewards, State newState, State newObs, double[] newStateRewards, ModelGenerator modelGen);
 
-	/**
-	 * Specify whether the memory of some strategy is stored for each state.
-	 */ 
-	public void storesStrategyMemory(boolean storesStrategyMemory)
-	{
-		this.storesStrategyMemory = storesStrategyMemory;
-	}
-
-	/**
-	 * Set the strategy memory for the current state.
-	 */
-	public abstract void setStrategyMemoryForCurrentState(Object memory);
-	
 	// ACCESSORS
 
 	/**
@@ -196,19 +180,6 @@ public abstract class Path
 	 * What is the step index of the end of the deterministic loop, if it exists?
 	 */
 	public abstract long loopEnd();
-
-	/**
-	 * Is the memory of some strategy is stored for each state?
-	 */ 
-	public boolean storesStrategyMemory()
-	{
-		return storesStrategyMemory;
-	}
-	
-	/**
-	 * Get the strategy memory for the current state (if stored; null if not).
-	 */
-	public abstract Object getStrategyMemoryForCurrentState();
 	
 	// UTILITY METHODS
 

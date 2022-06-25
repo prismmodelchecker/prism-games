@@ -69,12 +69,6 @@ public class PathFullPrefix extends Path
 		// Do nothing (we are not allowed to modify the underlying PathFull)
 	}
 
-	@Override
-	public void setStrategyMemoryForCurrentState(Object memory)
-	{
-		// Do nothing (we are not allowed to modify the underlying PathFull)
-	}
-	
 	// MUTATORS (additional)
 	
 	public void setPrefixLength(int prefixLength)
@@ -215,10 +209,4 @@ public class PathFullPrefix extends Path
 	{
 		return isLooping() ? pathFull.loopEnd() : -1;
 	}
-	
-	@Override
-	public Object getStrategyMemoryForCurrentState()
-	{
-		return pathFull.getStrategyMemory(prefixLength);
-	}	
 }
