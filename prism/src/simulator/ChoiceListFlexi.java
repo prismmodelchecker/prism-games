@@ -26,14 +26,27 @@
 
 package simulator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import parser.*;
-import parser.ast.*;
+import parser.State;
+import parser.VarList;
+import parser.ast.Command;
+import parser.ast.Expression;
+import parser.ast.Update;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLangException;
 
+/**
+ * A mutable implementation of {@link simulator.Choice},
+ * i.e, a representation of a single (nondeterministic) choice in a PRISM model,
+ * in the form of a list of transitions, each specified by updates to variables.
+ */
 public class ChoiceListFlexi implements Choice
 {
 	// Module/action info, encoded as an integer.
@@ -48,6 +61,11 @@ public class ChoiceListFlexi implements Choice
 	// but are just stored as lists of updates (for efficiency)
 	protected List<List<Update>> updates;
 	protected List<Double> probability;
+	
+	// For real-time models, the clock guard,
+	// i.e., an expression over clock variables
+	// denoting when it can be taken.
+	protected Expression clockGuard;
 
 	/*** ***/	
 	protected int[] actions;
@@ -60,6 +78,7 @@ public class ChoiceListFlexi implements Choice
 	{
 		updates = new ArrayList<List<Update>>();
 		probability = new ArrayList<Double>();
+		clockGuard = null;
 	}
 
 	/**
@@ -81,6 +100,7 @@ public class ChoiceListFlexi implements Choice
 		for (double p : ch.probability) {
 			probability.add(p);
 		}
+		clockGuard = ch.clockGuard;
 	}
 
 	// Set methods
@@ -102,6 +122,14 @@ public class ChoiceListFlexi implements Choice
 	}
 	/*** ***/
 	
+	/**
+	 * Set the clock guard
+	 */
+	public void setClockGuard(Expression clockGuard)
+	{
+		this.clockGuard = clockGuard;
+	}
+
 	/**
 	 * Add a transition to this choice.
 	 * @param probability Probability (or rate) of the transition
@@ -158,7 +186,9 @@ public class ChoiceListFlexi implements Choice
 			}
 			probability.set(j, pi * probability.get(j));
 		}
-
+		if (ch.clockGuard != null) {
+			clockGuard = (clockGuard == null) ? ch.clockGuard : Expression.And(clockGuard, ch.clockGuard);
+		}
 	}
 	
 	// Get methods
@@ -181,6 +211,12 @@ public class ChoiceListFlexi implements Choice
 			return "[" + c.getSynch() + "]";
 	}
 
+	@Override
+	public Expression getClockGuard()
+	{
+		return clockGuard;
+	}
+	
 	@Override
 	public int size()
 	{
@@ -245,6 +281,7 @@ public class ChoiceListFlexi implements Choice
 				update.get(up.getVar(e)).addElement(up.getVarIdent(e), up.getExpression(e));
 				update.get(up.getVar(e)).setVar(0, up.getVarIdent(e));
 				update.get(up.getVar(e)).setVarIndex(0, up.getVarIndex(e));
+				update.get(up.getVar(e)).setType(0, up.getType(e));
 				if (!variablesToUpdate.contains(up.getVar(e)))
 					variablesToUpdate.add(up.getVar(e));
 				else 
@@ -342,6 +379,9 @@ public class ChoiceListFlexi implements Choice
 		int i, n;
 		boolean first = true;
 		String s = "";
+		if (clockGuard != null) {
+			s += "(" + clockGuard + ")";
+		}
 		n = size();
 		for (i = 0; i < n; i++) {
 			if (first)
