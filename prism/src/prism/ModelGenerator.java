@@ -285,16 +285,26 @@ public interface ModelGenerator extends ModelInfo
 	}
 
 	/**
-	 * For a CSG model, get the action indexes for a choice, specified by its index.
-	 * This is returned as an array of integers, giving the (1-indexed) indices of
-	 * the actions for each player attached to the choice.
-	 * An index of -1 indicates that a player idles.
-	 * @param i Index of the nondeterministic choice
+	 * Get the index of the (first) choice with a given action label.
+	 * Returns -1 if none exists.
 	 */
-	public default int[] getTransitionIndexes(int i) 
+	public default int getChoiceIndexByAction(Object action) throws PrismException
 	{
-		// No implementation by default
-		return null;
+		// Default implementation just searches via getChoiceAction(i)
+		int n = getNumChoices();
+		for (int i = 0; i < n; i++) {
+			Object a = getChoiceAction(i);
+			if (a == null) {
+				if (action == null) {
+					return i;
+				}
+			} else {
+				if (a.equals(action)) {
+					return i;
+				}
+			}
+		}
+		return -1;
 	}
 	
 	/**
@@ -309,6 +319,20 @@ public interface ModelGenerator extends ModelInfo
 		return null;
 	}
 	
+	/**
+	 * For a CSG model, get the action indexes for a choice, specified by its index.
+	 * This is returned as an array of integers, giving the (1-indexed) indices of
+	 * the actions for each player attached to the choice.
+	 * An index of -1 indicates that a player idles.
+	 * @param i Index of the nondeterministic choice
+	 */
+	public default int[] getTransitionIndexes(int i) 
+	{
+		// No implementation by default
+		return null;
+
+	}
+
 	/**
 	 * Get the probability/rate of a transition within a choice, specified by its index/offset.
 	 * @param i Index of the nondeterministic choice

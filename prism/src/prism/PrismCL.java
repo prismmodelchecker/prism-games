@@ -62,7 +62,6 @@ import simulator.method.CIiterations;
 import simulator.method.CIwidth;
 import simulator.method.SPRTMethod;
 import simulator.method.SimulationMethod;
-import strat.Strategies;
 import strat.Strategy;
 
 // prism - command line version

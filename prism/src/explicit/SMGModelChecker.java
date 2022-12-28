@@ -298,9 +298,9 @@ public class SMGModelChecker extends ProbModelChecker
 		boolean print_all_counterexamples = false;
 		// once the subtrees are found, can perform reachability on them
 		int tmpverbosity = this.getVerbosity();
-		boolean genStrat = generateStrategy;
+		boolean genStratSave = genStrat;
 		try {
-			generateStrategy = false; // turn off strategy generation for STPGModelChecker
+			genStrat = false; // turn off strategy generation for STPGModelChecker
 			this.setVerbosity(0); // temporarily turn off logger
 			go_through_subtrees: for (BitSet subtree : subtrees) {
 				double[] maxminreach = createSTPGModelChecker().computeReachProbs((STPG) smg, null, subtree, false, true, null, null).soln; // for some P1 strategy (max), for all P2 strategies (min)
@@ -317,7 +317,7 @@ public class SMGModelChecker extends ProbModelChecker
 				}
 			}
 		} finally { // do "cleanup" by switching logger on again, and set strategy generation to previous setting
-			generateStrategy = genStrat;
+			genStrat = genStratSave;
 			this.setVerbosity(tmpverbosity);
 		}
 
@@ -549,7 +549,7 @@ public class SMGModelChecker extends ProbModelChecker
 		mainLog.print(String.format("/////////////////   NEW (DIRECT) MODEL CHECKING TASK     /////////////////////\n"));
 		mainLog.print(String.format("Property:\n\t%s\n\n", params.expr));
 		mainLog.print(String.format("initial state: %d\n", init));
-		mainLog.print(String.format("operation: %s\n", computePareto ? "Pareto set computation" : generateStrategy ? "Strategy generation" : "Verification"));
+		mainLog.print(String.format("operation: %s\n", computePareto ? "Pareto set computation" : genStrat ? "Strategy generation" : "Verification"));
 		mainLog.flush();
 
 		// check model type
@@ -601,8 +601,8 @@ public class SMGModelChecker extends ProbModelChecker
 			MultiParameters new_params = convertRatioMQToMQ((SMG) model, params);
 
 			setRewardBrackets(new_params, model); // find brackets around rewards to start iteration and/or rounding
-			Entry<StateValues, StochasticUpdateStrategy> SvS = checkMQ((SMG) model, new_params, generateStrategy);
-			mainLog.print(String.format("%s took %f s\n", generateStrategy ? "Synthesis" : "Verification", ((double) (System.nanoTime() - t0)) / 1e9));
+			Entry<StateValues, StochasticUpdateStrategy> SvS = checkMQ((SMG) model, new_params, genStrat);
+			mainLog.print(String.format("%s took %f s\n", genStrat ? "Synthesis" : "Verification", ((double) (System.nanoTime() - t0)) / 1e9));
 
 			parsed_params = params; // register parameters
 			result.setStrategy(SvS.getValue()); // register strategy
@@ -710,7 +710,7 @@ public class SMGModelChecker extends ProbModelChecker
 	private void setRewardBrackets(MultiParameters params, Model model) throws PrismException
 	{
 		int tmpverbosity = this.getVerbosity();
-		boolean genStrat = generateStrategy;
+		boolean genStratSave = genStrat;
 
 		int gameSize = model.getNumStates();
 		int dim = params.rewards.size(); // full dimensionality of the problem
@@ -727,7 +727,7 @@ public class SMGModelChecker extends ProbModelChecker
 
 		int i = 0;
 		try {
-			generateStrategy = false; // turn off strategy generation for STPGModelChecker
+			genStrat = false; // turn off strategy generation for STPGModelChecker
 			this.setVerbosity(0); // temporarily turn off logger
 
 			for (i = 0; i < dim; i++) {
@@ -828,7 +828,7 @@ public class SMGModelChecker extends ProbModelChecker
 			// if minmin or maxmin reward diverges, treat set of solutions as empty
 			throw new PrismException("Could not initialise value iteration, because the reward for objective " + i + " does not converge. Pareto set empty");
 		} finally { // do "cleanup" by switching logger on again, and set strategy generation to previous setting
-			generateStrategy = genStrat;
+			genStrat = genStratSave;
 			this.setVerbosity(tmpverbosity);
 		}
 
@@ -1724,7 +1724,7 @@ public class SMGModelChecker extends ProbModelChecker
 				double t0 = System.nanoTime();
 				strategy = constructStrategy(smg, cq_bounds, Px, stochasticStates, cq_params, energy_objective);
 				mainLog.print(String.format("Strategy construction took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
-				strategy.setInfo(params.getParameterString());
+				//strategy.setInfo(params.getParameterString());
 			}
 
 		} finally {

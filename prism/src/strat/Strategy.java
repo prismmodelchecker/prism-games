@@ -27,163 +27,181 @@
 
 package strat;
 
-import java.io.File;
-import java.util.HashMap;
-
-import explicit.Distribution;
-import explicit.Model;
-import prism.Prism.StrategyExportType;
-import prism.PrismException;
-import prism.PrismLog;
-
 import static prism.PrismSettings.DEFAULT_EXPORT_MODEL_PRECISION;
 
+import prism.PrismException;
+import prism.PrismLog;
+import simulator.RandomNumberGenerator;
+
 /**
- * Interface for classes to store strategies (for MDPs, games, etc.)
- * 
- * The strategy should be used interactively. The typical usage pattern would
- * be: 1) In the initial state of the model call init method. 2) Call nextMove
- * method with the initial state as parameter. 3) Choose the successor according
- * to the distribution. 4) Once entered the successor state, call updateMemory
- * method with the action taken in the previous state and the successor state.
- * 5) Repeat steps 2-4 forever.
- * 
- * Strategy could also used to obtain the choice after a (strategy-compatible)
- * history: 1) Call reset method to reset the strategy. 2) Follow the previous
- * instructions 1-5 except in step 3, choose the successor based on the given
- * history.
+ * Interface for classes to represent strategies,
+ * as built in the context of a constructed model.
+ * This means that the information is queried by state index.
+ * This is for a general class of strategies that may use memory,
+ * but this can simply be ignored (e.g., set to -1) if not applicable.
  */
-public interface Strategy
+public interface Strategy extends StrategyInfo
 {
-	// Types of info stored for each choice
-	public enum Choice {
-		INDEX, ACTION, UNKNOWN, ARBITRARY, UNREACHABLE;
-	};
-
-	// Getters for basic strategy info
+	/**
+	 * Get the action chosen by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * Returns {@link #StrategyInfo.UNDEFINED} if undefined.
+	 * For a randomised strategy (and if defined), this method returns
+	 * an instance of DistributionOver&lt;Object&gt; instead of Object.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
+	 */
+	public Object getChoiceAction(int s, int m);
 	
 	/**
-	 * Get a textual description of the strategy.
+	 * Get the probability with which an action is chosen by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public String getInfo();
-
-	/**
-	 * Get the size of the memory of the strategy.
-	 */
-	public int getMemorySize();
-
-	/**
-	 * Get the type of the strategy, as a string.
-	 */
-	public String getType();
-
-	/**
-	 * Returns a textual description giving key information about the strategy (ideally, human readable).
-	 */
-	public String getDescription();
-
-	// Setters for basic strategy info
+	public default double getChoiceActionProbability(int s, int m, Object act)
+	{
+		return getChoiceActionProbability(getChoiceAction(s, m), act);
+	}
 	
 	/**
-	 * Set a textual description for the strategy.
-	 * @param info String describing the strategy.
+	 * Is an action chosen by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m?
+	 * For a randomised strategy: is the action chosen with positive probability?
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public void setInfo(String info);
-
-	// Methods for interactive querying of strategy
+	public default boolean isActionChosen(int s, int m, Object act)
+	{
+		return isActionChosen(getChoiceAction(s, m), act);
+	}
 	
 	/**
-	 * Initialise the strategy (set its memory) based on an initial model state.
-	 * @param state Initial model state
-	 * @throws InvalidStrategyStateException if the initial distribution function is undefined for the given state
+	 * Sample an action chosen by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * For a deterministic strategy, this returns the (unique) chosen action;
+	 * for a randomised strategy, an action is sampled according to the strategy's distribution.
+	 * Returns {@link #StrategyInfo.UNDEFINED} if undefined.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public void init(int state) throws InvalidStrategyStateException;
-
-	/**
-	 * Update the strategy (update its memory) based on an action and next state from the model.
-	 * @param action Action taken in the previous model state
-	 * @param state The next model state
-	 * @throws InvalidStrategyStateException if memory update function is not defined for the given action, state and the current strategy's memory state
-	 */
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException;
-
-	/**
-	 * Get the move of the strategy in model state {@code state}
-	 * as a distribution over indices of choices that are available in that state,
-	 * i.e., which specifies the probability with which each choice should be taken.  
-	 * @param state Current model state
-	 * @throws InvalidStrategyStateException if next move function is undefined for the given state in current strategy's memory state
-	 */
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException;
-
-	/**
-	 * Get the move of the strategy in model state {@code state}
-	 * as a distribution over indices of actions that are available in that state,
-	 * i.e., which specifies the probability with which each action should be taken.  
-	 * @param state Current model state
-	 * @throws InvalidStrategyStateException if next move function is undefined for the given state in current strategy's memory state
-	 */
-	public HashMap<String,Double> getNextAction(int state) throws InvalidStrategyStateException;
+	public default Object sampleChoiceAction(int s, int m, RandomNumberGenerator rng)
+	{
+		return sampleChoiceAction(getChoiceAction(s, m), rng);
+	}
 	
 	/**
-	 * Get the current memory status of the strategy.
+	 * Get the index of the choice picked by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m
+	 * (assuming it is deterministic).
+	 * The index is defined with respect to a particular model, stored locally.
+	 * Returns a negative value (not necessarily -1) if undefined.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public Object getCurrentMemoryElement();
+	public int getChoiceIndex(int s, int m);
 
 	/**
-	 * Set the current memory status of the strategy to the one provided.
-	 * @param memory Memory element representing the state of the strategy
-	 * @throws InvalidStrategyStateException if the memory element is not recognised by the strategy
+	 * Is a choice defined by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public void setMemory(Object memory) throws InvalidStrategyStateException;
-
-	/**
-	 * Reset the strategy to an uninitialised state.
-	 */
-	public void reset();
-
-	// Product methods
+	public default boolean isChoiceDefined(int s, int m)
+	{
+		return getChoiceAction(s, m) != UNDEFINED;
+	}
 	
 	/**
-	 * Build the product the strategy and a model. The product is built by
-	 * adding an extra integer variable to the state to represent the memory state
-	 * of the strategy. The initial states are the first N states of the product
-	 * where N is the size of the original model.
-	 * @param model The model for which the strategy is defined.
+	 * Optionally, return reason why a choice is undefined by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * Returns null if there is no reason.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public Model buildProduct(Model model) throws PrismException;
-
-	/**
-	 * Get the initial memory state of the strategy for a state.
-	 * It is required by the model checker to determine which states can be treated as initial in the product.
-	 * Returns -1 if the product does not contain extra variables  
-	 * @param s The state for which to return initial memory element
-	 */
-	public int getInitialStateOfTheProduct(int s);
-
-	// Export methods
+	public default UndefinedReason whyUndefined(int s, int m)
+	{
+		// No reason provided by default
+		return null;
+	}
 	
 	/**
-	 * Export the strategy to a file.
+	 * Get a string representing the choice made by the strategy in the state index s
+	 * and where the current memory of the strategy (if applicable) is m.
+	 * This may also indicate the reason why it is undefined, if it is.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
-	public void exportToFile(String file);
+	public default String getChoiceActionString(int s, int m)
+	{
+		Object action = getChoiceAction(s, m);
+		if (action != UNDEFINED) {
+			return action.toString();
+		} else {
+			UndefinedReason why = whyUndefined(s, m);
+			if (why == null) {
+				return "?";
+			}
+			switch (why) {
+			case UNKNOWN:
+				return "?";
+			case ARBITRARY:
+				return "";
+			case UNREACHABLE:
+				return "-";
+			default:
+				return "?";
+			}
+		}
+	}
 	
-	// New export methods
+	/**
+	 * For a strategy with memory, get the size of the memory
+	 * (memory values are then assumed to be 0...memSize-1.
+	 * A memoryless strategy should return 0. 
+	 */
+    public default int getMemorySize()
+    {
+    	// No memory by default
+    	return 0;
+    }
+    
+	/**
+	 * For a strategy with memory, get the initial value of the memory
+	 * based on the initial state of the model.
+	 * @param sInit Index of initial model state
+	 */
+    public default int getInitialMemory(int sInit)
+    {
+    	// No memory by default
+    	return -1;
+    }
+    
+	/**
+	 * For a strategy with memory, get the updated value of the memory
+	 * based on its current value and the new current state of the model
+	 * (plus the action that was taken to get there).
+	 * @param m Current strategy memory value
+	 * @param action Last action taken in model
+	 * @param sInit Index of new model state
+	 */
+    public default int getUpdatedMemory(int m, Object action, int sNext)
+    {
+    	// No memory by default
+    	return -1;
+    }
+    
+	/**
+	 * Get the number of states of the model associated with this strategy.
+	 */
+	public int getNumStates();
 
 	/**
 	 * Export the strategy to a PrismLog, displaying strategy choices as action names.
 	 */
-	public void exportActions(PrismLog out);
-
+	public void exportActions(PrismLog out) throws PrismException;
+	
 	/**
 	 * Export the strategy to a PrismLog, displaying strategy choices as indices.
 	 */
-	public void exportIndices(PrismLog out);
+	public void exportIndices(PrismLog out) throws PrismException;
 
 	/**
 	 * Export the model induced by this strategy to a PrismLog.
 	 */
-	default void exportInducedModel(PrismLog out)
+	default void exportInducedModel(PrismLog out) throws PrismException
 	{
 		exportInducedModel(out, DEFAULT_EXPORT_MODEL_PRECISION);
 	}
@@ -192,12 +210,12 @@ public interface Strategy
 	 * Export the model induced by this strategy to a PrismLog.
 	 * @param precision number of significant digits >= 1
 	 */
-	public void exportInducedModel(PrismLog out, int precision);
+	public void exportInducedModel(PrismLog out, int precision) throws PrismException;
 
 	/**
 	 * Export the strategy to a dot file (of the model showing the strategy).
 	 */
-	default void exportDotFile(PrismLog out)
+	default void exportDotFile(PrismLog out) throws PrismException
 	{
 		exportDotFile(out, DEFAULT_EXPORT_MODEL_PRECISION);
 	}
@@ -206,20 +224,7 @@ public interface Strategy
 	 * Export the strategy to a dot file (of the model showing the strategy).
 	 * @param precision number of significant digits >= 1
 	 */
-	public void exportDotFile(PrismLog out, int precision);
-	
-	// Other new methods
-	
-	/**
-	 * Export the strategy to a file.
-	 */
-	public void exportStratToFile(File file, StrategyExportType exportType);
-	
-	/**
-	 * Restrict the strategy to the states that are reachable under the strategy.  
-	 * @throws PrismException 
-	 */
-	public void restrictStrategyToReachableStates() throws PrismException;
+	public void exportDotFile(PrismLog out, int precision) throws PrismException;
 	
 	/**
 	 * Clear storage of the strategy.

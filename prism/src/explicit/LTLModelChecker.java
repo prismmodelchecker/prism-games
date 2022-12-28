@@ -104,6 +104,12 @@ public class LTLModelChecker extends PrismComponent
 			return invMap[productState] % daSize;
 		}
 
+		@Override
+		public int getAutomatonSize()
+		{
+			return daSize;
+		}
+
 		public AcceptanceOmega getAcceptance() {
 			return acceptance;
 		}

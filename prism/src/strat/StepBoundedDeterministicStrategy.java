@@ -1,30 +1,10 @@
 package strat;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Scanner;
-
-import explicit.Distribution;
-import explicit.MDPSimple;
-import explicit.MDPSparse;
-import explicit.Model;
 import explicit.NondetModel;
-import explicit.SMGSimple;
-import parser.State;
-import prism.Prism.StrategyExportType;
-import prism.PrismException;
 import prism.PrismLog;
 
-public class StepBoundedDeterministicStrategy implements Strategy
+public class StepBoundedDeterministicStrategy extends StrategyExplicit
 {
-	// Model associated with the strategy
-	private NondetModel model;
-	
 	// memory: the number of steps currently made
 	protected int memory;
 
@@ -53,7 +33,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	 */
 	public StepBoundedDeterministicStrategy(NondetModel model, int[][] choices, int bound)
 	{
-		this.model = model;
+		super(model);
 		this.choices = choices;
 
 		if (bound < 0)
@@ -99,7 +79,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	 *
 	 * @param scan
 	 */
-	public StepBoundedDeterministicStrategy(Scanner scan)
+	/*public StepBoundedDeterministicStrategy(Scanner scan)
 	{
 		for (int i = 0; i < 6; i++)
 			scan.nextLine();
@@ -128,72 +108,53 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			choices.add(singleA);
 		}
 		this.choices = choices.toArray(new int[][] {});
-	}
+	}*/
 
 	@Override
-	public void init(int state) throws InvalidStrategyStateException
+	public Memory memory()
 	{
-		memory = bound;
+		return Memory.FINITE;
 	}
-
+	
 	@Override
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException
+	public Object getChoiceAction(int s, int m)
 	{
-		if (memory > 0)
-			memory--;
+		int c = getChoiceIndex(s, m);
+		return c >= 0 ? model.getAction(s, c) : Strategy.UNDEFINED;
 	}
-
+	
 	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	public int getChoiceIndex(int s, int m)
 	{
-
-		if (state > choices.length)
-			throw new InvalidStrategyStateException("The strategy undefined for state " + state + ".");
-
-		// determining the action
-		int[] actions = choices[state];
+		int[] actions = choices[s];
 		int c = 0;
 		for (int i = 0; i < actions.length; i += 2)
-			if (actions[i] >= memory)
+			if (actions[i] >= m)
 				c = actions[i + 1];
 			else
 				break;
-
-		Distribution dist = new Distribution();
-		dist.add(c, 1);
-
-		return dist;
+		return c;
 	}
-
-	@Override
-	public void reset()
-	{
-		memory = bound;
-	}
-
+	
 	@Override
 	public int getMemorySize()
 	{
 		return bound;
 	}
-
+	
 	@Override
-	public Object getCurrentMemoryElement()
+	public int getInitialMemory(int sInit)
 	{
-		return memory;
+		return bound;
 	}
-
+	
 	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException
+	public int getUpdatedMemory(int m, Object action, int sNext)
 	{
-		if (memory instanceof Integer) {
-			this.memory = (Integer) memory;
-		} else {
-			throw new InvalidStrategyStateException("Memory has to integer for this strategy.");
-		}
+		return m > 0 ? m - 1 : m;
 	}
-
-	@Override
+	
+	//@Override
 	public String getDescription()
 	{
 		String desc = "";
@@ -204,7 +165,7 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		return desc;
 	}
 
-	@Override
+	/*@Override
 	public void exportToFile(String file)
 	{
 		// Print adversary
@@ -241,9 +202,9 @@ public class StepBoundedDeterministicStrategy implements Strategy
 
 		}
 
-	}
+	}*/
 
-	public static void main(String[] args) throws InvalidStrategyStateException
+	/*public static void main(String[] args) throws InvalidStrategyStateException
 	{
 		int[][] choices = { { 30, 1, 28, 2 }, { 25, 1, 24, 2 } };
 		int bound = 25;
@@ -256,228 +217,8 @@ public class StepBoundedDeterministicStrategy implements Strategy
 			System.out.println(strat.getNextMove(0) + ", " + strat.getNextMove(1));
 			strat.updateMemory(0, 0);
 		}
-	}
+	}*/
 
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public String getInfo()
-	{
-		return info;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public String getType()
-	{
-		return "Finite memory strategy";
-	}
-
-	/**
-	 * 
-	 * @param info
-	 */
-	@Override
-	public void setInfo(String info)
-	{
-		this.info = info;
-	}
-
-	/**
-	 * 
-	 * @param model
-	 * @return
-	 * @throws PrismException
-	 */
-	@Override
-	public Model buildProduct(Model model) throws PrismException
-	{
-		// checking for supported model types
-		if (model.getClass().equals(MDPSimple.class)) {
-			return this.buildProductMDPSimple((MDPSimple) model);
-		}
-		if (model.getClass().equals(MDPSparse.class)) {
-			return this.buildProductMDPSparse((MDPSparse) model);
-		}
-		if (model.getClass().equals(SMGSimple.class)) {
-			return this.buildProductSMGSimple((SMGSimple) model);
-		}
-
-		throw new UnsupportedOperationException("The product building is not supported for this class of models");
-	}
-
-	private Model buildProductSMGSimple(SMGSimple model) throws PrismException
-	{
-		// construct a new SMG of size ModelSize * MemorySize
-		SMGSimple smg = new SMGSimple(model.getStatesList().size() * bound);
-		smg.copyPlayerInfo(model);
-		int n = smg.getNumStates();
-
-		List<State> oldStates = model.getStatesList();
-
-		// creating helper states for constructing the product
-		State[] mem = new State[bound];
-		for (int i = bound; i >= 1; i--) {
-			mem[bound - i] = new State(1);
-			mem[bound - i].setValue(0, i);
-		}
-
-		// creating product state list
-		List<State> newStates = new ArrayList<State>(n);
-		int count = 0;
-		for (int j = 0; j < bound; j++)
-			for (int i = 0; i < oldStates.size(); i++) {
-				newStates.add(new State(oldStates.get(i), mem[j]));
-				smg.setPlayer(count++, model.getPlayer(i));
-			}
-
-		// setting the states list to SMG
-		smg.setStatesList(newStates);
-
-		// adding choices for the product SMG
-		// adding transitions to the state with the next memory element
-		Distribution distr, newDistr;
-		for (int j = bound; j >= 1; j--) {
-			// setting memory
-			this.memory = j;
-			for (int i = 0; i < oldStates.size(); i++) {
-				// if the state belongs to player 1 retrieving choice chosen by
-				// the optimal strategy
-				if (model.getPlayer(i) == 1) {
-					try {
-						distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
-
-						// create a new distribution for the product
-						newDistr = new Distribution();
-						for (Integer succ : distr.keySet())
-							// adding transition to the state with the memory
-							// element one larger smaller than the current one
-							// (j)
-							// except for the case where j==1, when we add
-							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + succ, distr.get(succ));
-
-						// adding the choice
-						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
-
-					} catch (InvalidStrategyStateException error) {
-						// TODO Auto-generated catch block
-						error.printStackTrace();
-					}
-				} else // otherwise copying all distributions
-				{
-					for (int k = 0; k < model.getNumChoices(i); k++) {
-						distr = model.getChoice(i, k);
-
-						// create a new distribution for the product
-						newDistr = new Distribution();
-						for (Integer succ : distr.keySet())
-							// adding transition to the state with the memory
-							// element one larger smaller than the current one
-							// (j)
-							// except for the case where j==1, when we add
-							// transition to the same
-							newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + succ, distr.get(succ));
-
-						// adding the choice
-						smg.addChoice(oldStates.size() * (bound - j) + i, newDistr);
-					}
-				}
-			}
-		}
-
-		// setting initial state for the game
-		smg.addInitialState(0);
-
-		return smg;
-	}
-
-	/**
-	 * 
-	 * @param model
-	 * @return
-	 */
-	private Model buildProductMDPSparse(MDPSparse model)
-	{
-		return new MDPSparse(buildProductMDPSimple(new MDPSimple(model)));
-	}
-
-	/**
-	 * 
-	 * @param model
-	 * @return
-	 */
-	private MDPSimple buildProductMDPSimple(MDPSimple model)
-	{
-		// construct a new MDP of size ModelSize * MemorySize
-		MDPSimple mdp = new MDPSimple(model.getStatesList().size() * bound);
-		int n = mdp.getNumStates();
-
-		List<State> oldStates = model.getStatesList();
-
-		// creating helper states for constructing the product
-		State[] mem = new State[bound];
-		for (int i = bound; i >= 1; i--) {
-			mem[bound - i] = new State(1);
-			mem[bound - i].setValue(0, i);
-		}
-
-		// creating product state list
-		List<State> newStates = new ArrayList<State>(n);
-		for (int j = 0; j < bound; j++)
-			for (int i = 0; i < oldStates.size(); i++)
-				newStates.add(new State(oldStates.get(i), mem[j]));
-
-		// setting the states list to MDP
-		mdp.setStatesList(newStates);
-
-		// adding choices for the product MDP
-
-		// adding transitions to the state with the next memory element
-		Distribution distr, newDistr;
-		for (int j = bound; j >= 1; j--) {
-			// setting memory
-			this.memory = j;
-			for (int i = 0; i < oldStates.size(); i++) {
-				// retrieving choice chosen by the optimal strategy
-				try {
-					distr = model.getChoice(i, this.getNextMove(i).keySet().iterator().next());
-
-					// create a new distribution for the product
-					newDistr = new Distribution();
-					for (Integer succ : distr.keySet())
-						// adding transition to the state with the memory
-						// element one larger smaller than the current one (j)
-						// except for the case where j==1, when we add
-						// transition to the same
-						newDistr.add(oldStates.size() * (bound - j + j == 1 ? 0 : 1) + succ, distr.get(succ));
-
-					// adding the choice
-					mdp.addChoice(oldStates.size() * (bound - j) + i, newDistr);
-
-				} catch (InvalidStrategyStateException error) {
-					// TODO Auto-generated catch block
-					error.printStackTrace();
-				}
-			}
-		}
-
-		// setting initial state for the MDP
-		mdp.addInitialState(0);
-
-		return mdp;
-	}
-
-	@Override
-	public int getInitialStateOfTheProduct(int s)
-	{
-		return bound;
-	}
 
 	public void export(PrismLog out) {}
 
@@ -494,30 +235,10 @@ public class StepBoundedDeterministicStrategy implements Strategy
 		}
 	}
 
-	public int getChoiceIndex(int state, int mode)
-	{
-		int[] actions = choices[state];
-		int c = -1;
-		for (int i = 0; i < actions.length; i += 2)
-			if (actions[i] >= memory)
-				c = actions[i + 1];
-			else
-				break;
-		
-		return c;
-	}
-	
-	public Object getChoiceAction(int state, int mode)
-	{
-		int c = getChoiceIndex(state, mode);
-		return c >= 0 ? model.getAction(state, c) : null;
-	}
-
 	@Override
 	public void clear()
 	{
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -545,26 +266,12 @@ public class StepBoundedDeterministicStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public int getNumStates()
+	{
+		// TODO Auto-generated method stub
+		return 0;
 	};
-
-	@Override
-	public void restrictStrategyToReachableStates() throws PrismException
-	{
-		// TODO Auto-generated method stub
-		throw new PrismException("Reach option is not supported for this strategy type");
-	}
-
-	@Override
-	public void exportStratToFile(File file, StrategyExportType exportType)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

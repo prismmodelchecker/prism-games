@@ -26,21 +26,20 @@
 
 package strat;
 
-import java.io.File;
-import java.util.HashMap;
 import java.util.List;
 
 import dv.IntegerVector;
-import explicit.Distribution;
 import prism.Model;
-import prism.Prism.StrategyExportType;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 
 /**
- * Class to store a memoryless deterministic (MD) strategy, as an IntegerVector (i.e. stored natively as an array).
+ * Class to store a memoryless deterministic (MD) strategy
+ * as an IntegerVector (i.e. stored natively as an array)
+ * associated with a sparse/symbolic engine model.
  */
-public class MDStrategyIV extends MDStrategy
+public class MDStrategyIV extends StrategyWithStates implements MDStrategy
 {
 	// Model associated with the strategy
 	private Model model;
@@ -59,10 +58,43 @@ public class MDStrategyIV extends MDStrategy
 		numStates = (int) model.getNumStates();
 		actions = model.getSynchs();
 		this.iv = iv;
+		setStateLookUp(state -> {
+			try {
+				return model.getReachableStates().getIndexOfState(state);
+			} catch (PrismNotSupportedException e) {
+				return -1;
+			}
+		});
 	}
 	
-	// Methods for MDStrategy
+	@Override
+	public Object getChoiceAction(int s, int m)
+	{
+		int c = iv.getElement(s);
+		return c >= 0 ? actions.get(c) : Strategy.UNDEFINED;
+	}
 	
+	@Override
+	public int getChoiceIndex(int s, int m)
+	{
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public UndefinedReason whyUndefined(int s, int m)
+	{
+		switch (iv.getElement(s)) {
+		case -1:
+			return UndefinedReason.UNKNOWN;
+		case -2:
+			return UndefinedReason.ARBITRARY;
+		case -3:
+			return UndefinedReason.UNREACHABLE;
+		default:
+			return null;
+		}
+	}
+
 	@Override
 	public int getNumStates()
 	{
@@ -70,141 +102,17 @@ public class MDStrategyIV extends MDStrategy
 	}
 	
 	@Override
-	public boolean isChoiceDefined(int s)
+	public void exportInducedModel(PrismLog out, int precision) throws PrismException
 	{
-		return iv.getElement(s) >= 0;
+		throw new PrismException("Induced model construction not yet supported for symbolic engines");
 	}
 
 	@Override
-	public Strategy.Choice getChoice(int s)
+	public void exportDotFile(PrismLog out, int precision) throws PrismException
 	{
-		int c = iv.getElement(s);
-		switch (c) {
-		case -1:
-			return Choice.UNKNOWN;
-		case -2:
-			return Choice.ARBITRARY;
-		case -3:
-			return Choice.UNREACHABLE;
-		default:
-			return Choice.INDEX;
-		}
+		throw new PrismException("Strategy dot export not yet supported for symbolic engines");
 	}
 	
-	@Override
-	public int getChoiceIndex(int s)
-	{
-		return iv.getElement(s);
-	}
-	
-	@Override
-	public Object getChoiceAction(int s)
-	{
-		int c = iv.getElement(s);
-		return c >= 0 ? actions.get(c) : c == -1 ? "?" : c == -2 ? "*" : "-";
-	}
-	
-	// Methods for Strategy
-	
-	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
-	{
-		if (iv == null || state >= iv.getSize() || state < 0)
-			throw new InvalidStrategyStateException("Strategy not defined for state " + state + ".");
-		
-		if(iv.getElement(state)<0) return null;
-		else{
-			HashMap<String, Double> actionProbs = new HashMap<String, Double>();
-			actionProbs.put(actions.get(iv.getElement(state)), 1.0);
-			return actionProbs;
-		}
-	}
-	
-	@Override
-	public void exportActions(PrismLog out)
-	{
-		/*try {
-			model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_ACTIONS, true, null);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (PrismException e) {
-			e.printStackTrace();
-		}*/
-	}
-	
-	@Override
-	public void exportIndices(PrismLog out)
-	{
-		/*try {
-			model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_INDICES, true, null);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (PrismException e) {
-			e.printStackTrace();
-		}*/
-	}
-	
-	public void exportInducedModel(PrismLog out, int precision)
-	{
-		/*try {
-			model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_INDUCED, true, null);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (PrismException e) {
-			e.printStackTrace();
-		}*/
-	}
-
-	@Override
-	public void exportDotFile(PrismLog out, int precision)
-	{
-		/*try {
-			model.exportToFile(Prism.EXPORT_DOT, true, new java.io.File("a.dot"), precision);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (PrismException e) {
-			e.printStackTrace();
-		}*/
-	}
-	
-	@Override
-	public void exportStratToFile(File file, StrategyExportType exportType)
-	{
-		/*try {
-			switch (exportType) {
-			case ACTIONS:
-				model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_ACTIONS, true, file);
-				break;
-			case INDICES:
-				model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_INDICES, true, file);
-				break;
-			case INDUCED_MODEL:
-				model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_INDUCED, true, file);
-				break;
-			case DOT_FILE:
-				model.exportStrategyToFile(iv, Prism.EXPORT_STRAT_DOT, true, file);
-				break;
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (PrismException e) {
-			e.printStackTrace();
-		}*/
-	}
-
-	@Override
-	public void restrictStrategyToReachableStates() throws PrismException
-	{
-		// Nothing to do here. It is already done in 'sparse/PS_NondetUntil.cc'
-	}
-
 	@Override
 	public void clear()
 	{

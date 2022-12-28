@@ -121,9 +121,6 @@ public class StateModelChecker extends PrismComponent
 	// Should any generated strategies should be restricted to the states reachable under them?
 	protected boolean restrictStratToReach = true;
 
-	// Strategy generation
-	protected boolean generateStrategy = false;
-
 	// Stored Pareto sets
 	protected Pareto pareto_set = null;
 	// Stored parameters
