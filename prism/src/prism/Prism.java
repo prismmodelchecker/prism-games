@@ -198,9 +198,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
 
-	// explicit simulation
-	protected boolean explicitSimulation = true; // CLEMENS: TODO: where to get this from?
-
 	// Export parsed PRISM model?
 	protected boolean exportPrism = false;
 	protected File exportPrismFile = null;
