@@ -383,15 +383,11 @@ public class ConstructModel extends PrismComponent
 						} else {
 							stpg.addChoice(src, distr);
 						}
+					} else if (modelType == ModelType.CSG) {
+						// Action labels required for CSGs
+						csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
 					}
-					else if (modelType == ModelType.CSG) {
-						if (distinguishActions) {
-							csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
-						} 
-						else {
-							csg.addChoice(src, distr, modelGen.getTransitionIndexes(i));
-						}
-					} else if (modelType == ModelType.SMG) {
+					else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
 							smg.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
 						} else {
