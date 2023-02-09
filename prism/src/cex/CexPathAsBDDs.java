@@ -98,6 +98,18 @@ public class CexPathAsBDDs implements PathFullInfo
 	}
 
 	@Override
+	public int getStrategyMemory(int step)
+	{
+		return -1;
+	}
+	
+	@Override
+	public Object getStrategyDecision(int step)
+	{
+		return null;
+	}
+	
+	@Override
 	public double getCumulativeTime(int step)
 	{
 		return 0.0;
@@ -137,18 +149,6 @@ public class CexPathAsBDDs implements PathFullInfo
 	public double getTransitionReward(int step, int rsi)
 	{
 		return 0.0;
-	}
-
-	@Override
-	public boolean storesStrategyMemory()
-	{
-		return false;
-	}
-
-	@Override
-	public Object getStrategyMemory(int step)
-	{
-		return null;
 	}
 	
 	@Override

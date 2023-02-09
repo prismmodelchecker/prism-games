@@ -73,6 +73,7 @@ import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
 import strat.Strategy;
+import strat.StrategyGenerator;
 
 /**
  * Main class for all PRISM's core functionality.
@@ -197,9 +198,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Settings / flags / options
 	//------------------------------------------------------------------------------
 
-	// explicit simulation
-	protected boolean explicitSimulation = true; // CLEMENS: TODO: where to get this from?
-
 	// Export parsed PRISM model?
 	protected boolean exportPrism = false;
 	protected File exportPrismFile = null;
@@ -295,11 +293,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
 
-	// Info about the strategy that was generated
-	private strat.Strategy strategy;
-	// in case we want to simulate strategies from the command line
-	private List<strat.Strategy> subsystemStrategies;
-
+	// The last strategy that was generated
+	private Strategy strategy = null;
+	
 	// Info for explicit files load
 	private File explicitFilesStatesFile = null;
 	private File explicitFilesTransFile = null;
@@ -1156,7 +1152,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public SimulatorEngine getSimulator()
 	{
 		if (theSimulator == null) {
-			theSimulator = new SimulatorEngine(this, this);
+			theSimulator = new SimulatorEngine(this);
 		}
 		return theSimulator;
 	}
@@ -1755,12 +1751,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void setPRISMModelConstants(Values definedMFConstants, boolean exact) throws PrismException
 	{
-		if (currentDefinedMFConstants == null && definedMFConstants == null && currentDefinedMFConstantsAreExact == exact)
+		// If there is no change in constants, there is nothing to do
+		boolean currentMFNone = currentDefinedMFConstants == null || currentDefinedMFConstants.getNumValues() == 0;
+		boolean newMFNone = definedMFConstants == null || definedMFConstants.getNumValues() == 0;
+		if (currentMFNone && newMFNone && currentDefinedMFConstantsAreExact == exact) {
 			return;
+		}
 		if (currentDefinedMFConstants != null &&
 		    currentDefinedMFConstants.equals(definedMFConstants) &&
 		    currentDefinedMFConstantsAreExact == exact) {
-			// no change in constants and evaluation mode, nothing to do
 			return;
 		}
 
@@ -1913,6 +1912,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Get the values that have been provided for undefined constants in the current model.
+	 */
+	public Values getUndefinedModelValues()
+	{
+		return currentDefinedMFConstants;
+	}
+	
+	/**
 	 * Get the currently stored built (symbolic) model.
 	 * @return
 	 */
@@ -1931,16 +1938,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Get the currently stored strategy
-	 * 
-	 * @return
-	 */
-	public strat.Strategy getStrategy()
-	{
-		return strategy;
-	}
-
-	/**
 	 * Returns true if the current model is of a type that can be built (e.g. not a PTA).
 	 */
 	public boolean modelCanBeBuilt()
@@ -1956,6 +1953,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean modelIsBuilt()
 	{
 		return (getExplicit() ? (currentModelExpl != null) : (currentModel != null));
+	}
+
+	/**
+	 * Get the currently stored strategy (null if none)
+	 */
+	public Strategy getStrategy()
+	{
+		return strategy;
 	}
 
 	/**
@@ -2935,6 +2940,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Check that property is valid for the current model type
 		prop.getExpression().checkValid(currentModelType);
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// PTA (and similar) model checking is handled separately
 		if (currentModelType.realTime()) {
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
@@ -3028,28 +3036,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			} else {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
 				mc.setComputeParetoSet(computePareto);
-				// if implement strategy option is enabled, build a product with
-				// strategy before model checking
-
-				if (getSettings().getBoolean(PrismSettings.PRISM_IMPLEMENT_STRATEGY) && strategy != null) {
-					try {
-						mc.setStrategy(strategy);
-						res = mc.check(strategy.buildProduct(currentModelExpl), e);
-					} catch (UnsupportedOperationException uoe) {
-						// Note: this also gets thrown if the strategy is stochastic update
-						throw new PrismException("Building the product of the model and strategy failed");
-					}
-				} else {
-					res = mc.check(currentModelExpl, e);
-				}
-				// saving strategy if it was generated.
-				if (settings.getBoolean(PrismSettings.PRISM_GENERATE_STRATEGY)) {
-					// one strategy
-					strategy = res.getStrategy();
-					if (strategy != null)
-						strategy.setInfo("Property: " + prop.getExpression() + "\n" + "Type: " + strategy.getType() + "\nMemory size: "
-								+ strategy.getMemorySize());
-				}
+				res = mc.check(currentModelExpl, e);
+			}
+			
+			// If model checking generated a strategy, store it
+			if (res.getStrategy() != null) {
+				strategy = res.getStrategy();
 			}
 		} finally {
 			// Undo auto-switch (if any)
@@ -3074,6 +3066,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// and create new model checker object
 		expr.checkValid(currentModelType);
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// Digital clocks translation
 		if (settings.getString(PrismSettings.PRISM_PTA_METHOD).equals("Digital clocks") || currentModelType == ModelType.POPTA || currentModelType == ModelType.TPTG) {
 			digital = true;
@@ -3122,6 +3117,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// If creation failed before, this tries again, throwing an explanatory exception.
 		try {
 			getModelGenerator();
+			// No support for real-time models yet
+			if (currentModelType.realTime()) {
+				throw new PrismException(currentModelType + "s are not currently supported");
+			}
 		} catch (PrismException e) {
 			throw new PrismException("Simulation not possible: "+ e.getMessage());
 		}
@@ -3142,6 +3141,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 		// Load into simulator
 		getSimulator().loadModel(modelGenForSim, currentRewardGenerator);
+	}
+
+	/**
+	 * Load the current strategy (if any) into the simulator.
+	 * Does nothing if there is no strategy to load, or is not able to be simulated.
+	 */
+	public void loadStrategyIntoSimulator() throws PrismException
+	{
+		if (getStrategy() != null && getStrategy() instanceof StrategyGenerator) {
+			getSimulator().loadStrategy((StrategyGenerator) getStrategy());
+		}
 	}
 
 	/**
@@ -3194,6 +3204,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Check that property is valid for this model type
 		expr.checkValid(currentModelType.removeNondeterminism());
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// Do simulation
 		loadModelIntoSimulator();
 		Result res = getSimulator().modelCheckSingleProperty(propertiesFile, expr, initialState, maxPathLength, simMethod);
@@ -3242,6 +3255,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		for (Expression expr : exprs)
 			expr.checkValid(currentModelType.removeNondeterminism());
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// Do simulation
 		loadModelIntoSimulator();
 		Result[] resArray = getSimulator().modelCheckMultipleProperties(propertiesFile, exprs, initialState, maxPathLength, simMethod);
@@ -3278,6 +3294,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 		mainLog.println("Property constants: " + undefinedConstants.getPFDefinedConstantsString());
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// Do simulation
 		loadModelIntoSimulator();
 		getSimulator().modelCheckExperiment(propertiesFile, undefinedConstants, results, expr, initialState, maxPathLength, simMethod);
@@ -3298,6 +3317,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (currentModelType == ModelType.MDP && getFairness())
 			throw new PrismNotSupportedException("Exact model checking does not support checking MDPs under fairness");
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		// Set up a dummy parameter (not used)
 		String[] paramNames = new String[] { "dummy" };
 		String[] paramLowerBounds = new String[] { "0" };
@@ -3375,6 +3397,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (definedPFConstants != null && definedPFConstants.getNumValues() > 0)
 			mainLog.println("Property constants: " + definedPFConstants);
 
+		// Remove old strategy if present
+		clearStrategy();
+		
 		param.ModelBuilder builder = new ModelBuilder(this, param.ParamMode.PARAMETRIC);
 		ParamModel modelExpl = builder.constructModel(new ModulesFileModelGeneratorSymbolic(currentModulesFile, this), paramNames, paramLowerBounds, paramUpperBounds);
 		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.PARAMETRIC);
@@ -3391,6 +3416,23 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mainLog.print("\n" + resultString);
 
 		return result;
+	}
+
+	/**
+	 * Export the current strategy. The associated model should be attached to the strategy.
+	 * Strictly, speaking that does not need to be the currently loaded model,
+	 * but it would probably have been discarded if that was not the case.
+	 * @param strat The strategy
+	 * @param exportType The type of output
+	 * @param file File to output the path to (stdout if null)
+	 */
+	public void exportStrategy(StrategyExportType exportType, File file) throws FileNotFoundException, PrismException
+	{
+		if (getStrategy() != null) {
+			exportStrategy(getStrategy(), exportType, file);
+		} else {
+			throw new PrismException("There is no current strategy to export");
+		}
 	}
 
 	/**
@@ -3440,15 +3482,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		loadModelIntoSimulator();
 		GenerateSimulationPath genPath = new GenerateSimulationPath(getSimulator(), mainLog);
 		genPath.generateSimulationPath(null, details, maxPathLength, file);
-	}
-
-	/**
-	 *  Sets the strategy that will be available for this prism session
-	 * @param strat the strategy
-	 */
-	public void setStrategy(strat.Strategy strat)
-	{
-		this.strategy = strat;
 	}
 
 	/**
@@ -3853,9 +3886,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Clear the built model if needed (free/deallocate memory etc)
-	 * <br>
-	 * Resets {@code currentModel} and {@code currentModelExpl} to {@code null}.
+	 * Clear the built model if needed (free/deallocate memory etc).
+	 * This resets {@code currentModel} and {@code currentModelExpl} to {@code null}.
+	 * Also clear objects that connect to a build model, notably strategies.
 	 */
 	private void clearBuiltModel()
 	{
@@ -3864,12 +3897,21 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			currentModel = null;
 		}
 		currentModelExpl = null;
-
-		// nullify the strategy
-		strategy = null;
-		getSimulator().setStrategy(null);
+		clearStrategy();
 	}
 
+	/**
+	 * Clear the currently stored strategy if present (free/deallocate memory etc).
+	 * This resets {@code strategy} to {@code null}.
+	 */
+	private void clearStrategy()
+	{
+		if (strategy != null) {
+			strategy.clear();
+			strategy = null;
+		}
+	}
+	
 	/**
 	 * Clear up and close down.
 	 */

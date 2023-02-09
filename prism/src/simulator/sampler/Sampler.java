@@ -238,7 +238,7 @@ public abstract class Sampler
 				return new SamplerRewardCumulCont(exprTemp, rsi);
 			} else {
 				// Discrete-time cumulative reward
-			        return new SamplerRewardCumulDisc(exprTemp, rsi);
+				return new SamplerRewardCumulDisc(exprTemp, rsi);
 			}
 		case ExpressionTemporal.R_I:
 			if (modelInfo.getModelType().continuousTime()) {
@@ -246,7 +246,7 @@ public abstract class Sampler
 				return new SamplerRewardInstCont(exprTemp, rsi);
 			} else {
 				// Discrete-time instantaneous reward
-			        return new SamplerRewardInstDisc(exprTemp, rsi);
+				return new SamplerRewardInstDisc(exprTemp, rsi);
 			}
 		case ExpressionTemporal.P_F:
 			// reachability reward

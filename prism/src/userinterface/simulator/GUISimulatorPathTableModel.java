@@ -28,7 +28,6 @@
 
 package userinterface.simulator;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
@@ -38,9 +37,10 @@ import javax.swing.table.AbstractTableModel;
 
 import parser.ast.ModulesFile;
 import prism.ModelInfo;
-import simulator.PathFull;
 import simulator.PathFullInfo;
+import strat.StrategyGenerator;
 import userinterface.simulator.SimulationView.ActionValue;
+import userinterface.simulator.SimulationView.MemoryValue;
 import userinterface.simulator.SimulationView.Observ;
 import userinterface.simulator.SimulationView.RewardStructureColumn;
 import userinterface.simulator.SimulationView.RewardStructureValue;
@@ -54,11 +54,11 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	private static final long serialVersionUID = 1L;
 
 	enum PathTableModelGroupType {
-		STEP, TIME, VARIABLES, OBSERVABLES, REWARDS
+		STEP, TIME, VARIABLES, OBSERVABLES, REWARDS, STRATEGY
 	};
 	
 	enum GUISimulatorPathTableModelColumn {
-		ACTION, MEMORY, STEP, TIME_CUMUL, TIME, VARIABLE, OBSERVABLE, REWARD
+		ACTION, STEP, TIME_CUMUL, TIME, VARIABLE, OBSERVABLE, REWARD, MEMORY
 	};
 	
 	class PathTableModelGroup {
@@ -97,6 +97,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	private VariableValue variableValue;
 	private TimeValue timeValue;
 	private ActionValue actionValue;
+	private MemoryValue memoryValue;
 
 	public GUISimulatorPathTableModel(GUISimulator simulator, SimulationView view)
 	{
@@ -174,6 +175,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				return "Observables";
 			case REWARDS:
 				return "Rewards";
+			case STRATEGY:
+				return "Strategy";
 			default:
 				return "";
 			}
@@ -198,6 +201,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				return null;
 			case REWARDS:
 				return "State, transition and cumulative rewards";
+			case STRATEGY:
+				return "Status of current strategy";
 			default:
 				return "";
 			}
@@ -255,8 +260,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			switch (visibleColumns.get(columnIndex).type) {
 			case ACTION:
 				return modelInfo.getActionStringDescription();
-			case MEMORY:
-				return "Memory";
 			case STEP:
 				return "#";
 			case TIME_CUMUL:
@@ -272,6 +275,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			case REWARD:
 				RewardStructureColumn rewardColumn = (RewardStructureColumn) visibleColumns.get(columnIndex).info;
 				return rewardColumn.getColumnName();
+			case MEMORY:
+				return "Memory";
 			default:
 				return "";
 			}
@@ -286,8 +291,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 			switch (visibleColumns.get(columnIndex).type) {
 			case ACTION:
 				return "Module name or [action] label";
-			case MEMORY:
-				return "Memory of strategy";
 			case STEP:
 				return "Index of state in path";
 			case TIME_CUMUL:
@@ -312,6 +315,8 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				if (rewardColumn.isCumulativeReward()) {
 					return "Cumulative reward of reward structure " + rewardName;
 				}
+			case MEMORY:
+				return "Memory of current strategy";
 			default:
 				return "";
 			}
@@ -329,27 +334,6 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 				actionValue = view.new ActionValue(rowIndex == 0 ? "" : path.getActionString(rowIndex - 1));
 				actionValue.setActionValueUnknown(false);
 				return actionValue;
-			case MEMORY:
-				// The memory column
-				if (path instanceof PathFull) {
-					Object stratmem = ((PathFull) path).getStrategyMemory(rowIndex);
-					if (stratmem instanceof SimpleEntry) {
-						return String.format("(%d, %d)", ((SimpleEntry) stratmem).getKey(), ((SimpleEntry) stratmem).getValue());
-					} else if (stratmem instanceof List) {
-						String mem = "[";
-						for (int i = 0; i < ((List) stratmem).size(); i++) {
-							SimpleEntry<Integer, Integer> sm = (SimpleEntry) ((List) stratmem).get(i);
-							if (i > 0) {
-								mem += ", ";
-							}
-							mem += String.format("(%d, %d)", sm.getKey(), sm.getValue());
-						}
-						return mem + "]";
-					} else {
-						return String.format("%s", ((PathFull) path).getStrategyMemory(rowIndex));
-					}
-				}
-				return "";
 			case STEP:
 				// The step column
 				return "" + rowIndex;
@@ -406,6 +390,10 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 					rewardStructureValue.setRewardValueUnknown(rowIndex > path.size()); // Never unknown
 				}
 				return rewardStructureValue;
+			case MEMORY:
+				memoryValue = view.new MemoryValue(path.getStrategyMemory(rowIndex));
+				memoryValue.setMemoryValueUnknown(rowIndex > path.size()); // Never unknown
+				return memoryValue;
 			default:
 				return "";
 			}
@@ -430,6 +418,7 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 	public void updatePathTable()
 	{
 		setVisibleColumnsAndGroups();
+		fireTableStructureChanged();
 		fireTableDataChanged();
 	}
 
@@ -442,12 +431,9 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 		visibleGroups.clear();
 		if (pathActive) {
 			// Step
-			if (view.showActions() || (view.showMemory() && path.storesStrategyMemory()) || view.showSteps()) {
+			if (view.showActions() || view.showSteps()) {
 				if (view.showActions()) {
 					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.ACTION, null));
-				}
-				if (view.showMemory() && path.storesStrategyMemory()) {
-					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.MEMORY, null));
 				}
 				if (view.showSteps()) {
 					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.STEP, null));
@@ -489,6 +475,14 @@ public class GUISimulatorPathTableModel extends AbstractTableModel implements GU
 					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.REWARD, rsc));
 				}
 				visibleGroups.add(new PathTableModelGroup(PathTableModelGroupType.REWARDS, null, visibleColumns.size() - 1));
+			}
+			// Strategy
+			if (simulator.isStrategyShown()) {
+				StrategyGenerator stratGen = simulator.getSimulatorEngine().getStrategy();
+				if (stratGen != null && stratGen.hasMemory()) {
+					visibleColumns.add(new PathTableModelColumn(GUISimulatorPathTableModelColumn.MEMORY, null));
+					visibleGroups.add(new PathTableModelGroup(PathTableModelGroupType.STRATEGY, null, visibleColumns.size() - 1));
+				}
 			}
 		}
 	}

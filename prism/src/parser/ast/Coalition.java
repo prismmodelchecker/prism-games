@@ -130,17 +130,43 @@ public class Coalition
 	/**
 	 * Check if a given player (specified by its index) is in the coalition,
 	 * i.e., if the index or the name of the player with this index is in the list.
+	 * The list of player names is passed in.
+	 * NB: {@code index} is indexed from 0,
+	 * which differs from the way coalitions are stored as strings
+	 * using numerical indices (there, it is 1-indexed)
+	 */
+	public boolean isPlayerIndexInCoalition(int index, List<String> playerNames)
+	{
+		if (allPlayers) {
+			return true;
+		}
+		if (players.contains("" + (index + 1))) {
+			return true;
+		}
+		String playerName = playerNames.get(index);
+		if (playerName != null && !"".equals(playerName) && players.contains(playerName)) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Check if a given player (specified by its index) is in the coalition,
+	 * i.e., if the index or the name of the player with this index is in the list.
 	 * The mapping from player indices to player names is passed in.
+	 * NB: {@code index} is indexed from 0,
+	 * which differs from the way coalitions are stored as strings
+	 * using numerical indices (there, it is 1-indexed)
 	 */
 	public boolean isPlayerIndexInCoalition(int index, Map<Integer, String> playerNames)
 	{
 		if (allPlayers) {
 			return true;
 		}
-		if (players.contains("" + index)) {
+		if (players.contains("" + (index + 1))) {
 			return true;
 		}
-		String playerName = playerNames.get(index);
+		String playerName = playerNames.get(index + 1);
 		if (playerName != null && !"".equals(playerName) && players.contains(playerName)) {
 			return true;
 		}

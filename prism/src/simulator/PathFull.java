@@ -37,8 +37,9 @@ import prism.RewardGenerator;
 import userinterface.graph.Graph;
 
 /**
- * Stores and manipulates a path though a model. The full path is stored, i.e.
- * all info at all steps. State objects and arrays are copied for storage.
+ * Stores and manipulates a path though a model.
+ * The full path is stored, i.e. all info at all steps.
+ * State objects and arrays are copied for storage.
  */
 public class PathFull extends Path implements PathFullInfo
 {
@@ -150,10 +151,11 @@ public class PathFull extends Path implements PathFullInfo
 		loopDet.addStep(this, modelGen);
 	}
 
-    @Override
-	public void setStrategyMemoryForCurrentState(Object memory)
+	@Override
+	public void setStrategyInfoForCurrentState(int memory, Object decision)
 	{
-		steps.get(steps.size() - 1).strategyMemory = memory;
+		steps.get(steps.size() - 1).stratMemory = memory;
+		steps.get(steps.size() - 1).stratDecision = decision;
 	}
 	
 	// MUTATORS (additional)
@@ -185,11 +187,9 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	/**
-	 * Remove the prefix of the current path up to the given path step. Index
-	 * step should be >=0 and <= the total path size.
-	 * 
-	 * @param step
-	 *            The step before which states will be removed.
+	 * Remove the prefix of the current path up to the given path step.
+	 * Index step should be >=0 and <= the total path size. 
+	 * @param step The step before which states will be removed.
 	 */
 	public void removePrecedingStates(int step)
 	{
@@ -204,8 +204,8 @@ public class PathFull extends Path implements PathFullInfo
 		rewardsCumul = new double[numRewardStructs];
 		for (j = 0; j < numRewardStructs; j++)
 			rewardsCumul[j] = getCumulativeReward(step, j);
-		// Move later steps of path 'step' places forward
-		// and subtract time/reward as appropriate
+		// Move later steps of path 'step' places forward 
+		// and subtract time/reward as appropriate 
 		numKeep = steps.size() - step;
 		for (i = 0; i < numKeep; i++) {
 			Step tmp = steps.get(i + step);
@@ -247,17 +247,19 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public State getPreviousState()
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).state;
-	    return null;
 	}
 
 	@Override
 	public State getCurrentState()
 	{
-	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).state;
-	    return null;
+	}
+
+	@Override
+	public State getPreviousObservation()
+	{
+		return steps.get(steps.size() - 2).obs;
 	}
 
 	@Override
@@ -287,75 +289,69 @@ public class PathFull extends Path implements PathFullInfo
 	@Override
 	public double getTotalTime()
 	{
-	    if(steps.size() >= 1)
 		return size < 1 ? 0.0 : steps.get(steps.size() - 1).timeCumul;
-	    return 0.0;
 	}
 
 	@Override
 	public double getTimeInPreviousState()
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).time;
-	    return 0.0;
 	}
 
 	@Override
 	public double getTotalCumulativeReward(int rsi)
 	{
-	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).rewardsCumul[rsi];
-	    return 0.0;
 	}
 
 	@Override
 	public double getPreviousStateReward(int rsi)
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).stateRewards[rsi];
-	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousStateRewards()
-        {
-	    if(steps.size() >= 2)
+	{
 		return steps.get(steps.size() - 2).stateRewards;
-	    return null;
 	}
 
 	@Override
 	public double getPreviousTransitionReward(int rsi)
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards[rsi];
-	    return 0.0;
 	}
 
 	@Override
 	public double[] getPreviousTransitionRewards()
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).transitionRewards;
-	    return null;
 	}
 
 	@Override
 	public double getCurrentStateReward(int rsi)
 	{
-	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards[rsi];
-	    return 0.0;
 	}
 
 	@Override
 	public double[] getCurrentStateRewards()
 	{
-	    if(steps.size() >= 1)
 		return steps.get(steps.size() - 1).stateRewards;
-	    return null;
 	}
 
+	@Override
+	public int getCurrentStrategyMemory()
+	{
+		return steps.get(steps.size() - 1).stratMemory;
+	}
+	
+	@Override
+	public Object getCurrentStrategyDecision()
+	{
+		return steps.get(steps.size() - 1).stratDecision;
+	}
+	
 	@Override
 	public boolean isLooping()
 	{
@@ -372,12 +368,6 @@ public class PathFull extends Path implements PathFullInfo
 	public long loopEnd()
 	{
 		return loopDet.loopEnd();
-	}
-
-	@Override
-	public Object getStrategyMemoryForCurrentState()
-	{
-		return steps.get(steps.size() - 1).strategyMemory;
 	}
 
 	// ACCESSORS (for PathFullInfo)
@@ -422,6 +412,18 @@ public class PathFull extends Path implements PathFullInfo
 	}
 
 	@Override
+	public int getStrategyMemory(int step)
+	{
+		return steps.get(step).stratMemory;
+	}
+	
+	@Override
+	public Object getStrategyDecision(int step)
+	{
+		return steps.get(step).stratDecision;
+	}
+	
+	@Override
 	public double getTime(int step)
 	{
 		return steps.get(step).time;
@@ -451,9 +453,7 @@ public class PathFull extends Path implements PathFullInfo
 	 */
 	public double getProbability(int step)
 	{
-	    if(steps.size() >= 2)
 		return steps.get(steps.size() - 2).probability;
-	    return 0.0;
 	}
 
 	@Override
@@ -469,14 +469,6 @@ public class PathFull extends Path implements PathFullInfo
 	protected double[] getTransitionRewards(int step)
 	{
 		return steps.get(step).transitionRewards;
-	}
-
-	/**
-	 * Get the strategy memory for the state at a given step of the path (if stored; null if not).
-	 */
-	public Object getStrategyMemory(int step)
-	{
-		return steps.get(step).strategyMemory;
 	}
 
 	@Override
@@ -620,7 +612,6 @@ public class PathFull extends Path implements PathFullInfo
 			actionString = null;
 			probability = 0.0;
 			transitionRewards = new double[numRewardStructs];
-			strategyMemory = null;
 		}
 
 		// Current state (before transition)
@@ -633,6 +624,10 @@ public class PathFull extends Path implements PathFullInfo
 		public double timeCumul;
 		// Cumulative rewards spent up until entering this state
 		public double rewardsCumul[];
+		// Current memory of strategy (if present) on entering this state
+		public int stratMemory;
+		// Next decision of strategy (if present) for current state
+		public Object stratDecision;
 		// Time spent in state
 		public double time;
 		// Index of the choice taken
@@ -645,8 +640,6 @@ public class PathFull extends Path implements PathFullInfo
 		public double probability;
 		// Transition rewards associated with step
 		public double transitionRewards[];
-		// Strategy memory
-		public Object strategyMemory;
 	}
 
 	class DisplayThread extends Thread

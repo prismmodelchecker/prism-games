@@ -70,7 +70,7 @@ public class PathFullPrefix extends Path
 	}
 
 	@Override
-	public void setStrategyMemoryForCurrentState(Object memory)
+	public void setStrategyInfoForCurrentState(int memory, Object decision)
 	{
 		// Do nothing (we are not allowed to modify the underlying PathFull)
 	}
@@ -112,6 +112,12 @@ public class PathFullPrefix extends Path
 	public State getCurrentState()
 	{
 		return pathFull.getState(prefixLength);
+	}
+
+	@Override
+	public State getPreviousObservation()
+	{
+		return pathFull.getObservation(prefixLength - 1);
 	}
 
 	@Override
@@ -193,6 +199,18 @@ public class PathFullPrefix extends Path
 	}
 	
 	@Override
+	public int getCurrentStrategyMemory()
+	{
+		return pathFull.getStrategyMemory(prefixLength);
+	}
+	
+	@Override
+	public Object getCurrentStrategyDecision()
+	{
+		return pathFull.getStrategyDecision(prefixLength);
+	}
+	
+	@Override
 	public boolean isLooping()
 	{
 		return pathFull.isLooping() && pathFull.loopEnd() < prefixLength;
@@ -209,10 +227,4 @@ public class PathFullPrefix extends Path
 	{
 		return isLooping() ? pathFull.loopEnd() : -1;
 	}
-	
-	@Override
-	public Object getStrategyMemoryForCurrentState()
-	{
-		return pathFull.getStrategyMemory(prefixLength);
-	}	
 }

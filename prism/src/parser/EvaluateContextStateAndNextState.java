@@ -32,7 +32,7 @@ package parser;
  * These are basically arrays of Objects, indexed according to a model file. 
  * Optionally values for constants can also be supplied.
  */
-public class EvaluateContextStateAndNextState implements EvaluateContext
+public class EvaluateContextStateAndNextState extends EvaluateContext
 {
 	private Values constantValues;
 	private Object[] varValues;

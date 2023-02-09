@@ -57,16 +57,11 @@ public class GUISimLabelList extends JList
 	public GUISimLabelList(GUISimulator sim)
 	{
 		this.sim = sim;
-		this.engine = sim.getSimulator();
+		this.engine = sim.getPrism().getSimulator();
 		listModel = new DefaultListModel();
 		setModel(listModel);
 		setCellRenderer(new SimLabelRenderer());
 	}
-
-    public void setEngine(SimulatorEngine engine)
-    {
-	this.engine = engine;
-    }
 
 	/**
 	 * Clear the list of labels.

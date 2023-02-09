@@ -71,18 +71,19 @@ import parma_polyhedra_library.Generator_Type;
 import parma_polyhedra_library.Linear_Expression;
 import parma_polyhedra_library.Variable;
 import prism.Prism.StrategyExportType;
+import strat.StrategyInfo.Memory;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
 
-public class StochasticUpdateStrategy implements Strategy
+public class StochasticUpdateStrategy extends StrategyExplicit
 {
 	// turn on for specific debugging
-        private boolean log_problem = false;
-        // logging for user
-        private boolean logStrategy = false;
-        private PrismLog mainLog = null;
+	private boolean log_problem = false;
+	// logging for user
+	private boolean logStrategy = false;
+	private PrismLog mainLog = null;
 
 	protected String info = "No information available.";
 
@@ -132,6 +133,46 @@ public class StochasticUpdateStrategy implements Strategy
 	protected double varepsilon;
 
 	@Override
+	public Memory memory()
+	{
+		return Memory.FINITE;
+	}
+	
+	@Override
+	public Object getChoiceAction(int s, int m)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public int getChoiceIndex(int s, int m)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public int getMemorySize()
+	{
+		return memorySize;
+	}
+	
+	@Override
+	public int getInitialMemory(int sInit)
+	{
+		// TODO (need to map pairs of ints to an int)
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public int getUpdatedMemory(int m, Object action, int sNext)
+	{
+		// TODO (need to map pairs of ints to an int)
+		throw new UnsupportedOperationException();
+	}
+	
+	//@Override
 	public void init(int state) throws InvalidStrategyStateException
 	{
 		if (state != initial_state) {
@@ -145,7 +186,7 @@ public class StochasticUpdateStrategy implements Strategy
 		}
 	}
 
-	@Override
+	//@Override
 	public Distribution getNextMove(int state) throws InvalidStrategyStateException
 	{
 	        if (log_problem) {
@@ -162,7 +203,7 @@ public class StochasticUpdateStrategy implements Strategy
 		return result == null ? new Distribution() : result;
 	}
 
-	@Override
+	//@Override
 	public void updateMemory(int action, int state) throws InvalidStrategyStateException
 	{
 		if (log_problem)
@@ -243,7 +284,7 @@ public class StochasticUpdateStrategy implements Strategy
 		return label;
     }
     
-	@Override
+	//@Override
 	public void reset()
 	{
 		lastCorner = -1;
@@ -261,7 +302,7 @@ public class StochasticUpdateStrategy implements Strategy
 	}
 
 	// construct strategy from file
-	public StochasticUpdateStrategy(Scanner scan)
+	/*public StochasticUpdateStrategy(Scanner scan)
 	{
 		int states = 0;
 		info = ""; // clear startegy info
@@ -385,9 +426,9 @@ public class StochasticUpdateStrategy implements Strategy
 				nextLine = scan.nextLine();
 			}
 		}
-	}
+	}*/
 
-	@Override
+	//@Override
 	public void exportToFile(String filename)
 	{
 		FileWriter out = null;
@@ -406,7 +447,7 @@ public class StochasticUpdateStrategy implements Strategy
 		}
 	}
 
-	@Override
+	/*@Override
 	public String toString()
 	{
 
@@ -494,43 +535,9 @@ public class StochasticUpdateStrategy implements Strategy
 		out.flush();
 		out.close();
 		return stream.toString();
-	}
+	}*/
 
-	// Note that stochastic memory update doesn't work with product!
-	@Override
-	public Model buildProduct(Model model) throws PrismException
-	{
-		if (!model.getClass().equals(SMG.class)) {
-			throw new PrismLangException("Unsupported model type");
-		}
-		throw new PrismLangException("Product with model not supported for stochastic memory update strategy.");
-	}
-
-	@Override
-	public void setInfo(String info)
-	{
-		this.info = info;
-	}
-
-	@Override
-	public String getInfo()
-	{
-		return info;
-	}
-
-	@Override
-	public int getMemorySize()
-	{
-		return memorySize;
-	}
-
-	@Override
-	public String getType()
-	{
-		return Strategies.FORMAT_STRING_SU_STRAT_MONO;
-	}
-
-	@Override
+	//@Override
 	public Object getCurrentMemoryElement()
 	{
 		Entry mem = new SimpleEntry<Integer, Integer>(lastState, lastCorner);
@@ -539,7 +546,7 @@ public class StochasticUpdateStrategy implements Strategy
 		// as strategy steps over these
 	}
 
-	@Override
+	//@Override
 	public void setMemory(Object memory) throws InvalidStrategyStateException
 	{
 		if (memory instanceof Entry) {
@@ -548,21 +555,6 @@ public class StochasticUpdateStrategy implements Strategy
 		} else {
 			throw new InvalidStrategyStateException("Memory has to be integer for this strategy.");
 		}
-	}
-
-	@Override
-	public String getDescription()
-	{
-		String desc = "";
-		desc += "Stochastic update strategy\n";
-		desc += "Size of memory: " + getMemorySize() + "\n";
-		return desc;
-	}
-
-	@Override
-	public int getInitialStateOfTheProduct(int s)
-	{
-		return -1; // not available for SU strategies
 	}
 
 	// produces the list of next multi-generators, i.e. one generator for each successor
@@ -774,8 +766,10 @@ public class StochasticUpdateStrategy implements Strategy
 	public StochasticUpdateStrategy(SMG G, double[] v, Pareto[] X, List<Pareto>[] Y, List<SMGRewards> rewards, double[] biggest_reward, long baseline_accuracy,
 					boolean reachable_only, boolean rounding, double varepsilon, boolean logStrategy, PrismLog mainLog) throws PrismException
 	{
-	        // set logger
-	        this.logStrategy = logStrategy;
+		super(G);
+		
+		// set logger
+		this.logStrategy = logStrategy;
 		this.mainLog = mainLog;
 
 		if(logStrategy) mainLog.print("Constructing SU Strategy from the following sets:");
@@ -1764,26 +1758,5 @@ public class StochasticUpdateStrategy implements Strategy
 	{
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public void restrictStrategyToReachableStates() throws PrismException
-	{
-		// TODO Auto-generated method stub
-		throw new PrismException("Reach option is not supported for this strategy type");
-	}
-
-	@Override
-	public void exportStratToFile(File file, StrategyExportType exportType)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

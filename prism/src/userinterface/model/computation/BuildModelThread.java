@@ -64,7 +64,6 @@ public class BuildModelThread extends GUIComputationThread
 
 		// Do build
 		try {
-		    ((GUIMultiModel)handler.getGUIPlugin()).getGUISimulator().setStrategyGenerated(false);
 			prism.buildModel();
 		} catch (Throwable e) {
 			error(e);

@@ -27,154 +27,46 @@
 
 package strat;
 
-import java.io.File;
-import java.util.HashMap;
-
-import explicit.Distribution;
-import explicit.Model;
-import prism.PrismException;
 import prism.PrismLog;
-import prism.Prism.StrategyExportType;
 
 /**
- * Classes to store memoryless deterministic (MD) strategies.
+ * Interface for classes to store memoryless deterministic (MD) strategies.
  */
-public abstract class MDStrategy implements Strategy
+public interface MDStrategy extends Strategy
 {
-	/**
-	 * Current state of model
-	 */
-	protected int currentState = -1;
-
-	// Getters specifically for MD strategies
+	// Additional queries for memoryless strategies (just ignore memory)
 	
 	/**
-	 * Get the number of states of the model associated with this strategy. 
+	 * Get the action chosen by the strategy in the state index s
+	 * Returns {@link #StrategyInfo.UNDEFINED} if undefined.
 	 */
-	public abstract int getNumStates();
-
+	public default Object getChoiceAction(int s)
+	{
+		return getChoiceAction(s, -1);
+	}
+	
 	/**
-	 * Is choice information stored for state s?
-	 */
-	public abstract boolean isChoiceDefined(int s);
-
-	/**
-	 * Get the type of choice information stored for state s.
-	 */
-	public abstract Strategy.Choice getChoice(int s);
-
-	/**
-	 * Get the index of the choice taken in state s.
+	 * Get the index of the choice picked by the strategy in the state index s.
 	 * The index is defined with respect to a particular model, stored locally.
-	 * Other possible values: -1 (unknown), -2 (arbitrary), -3 (unreachable)
+	 * Returns a negative value (not necessarily -1) if undefined.
 	 */
-	public abstract int getChoiceIndex(int s);
+	public default int getChoiceIndex(int s)
+	{
+		return getChoiceIndex(s, -1);
+	}
 
 	/**
-	 * Get the action taken in state s.
+	 * Is a choice defined by the strategy in the state index s.
 	 */
-	public abstract Object getChoiceAction(int s);
+	public default boolean isChoiceDefined(int s)
+	{
+		return isChoiceDefined(s, -1);
+	}
 
 	// Methods for Strategy
 	
 	@Override
-	public String getInfo()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getMemorySize()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String getType()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getDescription()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setInfo(String info)
-	{
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void init(int state) throws InvalidStrategyStateException
-	{
-		currentState = state;
-	}
-
-	@Override
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException
-	{
-		currentState = state;
-	}
-
-	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public abstract HashMap<String,Double> getNextAction(int state) throws InvalidStrategyStateException;;
-	
-	@Override
-	public Object getCurrentMemoryElement()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void reset()
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Model buildProduct(Model model) throws PrismException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getInitialStateOfTheProduct(int s)
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public void exportToFile(String file)
-	{
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public void exportActions(PrismLog out)
+	public default void exportActions(PrismLog out)
 	{
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
@@ -184,7 +76,7 @@ public abstract class MDStrategy implements Strategy
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public default void exportIndices(PrismLog out)
 	{
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
@@ -192,19 +84,4 @@ public abstract class MDStrategy implements Strategy
 				out.println(s + ":" + getChoiceIndex(s));
 		}
 	}
-	
-	@Override
-	public abstract void exportInducedModel(PrismLog out, int precision);
-	
-	@Override
-	public abstract void exportDotFile(PrismLog out, int precision);
-	
-	@Override
-	public abstract void exportStratToFile(File file, StrategyExportType exportType);
-	
-	@Override
-	public abstract void restrictStrategyToReachableStates() throws PrismException;
-	
-	@Override
-	public abstract void clear();
 }

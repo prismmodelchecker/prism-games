@@ -57,3 +57,22 @@ R{"correct_guess"}max=? [F "correct"]
 
 // RESULT: 1.25
 <<1>> R{"correct_guess"}max=? [Fc "correct"]  
+
+// RESULT: 0.0
+<<1>> R{"correct_guess"}max=? [I=2]  
+
+// RESULT: 1.25
+<<1>> R{"correct_guess"}max=? [I=4]  
+
+// RESULT: 1.25
+<<1>> R{"correct_guess"}max=? [C<=4]  
+
+// RESULT: 3.75
+<<1>> R{"correct_guess"}min=? [C<=4]  
+
+// RESULT: 3.75
+<<1>> R{"correct_guess"}max=? [C<=6]  
+
+// RESULT: 11.25
+<<1>> R{"correct_guess"}min=? [C<=6]  
+

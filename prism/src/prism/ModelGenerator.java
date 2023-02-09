@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 import parser.State;
+import parser.ast.Expression;
 
 /**
  * Interface for classes that generate a probabilistic model:
@@ -284,6 +285,41 @@ public interface ModelGenerator extends ModelInfo
 	}
 
 	/**
+	 * Get the index of the (first) choice with a given action label.
+	 * Returns -1 if none exists.
+	 */
+	public default int getChoiceIndexByAction(Object action) throws PrismException
+	{
+		// Default implementation just searches via getChoiceAction(i)
+		int n = getNumChoices();
+		for (int i = 0; i < n; i++) {
+			Object a = getChoiceAction(i);
+			if (a == null) {
+				if (action == null) {
+					return i;
+				}
+			} else {
+				if (a.equals(action)) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+	
+	/**
+	 * For real-time models, get the clock guard of a choice,
+	 * i.e., an expression over clock variables denoting when it can be taken.
+	 * If there is no guard, this returns null;
+	 * @param i Index of the nondeterministic choice
+	 */
+	public default Expression getChoiceClockGuard(int i) throws PrismException
+	{
+		// Absent by default
+		return null;
+	}
+	
+	/**
 	 * For a CSG model, get the action indexes for a choice, specified by its index.
 	 * This is returned as an array of integers, giving the (1-indexed) indices of
 	 * the actions for each player attached to the choice.
@@ -294,8 +330,9 @@ public interface ModelGenerator extends ModelInfo
 	{
 		// No implementation by default
 		return null;
+
 	}
-	
+
 	/**
 	 * Get the probability/rate of a transition within a choice, specified by its index/offset.
 	 * @param i Index of the nondeterministic choice
@@ -392,6 +429,18 @@ public interface ModelGenerator extends ModelInfo
 		} else {
 			return isLabelTrue(i);
 		}
+	}
+	
+	/**
+	 * For real-time models, get the clock invariant for the current state,
+	 * i.e., an expression over clock variables which must remain true.
+	 * If there is no invariant, this returns null;
+	 * @param i Index of the nondeterministic choice
+	 */
+	public default Expression getClockInvariant() throws PrismException
+	{
+		// Absent by default
+		return null;
 	}
 	
 	/**

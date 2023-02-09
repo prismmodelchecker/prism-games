@@ -27,37 +27,22 @@
 
 package strat;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import explicit.CSG;
-import explicit.DTMCSimple;
 import explicit.Distribution;
 import explicit.MDPSimple;
-import explicit.Model;
 import explicit.ModelCheckerResult;
 import parser.State;
 import parser.VarList;
-import parser.ast.Coalition;
-import parser.ast.Declaration;
-import parser.ast.DeclarationInt;
-import parser.ast.Expression;
-import prism.Prism.StrategyExportType;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
-import prism.PrismPrintStreamLog;
 
 public class CSGStrategy extends PrismComponent implements Strategy {
 
@@ -104,94 +89,53 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	}
 	
 	@Override
-	public String getInfo() {
-		// TODO Auto-generated method stub
-		return null;
+	public int getNumStates()
+	{
+		return model.getNumStates();
 	}
-
+	
 	@Override
-	public int getMemorySize() {
-		// TODO Auto-generated method stub
-		return 0;
+	public Memory memory()
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
+	
 	@Override
-	public String getType() {
-		// TODO Auto-generated method stub
-		return null;
+	public Object getChoiceAction(int s, int m)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
+	
 	@Override
-	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
+	public int getChoiceIndex(int s, int m)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
+	
 	@Override
-	public void setInfo(String info) {
-		// TODO Auto-generated method stub
-		
+	public int getMemorySize()
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
+	
 	@Override
-	public void init(int state) throws InvalidStrategyStateException {
-		// TODO Auto-generated method stub
-		
+	public int getInitialMemory(int sInit)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
+	
 	@Override
-	public void updateMemory(int action, int state) throws InvalidStrategyStateException {
-		// TODO Auto-generated method stub
-		
+	public int getUpdatedMemory(int m, Object action, int sNext)
+	{
+		// TODO
+		throw new UnsupportedOperationException();
 	}
-
-	@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public HashMap<String, Double> getNextAction(int state) throws InvalidStrategyStateException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object getCurrentMemoryElement() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setMemory(Object memory) throws InvalidStrategyStateException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void reset() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Model buildProduct(Model model) throws PrismException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getInitialStateOfTheProduct(int s) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public void exportToFile(String file) {
-		// TODO Auto-generated method stub
-	}
-
+	
 	@Override
 	public void exportActions(PrismLog out) {
 		try {
@@ -225,11 +169,6 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	
 	@Override
 	public void exportDotFile(PrismLog out, int precision) {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public void exportStratToFile(File file, StrategyExportType exportType) {
 		// TODO Auto-generated method stub
 	}
 	
@@ -372,13 +311,12 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		else {
 			n = onmap.get(s);
 		}
-		for (int t = 0; t < model.getNumChoices(s); t++) {
-			for (int u : model.getChoice(s, t).getSupport()) {
-				if (goals[0].get(s))
-					goals[0].set(u);
-				if (goals[1].get(s))
-					goals[1].set(u);
-			}
+		for (Iterator<Integer> iter = model.getSuccessorsIterator(s); iter.hasNext(); ) {
+			int u = iter.next();
+			if (goals[0].get(s))
+				goals[0].set(u);
+			if (goals[1].get(s))
+				goals[1].set(u);
 		}
 		explored.set(s);
 		if (goals[p].get(s) && goals[(p + 1) % 2].get(s)) {
@@ -393,10 +331,15 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 		else if (!goals[(p +1) % 2].get(s)) {
 			d = new Distribution();
-			c = prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport().size();
-			for (int t : prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport()) {
-				v = prechoices[(p + 1) % 2].strat.getNextMove(s).get(t);
-				for (int u : model.getChoice(s, t).getSupport()) {
+			//c = prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport().size();
+			c = 1;
+			//for (int t : prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport()) {
+			int t = prechoices[(p + 1) % 2].strat.getChoiceIndex(s, -1);
+				//v = prechoices[(p + 1) % 2].strat.getNextMove(s).get(t);
+				v = 1.0;
+				for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+					Map.Entry<Integer, Double> e = iter.next();
+					int u = e.getKey();
 					if (!onmap.containsKey(u)) {
 						m = mdp.addState();
 						onmap.put(u, m);
@@ -407,14 +350,14 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					}
 					if (!explored.get(u))
 						addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, u);							
-					d.add(m, v * model.getChoice(s, t).get(u));
+					d.add(m, v * e.getValue());
 				}
 				for (i = 0; i < model.getActions(s, t).length; i++) {
 					joint += "[" + model.getActions(s, t)[i] + "]";
 				}
 				c--;
 				label += v + ": " + joint + ((c > 0)? " + " : "");
-			}
+			//}
 			mdp.addActionLabelledChoice(n, d, label);
 		}
 	}
@@ -490,7 +433,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {						
-						for (int u : model.getChoice(s, t).getSupport()) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+							Map.Entry<Integer, Double> e = iter.next();
+							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -500,10 +445,10 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							}
 							else {
 								m = onmap.get(u);
-								if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
+								if (m == n && model.getNumChoices(s) == 1 && model.getNumTransitions(s, t) == 1)
 									loop = true;
 							}
-							d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
+							d.add(m, e.getValue() * prods.get(tmp));
 						}
 					}
 				}
@@ -537,7 +482,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		String joint = null;
 		BitSet tmp = new BitSet();
 		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		int c, i, m, n, p, q, t;
+		int c, i, n, p, q, t;
 		boolean chck = true;
 		n = onmap.get(s);
 		explored.set(s);
@@ -576,7 +521,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {
-						for (int u : model.getChoice(s, t).getSupport()) {
+						model.forEachTransition(s, t, (__, u, pr) -> {
+							int m;
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -587,8 +533,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							else {
 								m = onmap.get(u);
 							}
-							d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
-						}
+							d.add(m, pr * prods.get(tmp));
+						});
 					}
 				}
 				if (!d.isEmpty()) {
@@ -651,7 +597,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					tmp2.andNot(tmp1);
 					if (tmp2.isEmpty()) {
 						d = new Distribution();
-						for (int u : model.getChoice(s, t).getSupport()) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
+							Map.Entry<Integer, Double> e = iter.next();
+							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
 								onmap.put(u, m);
@@ -662,7 +610,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 							else {
 								m = onmap.get(u);
 							}
-							d.add(m, model.getChoice(s, t).get(u) * csgchoices.get(p).get(k).get(s).get(act));
+							d.add(m, e.getValue() * csgchoices.get(p).get(k).get(s).get(act));
 						}
 						for (i = tmp1.nextSetBit(0); i >= 0; i = tmp1.nextSetBit(i + 1)) {
 							if (act.get(i))
@@ -681,15 +629,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	}
 
 	@Override
-	public void restrictStrategyToReachableStates() throws PrismException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void clear() {
 		// TODO Auto-generated method stub
 		
 	}
-
 }
