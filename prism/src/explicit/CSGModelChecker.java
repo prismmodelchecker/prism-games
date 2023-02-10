@@ -146,17 +146,72 @@ public class CSGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeNextProbs(CSG csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
-		ModelCheckerResult res = null;
+		ModelCheckerResult res = new ModelCheckerResult();
+		LpSolve lp;
+		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
+		Map<Integer, BitSet> mmap = null;
+		List<List<List<Map<BitSet, Double>>>> lstrat = null;
+		List<Map<BitSet, Double>> kstrat = null;
+		double[] nsol = new double[csg.getNumStates()];
+		long timer;
+		int s, i;
+		if (genStrat || exportAdv) {
+			mmap = new HashMap<Integer, BitSet>();
+			kstrat = new ArrayList<Map<BitSet, Double>>();
+			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>(1);
+			lstrat.add(0, new ArrayList<List<Map<BitSet, Double>>>());
+			lstrat.get(0).add(0, new ArrayList<Map<BitSet, Double>>());
+			for (i = 0; i < csg.getNumStates(); i++) {
+				lstrat.get(0).get(0).add(i, null);
+				kstrat.add(i, null);
+			}
+		}
 		if (verbosity >= 1)
 			mainLog.println("\nStarting next probabilistic reachability for CSGs...");
+		timer = System.currentTimeMillis();
 		buildCoalitions(csg, coalition, min1);
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachProbsValIter(csg, new BitSet(), new BitSet(), 1, true, min1);
+			for (s = 0; s < csg.getNumStates(); s++) {
+				nsol[s] = target.get(s)? 1.0 : 0.0;
+			}
+			try {
+				lp = LpSolve.makeLp(maxCols + 1, maxRows + 1);
+				lp.setVerbose(LpSolve.CRITICAL);
+				if (min1)
+					lp.resizeLp(0, maxCols + 1);
+				else
+					lp.resizeLp(0, maxRows + 1);
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new PrismException(e.toString());
+			}
+			for (s = 0; s < csg.getNumStates(); s++) {
+				mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
+				nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
+				if ((genStrat || exportAdv)) {
+					// player -> iteration -> state -> indexes -> value
+					if (lstrat.get(0).get(0).get(s) == null) {
+						lstrat.get(0).get(0).set(s, kstrat.get(s));
+					} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
+						lstrat.get(0).get(0).set(s, kstrat.get(s));
+					}
+				}
+			}
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
 		}
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Next probability computation took " + 1 + " iters and " + timer / 1000.0 + " seconds.");
+		res.soln = nsol;
+		res.lastSoln = null;
+		res.numIters = 1;
+		res.timeTaken = timer / 1000.0;
+		res.timePre = 0.0;
+		if (genStrat || exportAdv)
+			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
 	}
 
@@ -1868,7 +1923,7 @@ public class CSGModelChecker extends ProbModelChecker
 				}
 			}
 			if (genStrat || exportAdv) {
-				d.put(rmap.get(srow), 1.0); // in case of min, rmap is actually "cmap"
+				d.put(rmap.get(srow), 1.0); // In case of min, rmap maps columns not rows
 				strat.set(s, d);
 			}
 			return res;
@@ -1887,7 +1942,6 @@ public class CSGModelChecker extends ProbModelChecker
 			}
 			return res;
 		} else {
-			// System.out.println("$$ state " + s + " is concurrent");
 			// Should add check for trivial games
 			int infty;
 			infty = valInfinity(mgame);
@@ -1930,8 +1984,6 @@ public class CSGModelChecker extends ProbModelChecker
 						throw new PrismException("lpSolve could not find an optimal solution for state " + s);
 					}
 				} catch (Exception e) {
-					//e.printStackTrace();
-					//lp.printLp();
 					mainLog.println(
 							"Exception raised by lpSolve when computing value for state " + s + ". lpSolve status: " + lp.getStatustext(lp.getStatus()));
 					mainLog.println("Rounding up entries...");

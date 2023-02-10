@@ -1294,7 +1294,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
    					}
    				}
    				temp.or(targets[i]);
-   				if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.numStates)
+   				if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.getNumStates())
    					throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
    			}
 		}
