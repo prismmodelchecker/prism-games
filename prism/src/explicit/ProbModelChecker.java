@@ -1402,7 +1402,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeTotalRewards((MDP) model, (MDPRewards) modelRewards, minMax.isMin());
 			break;
 		case CSG:
-			res = ((CSGModelChecker) this).computeTotalRewards((CSG) model, (CSGRewards) modelRewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+			res = ((CSGModelChecker) this).computeTotalRewards((CSG) model, (CSGRewards) modelRewards, minMax.getCoalition(), minMax.isMin1(), minMax.isMin2());
 			break;
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()

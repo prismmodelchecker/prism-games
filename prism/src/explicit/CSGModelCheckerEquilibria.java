@@ -1281,7 +1281,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		setSolver();
 		
 		mainLog.println("Starting equilibria computation (solver=" + eqslps.getSolverName() + ")...");
-		
 		mainLog.println("Checking whether all objctives are reachable...");
 		
 		if (assumptionCheck) {
@@ -1602,7 +1601,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				for (p2 = 0; p2 < numCoalitions; p2++) {
 					sumv += utilities.get(entry).get(p2); // computes sum of utilities
 				}
-				if (utilities.get(entry).get(p1) > v) { // maximizes for player who has a choice
+				if (utilities.get(entry).get(p1) > v) { // maximises for player who has a choice
 					support = entry;
 					sumt = 0.0;
 					v = utilities.get(entry).get(p1);
