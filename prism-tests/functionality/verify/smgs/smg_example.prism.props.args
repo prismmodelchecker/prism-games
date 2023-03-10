@@ -1,1 +1,2 @@
--const k=0:5
+-ex -const k=0:5
+-m -const k=0:5
