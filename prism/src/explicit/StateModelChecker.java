@@ -699,11 +699,21 @@ public class StateModelChecker extends PrismComponent
 	{
 		StateValues res1 = null, res2 = null, res3 = null;
 
-		// Check operands recursively
 		try {
+			// Check operand 1 (condition) recursively
 			res1 = checkExpression(model, expr.getOperand1(), statesOfInterest);
-			res2 = checkExpression(model, expr.getOperand2(), statesOfInterest);
-			res3 = checkExpression(model, expr.getOperand3(), statesOfInterest);
+			// Compute new statesOfInterest sets to implement short-circuiting
+			BitSet statesOfInterestThen = (BitSet) res1.getBitSet().clone();
+			BitSet statesOfInterestElse = (BitSet) statesOfInterestThen.clone();
+			statesOfInterestElse.flip(0, model.getNumStates());
+			if (statesOfInterest != null) {
+				statesOfInterestThen.and(statesOfInterest);
+				statesOfInterestElse.and(statesOfInterest);
+			}
+			// Check operands 2 and 3 (then/else) recursively,
+			// but only where needed, to implement short-circuiting
+			res2 = checkExpression(model, expr.getOperand2(), statesOfInterestThen);
+			res3 = checkExpression(model, expr.getOperand3(), statesOfInterestElse);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
@@ -713,7 +723,7 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		// Apply operation
-		res1.applyFunction(expr.getType(), (v1, v2, v3) -> expr.apply(v1, v2, v3, EvalMode.FP), res2, res3);
+		res1.applyFunction(expr.getType(), (v1, v2, v3) -> expr.apply(v1, v2, v3, EvalMode.FP), res2, res3, statesOfInterest);
 		res2.clear();
 		res3.clear();
 
@@ -729,15 +739,34 @@ public class StateModelChecker extends PrismComponent
 		StateValues res1 = null, res2 = null;
 		// Check operands recursively
 		try {
+			// Check operand 1 recursively
 			res1 = checkExpression(model, expr.getOperand1(), statesOfInterest);
-			res2 = checkExpression(model, expr.getOperand2(), statesOfInterest);
+			// Where short-circuiting is needed, see which states remain to be considered
+			BitSet statesOfInterestRhs = null;
+			switch (expr.getOperator()) {
+			case ExpressionBinaryOp.IMPLIES:
+			case ExpressionBinaryOp.AND:
+				statesOfInterestRhs = (BitSet) res1.getBitSet().clone();
+				break;
+			case ExpressionBinaryOp.OR:
+				statesOfInterestRhs = (BitSet) res1.getBitSet().clone();
+				statesOfInterestRhs.flip(0, model.getNumStates());
+				break;
+			default:
+				statesOfInterestRhs = statesOfInterest;
+			}
+			if (statesOfInterestRhs != null && statesOfInterest != null) {
+				statesOfInterestRhs.and(statesOfInterest);
+			}
+			// Check operand 2 recursively, but only where needed, to implement short-circuiting
+			res2 = checkExpression(model, expr.getOperand2(), statesOfInterestRhs);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
 			throw e;
 		}
 		// Apply operation
-		res1.applyFunction(expr.getType(), (v1, v2) -> expr.apply(v1, v2, EvalMode.FP), res2);
+		res1.applyFunction(expr.getType(), (v1, v2) -> expr.apply(v1, v2, EvalMode.FP), res2, statesOfInterest);
 		res2.clear();
 
 		return res1;
@@ -760,7 +789,7 @@ public class StateModelChecker extends PrismComponent
 			return res1;
 
 		// Apply operation
-		res1.applyFunction(expr.getType(), v -> expr.apply(v, EvalMode.FP));
+		res1.applyFunction(expr.getType(), v -> expr.apply(v, EvalMode.FP), statesOfInterest);
 
 		return res1;
 	}
@@ -797,7 +826,7 @@ public class StateModelChecker extends PrismComponent
 
 		// Apply operation
 		try {
-			res1.applyFunction(expr.getType(), v -> expr.applyUnary(v, EvalMode.FP));
+			res1.applyFunction(expr.getType(), v -> expr.applyUnary(v, EvalMode.FP), statesOfInterest);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
@@ -824,7 +853,7 @@ public class StateModelChecker extends PrismComponent
 
 		// Apply operation
 		try {
-			res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2);
+			res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2, statesOfInterest);
 			res2.clear();
 		} catch (PrismException e) {
 			if (res1 != null)
@@ -857,7 +886,7 @@ public class StateModelChecker extends PrismComponent
 			}
 			// Apply operation
 			try {
-				res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2);
+				res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2, statesOfInterest);
 				res2.clear();
 			} catch (PrismException e) {
 				if (res1 != null)

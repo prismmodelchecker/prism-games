@@ -34,6 +34,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import common.IterableStateSet;
+import common.iterable.FunctionalPrimitiveIterator;
 import parser.State;
 import parser.ast.ExpressionFilter;
 import parser.type.Type;
@@ -483,6 +485,23 @@ public class StateValues implements StateVector, Iterable<Object>
 	}
 
 	/**
+	 * Modify the vector by applying (pointwise) a unary function, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, UnaryFunction func, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
+			setValue(i, func.apply(getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+
+	/**
 	 * Modify the vector by applying (pointwise) a binary function
 	 * to this and another vector.
 	 * @param retType Function return type
@@ -493,6 +512,25 @@ public class StateValues implements StateVector, Iterable<Object>
 	{
 		initStorage(retType);
 		for (int i = 0; i < size; i++) {
+			setValue(i, func.apply(getValue(i), sv2.getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+	
+	/**
+	 * Modify the vector by applying (pointwise) a binary function
+	 * to this and another vector, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param sv2 Vector 2
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, BinaryFunction func, StateValues sv2, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
 			setValue(i, func.apply(getValue(i), sv2.getValue(i)), retType);
 		}
 		type = retType;
@@ -511,6 +549,26 @@ public class StateValues implements StateVector, Iterable<Object>
 	{
 		initStorage(retType);
 		for (int i = 0; i < size; i++) {
+			setValue(i, func.apply(getValue(i), sv2.getValue(i), sv3.getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+	
+	/**
+	 * Modify the vector by applying (pointwise) a ternary function
+	 * to this and two other vectors, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param sv2 Vector 2
+	 * @param sv3 Vector 3
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, TernaryFunction func, StateValues sv2, StateValues sv3, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
 			setValue(i, func.apply(getValue(i), sv2.getValue(i), sv3.getValue(i)), retType);
 		}
 		type = retType;
