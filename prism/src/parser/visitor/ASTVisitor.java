@@ -80,6 +80,7 @@ public interface ASTVisitor
 	///
 	public Object visit(ExpressionMultiNash e) throws PrismLangException;
 	public Object visit(ExpressionMultiNashProb e) throws PrismLangException;
+	public Object visit(ExpressionMultiNashReward e) throws PrismLangException;
 	///
 	public Object visit(ExpressionSS e) throws PrismLangException;
 	public Object visit(ExpressionExists e) throws PrismLangException;

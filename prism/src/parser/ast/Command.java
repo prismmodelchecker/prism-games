@@ -30,7 +30,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import parser.visitor.*;
+import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 
 public class Command extends ASTElement
@@ -38,11 +39,11 @@ public class Command extends ASTElement
 	// Action label(s)
 	// Usually just 1 label, but can be more for concurrent games
 	// There is always at least one string in the list. We use "" for the unlabelled case.  
-	private List<String> synchs;
+	private ArrayList<String> synchs;
 	// Cached indices of each action label in the model's list of all actions ("synchs")
 	// This is 1-indexed, with 0 denoting independent (unlabelled).
 	// -1 denotes not (yet) known.
-	private List<Integer> synchIndices;
+	private ArrayList<Integer> synchIndices;
 	// Guard
 	private Expression guard;
 	// List of updates
@@ -92,7 +93,7 @@ public class Command extends ASTElement
 			synchIndices = new ArrayList<Integer>(1);
 			synchIndices.add(-1);
 		} else {
-			this.synchs = synchs;
+			this.synchs = new ArrayList<>(synchs);
 			synchIndices = new ArrayList<>(Collections.nCopies(synchs.size(), -1));
 		}
 	}
@@ -232,18 +233,25 @@ public class Command extends ASTElement
 		return "[" + String.join(",", synchs) + "] " + guard + " -> " + updates;
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
-	public ASTElement deepCopy()
+	@Override
+	public Command deepCopy(DeepCopy copier) throws PrismLangException
 	{
-		Command ret = new Command();
-		ret.synchs = new ArrayList<String>(getSynchs());
-		ret.synchIndices = new ArrayList<Integer>(getSynchIndices());
-		ret.setGuard(getGuard().deepCopy());
-		ret.setUpdates((Updates)getUpdates().deepCopy());
-		ret.setPosition(this);
-		return ret;
+		guard = copier.copy(guard);
+		setUpdates(copier.copy(updates));
+
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Command clone()
+	{
+		Command clone = (Command) super.clone();
+		
+		clone.synchs       = (ArrayList<String>) synchs.clone();
+		clone.synchIndices = (ArrayList<Integer>) synchIndices.clone();
+		
+		return clone;
 	}
 }
 

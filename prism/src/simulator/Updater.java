@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import parser.State;
 import parser.VarList;
@@ -65,7 +64,7 @@ public class Updater extends PrismComponent
 	protected int numModules;
 	protected VarList varList;
 	// Synchronising action info
-	protected Vector<String> synchs;
+	protected List<String> synchs;
 	protected int numSynchs;
 	protected int synchModuleCounts[];
 	// Model info/stats

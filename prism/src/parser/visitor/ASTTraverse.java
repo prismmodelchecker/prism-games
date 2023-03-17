@@ -587,6 +587,16 @@ public class ASTTraverse implements ASTVisitor
 	}
 	public void visitPost(ExpressionMultiNashProb e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionMultiNashReward e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionMultiNashReward e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getExpression() != null) ((Expression)e.getExpression()).accept(this);
+		visitPost(e);
+		return null;
+	}
+	public void visitPost(ExpressionMultiNashReward e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionSS e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionSS e) throws PrismLangException
 	{

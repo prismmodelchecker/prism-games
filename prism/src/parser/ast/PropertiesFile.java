@@ -26,10 +26,14 @@
 
 package parser.ast;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import parser.*;
-import parser.visitor.*;
+import parser.IdentUsage;
+import parser.Values;
+import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
+import parser.visitor.PropertiesSemanticCheck;
 import prism.ModelInfo;
 import prism.PrismLangException;
 import prism.PrismUtils;
@@ -47,7 +51,7 @@ public class PropertiesFile extends ASTElement
 	private LabelList labelList;
 	private LabelList combinedLabelList; // Labels from both model/here
 	private ConstantList constantList;
-	private Vector<Property> properties; // Properties
+	private ArrayList<Property> properties; // Properties
 
 	// Info about all identifiers used
 	private IdentUsage identUsage;
@@ -67,7 +71,7 @@ public class PropertiesFile extends ASTElement
 		labelList = new LabelList();
 		combinedLabelList = new LabelList();
 		constantList = new ConstantList();
-		properties = new Vector<Property>();
+		properties = new ArrayList<>();
 		identUsage = new IdentUsage();
 		quotedIdentUsage = new IdentUsage(true);
 		undefinedConstantValues = null;
@@ -116,7 +120,7 @@ public class PropertiesFile extends ASTElement
 
 	public void addProperty(Expression p, String c)
 	{
-		properties.addElement(new Property(p, null, c));
+		properties.add(new Property(p, null, c));
 	}
 
 	public void setPropertyObject(int i, Property prop)
@@ -426,9 +430,9 @@ public class PropertiesFile extends ASTElement
 		boolean matrix[][] = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
 			Expression e = properties.get(i).getExpression();
-			Vector<String> v = e.getAllPropRefs();
+			List<String> v = e.getAllPropRefs();
 			for (int j = 0; j < v.size(); j++) {
-				int k = getPropertyIndexByName(v.elementAt(j));
+				int k = getPropertyIndexByName(v.get(j));
 				if (k != -1) {
 					matrix[i][k] = true;
 				}
@@ -456,7 +460,7 @@ public class PropertiesFile extends ASTElement
 	 * Get a list of all undefined constants in the properties files
 	 * ("const int x;" rather than "const int x = 1;") 
 	 */
-	public Vector<String> getUndefinedConstants()
+	public List<String> getUndefinedConstants()
 	{
 		return constantList.getUndefinedConstants();
 	}
@@ -466,12 +470,12 @@ public class PropertiesFile extends ASTElement
 	 * (including those that appear in definitions of other needed constants)
 	 * (undefined constants are those of form "const int x;" rather than "const int x = 1;")
 	 */
-	public Vector<String> getUndefinedConstantsUsedInLabels()
+	public List<String> getUndefinedConstantsUsedInLabels()
 	{
 		int i, n;
 		Expression expr;
-		Vector<String> consts, tmp;
-		consts = new Vector<String>();
+		List<String> consts, tmp;
+		consts = new ArrayList<>();
 		n = labelList.size();
 		for (i = 0; i < n; i++) {
 			expr = labelList.getLabel(i);
@@ -490,7 +494,7 @@ public class PropertiesFile extends ASTElement
 	 * (including those that appear in definitions of other needed constants and labels/properties)
 	 * (undefined constants are those of form "const int x;" rather than "const int x = 1;") 
 	 */
-	public Vector<String> getUndefinedConstantsUsedInProperty(Property prop)
+	public List<String> getUndefinedConstantsUsedInProperty(Property prop)
 	{
 		return prop.getExpression().getAllUndefinedConstantsRecursively(constantList, combinedLabelList, this);
 	}
@@ -500,10 +504,10 @@ public class PropertiesFile extends ASTElement
 	 * (including those that appear in definitions of other needed constants and labels/properties)
 	 * (undefined constants are those of form "const int x;" rather than "const int x = 1;") 
 	 */
-	public Vector<String> getUndefinedConstantsUsedInProperties(List<Property> props)
+	public List<String> getUndefinedConstantsUsedInProperties(List<Property> props)
 	{
-		Vector<String> consts, tmp;
-		consts = new Vector<String>();
+		List<String> consts, tmp;
+		consts = new ArrayList<>();
 		for (Property prop : props) {
 			tmp = prop.getExpression().getAllUndefinedConstantsRecursively(constantList, combinedLabelList, this);
 			for (String s : tmp) {
@@ -649,29 +653,37 @@ public class PropertiesFile extends ASTElement
 		return s;
 	}
 
-	/**
-	 * Perform a deep copy.
-	 */
-	public ASTElement deepCopy()
+	@Override
+	public PropertiesFile deepCopy(DeepCopy copier) throws PrismLangException
 	{
-		int i, n;
-		PropertiesFile ret = new PropertiesFile(modelInfo);
-		// Copy ASTElement stuff
-		ret.setPosition(this);
-		// Deep copy main components
-		ret.setFormulaList((FormulaList) formulaList.deepCopy());
-		ret.setLabelList((LabelList) labelList.deepCopy());
-		ret.combinedLabelList = (LabelList) combinedLabelList.deepCopy();
-		ret.setConstantList((ConstantList) constantList.deepCopy());
-		n = getNumProperties();
-		for (i = 0; i < n; i++) {
-			ret.addProperty((Property) getPropertyObject(i).deepCopy());
-		}
-		// Copy other (generated) info
-		ret.identUsage = (identUsage == null) ? null : identUsage.deepCopy();
-		ret.constantValues = (constantValues == null) ? null : new Values(constantValues);
+		quotedIdentUsage = new IdentUsage(true);
+		labelList = copier.copy(labelList);
+		formulaList = copier.copy(formulaList);
+		constantList = copier.copy(constantList);
+		combinedLabelList = copier.copy(combinedLabelList);
+		identUsage = identUsage.deepCopy();
 
-		return ret;
+		copier.copyAll(properties);
+
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public PropertiesFile clone()
+	{
+		PropertiesFile clone = (PropertiesFile) super.clone();
+
+		// clone main components
+		clone.properties = (ArrayList<Property>) properties.clone();
+
+		// clone other (generated) info
+		if (constantValues != null)
+			clone.constantValues = constantValues.clone();
+		if (undefinedConstantValues != null)
+			clone.undefinedConstantValues = undefinedConstantValues.clone();
+
+		return clone;
 	}
 }
 

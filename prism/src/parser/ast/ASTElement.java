@@ -26,16 +26,50 @@
 
 package parser.ast;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import parser.*;
-import parser.type.*;
-import parser.visitor.*;
-import prism.*;
+import parser.EvaluateContext;
+import parser.EvaluateContextConstants;
+import parser.EvaluateContextState;
+import parser.EvaluateContextSubstate;
+import parser.EvaluateContextValues;
+import parser.State;
+import parser.Token;
+import parser.Values;
+import parser.type.Type;
+import parser.visitor.ASTVisitor;
+import parser.visitor.ComputeProbNesting;
+import parser.visitor.DeepCopy;
+import parser.visitor.EvaluatePartially;
+import parser.visitor.ExpandConstants;
+import parser.visitor.ExpandFormulas;
+import parser.visitor.ExpandLabels;
+import parser.visitor.ExpandPropRefsAndLabels;
+import parser.visitor.FindAllActions;
+import parser.visitor.FindAllConstants;
+import parser.visitor.FindAllFormulas;
+import parser.visitor.FindAllObsRefs;
+import parser.visitor.FindAllPropRefs;
+import parser.visitor.FindAllVars;
+import parser.visitor.GetAllConstants;
+import parser.visitor.GetAllFormulas;
+import parser.visitor.GetAllLabels;
+import parser.visitor.GetAllPropRefs;
+import parser.visitor.GetAllPropRefsRecursively;
+import parser.visitor.GetAllUndefinedConstantsRecursively;
+import parser.visitor.GetAllVars;
+import parser.visitor.GetPrimedVars;
+import parser.visitor.Rename;
+import parser.visitor.SemanticCheck;
+import parser.visitor.Simplify;
+import parser.visitor.ToTreeString;
+import parser.visitor.TypeCheck;
+import prism.PrismLangException;
 
 // Abstract class for PRISM language AST elements
 
-public abstract class ASTElement
+public abstract class ASTElement implements Cloneable
 {
 	// Type - default to null (unknown)
 	protected Type type = null;
@@ -186,7 +220,39 @@ public abstract class ASTElement
 	/**
 	 * Perform a deep copy.
 	 */
-	public abstract ASTElement deepCopy();
+	public ASTElement deepCopy()
+	{
+		try {
+			return new DeepCopy().copy(this);
+		} catch (PrismLangException e) {
+			throw new Error(e);
+		}
+	}
+
+	/**
+	 * Perform a deep copy of all internal ASTElements using a deep copy visitor.
+	 * This method is usually called after {@code clone()} and must return the receiver.
+	 *
+	 * @param copier the copy visitor
+	 * @return the receiver with deep-copied subcomponents
+	 * @throws PrismLangException
+	 * @see #clone()
+	 */
+	public abstract ASTElement deepCopy(DeepCopy copier) throws PrismLangException;
+
+	/**
+	 * Perform a shallow copy of the receiver and
+	 * clone all internal containers, e.g., lists and vectors, too.
+	 */
+	@Override
+	public ASTElement clone()
+	{
+		try {
+			return (ASTElement) super.clone();
+		} catch (CloneNotSupportedException e) {
+			throw new InternalError("Object#clone is expected to work for Cloneable objects", e);
+		}
+	}
 
 	// Various methods based on AST traversals (implemented using the visitor
 	// pattern):
@@ -226,9 +292,9 @@ public abstract class ASTElement
 	/**
 	 * Get all formulas (i.e. ExpressionFormula objects), store names in set.
 	 */
-	public Vector<String> getAllFormulas() throws PrismLangException
+	public List<String> getAllFormulas() throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllFormulas visitor = new GetAllFormulas(v);
 		accept(visitor);
 		return v;
@@ -256,9 +322,9 @@ public abstract class ASTElement
 	/**
 	 * Get all constants (i.e. ExpressionConstant objects), store names in set.
 	 */
-	public Vector<String> getAllConstants()
+	public List<String> getAllConstants()
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllConstants visitor = new GetAllConstants(v);
 		try {
 			accept(visitor);
@@ -277,9 +343,9 @@ public abstract class ASTElement
 	* ConstantList must be non-null so that we can determine which constants are undefined;
 	* LabelList and PropertiesFile passed in as null are ignored.
 	 */
-	public Vector<String> getAllUndefinedConstantsRecursively(ConstantList constantList, LabelList labelList, PropertiesFile propertiesFile)
+	public List<String> getAllUndefinedConstantsRecursively(ConstantList constantList, LabelList labelList, PropertiesFile propertiesFile)
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllUndefinedConstantsRecursively visitor = new GetAllUndefinedConstantsRecursively(v, constantList, labelList, propertiesFile);
 		try {
 			accept(visitor);
@@ -319,9 +385,9 @@ public abstract class ASTElement
 
 	/*** ***/
 	
-	public Vector<String> getPrimedVars() throws PrismLangException
+	public List<String> getPrimedVars() throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetPrimedVars visitor = new GetPrimedVars(v);
 		accept(visitor);
 		return v;
@@ -332,9 +398,9 @@ public abstract class ASTElement
 	/**
 	 * Get all variables (i.e. ExpressionVar objects), store names in set.
 	 */
-	public Vector<String> getAllVars() throws PrismLangException
+	public List<String> getAllVars() throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllVars visitor = new GetAllVars(v);
 		accept(visitor);
 		return v;
@@ -353,9 +419,9 @@ public abstract class ASTElement
 	 * Get all labels (i.e. ExpressionLabel objects), store names in set.
 	 * Special labels "deadlock", "init" *are* included in the list.
 	 */
-	public Vector<String> getAllLabels() throws PrismLangException
+	public List<String> getAllLabels() throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllLabels visitor = new GetAllLabels(v);
 		accept(visitor);
 		return v;
@@ -384,9 +450,9 @@ public abstract class ASTElement
 	/**
 	 * Get all references to properties (by name) (i.e. ExpressionProp objects), store names in set.
 	 */
-	public Vector<String> getAllPropRefs() throws PrismLangException
+	public List<String> getAllPropRefs() throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllPropRefs visitor = new GetAllPropRefs(v);
 		accept(visitor);
 		return v;
@@ -395,9 +461,9 @@ public abstract class ASTElement
 	/**
 	 * Get all references to properties (by name) (i.e. ExpressionProp objects) recursively, store names in set.
 	 */
-	public Vector<String> getAllPropRefsRecursively(PropertiesFile propertiesFile) throws PrismLangException
+	public List<String> getAllPropRefsRecursively(PropertiesFile propertiesFile) throws PrismLangException
 	{
-		Vector<String> v = new Vector<String>();
+		List<String> v = new ArrayList<>();
 		GetAllPropRefsRecursively visitor = new GetAllPropRefsRecursively(v, propertiesFile);
 		accept(visitor);
 		return v;

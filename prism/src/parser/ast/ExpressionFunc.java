@@ -26,17 +26,19 @@
 
 package parser.ast;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-
 import common.SafeCast;
 import param.BigRational;
-import parser.*;
+import parser.EvaluateContext;
 import parser.EvaluateContext.EvalMode;
-import parser.visitor.*;
+import parser.type.TypeDouble;
+import parser.type.TypeInt;
+import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 import prism.PrismUtils;
-import parser.type.*;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
 
 public class ExpressionFunc extends Expression
 {
@@ -648,21 +650,23 @@ public class ExpressionFunc extends Expression
 	}
 
 	@Override
-	public Expression deepCopy()
+	public ExpressionFunc deepCopy(DeepCopy copier) throws PrismLangException
 	{
-		int i, n;
-		ExpressionFunc e;
+		copier.copyAll(operands);
 
-		e = new ExpressionFunc(name);
-		e.setOldStyle(oldStyle);
-		n = getNumOperands();
-		for (i = 0; i < n; i++) {
-			e.addOperand((Expression) getOperand(i).deepCopy());
-		}
-		e.setType(type);
-		e.setPosition(this);
+		return this;
+	}
 
-		return e;
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public ExpressionFunc clone()
+	{
+		ExpressionFunc clone = (ExpressionFunc) super.clone();
+
+		clone.operands = (ArrayList<Expression>) operands.clone();
+
+		return clone;
 	}
 	
 	// Standard methods

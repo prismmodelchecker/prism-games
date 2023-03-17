@@ -7,6 +7,7 @@ import param.BigRational;
 import parser.EvaluateContext;
 import parser.Values;
 import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.OpRelOpBound;
 import prism.PrismLangException;
 
@@ -149,18 +150,23 @@ public class ExpressionMultiNash extends Expression
 	}
 
 	@Override
-	public Expression deepCopy()
+	public ExpressionMultiNash deepCopy(DeepCopy copier) throws PrismLangException
 	{
-		ExpressionMultiNash expr = new ExpressionMultiNash();
-		expr.setRelOp(getRelOp());
-		expr.setBound(getBound() == null ? null : getBound().deepCopy());
-		int n = getNumOperands();
-		for (int i = 0; i < n; i++) {
-			expr.addOperand((ExpressionQuant) getOperand(i).deepCopy());
-		}
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
+		bound = copier.copy(bound);
+		copier.copyAll(operands);
+		
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public ExpressionMultiNash clone()
+	{
+		ExpressionMultiNash clone = (ExpressionMultiNash) super.clone();
+
+		clone.operands = (ArrayList<ExpressionQuant>) operands.clone();
+
+		return clone;
 	}
 	
 	// Standard methods

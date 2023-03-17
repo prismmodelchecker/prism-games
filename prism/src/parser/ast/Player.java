@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 
 /**
@@ -40,9 +41,9 @@ public class Player extends ASTElement
 	// Name
 	private String name;
 	// Modules (names)
-	private List<String> modules;
+	private ArrayList<String> modules;
 	// Actions (names)
-	private List<String> actions;
+	private ArrayList<String> actions;
 
 	// Constructor
 
@@ -92,6 +93,24 @@ public class Player extends ASTElement
 		return v.visit(this);
 	}
 
+	@Override
+	public Player deepCopy(DeepCopy copier) throws PrismLangException
+	{
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Player clone()
+	{
+		Player clone = (Player) super.clone();
+
+		clone.modules           = (ArrayList<String>) modules.clone();
+		clone.actions           = (ArrayList<String>) actions.clone();
+
+		return clone;
+	}
+	
 	/**
 	 * Convert to string.
 	 */
