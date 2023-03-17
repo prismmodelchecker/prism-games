@@ -817,16 +817,18 @@ public class ProbModel implements Model
 	public void exportToFile(int exportType, boolean explicit, File file, int precision) throws FileNotFoundException, PrismException
 	{
 		if (!explicit) {
-			PrismMTBDD.ExportMatrix(trans, getTransSymbol(), allDDRowVars, allDDColVars, odd, exportType, (file != null) ? file.getPath() : null, precision);
+			PrismMTBDD.ExportMatrix(trans, getTransSymbol(), allDDRowVars, allDDColVars, odd, exportType, (file != null) ? file.getPath() : null, precision, null, true);
 		} else {
-			PrismSparse.ExportMatrix(trans, getTransSymbol(), allDDRowVars, allDDColVars, odd, exportType, (file != null) ? file.getPath() : null, precision);
+			PrismSparse.ExportMatrix(trans, getTransSymbol(), allDDRowVars, allDDColVars, odd, exportType, (file != null) ? file.getPath() : null, precision, null, true);
 		}
 	}
 
 	@Override
-	public void exportStateRewardsToFile(int r, int exportType, File file, int precision) throws FileNotFoundException, PrismException
+	public void exportStateRewardsToFile(int r, int exportType, File file, int precision, boolean noexportheaders)
+			throws FileNotFoundException, PrismException
 	{
-		PrismMTBDD.ExportVector(stateRewards[r], "c" + (r + 1), allDDRowVars, odd, exportType, (file == null) ? null : file.getPath(), precision);
+		PrismMTBDD.ExportVector(stateRewards[r], "c" + (r + 1), allDDRowVars, odd, exportType, (file == null) ? null : file.getPath(), precision,
+				rewardStructNames[r], noexportheaders);
 	}
 
 	@Deprecated
@@ -846,18 +848,18 @@ public class ProbModel implements Model
 				filename = PrismUtils.addCounterSuffixToFilename(filename, i + 1);
 				allFilenames += ((i > 0) ? ", " : "") + filename;
 			}
-			PrismMTBDD.ExportVector(stateRewards[i], "c" + (i + 1), allDDRowVars, odd, exportType, filename, precision);
+			PrismMTBDD.ExportVector(stateRewards[i], "c" + (i + 1), allDDRowVars, odd, exportType, filename, precision, rewardStructNames[i], false);
 		}
 		return (allFilenames.length() > 0) ? allFilenames : null;
 	}
 
 	@Override
-	public void exportTransRewardsToFile(int r, int exportType, boolean ordered, File file, int precision) throws FileNotFoundException, PrismException
+	public void exportTransRewardsToFile(int r, int exportType, boolean ordered, File file, int precision, boolean noexportheaders) throws FileNotFoundException, PrismException
 	{
 		if (!ordered) {
-			PrismMTBDD.ExportMatrix(transRewards[r], "C" + (r + 1), allDDRowVars, allDDColVars, odd, exportType, (file == null) ? null : file.getPath(), precision);
+			PrismMTBDD.ExportMatrix(transRewards[r], "C" + (r + 1), allDDRowVars, allDDColVars, odd, exportType, (file == null) ? null : file.getPath(), precision, rewardStructNames[r], noexportheaders);
 		} else {
-			PrismSparse.ExportMatrix(transRewards[r], "C" + (r + 1), allDDRowVars, allDDColVars, odd, exportType, (file == null) ? null : file.getPath(), precision);
+			PrismSparse.ExportMatrix(transRewards[r], "C" + (r + 1), allDDRowVars, allDDColVars, odd, exportType, (file == null) ? null : file.getPath(), precision, rewardStructNames[r], noexportheaders);
 		}
 	}
 
@@ -878,9 +880,9 @@ public class ProbModel implements Model
 				allFilenames += ((i > 0) ? ", " : "") + filename;
 			}
 			if (!explicit) {
-				PrismMTBDD.ExportMatrix(transRewards[i], "C" + (i + 1), allDDRowVars, allDDColVars, odd, exportType, filename, precision);
+				PrismMTBDD.ExportMatrix(transRewards[i], "C" + (i + 1), allDDRowVars, allDDColVars, odd, exportType, filename, precision, rewardStructNames[i], false);
 			} else {
-				PrismSparse.ExportMatrix(transRewards[i], "C" + (i + 1), allDDRowVars, allDDColVars, odd, exportType, filename, precision);
+				PrismSparse.ExportMatrix(transRewards[i], "C" + (i + 1), allDDRowVars, allDDColVars, odd, exportType, filename, precision, rewardStructNames[i], false);
 			}
 		}
 		return (allFilenames.length() > 0) ? allFilenames : null;

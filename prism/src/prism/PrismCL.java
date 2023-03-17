@@ -136,7 +136,7 @@ public class PrismCL implements PrismModelListener
 	private String modelFilename = null;
 	private String importStatesFilename = null;
 	private String importLabelsFilename = null;
-	private String importStateRewardsFilename = null;
+	private List<String> importStateRewardsFilenames = new ArrayList<>();
 	private String importInitDistFilename = null;
 	private String importResultsFilename = null;
 	private String importModelWarning = null;
@@ -638,7 +638,8 @@ public class PrismCL implements PrismModelListener
 	private void doParsing()
 	{
 		int i;
-		File sf = null, lf = null, srf = null;
+		File sf = null, lf = null;
+		List<File> srf = new ArrayList<>();
 
 		// parse model
 
@@ -666,8 +667,10 @@ public class PrismCL implements PrismModelListener
 					lf = new File(importLabelsFilename);
 				}
 				if (importstaterewards) {
-					mainLog.print(", \"" + importStateRewardsFilename + "\"");
-					srf = new File(importStateRewardsFilename);
+					for (int k = 0; k < importStateRewardsFilenames.size(); k++) {
+						mainLog.print(", \"" + (String) importStateRewardsFilenames.get(k) + "\"");
+						srf.add(new File(importStateRewardsFilenames.get(k)));
+					}
 				}
 				mainLog.println("...");
 				prism.loadModelFromExplicitFiles(sf, new File(modelFilename), lf, srf, typeOverride);
@@ -1421,7 +1424,7 @@ public class PrismCL implements PrismModelListener
 				else if (sw.equals("importstaterewards")) {
 					if (i < args.length - 1) {
 						importstaterewards = true;
-						importStateRewardsFilename = args[++i];
+						importStateRewardsFilenames.add(args[++i]);
 					} else {
 						errorAndExit("No file specified for -" + sw + " switch");
 					}
@@ -1992,7 +1995,7 @@ public class PrismCL implements PrismModelListener
 				filenameArgs.add(args[i]);
 			}
 		}
-		
+
 		processFileNames(filenameArgs);
 	}
 
@@ -2023,7 +2026,7 @@ public class PrismCL implements PrismModelListener
 			}
 		}
 	}
-	
+
 	/**
 	 * Process the arguments (files, options) to the -importmodel switch
 	 * NB: This is done at the time of parsing switches (not later)
@@ -2054,10 +2057,7 @@ public class PrismCL implements PrismModelListener
 				importStatesFilename = basename + ".sta";
 				importlabels = true;
 				importLabelsFilename = basename + ".lab";
-				if (new File(basename + ".srew").exists()) {
-					importstaterewards = true;
-					importStateRewardsFilename = basename + ".srew";
-				}
+				getStateRewardsFilenames(basename, false);
 				if (new File(basename + ".trew").exists()) {
 					importModelWarning = "Import of transition rewards is not yet supported so " + basename + ".trew is being ignored";
 				}
@@ -2071,8 +2071,7 @@ public class PrismCL implements PrismModelListener
 				importlabels = true;
 				importLabelsFilename = basename + ".lab";
 			} else if (ext.equals("srew")) {
-				importstaterewards = true;
-				importStateRewardsFilename = basename + ".srew";
+				getStateRewardsFilenames(basename, true);
 			}
 			// Unknown extension
 			else {
@@ -2096,7 +2095,43 @@ public class PrismCL implements PrismModelListener
 			}
 		}*/
 	}
-
+	
+	/**
+	 * Given a file basename, find corresponding .srew files
+	 * and add them to the {@code importStateRewardsFilenames} list.
+	 * "corresponding" means basename.srew, or a set basename1.srew, ...
+	 * If any are present, {@code importstaterewards} is set to true.
+	 * 
+	 * If {@code assumeExists} is true, then we add basename.srew
+	 * to {@code importStateRewardsFilenames} regardless, typically
+	 * because the user has told us it should be there.
+	 */
+	private void getStateRewardsFilenames(String basename, boolean assumeExists)
+	{
+		boolean found = false;
+		if (new File(basename + ".srew").exists()) {
+			importstaterewards = true;
+			importStateRewardsFilenames.add(basename + ".srew");
+			found = true;
+		} else {
+			int index = 1;
+			while (true) {
+				if (new File(basename + String.valueOf(index) + ".srew").exists()) {
+					importstaterewards = true;
+					importStateRewardsFilenames.add(basename + String.valueOf(index) + ".srew");
+					found = true;
+					index++;
+				} else {
+					break;
+				}
+			}
+		}
+		if (assumeExists && !found) {
+			importstaterewards = true;
+			importStateRewardsFilenames.add(basename + ".srew");
+		}
+	}
+	
 	/**
 	 * Process the arguments (file, options) to the -export(prop)labels switch.
 	 * Currently, only one option is supported: proplabels, cf.
