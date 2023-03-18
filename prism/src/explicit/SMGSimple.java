@@ -345,8 +345,23 @@ public class SMGSimple extends MDPSimple implements SMG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[],
-			double disc)
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
+	{
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		boolean min = (getPlayer(s) == 0) ? min1 : min2;
+		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
+	}
+
+	@Override
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
+	{
+		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		boolean min = (getPlayer(s) == 0) ? min1 : min2;
+		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
+	}
+
+	@Override
+	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[], double disc)
 	{
 		int s;
 		boolean min = false;
@@ -371,31 +386,15 @@ public class SMGSimple extends MDPSimple implements SMG
 		}
 	}
 
-	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
-	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = (getPlayer(s) == 0) ? min1 : min2;
-		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
-	}
-
-	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
-	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
-		boolean min = (getPlayer(s) == 0) ? min1 : min2;
-		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
-	}
-
 	/**
-	 * Allows discounting
-	 * @param s
-	 * @param vect
-	 * @param mdpRewards
-	 * @param min
-	 * @param adv
-	 * @param disc
-	 * @return
+	 * Do a single row of (discounted) matrix-vector multiplication and sum of action reward followed by min/max.
+	 * i.e. return min/max_{k1,k2} { rew(s) + disc * sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param s Row index
+	 * @param vect Vector to multiply by
+	 * @param mdpRewards The rewards
+	 * @param min2 Min or max (true=min, false=max)
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc Discount factor
 	 */
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[], double disc)
 	{

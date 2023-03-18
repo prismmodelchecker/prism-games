@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -256,6 +256,7 @@ public interface STPG extends MDP
 	 * Do a matrix-vector multiplication and sum of action reward followed by min/max, i.e. one step of value iteration.
 	 * i.e. for all s: result[s] = min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param result Vector to store result in
@@ -270,6 +271,7 @@ public interface STPG extends MDP
 	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param s Row index
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param adv Storage for adversary choice indices (ignored if null)
@@ -277,27 +279,28 @@ public interface STPG extends MDP
 	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[]);
 
 	/**
-	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
-	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
-	 * @param s Row index
-	 * @param vect Vector to multiply by
-	 * @param min1 Min or max for player 1 (true=min, false=max)
-	 * @param min2 Min or max for player 2 (true=min, false=max)
-	 * @param adv Storage for adversary choice indices (ignored if null)
-	 * @param disc discounting factor
-	 */
-	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv,
-			double disc);
-
-	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.
 	 * @param s Row index
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
 	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val);
+
+	/**
+	 * Do a single row of (discounted) matrix-vector multiplication and sum of action reward followed by min/max.
+	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param s Row index
+	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc Discount factor
+	 */
+	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv, double disc);
 
 	/**
 	 * Checks  whether all successors of action c in state s are in a given set

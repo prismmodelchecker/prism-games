@@ -413,10 +413,8 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
 		s += "Transitions: " + numTransitions + "\n";
 		s += "Choices:     " + numDistrs + "\n";
-		s += "P1 max/avg:  " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates)
-				+ "\n";
-		s += "P2 max/avg:  " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets)
-				+ "\n";
+		s += "P1 max/avg:  " + maxNumDistrSets + "/" + PrismUtils.formatDouble2dp(((double) numDistrSets) / numStates) + "\n";
+		s += "P2 max/avg:  " + maxNumDistrs + "/" + PrismUtils.formatDouble2dp(((double) numDistrs) / numDistrSets) + "\n";
 		return s;
 	}
 
@@ -858,6 +856,12 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 		return res;
 	}
 
+	@Override
+	public void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv, double disc)
+	{
+		throw new UnsupportedOperationException();
+	}
+	
 	// Accessors (other)
 
 	/**
@@ -1096,16 +1100,5 @@ public class STPGAbstrSimple extends ModelExplicit implements STPG, NondetModelS
 		} catch (PrismException e) {
 			System.out.println(e);
 		}
-	}
-
-	/**
-	 * Calls default method without discount
-	 */
-	@Override
-	public void mvMultRewMinMax(double[] vect, STPGRewards rewards,
-			boolean min1, boolean min2, double[] result, BitSet subset,
-			boolean complement, int[] adv, double disc) {
-		mvMultRewMinMax(vect,rewards,min1,min2,result,subset,complement,adv);
-		
 	}
 }
