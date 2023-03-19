@@ -39,7 +39,7 @@ import prism.ModelType;
  * This class should rarely be needed - it is just to support the corner case of a
  * PRISM language model being defined directly as type "stpg", rather than "smg".
  */
-public class STPGSimple extends SMGSimple
+public class STPGSimple<Value> extends SMGSimple<Value>
 {
 	@Override
 	public ModelType getModelType()
@@ -60,7 +60,7 @@ public class STPGSimple extends SMGSimple
 	 * i.e. in which state index i becomes index permut[i].
 	 * Player and coalition info is also copied across.
 	 */
-	public STPGSimple(STPGSimple stpg, int permut[])
+	public STPGSimple(STPGSimple<Value> stpg, int permut[])
 	{
 		super(stpg, permut);
 	}

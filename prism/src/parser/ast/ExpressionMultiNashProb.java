@@ -58,13 +58,6 @@ public class ExpressionMultiNashProb extends ExpressionQuant
 	}
 
 	@Override
-	public BigRational evaluateExact(EvaluateContext ec) throws PrismLangException
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public boolean returnsSingleValue()
 	{
 		// TODO Auto-generated method stub

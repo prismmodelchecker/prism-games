@@ -46,6 +46,7 @@ import explicit.rewards.ConstructRewards;
 import explicit.rewards.Rewards;
 import explicit.rewards.SMGRewards;
 import explicit.rewards.SMGRewardsSimple;
+import explicit.rewards.STPGRewards;
 import explicit.rewards.StateRewardsConstant;
 import parma_polyhedra_library.C_Polyhedron;
 import parma_polyhedra_library.Coefficient;
@@ -150,7 +151,7 @@ public class SMGModelChecker extends ProbModelChecker
 	}
 
 	@Override
-	public StateValues checkExpressionMultiObjective(Model model, List<List<Expression>> cnf, Coalition coalition) throws PrismException
+	public StateValues checkExpressionMultiObjective(Model<?> model, List<List<Expression>> cnf, Coalition coalition) throws PrismException
         {
 	        // initialise the Parma Polyhedra Library
 	        PPLSupport.initPPL();
@@ -173,7 +174,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * 
 	 * @return Whether a MIC is induced from t. The set of states in the MIC is in {@code reach}.
 	 */
-	private boolean getMIC(SMG smg, BitSet reach, int t) throws PrismException
+	private boolean getMIC(SMG<Double> smg, BitSet reach, int t) throws PrismException
 	{
 		throw new UnsupportedOperationException();
 		
@@ -242,7 +243,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return True if the game is controllable multichain.
 	**/
-	private boolean isControllableMultichain(SMG smg) throws PrismException
+	private boolean isControllableMultichain(SMG<Double> smg) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int initial = smg.getFirstInitialState();
@@ -278,7 +279,7 @@ public class SMGModelChecker extends ProbModelChecker
 					smg.reachpositivestep(ui, false, true, uj);
 					for (int j = uj.nextSetBit(0); j != -1; j = uj.nextSetBit(j + 1)) { // go through all states reachable in one step from i
 						if (smg.getPlayer(j) != 0 && !covered.get(j)) {
-							BitSet subtree = getSubtree((STPG) smg, j, 1); // get P2-closed subtree
+							BitSet subtree = getSubtree((STPG<Double>) smg, j, 1); // get P2-closed subtree
 							subtree.set(i); // put the P1 state (the initial root) into the subtree
 							subtrees.add(subtree); // get P2-closed subtree
 							covered.or(subtree);
@@ -334,7 +335,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=lower bound, false=upper bound)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public BitSet reachpositive(SMG smg, BitSet remain, BitSet origin, boolean min1, boolean min2)
+	public BitSet reachpositive(SMG<Double> smg, BitSet remain, BitSet origin, boolean min1, boolean min2)
 	{
 		int n, iters;
 		BitSet u, soln;
@@ -393,7 +394,7 @@ public class SMGModelChecker extends ProbModelChecker
 	* @param closedPlayer Player for which subtree is closed
 	* @param result The subtree after extending
 	 **/
-	public BitSet getSubtree(STPG stpg, int s, int closedPlayer)
+	public BitSet getSubtree(STPG<Double> stpg, int s, int closedPlayer)
 	{
 		int n;
 		BitSet u, soln;
@@ -410,7 +411,7 @@ public class SMGModelChecker extends ProbModelChecker
 		soln.set(s);
 		while (!u_done) {
 			// Single step of ReachPositive
-			((SMGSimple) stpg).subtreeStep(u, closedPlayer, soln);
+			((SMGSimple<Double>) stpg).subtreeStep(u, closedPlayer, soln);
 			// Check termination
 			u_done = soln.equals(u);
 			// u = soln
@@ -429,14 +430,14 @@ public class SMGModelChecker extends ProbModelChecker
 	* @param model The SMG model.
 	* @param expr The expression to be checked.
 	**/
-	private MultiParameters initialiseRewards(Model model, List<List<Expression>> expr) throws PrismException
+	private MultiParameters initialiseRewards(Model<?> model, List<List<Expression>> expr) throws PrismException
         {
 		MultiParameters params = new MultiParameters(); // return value
 
 		params.expr = expr;
-		params.rewards = new ArrayList<SMGRewards>(); // the reward structures
+		params.rewards = new ArrayList<>(); // the reward structures
 		params.reward_names = new ArrayList<String>();
-		params.divisors = new ArrayList<SMGRewards>(); // the divisors of ratio rewards (null if not present)
+		params.divisors = new ArrayList<>(); // the divisors of ratio rewards (null if not present)
 		params.divisor_names = new ArrayList<String>();
 		params.shifts = new ArrayList<Double>();
 		params.reward_types = new ArrayList<Integer>();
@@ -530,7 +531,7 @@ public class SMGModelChecker extends ProbModelChecker
 	}
 
 
-	protected StateValues checkExpressionMultiDirect(Model model, MultiParameters params, Coalition coalition) throws PrismException
+	protected StateValues checkExpressionMultiDirect(Model<?> model, MultiParameters params, Coalition coalition) throws PrismException
 	{
 		return checkExpressionMultiDirect(model, params, coalition, false);
 	}
@@ -542,7 +543,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 *    @param checkBounds If true then the iteration stops after the values in double[] bound are hit,
 	 *                    further, if true, then no Pareto set is displayed
 	 **/
-	protected StateValues checkExpressionMultiDirect(Model model, MultiParameters params, Coalition coalition, boolean checkBounds) throws PrismException
+	protected StateValues checkExpressionMultiDirect(Model<?> model, MultiParameters params, Coalition coalition, boolean checkBounds) throws PrismException
 	{
  	        int init = model.getFirstInitialState();
 
@@ -562,7 +563,7 @@ public class SMGModelChecker extends ProbModelChecker
 
 		// set coalition:
 		if (coalition != null)
-			((SMG) model).setCoalition(coalition);
+			((SMG<Double>) model).setCoalition(coalition);
 
 		// If no info, player 1 is alone by default
 		else {
@@ -570,14 +571,14 @@ public class SMGModelChecker extends ProbModelChecker
 			List<String> coalitionNewPlayers = new ArrayList<String>();
 			coalitionNewPlayers.add("1");
 			coalitionNew.setPlayers(coalitionNewPlayers);
-			((SMG) model).setCoalition(coalitionNew);
+			((SMG<Double>) model).setCoalition(coalitionNew);
 		}
 
 		if (computePareto) {
 			// COMPUTE PARETO SET
 			double t0 = (double) System.nanoTime();
 			setRewardBrackets(params, model); // find brackets around rewards to start iteration and/or rounding
-			Pareto[] pareto = computeRatioMQParetoSet((SMG) model, params);
+			Pareto[] pareto = computeRatioMQParetoSet((SMG<Double>) model, params);
 			mainLog.print(String.format("Pareto set computation took %f s\n", ((double) (System.nanoTime() - t0)) / 1e9));
 
 			// after computation need to turn the negative directions around
@@ -598,10 +599,10 @@ public class SMGModelChecker extends ProbModelChecker
 			// CHECK MQ AND COMPUTE STRATEGY (if requested)
 			double t0 = (double) System.nanoTime();
 			// convert the ratio objectives in the MQ to average objectives
-			MultiParameters new_params = convertRatioMQToMQ((SMG) model, params);
+			MultiParameters new_params = convertRatioMQToMQ((SMG<Double>) model, params);
 
 			setRewardBrackets(new_params, model); // find brackets around rewards to start iteration and/or rounding
-			Entry<StateValues, StochasticUpdateStrategy> SvS = checkMQ((SMG) model, new_params, genStrat);
+			Entry<StateValues, StochasticUpdateStrategy> SvS = checkMQ((SMG<Double>) model, new_params, genStrat);
 			mainLog.print(String.format("%s took %f s\n", genStrat ? "Synthesis" : "Verification", ((double) (System.nanoTime() - t0)) / 1e9));
 
 			parsed_params = params; // register parameters
@@ -627,7 +628,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return The converted MQ
 	**/
-	private MultiParameters convertRatioMQToMQ(SMG smg, MultiParameters params) throws PrismException
+	private MultiParameters convertRatioMQToMQ(SMG<Double> smg, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int n = params.rewards.size();
@@ -641,9 +642,9 @@ public class SMGModelChecker extends ProbModelChecker
 			    || new_params.reward_types.get(i) == MultiParameters.PRCR) {
 				// build new reward structure: r - lambda c
 				double lambda = new_params.bounds.get(i);
-				SMGRewardsSimple rlc = new SMGRewardsSimple(gameSize);
-				SMGRewards r = params.rewards.get(i);
-				SMGRewards c = params.divisors.get(i);
+				SMGRewardsSimple<Double> rlc = new SMGRewardsSimple<>(gameSize);
+				SMGRewards<Double> r = params.rewards.get(i);
+				SMGRewards<Double> c = params.divisors.get(i);
 				for (int s = 0; s < gameSize; s++) {
 					rlc.setStateReward(s, r.getStateReward(s) - lambda * c.getStateReward(s));
 					for (int t = 0; t < smg.getNumChoices(s); t++)
@@ -707,7 +708,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* the results are directly set in the parameters params
 	**/
-	private void setRewardBrackets(MultiParameters params, Model model) throws PrismException
+	private void setRewardBrackets(MultiParameters params, Model<?> model) throws PrismException
 	{
 		int tmpverbosity = this.getVerbosity();
 		boolean genStratSave = genStrat;
@@ -731,7 +732,7 @@ public class SMGModelChecker extends ProbModelChecker
 			this.setVerbosity(0); // temporarily turn off logger
 
 			for (i = 0; i < dim; i++) {
-				SMGRewards reward = params.rewards.get(i);
+				SMGRewards<Double> reward = params.rewards.get(i);
 				switch (params.reward_types.get(i)) {
 				case MultiParameters.ETCR: // expected total cumulative reward
 					// note: computeReachRewardsValIter doesn't check for infinity
@@ -746,7 +747,7 @@ public class SMGModelChecker extends ProbModelChecker
 							break search_for_negative;
 						}
 						// transition rewards
-						for (int d = 0; d < ((SMG) model).getNumChoices(s); d++) {
+						for (int d = 0; d < ((SMG<Double>) model).getNumChoices(s); d++) {
 							if (reward.getTransitionReward(s, d) < 0.0) {
 								hasNegative = true;
 								break search_for_negative;
@@ -755,7 +756,7 @@ public class SMGModelChecker extends ProbModelChecker
 					}
 					if (hasNegative) {
 						try {
-							minminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG) model, reward, new BitSet(gameSize), new BitSet(gameSize), true, true,
+							minminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG<Double>) model, (STPGRewards<Double>) reward, new BitSet(gameSize), new BitSet(gameSize), true, true,
 									null, null).soln;
 						} catch (PrismException e) {
 							// value iteration did not converge
@@ -785,7 +786,7 @@ public class SMGModelChecker extends ProbModelChecker
 						double tmp_smallest = 0;
 
 						try {
-						        maxminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG) model, reward, new BitSet(gameSize), new BitSet(gameSize), false, true, null,
+						        maxminreward = createSTPGModelChecker().computeReachRewardsValIter((STPG<Double>) model, (STPGRewards<Double>) reward, new BitSet(gameSize), new BitSet(gameSize), false, true, null,
 								null).soln;
 							tmp_biggest = Double.NEGATIVE_INFINITY;
 							tmp_smallest = Double.POSITIVE_INFINITY;
@@ -848,28 +849,28 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	private SMGRewardsSimple constructSMGRewards(SMG model, RewardStruct rewStruct) throws PrismException
+	private SMGRewardsSimple<Double> constructSMGRewards(SMG<Double> model, RewardStruct rewStruct) throws PrismException
 	{
 		if (rewStruct == null)
 			return null;
 
 		int gameSize = model.getNumStates();
 		ConstructRewards constructRewards = new ConstructRewards(this);
-		SMGRewards smgreward = constructRewards.buildSMGRewardStructure(model, rewStruct, constantValues);
-		SMGRewardsSimple reward = null;
+		SMGRewards<Double> smgreward = constructRewards.buildSMGRewardStructure(model, rewStruct, constantValues);
+		SMGRewardsSimple<Double> reward = null;
 		if (smgreward instanceof SMGRewardsSimple) {
-			reward = (SMGRewardsSimple) smgreward;
+			reward = (SMGRewardsSimple<Double>) smgreward;
 		} else if (smgreward instanceof StateRewardsConstant) {
 			// construct reward structure manually
-			reward = new SMGRewardsSimple(gameSize);
+			reward = new SMGRewardsSimple<>(gameSize);
 			for (int s = 0; s < gameSize; s++) {
-				reward.setStateReward(s, ((StateRewardsConstant) smgreward).getStateReward(s));
+				reward.setStateReward(s, ((StateRewardsConstant<Double>) smgreward).getStateReward(s));
 			}
 		}
 		return reward;
 	}
 
-	private void parseExpressionQuant(Model model, ExpressionQuant expr_i, MultiParameters params) throws PrismException
+	private void parseExpressionQuant(Model<?> model, ExpressionQuant expr_i, MultiParameters params) throws PrismException
 	{
 		// First check if this is an R(path) nested in a P>=1 (rather than just an R)
 		ExpressionReward exprReward = null;
@@ -914,11 +915,11 @@ public class SMGModelChecker extends ProbModelChecker
 		
 		
 		RewardStruct reward_struct = modulesFile.getRewardStruct(exprReward.getRewardStructIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues));
-		SMGRewardsSimple reward = constructSMGRewards((SMG) model, reward_struct);
+		SMGRewardsSimple<Double> reward = constructSMGRewards((SMG<Double>) model, reward_struct);
 		params.reward_names.add(reward_struct.getName());
 		int divisor_struct_index = exprReward.getRewardStructDivIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues);
 		RewardStruct divisor_struct = divisor_struct_index == -1 ? null : modulesFile.getRewardStruct(divisor_struct_index);
-		SMGRewardsSimple divisor = constructSMGRewards((SMG) model, divisor_struct);
+		SMGRewardsSimple<Double> divisor = constructSMGRewards((SMG<Double>) model, divisor_struct);
 		params.divisor_names.add(divisor_struct == null ? null : divisor_struct.getName());
 		// register reward structures
 		params.rewards.add(reward);
@@ -960,7 +961,7 @@ public class SMGModelChecker extends ProbModelChecker
 		if (minimize) {
 			for (int s = 0; s < gameSize; s++) {
 				reward.setStateReward(s, -reward.getStateReward(s));
-				for (int c = 0; c < ((NondetModel) model).getNumChoices(s); c++) {
+				for (int c = 0; c < ((NondetModel<Double>) model).getNumChoices(s); c++) {
 					reward.setTransitionReward(s, c, -reward.getTransitionReward(s, c));
 				}
 			}
@@ -969,7 +970,7 @@ public class SMGModelChecker extends ProbModelChecker
 		// if it is an long-run average reward, need to evaluate a shift as well
 		// note: always non-positive: this is what needs to be added after completion
 		if (((ExpressionTemporal) e).getOperator() == ExpressionTemporal.R_S && divisor==null)
-			params.shifts.add(getShiftFromReward(model, reward));
+			params.shifts.add(getShiftFromReward((SMG<Double>) model, reward));
 		else
 			params.shifts.add(0.0);
 
@@ -987,9 +988,9 @@ public class SMGModelChecker extends ProbModelChecker
 		params.bounds.add(minimize ? -r : r); // add bound to vector
 	}
 
-	private double getShiftFromReward(Model model, SMGRewards reward)
+	private double getShiftFromReward(Model<Double> model, SMGRewards<Double> reward)
 	{
-		int gameSize = ((SMG) model).getNumStates();
+		int gameSize = ((SMG<Double>) model).getNumStates();
 
 		double shift = 0.0;
 		for (int s = 0; s < gameSize; s++) {
@@ -998,7 +999,7 @@ public class SMGModelChecker extends ProbModelChecker
 			if (rew < 0 && shift > rew)
 				shift = rew;
 			// transitions
-			for (int c = 0; c < ((NondetModel) model).getNumChoices(s); c++) {
+			for (int c = 0; c < ((NondetModel<Double>) model).getNumChoices(s); c++) {
 				rew = reward.getTransitionReward(s, c);
 				if (rew < 0 && shift > rew)
 					shift = rew;
@@ -1007,7 +1008,7 @@ public class SMGModelChecker extends ProbModelChecker
 		return shift;
 	}
 
-	protected StochasticUpdateStrategy constructStrategy(SMG G, List<Double> bounds, Pareto[] X, List<Pareto>[] Y, MultiParameters params,
+	protected StochasticUpdateStrategy constructStrategy(SMG<Double> G, List<Double> bounds, Pareto[] X, List<Pareto>[] Y, MultiParameters params,
 			boolean energy_objective) throws PrismException
 	{
 		double[] d_bounds = new double[bounds.size()];
@@ -1018,7 +1019,7 @@ public class SMGModelChecker extends ProbModelChecker
 	}
 
 	@Override
-	protected StateValues checkProbPathFormulaCosafeLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkProbPathFormulaCosafeLTL(Model<?> model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		SMG smg = (SMG) model;
@@ -1031,12 +1032,12 @@ public class SMGModelChecker extends ProbModelChecker
 	/**
 	 * Compute rewards for a co-safe LTL reward operator.
 	 */
-	protected StateValues checkRewardCoSafeLTL(Model model, Rewards modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkRewardCoSafeLTL(Model<?> model, Rewards<?> modelRewards, Expression expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// Build product of SMG and DFA for the LTL formula, convert rewards and do any required exports
 		LTLModelChecker mcLtl = new LTLModelChecker(this);
-		LTLModelChecker.LTLProduct<SMG> product = mcLtl.constructDFAProductForCosafetyReward(this, (SMG) model, expr, statesOfInterest);
-		SMGRewards productRewards = ((SMGRewards) modelRewards).liftFromModel(product);
+		LTLModelChecker.LTLProduct<SMG<Double>> product = mcLtl.constructDFAProductForCosafetyReward(this, (SMG<Double>) model, expr, statesOfInterest);
+		SMGRewards<Double> productRewards = ((SMGRewards<Double>) modelRewards).liftFromModel(product);
 		doProductExports(product);
 
 		// Find accepting states + compute reachability rewards
@@ -1066,7 +1067,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return The parameters specifying the transformed CQ.
 	**/
-	private MultiParameters convertRatioMQToRatioCQ(double[][] x, SMG smg, MultiParameters params) throws PrismException
+	private MultiParameters convertRatioMQToRatioCQ(double[][] x, SMG<Double> smg, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 
@@ -1074,8 +1075,8 @@ public class SMGModelChecker extends ProbModelChecker
 		new_params.shallow_copy(params); // shallow copy of parameters, sufficient here, as relevant things are changed now ...
 
 		// compute a new reward and new bound for each conjunct
-		List<SMGRewards> new_rewards = new ArrayList<SMGRewards>();
-		List<SMGRewards> new_divisors = new ArrayList<SMGRewards>();
+		List<SMGRewards<Double>> new_rewards = new ArrayList<>();
+		List<SMGRewards<Double>> new_divisors = new ArrayList<>();
 		List<Integer> new_types = new ArrayList<Integer>();
 		List<Double> new_shifts = new ArrayList<Double>();
 		List<Double> new_bounds = new ArrayList<Double>();
@@ -1145,16 +1146,16 @@ public class SMGModelChecker extends ProbModelChecker
 					throw new PrismException("Weight vector for conjunct " + i + " is zero");
 
 				// II: compute rho_i and gamma_i
-				SMGRewardsSimple numerator = new SMGRewardsSimple(gameSize);
-				SMGRewardsSimple divisor = new SMGRewardsSimple(gameSize);
+				SMGRewardsSimple<Double> numerator = new SMGRewardsSimple<>(gameSize);
+				SMGRewardsSimple<Double> divisor = new SMGRewardsSimple<>(gameSize);
 				for (int s = 0; s < gameSize; s++) {
 					// compute new reward for state
 					double rho_i = 0.0;
 					count = tmpcount;
-					SMGRewards c_iji = null; // c_ij(i)
+					SMGRewards<Double> c_iji = null; // c_ij(i)
 					for (int j = 0; j < params.DISJUNCTS[i]; j++) { // iterate through disjuncts
-						SMGRewards r_ij = params.rewards.get(count);
-						SMGRewards c_ij = params.divisors.get(count);
+						SMGRewards<Double> r_ij = params.rewards.get(count);
+						SMGRewards<Double> c_ij = params.divisors.get(count);
 						// x_i r_i
 						rho_i += r_ij.getStateReward(s) * x[i][j];
 						// - ((1-e_j(i)) @ x_i) c_i
@@ -1174,8 +1175,8 @@ public class SMGModelChecker extends ProbModelChecker
 						count = tmpcount;
 						c_iji = null; // c_ij(i)
 						for (int j = 0; j < params.DISJUNCTS[i]; j++) { // iterate through disjuncts
-							SMGRewards r_ij = params.rewards.get(count);
-							SMGRewards c_ij = params.divisors.get(count);
+							SMGRewards<Double> r_ij = params.rewards.get(count);
+							SMGRewards<Double> c_ij = params.divisors.get(count);
 							// x_i r_i
 							rho_i += r_ij.getTransitionReward(s, c) * x[i][j];
 							// - ((1-e_j(i)) @ x_i) c_i
@@ -1216,7 +1217,7 @@ public class SMGModelChecker extends ProbModelChecker
 				new_bounds.add(bound);
 				// the reward
 				count = tmpcount;
-				SMGRewardsSimple new_reward = new SMGRewardsSimple(gameSize);
+				SMGRewardsSimple<Double> new_reward = new SMGRewardsSimple<>(gameSize);
 				for (int s = 0; s < gameSize; s++) {
 					// compute new reward for state
 					double reward = 0.0;
@@ -1280,7 +1281,7 @@ public class SMGModelChecker extends ProbModelChecker
 		return new_params;
 	}
 
-	private Pareto[] convertCQParetoToMQPareto(double[][] x, SMG smg, Pareto[] Px, MultiParameters params) throws PrismException
+	private Pareto[] convertCQParetoToMQPareto(double[][] x, SMG<Double> smg, Pareto[] Px, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int dim = params.rewards.size();
@@ -1380,7 +1381,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return Whether CQ Pareto set computation converged
 	**/
-	private boolean iterateMQParetoSet(double[][] x, SMG smg, MultiParameters params, Pareto[] Px, List<Pareto>[] stochasticStates, boolean checkBounds,
+	private boolean iterateMQParetoSet(double[][] x, SMG<Double> smg, MultiParameters params, Pareto[] Px, List<Pareto>[] stochasticStates, boolean checkBounds,
 			boolean energy_objective, MultiParameters cq_params) throws PrismException
 	{
 		// transform MQ (which is assumed to be in CNF) to CQ
@@ -1408,7 +1409,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return A convex Pareto set for each state for the MQ.
 	**/
-	private Pareto[] iterateRatioMQParetoSet(double[][] x, SMG smg, MultiParameters params) throws PrismException
+	private Pareto[] iterateRatioMQParetoSet(double[][] x, SMG<Double> smg, MultiParameters params) throws PrismException
 	{
 		// CQ Pareto set computation - returns Pareto sets in Px, to be used below to get the MQ pareto sets
 		Pareto[] Px = computeRatioCQParetoSet(smg, convertRatioMQToRatioCQ(x, smg, params));
@@ -1427,7 +1428,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @param revert_direction Revert the direction of shifting.
 	**/
-	private void shiftRewards(Model model, MultiParameters params, boolean revert_direction)
+	private void shiftRewards(Model<Double> model, MultiParameters params, boolean revert_direction)
 	{
 		// default is to use the shifts specified in params, i.e. no strategy construction for energy objective
 		shiftRewards(model, params, false, revert_direction);
@@ -1440,7 +1441,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @param revert_direction Revert the direction of shifting.
 	**/
-	private void shiftRewards(Model model, MultiParameters params, boolean revert_direction, boolean construct_energy_strategy)
+	private void shiftRewards(Model<Double> model, MultiParameters params, boolean revert_direction, boolean construct_energy_strategy)
 	{
 		int gameSize = model.getNumStates();
 
@@ -1449,12 +1450,12 @@ public class SMGModelChecker extends ProbModelChecker
 		// if constructing a strategy, use the bounds as shifts
 		Iterator<Double> shifts_iterator = params.shifts.iterator();
 		int i = 0;
-		for (SMGRewards reward_i : params.rewards) {
-			SMGRewardsSimple reward = (SMGRewardsSimple) reward_i;
+		for (SMGRewards<Double> reward_i : params.rewards) {
+			SMGRewardsSimple<Double> reward = (SMGRewardsSimple<Double>) reward_i;
 			Double shift = construct_energy_strategy ? params.bounds.get(i) : shifts_iterator.next();
 			for (int s = 0; s < gameSize; s++) {
 				reward.setStateReward(s, revert_direction ? reward.getStateReward(s) + shift : reward.getStateReward(s) - shift);
-				for (int c = 0; c < ((NondetModel) model).getNumChoices(s); c++) {
+				for (int c = 0; c < ((NondetModel<Double>) model).getNumChoices(s); c++) {
 					reward.setTransitionReward(s, c, revert_direction ? reward.getTransitionReward(s, c) + shift : reward.getTransitionReward(s, c) - shift);
 				}
 			}
@@ -1469,7 +1470,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @param revert_direction Revert the direction of shifting.
 	**/
-	private void shiftBounds(Model model, MultiParameters params, boolean revert_direction, boolean construct_energy_strategy)
+	private void shiftBounds(Model<Double> model, MultiParameters params, boolean revert_direction, boolean construct_energy_strategy)
 	{
 		// if constructing a strategy for an energy objective, don't shift at all
 		if (construct_energy_strategy)
@@ -1487,7 +1488,7 @@ public class SMGModelChecker extends ProbModelChecker
 	* Shifts the Pareto sets in {@code Px} by the amount provided
 	* in {@code params.shifts}.
 	**/
-	private void shiftPareto(SMG smg, MultiParameters params, Pareto[] Px) throws PrismException
+	private void shiftPareto(SMG<Double> smg, MultiParameters params, Pareto[] Px) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int n = params.rewards.size();
@@ -1518,7 +1519,7 @@ public class SMGModelChecker extends ProbModelChecker
 	*
 	* @return The Pareto set, a union of convex sets.
 	**/
-	public Pareto[] computeRatioMQParetoSet(SMG smg, MultiParameters params) throws PrismException
+	public Pareto[] computeRatioMQParetoSet(SMG<Double> smg, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 
@@ -1603,7 +1604,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @return State values with bit set of states satisfying the objective,
 	 * and a winning strategy for initial state if objective is satisfied
 	 **/
-	public Entry<StateValues, StochasticUpdateStrategy> checkMQ(SMG smg, MultiParameters params, boolean construct_strategy) throws PrismException
+	public Entry<StateValues, StochasticUpdateStrategy> checkMQ(SMG<Double> smg, MultiParameters params, boolean construct_strategy) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int initialState = smg.getFirstInitialState();
@@ -1836,15 +1837,15 @@ public class SMGModelChecker extends ProbModelChecker
 	* A[xr - yc] >= v
 	* and then for every vector v >= 0, take w = y/x.
 	**/
-	private MultiParameters convertRatioCQToCQ(SMG smg, double[][] x, MultiParameters params) throws PrismException
+	private MultiParameters convertRatioCQToCQ(SMG<Double> smg, double[][] x, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 
 		MultiParameters new_params = new MultiParameters();
 		new_params.shallow_copy(params);
 
-		List<SMGRewards> new_rewards = new ArrayList<SMGRewards>(params.CONJUNCTS);
-		List<SMGRewards> new_divisors = new ArrayList<SMGRewards>(params.CONJUNCTS);
+		List<SMGRewards<Double>> new_rewards = new ArrayList<>(params.CONJUNCTS);
+		List<SMGRewards<Double>> new_divisors = new ArrayList<>(params.CONJUNCTS);
 		List<Integer> new_types = new ArrayList<Integer>(params.CONJUNCTS);
 		List<Double> new_shifts = new ArrayList<Double>(params.CONJUNCTS);
 		List<Double> new_bounds = new ArrayList<Double>(params.CONJUNCTS);
@@ -1870,9 +1871,9 @@ public class SMGModelChecker extends ProbModelChecker
 			case MultiParameters.ERCR: // ratio rewards
 			case MultiParameters.PRCR:
 				// build new reward structure rmc: xr - yc
-				SMGRewardsSimple xrmyc = new SMGRewardsSimple(gameSize);
-				SMGRewards r = params.rewards.get(i);
-				SMGRewards c = params.divisors.get(i);
+				SMGRewardsSimple<Double> xrmyc = new SMGRewardsSimple<>(gameSize);
+				SMGRewards<Double> r = params.rewards.get(i);
+				SMGRewards<Double> c = params.divisors.get(i);
 				for (int s = 0; s < gameSize; s++) {
 					xrmyc.setStateReward(s, x[ratio_count][0] * r.getStateReward(s) - x[ratio_count][1] * c.getStateReward(s));
 					for (int t = 0; t < smg.getNumChoices(s); t++) {
@@ -1904,7 +1905,7 @@ public class SMGModelChecker extends ProbModelChecker
 	* @param smg The game.
 	* @param params The CQ with potentially some ratio objectives.
 	**/
-	private Pareto[] computeRatioCQParetoSet(SMG smg, MultiParameters params) throws PrismException
+	private Pareto[] computeRatioCQParetoSet(SMG<Double> smg, MultiParameters params) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
 		int initial_state = smg.getFirstInitialState();
@@ -2073,7 +2074,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 *
 	 * @return Whether the value iteration converged.
 	 */
-	public boolean computeCQParetoSet(SMG smg, MultiParameters params, Pareto[] Px, List<Pareto>[] stochasticStates, boolean checkBounds,
+	public boolean computeCQParetoSet(SMG<Double> smg, MultiParameters params, Pareto[] Px, List<Pareto>[] stochasticStates, boolean checkBounds,
 			boolean energy_objective) throws PrismException
 	{
 		int gameSize = smg.getNumStates();
@@ -2093,7 +2094,7 @@ public class SMGModelChecker extends ProbModelChecker
 			// Start iterations
 			for (int iters = 0; iters < params.maxCIter; iters++) {
 				// Matrix-vector multiply and min/max ops
-				((STPG) smg).mvMultRewMinMax(soln, params.rewards.get(0), false, true, soln2, unknown, false, null, 1.0);
+				((STPG<Double>) smg).mvMultRewMinMax(soln, (STPGRewards<Double>) params.rewards.get(0), false, true, soln2, unknown, false, null, 1.0);
 
 				// Swap vectors for next iter
 				tmpsoln = soln;
@@ -2286,7 +2287,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeNextProbs(SMG smg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeNextProbs(SMG<Double> smg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
@@ -2307,7 +2308,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeBoundedUntilProbs(SMG smg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeBoundedUntilProbs(SMG<Double> smg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
@@ -2327,7 +2328,7 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeUntilProbs(SMG smg, BitSet remain, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeUntilProbs(SMG<Double> smg, BitSet remain, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
@@ -2347,11 +2348,11 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeReachRewards(SMG smg, SMGRewards rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeReachRewards(SMG<Double> smg, SMGRewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = createSTPGModelChecker().computeReachRewards(smg, rewards, target, min1, min2, null, null, unreachingSemantics);
+		ModelCheckerResult res = createSTPGModelChecker().computeReachRewards(smg, (STPGRewards<Double>) rewards, target, min1, min2, null, null, unreachingSemantics);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -2366,11 +2367,11 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeInstantaneousRewards(SMG smg, SMGRewards rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeInstantaneousRewards(SMG<Double> smg, SMGRewards<Double> rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = createSTPGModelChecker().computeInstantaneousRewards(smg, rewards, k, min1, min2);
+		ModelCheckerResult res = createSTPGModelChecker().computeInstantaneousRewards(smg, (STPGRewards<Double>) rewards, k, min1, min2);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -2385,11 +2386,11 @@ public class SMGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeCumulativeRewards(SMG smg, SMGRewards rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeCumulativeRewards(SMG<Double> smg, SMGRewards<Double> rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = createSTPGModelChecker().computeCumulativeRewards(smg, rewards, k, min1, min2);
+		ModelCheckerResult res = createSTPGModelChecker().computeCumulativeRewards(smg, (STPGRewards<Double>) rewards, k, min1, min2);
 		smg.setCoalition(null);
 		return res;
 	}

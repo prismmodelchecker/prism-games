@@ -60,7 +60,7 @@ import prism.PrismException;
 /**
  * Simple explicit-state representation of a (turn-based) stochastic multi-player game (SMG).
  */
-public class SMGSimple extends MDPSimple implements SMG
+public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 {
 	/**
 	 * Which player owns each state
@@ -97,7 +97,7 @@ public class SMGSimple extends MDPSimple implements SMG
 	/**
 	 * Copy constructor
 	 */
-	public SMGSimple(SMGSimple smg)
+	public SMGSimple(SMGSimple<Value> smg)
 	{
 		super(smg);
 		stateOwners = new StateOwnersSimple(smg.stateOwners);
@@ -109,7 +109,7 @@ public class SMGSimple extends MDPSimple implements SMG
 	 * i.e. in which state index i becomes index permut[i].
 	 * Player and coalition info is also copied across.
 	 */
-	public SMGSimple(SMGSimple smg, int permut[])
+	public SMGSimple(SMGSimple<Value> smg, int permut[])
 	{
 		super(smg, permut);
 		stateOwners = new StateOwnersSimple(smg.stateOwners, permut);
@@ -194,7 +194,7 @@ public class SMGSimple extends MDPSimple implements SMG
 			if (subset.get(i)) {
 				forall = (getPlayer(i) == 0) ? forall1 : forall2;
 				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
+				for (Distribution<Value> distr : trans.get(i)) {
 					b2 = distr.containsOneOf(u);
 					if (forall) {
 						if (!b2) {
@@ -224,7 +224,7 @@ public class SMGSimple extends MDPSimple implements SMG
 			if (subset.get(i)) {
 				forall = (getPlayer(i) == 0) ? forall1 : forall2;
 				b1 = forall; // there exists or for all
-				for (Distribution distr : trans.get(i)) {
+				for (Distribution<Value> distr : trans.get(i)) {
 					b2 = distr.containsOneOf(v) && distr.isSubsetOf(u);
 					if (forall) {
 						if (!b2) {
@@ -320,11 +320,11 @@ public class SMGSimple extends MDPSimple implements SMG
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[])
 	{
 		int s;
 		boolean min = false;
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		MDPRewards<Double> mdpRewards = rewards.buildMDPRewards();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
@@ -345,27 +345,27 @@ public class SMGSimple extends MDPSimple implements SMG
 	}
 
 	@Override
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[])
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, int adv[])
 	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		MDPRewards<Double> mdpRewards = rewards.buildMDPRewards();
 		boolean min = (getPlayer(s) == 0) ? min1 : min2;
 		return mvMultRewMinMaxSingle(s, vect, mdpRewards, min, adv);
 	}
 
 	@Override
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val)
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double val)
 	{
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		MDPRewards<Double> mdpRewards = rewards.buildMDPRewards();
 		boolean min = (getPlayer(s) == 0) ? min1 : min2;
 		return mvMultRewMinMaxSingleChoices(s, vect, mdpRewards, min, val);
 	}
 
 	@Override
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[], double disc)
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[], double disc)
 	{
 		int s;
 		boolean min = false;
-		MDPRewards mdpRewards = rewards.buildMDPRewards();
+		MDPRewards<Double> mdpRewards = rewards.buildMDPRewards();
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
@@ -396,28 +396,20 @@ public class SMGSimple extends MDPSimple implements SMG
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 * @param disc Discount factor
 	 */
-	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int adv[], double disc)
+	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards<Double> mdpRewards, boolean min, int adv[], double disc)
 	{
-		int j, k, advCh = -1;
-		double d, prob, minmax;
+		int advCh = -1;
+		double d, minmax;
 		boolean first;
-		List<Distribution> step;
 
 		minmax = 0;
 		first = true;
-		j = -1;
-		step = trans.get(s);
-		for (Distribution distr : step) {
-			j++;
+		for (int j = 0, numChoices = getNumChoices(s); j < numChoices; j++) {
 			// Compute sum for this distribution
 			d = mdpRewards.getTransitionReward(s, j);
-
-			for (Map.Entry<Integer, Double> e : distr) {
-				k = (Integer) e.getKey();
-				prob = (Double) e.getValue();
-				d += prob * vect[k] * disc;
-			}
-
+			d += sumOverDoubleTransitions(s, j, (__, t, prob) -> {
+				return prob * vect[t] * disc;
+			});
 			// Check whether we have exceeded min/max so far
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
@@ -465,7 +457,7 @@ public class SMGSimple extends MDPSimple implements SMG
 				forall = (getPlayer(i) == 0) ? forall1 : forall2;
 				u1 = null; // reach in one step
 				first = true;
-				for (Distribution distr : trans.get(i)) {
+				for (Distribution<Value> distr : trans.get(i)) {
 					if(first) { 
 						u1 = new HashSet<Integer>(distr.getSupport()); // put all successors in reachable states
 						first = false;
@@ -491,7 +483,7 @@ public class SMGSimple extends MDPSimple implements SMG
 			// or if the state has only one choice that is enabled
 			boolean jump = (getNumChoices(i) == 1) && getPlayer(i) != closedPlayer;
 			if (u.get(i) && (getPlayer(i) == closedPlayer || jump)) {
-				for (Distribution distr : trans.get(i)) {
+				for (Distribution<Value> distr : trans.get(i)) {
 					for (int r : distr.getSupport()) { // add all successors (no matter which player)
 						result.set(r, true);
 					}
@@ -501,7 +493,7 @@ public class SMGSimple extends MDPSimple implements SMG
 	}
 	
 	@Override
-	public Pareto[] pMultiObjective(Pareto[] Xk, List<SMGRewards> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
+	public Pareto[] pMultiObjective(Pareto[] Xk, List<SMGRewards<Double>> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
 			List<Pareto>[] stochasticStates, boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException
 	{
 		Pareto[] result = new Pareto[Xk.length];
@@ -579,7 +571,7 @@ public class SMGSimple extends MDPSimple implements SMG
 		return result;
 	}
 
-    protected Pareto stochasticState(int s, Distribution distr, int d, Pareto[] Xk, List<SMGRewards> rewards, double[] extra_rewards, boolean cut, long M)
+    protected Pareto stochasticState(int s, Distribution<Value> distr, int d, Pareto[] Xk, List<SMGRewards<Double>> rewards, double[] extra_rewards, boolean cut, long M)
 			throws PrismException
 	{
 		int n = rewards.size();
@@ -602,7 +594,7 @@ public class SMGSimple extends MDPSimple implements SMG
 			BigFraction residual = BigFraction.ONE;
 			int supdim = 0;
 			for (Integer t : states) {
-				BigFraction prob = new BigFraction(distr.get(t));
+				BigFraction prob = new BigFraction(getEvaluator().toDouble(distr.get(t)));
 				probs[supdim] = prob;
 				residual = residual.subtract(prob);
 				supdim++;
@@ -660,20 +652,20 @@ public class SMGSimple extends MDPSimple implements SMG
 	}
 
 	// distPolys will hold the polyhedra of the stochastic states
-	private Pareto pMultiObjectiveSingle(int s, Pareto[] Xk, List<SMGRewards> rewards, long baseline_accuracy, double[] biggest_reward, List<Pareto> distPolys,
+	private Pareto pMultiObjectiveSingle(int s, Pareto[] Xk, List<SMGRewards<Double>> rewards, long baseline_accuracy, double[] biggest_reward, List<Pareto> distPolys,
 					     boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException
 	{
 		int n = rewards.size();
 
 		// distributions of successor states
-		List<Distribution> dists = trans.get(s);
+		List<Distribution<Value>> dists = trans.get(s);
 
 		// ------------------------------------------------------------------------------
 		// STOCHASTIC STATE OPERATIONS
 
 		// step through all stochastic successors of s
 		int d = 0;
-		for (Distribution distr : dists) {
+		for (Distribution<Value> distr : dists) {
 			// add polyhedron to the list of polyhedra in the successors of s
 		        distPolys.add(stochasticState(s, distr, d, Xk, rewards, null, cut, M));
 			d++;

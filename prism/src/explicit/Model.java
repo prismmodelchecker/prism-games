@@ -39,19 +39,24 @@ import java.util.TreeMap;
 import java.util.function.IntPredicate;
 
 import common.IteratorTools;
-import explicit.graphviz.Decoration;
 import explicit.graphviz.Decorator;
 import parser.State;
 import parser.Values;
 import parser.VarList;
-import prism.*;
+import prism.Evaluator;
+import prism.ModelType;
+import prism.PrismException;
+import prism.PrismFileLog;
+import prism.PrismLog;
 
 import static prism.PrismSettings.DEFAULT_EXPORT_MODEL_PRECISION;
 
 /**
  * Interface for (abstract) classes that provide (read-only) access to an explicit-state model.
+ * This is a generic class where probabilities/rates/etc. are of type {@code Value}.
  */
-public interface Model {
+public interface Model<Value>
+{
 	// Accessors
 
 	/**
@@ -307,7 +312,7 @@ public interface Model {
 	 * @throws PrismException if the model is unable to fix deadlocks because it is non-mutable.
 	 */
 	public void findDeadlocks(boolean fix) throws PrismException;
-		
+
 	/**
 	 * Checks for deadlocks and throws an exception if any exist.
 	 */
@@ -553,7 +558,7 @@ public interface Model {
 	{
 		explicit.graphviz.Decoration defaults = new explicit.graphviz.Decoration();
 		defaults.attributes().put("shape", "box");
-		
+
 		// Header
 		out.print("digraph " + getModelType() + " {\nnode " + defaults.toString() + ";\n");
 		int i, numStates;
@@ -561,6 +566,7 @@ public interface Model {
 			// initialize
 			explicit.graphviz.Decoration d = new explicit.graphviz.Decoration(defaults);
 			d.setLabel(Integer.toString(i));
+
 			// run any decorators
 			if (decorators != null) {
 				for (Decorator decorator : decorators) {
@@ -573,8 +579,8 @@ public interface Model {
 
 			// Transitions for state i
 			exportTransitionsToDotFile(i, out, decorators, precision);
-		}	
-		
+		}
+
 		// Footer
 		out.print("}\n");
 	}
@@ -657,4 +663,14 @@ public interface Model {
 	/** Clear any stored predecessor relation, e.g., because the model was modified */
 	public void clearPredecessorRelation();
 
+	/**
+	 * Get an Evaluator for the values stored in this Model for probabilities etc.
+	 * This is needed, for example, to compute probability sums, check for equality to 0/1, etc.
+	 * A default implementation provides an evaluator for the (usual) case when Value is Double.
+	 */
+	@SuppressWarnings("unchecked")
+	public default Evaluator<Value> getEvaluator()
+	{
+		return (Evaluator<Value>) Evaluator.createForDoubles();
+	}
 }

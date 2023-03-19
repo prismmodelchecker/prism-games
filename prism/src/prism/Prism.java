@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,6 +52,7 @@ import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
 import param.BigRational;
+import param.FunctionFactory;
 import param.ModelBuilder;
 import param.ParamModel;
 import param.ParamModelChecker;
@@ -71,7 +71,6 @@ import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
 import simulator.ModulesFileModelGenerator;
-import simulator.ModulesFileModelGeneratorSymbolic;
 import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
@@ -283,16 +282,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// PRISM model (null if none loaded)
 	private ModulesFile currentModulesFile = null;
 	// Model generator (null if none loaded)
-	private ModelGenerator currentModelGenerator = null;
+	private ModelGenerator<?> currentModelGenerator = null;
 	// Reward generator (null if none loaded)
-	private RewardGenerator currentRewardGenerator = null;
+	private RewardGenerator<?> currentRewardGenerator = null;
 	// Constants to be defined for PRISM model
 	private Values currentDefinedMFConstants = null;
 	// Was currentDefinedMFConstants evaluated exactly?
 	private boolean currentDefinedMFConstantsAreExact = false;
 	// Built model storage - symbolic or explicit - at most one is non-null
 	private Model currentModel = null;
-	private explicit.Model currentModelExpl = null;
+	private explicit.Model<?> currentModelExpl = null;
 	// Are we doing digital clocks translation for PTAs?
 	boolean digital = false;
 
@@ -1182,7 +1181,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Get an SCCComputer object for the explicit engine.
 	 * @param consumer the SCCConsumer
 	 */
-	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model model, explicit.SCCConsumer consumer) throws PrismException
+	public explicit.SCCComputer getExplicitSCCComputer(explicit.Model<?> model, explicit.SCCConsumer consumer) throws PrismException
 	{
 		return explicit.SCCComputer.createSCCComputer(this, model, consumer);
 	}
@@ -1207,7 +1206,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	/**
 	 * Get an ECComputer object for the explicit engine.
 	 */
-	public explicit.ECComputer getExplicitECComputer(explicit.NondetModel model) throws PrismException
+	public explicit.ECComputer getExplicitECComputer(explicit.NondetModel<?> model) throws PrismException
 	{
 		return explicit.ECComputer.createECComputer(this, model);
 	}
@@ -1628,8 +1627,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModulesFile = modulesFile;
 		// Create a model generator for the PRISM model if appropriate - we will use that where possible
 		try {
-			currentModelGenerator = new ModulesFileModelGenerator(currentModulesFile, this);
-			currentRewardGenerator = ((ModulesFileModelGenerator) currentModelGenerator);
+			currentModelGenerator = ModulesFileModelGenerator.create(currentModulesFile, this);
+			currentRewardGenerator = ((ModulesFileModelGenerator<?>) currentModelGenerator);
 		} catch(PrismException e) {
 			// If a ModelGenerator couldn't be created, just store null
 			// Calling getModelGenerator can be used to determine the error if needed later
@@ -1710,13 +1709,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Pass in null to clear storage of the current model.
 	 * @param modelGen The model generator
 	 */
-	public void loadModelGenerator(ModelGenerator modelGen)
+	public void loadModelGenerator(ModelGenerator<?> modelGen)
 	{
 		currentModelSource = ModelSource.MODEL_GENERATOR;
 		// Store model generator
 		currentModelGenerator = modelGen;
 		if (modelGen instanceof RewardGenerator) {
-			currentRewardGenerator = (RewardGenerator) modelGen;
+			currentRewardGenerator = (RewardGenerator<?>) modelGen;
 		} else {
 			currentRewardGenerator = new RewardGenerator() {};
 		}
@@ -1836,19 +1835,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * @param statesFile File containing a list of states (optional, can be null)
 	 * @param transFile File containing the list of transitions (required)
 	 * @param labelsFile File containing label definitions (optional, can be null)
-	 * @param stateRewardsFile File containing state reward definitions (optional, can be null)
-	 * @param typeOverride Model type (auto-detected if {@code null})
-	 */
-	public void loadModelFromExplicitFiles(File statesFile, File transFile, File labelsFile, File stateRewardsFile, ModelType typeOverride) throws PrismException
-	{
-		loadModelFromExplicitFiles(statesFile, transFile, labelsFile, Collections.singletonList(stateRewardsFile), typeOverride);
-	}
-	
-	/**
-	 * Load files containing an explicit list of transitions/etc. for subsequent model building.
-	 * @param statesFile File containing a list of states (optional, can be null)
-	 * @param transFile File containing the list of transitions (required)
-	 * @param labelsFile File containing label definitions (optional, can be null)
 	 * @param stateRewardsFiles Files containing state reward definitions (optional, can be null)
 	 * @param typeOverride Model type (auto-detected if {@code null})
 	 */
@@ -1867,7 +1853,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		explicitFilesStatesFile = statesFile;
 		explicitFilesTransFile = transFile;
 		explicitFilesLabelsFile = labelsFile;
-		explicitFilesStateRewardsFiles = new ArrayList<>(stateRewardsFiles);
+		explicitFilesStateRewardsFiles = stateRewardsFiles == null ? new ArrayList<>() : new ArrayList<>(stateRewardsFiles);
 		explicitFilesNumStates = ef2mi.getNumStates();
 		// Reset dependent info
 		currentModelType = currentModelInfo == null ? null : currentModelInfo.getModelType();
@@ -1900,7 +1886,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * using {@link #loadPRISMModel(ModulesFile)}.
 	 * Throw an explanatory exception if not possible.
 	 */
-	public ModelGenerator getModelGenerator() throws PrismException
+	public ModelGenerator<?> getModelGenerator() throws PrismException
 	{
 		if (currentModelGenerator == null) {
 			switch (currentModelSource) {
@@ -1909,7 +1895,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				if (currentModulesFile == null)
 					throw new PrismException("There is no currently loaded PRISM model");
 				// PRISM model exists but no generator - this will provide the error message
-				new ModulesFileModelGenerator(currentModulesFile, this);
+				ModulesFileModelGenerator.create(currentModulesFile, this);
 				// Shouldn't happen, so generic error message
 				throw new PrismException("No model generator was created");
 			case MODEL_GENERATOR:
@@ -1948,7 +1934,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Get the currently stored built explicit model.
 	 * @return
 	 */
-	public explicit.Model getBuiltModelExplicit()
+	public explicit.Model<?> getBuiltModelExplicit()
 	{
 		return currentModelExpl;
 	}
@@ -2050,7 +2036,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					throw new PrismException("There is no currently loaded model generator to build");
 				if (!getExplicit()) {
 					ModelGenerator2MTBDD modelGen2mtbdd = new ModelGenerator2MTBDD(this);
-					currentModel = modelGen2mtbdd.build(currentModelGenerator, currentRewardGenerator);
+					currentModel = modelGen2mtbdd.build((ModelGenerator<Double>) currentModelGenerator, (RewardGenerator<Double>) currentRewardGenerator);
 					currentModelExpl = null;
 				} else {
 					ConstructModel constructModel = new ConstructModel(this);
@@ -2067,7 +2053,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					currentModel = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, currentModelInfo, explicitFilesNumStates, erfg4m);
 				} else {
 					currentModelExpl = new ExplicitFiles2Model(this).build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, currentModelInfo, explicitFilesNumStates);
-					currentModelGenerator = new ModelModelGenerator(currentModelExpl, currentModelInfo);
+					currentModelGenerator = new ModelModelGenerator<>(currentModelExpl, currentModelInfo);
 					ExplicitFilesRewardGenerator efrg4e = new ExplicitFilesRewardGenerator4Explicit(this, explicitFilesStateRewardsFiles, explicitFilesNumStates);
 					efrg4e.setStatesList(currentModelExpl.getStatesList());
 					currentRewardGenerator = efrg4e;
@@ -2206,7 +2192,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		long l; // timer
 		ConstructModel constructModel;
-		explicit.Model modelExpl;
+		explicit.Model<?> modelExpl;
 		Model model;
 		List<State> statesList;
 
@@ -2219,7 +2205,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("Model constants: " + currentDefinedMFConstants);
 
 		constructModel = new ConstructModel(this);
-		modelExpl = constructModel.constructModel(new ModulesFileModelGenerator(modulesFile, this), false);
+		ModelGenerator<Double> modelGen = ModulesFileModelGenerator.createForDoubles(modulesFile, this);
+		modelExpl = constructModel.constructModel(modelGen);
 		statesList = constructModel.getStatesList();
 
 		// create Explicit2MTBDD object
@@ -2227,7 +2214,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// build model
 		l = System.currentTimeMillis();
-		model = expm2mtbdd.buildModel(modelExpl, statesList, modulesFile, false);
+		model = expm2mtbdd.buildModel((explicit.Model<Double>) modelExpl, statesList, modulesFile, false);
 		l = System.currentTimeMillis() - l;
 
 		mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
@@ -2668,7 +2655,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			ecComputer = getECComputer((NondetModel) currentModel);
 			ecComputer.computeMECStates();
 		} else {
-			ecComputerExpl = getExplicitECComputer((explicit.NondetModel) currentModelExpl);
+			ecComputerExpl = getExplicitECComputer((explicit.NondetModel<?>) currentModelExpl);
 			ecComputerExpl.computeMECStates();
 		}
 		l = System.currentTimeMillis() - l;
@@ -3190,14 +3177,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	{
 		// Get the ModelGenerator.
 		// If creation failed before, this tries again, throwing an explanatory exception.
-		ModelGenerator modelGenForSim = null;
+		ModelGenerator<?> modelGenForSim = null;
 		try {
 			modelGenForSim = getModelGenerator();
 		} catch (PrismException e) {
 			throw new PrismException("Simulation not possible: "+ e.getMessage());
 		}
 		// Load into simulator
-		getSimulator().loadModel(modelGenForSim, currentRewardGenerator);
+		getSimulator().loadModel((ModelGenerator<Double>) modelGenForSim, (RewardGenerator<Double>) currentRewardGenerator);
 	}
 
 	/**
@@ -3383,7 +3370,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		String[] paramUpperBounds = new String[] { "1" };
 		// And execute parameteric model checking
 		param.ModelBuilder builder = new ModelBuilder(this, param.ParamMode.EXACT);
-		ParamModel modelExpl = builder.constructModel(new ModulesFileModelGeneratorSymbolic(currentModulesFile, this), paramNames, paramLowerBounds, paramUpperBounds);
+		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
+		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(currentModulesFile, functionFactory, this));
 		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.EXACT);
 		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
@@ -3458,7 +3446,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		clearStrategy();
 		
 		param.ModelBuilder builder = new ModelBuilder(this, param.ParamMode.PARAMETRIC);
-		ParamModel modelExpl = builder.constructModel(new ModulesFileModelGeneratorSymbolic(currentModulesFile, this), paramNames, paramLowerBounds, paramUpperBounds);
+		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
+		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(currentModulesFile, functionFactory, this));
 		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.PARAMETRIC);
 		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
@@ -3635,18 +3624,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
 	 * If null, start from initial state (or uniform distribution over multiple initial states).
 	 */
-	protected explicit.StateValues computeSteadyStateProbabilitiesExplicit(explicit.Model model, File fileIn) throws PrismException
+	protected explicit.StateValues computeSteadyStateProbabilitiesExplicit(explicit.Model<?> model, File fileIn) throws PrismException
 	{
 		explicit.StateValues probs;
 		switch (model.getModelType()) {
 		case DTMC: {
 			DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
-			probs = mcDTMC.doSteadyState((DTMC) model, fileIn);
+			probs = mcDTMC.doSteadyState((DTMC<Double>) model, fileIn);
 			break;
 		}
 		case CTMC: {
 			CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
-			probs = mcCTMC.doSteadyState((CTMC) model, fileIn);
+			probs = mcCTMC.doSteadyState((CTMC<Double>) model, fileIn);
 			break;
 		}
 		default:
@@ -3702,7 +3691,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			if (fileIn != null) {
 				throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
 			}
-			ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(currentModulesFile, this);
+			ModulesFileModelGenerator<Double> prismModelGen = ModulesFileModelGenerator.createForDoubles(currentModulesFile, this);
 			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 			fau.setConstantValues(currentModulesFile.getConstantValues());
 			probsExpl = fau.doTransient(time);
@@ -3723,10 +3712,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			buildModelIfRequired();
 			if (currentModelType == ModelType.DTMC) {
 				DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
-				probsExpl = mcDTMC.doTransient((DTMC) currentModelExpl, (int) time, fileIn);
+				probsExpl = mcDTMC.doTransient((DTMC<Double>) currentModelExpl, (int) time, fileIn);
 			} else if (currentModelType == ModelType.CTMC) {
 				CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
-				probsExpl = mcCTMC.doTransient((CTMC) currentModelExpl, time, fileIn);
+				probsExpl = mcCTMC.doTransient((CTMC<Double>) currentModelExpl, time, fileIn);
 			} else {
 				throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
 			}
@@ -3811,7 +3800,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				if (fileIn != null) {
 					throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
 				}
-				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(currentModulesFile, this);
+				ModulesFileModelGenerator<Double> prismModelGen = ModulesFileModelGenerator.createForDoubles(currentModulesFile, this);
 				FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 				fau.setConstantValues(currentModulesFile.getConstantValues());
 				if (i == 0) {
@@ -3849,14 +3838,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 						initDistExpl = mc.readDistributionFromFile(fileIn, currentModelExpl);
 						initTimeDouble = 0;
 					}
-					probsExpl = mc.doTransient((CTMC) currentModelExpl, timeDouble - initTimeDouble, initDistExpl);
+					probsExpl = mc.doTransient((CTMC<Double>) currentModelExpl, timeDouble - initTimeDouble, initDistExpl);
 				} else {
 					DTMCModelChecker mc = new DTMCModelChecker(this);
 					if (i == 0) {
 						initDistExpl = mc.readDistributionFromFile(fileIn, currentModelExpl);
 						initTimeInt = 0;
 					}
-					probsExpl = mc.doTransient((DTMC) currentModelExpl, timeInt - initTimeInt, initDistExpl);
+					probsExpl = mc.doTransient((DTMC<Double>) currentModelExpl, timeInt - initTimeInt, initDistExpl);
 				}
 			}
 

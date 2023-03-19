@@ -1,9 +1,8 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2020-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
-//	* Nishan Kamaleson <nxk249@bham.ac.uk> (University of Birmingham)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -25,13 +24,34 @@
 //	
 //==============================================================================
 
-package prism;
+package explicit.rewards;
+
+import prism.Evaluator;
 
 /**
- * Default implementation of the {@link ModelGenerator} and {@link RewardGenerator} interfaces.
- * Basically redundant since these interfaces now have default method implementations.
- * Retained just for backwards compatibility.
+ * Base class for reward classes.
  */
-public abstract class DefaultModelGenerator implements ModelGenerator<Double>, RewardGenerator<Double>
+public abstract class RewardsExplicit<Value> implements Rewards<Value>
 {
+	/** Evaluator for manipulating reward values stored here (of type {@code Value}) */
+	@SuppressWarnings("unchecked")
+	protected Evaluator<Value> eval = (Evaluator<Value>) Evaluator.createForDoubles();
+
+	// Mutators
+
+	/**
+	 * Set the {@link Evaluator} object for manipulating reward values
+	 */
+	public void setEvaluator(Evaluator<Value> eval)
+	{
+		this.eval = eval;
+	}
+
+	// Accessors
+
+	@Override
+	public Evaluator<Value> getEvaluator()
+	{
+		return eval;
+	}
 }

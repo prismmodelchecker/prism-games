@@ -44,9 +44,9 @@ import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 
-public class CSGStrategy extends PrismComponent implements Strategy {
+public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 
-	protected CSG model;
+	protected CSG<Double> model;
 	protected List<List<List<Map<BitSet, Double>>>> csgchoices; // player -> iteration -> state -> indexes -> value
 	protected ModelCheckerResult[] prechoices;
 	protected BitSet[] targets;
@@ -61,7 +61,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R;
 	}
 
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.subgames = subgames;
@@ -69,7 +69,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		this.type = type;
 	}
 	
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, ModelCheckerResult[] prechoices, BitSet[] targets, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, ModelCheckerResult[] prechoices, BitSet[] targets, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = prechoices;
@@ -77,7 +77,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		this.type = type;
 	}
 
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = null;
@@ -173,7 +173,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	}
 	
 	public void exportZeroSumStrategy(PrismLog out) throws PrismException {
-		MDPSimple mdp = new MDPSimple();
+		MDPSimple<Double> mdp = new MDPSimple<>();
 		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
 		List<State> statelist = new ArrayList<State>();
 		VarList varlist = null;
@@ -201,7 +201,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	}
 	
 	public void exportEquilibriaStrategy(PrismLog out) throws PrismException, InvalidStrategyStateException {
-		MDPSimple mdp = new MDPSimple();
+		MDPSimple<Double> mdp = new MDPSimple<>();
 		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
 		List<State> statelist = new ArrayList<State>();
 		VarList varlist = null;
@@ -217,7 +217,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		statelist.add(n, initial);
 		onmap.put(s, n);
 		if (targets[0].isEmpty() && targets[1].isEmpty()) {
-			Distribution d = new Distribution();
+			Distribution<Double> d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
 		}
@@ -249,7 +249,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	}
 	
 	public void exportMultiEquilibriaStrategy(PrismLog out) throws PrismException {
-		MDPSimple mdp = new MDPSimple();
+		MDPSimple<Double> mdp = new MDPSimple<>();
 		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
 		List<State> statelist = new ArrayList<State>();
 		State initial;
@@ -274,7 +274,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		mainLog.println("Additional info on transitions and states added to file.");
 	}
 	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach) throws PrismException, InvalidStrategyStateException {
+	public void addPrecompStrategies(MDPSimple<Double> mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach) throws PrismException, InvalidStrategyStateException {
 		BitSet[] minus = new BitSet[targets.length];
 		BitSet[] goals = new BitSet[targets.length];
 		BitSet explored = new BitSet();
@@ -297,8 +297,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		
 	}
 	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] goals, BitSet[] reach, BitSet explored, int p, int s) throws PrismException, InvalidStrategyStateException {
-		Distribution d;
+	public void addPrecompStrategies(MDPSimple<Double> mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] goals, BitSet[] reach, BitSet explored, int p, int s) throws PrismException, InvalidStrategyStateException {
+		Distribution<Double> d;
 		String label = "MDP: ";
 		String joint = "";
 		double v;
@@ -320,17 +320,17 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 		explored.set(s);
 		if (goals[p].get(s) && goals[(p + 1) % 2].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
 		}
 		else if (goals[p].get(s) && !goals[(p +1) % 2].get(s) && !reach[(p +1) % 2].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Sat(" + p + ") -- Unsat(" + (p + 1) % 2 + ")");
 		}
 		else if (!goals[(p +1) % 2].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			//c = prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport().size();
 			c = 1;
 			//for (int t : prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport()) {
@@ -383,8 +383,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 	}
 	
-	public void generateMDPMultiEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int s) {
-		Distribution d;
+	public void generateMDPMultiEquilibria(MDPSimple<Double> mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int s) {
+		Distribution<Double> d;
 		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
 		BitSet tmp = new BitSet();
 		BitSet sat = new BitSet();
@@ -414,7 +414,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 				lsubg += " -- ";
 		}
 		if (sat.cardinality() == numCoalitions) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, lsubg);	
 		}
@@ -425,7 +425,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 			}
 			if (chck) {
 				localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
-				d = new Distribution();
+				d = new Distribution<>();
 				for (t = 0; t < model.getNumChoices(s); t++) {
 					tmp.clear();
 					for (q = 0; q < model.getIndexes(s, t).length; q++) {
@@ -475,8 +475,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 	}
 	
-	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
-		Distribution d;
+	public void generateMDPEquilibria(MDPSimple<Double> mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
+		Distribution<Double> d;
 		String[] action = new String[csgchoices.size()];
 		String label = null;
 		String joint = null;
@@ -487,22 +487,22 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		n = onmap.get(s);
 		explored.set(s);
 		if (targets[0].get(s) && targets[1].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
 		}
 		else if (targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Unsat(1)");
 		}
 		else if (!targets[0].get(s) && targets[1].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Sat(1)");
 		}
 		else if (!targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
 		}
@@ -513,7 +513,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 			}
 			if (chck) {
 				localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
-				d = new Distribution();
+				d = new Distribution<>();
 				for (t = 0; t < model.getNumChoices(s); t++) {
 					tmp.clear();
 					for (q = 0; q < model.getIndexes(s, t).length; q++) {
@@ -557,8 +557,8 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 	}
 	
-	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
-		Distribution d;
+	public void generateMDPZeroSum(MDPSimple<Double> mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
+		Distribution<Double> d;
 		BitSet tmp1 = new BitSet();
 		BitSet tmp2 = new BitSet();
 		String act1 = null;
@@ -567,17 +567,17 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		n = onmap.get(s);
 		explored.set(s);
 		if (yes.get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "Sat");
 		}
 		else if (no.get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "Unsat");
 		}
 		else if (inf.get(s)) {
-			d = new Distribution();
+			d = new Distribution<>();
 			d.add(n, 1.0);
 			mdp.addActionLabelledChoice(n, d, "Infinity");
 		}
@@ -596,7 +596,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					tmp2.or(act);
 					tmp2.andNot(tmp1);
 					if (tmp2.isEmpty()) {
-						d = new Distribution();
+						d = new Distribution<>();
 						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
 							Map.Entry<Integer, Double> e = iter.next();
 							int u = e.getKey();

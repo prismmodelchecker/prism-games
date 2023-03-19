@@ -32,13 +32,13 @@ import strat.MDStrategy;
 /**
  * Base class for explicit-state representations of an MDP.
  */
-public abstract class MDPExplicit extends ModelExplicit implements MDP
+public abstract class MDPExplicit<Value> extends ModelExplicit<Value> implements MDP<Value>
 {
 	// Accessors (for MDP)
 
 	@Override
-	public Model constructInducedModel(MDStrategy strat)
+	public Model<Value> constructInducedModel(MDStrategy strat)
 	{
-		return new DTMCFromMDPAndMDStrategy(this, strat);
+		return new DTMCFromMDPAndMDStrategy<Value>(this, strat);
 	}
 }

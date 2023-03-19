@@ -109,8 +109,8 @@ import userinterface.graph.Graph;
 public class SimulatorEngine extends PrismComponent
 {
 	// The current parsed model + info
-	private ModelGenerator modelGen;
-	private RewardGenerator rewardGen;
+	private ModelGenerator<Double> modelGen;
+	private RewardGenerator<Double> rewardGen;
 	private ModelType modelType;
 	// Variable info
 	private VarList varList;
@@ -195,11 +195,11 @@ public class SimulatorEngine extends PrismComponent
 	 * @param modelGen The model generator for simulation
 	 * @param rewardGen Reward generator for simulation (null if not needed)
 	 */
-	public void loadModel(ModelGenerator modelGen, RewardGenerator rewardGen) throws PrismException
+	public void loadModel(ModelGenerator<Double> modelGen, RewardGenerator<Double> rewardGen) throws PrismException
 	{
 		// Create an empty RewardGenerator if missing
 		if (rewardGen == null) {
-			rewardGen = new RewardGenerator() {} ;
+			rewardGen = new RewardGenerator<Double>() {} ;
 		}
 		
 		// Store model, some info and constants
@@ -225,7 +225,7 @@ public class SimulatorEngine extends PrismComponent
 	 * Typically, {@link #loadModel(ModelGenerator, RewardGenerator) is used.
 	 * @param modelGen The model generator for simulation
 	 */
-	public void loadModel(ModelGenerator modelGen) throws PrismException
+	public void loadModel(ModelGenerator<Double> modelGen) throws PrismException
 	{
 		loadModel(modelGen, null);
 	}
@@ -249,7 +249,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get access to the currently loaded model
 	 */
-	public ModelGenerator getModel()
+	public ModelGenerator<Double> getModel()
 	{
 		return modelGen;
 	}
@@ -257,7 +257,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get access to the currently loaded reward generator
 	 */
-	public RewardGenerator getRewardGenerator()
+	public RewardGenerator<Double> getRewardGenerator()
 	{
 		return rewardGen;
 	}

@@ -30,18 +30,13 @@ package explicit.rewards;
 import explicit.Model;
 import explicit.Product;
 
-public interface CSGRewards extends STPGRewards
+public interface CSGRewards<Value> extends STPGRewards<Value>
 {
 	/**
-	 * Get the state reward for state {@code s}.
+	 * Build an MDPRewards object containing all the same rewards except for the nested ones.
 	 */
-	public abstract double getStateReward(int s);
-	
-	/**
-	 * Get the transition reward for the {@code i}th choice from state {@code s}.
-	 */
-	public abstract double getTransitionReward(int s, int i); 
-	
+	public abstract MDPRewards<Value> buildMDPRewards();
+
 	@Override
-	public abstract CSGRewards liftFromModel(Product<? extends Model> product);
+	public abstract CSGRewards<Value> liftFromModel(Product<? extends Model<Value>> product);
 }

@@ -30,8 +30,8 @@ package explicit.rewards;
 import explicit.Model;
 import explicit.Product;
 
-public class CSGRewardsSimple extends MDPRewardsSimple implements CSGRewards {
-	
+public class CSGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements CSGRewards<Value>
+{
 	public CSGRewardsSimple(int numStates) 
 	{
 		super(numStates);
@@ -41,7 +41,7 @@ public class CSGRewardsSimple extends MDPRewardsSimple implements CSGRewards {
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public CSGRewardsSimple(CSGRewardsSimple rews)
+	public CSGRewardsSimple(CSGRewardsSimple<Value> rews)
 	{
 		super(rews);
 	}
@@ -50,31 +50,26 @@ public class CSGRewardsSimple extends MDPRewardsSimple implements CSGRewards {
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public CSGRewardsSimple(MDPRewardsSimple rews)
+	public CSGRewardsSimple(MDPRewardsSimple<Value> rews)
 	{
 		super(rews);
 	}
 
 	// Accessors
-	@Override
-	public double getNestedTransitionReward(int s, int i, int j)
-	{
-		return 0;
-	}
 	
 	// Converters
 	@Override
-	public CSGRewards liftFromModel(Product<? extends Model> product)
+	public CSGRewards<Value> liftFromModel(Product<? extends Model<Value>> product)
 	{
 		// Lift MDP part
-		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) super.liftFromModel(product);
-		return new CSGRewardsSimple(rewardsProdMDP);
+		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);
+		return new CSGRewardsSimple<>(rewardsProdMDP);
 	}
 	
 	// Other
 	@Override
-	public MDPRewards buildMDPRewards()
+	public MDPRewards<Value> buildMDPRewards()
 	{
-		return new MDPRewardsSimple(this);
+		return new MDPRewardsSimple<>(this);
 	}
 }

@@ -33,7 +33,7 @@ import explicit.Product;
 /**
  * Simple explicit-state storage of rewards for an SMG.
  */
-public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards
+public class SMGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements SMGRewards<Value>
 {
 	/**
 	 * Constructor: all zero rewards.
@@ -48,7 +48,7 @@ public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public SMGRewardsSimple(SMGRewardsSimple rews)
+	public SMGRewardsSimple(SMGRewardsSimple<Value> rews)
 	{
 		super(rews);
 	}
@@ -57,34 +57,26 @@ public class SMGRewardsSimple extends MDPRewardsSimple implements SMGRewards
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public SMGRewardsSimple(MDPRewardsSimple rews)
+	public SMGRewardsSimple(MDPRewardsSimple<Value> rews)
 	{
 		super(rews);
-	}
-
-	// Accessors
-
-	@Override
-	public double getNestedTransitionReward(int s, int i, int j)
-	{
-		return 0;
 	}
 
 	// Converters
 	
 	@Override
-	public SMGRewards liftFromModel(Product<? extends Model> product)
+	public SMGRewards<Value> liftFromModel(Product<? extends Model<Value>> product)
 	{
 		// Lift MDP part
-		MDPRewardsSimple rewardsProdMDP = (MDPRewardsSimple) super.liftFromModel(product);
-		return new SMGRewardsSimple(rewardsProdMDP);
+		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);
+		return new SMGRewardsSimple<>(rewardsProdMDP);
 	}
 	
 	// Other
 
 	@Override
-	public MDPRewards buildMDPRewards()
+	public MDPRewards<Value> buildMDPRewards()
 	{
-		return new MDPRewardsSimple(this);
+		return new MDPRewardsSimple<>(this);
 	}
 }

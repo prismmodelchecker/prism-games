@@ -41,7 +41,7 @@ import prism.PlayerInfoOwner;
 /**
  * Simple explicit-state representation of a (multi-player) concurrent stochastic game (CSG).
  */
-public class CSGSimple extends MDPSimple implements CSG
+public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 {
 	/** List of all action labels */
 	protected Vector<String> actions;
@@ -80,7 +80,7 @@ public class CSGSimple extends MDPSimple implements CSG
 	 * i.e. in which state index i becomes index permut[i].
 	 * Player and coalition info is also copied across.
 	 */
-	public CSGSimple(CSGSimple csg, int[] permut)
+	public CSGSimple(CSGSimple<Value> csg, int[] permut)
 	{
 		super(csg, permut);
 		transIndexes = new ArrayList<List<int[]>>();
@@ -138,7 +138,7 @@ public class CSGSimple extends MDPSimple implements CSG
 	 * {@link #getAction(int, int)}), whereas the array of indices can be accessed via
 	 * {@link #getIndexes(int, int)}.
 	 */
-	public int addActionLabelledChoice(int s, Distribution distr, int[] indexes)
+	public int addActionLabelledChoice(int s, Distribution<Value> distr, int[] indexes)
 	{
 		int i, j;
 		String label = "";
@@ -242,8 +242,8 @@ public class CSGSimple extends MDPSimple implements CSG
 	public void fixDeadlock(int s)
 	{
 		int numPlayers = getNumPlayers();
-		Distribution distr = new Distribution();
-		distr.add(s, 1.0);
+		Distribution<Value> distr = new Distribution<>();
+		distr.add(s, getEvaluator().one());
 		int[] indexes = new int[numPlayers];
 		for (int p = 0; p < numPlayers; p++) {
 			indexes[p] = -1;

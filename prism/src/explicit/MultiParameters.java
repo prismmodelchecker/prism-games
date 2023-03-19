@@ -28,11 +28,9 @@ package explicit;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.BitSet;
-import explicit.rewards.SMGRewards;
 
+import explicit.rewards.SMGRewards;
 import parser.ast.Expression;
-import parser.ast.ExpressionFunc;
 import prism.PrismException;
 
 /**
@@ -50,9 +48,9 @@ public class MultiParameters
     // GOAL
     List<List<Expression>> expr; // expression this parameter set belongs to
     List<Expression> expressions; // list of all expressions
-    List<SMGRewards> rewards; // reward structures
+    List<SMGRewards<Double>> rewards; // reward structures
     List<String> reward_names; // reward structure names
-    List<SMGRewards> divisors; // reward structures acting as divisors for ratio rewards, null if not available
+    List<SMGRewards<Double>> divisors; // reward structures acting as divisors for ratio rewards, null if not available
     List<String> divisor_names; // divisor structure names
     List<Integer> reward_types; // types of rewards
     List<Integer> directions; // direction of inequalities

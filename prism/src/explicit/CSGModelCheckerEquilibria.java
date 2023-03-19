@@ -139,7 +139,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 
-	public void buildCoalitions(CSG csg, List<Coalition> coalitions) throws PrismException {
+	public void buildCoalitions(CSG<Double> csg, List<Coalition> coalitions) throws PrismException {
 		if (coalitions == null || coalitions.isEmpty())
 			throw new PrismException("Coalitions must not be empty");
 		int c, p, all;
@@ -308,7 +308,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return result;
 	}
 	
-	public void buildStepGame(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, double[][] val, int s, boolean min) throws PrismException {
+	public void buildStepGame(CSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, double[][] val, int s, boolean min) throws PrismException {
 		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
 		BitSet jidx;
 		BitSet indexes = new BitSet();
@@ -386,15 +386,15 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		//System.out.println("-- utilities " + utilities);
 	}
 	
-	public ArrayList<ArrayList<ArrayList<Double>>> buildBiMatrixGame(CSG csg, CSGRewards r1, CSGRewards r2, List<Map<Integer, BitSet>> mmap,  List<ArrayList<Integer>> nmap, double[][] val, int s, boolean min) throws PrismException {
+	public ArrayList<ArrayList<ArrayList<Double>>> buildBiMatrixGame(CSG<Double> csg, CSGRewards<Double> r1, CSGRewards<Double> r2, List<Map<Integer, BitSet>> mmap,  List<ArrayList<Integer>> nmap, double[][] val, int s, boolean min) throws PrismException {
 		ArrayList<ArrayList<ArrayList<Double>>> bmgame = new ArrayList<ArrayList<ArrayList<Double>>>();
-		ArrayList<CSGRewards> rewards = null;
+		ArrayList<CSGRewards<Double>> rewards = null;
 		BitSet action = new BitSet();
 		int col, p, row, irow, icol;
 		if (numCoalitions > 2) 
 			throw new PrismLangException("Multiplayer game not supported by this method");
 		if (r1 != null || r2 != null) {
-			rewards = new ArrayList<CSGRewards>();
+			rewards = new ArrayList<>();
 			rewards.add(0, r1);
 			rewards.add(1, r2);
 		}
@@ -562,7 +562,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public double[][] computeBoundedReachProbs(CSG csg, BitSet target, int n) {
+	public double[][] computeBoundedReachProbs(CSG<Double> csg, BitSet target, int n) {
 		double[][] sol = new double[n][csg.getNumStates()];
 		double[] sol1 = new double[csg.getNumStates()];
 		double[] sol2 = new double[csg.getNumStates()];
@@ -591,12 +591,12 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return sol;
 	} 
 	
-	public ModelCheckerResult computeBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException {
+	public ModelCheckerResult computeBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException {
 		if (genStrat || exportAdv) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
-		List<CSGRewards> newRewards= null;
+		List<CSGRewards<Double>> newRewards= null;
 		BitSet[] only = new BitSet[coalitions.size()];
 		BitSet[] phi1 = new BitSet[3];
 		BitSet cpy =  new BitSet();
@@ -685,7 +685,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			cpy.clear();
 		}
 		else {
-			newRewards = new ArrayList<CSGRewards>();
+			newRewards = new ArrayList<>();
 		}
 		
 		//System.out.println("for bounds[0]");
@@ -837,7 +837,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return res;		
 	}
 
-	public ModelCheckerResult computeMultiReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
+	public ModelCheckerResult computeMultiReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
 		ModelCheckerResult res = new ModelCheckerResult();
 		Declaration[] goals = new Declaration[coalitions.size()];
 		//Map<BitSet, BitSet> common = new HashMap<BitSet, BitSet>();
@@ -888,7 +888,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		//System.out.println("-- common " + common);
 		
-		CSGSimple newmodel = new CSGSimple();
+		CSGSimple<Double> newmodel = new CSGSimple<>();
 		newmodel.copyPlayerInfo(csg);
 		newmodel.setActions(csg.getActions());
 		newmodel.setIndexes(csg.getIndexes());
@@ -972,17 +972,17 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		tmp = new double[coalitions.size()][newmodel.getNumStates()];
 		r = new double[newmodel.getNumStates()];
 				
-		List<CSGRewards> newrewards = null;
+		List<CSGRewards<Double>> newrewards = null;
 		if (rew) {
-			newrewards = new ArrayList<CSGRewards>();
+			newrewards = new ArrayList<>();
 			for (p = 0; p < numCoalitions; p++) {
-				newrewards.add(p, new CSGRewardsSimple(newmodel.getNumStates()));
+				newrewards.add(p, new CSGRewardsSimple<>(newmodel.getNumStates()));
 			}
 			for (s = 0;  s < newmodel.getNumStates(); s++) {
 				for (p = 0; p < numCoalitions; p++) {
-					((CSGRewardsSimple) newrewards.get(p)).setStateReward(s, rewards.get(p).getStateReward(nomap.get(s)));
+					((CSGRewardsSimple<Double>) newrewards.get(p)).setStateReward(s, rewards.get(p).getStateReward(nomap.get(s)));
 					for (t = 0; t < newmodel.getNumChoices(s); t++) {
-						((CSGRewardsSimple) newrewards.get(p)).setTransitionReward(s, t, rewards.get(p).getTransitionReward(nomap.get(s), t));
+						((CSGRewardsSimple<Double>) newrewards.get(p)).setTransitionReward(s, t, rewards.get(p).getTransitionReward(nomap.get(s), t));
 					}
 				}
 			}
@@ -990,9 +990,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				for (p = 0; p < numCoalitions; p++) {
 					if (subgame.get(p)) {
 						for (s = subgames.get(subgame).nextSetBit(0); s >= 0; s = subgames.get(subgame).nextSetBit(s + 1)) {
-							((CSGRewardsSimple) newrewards.get(p)).setStateReward(s, 0.0);
+							((CSGRewardsSimple<Double>) newrewards.get(p)).setStateReward(s, 0.0);
 							for (t = 0; t < newmodel.getNumChoices(s); t++) {
-								((CSGRewardsSimple) newrewards.get(p)).setTransitionReward(s, t, 0.0);
+								((CSGRewardsSimple<Double>) newrewards.get(p)).setTransitionReward(s, t, 0.0);
 							}						
 						}
 					}
@@ -1144,7 +1144,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return false;
 	}
 	
-	public void exploreSat(CSG csg, CSGSimple newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
+	public void exploreSat(CSG<Double> csg, CSGSimple<Double> newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
 									VarList newvarlist, Declaration[] goals, BitSet[] targets, BitSet explored, BitSet subgame, int s) {
 		int l;
 		explored.set(s);
@@ -1154,7 +1154,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			subgames.get(subgame).set(s);
 		}
 		for (int t = 0; t < csg.getNumChoices(nomap.get(s)); t++) {
-			Distribution d = new Distribution();
+			Distribution<Double> d = new Distribution<>();
 			
 			for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(nomap.get(s), t); iter.hasNext(); ) {
 				Map.Entry<Integer, Double> e = iter.next();
@@ -1202,7 +1202,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public ModelCheckerResult computeReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
+	public ModelCheckerResult computeReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
 		ModelCheckerResult[] obj = new ModelCheckerResult[coalitions.size()];
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<List<List<Map<BitSet, Double>>>> lstrat = null;
@@ -1283,7 +1283,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			// Precompuation for rewards
 			timePrecomp = System.currentTimeMillis();
 			for (i = 0; i < targets.length; i++) {
-				obj[i] = mdpmc.computeReachRewards((MDP) csg, (MDPRewards) rewards.get(i), targets[i], min);
+				obj[i] = mdpmc.computeReachRewards((MDP<Double>) csg, (MDPRewards<Double>) rewards.get(i), targets[i], min);
 				val[i] = obj[i].soln;
 			}
 			timePrecomp = System.currentTimeMillis() - timePrecomp;
@@ -1309,7 +1309,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				if (remain[i] != null)
 					obj[i] = mdpmc.computeUntilProbs(csg, remain[i], targets[i], min);
 				else 
-					obj[i] = mdpmc.computeReachProbs((MDP) csg, targets[i], min);
+					obj[i] = mdpmc.computeReachProbs((MDP<Double>) csg, targets[i], min);
 				val[i] = obj[i].soln;
 			}
 			timePrecomp = System.currentTimeMillis() - timePrecomp;
@@ -1533,7 +1533,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public void addStateRewards(double[][] eqs, CSGRewards csgRewards1, CSGRewards csgRewards2, int s, boolean min) {
+	public void addStateRewards(double[][] eqs, CSGRewards<Double> csgRewards1, CSGRewards<Double> csgRewards2, int s, boolean min) {
 		for (int e = 0; e < eqs.length; e++) {
 			if (csgRewards1 != null)
 				eqs[e][0] += ((min)? -1 * csgRewards1.getStateReward(s) : csgRewards1.getStateReward(s));
@@ -1542,7 +1542,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public void addStateRewards(double[][] eqs, List<CSGRewards> rewards, int s, boolean min) {
+	public void addStateRewards(double[][] eqs, List<CSGRewards<Double>> rewards, int s, boolean min) {
 		int e, p;
 		for (e = 0; e < eqs.length; e++) {
 			for (p = 0; p < numCoalitions; p++) {
@@ -1552,7 +1552,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public double[][] stepEquilibria(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
+	public double[][] stepEquilibria(CSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
 		Pair<CSGResultStatus, ArrayList<Double>> eqsresult;
 		ArrayList<Double> eq;
 		ArrayList<ArrayList<Double>> eqs = new ArrayList<ArrayList<Double>>();
@@ -1798,7 +1798,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return result;
 	}
 	
-	public double[][] stepEquilibria(CSG csg, CSGRewards csgRewards1, CSGRewards csgRewards2, List<Map<Integer, BitSet>> mmap, CSGLabeledPolytopes nash,
+	public double[][] stepEquilibria(CSG<Double> csg, CSGRewards<Double> csgRewards1, CSGRewards<Double> csgRewards2, List<Map<Integer, BitSet>> mmap, CSGLabeledPolytopes nash,
 			List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
 		Map<BitSet, Double> d1 = null;
 		Map<BitSet, Double> d2 = null;

@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-import param.BigRational;
+import parser.EvaluateContext;
 import parser.IdentUsage;
 import parser.State;
 import parser.Values;
@@ -93,11 +93,14 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	private ArrayList<Type> observableTypes;
 	private ArrayList<String> observableVars;
 
-	// Values set for undefined constants (null if none)
-	private Values undefinedConstantValues;
+	// Copy of the evaluation context used to defined undefined constants (null if none)
+	private EvaluateContext ecUndefined;
+	
 	// Actual values of (some or all) constants
 	private Values constantValues;
-	
+	// Evaluation context (all constant values + evaluation mode)
+	private EvaluateContext ec;
+
 	// Constructor
 
 	public ModulesFile()
@@ -127,8 +130,9 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		observableNames = new ArrayList<>();
 		observableTypes = new ArrayList<>();
 		observableVars = new ArrayList<>();
-		undefinedConstantValues = null;
+		ecUndefined = null;
 		constantValues = null;
+		ec = EvaluateContext.create();
 	}
 
 	// Set methods
@@ -1046,13 +1050,13 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		checkObservables();
 		
 		// If there are no undefined constants, set up values for constants
-		// (to avoid need for a later call to setUndefinedConstants).
-		// NB: Can't call setUndefinedConstants if there are undefined constants
+		// (to avoid need for a later call to setSomeUndefinedConstants).
+		// NB: Can't call setSomeUndefinedConstants now if there are undefined constants
 		// because semanticCheckAfterConstants may fail. 
 		if (getUndefinedConstants().isEmpty()) {
-			// we use non-exact constant evaluation by default,
+			// NB: we use non-exact constant evaluation by default,
 			// for exact mode constants will be reevaluated later on
-			setUndefinedConstants(null, false);
+			setSomeUndefinedConstants(EvaluateContext.create());
 		}
 	}
 
@@ -1464,51 +1468,23 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		return constantList.getUndefinedConstants();
 	}
 
-	/**
-	 * Set values for *all* undefined constants and then evaluate all constants.
-	 * If there are no undefined constants, {@code someValues} can be null.
-	 * Undefined constants can be subsequently redefined to different values with the same method.
-	 * The current constant values (if set) are available via {@link #getConstantValues()}. 
-	 * Calling this method also triggers some additional semantic checks
-	 * that can only be done once constant values have been specified.
-	 * <br>
-	 * Constant values are evaluated using standard (integer, floating-point) arithmetic.
-	 */
-	public void setUndefinedConstants(Values someValues) throws PrismLangException
+	@Override
+	public void setSomeUndefinedConstants(EvaluateContext ecUndefined) throws PrismLangException
 	{
-		setUndefinedConstants(someValues, false);
-	}
-
-	/**
-	 * Set values for *all* undefined constants and then evaluate all constants.
-	 * If there are no undefined constants, {@code someValues} can be null.
-	 * Undefined constants can be subsequently redefined to different values with the same method.
-	 * The current constant values (if set) are available via {@link #getConstantValues()}. 
-	 * Calling this method also triggers some additional semantic checks
-	 * that can only be done once constant values have been specified.
-	 * <br>
-	 * Constant values are evaluated using either standard (integer, floating-point) arithmetic
-	 * or exact arithmetic, depending on the value of the {@code exact} flag.
-	 */
-	public void setUndefinedConstants(Values someValues, boolean exact) throws PrismLangException
-	{
-		undefinedConstantValues = someValues == null ? null : new Values(someValues);
-		constantValues = constantList.evaluateConstants(someValues, null, exact);
+		this.ecUndefined = ecUndefined == null ? EvaluateContext.create() : EvaluateContext.create(ecUndefined);
+		constantValues = constantList.evaluateSomeConstants(ecUndefined);
+		ec = EvaluateContext.create(constantValues, ecUndefined.getEvaluationMode());
 		doSemanticChecksAfterConstants();
 	}
 
-	@Override
-	public void setSomeUndefinedConstants(Values someValues) throws PrismLangException
+	/**
+	 * Same as {@link #setSomeUndefinedConstants(Values)}.
+	 * Note: This method no longer throws an exception if some constants are undefined.
+	 * @deprecated
+	 */
+	public void setUndefinedConstants(Values someValues) throws PrismException
 	{
-		setSomeUndefinedConstants(someValues, false);
-	}
-
-	@Override
-	public void setSomeUndefinedConstants(Values someValues, boolean exact) throws PrismLangException
-	{
-		undefinedConstantValues = someValues == null ? null : new Values(someValues);
-		constantValues = constantList.evaluateSomeConstants(someValues, null, exact);
-		doSemanticChecksAfterConstants();
+		setSomeUndefinedConstants(someValues);
 	}
 
 	/**
@@ -1521,90 +1497,55 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 	}
 	
 	/**
-	 * Get access to the values that have been provided for undefined constants in the model 
-	 * (e.g. via the method {@link #setUndefinedConstants(Values)}).
+	 * Get the evaluation context that was used to provide values for undefined constants in the model
+	 * (e.g. via the method {@link #setSomeUndefinedConstants(EvaluateContext)}).
 	 */
-	public Values getUndefinedConstantValues()
+	public EvaluateContext getUndefinedEvaluateContext()
 	{
-		return undefinedConstantValues;
+		return ecUndefined;
 	}
 
-	/**
-	 * Get access to the values for all constants in the model, including the 
-	 * undefined constants set previously via the method {@link #setUndefinedConstants(Values)}.
-	 * Until they are set for the first time, this method returns null.  
-	 */
+	@Override
 	public Values getConstantValues()
 	{
 		return constantValues;
 	}
 
-	/**
-	 * Create a State object representing the default initial state of this model.
-	 * If there are potentially multiple initial states (because the model has an 
-	 * init...endinit specification), this method returns null;
-	 * Assumes that values for constants have been provided for the model.
-	 * Note: This method replaces the old getInitialValues() method,
-	 * since State objects are now preferred to Values objects for efficiency.
-	 * <br>
-	 * The init expression is evaluated using the default evaluate, i.e.,
-	 * not using exact arithmetic.
-	 */
-	public State getDefaultInitialState() throws PrismLangException
+	@Override
+	public EvaluateContext getEvaluateContext()
 	{
-		return getDefaultInitialState(false);
+		return ec;
 	}
 
 	/**
 	 * Create a State object representing the default initial state of this model.
 	 * If there are potentially multiple initial states (because the model has an
-	 * init...endinit specification), this method returns null;
-	 * Assumes that values for constants have been provided for the model.
-	 * Note: This method replaces the old getInitialValues() method,
-	 * since State objects are now preferred to Values objects for efficiency.
-	 * @param exact use exact arithmetic in evaluation of init expression?
+	 * init...endinit specification), this method returns null.
+	 * Assumes that values for constants (and evaluation mode) have been set for the model.
 	 */
-	public State getDefaultInitialState(boolean exact) throws PrismLangException
+	public State getDefaultInitialState() throws PrismLangException
 	{
-		int i, j, count, n, n2;
-		Module module;
-		Declaration decl;
-		State initialState;
-		Object initialValue;
-
 		if (initStates != null) {
 			return null;
 		}
 
 		// Create State object
-		initialState = new State(getNumVars());
+		State initialState = new State(getNumVars());
 		// Then add values for all globals and all locals, in that order
-		count = 0;
-		n = getNumGlobals();
-		for (i = 0; i < n; i++) {
-			decl = getGlobal(i);
-			if (exact) {
-				BigRational r = decl.getStartOrDefault().evaluateExact(constantValues);
-				initialValue = getGlobal(i).getType().castFromBigRational(r);
-			} else {
-				initialValue = decl.getStartOrDefault().evaluate(constantValues);
-				initialValue = getGlobal(i).getType().castValueTo(initialValue);
-			}
+		int count = 0;
+		int n = getNumGlobals();
+		for (int i = 0; i < n; i++) {
+			Declaration decl = getGlobal(i);
+			Object initialValue = decl.getType().castValueTo(decl.getStartOrDefault().evaluate(ec));
 			initialState.setValue(count++, initialValue);
 		}
 		n = getNumModules();
-		for (i = 0; i < n; i++) {
-			module = getModule(i);
-			n2 = module.getNumDeclarations();
-			for (j = 0; j < n2; j++) {
-				decl = module.getDeclaration(j);
-				if (exact) {
-					BigRational r = decl.getStartOrDefault().evaluateExact(constantValues);
-					initialValue = module.getDeclaration(j).getType().castFromBigRational(r);
-				} else {
-					initialValue = decl.getStartOrDefault().evaluate(constantValues);
-					initialValue = module.getDeclaration(j).getType().castValueTo(initialValue);
-				}
+		for (int i = 0; i < n; i++) {
+			Module module = getModule(i);
+			int n2 = module.getNumDeclarations();
+			for (int j = 0; j < n2; j++) {
+				Declaration decl = module.getDeclaration(j);
+				Object initialValue = decl.getType().castValueTo(decl.getStartOrDefault().evaluate(ec));
 				initialState.setValue(count++, initialValue);
 			}
 		}
@@ -1873,14 +1814,16 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 		// clone other (generated) info
 		if (constantValues != null)
 			clone.constantValues = constantValues.clone();
-		if (undefinedConstantValues != null)
-			clone.undefinedConstantValues = undefinedConstantValues.clone();
 		if (moduleNames != null)
 			clone.moduleNames = moduleNames.clone();
 		if (synchs != null)
 			clone.synchs =  (ArrayList<String>) synchs.clone();
 		if (actions != null)
 			clone.actions =  (ArrayList<Object>) actions.clone();
+		if (ecUndefined != null)
+			ecUndefined = EvaluateContext.create(ecUndefined);
+		if (ec != null)
+			ec = EvaluateContext.create(ec);
 
 		return clone;
 	}

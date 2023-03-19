@@ -3,7 +3,6 @@ package explicit;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.Map;
 
 import explicit.CSGModelCheckerEquilibria.CSGResultStatus;
 import prism.Pair;
@@ -28,6 +27,6 @@ public interface CSGSupportEnumeration {
 	
 	public void setAssertions(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> assertions);
 	
-	public ArrayList<Distribution> getStrat();
+	public ArrayList<Distribution<Double>> getStrat();
 
 }

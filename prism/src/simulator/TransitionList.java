@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -31,16 +31,18 @@ import java.util.*;
 import parser.*;
 import prism.*;
 
-public class TransitionList
+public class TransitionList<Value>
 {
-	private ArrayList<Choice> choices = new ArrayList<Choice>();
+	// Evaluator for values/states
+	public Evaluator<Value> eval;
+	
+	private ArrayList<Choice<Value>> choices;
 	/** The index of the choice containing each transition. */
-	private ArrayList<Integer> transitionIndices = new ArrayList<Integer>();
+	private ArrayList<Integer> transitionIndices;
 	/** The offset with the choice containing each transition. */
-	private ArrayList<Integer> transitionOffsets = new ArrayList<Integer>();
-	private int numChoices = 0;
-	private int numTransitions = 0;
-	private double probSum = 0.0;
+	private ArrayList<Integer> transitionOffsets;
+	private int numChoices;
+	private int numTransitions;
 	/** The indexes of the actions for each transition in CSGs **/
 	private ArrayList<int[]> transitionIndexes = new ArrayList<int[]>(); // added for CSGs.
 
@@ -51,6 +53,18 @@ public class TransitionList
 		public int offset;
 	}
 
+	public TransitionList(Evaluator<Value> eval)
+	{
+		// Store evaluator
+		this.eval = eval;
+		// Initialise
+		choices = new ArrayList<Choice<Value>>();
+		transitionIndices = new ArrayList<Integer>();
+		transitionOffsets = new ArrayList<Integer>();
+		numChoices = 0;
+		numTransitions = 0;
+	}
+	
 	public void clear()
 	{
 		choices.clear();
@@ -58,11 +72,10 @@ public class TransitionList
 		transitionOffsets.clear();
 		numChoices = 0;
 		numTransitions = 0;
-		probSum = 0.0;
 		transitionIndexes.clear();
 	}
 
-	public void add(Choice tr)
+	public void add(Choice<Value> tr)
 	{
 		int i, n;
 		choices.add(tr);
@@ -73,10 +86,9 @@ public class TransitionList
 		}
 		numChoices++;
 		numTransitions += tr.size();
-		probSum += tr.getProbabilitySum();
 	}
 	
-	public void add(Choice tr, int[] indexes)
+	public void add(Choice<Value> tr, int[] indexes)
 	{
 		int i, n;
 		choices.add(tr);
@@ -88,13 +100,12 @@ public class TransitionList
 		}
 		numChoices++;
 		numTransitions += tr.size();
-		probSum += tr.getProbabilitySum();
 	}
 	
 	/**
 	 * Scale probability/rate of all transitions in all choices, multiplying by d.
 	 */
-	public void scaleProbabilitiesBy(double d)
+	public void scaleProbabilitiesBy(Value d)
 	{
 		for (int i = 0; i < numChoices; i++) {
 			getChoice(i).scaleProbabilitiesBy(d);
@@ -122,8 +133,12 @@ public class TransitionList
 	/**
 	 * Get the total sum of all probabilities (or rates).
 	 */
-	public double getProbabilitySum()
+	public Value getProbabilitySum()
 	{
+		Value probSum = eval.zero();
+		for (Choice<Value> ch : choices) {
+			probSum = eval.add(probSum, ch.getProbabilitySum());
+		}
 		return probSum;
 	}
 
@@ -132,7 +147,7 @@ public class TransitionList
 	/**
 	 * Get the ith choice.
 	 */
-	public Choice getChoice(int i)
+	public Choice<Value> getChoice(int i)
 	{
 		return choices.get(i);
 	}
@@ -140,7 +155,7 @@ public class TransitionList
 	/**
 	 * Get the choice containing a transition of a given index.
 	 */
-	public Choice getChoiceOfTransition(int index) throws PrismLangException
+	public Choice<Value> getChoiceOfTransition(int index) throws PrismLangException
 	{
 	    int i = transitionIndices.get(index);
 	    if(i < 0)
@@ -195,21 +210,21 @@ public class TransitionList
 	 * @param x Probability (or rate) sum
 	 * @param ref Empty transition reference to store result
 	 */
-	public void getChoiceIndexByProbabilitySum(double x, Ref ref)
+	public void getChoiceIndexByProbabilitySum(Value x, Ref ref)
 	{
 		int i;
-		Choice choice;
-		double d = 0.0, tot = 0.0;
+		Choice<Value> choice;
+		Value d = eval.zero(), tot = eval.zero();
 		// Add up choice prob/rate sums to find choice
-		for (i = 0; x >= tot && i < numChoices; i++) {
+		for (i = 0; eval.geq(x, tot) && i < numChoices; i++) {
 			d = getChoice(i).getProbabilitySum();
-			tot += d;
+			tot = eval.add(tot,  d);
 		}
 		ref.i = i - 1;
 		// Pick transition within choice 
 		choice = getChoice(i - 1);
 		if (choice.size() > 1) {
-			ref.offset = choice.getIndexByProbabilitySum(x - (tot - d));
+			ref.offset = choice.getIndexByProbabilitySum(eval.subtract(x, (eval.subtract(tot, d))));
 		} else {
 			ref.offset = 0;
 		}
@@ -272,7 +287,7 @@ public class TransitionList
 	/**
 	 * Get the probability/rate of a transition, specified by its index.
 	 */
-	public double getTransitionProbability(int index) throws PrismLangException
+	public Value getTransitionProbability(int index) throws PrismLangException
 	{
 		return getChoiceOfTransition(index).getProbability(transitionOffsets.get(index));
 	}
@@ -325,7 +340,7 @@ public class TransitionList
 	 */
 	public boolean isDeterministic()
 	{
-		return numTransitions == 1 && getChoice(0).getProbability(0) == 1.0;
+		return numTransitions == 1 && eval.isOne(getChoice(0).getProbability(0));
 	}
 
 	/**
@@ -342,7 +357,7 @@ public class TransitionList
 		int i, n;
 		State newState = new State(currentState);
 		try {
-			for (Choice ch : choices) {
+			for (Choice<Value> ch : choices) {
 				n = ch.size();
 				for (i = 0; i < n; i++) {
 				    if(basedOnValues) {
@@ -374,7 +389,7 @@ public class TransitionList
 	 */
 	public void checkValid(ModelType modelType) throws PrismException
 	{
-		for (Choice ch : choices) {
+		for (Choice<Value> ch : choices) {
 			ch.checkValid(modelType);
 		}
 	}
@@ -387,7 +402,7 @@ public class TransitionList
 	 */
 	public void checkForErrors(State currentState, VarList varList) throws PrismException
 	{
-		for (Choice ch : choices) {
+		for (Choice<Value> ch : choices) {
 			ch.checkForErrors(currentState, varList);
 		}
 	}
@@ -397,7 +412,7 @@ public class TransitionList
 	{
 		String s = "";
 		boolean first = true;
-		for (Choice ch : choices) {
+		for (Choice<Value> ch : choices) {
 			if (first)
 				first = false;
 			else

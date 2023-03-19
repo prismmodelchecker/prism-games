@@ -36,7 +36,7 @@ import prism.PlayerInfoOwner;
 /**
  * Interface for classes that provide (read) access to an explicit-state concurrent stochastic game (CSG).
  */
-public interface CSG extends MDP, PlayerInfoOwner
+public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 {
 	// Accessors (for Model) - default implementations
 	
@@ -99,5 +99,5 @@ public interface CSG extends MDP, PlayerInfoOwner
 	
 	// Temp:
 
-	public Distribution getChoice(int s, int i);
+	public Distribution<Value> getChoice(int s, int i);
 }

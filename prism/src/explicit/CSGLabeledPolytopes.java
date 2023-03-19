@@ -14,7 +14,7 @@ public interface CSGLabeledPolytopes {
 	
 	public void compPayoffs();
 	
-	public ArrayList<ArrayList<Distribution>> getStrat();
+	public ArrayList<ArrayList<Distribution<Double>>> getStrat();
 	
 	public double[] getP1p(); 
 	

@@ -3,7 +3,6 @@ package explicit;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import com.microsoft.z3.AlgebraicNum;
 import com.microsoft.z3.ArithExpr;
@@ -40,7 +39,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 	private int numPlayers;
 	private Params params;
 	
-    private ArrayList<Distribution> strat;
+    private ArrayList<Distribution<Double>> strat;
     
     private int ndigits = 9;
 	
@@ -58,7 +57,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		strategies = new ArrayList<ArrayList<ArithExpr>>();
 		payoffs = new ArrayList<ArithExpr>();
 		players = new BitSet();
-		strat = new ArrayList<Distribution>();
+		strat = new ArrayList<>();
 	}
 	
 	public void init() {
@@ -129,7 +128,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		*/
 		Model model;
 		ArrayList<Double> eq = new ArrayList<>();
-		Distribution d;
+		Distribution<Double> d;
 		double v;
 		
 		Status result = s.check();
@@ -137,7 +136,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 			model = s.getModel();
 			strat.clear();
 			for(int p = 0; p < numPlayers; p++) {
-				d = new Distribution();
+				d = new Distribution<>();
 				eq.add(p, getDoubleValue(model, payoffs.get(p)));
 				for (int a = 0; a < strategies.get(p).size(); a++) {
 					v = getDoubleValue(model, strategies.get(p).get(a));
@@ -204,8 +203,8 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration {
 		this.indexes = a;
 	}
 
-	public ArrayList<Distribution> getStrat() {
-		return new ArrayList<Distribution>(this.strat);
+	public ArrayList<Distribution<Double>> getStrat() {
+		return new ArrayList<>(this.strat);
 	}
 	
 	@Override

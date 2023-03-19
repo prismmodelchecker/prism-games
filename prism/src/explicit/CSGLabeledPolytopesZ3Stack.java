@@ -65,7 +65,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
     private Solver s;
 	
 	private HashMap<String,ArrayList<Double>> eqs;
-    private ArrayList<ArrayList<Distribution>> strat;
+    private ArrayList<ArrayList<Distribution<Double>>> strat;
     
     public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) throws PrismException
     {
@@ -216,9 +216,9 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 	}
 	
 	public void compEq() {
-		ArrayList<Distribution> dists;
-		Distribution dist1;
-		Distribution dist2;
+		ArrayList<Distribution<Double>> dists;
+		Distribution<Double> dist1;
+		Distribution<Double> dist2;
 		double p;
 		int i, j;		
 		vMult();
@@ -246,16 +246,16 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		s.add((BoolExpr) xctr);
 		s.add((BoolExpr) yctr);
 		s.add(eq);
-        strat = new ArrayList<ArrayList<Distribution>>();
+        strat = new ArrayList<>();
 		eqs.clear();
         j = 0; 
         while (Status.SATISFIABLE == s.check()) {
             model = s.getModel();
             c1 = ytrue;
             c2 = ytrue;
-            dists = new ArrayList<Distribution>();
-            dist1 = new Distribution();
-            dist2 = new Distribution();
+            dists = new ArrayList<>();
+            dist1 = new Distribution<>();
+            dist2 = new Distribution<>();
     		//System.out.println("---");
             for (i = 0; i < nrows+ncols; i++) {            	
         		//p = model.bigRationalValue(vars[i]).doubleValue();
@@ -350,7 +350,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			return Double.NaN;
 	}
 	
-	public ArrayList<ArrayList<Distribution>> getStrat() {
+	public ArrayList<ArrayList<Distribution<Double>>> getStrat() {
 		return strat;
 	}
 

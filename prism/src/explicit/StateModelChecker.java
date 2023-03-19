@@ -143,7 +143,7 @@ public class StateModelChecker extends PrismComponent
 	// Model info (for reward structures, etc.)
 	protected ModulesFile modulesFile = null;
 	protected ModelInfo modelInfo = null;
-	protected RewardGenerator rewardGen = null;
+	protected RewardGenerator<?> rewardGen = null;
 
 	// Properties file (for labels, constants, etc.)
 	protected PropertiesFile propertiesFile = null;
@@ -535,7 +535,7 @@ public class StateModelChecker extends PrismComponent
 	 * Set the attached model file (for e.g. reward structures when model checking)
 	 * and the attached properties file (for e.g. constants/labels when model checking)
 	 */
-	public void setModelCheckingInfo(ModelInfo modelInfo, PropertiesFile propertiesFile, RewardGenerator rewardGen)
+	public void setModelCheckingInfo(ModelInfo modelInfo, PropertiesFile propertiesFile, RewardGenerator<?> rewardGen)
 	{
 		this.modelInfo = modelInfo;
 		if (modelInfo instanceof ModulesFile) {
@@ -558,7 +558,7 @@ public class StateModelChecker extends PrismComponent
 	 * {@link #setModelCheckingInfo(ModelInfo, PropertiesFile, RewardGenerator)}.
 	 * to attach the original model/properties files.
 	 */
-	public Result check(Model model, Expression expr) throws PrismException
+	public <Value> Result check(Model<Value> model, Expression expr) throws PrismException
 	{
 		long timer = 0;
 		StateValues vals;
@@ -587,7 +587,7 @@ public class StateModelChecker extends PrismComponent
 			ArrayList<String> propNames = new ArrayList<String>();
 			ArrayList<BitSet> propBSs = new ArrayList<BitSet>();
 			Expression exprNew = checkMaximalPropositionalFormulas(model, expr.deepCopy(), propNames, propBSs);
-			Bisimulation bisim = new Bisimulation(this);
+			Bisimulation<Value> bisim = new Bisimulation<>(this);
 			model = bisim.minimise(model, propNames, propBSs);
 			mainLog.println("Modified property: " + exprNew);
 			expr = exprNew;
@@ -622,7 +622,7 @@ public class StateModelChecker extends PrismComponent
 	 * @param statesOfInterest a set of states for which results should be calculated (null = all states).
 	 *        The calculated values for states not of interest are arbitrary and should to be ignored.
 	 */
-	public StateValues checkExpression(Model model, Expression expr, BitSet statesOfInterest) throws PrismException
+	public StateValues checkExpression(Model<?> model, Expression expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res = null;
 		
@@ -695,7 +695,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a binary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionITE(Model model, ExpressionITE expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionITE(Model<?> model, ExpressionITE expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null, res2 = null, res3 = null;
 
@@ -734,7 +734,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a binary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionBinaryOp(Model model, ExpressionBinaryOp expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionBinaryOp(Model<?> model, ExpressionBinaryOp expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null, res2 = null;
 		// Check operands recursively
@@ -776,7 +776,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a unary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionUnaryOp(Model model, ExpressionUnaryOp expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionUnaryOp(Model<?> model, ExpressionUnaryOp expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null;
 		int op = expr.getOperator();
@@ -798,7 +798,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a function.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFunc(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MIN:
@@ -819,7 +819,7 @@ public class StateModelChecker extends PrismComponent
 		}
 	}
 
-	protected StateValues checkExpressionFuncUnary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncUnary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check operand recursively
 		StateValues res1 = checkExpression(model, expr.getOperand(0), statesOfInterest);
@@ -838,7 +838,7 @@ public class StateModelChecker extends PrismComponent
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncBinary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncBinary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check operands recursively
 		StateValues res1 = null, res2 = null;
@@ -868,7 +868,7 @@ public class StateModelChecker extends PrismComponent
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncNary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncNary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check first operand recursively
 		StateValues res1 = null, res2 = null;
@@ -905,7 +905,7 @@ public class StateModelChecker extends PrismComponent
 	/**
 	 * Model check a literal.
 	 */
-	protected StateValues checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
+	protected StateValues checkExpressionLiteral(Model<?> model, ExpressionLiteral expr) throws PrismException
 	{
 		return StateValues.createFromSingleValue(expr.getType(), expr.evaluate(), model);
 	}
@@ -913,7 +913,7 @@ public class StateModelChecker extends PrismComponent
 	/**
 	 * Model check a constant.
 	 */
-	protected StateValues checkExpressionConstant(Model model, ExpressionConstant expr) throws PrismException
+	protected StateValues checkExpressionConstant(Model<?> model, ExpressionConstant expr) throws PrismException
 	{
 		return StateValues.createFromSingleValue(expr.getType(), expr.evaluate(constantValues), model);
 	}
@@ -922,7 +922,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a variable reference.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionVar(Model model, ExpressionVar expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionVar(Model<?> model, ExpressionVar expr, BitSet statesOfInterest) throws PrismException
 	{
 		// TODO (JK): optimize evaluation using statesOfInterest
 		List<State> statesList = model.getStatesList();
@@ -944,7 +944,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a label.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionLabel(Model model, ExpressionLabel expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionLabel(Model<?> model, ExpressionLabel expr, BitSet statesOfInterest) throws PrismException
 	{
 		// TODO: optimize evaluation using statesOfInterest
 
@@ -986,8 +986,8 @@ public class StateModelChecker extends PrismComponent
 }
 
 	// Check property ref
-	
-	protected StateValues checkExpressionProp(Model model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
+
+	protected StateValues checkExpressionProp(Model<?> model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Look up property and check recursively
 		Property prop = propertiesFile.lookUpPropertyObjectByName(expr.getName());
@@ -1001,7 +1001,7 @@ public class StateModelChecker extends PrismComponent
 
 	// Check filter
 
-	protected StateValues checkExpressionFilter(Model model, ExpressionFilter expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFilter(Model<?> model, ExpressionFilter expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Translate filter
 		Expression filter = expr.getFilter();
@@ -1319,7 +1319,7 @@ public class StateModelChecker extends PrismComponent
 	 * <br>
 	 * Returns the modified Expression.
 	 */
-	public Expression handleMaximalStateFormulas(ModelExplicit model, Expression expr) throws PrismException
+	public Expression handleMaximalStateFormulas(ModelExplicit<?> model, Expression expr) throws PrismException
 	{
 		Vector<BitSet> labelBS = new Vector<BitSet>();
 
@@ -1350,7 +1350,7 @@ public class StateModelChecker extends PrismComponent
 	 * are put into the list {@code propBSs}, which should be empty when this function is called.
 	 * The names of the labels (L0, L1, etc. by default) are put into {@code propNames}, which should also be empty. 
 	 */
-	public Expression checkMaximalPropositionalFormulas(Model model, Expression expr, List<String> propNames, List<BitSet> propBSs) throws PrismException
+	public Expression checkMaximalPropositionalFormulas(Model<?> model, Expression expr, List<String> propNames, List<BitSet> propBSs) throws PrismException
 	{
 		Expression exprNew = (Expression) expr.accept(new CheckMaximalPropositionalFormulas(this, model, propNames, propBSs));
 		return exprNew;
@@ -1363,11 +1363,11 @@ public class StateModelChecker extends PrismComponent
 	class CheckMaximalPropositionalFormulas extends ASTTraverseModify
 	{
 		private StateModelChecker mc;
-		private Model model;
+		private Model<?> model;
 		private List<String> propNames;
 		private List<BitSet> propBSs;
 
-		public CheckMaximalPropositionalFormulas(StateModelChecker mc, Model model, List<String> propNames, List<BitSet> propBSs)
+		public CheckMaximalPropositionalFormulas(StateModelChecker mc, Model<?> model, List<String> propNames, List<BitSet> propBSs)
 		{
 			this.mc = mc;
 			this.model = model;
@@ -1562,7 +1562,7 @@ public class StateModelChecker extends PrismComponent
 	 * @param exportType The format in which to export
 	 * @param out Where to export
 	 */
-	public void exportLabels(Model model, List<String> labelNames, int exportType, PrismLog out) throws PrismException
+	public void exportLabels(Model<?> model, List<String> labelNames, int exportType, PrismLog out) throws PrismException
 	{
 		List<BitSet> labels = new ArrayList<BitSet>();
 		for (String labelName : labelNames) {
@@ -1580,7 +1580,7 @@ public class StateModelChecker extends PrismComponent
 	 * @param exportType The format in which to export
 	 * @param out Where to export
 	 */
-	public void exportLabels(Model model, List<BitSet> labels, List<String> labelNames, int exportType, PrismLog out)
+	public void exportLabels(Model<?> model, List<BitSet> labels, List<String> labelNames, int exportType, PrismLog out)
 	{
 		String matlabVarName = "l";
 		int numStates = model.getNumStates();

@@ -3,7 +3,7 @@ package strat;
 import explicit.NondetModel;
 import prism.PrismLog;
 
-public class StepBoundedDeterministicStrategy extends StrategyExplicit
+public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Value>
 {
 	// memory: the number of steps currently made
 	protected int memory;
@@ -31,7 +31,7 @@ public class StepBoundedDeterministicStrategy extends StrategyExplicit
 	 * @param bound
 	 *            maximum number of steps to be made
 	 */
-	public StepBoundedDeterministicStrategy(NondetModel model, int[][] choices, int bound)
+	public StepBoundedDeterministicStrategy(NondetModel<Value> model, int[][] choices, int bound)
 	{
 		super(model);
 		this.choices = choices;

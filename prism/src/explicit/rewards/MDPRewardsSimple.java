@@ -36,17 +36,17 @@ import explicit.Product;
  * Simple explicit-state storage of rewards for an MDP.
  * Like the related class MDPSimple, this is not especially efficient, but mutable (in terms of size).
  */
-public class MDPRewardsSimple implements MDPRewards
+public class MDPRewardsSimple<Value> extends RewardsExplicit<Value> implements MDPRewards<Value>
 {
 	/** Number of states */
 	protected int numStates;
 	/** State rewards */
-	protected List<Double> stateRewards;
+	protected List<Value> stateRewards;
 	/** Transition rewards */
-	protected List<List<Double>> transRewards;
+	protected List<List<Value>> transRewards;
 
-	/** The number returned when the real reward is unset or 0.0*/
-	protected double zeroReplacement = 0.0;
+	/** The number returned when the real reward is unset or 0.0 */
+	protected Value zeroReplacement;
 
 	/**
 	 * Constructor: all zero rewards.
@@ -64,13 +64,14 @@ public class MDPRewardsSimple implements MDPRewards
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public MDPRewardsSimple(MDPRewardsSimple rews)
+	public MDPRewardsSimple(MDPRewardsSimple<Value> rews)
 	{
+		setEvaluator(rews.getEvaluator());
 		numStates = rews.numStates;
 		if (rews.stateRewards == null) {
 			stateRewards = null;
 		} else {
-			stateRewards = new ArrayList<Double>(numStates);
+			stateRewards = new ArrayList<Value>(numStates);
 			for (int i = 0; i < numStates; i++) {
 				stateRewards.add(rews.stateRewards.get(i));
 			}
@@ -78,14 +79,14 @@ public class MDPRewardsSimple implements MDPRewards
 		if (rews.transRewards == null) {
 			transRewards = null;
 		} else {
-			transRewards = new ArrayList<List<Double>>(numStates);
+			transRewards = new ArrayList<List<Value>>(numStates);
 			for (int i = 0; i < numStates; i++) {
-				List<Double> list = rews.transRewards.get(i);
+				List<Value> list = rews.transRewards.get(i);
 				if (list == null) {
 					transRewards.add(null);
 				} else {
 					int n = list.size();
-					List<Double> list2 = new ArrayList<Double>(n);
+					List<Value> list2 = new ArrayList<>(n);
 					transRewards.add(list2);
 					for (int j = 0; j < n; j++) {
 						list2.add(list.get(j));
@@ -93,7 +94,7 @@ public class MDPRewardsSimple implements MDPRewards
 				}
 			}
 		}
-		zeroReplacement = rews.zeroReplacement;
+		setZeroReplacement(rews.getZeroReplacement());
 	}
 
 	// Mutators
@@ -101,13 +102,13 @@ public class MDPRewardsSimple implements MDPRewards
 	/**
 	 * Set the state reward for state {@code s} to {@code r}.
 	 */
-	public void setStateReward(int s, double r)
+	public void setStateReward(int s, Value r)
 	{
 		// If no rewards array created yet, create it
 		if (stateRewards == null) {
-			stateRewards = new ArrayList<Double>(numStates);
+			stateRewards = new ArrayList<Value>(numStates);
 			for (int j = 0; j < numStates; j++)
-				stateRewards.add(0.0);
+				stateRewards.add(getEvaluator().zero());
 		}
 		// Set reward
 		stateRewards.set(s, r);
@@ -116,26 +117,26 @@ public class MDPRewardsSimple implements MDPRewards
 	/**
 	 * Add {@code r} to the state reward for state {@code s}.
 	 */
-	public void addToStateReward(int s, double r)
+	public void addToStateReward(int s, Value r)
 	{
-		setStateReward(s, getStateReward(s) + r);
+		setStateReward(s, getEvaluator().add(getStateReward(s), r));
 	}
 
 	/**
 	 * Set the transition reward for choice {@code i} of state {@code s} to {@code r}.
 	 */
-	public void setTransitionReward(int s, int i, double r)
+	public void setTransitionReward(int s, int i, Value r)
 	{
-		List<Double> list;
+		List<Value> list;
 		// If no rewards array created yet, create it
 		if (transRewards == null) {
-			transRewards = new ArrayList<List<Double>>(numStates);
+			transRewards = new ArrayList<List<Value>>(numStates);
 			for (int j = 0; j < numStates; j++)
 				transRewards.add(null);
 		}
 		// If no rewards for state s yet, create list
 		if (transRewards.get(s) == null) {
-			list = new ArrayList<Double>();
+			list = new ArrayList<Value>();
 			transRewards.set(s, list);
 		} else {
 			list = transRewards.get(s);
@@ -144,7 +145,7 @@ public class MDPRewardsSimple implements MDPRewards
 		int n = i - list.size() + 1;
 		if (n > 0) {
 			for (int j = 0; j < n; j++) {
-				list.add(0.0);
+				list.add(getEvaluator().zero());
 			}
 		}
 		// Set reward
@@ -154,9 +155,9 @@ public class MDPRewardsSimple implements MDPRewards
 	/**
 	 * Add {@code r} to the transition reward for choice {@code i} of state {@code s}.
 	 */
-	public void addToTransitionReward(int s, int i, double r)
+	public void addToTransitionReward(int s, int i, Value r)
 	{
-		setTransitionReward(s, i, getTransitionReward(s, i) + r);
+		setTransitionReward(s, i, getEvaluator().add(getTransitionReward(s, i), r));
 	}
 
 	/**
@@ -164,65 +165,64 @@ public class MDPRewardsSimple implements MDPRewards
 	 */
 	public void clearRewards(int s)
 	{
-		setStateReward(s, 0.0);
+		setStateReward(s, getEvaluator().zero());
 		if (transRewards != null && transRewards.size() > s) {
 			transRewards.set(s, null);
 		}
 	}
 
 	/**
-	 * If set, the method {@link #getNestedTransitionReward(int, int, int)}
-	 * will return {@code number} whenever it would normally return {@code 0.0}.
-	 * This may be useful when zero rewards are undesirable and are replaced by
-	 * some small epsilon>0.
-	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
+	 * Set the number that will be returned as "zero" for rewards. 
+	 * Useful when zero rewards are undesirable and are replaced by some small epsilon>0.
 	 */
-	public void setZeroReplacement(double number)
+	public void setZeroReplacement(Value number)
 	{
 		this.zeroReplacement = number;
 	}
 
 	/**
-	 * The number the method {@link #getNestedTransitionReward(int, int, int)}
-	 * will return as "zero" 
-	 * This may be useful when zero rewards are undesirable and are replaced by
-	 * some small epsilon>0.
-	 * @param number The number to be returned instead of 0.0 (can be 0.0 itself);
+	 * The number that will be returned as "zero" for rewards. 
+	 * Useful when zero rewards are undesirable and are replaced by some small epsilon>0.
 	 */
-	public double getZeroReplacement()
+	public Value getZeroReplacement()
 	{
-		return this.zeroReplacement;
+		// Create lazily (because evaluator may not exist initially)
+		if (zeroReplacement == null) {
+			// Defaults to zero
+			zeroReplacement = getEvaluator().zero();
+		}
+		return zeroReplacement;
 	}
 
 	// Accessors
 
 	@Override
-	public double getStateReward(int s)
+	public Value getStateReward(int s)
 	{
 		if (stateRewards == null)
-			return this.zeroReplacement;
-		return (stateRewards.get(s) != 0.0) ? stateRewards.get(s) : this.zeroReplacement;
+			return getZeroReplacement();
+		return (!getEvaluator().isZero(stateRewards.get(s))) ? stateRewards.get(s) : getZeroReplacement();
 	}
 
 	@Override
-	public double getTransitionReward(int s, int i)
+	public Value getTransitionReward(int s, int i)
 	{
-		List<Double> list;
+		List<Value> list;
 		if (transRewards == null || (list = transRewards.get(s)) == null)
-			return this.zeroReplacement;
+			return getZeroReplacement();
 		if (list.size() <= i)
-			return this.zeroReplacement;
-		return (list.get(i) != 0) ? list.get(i) : this.zeroReplacement;
+			return getZeroReplacement();
+		return (!getEvaluator().isZero(list.get(i))) ? list.get(i) : getZeroReplacement();
 	}
 
 	// Converters
 	
 	@Override
-	public MDPRewards liftFromModel(Product<? extends Model> product)
+	public MDPRewards<Value> liftFromModel(Product<? extends Model<Value>> product)
 	{
-		Model modelProd = product.getProductModel();
+		Model<Value> modelProd = product.getProductModel();
 		int numStatesProd = modelProd.getNumStates();		
-		MDPRewardsSimple rewardsProd = new MDPRewardsSimple(numStatesProd);
+		MDPRewardsSimple<Value> rewardsProd = new MDPRewardsSimple<>(numStatesProd);
 		if (stateRewards != null) {
 			for (int s = 0; s < numStatesProd; s++) {
 				rewardsProd.setStateReward(s, stateRewards.get(product.getModelState(s)));
@@ -230,7 +230,7 @@ public class MDPRewardsSimple implements MDPRewards
 		}
 		if (transRewards != null) {
 			for (int s = 0; s < numStatesProd; s++) {
-				List<Double> list = transRewards.get(product.getModelState(s));
+				List<Value> list = transRewards.get(product.getModelState(s));
 				if (list != null) {
 					int numChoices = list.size();
 					for (int i = 0; i < numChoices; i++) {

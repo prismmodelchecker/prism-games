@@ -1,9 +1,9 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2016-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
-//	* Nishan Kamaleson <nxk249@bham.ac.uk> (University of Birmingham)
+//	* Steffen Maercker <maercker@tcs.inf.tu-dresden.de> (TU Dresden)
+//	* Joachim Klein <klein@tcs.inf.tu-dresden.de> (TU Dresden)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -25,13 +25,26 @@
 //	
 //==============================================================================
 
-package prism;
+package explicit.modelviews;
 
-/**
- * Default implementation of the {@link ModelGenerator} and {@link RewardGenerator} interfaces.
- * Basically redundant since these interfaces now have default method implementations.
- * Retained just for backwards compatibility.
- */
-public abstract class DefaultModelGenerator implements ModelGenerator<Double>, RewardGenerator<Double>
+public class StateChoicePair
 {
+	final int state;
+	final int choice;
+
+	protected StateChoicePair(final int theState, final int theChoice)
+	{
+		state = theState;
+		choice = theChoice;
+	}
+
+	public int getState()
+	{
+		return state;
+	}
+
+	public int getChoice()
+	{
+		return choice;
+	}
 }

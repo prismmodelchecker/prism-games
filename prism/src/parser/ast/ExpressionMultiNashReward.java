@@ -50,12 +50,6 @@ public class ExpressionMultiNashReward extends ExpressionReward {
 	}
 
 	@Override
-	public BigRational evaluateExact(EvaluateContext ec) throws PrismLangException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public boolean returnsSingleValue() {
 		// TODO Auto-generated method stub
 		return false;
