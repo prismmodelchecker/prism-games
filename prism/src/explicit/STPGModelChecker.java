@@ -91,12 +91,13 @@ public class STPGModelChecker extends ProbModelChecker
 		throw new PrismNotSupportedException("Full LTL model checking not yet supported for stochastic games");
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	protected StateValues checkProbPathFormulaCosafeLTL(Model model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkProbPathFormulaCosafeLTL(Model<?> model, Expression expr, boolean qual, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// Build product of STPG and DFA for the LTL formula, and do any required exports
 		LTLModelChecker mcLtl = new LTLModelChecker(this);
-		LTLModelChecker.LTLProduct<STPG> product = mcLtl.constructDFAProductForCosafetyProbLTL(this, (STPG) model, expr, statesOfInterest);
+		LTLModelChecker.LTLProduct<STPG<Double>> product = mcLtl.constructDFAProductForCosafetyProbLTL(this, (STPG<Double>) model, expr, statesOfInterest);
 		doProductExports(product);
 		
 		// Find accepting states + compute reachability probabilities
@@ -169,7 +170,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		if (genStrat) {
-			res.strat = new MDStrategyArray(stpg, strat);
+			res.strat = new MDStrategyArray<>(stpg, strat);
 		}
 
 		return res;
@@ -196,7 +197,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet target, boolean min1, boolean min2, double bound) throws PrismException
+	public ModelCheckerResult computeReachProbs(STPG<Double> stpg, BitSet target, boolean min1, boolean min2, double bound) throws PrismException
 	{
 		return computeReachProbs(stpg, null, target, min1, min2, null, null, bound);
 	}
@@ -248,7 +249,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	public ModelCheckerResult computeReachProbs(STPG stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double bound)
+	public ModelCheckerResult computeReachProbs(STPG<Double> stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double bound)
 			throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -607,7 +608,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		if (genStrat) {
-			res.strat = new MDStrategyArray(stpg, strat);
+			res.strat = new MDStrategyArray<>(stpg, strat);
 		}
 
 		// Print adversary
@@ -788,7 +789,7 @@ public class STPGModelChecker extends ProbModelChecker
 		double soln[], soln2[], tmpsoln[];
 		long timer;
 		int strat[] = null;
-		FMDStrategyStep fmdStrat = null;
+		FMDStrategyStep<Double> fmdStrat = null;
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -810,7 +811,7 @@ public class STPGModelChecker extends ProbModelChecker
 			for (int i = 0; i < n; i++) {
 				strat[i] = target.get(i) ? -2 : -1;
 			}
-			fmdStrat = new FMDStrategyStep(stpg, k);
+			fmdStrat = new FMDStrategyStep<>(stpg, k);
 		}
 		
 		// Initialise solution vectors. Use passed in initial vector, if present
@@ -1077,7 +1078,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 		if (genStrat) {
-			res.strat = new MDStrategyArray(stpg, strat);
+			res.strat = new MDStrategyArray<>(stpg, strat);
 		}
 
 		return res;
