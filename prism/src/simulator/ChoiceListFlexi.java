@@ -35,9 +35,12 @@ import java.util.Set;
 
 import parser.State;
 import parser.VarList;
+import parser.ast.ASTElement;
 import parser.ast.Command;
 import parser.ast.Expression;
+import parser.ast.ExpressionVar;
 import parser.ast.Update;
+import parser.visitor.ASTTraverse;
 import prism.Evaluator;
 import prism.ModelType;
 import prism.PrismException;
@@ -74,6 +77,11 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 	protected int[] actions;
 	/*** ***/
 	
+	// Do any updates contain primes on the RHS?
+	protected boolean containsPrimes;
+	// Is the value of containsPrimes known yet?
+	protected boolean containsPrimeKnown;
+	
 	/**
 	 * Create empty choice.
 	 */
@@ -85,6 +93,8 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 		updates = new ArrayList<List<Update>>();
 		probability = new ArrayList<Value>();
 		clockGuard = null;
+		containsPrimes = false;
+		containsPrimeKnown = false;
 	}
 
 	/**
@@ -277,6 +287,19 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 	@Override
 	public State computeTarget(int i, State currentState, VarList varList) throws PrismLangException
 	{
+		// Only use (expensive) CSG update check if needed
+		if (getContainsPrimes()) {
+			return computeTargetWithPrimes(i, currentState, varList);
+		}
+		// Otherwise usual computation
+		State newState = new State(currentState);
+		for (Update up : updates.get(i))
+			up.update(currentState, newState, eval.exact(), varList);
+		return newState;
+	}
+
+	private State computeTargetWithPrimes(int i, State currentState, VarList varList) throws PrismLangException
+	{
 		//System.out.println("\n### Compute target currentState");
 		Set<String> variablesToUpdate = new HashSet<String>();
 		HashMap<String, HashSet<String>> dependencies = new HashMap<String, HashSet<String>>();
@@ -397,5 +420,49 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 			s += getProbability(i) + ":" + updates.get(i);
 		}
 		return s;
+	}
+	
+	// Local utility methods
+	
+	/**
+	 * Do any updates contain primes on the RHS?
+	 */
+	private boolean getContainsPrimes()
+	{
+		// Compute once, lazily
+		if (!containsPrimeKnown) {
+			containsPrimeKnown = true;
+			containsPrimes = false;
+			for (List<Update> list : updates) {
+				for (Update up : list) {
+					if (astElementContainsPrimes(up)) {
+						containsPrimes = true;
+						return containsPrimes;
+					}
+				}
+			}
+		}
+		return containsPrimes;
+	}
+	
+	/**
+	 * Does an AST element contain any references to primed variables?
+	 */
+	private static boolean astElementContainsPrimes(ASTElement ast)
+	{
+		try {
+			ast.accept(new ASTTraverse()
+			{
+				public void visitPost(ExpressionVar e) throws PrismLangException
+				{
+					if (e.getPrime()) {
+						throw new PrismLangException("Found one", e);
+					}
+				}
+			});
+		} catch (PrismLangException e) {
+			return true;
+		}
+		return false;
 	}
 }
