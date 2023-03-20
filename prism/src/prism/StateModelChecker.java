@@ -184,6 +184,9 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		case CTMC:
 			mc = new StochModelChecker(prism, model, propertiesFile);
 			break;
+		case SMG:
+			mc = new GamesModelChecker(prism, model, propertiesFile);
+			break;
 		default:
 			throw new PrismException("Cannot create model checker for model type " + modelType);
 		}
