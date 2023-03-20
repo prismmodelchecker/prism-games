@@ -1,13 +1,13 @@
 const int K = 20;
 
-// RESULT (p=0.1): 0.20407999990449632
+// RESULT (p=0.1): 0.204081632653
 <<r>>Pmax=? [ F "gains_information" ]
 
-// RESULT (p=0.1): 0.20407999990449632
+// RESULT (p=0.1): 0.204081632653
 <<o,r>>Pmax=? [ F "gains_information" ]
 
 // RESULT (p=0.1): 0.1
 <<r>>Pmax=? [ F<=K "gains_information" ]
 
-// RESULT (p=0.1): 0.12127515625000002
+// RESULT (p=0.1): 0.12127515625
 <<o,r>>Pmax=? [ F<=K "gains_information" ]

@@ -1,1 +1,1 @@
--const p=0.1
+-const p=0.1 -e 1e-8
