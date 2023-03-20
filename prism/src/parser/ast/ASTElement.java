@@ -38,6 +38,7 @@ import parser.State;
 import parser.Token;
 import parser.Values;
 import parser.type.Type;
+import parser.visitor.ASTTraverse;
 import parser.visitor.ASTVisitor;
 import parser.visitor.ComputeProbNesting;
 import parser.visitor.DeepCopy;
@@ -138,6 +139,35 @@ public abstract class ASTElement implements Cloneable
 	public void setPosition(ASTElement e)
 	{
 		setPosition(e, e);
+	}
+
+	/**
+	 * Remove any positional info, i.e., set begin/end line/column numbers to -1
+	 */
+	public void clearPosition()
+	{
+		setPosition(-1, -1, -1, -1);
+	}
+
+	/**
+	 * Remove any positional info, i.e., set begin/end line/column numbers to -1,
+	 * in this ASTElement and all of its children.
+	 */
+	public void clearPositionRecursively()
+	{
+		try {
+			// NB: Don't need ASTTraverse since the structure is never changed
+			accept(new ASTTraverse()
+			{
+				@Override
+				public void defaultVisitPost(ASTElement e) throws PrismLangException
+				{
+					clearPosition();
+				}
+			});
+		} catch (PrismLangException e) {
+			// Ignore any errors during traversal
+		}
 	}
 
 	// Get methods
@@ -310,12 +340,20 @@ public abstract class ASTElement implements Cloneable
 	}
 
 	/**
-	 * Find all idents which are constants, replace with ExpressionConstant,
-	 * return result.
+	 * Find all idents which are constants, replace with ExpressionConstant, return result.
 	 */
 	public ASTElement findAllConstants(ConstantList constantList) throws PrismLangException
 	{
 		FindAllConstants visitor = new FindAllConstants(constantList);
+		return (ASTElement) accept(visitor);
+	}
+
+	/**
+	 * Find all idents which are constants, replace with ExpressionConstant, return result.
+	 */
+	public ASTElement findAllConstants(List<String> constIdents, List<Type> constTypes) throws PrismLangException
+	{
+		FindAllConstants visitor = new FindAllConstants(constIdents, constTypes);
 		return (ASTElement) accept(visitor);
 	}
 

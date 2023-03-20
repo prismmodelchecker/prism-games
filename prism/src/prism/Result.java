@@ -47,7 +47,7 @@ public class Result
 	// Counterexample (optional)
 	private Object cex;
 	// Strategy (optional)
-	private Strategy strat;
+	private Strategy<?> strat;
 	// Solution vector (optional)
 	private StateVector vect;
         // parameter string (optional)
@@ -109,7 +109,7 @@ public class Result
 	/**
 	 * Set the strategy (null denotes n/a).
 	 */
-	public void setStrategy(Strategy strat)
+	public void setStrategy(Strategy<?> strat)
 	{
 		this.strat = strat;
 	}
@@ -169,7 +169,7 @@ public class Result
 	/**
 	 * Get the strategy (null denotes n/a).
 	 */
-	public Strategy getStrategy()
+	public Strategy<?> getStrategy()
 	{
 		return strat;
 	}

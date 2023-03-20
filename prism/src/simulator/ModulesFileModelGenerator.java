@@ -680,7 +680,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	public String getTransitionUpdateString(int i, int offset) throws PrismException
 	{
 		TransitionList<Value> transitions = getTransitionList();
-		return transitions.getTransitionUpdateString(transitions.getTotalIndexOfTransition(i, offset), exploreState);
+		return transitions.getTransitionUpdateString(transitions.getTotalIndexOfTransition(i, offset), exploreState, varList);
 	}
 	
 	@Override
@@ -693,7 +693,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public State computeTransitionTarget(int index, int offset) throws PrismException
 	{
-		return getTransitionList().getChoice(index).computeTarget(offset, exploreState);
+		return getTransitionList().getChoice(index).computeTarget(offset, exploreState, varList);
 	}
 
 	@Override

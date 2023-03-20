@@ -231,9 +231,9 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 	}
 
 	@Override
-	public String getUpdateString(int i, State currentState) throws PrismLangException
+	public String getUpdateString(int i, State currentState, VarList varList) throws PrismLangException
 	{
-		State nextState = computeTarget(i, currentState);
+		State nextState = computeTarget(i, currentState, varList);
 		int j, n;
 		String s = "";
 		boolean first = true;
@@ -275,7 +275,7 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 	/*** ***/
 	
 	@Override
-	public State computeTarget(int i, State currentState) throws PrismLangException
+	public State computeTarget(int i, State currentState, VarList varList) throws PrismLangException
 	{
 		//System.out.println("\n### Compute target currentState");
 		Set<String> variablesToUpdate = new HashSet<String>();
@@ -308,7 +308,7 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 			for (String v : update.keySet()) {
 				if (variablesToUpdate.contains(v) && Collections.disjoint(dependencies.get(v), variablesToUpdate)) {
 					//System.out.println("-- updating " + v);
-					update.get(v).update(currentState, newState, eval.exact());
+					update.get(v).update(currentState, newState, eval.exact(), varList);
 					variablesToUpdate.remove(v);
 					//System.out.println(variablesToUpdate);
 				}
@@ -326,12 +326,11 @@ public class ChoiceListFlexi<Value> implements Choice<Value>
 	}
 
 	@Override
-	public void computeTarget(int i, State currentState, State newState) throws PrismLangException
+	public void computeTarget(int i, State currentState, State newState, VarList varList) throws PrismLangException
 	{
-		//System.out.println("\n### Compute target currentState, newState");
+		// This should really be updated to match the one above, but it is never used
 		for (Update up : updates.get(i))
-			up.update(currentState, newState, eval.exact());
-		//System.out.println();
+			up.update(currentState, newState, eval.exact(), varList);
 	}
 
 	@Override

@@ -298,9 +298,9 @@ public class TransitionList<Value>
 	 * Format is: x'=1, y'=0, with empty string for empty update.
 	 * Only variables updated are included in list (even if unchanged).
 	 */
-	public String getTransitionUpdateString(int index, State currentState) throws PrismLangException
+	public String getTransitionUpdateString(int index, State currentState, VarList varList) throws PrismLangException
 	{
-		return getChoiceOfTransition(index).getUpdateString(transitionOffsets.get(index), currentState);
+		return getChoiceOfTransition(index).getUpdateString(transitionOffsets.get(index), currentState, varList);
 	}
 
 	/**
@@ -318,9 +318,9 @@ public class TransitionList<Value>
 	/**
 	 * Get the target of a transition (as a new State object), specified by its index.
 	 */
-	public State computeTransitionTarget(int index, State currentState) throws PrismLangException
+	public State computeTransitionTarget(int index, State currentState, VarList varList) throws PrismLangException
 	{
-		return getChoiceOfTransition(index).computeTarget(transitionOffsets.get(index), currentState);
+		return getChoiceOfTransition(index).computeTarget(transitionOffsets.get(index), currentState, varList);
 	}
 	
 	// Other checks and queries
@@ -346,11 +346,7 @@ public class TransitionList<Value>
 	/**
 	 * Is there a deterministic self-loop, i.e. do all transitions go to the current state.
 	 */
-    public boolean isDeterministicSelfLoop(State currentState)
-    {
-	return isDeterministicSelfLoop(currentState, true); // default is to look at values of states, not instance of State class identity
-    }
-    public boolean isDeterministicSelfLoop(State currentState, boolean basedOnValues)
+	public boolean isDeterministicSelfLoop(State currentState, VarList varList)
 	{
 		// TODO: make more efficient, and also limit calls to it
 		// (e.g. only if already stayed in state twice?)
@@ -360,19 +356,11 @@ public class TransitionList<Value>
 			for (Choice<Value> ch : choices) {
 				n = ch.size();
 				for (i = 0; i < n; i++) {
-				    if(basedOnValues) {
-					ch.computeTarget(i, currentState, newState);
+					ch.computeTarget(i, currentState, newState, varList);
 					if (!currentState.equals(newState)) {
 						// Found a non-loop
 						return false;
 					}
-				    } else {
-					newState = ch.computeTarget(i, currentState);
-					if(currentState!=newState) {
-					    // Found a non-loop
-					    return false;
-					}
-				    }
 				}
 			}
 		} catch (PrismLangException e) {
