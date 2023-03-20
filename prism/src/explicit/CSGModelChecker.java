@@ -658,21 +658,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeTotalRewards(CSG<Double> csg, CSGRewards<Double> csgRewards, boolean min1, boolean min2, Coalition coalition) throws PrismException
-	{
-		return computeTotalRewards(csg, csgRewards, coalition, min1, min2);
-	}
-
-	/**
-	 * Compute expected total rewards,
-	 * i.e. compute the min/max expected reward accumulated.
-	 * @param csg The CSG
-	 * @param rewards The rewards
-	 * @param coalition The coalition of players which define player 1
-	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 */
-	public ModelCheckerResult computeTotalRewards(CSG<Double> csg, CSGRewards<Double> rewards, Coalition coalition, boolean min1, boolean min2) throws PrismException
+	public ModelCheckerResult computeTotalRewards(CSG<Double> csg, CSGRewards<Double> rewards, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -759,23 +745,6 @@ public class CSGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2,
 			Coalition coalition) throws PrismException
-	{
-		return computeReachRewards(csg, coalition, rewards, target, min1, min2, unreachingSemantics);
-	}
-
-	/**
-	 * Compute expected reachability rewards.
-	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
-	 * @param csg The CSG
-	 * @param coalition The coalition of players which define player 1
-	 * @param rewards The rewards
-	 * @param target Target states
-	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
-	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 * @param unreachingSemantics How to handle paths not reaching target
-	 */
-	public ModelCheckerResult computeReachRewards(CSG<Double> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2,
-			int unreachingSemantics) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		switch (unreachingSemantics) {
@@ -1337,10 +1306,10 @@ public class CSGModelChecker extends ProbModelChecker
 			targets[index] = all;
 			switch (exprs.get(index).getOperator()) {
 			case ExpressionTemporal.R_I:
-				da = constructDRAForInstant("L0", false, new IntegerBound(null, false, bounds[index] + 1, false));
+				da = constructDRAForInstant("L0", new IntegerBound(null, false, bounds[index] + 1, false));
 				break;
 			case ExpressionTemporal.R_C:
-				da = constructDRAForInstant("L0", false, new IntegerBound(null, false, bounds[index], false));
+				da = constructDRAForInstant("L0", new IntegerBound(null, false, bounds[index], false));
 				break;
 			}
 
@@ -2306,7 +2275,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param bounds Bound for either cumulative or instant rewards
 	 * @return
 	 */
-	public static DA<BitSet, AcceptanceRabin> constructDRAForInstant(String labelA, boolean negateA, IntegerBound bounds)
+	public static DA<BitSet, AcceptanceRabin> constructDRAForInstant(String labelA, IntegerBound bounds)
 	{
 		DA<BitSet, AcceptanceRabin> dra;
 		List<String> apList = new ArrayList<String>();
@@ -2330,11 +2299,7 @@ public class CSGModelChecker extends ProbModelChecker
 		// edge not labeled with the target label
 		edge_no = new BitSet();
 
-		if (negateA) {
-			edge_no.set(0); // no = a, yes = !a
-		} else {
-			edge_yes.set(0); // yes = a, no = !a
-		}
+		edge_yes.set(0); // yes = a, no = !a
 
 		int yes_state = states - 1;
 		int next_counter;
