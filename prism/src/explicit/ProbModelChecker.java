@@ -85,6 +85,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected LinEqMethod linEqMethod = LinEqMethod.GAUSS_SEIDEL;
 	// Method used to solve MDPs
 	protected MDPSolnMethod mdpSolnMethod = MDPSolnMethod.GAUSS_SEIDEL;
+	// Method used to solve STPGs
+	protected STPGSolnMethod stpgSolnMethod = STPGSolnMethod.GAUSS_SEIDEL;
 	// Iterative numerical method termination criteria
 	protected TermCrit termCrit = TermCrit.RELATIVE;
 	// Parameter for iterative numerical method termination criteria
@@ -167,6 +169,22 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 	};
 
+	// Method used for solving STPGs
+	public enum STPGSolnMethod {
+		VALUE_ITERATION, GAUSS_SEIDEL;
+		public String fullName()
+		{
+			switch (this) {
+			case VALUE_ITERATION:
+				return "Value iteration";
+			case GAUSS_SEIDEL:
+				return "Gauss-Seidel";
+			default:
+				return this.toString();
+			}
+		}
+	};
+
 	// Iterative numerical method termination criteria
 	public enum TermCrit {
 		ABSOLUTE, RELATIVE
@@ -226,6 +244,15 @@ public class ProbModelChecker extends NonProbModelChecker
 			} else {
 				throw new PrismNotSupportedException("Explicit engine does not support MDP solution method \"" + s + "\"");
 			}
+			// PRISM_STPG_SOLN_METHOD
+			s = settings.getString(PrismSettings.PRISM_STPG_SOLN_METHOD);
+			if (s.equals("Value iteration")) {
+				setSTPGSolnMethod(STPGSolnMethod.VALUE_ITERATION);
+			} else if (s.equals("Gauss-Seidel")) {
+				setSTPGSolnMethod(STPGSolnMethod.GAUSS_SEIDEL);
+			} else {
+				throw new PrismNotSupportedException("Explicit engine does not support STPG solution method \"" + s + "\"");
+			}
 			// PRISM_TERM_CRIT
 			s = settings.getString(PrismSettings.PRISM_TERM_CRIT);
 			if (s.equals("Absolute")) {
@@ -275,6 +302,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		super.inheritSettings(other);
 		setLinEqMethod(other.getLinEqMethod());
 		setMDPSolnMethod(other.getMDPSolnMethod());
+		setSTPGSolnMethod(other.getSTPGSolnMethod());
 		setTermCrit(other.getTermCrit());
 		setTermCritParam(other.getTermCritParam());
 		setMaxIters(other.getMaxIters());
@@ -295,6 +323,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		super.printSettings();
 		mainLog.print("linEqMethod = " + linEqMethod + " ");
 		mainLog.print("mdpSolnMethod = " + mdpSolnMethod + " ");
+		mainLog.print("stpgSolnMethod = " + stpgSolnMethod + " ");
 		mainLog.print("termCrit = " + termCrit + " ");
 		mainLog.print("termCritParam = " + termCritParam + " ");
 		mainLog.print("maxIters = " + maxIters + " ");
@@ -343,6 +372,14 @@ public class ProbModelChecker extends NonProbModelChecker
 	public void setMDPSolnMethod(MDPSolnMethod mdpSolnMethod)
 	{
 		this.mdpSolnMethod = mdpSolnMethod;
+	}
+
+	/**
+	 * Set method used to solve STPGs.
+	 */
+	public void setSTPGSolnMethod(STPGSolnMethod stpgSolnMethod)
+	{
+		this.stpgSolnMethod = stpgSolnMethod;
 	}
 
 	/**
@@ -458,6 +495,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	public MDPSolnMethod getMDPSolnMethod()
 	{
 		return mdpSolnMethod;
+	}
+
+	public STPGSolnMethod getSTPGSolnMethod()
+	{
+		return stpgSolnMethod;
 	}
 
 	public TermCrit getTermCrit()

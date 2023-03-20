@@ -258,7 +258,7 @@ public class STPGModelChecker extends ProbModelChecker
 		long timer, timerProb0, timerProb1;
 
 		// Check for some unsupported combinations
-		if (solnMethod == SolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
+		if (stpgSolnMethod == STPGSolnMethod.VALUE_ITERATION && valIterDir == ValIterDir.ABOVE && !(precomp && prob0)) {
 			throw new PrismException("Precomputation (Prob0) must be enabled for value iteration from above");
 		}
 
@@ -309,7 +309,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// precomputation
 		if (bound < 1.0 || !(precomp && prob1 && !(genStrat || exportAdv))) {
 			// Compute probabilities
-			switch (solnMethod) {
+			switch (stpgSolnMethod) {
 			case VALUE_ITERATION:
 				res = computeReachProbsValIter(stpg, no, yes, min1, min2, init, known);
 				break;
@@ -317,7 +317,7 @@ public class STPGModelChecker extends ProbModelChecker
 				res = computeReachProbsGaussSeidel(stpg, no, yes, min1, min2, init, known);
 				break;
 			default:
-				throw new PrismException("Unknown STPG solution method " + solnMethod);
+				throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
 			}
 		} else {
 			res = new ModelCheckerResult();
@@ -652,7 +652,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (Gauss-Seidel, " + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -699,7 +699,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Finished Gauss-Seidel
 		timer = System.currentTimeMillis() - timer;
 		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+			mainLog.print("Value iteration (Gauss-Seidel, " + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}
 
@@ -1205,12 +1205,13 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 
 			// Compute the value when rewards are nonzero
-			switch (solnMethod) {
+			switch (stpgSolnMethod) {
 			case VALUE_ITERATION:
+			case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
 				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 				break;
 			default:
-				throw new PrismException("Unknown STPG solution method " + solnMethod);
+				throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
 			}
 
 			// Set the value iteration result to be the initial solution for the
@@ -1232,12 +1233,13 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Compute real rewards
-		switch (solnMethod) {
+		switch (stpgSolnMethod) {
 		case VALUE_ITERATION:
+		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
 			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 			break;
 		default:
-			throw new PrismException("Unknown STPG solution method " + solnMethod);
+			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
 		}
 
 		// Finished expected reachability
@@ -1370,12 +1372,13 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// Compute real rewards
-		switch (solnMethod) {
+		switch (stpgSolnMethod) {
 		case VALUE_ITERATION:
+		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
 			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
 			break;
 		default:
-			throw new PrismException("Unknown STPG solution method " + solnMethod);
+			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
 		}
 
 		// Finished expected reachability
@@ -1597,7 +1600,10 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Get the rich man's strategy and its values
 		// Start with computing optimal probabilities to reach the final state
+		STPGSolnMethod stpSolnMethodOld = getSTPGSolnMethod();
+		setSTPGSolnMethod(STPGSolnMethod.VALUE_ITERATION);
 		ModelCheckerResult mcrprob = computeReachProbs(stpg, target, min1, min2);
+		setSTPGSolnMethod(stpSolnMethodOld);
 
 		// Next, reweigh the rewards and make sure that only optimal actions are
 		// taken
