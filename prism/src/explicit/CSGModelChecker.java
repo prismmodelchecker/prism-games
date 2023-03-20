@@ -294,6 +294,8 @@ public class CSGModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int n, numYes, numNo;
 		long timerProb0, timerProb1;
+		boolean bounded = (bound != maxIters);
+		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability...");
 		n = csg.getNumStates();
@@ -312,7 +314,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, !min1);
 		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
+		if (!bounded && precomp && prob0) {
 			no.or(target);
 			no.flip(0, n);
 			no = G(csg, no);
@@ -326,7 +328,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
+		if (!bounded && precomp && prob1) {
 			yes.or(AF(csg, target));
 		}
 		timerProb1 = System.currentTimeMillis() - timerProb1;
@@ -371,7 +373,9 @@ public class CSGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = null;
 		BitSet no, tmp, yes;
 		int n, numYes, numNo;
-		long timerProb0;
+		long timerProb0, timerProb1;
+		boolean bounded = (bound != maxIters);
+		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability (until)...");
 		n = csg.getNumStates();
@@ -391,25 +395,35 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, !min1);
 		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
+		if (!bounded && precomp && prob0) {
 			no.or(target);
 			no.flip(0, n);
 			no = G(csg, no);
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
-
 		no.or(tmp);
 		tmp.clear();
-		yes.or(target);
-		numYes = yes.cardinality();
-		numNo = no.cardinality();
+		tmp.set(0, n);
+		tmp.andNot(remain);
+		tmp.andNot(target);
+		no.or(tmp);
 
 		// If <<C>>Pmax=?[phi1 U ph2], sets coalition to compute <<C>>Pmax>=1 [F phi2] to compute the set "yes"", that is, the
 		// set of states from which C can reach phi with proability 1 while remaining in phi1
 		// If <<C>>Pmin=? [phi1 U phi2], sets coalition to compute <<N\C>>Pmax>=1 [F phi2] to compute the set "yes", that is, the
 		// set of state from which N\C can force C to reach phi with probability 1 while remaining in phi1
 		
+		
 		buildCoalitions(csg, coalition, min1);
+		timerProb1 = System.currentTimeMillis();
+		if (!bounded && precomp && prob1) {
+			yes.or(AF(csg, remain, target));
+		}
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+		yes.or(target);
+		
+		numYes = yes.cardinality();
+		numNo = no.cardinality();
 
 		if (verbosity >= 1)
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
@@ -422,8 +436,9 @@ public class CSGModelChecker extends ProbModelChecker
 		}
 
 		res.timeProb0 = timerProb0 / 1000.0;
+		res.timePre = (timerProb0 + timerProb1) / 1000.0;
 		if (verbosity >= 1)
-			mainLog.println("Precomputation took " + timerProb0 / 1000.0 + " seconds.");
+			mainLog.println("Precomputation took " + res.timePre + " seconds.");
 		return res;
 	}
 
@@ -1545,6 +1560,38 @@ public class CSGModelChecker extends ProbModelChecker
 			while (!done_x) {
 				sol1.clear();
 				sol1.or(apreXY(csg, x, y));
+				sol1.or(b);
+				done_x = x.equals(sol1);
+				x.clear();
+				x.or(sol1);
+			}
+			done_y = y.equals(x);
+			y.clear();
+			y.or(x);
+		}
+		return y;
+	}
+
+	/*
+	 * Eventually b, while remaining in a
+	 */
+	public BitSet AF(CSG<Double> csg, BitSet a, BitSet b) throws PrismException
+	{
+		int n = csg.getNumStates();
+		BitSet x, y, sol1;
+		x = new BitSet();
+		y = new BitSet();
+		y.set(0, n);
+		sol1 = new BitSet();
+		boolean done_x, done_y;
+		done_y = false;
+		while (!done_y) {
+			done_x = false;
+			x.clear();
+			while (!done_x) {
+				sol1.clear();
+				sol1.or(apreXY(csg, x, y));
+				sol1.and(a);
 				sol1.or(b);
 				done_x = x.equals(sol1);
 				x.clear();
