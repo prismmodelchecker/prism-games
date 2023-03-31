@@ -538,25 +538,11 @@ public class LTLModelChecker extends PrismComponent
 	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
 	 * @return The product model
 	 */
-	 public <Value,M extends Model<Value>> LTLProduct<M> constructProductModel(DA<BitSet,? extends AcceptanceOmega> da, M model, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
+	@SuppressWarnings("unchecked")
+	public <Value, M extends Model<Value>> LTLProduct<M> constructProductModel(DA<BitSet, ? extends AcceptanceOmega> da, M model, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
 	{
-		ModelType modelType = model.getModelType();
-		int daSize = da.size();
-		int numAPs = da.getAPList().size();
-		int modelNumStates = model.getNumStates();
-		int prodNumStates;
-		int s_1, s_2, q_1, q_2, t_2;
-		BitSet s_labels = new BitSet(numAPs);
-		List<State> prodStatesList = null, daStatesList = null;
-
-		try {
-			prodNumStates = Math.multiplyExact(modelNumStates, daSize);
-		} catch (ArithmeticException e) {
-			throw new PrismException("Size of product state space of model and automaton is too large for explicit engine");
-		}
-
+		// If the model has a VarList, we will create a new one
 		VarList newVarList = null;
-
 		if (model.getVarList() != null) {
 			VarList varList = model.getVarList();
 			// Create a (new, unique) name for the variable that will represent DA states
@@ -572,37 +558,27 @@ public class LTLModelChecker extends PrismComponent
 		}
 
 		// Create a (simple, mutable) model of the appropriate type
-		ModelSimple<Value> prodModel = null;
+		ModelType modelType = model.getModelType();
+		ModelSimple<?> prodModel = null;
 		switch (modelType) {
+		case DTMC:
+			prodModel = new DTMCSimple<>();
+			break;
+		case MDP:
+			prodModel = new MDPSimple<>();
+			break;
+		case POMDP:
+			prodModel = new POMDPSimple<>();
+			break;
+		case STPG:
+			prodModel = new STPGSimple<>();
+			break;
+		case SMG:
+			prodModel = new SMGSimple<>();
+			break;
 		case CSG:
-			CSGSimple<Value> csgProd = new CSGSimple<>();
-			csgProd.setVarList(newVarList);
-			prodModel = csgProd;
+			prodModel = new CSGSimple<>();
 			break;
-		case DTMC: {
-			DTMCSimple<Value> dtmcProd = new DTMCSimple<>();
-			dtmcProd.setVarList(newVarList);
-			prodModel = dtmcProd;
-			break;
-		}
-		case MDP: {
-			MDPSimple<Value> mdpProd = new MDPSimple<>();
-			mdpProd.setVarList(newVarList);
-			prodModel = mdpProd;
-			break;
-		}
-		case STPG: {
-			STPGSimple<Value> stpgProd = new STPGSimple<>();
-			stpgProd.setVarList(newVarList);
-			prodModel = stpgProd;
-			break;
-		}
-		case SMG: {
-			SMGSimple<Value> smgProd = new SMGSimple<>();
-			smgProd.setVarList(newVarList);
-			prodModel = smgProd;
-			break;
-		}
 		default:
 			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}
@@ -625,6 +601,44 @@ public class LTLModelChecker extends PrismComponent
 			((CSGSimple<Value>) prodModel).setActions(((CSG<Value>) model).getActions());
 			((CSGSimple<Value>) prodModel).setIndexes(((CSG<Value>) model).getIndexes());
 			((CSGSimple<Value>) prodModel).setIdles(((CSG<Value>) model).getIdles());
+		}
+
+		// Attach evaluator and variable info
+		((ModelExplicit<Value>) prodModel).setEvaluator(model.getEvaluator());
+		((ModelExplicit<Value>) prodModel).setVarList(newVarList);
+        
+		// Now do the actual product model construction
+		// This is a separate method so that we can alter the model type if needed
+		return doConstructProductModel(modelType, prodModel, da, model, labelBS, statesOfInterest);
+	}
+	
+	/**
+	 * Do the main part of the construction of the product of a DA and a model,
+	 * inserting states and transitions into the provided ModelSimple object.
+	 * @param modelType The type of the (original) model
+	 * @param prodModel The (empty) product model
+	 * @param da The DA
+	 * @param model The model
+	 * @param labelBS BitSets giving the set of states for each AP in the DA
+	 * @param statesOfInterest the set of states for which values should be calculated (null = all states)
+	 * @return The product model
+	 */
+	@SuppressWarnings("unchecked")
+	protected <Value, M extends Model<Value>> LTLProduct<M> doConstructProductModel(ModelType modelType, ModelSimple<?> prodModel, DA<BitSet, ? extends AcceptanceOmega> da, M model, Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException
+	{
+		int daSize = da.size();
+		int numAPs = da.getAPList().size();
+		int modelNumStates = model.getNumStates();
+		int prodNumStates = Math.multiplyExact(modelNumStates, daSize);
+		int s_1, s_2, q_1, q_2;
+		BitSet s_labels = new BitSet(numAPs);
+		List<State> prodStatesList = null, daStatesList = null;
+
+		// Check size limits for this product construction approach
+		try {
+			prodNumStates = Math.multiplyExact(modelNumStates, daSize);
+		} catch (ArithmeticException e) {
+			throw new PrismException("Size of product state space of model and automaton is too large for explicit engine");
 		}
 		
 		// Encoding: 
@@ -694,20 +708,23 @@ public class LTLModelChecker extends PrismComponent
 			for (int j = 0; j < numChoices; j++) {
 				Iterator<Map.Entry<Integer, Value>> iter;
 				switch (modelType) {
-				case CSG:
-					iter = ((CSG<Value>) model).getTransitionsIterator(s_1, j);
-					break;
 				case DTMC:
 					iter = ((DTMC<Value>) model).getTransitionsIterator(s_1);
 					break;
 				case MDP:
 					iter = ((MDP<Value>) model).getTransitionsIterator(s_1, j);
 					break;
+				case POMDP:
+					iter = ((POMDP<Value>) model).getTransitionsIterator(s_1, j);
+					break;
 				case STPG:
 					iter = ((STPG<Value>) model).getTransitionsIterator(s_1, j);
 					break;
 				case SMG:
 					iter = ((SMG<Value>) model).getTransitionsIterator(s_1, j);
+					break;
+				case CSG:
+					iter = ((CSG<Value>) model).getTransitionsIterator(s_1, j);
 					break;
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
@@ -737,7 +754,7 @@ public class LTLModelChecker extends PrismComponent
 							((STPGSimple<Value>) prodModel).addState(((STPG<Value>) model).getPlayer(s_2));
 							break;
 						case SMG:
-							((SMGSimple<Value>) prodModel).addState(((SMG) model).getPlayer(s_2));
+							((SMGSimple<Value>) prodModel).addState(((SMG<Value>) model).getPlayer(s_2));
 							break;
 						default:
 							prodModel.addState();
@@ -753,10 +770,11 @@ public class LTLModelChecker extends PrismComponent
 					case DTMC:
 						((DTMCSimple<Value>) prodModel).setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
 						break;
-					case CSG:
 					case MDP:
+					case POMDP:
 					case STPG:
 					case SMG:
+					case CSG:
 						prodDistr.set(map[s_2 * daSize + q_2], prob);
 						break;
 					default:
@@ -764,12 +782,11 @@ public class LTLModelChecker extends PrismComponent
 					}
 				}
 				switch (modelType) {
-				case CSG:
-					t_2 = ((CSGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((CSG) model).getAction(s_1, j));
-					((CSGSimple<Value>) prodModel).setIndexes(map[s_1 * daSize + q_1], t_2, ((CSG<Value>) model).getIndexes(s_1, j));
-					break;
 				case MDP:
 					((MDPSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((MDP<Value>) model).getAction(s_1, j));
+					break;
+				case POMDP:
+					((POMDPSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((POMDP<Value>) model).getAction(s_1, j));
 					break;
 				case STPG:
 					((STPGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((STPG<Value>) model).getAction(s_1, j));
@@ -777,9 +794,21 @@ public class LTLModelChecker extends PrismComponent
 				case SMG:
 					((SMGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((SMG<Value>) model).getAction(s_1, j));
 					break;
+				case CSG:
+					int t_2 = ((CSGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr, ((CSG) model).getAction(s_1, j));
+					((CSGSimple<Value>) prodModel).setIndexes(map[s_1 * daSize + q_1], t_2, ((CSG<Value>) model).getIndexes(s_1, j));
+					break;
 				default:
 					break;
 				}
+			}
+			
+			// For partially observable models, transfer observation info
+			// (do it after transitions are added, since observation actions are checked)
+			if (modelType == ModelType.POMDP) {
+				State o = ((POMDP) model).getObservationAsState(s_1);
+				State u = ((POMDP) model).getUnobservationAsState(s_1);
+				((POMDPSimple) prodModel).setObservation(map[s_1 * daSize + q_1], o, u, null);
 			}
 		}
 
@@ -797,7 +826,6 @@ public class LTLModelChecker extends PrismComponent
 			prodModel.setStatesList(prodStatesList);
 		}
 
-		@SuppressWarnings("unchecked")
 		LTLProduct<M> product = new LTLProduct<M>((M) prodModel, model, null, daSize, invMap);
 
 		// generate acceptance for the product model by lifting

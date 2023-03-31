@@ -38,5 +38,5 @@ public interface CSGRewards<Value> extends STPGRewards<Value>
 	public abstract MDPRewards<Value> buildMDPRewards();
 
 	@Override
-	public abstract CSGRewards<Value> liftFromModel(Product<? extends Model<Value>> product);
+	public abstract CSGRewards<Value> liftFromModel(Product<?> product);
 }

@@ -65,7 +65,7 @@ public class SMGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements 
 	// Converters
 	
 	@Override
-	public SMGRewards<Value> liftFromModel(Product<? extends Model<Value>> product)
+	public SMGRewards<Value> liftFromModel(Product<?> product)
 	{
 		// Lift MDP part
 		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);

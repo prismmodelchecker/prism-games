@@ -59,7 +59,7 @@ public class CSGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements 
 	
 	// Converters
 	@Override
-	public CSGRewards<Value> liftFromModel(Product<? extends Model<Value>> product)
+	public CSGRewards<Value> liftFromModel(Product<?> product)
 	{
 		// Lift MDP part
 		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);
