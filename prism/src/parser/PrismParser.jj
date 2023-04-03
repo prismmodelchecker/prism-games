@@ -427,7 +427,13 @@ SPECIAL_TOKEN :
 TOKEN :
 {
 	// Keywords
-	< A:				"A" >
+	// 
+	< NASH: 			"NE">
+|	< CORR:				"CE">
+|	< SWEQ:				"SW">
+|	< FAIR:				"FR">
+  	//	
+|	< A:				"A" >
 //|	< ARRAY:			"array" >
 |	< BOOL:				"bool" >
 |	< CLOCK:			"clock" >
@@ -1899,11 +1905,16 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) :
 	String relOp = null;
 	boolean isBool;
 	int r;
+	int eq = 1; // default NE
+	int crit = 3; // default SW
 	int n = 0;
 }
 {
   	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
+	(
+	<LBRACE> eq = EqType() <COMMA> crit = EqType() <RBRACE>
+	)?
 	(
 	<MIN> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "min="; isBool = false; } )
 	|	
@@ -1926,8 +1937,22 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) :
 	{
 		ret.setBound(bound);
 		ret.setRelOp(relOp);
+		ret.setEqType(eq);
+		ret.setCrit(crit);
 		return ret;
 	}
+}
+
+// Types of Equilibria
+
+int EqType() :
+{
+}
+{
+	<NASH> {return ExpressionMultiNash.NASH; } |
+	<CORR> {return ExpressionMultiNash.CORR; } |
+	<SWEQ> {return ExpressionMultiNash.SWEQ; }|
+	<FAIR> {return ExpressionMultiNash.FAIR; }
 }
 
 // (Property) expression: probabilistic operator (n-player Nash)

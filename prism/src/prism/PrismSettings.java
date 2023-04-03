@@ -133,25 +133,26 @@ public class PrismSettings implements Observer
 	// csg and equilibria
 	public static final String PRISM_ZS_LP_SCALE_FACTOR			= "prism.lpscalefactor";
 	public static final String PRISM_EQ_ASSUMPTION_CHECK 			= "prism.eqassumptioncheck";
+	public static final String PRISM_CSG_LPSOLVER				= "prism.csglpsolver";
 	
     // multi-objective synthesis for games
 	public static final     String PRISM_MULTI_GAUSS_SEIDEL					= "prism.multiGaussSeidel";
-        // iteration control
-        public static final	String PRISM_MULTI_MAX_C_ITER			= "prism.multiMaxCIter";
-        public static final	String PRISM_MULTI_MAX_R_ITER			= "prism.multiMaxRIter";
-        public static final	String PRISM_MULTI_MAX_D_ITER			= "prism.multiMaxDIter";
-        public static final	String PRISM_MULTI_D_ITER_OFFSET       		= "prism.multiDIterOffset";
-        public static final	String PRISM_MULTI_MIN_M         		= "prism.multiMinM";
-        public static final	String PRISM_MULTI_MAX_M         		= "prism.multiMaxM";
-        // rounding
-        public static final String PRISM_MULTI_ROUNDING					= "prism.multiRounding";
-        public static final	String PRISM_MULTI_BASELINE_ACCURACY 		= "prism.baselineAccuracy";
-        public static final	String PRISM_MULTI_INCREASE_FACTOR		= "prism.increaseFactor";
-        // logging
-        public static final	String LOG_MULTI_C_PARETO			= "log.multiCPareto";
-        public static final	String LOG_MULTI_D_PARETO			= "log.multiDPareto";
-        public static final	String LOG_MULTI_R_PARETO			= "log.multiRPareto";
-        public static final	String LOG_MULTI_STRATEGY			= "log.multiStrategy";
+    // iteration control
+    public static final	String PRISM_MULTI_MAX_C_ITER			= "prism.multiMaxCIter";
+    public static final	String PRISM_MULTI_MAX_R_ITER			= "prism.multiMaxRIter";
+    public static final	String PRISM_MULTI_MAX_D_ITER			= "prism.multiMaxDIter";
+    public static final	String PRISM_MULTI_D_ITER_OFFSET       		= "prism.multiDIterOffset";
+    public static final	String PRISM_MULTI_MIN_M         		= "prism.multiMinM";
+    public static final	String PRISM_MULTI_MAX_M         		= "prism.multiMaxM";
+    // rounding
+    public static final String PRISM_MULTI_ROUNDING					= "prism.multiRounding";
+    public static final	String PRISM_MULTI_BASELINE_ACCURACY 		= "prism.baselineAccuracy";
+    public static final	String PRISM_MULTI_INCREASE_FACTOR		= "prism.increaseFactor";
+    // logging
+    public static final	String LOG_MULTI_C_PARETO			= "log.multiCPareto";
+    public static final	String LOG_MULTI_D_PARETO			= "log.multiDPareto";
+    public static final	String LOG_MULTI_R_PARETO			= "log.multiRPareto";
+    public static final	String LOG_MULTI_STRATEGY			= "log.multiStrategy";
 
 	
 	public static final String PRISM_LTL2DA_TOOL					= "prism.ltl2daTool";
@@ -367,7 +368,11 @@ public class PrismSettings implements Observer
 			// CSG ZERO-SUM LP SCALE FACTOR
 			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR, 					"Scale factor for LPs",			"4.5", 				Double.valueOf(1.0), 			"1,",
 																			"Scale factor used when building linear programs for solving matrix games"},
-			{ BOOLEAN_TYPE,		PRISM_EQ_ASSUMPTION_CHECK, 					"Assumption check for equilirbia",			"4.5", 				Boolean.valueOf(true), 			"",
+			// CSG SOLVER FOR LPS
+			{ CHOICE_TYPE,		PRISM_CSG_LPSOLVER, 						"LP solver for CSGs",			"4.5", 				"Z3", 			"LpSolve,Z3,Gurobi",
+																			"Solver used when computing solutions for linear programs in CSG model checking"},
+			// CSG ASSUMPTION CHECK
+			{ BOOLEAN_TYPE,		PRISM_EQ_ASSUMPTION_CHECK, 					"Assumption check for equilirbia",			"4.5", 				Boolean.valueOf(false), 			"",
 																			"Assumption check for unbouded equilibria formulae."},
 			// OUTPUT OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_VERBOSE,							"Verbose output",						"2.1",		Boolean.valueOf(false),															"",																							
@@ -1186,7 +1191,21 @@ public class PrismSettings implements Observer
 				throw new PrismException("No value specified for -" + sw + " switch");
 			}
 		}
-		
+		else if (sw.equals("lpsolver")) {
+			if (i < args.length - 1) {
+				s = args[++i];
+				if (s.equals("lpsolve"))
+					set(PRISM_CSG_LPSOLVER, "LpSolve");
+				else if (s.equals("z3"))
+					set(PRISM_CSG_LPSOLVER, "Z3");
+				else if (s.equals("gurobi"))
+					set(PRISM_CSG_LPSOLVER, "Gurobi");
+				else
+					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: lpsolve, z3, gurobi)");
+ 			} else {
+				throw new PrismException("No value specified for -" + sw + " switch");
+			}
+		}
 		else if (sw.equals("eqassumptioncheck")) {
 			set(PRISM_EQ_ASSUMPTION_CHECK, false); 
 		}
