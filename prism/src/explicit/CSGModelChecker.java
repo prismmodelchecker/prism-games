@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -282,7 +282,13 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeBoundedUntilProbs(CSG csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
-		return computeUntilProbs(csg, remain, target, k, min1, min2, coalition);
+		ModelCheckerResult res;
+		Boolean tmp;
+		tmp = precomp;
+		precomp = false;
+		res = computeUntilProbs(csg, remain, target, k, min1, min2, coalition);
+		precomp = tmp;
+		return res;	
 	}
 
 	/**
