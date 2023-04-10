@@ -1676,6 +1676,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		case SMG:
 		case STPG:
 		case CTMDP:
+		case IDTMC:
+		case IMDP:
 		case LTS:
 		case POMDP:
 			if (getCurrentEngine() == PrismEngine.SYMBOLIC) {
@@ -3107,6 +3109,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				lastEngine = getEngine();
 				setEngine(Prism.EXPLICIT);
 			}
+		}
+		if (currentModelType == ModelType.IDTMC || currentModelType == ModelType.IMDP) {
+			mainLog.printWarning("Switching to explicit engine to allow model checking of interval model.");
+			engineSwitch = true;
+			lastEngine = getEngine();
+			setEngine(Prism.EXPLICIT);
 		}
 		try {
 

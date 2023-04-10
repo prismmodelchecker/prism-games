@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import common.Interval;
 import param.BigRational;
 import param.Function;
 import param.FunctionFactory;
@@ -39,6 +40,9 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	// Evaluator for values/states
 	protected Evaluator<Value> eval;
 	
+	// Interval evaluator for probability intervals, if needed
+	protected Evaluator<Interval<Value>> evalInt;
+	
 	// Evaluation context for expressions
 	protected EvaluateContextState ec;
 	
@@ -57,12 +61,21 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	
 	// State currently being explored
 	protected State exploreState;
+	
 	// Updater object for model
 	protected Updater<Value> updater;
 	// List of currently available transitions
 	protected TransitionList<Value> transitionList;
 	// Has the transition list been built? 
 	protected boolean transitionListBuilt;
+	
+	// List of currently available transitions (interval models)
+	protected TransitionList<Interval<Value>> transitionListInt;
+	// Updater object for model (interval models)
+	protected Updater<Interval<Value>> updaterInt;
+	// Has the transition list been built? (interval models)
+	protected boolean transitionListIntBuilt;
+	
 	// Global clock invariant (conjunction of per-module invariants)
 	protected Expression invariant;
 	
@@ -170,6 +183,9 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	{
 		this.parent = parent;
 		this.eval = eval;
+		if (modulesFile.getModelType().uncertain()) {
+			evalInt = eval.createIntervalEvaluator();
+		}
 		
 		// No support for system...endsystem yet
 		if (modulesFile.getSystemDefn() != null) {
@@ -238,11 +254,18 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		labelNames = labelList.getLabelNames();
 		
 		// Create data structures for exploring model
-		updater = new Updater<Value>(modulesFile, varList, eval, parent);
-		if (modelType == ModelType.CSG)
-			updater.initialiseCSG();
-		transitionList = new TransitionList<Value>(eval);
+		if (!modelType.uncertain()) {
+			updater = new Updater<Value>(modulesFile, varList, eval, parent);
+			if (modelType == ModelType.CSG) {
+				updater.initialiseCSG();
+			}
+			transitionList = new TransitionList<Value>(eval);
+		} else {
+			updaterInt = new Updater<Interval<Value>>(modulesFile, varList, evalInt, parent);
+			transitionListInt = new TransitionList<Interval<Value>>(evalInt);
+		}
 		transitionListBuilt = false;
+		transitionListIntBuilt = false;
 	}
 	
 	// Methods for ModelInfo interface
@@ -385,6 +408,12 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 	
 	@Override
+	public Evaluator<Interval<Value>> getIntervalEvaluator()
+	{
+		return evalInt;
+	}
+	
+	@Override
 	public boolean hasSingleInitialState() throws PrismException
 	{
 		return modulesFile.getInitialStates() == null;
@@ -440,7 +469,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		}
 		// Determine which player owns the state
 		int player = -1;
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		int nc = getNumChoices();
 		for (int i = 0; i < nc; i++) {
 			String modAct = transitions.getChoiceModuleOrAction(i);
@@ -521,7 +550,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public Object getTransitionAction(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		int index = transitions.getTotalIndexOfTransition(i, offset);
 		if (!modelType.concurrent()) {
 			int a = transitions.getTransitionModuleOrActionIndex(index);
@@ -535,7 +564,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public int getTransitionActionIndex(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		if (!modelType.concurrent()) {
 			int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
 			return a < 0 ? -1 : a - 1;
@@ -547,7 +576,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public String getTransitionActionString(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		int index = transitions.getTotalIndexOfTransition(i, offset);
 		if (!modelType.concurrent()) {
 			int a = transitions.getTransitionModuleOrActionIndex(index);
@@ -561,7 +590,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public Object getChoiceAction(int index) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		if (!modelType.concurrent()) {
 			int a = transitions.getChoiceModuleOrActionIndex(index);
 			return a < 0 ? null : getActions().get(a - 1);
@@ -574,7 +603,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public int getChoiceActionIndex(int index) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		if (!modelType.concurrent()) {
 			int a = transitions.getChoiceModuleOrActionIndex(index);
 			return a < 0 ? -1 : a - 1;
@@ -586,7 +615,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public String getChoiceActionString(int index) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		if (!modelType.concurrent()) {
 			int a = transitions.getChoiceModuleOrActionIndex(index);
 			return getDescriptionForModuleOrActionIndex(a);
@@ -644,49 +673,65 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public Expression getChoiceClockGuard(int i) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		return transitions.getChoice(i).getClockGuard();
 	}
 	
 	@Override
 	public Value getTransitionProbability(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
-		return transitions.getChoice(i).getProbability(offset);
+		TransitionList<Value> transitions = getTransitionListScalars();
+		if (transitions != null) {
+			return transitions.getChoice(i).getProbability(offset);
+		} else {
+			throw new PrismException("Cannot get scalar transition probability for " + getModelType());
+		}
 	}
 
 	@Override
 	public Value getChoiceProbabilitySum(int i) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
-		return transitions.getChoice(i).getProbabilitySum();
+		TransitionList<Value> transitions = getTransitionListScalars();
+		if (transitions != null) {
+			return transitions.getChoice(i).getProbabilitySum();
+		} else {
+			throw new PrismException("Cannot get scalar transition probability for " + getModelType());
+		}
 	}
 	
 	@Override
 	public Value getProbabilitySum() throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
-		return transitions.getProbabilitySum();
+		TransitionList<Value> transitions = getTransitionListScalars();
+		if (transitions != null) {
+			return transitions.getProbabilitySum();
+		} else {
+			throw new PrismException("Cannot get scalar transition probability for " + getModelType());
+		}
 	}
 	
 	@Override
-	public boolean isDeterministic() throws PrismException
+	public Interval<Value> getTransitionProbabilityInterval(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
-		return transitions.isDeterministic();
+		TransitionList<Interval<Value>> transitions = getTransitionListIntervals();
+		if (transitions != null) {
+			return transitions.getChoice(i).getProbability(offset);
+		} else {
+			throw new PrismException("Cannot get transition probability interval for " + getModelType());
+		}
 	}
-	
+
 	@Override
 	public String getTransitionUpdateString(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		return transitions.getTransitionUpdateString(transitions.getTotalIndexOfTransition(i, offset), exploreState, varList);
 	}
 	
 	@Override
 	public String getTransitionUpdateStringFull(int i, int offset) throws PrismException
 	{
-		TransitionList<Value> transitions = getTransitionList();
+		TransitionList<?> transitions = getTransitionList();
 		return transitions.getTransitionUpdateStringFull(transitions.getTotalIndexOfTransition(i, offset));
 	}
 	
@@ -878,8 +923,19 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	/**
 	 * Returns the current list of available transitions, generating it first if this has not yet been done.
 	 */
-	private TransitionList<Value> getTransitionList() throws PrismException
+	private TransitionList<?> getTransitionList() throws PrismException
 	{
+		return modelType.uncertain() ? getTransitionListIntervals() : getTransitionListScalars();
+	}
+	
+	/**
+	 * Returns the current list of available transitions, generating it first if this has not yet been done.
+	 */
+	private TransitionList<Value> getTransitionListScalars() throws PrismException
+	{
+		if (modelType.uncertain()) {
+			return null;
+		}
 		// Compute the current transition list, if required
 		if (!transitionListBuilt) {
 			if(modelType == ModelType.CSG) {
@@ -892,5 +948,21 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		}
 
 		return transitionList;
+	}
+	
+	/**
+	 * Returns the current list of available transitions (interval models), generating it first if this has not yet been done.
+	 */
+	private TransitionList<Interval<Value>> getTransitionListIntervals() throws PrismException
+	{
+		if (!modelType.uncertain()) {
+			return null;
+		}
+		// Compute the current transition list, if required
+		if (!transitionListBuilt) {
+			updaterInt.calculateTransitions(exploreState, transitionListInt);
+			transitionListIntBuilt = true;
+		}
+		return transitionListInt;
 	}
 }
