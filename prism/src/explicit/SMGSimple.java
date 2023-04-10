@@ -577,7 +577,7 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 		int n = rewards.size();
 
 		// the successors of the distribution d
-		ArrayList<Integer> states = new ArrayList<Integer>(distr.keySet());
+		ArrayList<Integer> states = new ArrayList<Integer>(distr.getSupport());
 		int b = states.size();
 
 		Pareto cp = null;
