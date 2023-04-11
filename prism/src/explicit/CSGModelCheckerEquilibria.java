@@ -1286,9 +1286,11 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		smtSupportEnumeration.setNumPlayers(numCoalitions);
 		smtSupportEnumeration.init();
 		
+		/*
 		nlpSupportEnumeration = new CSGSupportEnumerationGurobi(maxNumActions, numCoalitions);
 		nlpSupportEnumeration.setIndexes(strategies);
 		nlpSupportEnumeration.setNumPlayers(numCoalitions);
+		*/
 		
 		done = true;
 		k = 0;
@@ -1459,9 +1461,11 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		smtSupportEnumeration.setNumPlayers(numCoalitions);
 		smtSupportEnumeration.init();
 		
+		/*
 		nlpSupportEnumeration = new CSGSupportEnumerationGurobi(maxNumActions, numCoalitions);
 		nlpSupportEnumeration.setIndexes(strategies);
 		nlpSupportEnumeration.setNumPlayers(numCoalitions);
+		*/
 		
 		for (c = numCoalitions; c > 0; c--) {
 			if (c == numCoalitions) {
