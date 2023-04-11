@@ -1089,12 +1089,12 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @throws PrismException
 	 */
 	public ModelCheckerResult computeProbBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<ExpressionTemporal> exprs, BitSet[] targets,
-			BitSet[] remain, int[] bounds, boolean min) throws PrismException
+			BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
 		csgeq.inheritSettings(this);
-		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, exprs, targets, remain, bounds, min);
+		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, exprs, targets, remain, bounds, eqType, crit, min);
 		return res;
 	}
 
@@ -1108,13 +1108,13 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeProbReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, boolean min)
+	public ModelCheckerResult computeProbReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, int eqType, int crit, boolean min)
 			throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
 		csgeq.inheritSettings(this);
-		res = csgeq.computeReachEquilibria(csg, coalitions, null, targets, remain, min);
+		res = csgeq.computeReachEquilibria(csg, coalitions, null, targets, remain, eqType, crit, min);
 		return res;
 	}
 
@@ -1130,12 +1130,12 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @throws PrismException
 	 */
 	public ModelCheckerResult computeRewBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs,
-			int[] bounds, boolean min) throws PrismException
+			int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
 		csgeq.inheritSettings(this);
-		res = csgeq.computeBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, min);
+		res = csgeq.computeBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, eqType, crit, min);
 		return res;
 	}
 
@@ -1149,13 +1149,13 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, boolean min)
+	public ModelCheckerResult computeRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, int eqType, int crit, boolean min)
 			throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
 		csgeq.inheritSettings(this);
-		res = csgeq.computeReachEquilibria(csg, coalitions, rewards, targets, null, min);
+		res = csgeq.computeReachEquilibria(csg, coalitions, rewards, targets, null, eqType, crit, min);
 		return res;
 	}
 
@@ -1174,7 +1174,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @throws PrismException
 	 */
 	public ModelCheckerResult computeMixedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs,
-			BitSet bounded, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException
+			BitSet bounded, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
@@ -1369,9 +1369,9 @@ public class CSGModelChecker extends ProbModelChecker
 			}
 			res = csgeq.computeReachEquilibria(csg_rm, coalitions, csg_rew_rm, filtered_targets, null);			
 			*/
-			res = csgeq.computeReachEquilibria(product.productModel, coalitions, newrewards, newtargets, null, min);
+			res = csgeq.computeReachEquilibria(product.productModel, coalitions, newrewards, newtargets, null, eqType, crit, min);
 		} else {
-			res = csgeq.computeReachEquilibria(product.productModel, coalitions, null, newtargets, newremain, min);
+			res = csgeq.computeReachEquilibria(product.productModel, coalitions, null, newtargets, newremain, eqType, crit, min);
 		}
 		return res;
 	}

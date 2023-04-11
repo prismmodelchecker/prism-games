@@ -690,13 +690,16 @@ public class ProbModelChecker extends NonProbModelChecker
 		int[] bounds = new int[coalitions.size()];
 		Expression expr1;
 		IntegerBound bound;
-		Arrays.fill(remain, null);
-		Arrays.fill(targets, null);
-		Arrays.fill(bounds, -1);
 		int e, p, r;
 		boolean type = true;
 		boolean rew = false;
 		boolean min = expr.getRelOp().isMin();
+		int eqType = CSGModelCheckerEquilibria.NASH; //expr.getEqType();
+		int crit = CSGModelCheckerEquilibria.SWEQ; //expr.getCrit();
+
+		Arrays.fill(remain, null);
+		Arrays.fill(targets, null);
+		Arrays.fill(bounds, -1);
 		
 		/*
 		System.out.println("-- RelOp");
@@ -778,10 +781,8 @@ public class ProbModelChecker extends NonProbModelChecker
 					case ExpressionTemporal.R_I:
 						bounded.set(p);
 						bounds[p] = exprTemp.getUpperBound().evaluateInt(constantValues);
-						//cumul = false;
 						break;
 					case ExpressionTemporal.R_C:
-						//insta = false;
 						if (exprTemp.hasBounds()) {
 							bounded.set(p);
 							bound = IntegerBound.fromExpressionTemporal((ExpressionTemporal) expr1, constantValues, true);
@@ -806,34 +807,26 @@ public class ProbModelChecker extends NonProbModelChecker
 		else if (coalitions.size() == 2) {
 			if (unbounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, min);
+					res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, min);
+					res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
 				}
 			}
 			else if (bounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounds, min);
+					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG<Double>) model, coalitions, exprs, targets, remain, bounds, min);			
+					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG<Double>) model, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
 				}
 			}
 			else {
-				res = ((CSGModelChecker) this).computeMixedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, min);
+				res = ((CSGModelChecker) this).computeMixedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
 			}
 		}
 		else if (coalitions.size() > 2) {
-			throw new PrismNotSupportedException("Equilibria-based properties with more than two coalitions are not yet supported");	
-			/*
-			if (rew) {
-				res = ((CSGModelChecker) this).computeMultiRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, min);
-			}
-			else {
-				res = ((CSGModelChecker) this).computeMultiProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, min);
-			}
-			*/
+			throw new PrismNotSupportedException("Equilibria-based properties with more than two coalitions are not yet supported");
 		}
 
 		result.setStrategy(res.strat);
