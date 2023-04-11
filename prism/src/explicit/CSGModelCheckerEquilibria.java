@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -28,8 +28,6 @@
 package explicit;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -39,23 +37,20 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.commons.math3.util.Precision;
 
 import explicit.CSGModelCheckerEquilibria.CSGResultStatus;
-import explicit.ProbModelChecker.TermCrit;
 import explicit.rewards.CSGRewards;
-import explicit.rewards.CSGRewardsSimple;
 import explicit.rewards.MDPRewards;
-import parser.State;
-import parser.VarList;
 import parser.ast.Coalition;
-import parser.ast.Declaration;
-import parser.ast.DeclarationBool;
-import parser.ast.DeclarationInt;
-import parser.ast.Expression;
 import parser.ast.ExpressionTemporal;
 import prism.Pair;
 import prism.PrismComponent;
@@ -79,49 +74,73 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 	private ArrayList<ArrayList<ArrayList<Pair<BitSet, Double>>>> products;
 	//[id payoff player i]
 	private ArrayList<Integer> payoffs;	
-	
+	/** Gradient of the objective function (multi-player Nash) */
 	private HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> gradient;
 	//{action j -> [player i, action j (index)]}
 	private HashMap<Integer, int[]> mapActionIndex;
 	
+	/** Supports for a normal form game (indexed by coalition) */
 	private ArrayList<ArrayList<BitSet>> supports;
+	/** Pure supports for a normal form game (indexed by coalition) */
+	private ArrayList<BitSet> psupports;
+	/** All (joint-action) supports for a given normal form game */
 	private ArrayList<BitSet> allSupports;
 	
+	
+	/** Exclusive to correlated equilibria */
+	private ArrayList<ArrayList<HashMap<BitSet, Double>>> ceConstraints;
+	private HashMap<BitSet, Integer> ceVarMap;
+	
+	/** Dominated actions */
 	protected BitSet[] dominated;
+	/** Dominating actions */
 	protected BitSet[] dominating;
+	/** Set with all the players */
 	protected BitSet players;
 	
-	//smt solver for labelled polytopes 
-	protected CSGLabeledPolytopes eqslps;
-	//smt solver for support enumeration
-	protected CSGSupportEnumeration eqssmt;
-	
+	/** SMT solver for labelled polytopes */
+	protected CSGLabeledPolytopes smtLabeleldPolytopes;
+	/** SMT solver for support enumeration */
+	protected CSGSupportEnumeration smtSupportEnumeration;
+	/** Numerical solver for support enumeration */
+	protected CSGSupportEnumeration nlpSupportEnumeration;
+	/** Solver for correlated equilibria */
+	protected CSGCorrelated ceSolver;
+	/** Name of the SMT solver */
 	protected String smtSolver;
-		
+	/** Whether to check for the assumption for equilibria model checking */	
 	protected boolean assumptionCheck = true;
+	/** Types and criteria for equilibria */
+	public static final int NASH = 1;
+	public static final int CORR = 2;
+	public static final int SWEQ = 3;
+	public static final int FAIR = 4;
 	
+	/** Different status for SMT equilibria computation */
 	public enum CSGResultStatus {
 		SAT, UNKNOWN, UNSAT;
 	}
 	
+	/**
+	 * Create a new CSGModelCheckerEquilibria, inherit basic state from parent (unless null).
+	 */
 	public CSGModelCheckerEquilibria(PrismComponent parent) throws PrismException {
 		super(parent);
 		players = new BitSet();
+		psupports = new ArrayList<BitSet>();
 		supports = new ArrayList<ArrayList<BitSet>>();
-		allSupports =  new ArrayList<BitSet>();
-				
+		allSupports =  new ArrayList<BitSet>();			
 		mapActionIndex = new HashMap<Integer, int[]>();
 		products = new ArrayList<ArrayList<ArrayList<Pair<BitSet, Double>>>>();
 		assertions = new HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>>();
+		ceConstraints = new ArrayList<ArrayList<HashMap<BitSet, Double>>>();
+		ceVarMap = new HashMap<BitSet, Integer>();
 		gradient = new HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>>();
 		payoffs = new ArrayList<Integer>();
-		
 		mdpmc = new MDPModelChecker(parent);
 		mdpmc.setVerbosity(0);
-		mdpmc.setSilentPrecomputations(true);
-		
+		mdpmc.setSilentPrecomputations(true);		
 		assumptionCheck = getSettings().getBoolean(PrismSettings.PRISM_EQ_ASSUMPTION_CHECK);
-
 		smtSolver = getSettings().getString(PrismSettings.PRISM_SMT_SOLVER);
 		switch (smtSolver) {
 			case "Z3":
@@ -133,16 +152,48 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public void setSolver() throws PrismException {
-		switch (smtSolver) {
-			case "Z3":
-				eqslps = new CSGLabeledPolytopesZ3Stack(maxRows, maxCols);
+
+	/**
+	 * Sets the solver according to the settings and the equilibrium type. 
+	 * 
+	 * @param eqType Correlated/Nash
+	 * @return Name
+	 * @throws PrismException
+	 */
+	public String setSolver(int eqType) throws PrismException {
+		String name = null;
+		switch (eqType) {
+			case CORR:
+				switch (lpSolver) {
+					case "Z3":
+						ceSolver = new CSGCorrelatedZ3(maxRows * maxCols, numCoalitions);
+						name = ceSolver.getSolverName();
+						break;
+					default: throw new PrismException("Unsupported solver for correlated equilibria computation");
+				}
 				break;
-			case "Yices":
-				eqslps = new CSGLabeledPolytopesYicesStack();
+			default: {
+				switch (smtSolver) {
+					case "Z3":
+						smtLabeleldPolytopes = new CSGLabeledPolytopesZ3Stack(maxRows, maxCols);
+						name = smtLabeleldPolytopes.getSolverName();
+						break;
+					case "Yices":
+						smtLabeleldPolytopes = new CSGLabeledPolytopesYicesStack();
+						name = smtLabeleldPolytopes.getSolverName();
+				}
+			}
 		}
+		return name;
 	}
 
+	/**
+	 * Compute and store information about coalitions (for a nonzero-sum problem):
+	 * 
+	 * @param csg The CSG
+	 * @param coalitions The list of coalitions
+	 * @throws PrismException
+	 */
 	public void buildCoalitions(CSG csg, List<Coalition> coalitions) throws PrismException {
 		if (coalitions == null || coalitions.isEmpty())
 			throw new PrismException("Coalitions must not be empty");
@@ -179,6 +230,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		players.set(0, numCoalitions);
 	}
 	
+	/*
+	 * Builds and stores all supports as BitSets of action indexes. 
+	 */
 	public void buildAllSupports() {
 		BitSet support;
 		for (int p = 0; p < numCoalitions; p++) {
@@ -196,6 +250,12 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
+	/**
+	 * Auxiliary method for building the set of supports. 
+	 * 
+	 * @param supp Current support
+	 * @param p Player index
+	 */
 	public void buildAllSupportsAux(BitSet supp, int p) {
 		for (BitSet s : supports.get(p)) {
 			BitSet curr = (BitSet) supp.clone();
@@ -210,6 +270,13 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}		
 	}
 
+	/**
+	 * Builds all supports for a specific player.
+	 * 
+	 * @param supp Current support
+	 * @param p Player index
+	 * @param a Action index
+	 */
 	public void buildSupportsPlayer(BitSet supp, int p, int a) {
 		BitSet gt0 = (BitSet) supp.clone(); 
 		if (!dominated[p].get(strategies.get(p).get(a))) {
@@ -230,6 +297,46 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}	
 	}
 	
+	/**
+	 * Finds maximum and average number of actions for all coalitions.
+	 * 
+	 * @param csg The CSG
+	 */
+	public void findMaxAvgAct(CSG csg) {
+		String max = "(";
+		String avg = "(";
+		int c, p, n, s;
+		maxRows = 0;
+		maxCols = 0;
+		avgNumActions = new double[numCoalitions];
+		Arrays.fill(avgNumActions, 0.0);
+		maxNumActions  = new int[numCoalitions];
+		Arrays.fill(maxNumActions, 0);
+		for (s = 0; s < csg.getNumStates(); s++) {
+			for (c = 0; c < numCoalitions; c++) {
+				n = 1;
+				for (p = coalitionIndexes[c].nextSetBit(0); p >= 0; p = coalitionIndexes[c].nextSetBit(p + 1)) {
+					n *= csg.getIndexesForPlayer(s, p).cardinality();
+				}
+				maxNumActions[c] = (maxNumActions[c] < n)? n : maxNumActions[c];
+				avgNumActions[c] += n;
+			}
+		}
+		for (c = 0; c < numCoalitions; c++) {
+			avgNumActions[c] /= csg.getNumStates();
+			max += (c < numCoalitions -1)? maxNumActions[c] + "," : maxNumActions[c] + ")";
+			avg += (c < numCoalitions -1)? PrismUtils.formatDouble2dp(avgNumActions[c]) + "," : PrismUtils.formatDouble2dp(avgNumActions[c]) + ")";
+		}
+		mainLog.println("Max/avg (actions): " + max + "/" + avg);
+	}
+	
+	/**
+	 * Finds dominated actions for a specific player.
+	 * 
+	 * @param p Player index
+	 * @return
+	 * @throws PrismException
+	 */
 	public BitSet findDominated(int p) throws PrismException {
 		Pair<BitSet, Double> pair1, pair2;
 		BitSet domi = new BitSet();
@@ -263,6 +370,13 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return domi;
 	}
 	
+	/**
+	 * Finds dominating actions for a specific player.
+	 * 
+	 * @param p Player index
+	 * @return
+	 * @throws PrismException
+	 */
 	public BitSet findDominating(int p) throws PrismException {
 		Pair<BitSet, Double> pair1, pair2;
 		BitSet domi = new BitSet();
@@ -295,6 +409,12 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return domi;
 	}
 	
+	/**
+	 * Finds row and column indexes for the maximum entry in a matrix.
+	 * 
+	 * @param a Matrix
+	 * @return
+	 */
 	public int[] findMaxIndexes(double[][] a) {
 		int result[] = new int[2];
 		result[0] = 0;
@@ -312,6 +432,150 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return result;
 	}
 	
+	/**
+	 * Checks whether all entries in the utility table are zero.
+	 * 
+	 * @return
+	 */
+	public boolean checkAllZeroEntries() {
+		boolean allzero = true;
+		for (BitSet entry : utilities.keySet()) {
+			for (int p = 0; p < numCoalitions; p++) {
+				allzero = allzero && Double.compare(utilities.get(entry).get(p), 0.0) == 0;
+				if (!allzero)
+					break;
+			}
+			if (!allzero)
+				break;
+		}
+		return allzero;
+	}
+	
+	/**
+	 * Finds the SWNE for when just one player has choices. 
+	 * 
+	 * @param mmap Index map
+	 * @param strats Overall strategy
+	 * @param eqstrat Strategy for the current state
+	 * @param active Active player
+	 * @return
+	 */
+	public double[][] findSWNEOnePlayer(List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, List<Map<BitSet, Double>> eqstrat, BitSet active) {
+		BitSet support = null;
+		double[][] result;
+		double sumt, sumv, v;
+		int p1, p2;
+		result = new double[1][numCoalitions];
+		p1 = active.nextSetBit(0);
+		v = Double.NEGATIVE_INFINITY;
+		sumv = Double.NEGATIVE_INFINITY;
+		sumt = Double.NEGATIVE_INFINITY;
+		for (BitSet entry : utilities.keySet()) {
+			sumv = 0.0;
+			for (p2 = 0; p2 < numCoalitions; p2++) {
+				sumv += utilities.get(entry).get(p2); // computes sum of utilities
+			}
+			if (Double.compare(utilities.get(entry).get(p1), v) > 0) { // maximizes for player who has a choice
+				support = entry;
+				sumt = 0.0;
+				v = utilities.get(entry).get(p1);
+				for (p2 = 0; p2 < numCoalitions; p2++) {
+					result[0][p2] = utilities.get(entry).get(p2);
+					sumt += utilities.get(entry).get(p2); // sum of the utilities for the selected entry
+				}
+			}
+			else if (Double.compare(utilities.get(entry).get(p1), v) == 0 && Double.compare(sumv, sumt) > 0) { // case utility for player is the same but sum is higher
+				support = entry;
+				sumt = 0.0;
+				for (p2 = 0; p2 < numCoalitions; p2++) {
+					result[0][p2] = utilities.get(entry).get(p2);
+					sumt += utilities.get(entry).get(p2);
+				}
+			}
+		}
+		if (genStrat || exportAdv) {
+			eqstrat = new ArrayList<Map<BitSet, Double>>();
+			extractStrategyFromSupport(mmap, eqstrat, support);
+			strats.add(eqstrat);
+		}
+		return result;
+	}
+	
+	/**
+	 * Extracts the SWNE for when there is only one support.
+	 * 
+	 * @param mmap Index map
+	 * @param strats Overall strategy
+	 * @param eqstrat 
+	 * @return
+	 */
+	public double[][] findSWNEUniqueSupport(List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, List<Map<BitSet, Double>> eqstrat) {
+		double[][] result;
+		result = new double[1][numCoalitions];
+		for (BitSet entry : allSupports) {
+			for (int p = 0; p < numCoalitions; p++) {
+				result[0][p] = utilities.get(entry).get(p);
+			}
+			if (genStrat || exportAdv) {
+				eqstrat = new ArrayList<Map<BitSet, Double>>();
+				extractStrategyFromSupport(mmap, eqstrat, entry);
+				strats.add(eqstrat);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Extracts the strategy for a given support.
+	 * 
+	 * @param mmap Index map
+	 * @param eqstrat Strategy for the current state
+	 * @param support Support
+	 */
+	public void extractStrategyFromSupport(List<Map<Integer, BitSet>> mmap, List<Map<BitSet, Double>> eqstrat, BitSet support) {
+		BitSet indx = new BitSet();
+		int a, i, p;
+		for (p = 0; p < numCoalitions; p++) {
+			indx.clear();
+			for (a = 0; a < strategies.get(p).size(); a++) {
+				indx.set(strategies.get(p).get(a));
+			}
+			indx.and(support);
+			i = indx.nextSetBit(0);
+			eqstrat.add(p, new HashMap<BitSet, Double>());
+			eqstrat.get(p).put(mmap.get(p).get(strategies.get(p).indexOf(i)), 1.0); // indexOf should be changed
+		}
+	}
+	
+	/**
+	 * Extract the strategy for the case of an unique equilibrium.
+	 * 
+	 * @param eq Equilibria
+	 * @param mmap Index map
+	 * @return
+	 */
+	public ArrayList<Map<BitSet, Double>> extractStrategyFromEquilibrium(EquilibriumResult eq, List<Map<Integer, BitSet>> mmap) {
+		ArrayList<Map<BitSet, Double>> eqstrat = new ArrayList<Map<BitSet, Double>>();
+		for (int p = 0; p < numCoalitions; p++) {
+			eqstrat.add(p, new HashMap<BitSet, Double>());
+			for (int t : eq.getStrategy().get(p).getSupport()) {
+				eqstrat.get(p).put(mmap.get(p).get(t), eq.getStrategy().get(p).get(t));
+			}
+		}
+		return eqstrat;
+	}
+	
+	/**
+	 * Build info needed for the utility table to solve a CSG state s. 
+	 * 
+	 * @param csg The CSG
+	 * @param rewards List of rewards
+	 * @param mmap Index map
+	 * @param val Current values for each state
+	 * @param s State index
+	 * @param min Whether minimising/maximising
+	 * @throws PrismException
+	 */
 	public void buildStepGame(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, double[][] val, int s, boolean min) throws PrismException {
 		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
 		BitSet jidx;
@@ -322,13 +586,16 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		int c, i, p, t;
 		int[] joint;
 		int[] idle = new int[numPlayers];
+		ceVarMap.clear();
 		actions.clear();
+		psupports.clear();
 		strategies.clear();
 		utilities.clear();
 		varIndex = 0;
 		Arrays.fill(idle, -1);
 		for (c = 0; c < numCoalitions; c++) {
 			actions.add(c, new ArrayList<String>());
+			psupports.add(c, new BitSet());
 			strategies.add(c, new ArrayList<Integer>());
 		}
 		for (t = 0; t < csg.getNumChoices(s); t++) {
@@ -353,6 +620,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 					if(!imap.keySet().contains(tmp)) {
 						act = "";
 						strategies.get(c).add(varIndex);
+						psupports.get(c).set(varIndex);
 				    	if (mmap != null) 
 				    		mmap.get(c).put(strategies.get(c).size() - 1, (BitSet) tmp.clone());
 						for (i = tmp.nextSetBit(0); i >= 0; i = tmp.nextSetBit(i + 1)) {
@@ -369,28 +637,55 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				}	
 			}
 			utilities.put(jidx, new ArrayList<Double>());
+			ceVarMap.put(jidx, utilities.keySet().size() - 1);
 			for (c = 0; c < numCoalitions; c++) {
 				v = 0.0;
-				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext(); ) {
-					Map.Entry<Integer, Double> e = iter.next();
-					v += e.getValue() * val[c][e.getKey()];
-				}
+				for (int d : csg.getChoice(s, t).getSupport()) {
+					if (!Double.isNaN(val[c][d])) {
+						v += csg.getChoice(s, t).get(d) * val[c][d];
+					}
+					else {
+						mainLog.println("val[c][d]: " + val[c][d]);
+						mainLog.println("\n## state " + s);
+						mainLog.println("-- strategies " + strategies);
+						mainLog.println("-- actions " + actions);
+						mainLog.println("-- utilities " + utilities);
+						throw new PrismException("Error in building game for state " + s);
+					} 
+				} 
 				if (rewards != null) {
 					if (rewards.get(c) != null)
 						v += rewards.get(c).getTransitionReward(s, t);		
 				}
-				v = Precision.round(v, 12, BigDecimal.ROUND_FLOOR);
+				v = Precision.round(v, 12, BigDecimal.ROUND_HALF_EVEN);
 				utilities.get(jidx).add(c, (min)? -1.0 * v : v); // might have to add min (v, 1.0) due to assertions for probabilistic
 			}
 		}	
 		//System.out.println("-- imap " + imap);
-		//System.out.println("\n## state " + s);
-		//System.out.println("-- strategies " + strategies);
-		//System.out.println("-- actions " + actions);
-		//System.out.println("-- utilities " + utilities);
+		//if (s == csg.getFirstInitialState()) {
+			//System.out.println("\n## state " + s);
+			//System.out.println("-- strategies " + strategies);
+			//System.out.println("-- actions " + actions);
+			//System.out.println("-- utilities " + utilities);
+			//System.out.println("-- mmap " + mmap);
+		//}
 	}
 	
-	public ArrayList<ArrayList<ArrayList<Double>>> buildBiMatrixGame(CSG csg, CSGRewards r1, CSGRewards r2, List<Map<Integer, BitSet>> mmap,  List<ArrayList<Integer>> nmap, double[][] val, int s, boolean min) throws PrismException {
+	/**
+	 * Builds a bimatrix game (two-player case). 
+	 * 
+	 * @param csg The CSG
+	 * @param r1 Rewards for the first coalition
+	 * @param r2 Rewards for the second coalition
+	 * @param mmap Index map
+	 * @param nmap Reduced index map
+	 * @param val Current values for each state 
+	 * @param s State index
+	 * @param min Whether minimising/maximising
+	 * @return
+	 * @throws PrismException
+	 */
+	public ArrayList<ArrayList<ArrayList<Double>>> buildBimatrixGame(CSG csg, CSGRewards r1, CSGRewards r2, List<Map<Integer, BitSet>> mmap,  List<ArrayList<Integer>> nmap, double[][] val, int s, boolean min) throws PrismException {
 		ArrayList<ArrayList<ArrayList<Double>>> bmgame = new ArrayList<ArrayList<ArrayList<Double>>>();
 		ArrayList<CSGRewards> rewards = null;
 		BitSet action = new BitSet();
@@ -450,11 +745,17 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return bmgame;
 	}
 	
+	/**
+	 * Clear various structures used in model checking.
+	 * 
+	 */
 	public void clear() {
+		// Would be better to clear the internal arrays/maps
 		supports.clear();
 		allSupports.clear();
 		products.clear();
 		assertions.clear();
+		ceConstraints.clear();
 		gradient.clear();
 		payoffs.clear();
 		mapActionIndex.clear();
@@ -462,6 +763,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			supports.add(c, new ArrayList<BitSet>());
 			products.add(c, new ArrayList<ArrayList<Pair<BitSet, Double>>>());
 			assertions.put(c, new HashMap<Integer, ArrayList<Pair<BitSet, Double>>>());
+			ceConstraints.add(c, new ArrayList<HashMap<BitSet, Double>>());
 			gradient.put(c, new HashMap<Integer, ArrayList<Pair<BitSet, Double>>>());
 			for(int a = 0; a < strategies.get(c).size(); a++) {
 				products.get(c).add(a, new ArrayList<Pair<BitSet, Double>>());
@@ -474,16 +776,19 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
+	/**
+	 * Builds info used in multi-player equilibria (Nash and Correlated).
+	 * 
+	 * @throws PrismException
+	 */
 	public void computeAssertions() throws PrismException {
 		int c, q;
 		BitSet ps;
 		BitSet acts = new BitSet();
 		for (c = 0; c < numCoalitions; c++) {
-			//System.out.println("\n-- player " + c + " ");
         	ps = (BitSet) players.clone();
         	ps.clear(c);
         	for (q = 0; q < strategies.get(c).size(); q++) {
-            	//System.out.println("-- action " + q);
         		acts.clear();
         		acts.set(strategies.get(c).get(q));
         		assertions.get(c).put(q, prodAction(acts, ps, q, c));
@@ -495,7 +800,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		System.out.println("-- strategies ");
 		System.out.println(strategies);		
 		
-		
 		System.out.println("-- assertions ");
 		for (c = 0; c < numCoalitions; c++) {
 			System.out.println("--- player " + c);
@@ -503,9 +807,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
         		System.out.println("---- action " + q + " " + assertions.get(c).get(q));
 		}
 		
-		/*
-		//System.out.println("-- gradient ");
-		//System.out.println(gradient);
+		System.out.println("-- gradient ");
+		System.out.println(gradient);
 		System.out.println("-- map ");
 		for (int i : map.keySet()) {
 			System.out.println(i + "= " + Arrays.toString(map.get(i)));
@@ -513,6 +816,16 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		*/
 	}
 	
+	/**
+	 * 
+	 * 
+	 * @param prod
+	 * @param sp
+	 * @param act
+	 * @param p
+	 * @return
+	 * @throws PrismException
+	 */
 	public ArrayList<Pair<BitSet, Double>> prodAction(BitSet prod, BitSet sp, int act, int p) throws PrismException {
 		prodAction(new Pair<BitSet, Double>(new BitSet(), 0.0), prod, sp, act, p);
 		ArrayList<Pair<BitSet, Double>> sum = new ArrayList<Pair<BitSet, Double>>();		
@@ -523,6 +836,16 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return sum;
 	}
 	
+	/**
+	 * 
+	 * 
+	 * @param expr
+	 * @param prod
+	 * @param sp
+	 * @param act
+	 * @param p
+	 * @throws PrismException
+	 */
 	public void prodAction(Pair<BitSet, Double> expr, BitSet prod, BitSet sp, int act, int p) throws PrismException {
 		BitSet set;
 		BitSet curr = (BitSet) sp.clone();
@@ -566,6 +889,14 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
+	/**
+	 * 
+	 * 
+	 * @param csg
+	 * @param target
+	 * @param n
+	 * @return
+	 */
 	public double[][] computeBoundedReachProbs(CSG csg, BitSet target, int n) {
 		double[][] sol = new double[n][csg.getNumStates()];
 		double[] sol1 = new double[csg.getNumStates()];
@@ -595,7 +926,23 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return sol;
 	} 
 	
-	public ModelCheckerResult computeBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, boolean min) throws PrismException {
+	/**
+	 * Deal with two-player bounded equilibria.
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param exprs
+	 * @param targets
+	 * @param remain
+	 * @param bounds
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		if (genStrat || exportAdv) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
@@ -607,8 +954,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		double[][] sol = new double[coalitions.size()][csg.getNumStates()];
 		double[][] tmp = new double[coalitions.size()][csg.getNumStates()];
 		double[][] val = new double[coalitions.size()][csg.getNumStates()];
-		double[][] eq;
-		double[] sw;
+		double[] eq;
 		double[] r = new double[csg.getNumStates()];
 		int i, j, n1, n2, k, s;
 		boolean rew;
@@ -618,8 +964,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		
 		buildCoalitions(csg, coalitions);
 		findMaxRowsCols(csg);
-		setSolver();
-		mainLog.println("Starting bounded equilibria computation (solver=" + eqslps.getSolverName() + ")...");
+		mainLog.println("Starting bounded equilibria computation (solver=" + setSolver(eqType) + ")...");
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
 		
@@ -636,11 +981,10 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				}
 			}
 			for (s = 0; s < csg.getNumStates(); s++) {
-				eq = stepEquilibria(csg, null, null, null, eqslps, null, sol, s, min);
-				sw = swne(eq, null, min);
-				tmp[0][s] = sw[1];
-				tmp[1][s] = sw[2];
-				r[s] = sw[1] + sw[2];
+				eq = stepEquilibriaTwoPlayer(csg, null, null, null, sol, s, eqType, crit, rew, min);
+				tmp[0][s] = eq[1];
+				tmp[1][s] = eq[2];
+				r[s] = eq[1] + eq[2];
 			}
 			mainLog.println("\nCoalition results (initial state): (" + tmp[0][csg.getFirstInitialState()] + "," + tmp[1][csg.getFirstInitialState()] + ")");
 			res.soln = r;
@@ -740,10 +1084,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 							if (!(exprs.get(i).getOperator() == ExpressionTemporal.R_C))
 								newRewards.set(i, null);
 						}
-						eq = stepEquilibria(csg, newRewards.get(0), newRewards.get(1), null, eqslps, null, sol, s, min);	
-						sw = swne(eq, null, min);
-						tmp[0][s] = sw[1];
-						tmp[1][s] = sw[2];
+						eq = stepEquilibriaTwoPlayer(csg, newRewards, null, null, sol, s, eqType, crit, rew, min);	
+						tmp[0][s] = eq[1];
+						tmp[1][s] = eq[2];
 					} 
 					else {
 						if (targets[0].get(s) && targets[1].get(s)) {
@@ -771,10 +1114,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 							tmp[1][s] = 0.0;
 						}
 						else {
-							eq = stepEquilibria(csg, null, null, null, eqslps, null, sol, s, min);
-							sw = swne(eq, null, min);
-							tmp[0][s] = sw[1];
-							tmp[1][s] = sw[2];
+							eq = stepEquilibriaTwoPlayer(csg, null, null, null, sol, s, eqType, crit, rew, min);
+							tmp[0][s] = eq[1];
+							tmp[1][s] = eq[2];
 						}
 					}
 				}
@@ -841,196 +1183,350 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return res;		
 	}
 
-	public ModelCheckerResult computeMultiReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
+	/**
+	 * Deal with multi-player bounded equilibria (unfinished).
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param exprs
+	 * @param targets
+	 * @param remain
+	 * @param bounds
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
+		mainLog.println("\n# Running bounded multi-player equilibria...\n");
+		if (genStrat || exportAdv) {
+			throw new PrismException("Strategy synthesis for bounded properties is not yet supported");
+		}
 		ModelCheckerResult res = new ModelCheckerResult();
-		Declaration[] goals = new Declaration[coalitions.size()];
-		//Map<BitSet, BitSet> common = new HashMap<BitSet, BitSet>();
-		List<List<List<Map<BitSet, Double>>>> lstrat = null;
-		List<List<Map<BitSet, Double>>> sstrat = null;
 		List<Map<Integer, BitSet>> mmap = null;
-		Set<BitSet> games = new HashSet<BitSet>();
-		BitSet unsat = new BitSet();
-		BitSet ps;
 		double[][] sol;
 		double[][] val;
 		double[][] tmp;
 		double[][] eq;
 		double[] r;
 		double[] sw;
-		int i, j, k, n, p, s, t, v;
+		long timeTaken;
 		boolean done, rew;
+		int c, k, s, t = -1;
 		
+		sol = new double[coalitions.size()][csg.getNumStates()];
+		val = new double[coalitions.size()][csg.getNumStates()];
+		tmp = new double[coalitions.size()][csg.getNumStates()];
+		r = new double[csg.getNumStates()];
+
 		rew = rewards != null;
 		
 		buildCoalitions(csg, coalitions);
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
-		
-		VarList newvarlist = (VarList) csg.getVarList().clone();
-		
-		for (p = 0; p < coalitions.size(); p++) {
-			ps = (BitSet) players.clone();
-			ps.clear(p);
-			goals[p] = new Declaration("_" + p, new DeclarationBool());
-			buildSubGames(games, ps, p);
-			newvarlist.addVar(goals[p].getName(), goals[p].getDeclType(), 0, csg.getConstantValues());
-		}
-		games.add((BitSet) players.clone());
-		unsat.set(0, csg.getNumStates());		
-		for (BitSet subgame : games) {
-			//BitSet intersec = new BitSet();
-			//intersec.set(0, csg.getNumStates()); // intersec only seems to be used to define common, which later does not seem to be used
-			for (p = 0; p < coalitions.size(); p++) {
-				unsat.andNot(targets[p]);
-			//	if (subgame.get(p))
-			//		intersec.and(targets[p]); 
-			//	else
-			//		intersec.andNot(targets[p]);
-			}
-			//common.put(subgame, intersec); // common does not seem to be used afterwards
-		} 
-		
-		//System.out.println("-- common " + common);
-		
-		CSGSimple newmodel = new CSGSimple();
-		newmodel.copyPlayerInfo(csg);
-		newmodel.setActions(csg.getActions());
-		newmodel.setIndexes(csg.getIndexes());
-		newmodel.setIdles(csg.getIdles());
-		
-		List<State> newstatelist = new ArrayList<State>();
-		BitSet explored = new BitSet();
-		BitSet isubgame = new BitSet();
-		
-		s = csg.getFirstInitialState();
-		
-		State initial = new State(csg.getVarList().getNumVars() + numCoalitions);
-		for (v = 0; v < csg.getVarList().getNumVars(); v++) {
-			initial.setValue(v, csg.getStatesList().get(s).varValues[v]);
-		}
-		
-		Map<Integer, Integer> extmap = new HashMap<Integer, Integer>();
+		findMaxAvgAct(csg);
 				
-		if (unsat.get(s)) {
-			for (p = 0; p < numCoalitions; p++) {
-				initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
-			}	
-		}
-		else {	
-			for (p = 0; p < numCoalitions; p++) {
-				if (targets[p].get(s)) {
-					initial.setValue(newvarlist.getIndex(goals[p].getName()), true);
-					isubgame.set(p);
-				}
-				else {
-					initial.setValue(newvarlist.getIndex(goals[p].getName()), false);
-				}
-			}
-		}
-		
-		//System.out.println("-- isubgame " + isubgame);
-		
-		mainLog.println("\nBuilding extended model...");
-
-		Map<Integer, Integer> nomap = new HashMap<Integer, Integer>();	
-		Map<BitSet, BitSet> subgames = new HashMap<BitSet, BitSet>();
-		
-		n = newmodel.addState();
-		newstatelist.add(n , initial);
-		newmodel.addInitialState(n);
-		
-		newmodel.setVarList(newvarlist);
-		newmodel.setStatesList(newstatelist);
-
-		nomap.put(n, s);
-		extmap.put(initial.hashCode(), n);
-		explored.set(n);
-		exploreSat(csg, newmodel, nomap, extmap, subgames, newstatelist, newvarlist, goals, targets, explored, isubgame, n);
-		
-		//System.out.println("-- nomap " + nomap);
-		
-		/*
-		for (BitSet subset : common.keySet()) {
-			for (s = common.get(subset).nextSetBit(0); s >= 0; s = common.get(subset).nextSetBit(s + 1)) {
-				subgames.put(subset, new BitSet());
-				subgames.get(subset).set(onmap.get(s));
-				exploreSat(csg, newmodel, subgames, onmap, newstatelist, newvarlist, goals, targets, subset, explored, onmap.get(s));
-			}
-		}
-		*/
-		
-		System.out.println("-- subgames " + subgames);
-
-		Path currentRelativePath = Paths.get("");
-		String path = currentRelativePath.toAbsolutePath().toString();		
-		PrismFileLog pflog = new PrismFileLog(path + "/newmodel.dot");
-		newmodel.exportToDotFile(pflog, null, true);
-	
-		pflog = new PrismFileLog(path + "/model.dot");
-		csg.exportToDotFile(pflog, null, true);
-		
-		mainLog.print("\n" + newmodel.infoStringTable() + "\n");
-				
-		sol = new double[coalitions.size()][newmodel.getNumStates()];
-		val = new double[coalitions.size()][newmodel.getNumStates()];
-		tmp = new double[coalitions.size()][newmodel.getNumStates()];
-		r = new double[newmodel.getNumStates()];
-				
-		List<CSGRewards> newrewards = null;
 		if (rew) {
-			newrewards = new ArrayList<CSGRewards>();
-			for (p = 0; p < numCoalitions; p++) {
-				newrewards.add(p, new CSGRewardsSimple(newmodel.getNumStates()));
+			t = exprs.get(0).getOperator();
+			for (int i = 1; i < exprs.size(); i++) {
+				if (t != exprs.get(i).getOperator())
+					throw new PrismException("Properties with mixed operators are not yet supported");
 			}
-			for (s = 0;  s < newmodel.getNumStates(); s++) {
-				for (p = 0; p < numCoalitions; p++) {
-					((CSGRewardsSimple) newrewards.get(p)).setStateReward(s, rewards.get(p).getStateReward(nomap.get(s)));
-					for (t = 0; t < newmodel.getNumChoices(s); t++) {
-						((CSGRewardsSimple) newrewards.get(p)).setTransitionReward(s, t, rewards.get(p).getTransitionReward(nomap.get(s), t));
+			if (t == ExpressionTemporal.R_C) {
+				for (c = 0; c < numCoalitions; c++) { 
+					for (s = 0; s < csg.getNumStates(); s++) {
+						sol[c][s] = 0.0;
 					}
 				}
 			}
-			for (BitSet subgame : subgames.keySet()) {
-				for (p = 0; p < numCoalitions; p++) {
-					if (subgame.get(p)) {
-						for (s = subgames.get(subgame).nextSetBit(0); s >= 0; s = subgames.get(subgame).nextSetBit(s + 1)) {
-							((CSGRewardsSimple) newrewards.get(p)).setStateReward(s, 0.0);
-							for (t = 0; t < newmodel.getNumChoices(s); t++) {
-								((CSGRewardsSimple) newrewards.get(p)).setTransitionReward(s, t, 0.0);
-							}						
-						}
+			else {
+				for (c = 0; c < numCoalitions; c++) { 
+					for (s = 0; s < csg.getNumStates(); s++) {
+						sol[c][s] = ((min)? -1 * rewards.get(c).getStateReward(s) : rewards.get(c).getStateReward(s));
 					}
 				}
 			}
 		}
 		else {
-			for (BitSet subgame : subgames.keySet()) {
-				for (p = 0; p < numCoalitions; p++) {
-					if (subgame.get(p)) {
-						for (s = subgames.get(subgame).nextSetBit(0); s >= 0; s = subgames.get(subgame).nextSetBit(s + 1)) {
-							sol[p][s] = 1.0;
+			for (s = 0; s < csg.getNumStates(); s++) {
+				for (c = 0; c < numCoalitions; c++) {
+					if (targets[c].get(s))
+						sol[c][s] = 1.0;
+				}
+			}
+		} 
+		
+		for (c = 0; c < numCoalitions; c++) {
+			Arrays.fill(tmp[c], 0.0);
+			Arrays.fill(val[c], 0.0);
+		}
+	
+		switch (eqType) {
+			case CORR : {
+				int maxSize = 1;
+				for (c = 0; c < numCoalitions; c++) {
+					maxSize = maxSize * maxNumActions[c];
+				}
+				switch (lpSolver) {
+					case "Z3" :
+						ceSolver = new CSGCorrelatedZ3(maxSize, numCoalitions);
+						break;
+					default :
+						throw new PrismException("Solver not yet supported");
+				}
+			}
+			default : {
+				smtSupportEnumeration = new CSGSupportEnumerationZ3(maxNumActions, numCoalitions);
+			}
+		}
+		
+		smtSupportEnumeration.setIndexes(strategies);
+		smtSupportEnumeration.setNumPlayers(numCoalitions);
+		smtSupportEnumeration.init();
+		
+		nlpSupportEnumeration = new CSGSupportEnumerationGurobi(maxNumActions, numCoalitions);
+		nlpSupportEnumeration.setIndexes(strategies);
+		nlpSupportEnumeration.setNumPlayers(numCoalitions);
+		
+		done = true;
+		k = 0;
+		timeTaken = System.currentTimeMillis();
+		while (true) {
+			for (s = 0; s < csg.getNumStates(); s++) {
+				//System.out.println("\ns " + s);
+				sw = null;
+				switch (eqType) {
+					case CORR : {
+						if (rew) {
+							if (t == ExpressionTemporal.R_C) {
+								sw = stepCorrelatedEquilibria(csg, rewards, mmap, null, sol, s, min, crit);
+							}
+							else {
+								sw = stepCorrelatedEquilibria(csg, null, mmap, null, sol, s, min, crit);
+							}
 						}
+						break;
 					}
+					default : {
+						if (rew) {
+							if (t == ExpressionTemporal.R_C) {
+								eq = stepEquilibria(csg, rewards, mmap, null, sol, s, min);
+								addStateRewards(eq, rewards, s, min);
+							}
+							else {
+								eq = stepEquilibria(csg, null, mmap, null, sol, s, min);
+							}
+						}
+						else {
+							eq = stepEquilibria(csg, null, mmap, null, sol, s, min);
+						}
+						sw = swne(eq, null, min);
+					}
+				}
+				for (c = 0; c < numCoalitions; c++) {
+					val[c][s] = sw[c + 1];
+				}
+			}
+			for (s = 0; s < csg.getNumStates(); s++) {
+				for (c = 0; c < numCoalitions; c++) {
+					sol[c][s] = val[c][s];
+				}
+				r[s] = 0.0;
+				for (c = 0; c < numCoalitions; c++) {
+					r[s] += sol[c][s];
+				}
+			}
+			for (c = 0; c < numCoalitions; c++) {
+				done = done & PrismUtils.doublesAreClose(sol[c], tmp[c], termCritParam, termCrit == TermCrit.ABSOLUTE);
+			}
+			k++;
+			if (done || k == bounds[0]) {
+				break;
+			}
+			else if (!done && k == maxIters) {
+				throw new PrismException("Could not converge after " + k + " iterations");
+			}
+			else {
+				done = true;
+				for (c = 0; c < numCoalitions; c++) {
+					tmp[c] = Arrays.copyOf(sol[c], sol[c].length);
 				}
 			}
 		}
-		/*
-		for (s = 0; s < newmodel.getNumStates(); s++) {
-			System.out.println("## old " + nomap.get(s) + " " + csg.getStatesList().get(nomap.get(s)));
-			System.out.println("## new " + s + " " + newmodel.getStatesList().get(s));
-			for (p = 0; p < numCoalitions; p++) {
-				System.out.println("-- player " + p);
-				System.out.println("-- state rewards old " + rewards.get(p).getStateReward(nomap.get(s)));
-				System.out.println("-- state rewards new " + newrewards.get(p).getStateReward(s));
-				for (t = 0; t < newmodel.getNumChoices(s); t++) {
-					System.out.println("-- trans rewards old " + csg.getAction(nomap.get(s), t) + " " + rewards.get(p).getTransitionReward(nomap.get(s), t));
-					System.out.println("-- trans rewards new " + newmodel.getAction(s, t) + " " + newrewards.get(p).getTransitionReward(s, t));
+		timeTaken = System.currentTimeMillis() - timeTaken;
+		mainLog.println();
+		for (c = 0; c < numCoalitions; c++) {
+			mainLog.println("Result for coalition " + coalitions.get(c) + ": " + sol[c][csg.getFirstInitialState()] + " (value in the intial state).");
+		}
+		r = new double[csg.getNumStates()];
+		for (s = 0; s < csg.getNumStates(); s++) {
+			r[s] = 0.0;
+			for (c = 0; c < numCoalitions; c++) {
+				r[s] += sol[c][s];
+			}
+		}
+		res.soln = r;
+		res.numIters = k;
+		res.timeTaken = timeTaken /  1000.0;
+		return res;
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param n
+	 * @param s
+	 * @return
+	 */
+	public ModelCheckerResultMulti zeroModelCheckerResultMulti(int n, int s) {
+		ModelCheckerResultMulti res = new ModelCheckerResultMulti();
+		double[][] soln = new double[n][s];
+		for (int i = 0; i < n; i++) {
+			Arrays.fill(soln[i], 0.0);
+		}
+		res.solnMulti = soln;
+		return res;
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param csg
+	 * @param targets
+	 * @param remain
+	 * @return
+	 */
+	public ModelCheckerResultMulti initialiseModelCheckerResultMulti(CSG csg, BitSet[] targets, BitSet[] remain) {
+		ModelCheckerResultMulti res = new ModelCheckerResultMulti();
+		double[][] soln = new double[numCoalitions][csg.getNumStates()];
+		for (int i = 0; i < numCoalitions; i++) {
+			Arrays.fill(soln[i], 0.0);
+		}
+		res.solnMulti = soln;
+		return res;
+	}
+	
+	/**
+	 * Deal with multi-player infinite-horizon equilibria (unfinished).
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param targets
+	 * @param remain
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, int eqType, int crit, boolean min) throws PrismException {
+		System.out.println("# Multi-player equilibria new...");
+		ModelCheckerResult res = new ModelCheckerResult();
+		Map<BitSet, ModelCheckerResultMulti> precomp;
+		Map<Integer, Set<BitSet>> subgames = new HashMap<Integer, Set<BitSet>>();
+		BitSet tmp;
+		double[][] sol;
+		double[] r;
+		int c, s;
+		boolean rew;
+		
+		rew = rewards != null;
+		precomp = new HashMap<BitSet, ModelCheckerResultMulti>();
+		
+		buildCoalitions(csg, coalitions);
+		dominated = new BitSet[numCoalitions];
+		dominating = new BitSet[numCoalitions];
+		findMaxAvgAct(csg);
+		
+		for (c = 1; c < coalitions.size(); c++) {
+			subgames.put(c, new HashSet<BitSet>());
+		}
+		
+		for (c = 0; c < coalitions.size(); c++) {
+			tmp = (BitSet) players.clone();
+			tmp.clear(c);
+			buildSubGames(subgames, tmp, c);
+		}
+		
+		System.out.println("# Subgames");
+		System.out.println(subgames);
+				
+		smtSupportEnumeration = new CSGSupportEnumerationZ3(maxNumActions, numCoalitions);
+		smtSupportEnumeration.setIndexes(strategies);
+		smtSupportEnumeration.setNumPlayers(numCoalitions);
+		smtSupportEnumeration.init();
+		
+		nlpSupportEnumeration = new CSGSupportEnumerationGurobi(maxNumActions, numCoalitions);
+		nlpSupportEnumeration.setIndexes(strategies);
+		nlpSupportEnumeration.setNumPlayers(numCoalitions);
+		
+		for (c = numCoalitions; c > 0; c--) {
+			if (c == numCoalitions) {
+				tmp = new BitSet();
+				tmp.set(0, numCoalitions);
+				precomp.put(tmp, zeroModelCheckerResultMulti(numCoalitions, csg.getNumStates()));
+			}
+			else {
+				for (BitSet E : subgames.get(c)) {
+					System.out.println(E);
+					precomp.put(E, computeMultiReachEquilibriaRewRec(csg, coalitions, rewards, targets, precomp, E, min, true));
+					System.out.println(Arrays.toString(precomp.get(E).solnMulti));
+					System.out.println("/");
 				}
 			}
 		}
 		
+		if (rew)
+			sol = computeMultiReachEquilibriaRewRec(csg, coalitions, rewards, targets, precomp, new BitSet(), min, true).solnMulti;
+		else
+			sol = computeMultiReachEquilibriaProbRec(csg, coalitions, targets, remain, new BitSet(), new BitSet(), min, true).solnMulti;
+
+		r = new double[csg.getNumStates()];
+		for (s = 0; s < csg.getNumStates(); s++) {
+			r[s] = 0.0;
+			for (c = 0; c < numCoalitions; c++) {
+				r[s] += sol[c][s];
+			}
+		}
+		res.soln = r;
 		System.exit(1);
-		*/
+		return res;
+	}
+	
+	/**
+	 * Deal with multi-player infinite-horizon (probabilistic) equilibria (unfinished).
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param targets
+	 * @param remain
+	 * @param D
+	 * @param E
+	 * @param min
+	 * @param main
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResultMulti computeMultiReachEquilibriaProbRec(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, BitSet D, BitSet E, boolean min, boolean main) throws PrismException {
+		//System.out.println("# Multi-player equilibria rec...");
+		ModelCheckerResultMulti res = new ModelCheckerResultMulti();
+		List<List<List<Map<BitSet, Double>>>> lstrat = null;
+		List<List<Map<BitSet, Double>>> sstrat = null;
+		List<Map<Integer, BitSet>> mmap = null;
+		BitSet newD, newE, uniD, uniE;
+		double[][] sol = new double[coalitions.size()][csg.getNumStates()];
+		double[][] val = new double[coalitions.size()][csg.getNumStates()];
+		double[][] tmp = new double[coalitions.size()][csg.getNumStates()];
+		double[][] sub;
+		double[][] eqs;
+		double[] sel;
+		String sols;
+		int c, i, j, k, s;
+		boolean done;
+				
 		if (genStrat || exportAdv) {
 			mmap = new ArrayList<Map<Integer, BitSet>>();
 			sstrat = new ArrayList<List<Map<BitSet, Double>>>();
@@ -1039,73 +1535,106 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
         		mmap.add(i, new HashMap<Integer, BitSet>());
 				lstrat.add(i, new ArrayList<List<Map<BitSet, Double>>>());
 				lstrat.get(i).add(0, new ArrayList<Map<BitSet, Double>>());
-				for (j = 0; j < newmodel.getNumStates(); j++) {	
+				for (j = 0; j < csg.getNumStates(); j++) {	
 					lstrat.get(i).get(0).add(j, null);
 				}
 			} 
 		}
-				
-		for (p = 0; p < numCoalitions; p++) {
-			Arrays.fill(tmp[p], 0.0);
-			Arrays.fill(val[p], 0.0);
+		for (c = 0; c < numCoalitions; c++) {
+			Arrays.fill(tmp[c], 0.0);
+			Arrays.fill(val[c], 0.0);
 		}
-		String sols;
+		//System.out.println("-- D");
+		//System.out.println(Arrays.toString(D));
+		//System.out.println("-- E");
+		//System.out.println(Arrays.toString(E));
 		done = true;
 		k = 0;
 		while (true) {
-			//System.out.print(k + ": ");
-			for (s = 0; s < newmodel.getNumStates(); s++) {
-				//System.out.println("\n## s " + s + " " + newmodel.getStatesList().get(s));		
+			for (s = 0; s < csg.getNumStates(); s++) {
+				newD = new BitSet();
+				newE = new BitSet();
+				for (c = 0; c < numCoalitions; c++) {
+					if (targets[c].get(s)) {
+						newD.set(c);
+					}
+					if (remain[c] != null && !remain[c].isEmpty()) {
+						if (!targets[c].get(s) && !remain[c].get(s)) {
+							newE.set(c);
+						}
+					}
+				}
+				newD.andNot(D);
+				newD.andNot(E);
+				newE.andNot(D);
+				newE.andNot(E);
 				if (genStrat || exportAdv) {
 					sstrat = new ArrayList<List<Map<BitSet, Double>>>();
 					for (i = 0; i < coalitions.size(); i++) {
-		        		mmap.get(i).clear();
-		        	}
+						mmap.get(i).clear();
+					}
 				}
-				if (rew) {
-					eq = stepEquilibria(newmodel, newrewards, mmap, sstrat, sol, s, min);
-					addStateRewards(eq, newrewards, s, min);
+				if (D.cardinality() + E.cardinality() == numCoalitions) {
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = D.get(c)? 1.0 : 0.0;
+					}	
 				}
+				else if (k == 0) {
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = targets[c].get(s)? 1.0 : 0.0;
+					}	
+				}
+				else if (!newD.isEmpty()) {
+					//System.out.println("* Subgame of state " + s + ": " + csg.getStatesList().get(s));
+					uniD = new BitSet();
+					uniD.or(D);
+					uniD.or(newD);
+					sub = computeMultiReachEquilibriaProbRec(csg, coalitions, targets, remain, uniD, E, min, false).solnMulti;
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = sub[c][s];
+					}
+				}
+				else if (!newE.isEmpty()) {
+					//System.out.println("* Subgame of state " + s + ": " + csg.getStatesList().get(s));
+					uniE = new BitSet();
+					uniE.or(E);
+					uniE.or(newE);
+					sub = computeMultiReachEquilibriaProbRec(csg, coalitions, targets, remain, D, uniE, min, false).solnMulti;	
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = sub[c][s];
+					}
+				} 
 				else {
-					eq = stepEquilibria(newmodel, null, mmap, sstrat, sol, s, min);
-				}
-				sw = swne(eq, sstrat, min);
-				for (p = 0; p < numCoalitions; p++) {
-					val[p][s] = sw[p + 1];
-				}
-				if (genStrat || exportAdv) {			
-					for (p = 0; p < coalitions.size(); p++) {
-						if (lstrat.get(p).get(0).get(s) == null) {
-							lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
-						}
-						else if (!lstrat.get(0).get(0).get(s).equals(sstrat.get(0).get(p)) && checkEquilibriumChange(sol, sw, s)) { // will have to change for min
-							lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
-						}
-					}		
+					for (c = 0; c < numCoalitions; c++) {
+						if (D.get(c))
+							sol[c][s] = 1.0;
+						else if (E.get(c))
+							sol[c][s] = 0.0;							
+					}
+					eqs = stepEquilibria(csg, null, mmap, sstrat, sol, s, min);
+					sel = swne(eqs, sstrat, min);
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = sel[c + 1];
+					}
 				}
 			}
-			for (s = 0; s < newmodel.getNumStates(); s++) {
-				for (p = 0; p < numCoalitions; p++) {
-					sol[p][s] = val[p][s];
-				}
-				r[s] = 0.0;
-				for (p = 0; p < numCoalitions; p++) {
-					r[s] += sol[p][s];
+			for (s = 0; s < csg.getNumStates(); s++) {
+				for (c = 0; c < numCoalitions; c++) {
+					sol[c][s] = E.get(c)? 0.0 : D.get(c)? 1.0 : val[c][s];
 				}
 			}
-			//System.out.println();
 			sols = "(";
-			for (p = 0; p < numCoalitions; p++) {
-				if (p < numCoalitions - 1)
-					sols += sol[p][newmodel.getFirstInitialState()] + ",";
+			for (c = 0; c < numCoalitions; c++) {
+				if (c < numCoalitions - 1)
+					sols += sol[c][csg.getFirstInitialState()] + ",";
 				else
-					sols += sol[p][newmodel.getFirstInitialState()] + ")";
-				//System.out.println(p + " " + sol[p][newmodel.getFirstInitialState()]);
-				done = done & PrismUtils.doublesAreClose(sol[p], tmp[p], 1e-6, true);
+					sols += sol[c][csg.getFirstInitialState()] + ")";
+				done = done & PrismUtils.doublesAreClose(sol[c], tmp[c], termCritParam, termCrit == TermCrit.ABSOLUTE);
 			}
-			System.out.println(k + ": " + sols);
+			if (main)
+				mainLog.println(k + ": " + sols);		
 			k++;
-			if (done) {
+			if (done && k > 1) {
 				break;
 			}
 			else if (!done && k == maxIters) {
@@ -1113,30 +1642,206 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			}
 			else {
 				done = true;
-				for (p = 0; p < numCoalitions; p++) {
-					//System.out.println(Arrays.toString(sol[p]));
-					tmp[p] = Arrays.copyOf(sol[p], sol[p].length);
+				for (c = 0; c < numCoalitions; c++) {
+					tmp[c] = Arrays.copyOf(sol[c], sol[c].length);
 				}
 			}
 		}
-		mainLog.println();
-		for (p = 0; p < numCoalitions; p++) {
-			mainLog.println("Result for coalition " + coalitions.get(p) + ": " + sol[p][newmodel.getFirstInitialState()] + " (value in the intial state).");
-		}
-		r = new double[csg.getNumStates()];
-		for (s = 0; s < newmodel.getNumStates(); s++) {
-			r[nomap.get(s)] = 0.0;
-			for (p = 0; p < numCoalitions; p++) {
-				r[nomap.get(s)] += sol[p][s];
-			}
-		}
-		if (genStrat || exportAdv)
-			res.strat = new CSGStrategy(newmodel, lstrat, subgames, numCoalitions, CSGStrategyType.EQUILIBRIA_M);
-		res.soln = r;
+		res.solnMulti = sol;
 		res.numIters = k;
 		return res;
 	}
 	
+	/**
+	 * Deal with multi-player infinite-horizon (probabilistic) equilibria (unfinished).
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param targets
+	 * @param subgames
+	 * @param D
+	 * @param min
+	 * @param main
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResultMulti computeMultiReachEquilibriaRewRec(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, Map<BitSet, ModelCheckerResultMulti> subgames, BitSet D, boolean min, boolean main) throws PrismException {
+		//System.out.println("# Multi-player equilibria rec...");
+		ModelCheckerResultMulti res = new ModelCheckerResultMulti();
+		ModelCheckerResultMulti sub;
+		List<List<List<Map<BitSet, Double>>>> lstrat = null;
+		List<List<Map<BitSet, Double>>> sstrat = null;
+		List<Map<Integer, BitSet>> mmap = null;
+		BitSet newD, uniD;
+		double[][] sol = new double[coalitions.size()][csg.getNumStates()];
+		double[][] val = new double[coalitions.size()][csg.getNumStates()];
+		double[][] tmp = new double[coalitions.size()][csg.getNumStates()];
+		double[][] eqs;
+		double[] sel;
+		String sols;
+		int c, i, j, k, s;
+		boolean done;
+				
+		if (genStrat || exportAdv) {
+			mmap = new ArrayList<Map<Integer, BitSet>>();
+			sstrat = new ArrayList<List<Map<BitSet, Double>>>();
+			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>();
+			for (i = 0; i < coalitions.size(); i++) {
+        		mmap.add(i, new HashMap<Integer, BitSet>());
+				lstrat.add(i, new ArrayList<List<Map<BitSet, Double>>>());
+				lstrat.get(i).add(0, new ArrayList<Map<BitSet, Double>>());
+				for (j = 0; j < csg.getNumStates(); j++) {	
+					lstrat.get(i).get(0).add(j, null);
+				}
+			} 
+		}
+		for (c = 0; c < numCoalitions; c++) {
+			Arrays.fill(tmp[c], 0.0);
+			Arrays.fill(val[c], 0.0);
+		}
+		//System.out.println("-- D");
+		//System.out.println(D);
+		done = true;
+		k = 0;
+		while (true) {
+			for (s = 0; s < csg.getNumStates(); s++) {
+				newD = new BitSet();
+				for (c = 0; c < numCoalitions; c++) {
+					if (targets[c].get(s)) {
+						newD.set(c);
+					}
+				}
+				newD.andNot(D);
+				if (D.cardinality() == numCoalitions) {
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = 0.0;
+					}	
+				}
+				else if (k == 0) {
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = 0.0;
+					}	
+				}
+				else if (!newD.isEmpty()) {
+					//System.out.println("* Subgame of state " + s + ": " + csg.getStatesList().get(s));
+					if (genStrat || exportAdv) {
+						if (res.subGames == null)
+							res.subGames = new HashMap<BitSet, ModelCheckerResultMulti>();
+					}
+					uniD = new BitSet();
+					uniD.or(D);
+					uniD.or(newD);
+					/*
+					if (!subgames.containsKey(uniD)) {
+						sub = computeMultiReachEquilibriaRewRec(csg, coalitions, rewards, targets, subgames, uniD, min, false);
+						if (genStrat || exportAdv) {
+							res.subGames.put(sub.D, sub);
+						}
+						subgames.put(uniD, sub);
+					}
+					else {
+						sub = subgames.get(uniD);
+					}
+					*/
+					sub = subgames.get(uniD);
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = sub.solnMulti[c][s];
+					}
+				}
+				else {
+					if (genStrat || exportAdv) {
+						sstrat = new ArrayList<List<Map<BitSet, Double>>>();
+						for (c = 0; c < coalitions.size(); c++) {
+							mmap.get(c).clear();
+						}
+					}
+					for (c = 0; c < numCoalitions; c++) {
+						if (D.get(c))
+							sol[c][s] = 0.0;
+					}
+					eqs = stepEquilibria(csg, rewards, mmap, sstrat, sol, s, min);	
+					sel = swne(eqs, sstrat, min);
+					for (c = 0; c < numCoalitions; c++) {
+						val[c][s] = sel[c + 1];
+					}
+					if (genStrat || exportAdv) {
+						if (main && s==0) {
+							System.out.println(sstrat);
+						}
+						// Doesn't work like this, needs to add memory
+						for (c = 0; c < coalitions.size(); c++) {
+							if (lstrat.get(c).get(0).get(s) == null) {
+								lstrat.get(c).get(0).set(s, sstrat.get(0).get(c));
+							}
+							else if (!lstrat.get(0).get(0).get(s).equals(sstrat.get(0).get(c)) && checkEquilibriumChange(sol, sel, s)) { // will have to change for min
+								lstrat.get(c).get(0).set(s, sstrat.get(0).get(c));
+							}
+						}
+					}
+				}
+			}
+			for (s = 0; s < csg.getNumStates(); s++) {
+				for (c = 0; c < numCoalitions; c++) {
+					sol[c][s] = val[c][s];
+					sol[c][s] += (D.get(c))? 0.0 : ((min)? -1.0 * rewards.get(c).getStateReward(s) : rewards.get(c).getStateReward(s));
+				}
+			}
+			sols = "(";
+			for (c = 0; c < numCoalitions; c++) {
+				if (c < numCoalitions - 1)
+					sols += sol[c][csg.getFirstInitialState()] + ",";
+				else
+					sols += sol[c][csg.getFirstInitialState()] + ")";
+				done = done & PrismUtils.doublesAreClose(sol[c], tmp[c], termCritParam, termCrit == TermCrit.ABSOLUTE);
+			}
+			if (main)
+				mainLog.println(k + ": " + sols);		
+			k++;
+			if (done && k > 1) {
+				break;
+			}
+			else if (!done && k == maxIters) {
+				throw new PrismException("Could not converge after " + k + " iterations");
+			}
+			else {
+				done = true;
+				for (c = 0; c < numCoalitions; c++) {
+					tmp[c] = Arrays.copyOf(sol[c], sol[c].length);
+				}
+			}
+		}
+		if (genStrat || exportAdv) {
+			res.D = D;
+			res.strat = new CSGStrategy(csg, lstrat, null, numCoalitions, CSGStrategyType.EQUILIBRIA_M);
+			if (main) {
+				System.out.println(D);
+				System.out.println(res.strat);
+				for (Entry<BitSet, ModelCheckerResultMulti> entry1 : res.subGames.entrySet()) {
+					System.out.println(entry1.getKey());
+					System.out.println(entry1.getValue().strat);		
+					if (entry1.getValue().subGames != null) {
+						for (Entry<BitSet, ModelCheckerResultMulti> entry2 : entry1.getValue().subGames.entrySet()) {
+							System.out.println(entry2.getKey());
+							System.out.println(entry2.getValue().strat);		
+						}
+					}
+				}
+			}
+		}
+		res.solnMulti = sol;
+		res.numIters = k;
+		return res;	
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param sol
+	 * @param eq
+	 * @param s
+	 * @return
+	 */
 	public boolean checkEquilibriumChange(double[][] sol, double[] eq, int s) {
 		int p;
 		boolean result = true;
@@ -1148,52 +1853,13 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return false;
 	}
 	
-	public void exploreSat(CSG csg, CSGSimple newmodel, Map<Integer, Integer> nomap, Map<Integer, Integer> extmap, Map<BitSet, BitSet> subgames, List<State> newstatelist, 
-									VarList newvarlist, Declaration[] goals, BitSet[] targets, BitSet explored, BitSet subgame, int s) {
-		int l;
-		explored.set(s);
-		if (!subgame.isEmpty()) { 
-			if (!subgames.containsKey(subgame))
-				subgames.put(subgame, new BitSet());
-			subgames.get(subgame).set(s);
-		}
-		for (int t = 0; t < csg.getNumChoices(nomap.get(s)); t++) {
-			Distribution d = new Distribution();
-			
-			for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(nomap.get(s), t); iter.hasNext(); ) {
-				Map.Entry<Integer, Double> e = iter.next();
-				int u = e.getKey();
-				State ustate = new State(newstatelist.get(s));
-				BitSet usubgame = new BitSet();
-				usubgame.or(subgame);
-				for (int v = 0; v < csg.getVarList().getNumVars(); v++) {
-					ustate.setValue(v, csg.getStatesList().get(u).varValues[v]);
-				}
-				for (int p = 0; p < numCoalitions; p++) {
-					if (targets[p].get(u)) {
-						ustate.setValue(newvarlist.getIndex(goals[p].getName()), true);
-						usubgame.set(p);
-					}
-				}
-				int m;
-				if (!extmap.containsKey(ustate.hashCode())) {
-					m = newmodel.addState();
-					nomap.put(m, u);
-					extmap.put(ustate.hashCode(), m);
-					newstatelist.add(m, ustate);
-				}
-				else {
-					m = extmap.get(ustate.hashCode());
-				}
-				if (!explored.get(m)) 
-					exploreSat(csg, newmodel, nomap, extmap, subgames, newstatelist, newvarlist, goals, targets, explored, usubgame, m);
-				d.add(m, e.getValue());
-			}
-			l = newmodel.addActionLabelledChoice(s, d, csg.getAction(nomap.get(s), t));
-			newmodel.setIndexes(s, l, csg.getIndexes(nomap.get(s), t));
-		}
-	}
-	
+	/**
+	 * 
+	 * 
+	 * @param games
+	 * @param sp
+	 * @param p
+	 */
 	public void buildSubGames(Set<BitSet> games, BitSet sp, int p) {
 		BitSet prod = new BitSet();
 		prod.set(p);
@@ -1206,7 +1872,40 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public ModelCheckerResult computeReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, boolean min) throws PrismException {
+	/**
+	 * 
+	 * 
+	 * @param games
+	 * @param sp
+	 * @param p
+	 */
+	public void buildSubGames(Map<Integer, Set<BitSet>> games, BitSet sp, int p) {
+		BitSet prod = new BitSet();
+		prod.set(p);			
+		games.get(prod.cardinality()).add((BitSet) prod.clone());
+		for(int cp = sp.nextSetBit(0); cp >= 0; cp = sp.nextSetBit(cp + 1)) {
+			BitSet newprod = new BitSet();
+			newprod.or(prod);
+			newprod.set(cp);
+			games.get(newprod.cardinality()).add(newprod);
+		}
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param targets
+	 * @param remain
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, BitSet[] remain, int eqType, int crit, boolean min) throws PrismException {
 		ModelCheckerResult[] obj = new ModelCheckerResult[coalitions.size()];
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<List<List<Map<BitSet, Double>>>> lstrat = null;
@@ -1219,9 +1918,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		double[][] sol = new double[coalitions.size()][csg.getNumStates()];
 		double[][] val = new double[coalitions.size()][csg.getNumStates()];
 		double[][] tmp = new double[coalitions.size()][csg.getNumStates()];
-		double[][] eq;
+		double[] eq;
 		double[] r = new double[csg.getNumStates()];
-		double[] sw;
+		//double[] sw;
 		int i, j, k, p, s;
 		boolean done, rew;
 		long timePrecomp;
@@ -1278,9 +1977,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		dominating = new BitSet[numCoalitions];
 		mainLog.println();
 		findMaxRowsCols(csg);
-		setSolver();
 		
-		mainLog.println("Starting equilibria computation (solver=" + eqslps.getSolverName() + ")...");
+		mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
 		mainLog.println("Checking whether all objctives are reachable...");
 		
 		if (assumptionCheck) {
@@ -1376,25 +2074,32 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			        		mmap.add(p, new HashMap<Integer, BitSet>());
 			        	}
 					}
-					if (rew) {
-						eq = stepEquilibria(csg, rewards.get(0), rewards.get(1), mmap, eqslps, sstrat, sol, s, min);
-					}
-					else {
-						eq = stepEquilibria(csg, null, null, mmap, eqslps, sstrat, sol, s, min);
-					}
-					sw = swne(eq, sstrat, min);
-					val[0][s] = sw[1];
-					val[1][s] = sw[2];
+					eq = stepEquilibriaTwoPlayer(csg, rewards, mmap, sstrat, sol, s, eqType, crit, rew, min);
+					val[0][s] = eq[1];
+					val[1][s] = eq[2];
 					// player -> iteration -> state -> indexes -> value
-					if (genStrat || exportAdv) {			
-						for (p = 0; p < coalitions.size(); p++) {
-							if (lstrat.get(p).get(0).get(s) == null) {
-								lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
+					if (genStrat || exportAdv) {	
+						switch (eqType) {
+							case CORR: {
+								if (lstrat.get(0).get(0).get(s) == null) {
+									lstrat.get(0).get(0).set(s, sstrat.get(0).get(0));
+								}
+								else if (!lstrat.get(0).get(0).get(s).equals(sstrat.get(0).get(0)) && checkEquilibriumChange(sol, eq, s)) {
+									lstrat.get(0).get(0).set(s, sstrat.get(0).get(0));
+								}
+								break;
 							}
-							else if (!lstrat.get(0).get(0).get(s).equals(sstrat.get(0).get(p)) && checkEquilibriumChange(sol, sw, s)) {
-								lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
+							default: {
+								for (p = 0; p < coalitions.size(); p++) {
+									if (lstrat.get(p).get(0).get(s) == null) {
+										lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
+									}
+									else if (!lstrat.get(0).get(0).get(s).equals(sstrat.get(0).get(p)) && checkEquilibriumChange(sol, eq, s)) {
+										lstrat.get(p).get(0).set(s, sstrat.get(0).get(p));
+									}
+								}
 							}
-						}		
+						}
 					}					
 				}
 				// loop over states
@@ -1437,15 +2142,104 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
 		res.soln = r;
 		if (genStrat || exportAdv) 	{
-			if (rew)
-				res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_R);
-			else
-				res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_P);
+			switch (eqType) {
+				case CORR: {
+					if (rew)
+						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_CE_R);
+					else
+						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_CE_P);
+					break;
+				}
+				default: { 
+					if (rew)
+						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_R);
+					else
+						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_P);
+				}	
+			}
 		}
 		res.numIters = k;
 		return res;		
 	}
 	
+	/**
+	 * Selects the equilibrium that minimises the difference among the highest and lowest payoffs.
+	 * 
+	 * @param eqs The set of equilibria
+	 * @param strats Strategy to be updated
+	 * @param min If minimising
+	 * @return
+	 */
+	public double[] fair(double[][] eqs, List<List<Map<BitSet, Double>>> strats, boolean min) {
+		List<Map<BitSet, Double>> dist = null;
+		BitSet ifr = new BitSet();
+		double[] eq = new double[numCoalitions+1];
+		double[][] df = new double[eqs.length][2];
+		double diff;
+		int i, p;
+		for (p = 0; p < numCoalitions; p++) { // gets first equilibrium
+			eq[0] += eqs[0][p];
+			eq[p+1] = eqs[0][p];
+		}
+		df[0][0] = Arrays.stream(eqs[0]).max().getAsDouble();
+		df[0][1] = Arrays.stream(eqs[0]).min().getAsDouble();
+		diff = df[0][0] - df[0][1];
+		ifr.set(0);
+		if (strats != null)
+			dist = strats.get(0);
+		for (i = 1; i < eqs.length; i++) { 
+			df[i][0] = Arrays.stream(eqs[i]).max().getAsDouble();
+			df[i][1] = Arrays.stream(eqs[i]).min().getAsDouble();
+			if (Double.compare(df[i][0]-df[i][1], diff) < 0) {
+				diff = df[i][0]-df[i][1];
+				ifr.clear();
+				ifr.set(i);
+			}
+			else if (Double.compare(df[i][0]-df[i][1], diff) == 0) {
+				ifr.set(i);
+			}
+		}
+		if (ifr.cardinality() == 1) { //if there is one single equilibrium that minimises the difference, we're done
+			i = ifr.nextSetBit(0);
+			eq[0] = 0.0;
+			for (p = 0; p < numCoalitions; p++) {
+				eq[0] += eqs[i][p];
+				eq[p+1] = eqs[i][p];
+			}
+			if(strats != null)
+				dist = strats.get(i);
+			final List<Map<BitSet, Double>> strat = dist;
+			if (strats != null)
+				strats.removeIf((List<Map<BitSet, Double>> e) -> !e.equals(strat));
+			if (min) {
+				for (i = 0; i < eq.length; i++)
+					eq[i] = -1.0 * eq[i];
+			}
+			return eq;
+		}
+		else { // if not, we have to look at the sum
+			double[][] neweqs = new double[ifr.cardinality()][numCoalitions];
+			int j = 0;
+			for (i = ifr.nextSetBit(0); i >=0; i = ifr.nextSetBit(i+1)) {
+				for (p = 0; p < numCoalitions; p++) {
+					neweqs[j][p] = eqs[i][p];
+					if (strats != null)
+						Collections.swap(strats, i, j);
+				}
+				j++;
+			}
+			return swne(neweqs, strats, min);
+		}
+	}
+	
+	/**
+	 * Selects the equilibrium that maximises the sum of payoffs.
+	 * 
+	 * @param eqs The set of equilibria. 
+	 * @param strats The strategy to be updated.
+	 * @param min If minimising.
+	 * @return
+	 */
 	public double[] swne(double[][] eqs, List<List<Map<BitSet, Double>>> strats, boolean min) {
 		List<Map<BitSet, Double>> dist = null;
 		BitSet isw = new BitSet();
@@ -1502,6 +2296,14 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		return eq;
 	}
 	
+	/**
+	 * 
+	 * 
+	 * @param indexes
+	 * @param eqs
+	 * @param eq
+	 * @return
+	 */
 	public int findMaxEqIndexes(BitSet indexes, double[][] eqs, double eq[]) {
 		int idx;
 		BitSet tmp = new BitSet();
@@ -1540,21 +2342,15 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public void extractStrategyFromSupport(ArrayList<Map<BitSet, Double>> eqstrat, List<Map<Integer, BitSet>> mmap, BitSet support) {
-		BitSet indx;
-		int a, i, p;
-		for (p = 0; p < numCoalitions; p++) {
-			indx = new BitSet();
-			for (a = 0; a < strategies.get(p).size(); a++) {
-				indx.set(strategies.get(p).get(a));
-			}
-			indx.and(support);
-			i = indx.nextSetBit(0);
-			eqstrat.add(p, new HashMap<BitSet, Double>());
-			eqstrat.get(p).put(mmap.get(p).get(strategies.get(p).indexOf(i)), 1.0); // indexOf should be changed
-		}
-	}
-	
+	/**
+	 * 
+	 * 
+	 * @param eqs
+	 * @param csgRewards1
+	 * @param csgRewards2
+	 * @param s
+	 * @param min
+	 */
 	public void addStateRewards(double[][] eqs, CSGRewards csgRewards1, CSGRewards csgRewards2, int s, boolean min) {
 		for (int e = 0; e < eqs.length; e++) {
 			if (csgRewards1 != null)
@@ -1564,6 +2360,14 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
+	/**
+	 * 
+	 * 
+	 * @param eqs
+	 * @param rewards
+	 * @param s
+	 * @param min
+	 */
 	public void addStateRewards(double[][] eqs, List<CSGRewards> rewards, int s, boolean min) {
 		int e, p;
 		for (e = 0; e < eqs.length; e++) {
@@ -1574,254 +2378,414 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 		}
 	}
 	
-	public double[][] stepEquilibria(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
-		Pair<CSGResultStatus, ArrayList<Double>> eqsresult;
-		ArrayList<Double> eq;
-		ArrayList<ArrayList<Double>> eqs = new ArrayList<ArrayList<Double>>();
+	/**
+	 * 
+	 * 
+	 * @param eqs
+	 * @param rewards
+	 * @param s
+	 * @param min
+	 */
+	public void addStateRewards(double[] eqs, List<CSGRewards> rewards, int s, boolean min) {
+		for (int p = 0; p < numCoalitions; p++) {
+			if (rewards.get(p) != null)
+				eqs[p+1] +=  ((min)? -1.0 * rewards.get(p).getStateReward(s) : rewards.get(p).getStateReward(s));
+		}
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param csg
+	 * @param rewards
+	 * @param mmap
+	 * @param strats
+	 * @param val
+	 * @param s
+	 * @param min
+	 * @param crit
+	 * @return
+	 * @throws PrismException
+	 */
+	public double[] stepCorrelatedEquilibria(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, 
+											 double[][] val, int s, boolean min, int crit) throws PrismException {
+		EquilibriumResult result;
+		ArrayList<Map<BitSet, Double>> eqstrat = null;
+		BitSet idx = null, ps, tmp = null;
+		double[] eqs = new double[numCoalitions+1];
+		int c, i, q; 
+		buildStepGame(csg, rewards, mmap, val, s, min);
+		clear();
+		computeAssertions();
+		for (c = 0; c < numCoalitions; c++) {
+			for (q = 0; q < strategies.get(c).size(); q++) {
+				ceConstraints.get(c).add(q, new HashMap<BitSet, Double>());
+				for (Pair<BitSet, Double> e : assertions.get(c).get(q)) {
+					ps = new BitSet();
+					ps.or(e.getKey());
+					ceConstraints.get(c).get(q).put(ps, e.second);
+				}
+			}
+		}
+		if (genStrat || exportAdv) {
+			eqstrat = new ArrayList<Map<BitSet, Double>>();
+			eqstrat.add(new HashMap<BitSet, Double>());
+			tmp = new BitSet();
+		}
+		if (utilities.size() == 1) {
+			for (BitSet e : utilities.keySet()) {
+				for (c = 0; c < numCoalitions; c++) {
+					eqs[0] += utilities.get(e).get(c);
+					eqs[c+1] = utilities.get(e).get(c);
+				}
+				if (genStrat || exportAdv) {
+					idx = new BitSet();
+					for (c = 0; c < numCoalitions; c++) {
+						tmp.clear();
+						tmp.or(psupports.get(c));
+						tmp.and(e);
+						i = tmp.nextSetBit(0);
+						idx.or(mmap.get(c).get(strategies.get(c).indexOf(i)));
+					}
+					eqstrat.get(0).put(idx, 1.0);
+				}
+			}
+			if (genStrat || exportAdv) {
+				strats.add(0, eqstrat);
+			}
+		}
+		else {
+			result = ceSolver.computeEquilibrium(utilities, ceConstraints, strategies, ceVarMap, crit);
+			if (result.getStatus() == CSGResultStatus.SAT) {
+				eqs[0] = 0.0;
+				for (Double d : result.getPayoffVector()) {
+					eqs[0] += d;
+				}
+				Arrays.fill(eqs, 0.0);
+				for (c = 0; c < numCoalitions; c++) {
+					eqs[c+1] = result.getPayoffVector().get(c);
+				}
+				for (BitSet e : ceVarMap.keySet()) {
+					if (genStrat || exportAdv) {
+						idx = new BitSet();
+						for (c = 0; c < numCoalitions; c++) {
+							tmp.clear();
+							tmp.or(psupports.get(c));
+							tmp.and(e);
+							i = tmp.nextSetBit(0);
+							idx.or(mmap.get(c).get(strategies.get(c).indexOf(i)));
+						}
+						if (Double.compare(result.getStrategy().get(0).get(ceVarMap.get(e)), 0.0) > 0)
+							eqstrat.get(0).put(idx, result.getStrategy().get(0).get(ceVarMap.get(e)));
+					}
+				}
+				if (genStrat || exportAdv) {
+					strats.add(0, eqstrat);
+				}
+			}
+			else {
+				throw new PrismException(ceSolver.getSolverName() + " could not find an optimal solution for state " + s);
+			}
+		}
+		if (rewards != null)
+			addStateRewards(eqs, rewards, s, min);
+		if (min) {
+			for (i = 0; i < eqs.length; i++)
+				eqs[i] = -1.0 * eqs[i];
+		}
+		return eqs;
+	}
+	
+	/*
+	public ArrayList<EquilibriumResult> stepParallelEquilibriaGurobi(HashSet<BitSet> supports) {
+		ArrayList<EquilibriumResult> eqs = new ArrayList<EquilibriumResult>();
+		List<Callable<EquilibriumResult>> tasks = new ArrayList<Callable<EquilibriumResult>>();
+		//supportCount = 0;
+		//System.out.println("Total supports: " + supports.size());
+		for (final BitSet supp : supports) {
+			Callable<EquilibriumResult> c = new Callable<EquilibriumResult>() {
+				@Override
+				public EquilibriumResult call() throws Exception {
+					return stepEquilibriaGurobi(supp);
+				}
+			};
+			tasks.add(c);
+		}
+		//ExecutorService exec = Executors.newCachedThreadPool();
+		//ExecutorService exec = Executors.newFixedThreadPool(allSupports.size());
+		ExecutorService exec = Executors.newFixedThreadPool(5);
+		//ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		//ExecutorService exec = Executors.newSingleThreadExecutor();
+		try {
+			List<Future<EquilibriumResult>> results = exec.invokeAll(tasks);
+			for (Future<EquilibriumResult> result : results) {	
+				if (result.get().getStatus() == CSGResultStatus.SAT) {
+					eqs.add(result.get());
+				}
+			}
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			exec.shutdown();
+		}
+		return eqs;
+	}
+	
+	public EquilibriumResult stepEquilibriaGurobi(BitSet supp) {
+		CSGSupportEnumerationGurobi nlpSupportEnumeration;
+		EquilibriumResult result = null;
+		nlpSupportEnumeration = new CSGSupportEnumerationGurobi(maxNumActions, numCoalitions);
+		nlpSupportEnumeration.setIndexes(strategies);
+		nlpSupportEnumeration.setNumPlayers(numCoalitions);
+		nlpSupportEnumeration.translateAssertions(assertions, mapActionIndex);
+		result = nlpSupportEnumeration.computeEquilibria(supp, mapActionIndex);
+		return result;	
+	}
+	*/
+	
+	/**
+	 * 
+	 * 
+	 * @param csg
+	 * @param rewards
+	 * @param mmap
+	 * @param strats
+	 * @param val
+	 * @param s
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public double[][] stepEquilibria(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats, 
+									 double[][] val, int s, boolean min) throws PrismException {
+		EquilibriumResult eqsresult;
+		EquilibriumResult eqsresultnlp;
+		ArrayList<ArrayList<Double>> equilibria = new ArrayList<ArrayList<Double>>();
 		ArrayList<Map<BitSet, Double>> eqstrat = null;
 		BitSet active;
-		BitSet support = null;
 		long time;
 		double[][] result;
-		double sumt, sumv, v;
-		int n, p, p1, p2;
-			
+		int n, p;
+
 		buildStepGame(csg, rewards, mmap, val, s, min);
 		active = csg.getConcurrentPlayers(s);
 
 		time = System.currentTimeMillis();
-		if (active.cardinality() == 1) { // in case just one player has a choice
-			result = new double[1][numCoalitions];
-			p1 = active.nextSetBit(0);
-			v = Double.NEGATIVE_INFINITY;
-			sumv = Double.NEGATIVE_INFINITY;
-			sumt = Double.NEGATIVE_INFINITY;
-			for (BitSet entry : utilities.keySet()) {
-				sumv = 0.0;
-				for (p2 = 0; p2 < numCoalitions; p2++) {
-					sumv += utilities.get(entry).get(p2); // computes sum of utilities
-				}
-				if (utilities.get(entry).get(p1) > v) { // maximises for player who has a choice
-					support = entry;
-					sumt = 0.0;
-					v = utilities.get(entry).get(p1);
-					for (p2 = 0; p2 < numCoalitions; p2++) {
-						result[0][p2] = utilities.get(entry).get(p2);
-						sumt += utilities.get(entry).get(p2); // sum of the utilities for the selected entry
-					}
-				}
-				else if (utilities.get(entry).get(p1) == v && sumv > sumt) { // case utility for player is the same but sum is higher
-					support = entry;
-					sumt = 0.0;
-					for (p2 = 0; p2 < numCoalitions; p2++) {
-						result[0][p2] = utilities.get(entry).get(p2);
-						sumt += utilities.get(entry).get(p2);
-					}
-				}
-			}
-			if (genStrat || exportAdv) {
-				eqstrat = new ArrayList<Map<BitSet, Double>>();
-				extractStrategyFromSupport(eqstrat, mmap, support);
-				strats.add(eqstrat);
-			}
-			return result;
+
+		// Case when just one player has a choice
+		if (active.cardinality() == 1) { 
+			return findSWNEOnePlayer(mmap, strats, eqstrat, active);
 		} 
 		else {	
-			boolean allzero = true;
-			for (BitSet entry : utilities.keySet()) {
-				for (p = 0; p < numCoalitions; p++) {
-					allzero = allzero && Double.compare(utilities.get(entry).get(p), 0.0) == 0;
-					if (!allzero)
-						break;
-				}
-				if (!allzero)
-					break;
-			}
-			if (allzero) {
-				result = new double[1][numCoalitions];
-				Arrays.fill(result[0], 0.0);
-				if (genStrat || exportAdv) {
-					eqstrat = new ArrayList<Map<BitSet, Double>>();
-					extractStrategyFromSupport(eqstrat, mmap, (BitSet) utilities.keySet().toArray()[0]);
-					strats.add(eqstrat);
-				}
-				return result;
-			}
-			if (utilities.keySet().size() == 1) {
-				result = new double[1][numCoalitions];
-				for (BitSet entry : utilities.keySet()) {
-					for (p = 0; p < numCoalitions; p++) {
-						result[0][p] = utilities.get(entry).get(p);
-					}
-					if (genStrat || exportAdv) {
-						eqstrat = new ArrayList<Map<BitSet, Double>>();
-						extractStrategyFromSupport(eqstrat, mmap, entry);
-						strats.add(eqstrat);
-					}
-				}
-				//System.out.println("-- actions " + actions);
-				//System.out.println("-- strategies " + strategies);
-				//System.out.println(utilities);
-				return result;
-			}
 			clear();
 			computeAssertions();
 			for (p = 0; p < numCoalitions; p++) {
 				dominated[p] = findDominated(p);
 				dominating[p] = findDominating(p);
-				//dominated[p] = new BitSet();
-				//dominating[p] = new BitSet();
-				//if (!dominated[p].isEmpty()) 
-					//System.out.println("dominated " + p + " " + dominated[p]);
-				//if (!dominating[p].isEmpty()) 
-					//System.out.println("dominating " + p + " " + dominating[p]);
 			}
-			//System.out.println("## " + s);
 			buildAllSupports();
-			
-			eqssmt.setIndexes(strategies);
-			eqssmt.setNumPlayers(numCoalitions);
-			eqssmt.init();
-			eqssmt.translateAssertions(assertions, mapActionIndex);
-			
-			/*
-			eqss.setNumPlayers(numCoalitions);
-			eqss.setIndexes(strategies);
-			eqss.setAssertions(assertions);
-			eqss.setGradient(gradient);
-			eqss.init();
-			*/
-			
-			/*
-			//if (s == ?) {
-				System.out.println("\n-- assertions ");
-				for (int c = 0; c < numCoalitions; c++) {
-					System.out.println("--- player " + c);
-		        	for (int q = 0; q < strategies.get(c).size(); q++)
-		        		System.out.println("---- action " + actions.get(c).get(q) + " is " + strategies.get(c).get(q)  + " " + assertions.get(c).get(q));
-				}
-			//}
-			*/
-			
-			/*
-			if (genStrat || exportAdv) {
-				eqstrat = new ArrayList<Map<BitSet, Double>>();
-				for (int p = 0; p < 2; p++) {
-					eqstrat.add(p, new HashMap<BitSet, Double>());
-					for (int t : nash.getStrat().get(e).get(p).getSupport()) {
-						eqstrat.get(p).put(mmap.get(p).get(t), nash.getStrat().get(e).get(p).get(t));
-					}								
-				} 
-				strats.add(e, eqstrat);
-			}
-			*/
-			
-			if (allSupports.size() == 1) {
+			if (checkAllZeroEntries()) {
 				result = new double[1][numCoalitions];
-				for (BitSet entry : allSupports) {
-					for (p = 0; p < numCoalitions; p++) {
-						result[0][p] = utilities.get(entry).get(p);
-					}
-					/*
-					String act = "";
-					if (s == ?) {
-						//for (int i = entry.nextSetBit(0); i >= 0; i = entry.nextSetBit(i + 1)) {	
-						//	act += "[" +  csg.getActions().get(i) + "]";
-						//}
-						System.out.println("## Equilibrium (unique entry or dominating) " + entry + " " + act);
-					}
-					*/
-					if (genStrat || exportAdv) {
-						eqstrat = new ArrayList<Map<BitSet, Double>>();
-						extractStrategyFromSupport(eqstrat, mmap, entry);
-						strats.add(eqstrat);
-					}
+				Arrays.fill(result[0], 0.0);
+				if (genStrat || exportAdv) {
+					eqstrat = new ArrayList<Map<BitSet, Double>>();
+					extractStrategyFromSupport(mmap, eqstrat, (BitSet) utilities.keySet().toArray()[0]);
+					strats.add(eqstrat);
 				}
 				return result;
 			}
+			if (utilities.size() == 1) {
+				return findSWNEUniqueSupport(mmap, strats, eqstrat);
+			}
+
+			smtSupportEnumeration.translateAssertions(assertions, mapActionIndex);
+			//nlpSupportEnumeration.translateAssertions(assertions, mapActionIndex);
+			
+			if (allSupports.size()== 1) {
+				return findSWNEUniqueSupport(mmap, strats, eqstrat);
+			}
 			else {
-				//System.out.println("Solver call");
-				//System.out.println(utilities);
-				for (int supp = 0; supp < allSupports.size(); supp++) {
-					//if (allSupports.get(supp).cardinality() == 25)
-					//System.out.println("\n ## Support " + allSupports.get(supp));
-					//System.out.println("## Support " + allSupports.get(supp));
-					eqsresult = eqssmt.computeEquilibria(allSupports.get(supp), mapActionIndex, s);
-					//eqsresult = new Pair<CSGResultStatus, ArrayList<Double>>(CSGResultStatus.UNKNOWN, new ArrayList<Double>());
-					if (eqsresult.first == CSGResultStatus.SAT) {
+				HashSet<BitSet> unknown = new HashSet<BitSet>();
+				HashSet<BitSet> unsat = new HashSet<BitSet>();
+				HashSet<BitSet> sat = new HashSet<BitSet>();
+
+				//System.out.println(allSupports.size());
+				for (BitSet supp : allSupports) {
+					
+					//System.out.println("\n" + supp);
+					if (supp.cardinality() < numCoalitions) {
+						mainLog.println("Support: " + supp);
+						for (int k = 0; k < numCoalitions; k++) {
+							mainLog.println("Player " + k);
+							mainLog.println("Dominating: " + dominating[k]);
+							mainLog.println("Dominated: " + dominated[k]);	
+							mainLog.println("Action indexes: " + actionIndexes[k]);
+							mainLog.println("Strategies:" + strategies.get(k));
+							mainLog.println("Supports:" + supports.get(k));
+						}
+						throw new PrismException("Problem with support");
+					}
+					
+					eqsresult = smtSupportEnumeration.computeEquilibria(supp, mapActionIndex);				
+					//eqsresult = nlpSupportEnumeration.computeEquilibria(supp, mapActionIndex);		
+
+					
+					if (eqsresult.getStatus() == CSGResultStatus.SAT) {
+						sat.add(supp);
+						
+						//eqsresult = nlpSupportEnumeration.computeEquilibria(supp, mapActionIndex);		
+						
+						equilibria.add(eqsresult.getPayoffVector());
+						if (genStrat || exportAdv) {
+							strats.add(extractStrategyFromEquilibrium(eqsresult, mmap));
+						}
+						//System.out.println(equilibria);
+						
 						/*
-						String act = "";
-						if (s == 0) {
-							//System.out.println(csg.getActions());
-							//for (int i = allSupports.get(supp).nextSetBit(0); i >= 0; i = allSupports.get(supp).nextSetBit(i + 1)) {	
-							//	act += "[" +  csg.getActions().get(i) + "]";
-							//}
-							System.out.println("## Equilibrium " + allSupports.get(supp) + " " + act);
+						if (eqsresult.getStatus() != eqsresultnlp.getStatus()) {
+							System.out.println("SMT: " + eqsresult.getStatus());
+							System.out.println("NLP: " + eqsresultnlp.getStatus());
+							throw new PrismException("Solvers differ.");
 						}
 						*/
-						eq = eqsresult.second;
-						eqs.add(eq);
-						//System.out.println("-- mmap " + mmap);
-						//System.out.println("-- strat " + eqssmt.getStrat());
-						if (genStrat || exportAdv) {
-							eqstrat = new ArrayList<Map<BitSet, Double>>();
-							for (p = 0; p < numCoalitions; p++) {
-								eqstrat.add(p, new HashMap<BitSet, Double>());
-								for (int t : eqssmt.getStrat().get(p).getSupport()) {
-									eqstrat.get(p).put(mmap.get(p).get(t), eqssmt.getStrat().get(p).get(t));
-								}
-								//System.out.println("-- strat " + p + " " + eqstrat.get(p));
-							}
-							strats.add(eqstrat);
-							//System.out.println("-- strats " + strats);
-						}
-						
-						time = System.currentTimeMillis() - time;
-						//mainLog.println("\nFound an equilibirum in  " + time / 1000.0 + " seconds.");
-						//System.out.println(eq);
-						//System.exit(1);
+						//System.out.println("sat");
 					}
-					/*
-					else if (eqsresult.first == CSGResultStatus.UNKNOWN) {// && allSupports.get(supp).cardinality() == 18) {
-						//System.out.println("UNKNOWN " + allSupports.get(supp));
-						eqss.setNumPlayers(numCoalitions);
-						eqss.setMap(map);
-						eqss.setIndexes(strategies);
-						eqss.setAssertions(assertions);
-						eqss.setGradient(gradient);
-						eqss.init();
-						//System.out.println("## Support " + allSupports.get(supp));
-						eqsresult = eqss.computeEquilibria(allSupports.get(supp), map, s);
-						if (eqsresult.first == CSGResultStatus.SAT) {
-							//System.out.println("## Equilibrium found " + allSupports.get(supp));
-							eq = eqsresult.second;
-							eqs.add(eq);
-							
-							time = System.currentTimeMillis() - time;
-							mainLog.println("\nFound an equilibirum in  " + time / 1000.0 + " seconds.");
-							System.out.println(eq);
-							System.exit(1);	
+					else if (eqsresult.getStatus() == CSGResultStatus.UNKNOWN) {	
+						unknown.add(supp);
+						
+						//eqsresult = nlpSupportEnumeration.computeEquilibria(supp, mapActionIndex);	
+						/*
+						if (eqsresult.getStatus() == CSGResultStatus.SAT) {
+							equilibria.add(eqsresult.getPayoffVector());
 						}
+						*/
+						//System.out.println("unknown");
+					}
+					else if (eqsresult.getStatus() == CSGResultStatus.UNSAT) {
+						unsat.add(supp);
+						//System.out.println("unsat");
+						/*
+						if (eqsresult.getStatus() != eqsresultnlp.getStatus()) {
+							System.out.println("SMT: " + eqsresult.getStatus());
+							System.out.println("NLP: " + eqsresultnlp.getStatus());
+							throw new PrismException("Solvers differ.");
+						}
+						*/
+					}
+				}
+
+				if (sat.size() != 0) {
+					/*
+					for (EquilibriumResult eq : stepParallelEquilibriaGurobi(sat)) {
+						equilibria.add(eq.getPayoffVector());
+						if (genStrat || exportAdv) {
+							strats.add(extractStrategyFromEquilibrium(eq, mmap));
+						}
+						//if (s == csg.getFirstInitialState()) {
+						//	System.out.println("-- strat " + eq.getStrategy());
+						//} 
 					}
 					*/
 				}
-			}
-		
-			//System.out.println(eqs);
-						
-			result = new double[eqs.size()][numCoalitions];
-		
-			for (n = 0; n < eqs.size(); n++) {
+				//System.out.println("Sat supports: " + sat.size() + " " + (System.currentTimeMillis() - par)/1000.00 + " s");
+
+				//par = System.currentTimeMillis();
+				//System.out.println("Unknown supports: " + unknown.size());
+				if (unknown.size() != 0) {
+					/*
+					for (EquilibriumResult eq : stepParallelEquilibriaGurobi(unknown)) {
+						equilibria.add(eq.getPayoffVector());		
+						if (genStrat || exportAdv) {
+							strats.add(extractStrategyFromEquilibrium(eq, mmap));
+						}
+						//if (s == csg.getFirstInitialState()) {
+						//	System.out.println("-- strat " + eq.getStrategy());
+						//}
+					}			
+					*/
+				}
+
+				//System.out.println("Unknown supports: " + unknown.size() + " " + (System.currentTimeMillis() - par)/1000.00 + " s");
+			}		
+			result = new double[equilibria.size()][numCoalitions];
+			for (n = 0; n < equilibria.size(); n++) {
 				for (p = 0; p < numCoalitions; p++) {
-					result[n][p] = eqs.get(n).get(p);
+					result[n][p] = equilibria.get(n).get(p);
 				}
 			}
 		}
 		return result;
 	}
 	
-	public double[][] stepEquilibria(CSG csg, CSGRewards csgRewards1, CSGRewards csgRewards2, List<Map<Integer, BitSet>> mmap, CSGLabeledPolytopes nash,
-			List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
+	/**
+	 * Returns the equilibrium (array of values) and updates strategies for the two-player case.
+	 * 
+	 * @param csg
+	 * @param rewards
+	 * @param mmap
+	 * @param strats
+	 * @param val
+	 * @param s
+	 * @param eqType
+	 * @param crit
+	 * @param rew
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public double[] stepEquilibriaTwoPlayer(CSG csg, List<CSGRewards> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats,
+			 								double[][] val, int s, int eqType, int crit, boolean rew, boolean min) throws PrismException {
+		double[][] equilibria;
+		double[] equilibrium;
+		
+		switch (eqType) {
+			case CORR : {
+				if (rew) {
+					equilibrium = stepCorrelatedEquilibria(csg, rewards, mmap, strats, val, s, min, crit);
+				}
+				else 
+					equilibrium = stepCorrelatedEquilibria(csg, null, mmap, strats, val, s, min, crit);
+				break;
+			}
+			default : {
+				if (rew) {
+					equilibria = stepNashEquilibria(csg, rewards.get(0), rewards.get(1), mmap, strats, val, s, min);	
+				}
+				else {
+					equilibria = stepNashEquilibria(csg, null, null, mmap, strats, val, s, min);	
+				}
+				switch (crit) {
+					case FAIR : {
+						equilibrium = fair(equilibria, strats, min);
+						break;
+					} 
+					default : {
+						equilibrium = swne(equilibria, strats, min);
+					}
+				}
+			}
+		}
+		return equilibrium;
+	}
+	
+	/**
+	 * Computes Nash equilibria for a bimatrix game.
+	 * 
+	 * @param csg
+	 * @param csgRewards1
+	 * @param csgRewards2
+	 * @param mmap
+	 * @param strats
+	 * @param val
+	 * @param s
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public double[][] stepNashEquilibria(CSG csg, CSGRewards csgRewards1, CSGRewards csgRewards2, List<Map<Integer, BitSet>> mmap,
+									 List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
 		Map<BitSet, Double> d1 = null;
 		Map<BitSet, Double> d2 = null;
 		ArrayList<Map<BitSet, Double>> eqstrat;
@@ -1839,7 +2803,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 			mmap.add(p, new HashMap<Integer, BitSet>());
 			nmap.add(p, new ArrayList<Integer>());
 		}
-		bmgame = buildBiMatrixGame(csg, csgRewards1, csgRewards2, mmap, nmap, val, s, min);	
+		bmgame = buildBimatrixGame(csg, csgRewards1, csgRewards2, mmap, nmap, val, s, min);	
 		nrows = bmgame.get(0).size();
 		ncols = bmgame.get(0).get(0).size();
 		val1s = new double[nrows][ncols];
@@ -1913,20 +2877,20 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 					addStateRewards(result, csgRewards1, csgRewards2, s, min);
 				}
 				else { // both players have choices and matrices are not trivial, call solver
-					nash.update(nrows, ncols, val1s, val2s);
-					nash.compEq();
-					nash.compPayoffs();
-					result = new double[nash.getNeq()][2];
-					for (int e = 0; e < nash.getNeq(); e++) {
-						result[e][0] = nash.getP1p()[e];
-						result[e][1] = nash.getP2p()[e];
+					smtLabeleldPolytopes.update(nrows, ncols, val1s, val2s);
+					smtLabeleldPolytopes.computeEquilibria();
+					smtLabeleldPolytopes.compPayoffs();
+					result = new double[smtLabeleldPolytopes.getNeq()][2];
+					for (int e = 0; e < smtLabeleldPolytopes.getNeq(); e++) {
+						result[e][0] = smtLabeleldPolytopes.getP1p()[e];
+						result[e][1] = smtLabeleldPolytopes.getP2p()[e];
 						if (genStrat || exportAdv) {
 							eqstrat = new ArrayList<Map<BitSet, Double>>();
 							for (int p = 0; p < 2; p++) {
 								eqstrat.add(p, new HashMap<BitSet, Double>());
 								//System.out.println("-- strat from solver " + nash.getStrat().get(e).get(p).getSupport());
-								for (int t : nash.getStrat().get(e).get(p).getSupport()) {
-									eqstrat.get(p).put(mmap.get(p).get(nmap.get(p).get(t)), nash.getStrat().get(e).get(p).get(t));
+								for (int t : smtLabeleldPolytopes.getStrat().get(e).get(p).getSupport()) {
+									eqstrat.get(p).put(mmap.get(p).get(nmap.get(p).get(t)), smtLabeleldPolytopes.getStrat().get(e).get(p).get(t));
 								}
 							} 
 							strats.add(e, eqstrat);
@@ -1950,7 +2914,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker {
 				addStateRewards(result, csgRewards1, csgRewards2, s, min);
 			}
 		} 
-		else { // just one of the players have choices
+		else { // just one of the players has choices
 			result = new double[1][2];
 			double vt1, vt2, sumv, sumt;
 			if(genStrat || exportAdv) {
