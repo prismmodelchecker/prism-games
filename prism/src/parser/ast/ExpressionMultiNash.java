@@ -19,7 +19,16 @@ public class ExpressionMultiNash extends Expression
 	protected Expression bound = null;
 	// Operands
 	protected ArrayList<ExpressionQuant> operands;
+	// Type of equilibrium
+	protected int eqType;
+	// Criterion
+	protected int crit;
 
+	public static final int NASH = 1;
+	public static final int CORR = 2;
+	public static final int SWEQ = 3;
+	public static final int FAIR = 4;
+	
 	// Constructors
 	
 	public ExpressionMultiNash()
@@ -65,6 +74,16 @@ public class ExpressionMultiNash extends Expression
 		operands.set(i, e);
 	}
 
+	public void setEqType(int eqType) 
+	{
+		this.eqType = eqType;
+	}
+
+	public void setCrit(int crit) 
+	{
+		this.crit = crit;
+	}
+	
 	// Get methods
 	
 	/**
@@ -106,6 +125,16 @@ public class ExpressionMultiNash extends Expression
 		} else {
 			return new OpRelOpBound("", getRelOp(), null);
 		}
+	}
+	
+	public int getEqType() 
+	{
+		return eqType;
+	}
+
+	public int getCrit() 
+	{
+		return crit;
 	}
 
 	// Methods required for Expression:
@@ -168,7 +197,13 @@ public class ExpressionMultiNash extends Expression
 	@Override
 	public String toString()
 	{
-		String s = "";
+		String s = "{";
+		if (getEqType() == 1) s+= "NE";
+		if (getEqType() == 2) s+= "CE";						
+		s += ",";
+		if (getCrit() == 3) s+= "SW";
+		if (getCrit() == 4) s+= "FR";
+		s += "}";
 		s += getRelOp();
 		s += (getBound() == null) ? "?" : getBound().toString();
 		s += " (";
@@ -210,6 +245,10 @@ public class ExpressionMultiNash extends Expression
 			if (other.bound != null)
 				return false;
 		} else if (!bound.equals(other.bound))
+			return false;
+		if (eqType != other.eqType) 
+			return false;
+		if (crit != other.crit)
 			return false;
 		if (operands == null) {
 			if (other.operands != null)

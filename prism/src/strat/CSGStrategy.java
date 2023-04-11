@@ -43,6 +43,7 @@ import parser.VarList;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
+import strat.CSGStrategy.CSGStrategyType;
 
 public class CSGStrategy extends PrismComponent implements Strategy {
 
@@ -58,7 +59,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	protected int numCoalitions;
 	
 	public enum CSGStrategyType {
-		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R;
+		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R, EQUILIBRIA_CE_P, EQUILIBRIA_CE_R, EQUILIBRIA_CE_M;
 	}
 
 	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
@@ -150,6 +151,13 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 				case EQUILIBRIA_R:
 					exportEquilibriaStrategy(out);
 					break;
+				case EQUILIBRIA_CE_M:
+					exportMultiEquilibriaStrategy(out);
+					break;
+				case EQUILIBRIA_CE_P:
+				case EQUILIBRIA_CE_R:
+					exportEquilibriaStrategy(out);
+					break;
 			}
 		}
 		catch (Exception e) {
@@ -226,15 +234,20 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 			for (p = 0; p < 2; p++) {
 				reach[p] = new BitSet();
 				for (i = 0; i < model.getNumStates(); i++) {
-					if (type == CSGStrategyType.EQUILIBRIA_P)
+					if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_CE_P) {
 						if (prechoices[p].soln[i] > 0)
 							reach[p].set(i);
-					if  (type == CSGStrategyType.EQUILIBRIA_R)
+					}
+					if  (type == CSGStrategyType.EQUILIBRIA_R || type == CSGStrategyType.EQUILIBRIA_CE_R) {
 						if (prechoices[p].soln[i] < Double.POSITIVE_INFINITY)
 							reach[p].set(i);
+					}
 				}
 			}
-			generateMDPEquilibria(mdp, onmap, statelist, reach, explored, 0, s); 
+			if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_R)
+				generateMDPEquilibria(mdp, onmap, statelist, reach, explored, 0, s); 
+			if (type == CSGStrategyType.EQUILIBRIA_CE_P || type == CSGStrategyType.EQUILIBRIA_CE_R)
+				generateMDPCorrelatedEquilibria(mdp, onmap, statelist, reach, explored, 0, s); 
 			addPrecompStrategies(mdp, onmap, statelist, reach);		
 		}
 		mdp.setStatesList(statelist);
@@ -475,6 +488,87 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 	}
 	
+	public void generateMDPMultiCorrelatedEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int s) {
+		Distribution d;
+		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
+		BitSet tmp = new BitSet();
+		BitSet sat = new BitSet();
+		String joint = null;
+		String label = null;
+		String lsubg = "";
+		String prob = "";
+		int c, i, m, n, q, p, t;
+		boolean loop = false;
+		explored.set(s);
+		n = onmap.get(s);
+		for (BitSet subgame : subgames.keySet()) {
+			if (subgames.get(subgame).get(s)) {
+				sat.or(subgame);
+			}
+		}
+		for (p = 0; p < numCoalitions; p++) {
+			if (sat.get(p)) {
+				lsubg += "Sat(" + p + ")";
+			}
+			else {
+				lsubg += "Unsat(" + p + ")";
+			}
+			if (p < numCoalitions - 1)
+				lsubg += " -- ";
+		}
+		if (sat.cardinality() == numCoalitions) {
+			d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, lsubg);	
+		}
+		else {
+			prods = csgchoices.get(0).get(k).get(s);
+			d = new Distribution();
+			for (t = 0; t < model.getNumChoices(s); t++) {
+				tmp.clear();
+				for (q = 0; q < model.getIndexes(s, t).length; q++) {
+					i = model.getIndexes(s, t)[q];						
+					tmp.set((i > 0)? i : model.getIdles()[q]);
+				}
+				if (prods.containsKey(tmp)) {						
+					for (int u : model.getChoice(s, t).getSupport()) {
+						if (!onmap.containsKey(u)) {
+							m = mdp.addState();
+							onmap.put(u, m);
+							statelist.add(m, model.getStatesList().get(u));
+							if (!explored.get(u))
+								generateMDPMultiCorrelatedEquilibria(mdp, onmap, statelist, explored, k, u);
+						}
+						else {
+							m = onmap.get(u);
+							if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
+								loop = true;
+						}
+						d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
+					}
+				}
+			}
+			if (loop) {
+				mdp.addActionLabelledChoice(n, d, lsubg);	
+			}
+			else if (!d.isEmpty()) {
+				label = "CSG: ";
+				c = csgchoices.get(0).get(k).get(s).keySet().size();
+				for (BitSet act : csgchoices.get(0).get(k).get(s).keySet()) {
+					prob += csgchoices.get(0).get(k).get(s).get(act) +": ";
+					joint = "";
+					for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
+						joint += "[" + model.getActions().get(i - 1) + "]";
+					}
+					c--;
+					prob += joint + ((c > 0)? " + " : ""); 
+				}
+				label += prob;
+				mdp.addActionLabelledChoice(n, d, label);
+			}
+		}
+	}
+	
 	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
 		Distribution d;
 		String[] action = new String[csgchoices.size()];
@@ -557,6 +651,79 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		}
 	}
 	
+	public void generateMDPCorrelatedEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
+		Distribution d;
+		String prob = "";
+		String label = null;
+		String joint = null;
+		BitSet tmp = new BitSet();
+		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
+		int c, i, m, n, q, t;
+		n = onmap.get(s);
+		explored.set(s);
+		if (targets[0].get(s) && targets[1].get(s)) {
+			d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
+		}
+		else if (targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s)) {
+			d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Unsat(1)");
+		}
+		else if (!targets[0].get(s) && targets[1].get(s) && !reach[1].get(s)) {
+			d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Sat(1)");
+		}
+		else if (!targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s) && !reach[1].get(s)) {
+			d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
+		}
+		else if (csgchoices.get(0).get(k).get(s) != null) {
+			prods = csgchoices.get(0).get(k).get(s);
+			d = new Distribution();
+			for (t = 0; t < model.getNumChoices(s); t++) {
+				tmp.clear();
+				for (q = 0; q < model.getIndexes(s, t).length; q++) {
+					i = model.getIndexes(s, t)[q];						
+					tmp.set((i > 0)? i : model.getIdles()[q]);
+				}
+				if (prods.containsKey(tmp)) {
+					for (int u : model.getChoice(s, t).getSupport()) {
+						if (!onmap.containsKey(u)) {
+							m = mdp.addState();
+							onmap.put(u, m);
+							statelist.add(m, model.getStatesList().get(u));
+							if (!explored.get(u))
+								generateMDPCorrelatedEquilibria(mdp, onmap, statelist, reach, explored, k, u);  // should check for explored?
+						}
+						else {
+							m = onmap.get(u);
+						}
+						d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
+					}
+				}
+			}
+			if (!d.isEmpty()) {
+				label = "CSG: ";
+				c = csgchoices.get(0).get(k).get(s).keySet().size();
+				for (BitSet act : csgchoices.get(0).get(k).get(s).keySet()) {
+					prob += csgchoices.get(0).get(k).get(s).get(act) +": ";
+					joint = "";
+					for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
+						joint += "[" + model.getActions().get(i - 1) + "]";
+					}
+					c--;
+					prob += joint + ((c > 0)? " + " : ""); 
+				}
+				label += prob;
+				mdp.addActionLabelledChoice(n, d, label);
+			}
+		}	
+	}
+	
 	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
 		Distribution d;
 		BitSet tmp1 = new BitSet();
@@ -632,5 +799,49 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 	public void clear() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public String toString() {
+		String[] action;
+		String joint, label;
+		int c, i, k, p, s;
+		boolean chck;
+		label = "CSG:";
+		k = 0;
+		if (csgchoices != null) {
+			/*
+			for (List<List<Map<BitSet, Double>>> entry : csgchoices) {
+				s += entry.toString();
+				s += "\n";
+			}
+			*/
+			for (s = 0; s < model.getNumStates(); s++) {
+				action = new String[csgchoices.size()];
+				chck = true;
+				for (p = 0; p < numCoalitions; p++) {
+					chck = chck && csgchoices.get(p).get(k).get(s) != null;
+					action[p] = "";
+				}
+				label += " $ s:" + s + " -> ";
+				for (p = 0; p < numCoalitions; p++) {
+					if (csgchoices.get(p).get(k).get(s) != null) {
+						c = csgchoices.get(p).get(k).get(s).keySet().size();
+						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
+							joint = "";
+							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
+								joint += "[" + model.getActions().get(i - 1) + "]";
+							}
+							c--;
+							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
+						}
+						label += (p + 1 < csgchoices.size())? action[p] + " -- " : action[p];
+					}	
+				}
+			}
+			return label;
+		}
+		else 
+			return label;
 	}
 }

@@ -28,25 +28,32 @@
 package explicit;
 
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
 
-import prism.PrismException;
-
-public interface CSGLabeledPolytopes {
+public interface CSGCorrelated {
 	
-    public String getSolverName();
-    
-	public void update(int nrows, int ncols, double[][] a, double[][] b);
+	/**
+	 * Computes correlated equilibria for a normal form game
+	 * 
+	 * @param utilities Utility table as a map from action indexes to utility arrays
+	 * @param ce_constraints An auxiliary mapping of actions to utilities (player i -> action a -> actions of -i -> utility) used to set the constraints for correlated equilibria 
+	 * @param strategies Array with individual actions for each player
+	 * @param ce_var_map Map for joint actions
+	 * @param crit Criterion (social-welfare = 3, fair = 4)
+	 */
+	public EquilibriumResult computeEquilibrium(HashMap<BitSet, ArrayList<Double>> utilities, 
+												ArrayList<ArrayList<HashMap<BitSet, Double>>> ce_constraints,
+												ArrayList<ArrayList<Integer>> strategies,
+												HashMap<BitSet, Integer> ce_var_map, int crit);
 	
-	public void computeEquilibria() throws PrismException;
+	/**
+	 * Gets the solver's name
+	 */
+	public String getSolverName();
 	
-	public void compPayoffs();
-	
-	public ArrayList<ArrayList<Distribution>> getStrat();
-	
-	public double[] getP1p(); 
-	
-	public double[] getP2p(); 
-	
-	public int getNeq();
+	public void clear();
+		
+	public void printModel();
 	
 }

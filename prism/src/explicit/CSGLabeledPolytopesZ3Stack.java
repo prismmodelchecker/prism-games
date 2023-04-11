@@ -1,3 +1,30 @@
+//==============================================================================
+//	
+//	Copyright (c) 2002-
+//	Authors:
+//	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
+//	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package explicit;
 
 import java.util.ArrayList;
@@ -19,10 +46,11 @@ import com.microsoft.z3.Version;
 
 import prism.PrismException;
 
+
 public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 {
-	private String solverName = "Z3";
-	
+	private String solverName;
+
 	private RealExpr[] payvars;
 	private ArithExpr[] payoffs;
 	private RealExpr[] vars;
@@ -41,39 +69,44 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 	private BoolExpr eq;
 	private int nrows = 0;
 	private int ncols = 0;
-	
+
 	private BoolExpr[] tmpc;
 	private BoolExpr[] tmpr;
-	
+
 	private Model model;
-	
+
 	private Expr xctr;
 	private Expr yctr;
 	private BoolExpr c1;
 	private BoolExpr c2; 
-	
+
 	private int neq = 0;
 	private double[] p1p;
 	private double[] p2p;
 	private double[][] a;
 	private double[][] b;
-	
+
 	private String[] lvp1;
-    private String[] lvp2;
-    
-    private Context ctx;
-    private Solver s;
-	
+	private String[] lvp2;
+
+	private Context ctx;
+	private Solver s;
+
 	private HashMap<String,ArrayList<Double>> eqs;
-    private ArrayList<ArrayList<Distribution>> strat;
-    
-    public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) throws PrismException
-    {
-    	initSolver();
-        s = ctx.mkSolver(); 
-        eqs = new HashMap<String,ArrayList<Double>>();
+	private ArrayList<ArrayList<Distribution>> strat;
+
+
+	public CSGLabeledPolytopesZ3Stack() {
+
+	}
+
+	public CSGLabeledPolytopesZ3Stack(int nrows, int ncols) throws PrismException
+	{
+		initSolver();
+		s = ctx.mkSolver(); 
+		eqs = new HashMap<String,ArrayList<Double>>();
 		zero = ctx.mkInt(0);
-	    one = ctx.mkInt(1);
+		one = ctx.mkInt(1);
 		vars = new RealExpr[nrows+ncols];
 		lvp1 = new String[nrows];
 		lvp2 = new String[ncols];
@@ -101,37 +134,31 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			s.add(ctx.mkLe(v, one));
 			s.add(ctx.mkGe(v, zero));
 		}
-    }
-    
-    /**
-     * Initialise the solver
-     */
-    private void initSolver() throws PrismException
-    {
-    	HashMap<String, String> cfg = new HashMap<String, String>();
-        cfg.put("model", "true");
-        cfg.put("auto_config", "true");
-        try {
-        	ctx = new Context(cfg);
-        	solverName = Version.getFullVersion();
-        } catch (UnsatisfiedLinkError e) {
-        	throw new PrismException("Could not initialise Z3: " + e.getMessage());
-        }
-    }
-    
-    @Override
-    public String getSolverName()
-    {
-    	return solverName;
-    }
-    
+	}
+
+	/**
+	 * Initialise the solver
+	 */
+	private void initSolver() throws PrismException
+	{
+		HashMap<String, String> cfg = new HashMap<String, String>();
+		cfg.put("model", "true");
+		cfg.put("auto_config", "true");
+		try {
+			ctx = new Context(cfg);
+			solverName = Version.getFullVersion();
+		} catch (UnsatisfiedLinkError e) {
+			throw new PrismException("Could not initialise Z3: " + e.getMessage());
+		}
+	}
+
 	public void update(int nrows, int ncols, double[][] a, double[][] b) {
 		this.nrows = nrows;
 		this.ncols = ncols;
 		this.a = a;
 		this.b = b;
 	}
-	
+
 	private void xLabels() {
 		int l = 0;
 		int j = 0;
@@ -157,7 +184,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			}
 		}
 	}
-	
+
 	private void yLabels() {
 		int l = 0;
 		int j = 0;
@@ -183,7 +210,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			}
 		}
 	}
-    
+
 	private void vMult() {
 		for(int i = 0; i < nrows; i++) {
 			curr = zero;
@@ -214,8 +241,8 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			xexps[j] = curr;
 		}
 	}
-	
-	public void compEq() {
+
+	public void computeEquilibria() {
 		ArrayList<Distribution> dists;
 		Distribution dist1;
 		Distribution dist2;
@@ -232,7 +259,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			/*
 			if (st == 1)
 				System.out.println(xlabels[i]);
-			*/
+			 */
 			eq = ctx.mkAnd(eq, ctx.mkOr(xlabels[i], ylabels[i]));
 		}
 		for(i = 0; i < nrows; i++) {
@@ -246,77 +273,75 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		s.add((BoolExpr) xctr);
 		s.add((BoolExpr) yctr);
 		s.add(eq);
-        strat = new ArrayList<ArrayList<Distribution>>();
+		strat = new ArrayList<ArrayList<Distribution>>();
 		eqs.clear();
-        j = 0; 
-        while (Status.SATISFIABLE == s.check()) {
-            model = s.getModel();
-            c1 = ytrue;
-            c2 = ytrue;
-            dists = new ArrayList<Distribution>();
-            dist1 = new Distribution();
-            dist2 = new Distribution();
-    		//System.out.println("---");
-            for (i = 0; i < nrows+ncols; i++) {            	
-        		//p = model.bigRationalValue(vars[i]).doubleValue();
-            	p = getDoubleValue(model, vars[i]);
-        		//System.out.println(p);
-        		if(p > 0) {
-        			if(i < nrows)
-        				dist1.add(i, p);
-        			else 
-        				dist2.add(i - nrows, p);
-        		}
-                if (j == 0) {
-        			if (i < nrows) {
-                		eqs.put(lvp1[i], new ArrayList<Double>());
-                		eqs.get(lvp1[i]).add(p);
-                	} 
-        			else {
-        	       		eqs.put(lvp2[i-nrows], new ArrayList<Double>());
-        	       		eqs.get(lvp2[i-nrows]).add(p);
-                	}
-                }
-                else {
-        			if (i < nrows) {
-                		eqs.get(lvp1[i]).add(p);
-                	} 
-        			else {
-        				eqs.get(lvp2[i-nrows]).add(p);		
-               		}
-       			}
-            }
-            for(i = 0; i < nrows+ncols; i++) {
+		j = 0; 
+		while (Status.SATISFIABLE == s.check()) {
+			model = s.getModel();
+			c1 = ytrue;
+			c2 = ytrue;
+			dists = new ArrayList<Distribution>();
+			dist1 = new Distribution();
+			dist2 = new Distribution();
+			//System.out.println("---");
+			for (i = 0; i < nrows+ncols; i++) {            	
+				//p = model.bigRationalValue(vars[i]).doubleValue();
+				p = getDoubleValue(model, vars[i]);
+				//System.out.println(p);
+				if(p > 0) {
+					if(i < nrows)
+						dist1.add(i, p);
+					else 
+						dist2.add(i - nrows, p);
+				}
+				if (j == 0) {
+					if (i < nrows) {
+						eqs.put(lvp1[i], new ArrayList<Double>());
+						eqs.get(lvp1[i]).add(p);
+					} 
+					else {
+						eqs.put(lvp2[i-nrows], new ArrayList<Double>());
+						eqs.get(lvp2[i-nrows]).add(p);
+					}
+				}
+				else {
+					if (i < nrows) {
+						eqs.get(lvp1[i]).add(p);
+					} 
+					else {
+						eqs.get(lvp2[i-nrows]).add(p);		
+					}
+				}
+			}
+			for(i = 0; i < nrows+ncols; i++) {
 				if (i < nrows) {
-        			//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
-        			if (Double.compare(eqs.get(lvp1[i]).get(j), 0.0) != 0) {
-        				c1 = ctx.mkAnd(c1, ctx.mkNot(ctx.mkEq(vars[i], zero)));
-        			}
-            		else {
-            			c1 = ctx.mkAnd(c1, ctx.mkEq(vars[i], zero));
-            		}
+					//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
+					if (Double.compare(eqs.get(lvp1[i]).get(j), 0.0) != 0) {
+						c1 = ctx.mkAnd(c1, ctx.mkNot(ctx.mkEq(vars[i], zero)));
+					}
+					else {
+						c1 = ctx.mkAnd(c1, ctx.mkEq(vars[i], zero));
+					}
 				} 
 				else {
-    				//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
-    				if (Double.compare(eqs.get(lvp2[i-nrows]).get(j), 0.0) != 0) {
-    					c2 = ctx.mkAnd(c2, ctx.mkNot(ctx.mkEq(vars[i], zero)));
-            		}
-            		else {
-            			c2 = ctx.mkAnd(c2, ctx.mkEq(vars[i], zero));
-            		}
+					//if (Double.compare(model.bigRationalValue(vars[i]).doubleValue(), 0.0) != 0) {
+					if (Double.compare(eqs.get(lvp2[i-nrows]).get(j), 0.0) != 0) {
+						c2 = ctx.mkAnd(c2, ctx.mkNot(ctx.mkEq(vars[i], zero)));
+					}
+					else {
+						c2 = ctx.mkAnd(c2, ctx.mkEq(vars[i], zero));
+					}
 				}
-            }
-            dists.add(0, dist1);
-            dists.add(1, dist2);
-            strat.add(j, dists);
-    		j++;
-            s.add(ctx.mkOr(ctx.mkNot(c1), ctx.mkNot(c2)));
-        }
+			}
+			dists.add(0, dist1);
+			dists.add(1, dist2);
+			strat.add(j, dists);
+			j++;
+			s.add(ctx.mkOr(ctx.mkNot(c1), ctx.mkNot(c2)));
+		}
 		//System.out.println(eqs);
-        s.pop();
-        //YicesWrapper.garbage_collect();
-        //YicesWrapper.yices_exit();
-        neq = j;
+		s.pop();
+		neq = j;
 	}
 
 	public void compPayoffs() {
@@ -325,19 +350,19 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		Arrays.fill(p1p, 0.0);
 		Arrays.fill(p2p, 0.0);
 		for(int e = 0; e < neq; e++) {
-        	for(int i = 0; i < nrows; i++) {
-        		for(int j = 0; j < ncols; j++) {
-        			p1p[e] += eqs.get(lvp1[i]).get(e) * eqs.get(lvp2[j]).get(e) * a[i][j];
-        			p2p[e] += eqs.get(lvp1[i]).get(e) * eqs.get(lvp2[j]).get(e) * b[i][j];
-        		}
-        	}
-        }			
+			for(int i = 0; i < nrows; i++) {
+				for(int j = 0; j < ncols; j++) {
+					p1p[e] += eqs.get(lvp1[i]).get(e) * eqs.get(lvp2[j]).get(e) * a[i][j];
+					p2p[e] += eqs.get(lvp1[i]).get(e) * eqs.get(lvp2[j]).get(e) * b[i][j];
+				}
+			}
+		}			
 	}
 
 	public double getDoubleValue(Model model, Expr expr) {
 		RatNum v1;
 		AlgebraicNum v2;
-		if(model.getConstInterp(expr) instanceof RatNum) {
+		if (model.getConstInterp(expr) instanceof RatNum) {
 			v1 = (RatNum) model.getConstInterp(expr);
 			return (Double) (v1.getBigIntNumerator().doubleValue() / v1.getBigIntDenominator().doubleValue());
 		}
@@ -348,6 +373,12 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		}
 		else
 			return Double.NaN;
+	}
+
+	@Override
+	public String getSolverName()
+	{
+		return solverName;
 	}
 	
 	public ArrayList<ArrayList<Distribution>> getStrat() {
@@ -361,13 +392,13 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 	public double[] getP2p() {
 		return p2p;
 	}
-	
+
 	public int getNeq() {
 		return neq;
 	}
 
 	public void clear() {
-		
+
 	}
-	
+
 }

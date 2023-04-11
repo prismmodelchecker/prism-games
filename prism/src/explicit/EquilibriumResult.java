@@ -28,25 +28,36 @@
 package explicit;
 
 import java.util.ArrayList;
+import explicit.CSGModelCheckerEquilibria.CSGResultStatus;
 
-import prism.PrismException;
+public class EquilibriumResult {
 
-public interface CSGLabeledPolytopes {
-	
-    public String getSolverName();
-    
-	public void update(int nrows, int ncols, double[][] a, double[][] b);
-	
-	public void computeEquilibria() throws PrismException;
-	
-	public void compPayoffs();
-	
-	public ArrayList<ArrayList<Distribution>> getStrat();
-	
-	public double[] getP1p(); 
-	
-	public double[] getP2p(); 
-	
-	public int getNeq();
+	private CSGResultStatus status;
+	private ArrayList<Double> payoffVector;
+	private ArrayList<Distribution> strategy;
+
+	public CSGResultStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(CSGResultStatus status) {
+		this.status = status;
+	}
+
+	public ArrayList<Double> getPayoffVector() {
+		return payoffVector;
+	}
+
+	public void setPayoffVector(ArrayList<Double> payoffVector) {
+		this.payoffVector = payoffVector;
+	}
+
+	public ArrayList<Distribution> getStrategy() {
+		return strategy;
+	}
+
+	public void setStrategy(ArrayList<Distribution> strategy) {
+		this.strategy = strategy;
+	}
 	
 }

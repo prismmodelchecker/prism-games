@@ -16,7 +16,7 @@ public interface CSGSupportEnumeration {
 	
 	public void setIndexes(ArrayList<ArrayList<Integer>> a);
 	
-	public Pair<CSGResultStatus, ArrayList<Double>> computeEquilibria(BitSet supp, HashMap<Integer, int[]> map, int s);
+	public EquilibriumResult computeEquilibria(BitSet supp, HashMap<Integer, int[]> map);
 	
 	public void computeConstraints(BitSet supp);
 	
@@ -27,6 +27,8 @@ public interface CSGSupportEnumeration {
 	public void setGradient(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> gradient);
 	
 	public void setAssertions(HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>> assertions);
+	
+	public void setMap(HashMap<Integer, int[]> map);
 	
 	public ArrayList<Distribution> getStrat();
 
