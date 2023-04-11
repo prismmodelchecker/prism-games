@@ -625,13 +625,16 @@ public class ProbModelChecker extends NonProbModelChecker
 		int[] bounds = new int[coalitions.size()];
 		Expression expr1;
 		IntegerBound bound;
-		Arrays.fill(remain, null);
-		Arrays.fill(targets, null);
-		Arrays.fill(bounds, -1);
 		int e, p, r;
 		boolean type = true;
 		boolean rew = false;
 		boolean min = expr.getRelOp().isMin();
+		int eqType = expr.getEqType();
+		int crit = expr.getCrit();
+				
+		Arrays.fill(remain, null);
+		Arrays.fill(targets, null);
+		Arrays.fill(bounds, -1);
 		
 		/*
 		System.out.println("-- RelOp");
@@ -713,10 +716,8 @@ public class ProbModelChecker extends NonProbModelChecker
 					case ExpressionTemporal.R_I:
 						bounded.set(p);
 						bounds[p] = exprTemp.getUpperBound().evaluateInt(constantValues);
-						//cumul = false;
 						break;
 					case ExpressionTemporal.R_C:
-						//insta = false;
 						if (exprTemp.hasBounds()) {
 							bounded.set(p);
 							bound = IntegerBound.fromExpressionTemporal((ExpressionTemporal) expr1, constantValues, true);
@@ -741,34 +742,49 @@ public class ProbModelChecker extends NonProbModelChecker
 		else if (coalitions.size() == 2) {
 			if (unbounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG) model, coalitions, rewards, targets, min);
+					res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG) model, coalitions, rewards, targets, eqType, crit, min);
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG) model, coalitions, targets, remain, min);
+					res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG) model, coalitions, targets, remain, eqType, crit, min);
 				}
 			}
 			else if (bounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG) model, coalitions, rewards, exprs, bounds, min);
+					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG) model, coalitions, exprs, targets, remain, bounds, min);			
+					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG) model, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
 				}
 			}
 			else {
-				res = ((CSGModelChecker) this).computeMixedEquilibria((CSG) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, min);
+				res = ((CSGModelChecker) this).computeMixedEquilibria((CSG) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
 			}
 		}
 		else if (coalitions.size() > 2) {
-			throw new PrismNotSupportedException("Equilibria-based properties with more than two coalitions are not yet supported");	
-			/*
-			if (rew) {
-				res = ((CSGModelChecker) this).computeMultiRewReachEquilibria((CSG) model, coalitions, rewards, targets, min);
+			if (unbounded.cardinality() == formulae.size()) {
+				if (rew) {
+					res = ((CSGModelChecker) this).computeMultiRewReachEquilibria((CSG) model, coalitions, rewards, targets, eqType, crit, min);
+				}
+				else {
+					res = ((CSGModelChecker) this).computeMultiProbReachEquilibria((CSG) model, coalitions, targets, remain, eqType, crit, min);
+				}
+			}
+			else if (bounded.cardinality() == formulae.size()) {
+				int first_bound = bounds[0];
+				for (int i = 1; i < bounds.length; i++) {
+					if (first_bound != bounds[i])
+						throw new PrismNotSupportedException("Multi-coalitional properties with different bounds are not yet supported");
+				}
+				if (rew) {
+					res = ((CSGModelChecker) this).computeMultiRewBoundedEquilibria((CSG) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
+				}
+				else {
+					res = ((CSGModelChecker) this).computeMultiProbBoundedEquilibria((CSG) model, coalitions, targets, remain, bounds, eqType, crit, min);
+				}
 			}
 			else {
-				res = ((CSGModelChecker) this).computeMultiProbReachEquilibria((CSG) model, coalitions, targets, remain, min);
+				throw new PrismNotSupportedException("Multi-coalitional mixed properties are not yet supported");
 			}
-			*/
 		}
 
 		result.setStrategy(res.strat);
