@@ -251,7 +251,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 		}
 	}
 
-	public void compEq() {
+	public void computeEquilibria() {
 		ArrayList<Distribution> dists;
 		Distribution dist1;
 		Distribution dist2;
@@ -270,42 +270,42 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 
 		//in order to check for indifference
 		BoolExpr xeqrst = ctx.mkTrue();
-				BoolExpr yeqrst = ctx.mkTrue();
+		BoolExpr yeqrst = ctx.mkTrue();
 
-				start = new Date().getTime();
+		start = new Date().getTime();
 
-				vMult();
-				xLabels();
-				yLabels();
+		vMult();
+		xLabels();
+		yLabels();
 
-				eq = ctx.mkTrue();
-				for(i = 0; i < nrows+ncols; i++) {
-					eq = ctx.mkAnd(eq, ctx.mkOr(xlabels[i], ylabels[i]));
-				}
+		eq = ctx.mkTrue();
+		for(i = 0; i < nrows+ncols; i++) {
+			eq = ctx.mkAnd(eq, ctx.mkOr(xlabels[i], ylabels[i]));
+		}
 
-				Expr xctr = zero;
-				Expr yctr = zero;
+		Expr xctr = zero;
+		Expr yctr = zero;
 
-				for(i = 0; i < nrows; i++) {
-					xctr = ctx.mkAdd((ArithExpr) xctr, vars[i]);
-				}
-				xctr = ctx.mkEq(xctr, one);
+		for(i = 0; i < nrows; i++) {
+			xctr = ctx.mkAdd((ArithExpr) xctr, vars[i]);
+		}
+		xctr = ctx.mkEq(xctr, one);
 
-				for(j = i; j < nrows+ncols; j++) {
-					yctr = ctx.mkAdd((ArithExpr) yctr, vars[j]);
-				}
-				yctr = ctx.mkEq(yctr, one);		
+		for(j = i; j < nrows+ncols; j++) {
+			yctr = ctx.mkAdd((ArithExpr) yctr, vars[j]);
+		}
+		yctr = ctx.mkEq(yctr, one);		
 
-				s.add((BoolExpr) xctr); 
-				s.add((BoolExpr) yctr); 
-				s.add(eq);
+		s.add((BoolExpr) xctr); 
+		s.add((BoolExpr) yctr); 
+		s.add(eq);
 
-				j = 0; 
+		j = 0; 
 
-				strat = new ArrayList<ArrayList<Distribution>>();
-				eqs = new HashMap<String,ArrayList<Double>> ();
+		strat = new ArrayList<ArrayList<Distribution>>();
+		eqs = new HashMap<String,ArrayList<Double>> ();
 
-				/*
+		/*
     	System.out.println("-- xlabels");
         for (int l = 0; l < xlabels.length; l++) {
         	System.out.println(l + ": " + xlabels[l]);
@@ -315,9 +315,9 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
         for (int l = 0; l < ylabels.length; l++) {
         	System.out.println(l + ": " + ylabels[l]);        	
         }
-				 */
+		*/
 
-				/*
+		/*
         for(int nv = 0; nv < p1vars.length - 1; nv++) {
         	xeqrst = ctx.mkAnd(xeqrst, ctx.mkEq(p1vars[nv], p1vars[nv+1]));
         }
@@ -325,11 +325,11 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
         for(int nv = 0; nv < p2vars.length - 1; nv++) {
         	yeqrst = ctx.mkAnd(yeqrst, ctx.mkEq(p2vars[nv], p2vars[nv+1]));
         }
-				 */
+		*/
 
-				/*** Too strong? ***/
+		/*** Too strong? ***/
 
-				/* 
+		/* 
         for(int nv = 0; nv < p1vars.length; nv++) {
             for(int nnv = 0; nnv < p1vars.length; nnv++) {
             	xeqrst = ctx.mkAnd(xeqrst, 
@@ -353,34 +353,34 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
             						);
             }
         }
-				 */
+		*/
 
-				/*** Too strong? ***/
+		/*** Too strong? ***/
 
-				xeqrst = ctx.mkNot(xeqrst);
-				yeqrst = ctx.mkNot(yeqrst);
+		xeqrst = ctx.mkNot(xeqrst);
+		yeqrst = ctx.mkNot(yeqrst);
 
-				boolean indif = false;
+		boolean indif = false;
 
-				addPayoffs();
+		addPayoffs();
 
-				/*
+		/*
         Optimize opt = ctx.mkOptimize();
         opt.Add(ctx.mkEq(payoffs[0],  payvars[0]));
         opt.Add(ctx.mkEq(payoffs[1],  payvars[1]));
         opt.MkMaximize(payvars[0]);
         Optimize.Handle mx = opt.MkMaximize(payvars[0]);
         Optimize.Handle my = opt.MkMaximize(payvars[1]);
-				 */
+		*/
 
-				while (Status.SATISFIABLE == s.check()) {
-					model = s.getModel();
-					rstr = ctx.mkFalse();
+		while (Status.SATISFIABLE == s.check()) {
+			model = s.getModel();
+			rstr = ctx.mkFalse();
 
-					c1 = ctx.mkTrue();
-					c2 = ctx.mkTrue();
+			c1 = ctx.mkTrue();
+			c2 = ctx.mkTrue();
 
-					/*
+			/*
             if(j > 0) {          	
             	if(((BoolExpr) model.eval(xeqrst, true)).isFalse()) {
             		System.out.println("## Player 1 is indifferent. ##");
@@ -393,100 +393,100 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
             		//break;	
             	}      	            	
             }
-					 */
+			*/
 
-					//System.out.println(getDoubleValue(model, payvars[0]));
-					//System.out.println(getDoubleValue(model, payvars[1]));
-					//compPayoffs(model);
+			//System.out.println(getDoubleValue(model, payvars[0]));
+			//System.out.println(getDoubleValue(model, payvars[1]));
+			//compPayoffs(model);
 
-					dists = new ArrayList<Distribution>();
-					dist1 = new Distribution();
-					dist2 = new Distribution();
+			dists = new ArrayList<Distribution>();
+			dist1 = new Distribution();
+			dist2 = new Distribution();
 
-					for(i = 0; i < vars.length; i++) {
-						p = getDoubleValue(model, vars[i]);
-						if(p > 0) {
-							if(i < nrows)
-								dist1.add(i, p);
-							else 
-								dist2.add(i - nrows, p);
-						}
-						if(j == 0) {
-							eqs.put(vars[i].getSExpr(), new ArrayList<Double> ());
-							eqs.get(vars[i].getSExpr()).add(p);
-						}
-						else {
-							//System.out.println((RatNum) model.getConstInterp(vars[i]));
-							eqs.get(vars[i].getSExpr().toString()).add(p);	
-						}
-						//rstr = ctx.mkOr(rstr, ctx.mkNot(ctx.mkEq(vars[i], (RealExpr) model.getConstInterp(vars[i]))));
-					}
+			for(i = 0; i < vars.length; i++) {
+				p = getDoubleValue(model, vars[i]);
+				if(p > 0) {
+					if(i < nrows)
+						dist1.add(i, p);
+					else 
+						dist2.add(i - nrows, p);
+				}
+				if(j == 0) {
+					eqs.put(vars[i].getSExpr(), new ArrayList<Double> ());
+					eqs.get(vars[i].getSExpr()).add(p);
+				}
+				else {
+					//System.out.println((RatNum) model.getConstInterp(vars[i]));
+					eqs.get(vars[i].getSExpr().toString()).add(p);	
+				}
+				//rstr = ctx.mkOr(rstr, ctx.mkNot(ctx.mkEq(vars[i], (RealExpr) model.getConstInterp(vars[i]))));
+			}
 
-					for(i = 0; i < p1vars.length; i++) {
-						if(((BoolExpr) model.eval(ctx.mkEq(p1vars[i], zero), true)).isFalse()) {
-							c1 = ctx.mkAnd(c1, ctx.mkNot(ctx.mkEq(p1vars[i], zero)));
-						}
-						else {
-							c1 = ctx.mkAnd(c1, ctx.mkEq(p1vars[i], zero));
-						}
-					}
+			for(i = 0; i < p1vars.length; i++) {
+				if(((BoolExpr) model.eval(ctx.mkEq(p1vars[i], zero), true)).isFalse()) {
+					c1 = ctx.mkAnd(c1, ctx.mkNot(ctx.mkEq(p1vars[i], zero)));
+				}
+				else {
+					c1 = ctx.mkAnd(c1, ctx.mkEq(p1vars[i], zero));
+				}
+			}
 
-					for(i = 0; i < p2vars.length; i++) {
-						if(((BoolExpr) model.eval(ctx.mkEq(p2vars[i], zero), true)).isFalse()) {
-							c2 = ctx.mkAnd(c2, ctx.mkNot(ctx.mkEq(p2vars[i], zero)));
-						}
-						else {
-							c2 = ctx.mkAnd(c2, ctx.mkEq(p2vars[i], zero));
-						}
-					}            
+			for(i = 0; i < p2vars.length; i++) {
+				if(((BoolExpr) model.eval(ctx.mkEq(p2vars[i], zero), true)).isFalse()) {
+					c2 = ctx.mkAnd(c2, ctx.mkNot(ctx.mkEq(p2vars[i], zero)));
+				}
+				else {
+					c2 = ctx.mkAnd(c2, ctx.mkEq(p2vars[i], zero));
+				}
+			}            
 
-					/*
+			/*
             p1 = ctx.mkAnd(c2, ctx.mkEq(payvars[0], model.getConstInterp(payvars[0])));
             p2 = ctx.mkAnd(c1, ctx.mkEq(payvars[1], model.getConstInterp(payvars[1])));
-					 */
+			*/
 
-					/*
+			/*
         	prstr = ctx.mkAnd(ctx.mkEq(payvars[0], model.getConstInterp(payvars[0])), ctx.mkEq(payvars[1], model.getConstInterp(payvars[1])));
-					 */
+			*/
 
-					//System.out.println(opt.Check()); 
-					//System.out.println(mx.getValue());
-					//System.out.println(my.getValue());
+			//System.out.println(opt.Check()); 
+			//System.out.println(mx.getValue());
+			//System.out.println(my.getValue());
 
-					/*
+			/*
 			System.out.println("--");
 			for(String v : eqs.keySet()) {
 				System.out.println(v + " " + eqs.get(v).get(j));
 			}
 			System.out.println("--");
-					 */
+			 */
 
-					//System.out.println("$$ dist1 " + dist1);
-					//System.out.println("$$ dist2 " + dist2);
+			//System.out.println("$$ dist1 " + dist1);
+			//System.out.println("$$ dist2 " + dist2);
 
 
-					dists.add(0,dist1);
-					dists.add(1,dist2);
-					strat.add(j,dists);
+			dists.add(0,dist1);
+			dists.add(1,dist2);
+			strat.add(j,dists);
 
-					j++;
-					s.add(ctx.mkOr(ctx.mkNot(c1), ctx.mkNot(c2)));
+			j++;
+			s.add(ctx.mkOr(ctx.mkNot(c1), ctx.mkNot(c2)));
 
-					//s.add(rstr);
-					//s.add(ctx.mkNot(p2));
-					//s.add(ctx.mkNot(p1));
-				}
-				end = new Date().getTime();
-				time = (end - start)/1000.000;
-				//System.out.println("Time: " + time); 
-				if(!indif) {
-					//System.out.println(j + " equilibrium(a)");
-				}
-				else {
-					//System.out.println(j-1 + " equilibrium(a)");
-					//System.out.println("## One of the players is indifferent. ##");
-				}
-				neq = j;
+			//s.add(rstr);
+			//s.add(ctx.mkNot(p2));
+			//s.add(ctx.mkNot(p1));
+		}
+		end = new Date().getTime();
+		time = (end - start)/1000.000;
+		//System.out.println("Time: " + time); 
+		if(!indif) {
+			//System.out.println(j + " equilibrium(a)");
+		}
+		else {
+			//System.out.println(j-1 + " equilibrium(a)");
+			//System.out.println("## One of the players is indifferent. ##");
+		}
+		neq = j;
 	}
 
 	public void addPayoffs() {
@@ -619,8 +619,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 	}
 
 	@Override
-	public String getSolverName()
-	{
+	public String getSolverName() {
 		return solverName;
 	}
 

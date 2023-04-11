@@ -257,7 +257,7 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 		}
 	}
 
-	public void compEq() throws PrismException
+	public void computeEquilibria() throws PrismException
 	{
 		ArrayList<Distribution> dists;
 		Distribution dist1;

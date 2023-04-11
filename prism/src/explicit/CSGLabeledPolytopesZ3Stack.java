@@ -152,12 +152,6 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		}
 	}
 
-	@Override
-	public String getSolverName()
-	{
-		return solverName;
-	}
-
 	public void update(int nrows, int ncols, double[][] a, double[][] b) {
 		this.nrows = nrows;
 		this.ncols = ncols;
@@ -248,7 +242,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		}
 	}
 
-	public void compEq() {
+	public void computeEquilibria() {
 		ArrayList<Distribution> dists;
 		Distribution dist1;
 		Distribution dist2;
@@ -368,7 +362,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 	public double getDoubleValue(Model model, Expr expr) {
 		RatNum v1;
 		AlgebraicNum v2;
-		if(model.getConstInterp(expr) instanceof RatNum) {
+		if (model.getConstInterp(expr) instanceof RatNum) {
 			v1 = (RatNum) model.getConstInterp(expr);
 			return (Double) (v1.getBigIntNumerator().doubleValue() / v1.getBigIntDenominator().doubleValue());
 		}
@@ -381,6 +375,12 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			return Double.NaN;
 	}
 
+	@Override
+	public String getSolverName()
+	{
+		return solverName;
+	}
+	
 	public ArrayList<ArrayList<Distribution>> getStrat() {
 		return strat;
 	}
