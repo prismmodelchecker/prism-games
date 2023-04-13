@@ -48,29 +48,35 @@ PRISM was created and is still actively maintained by:
  * Gethin Norman (University of Glasgow)
  * Marta Kwiatkowska (University of Oxford) 
 
-Development of the tool is currently led from Oxford by Dave Parker. Other current key developers are:
+Development of the tool is currently led from Oxford by Dave Parker.
 
+The following have made a wide range of contributions to
+PRISM covering many different aspects of the tool
+(in approximately reverse chronological order):
+
+ * Steffen Märcker (Technische Universität Dresden)
  * Joachim Klein (formerly Technische Universität Dresden)
+ * Vojtech Forejt (formerly University of Oxford)
 
-In addition, the following have worked specifically worked on PRISM-games
+The following have worked specifically worked on PRISM-games
 (in approximately reverse chronological order):
 
 * Gabriel Santos: concurrent stochastic games and equilibria
 * Clemens Wiltsche: multi-objective and compositional techniques
 * Mateusz Ujma: turn-based stochastic games
-* Vojtěch Forejt: turn-based stochastic games
 * Aistis Simaitis: turn-based stochastic games
 
-We gratefully acknowledge contributions to the PRISM code-base from various sources,
-including (in approximately reverse chronological order):
+We also gratefully acknowledge contributions to the PRISM code-base from
+(in approximately reverse chronological order):
 
+ * Max Kurze: Language parser code improvements
+ * Ludwig Pauly: Reward import/export
+ * Alberto Puggelli: First version of interval DTMC/MDP code
  * Xueyi Zou: Partially observable Markov decision processes (POMDPs)
- * Steffen Märcker: Fixes and improvements, especially in explicit engine
  * Chris Novakovic: Build infrastructure and explicit engine improvements
  * Clemens Wiltsche: Multi-objective and compositional synthesis for stochastic games
  * Ernst Moritz Hahn: Parametric model checking, fast adaptive uniformisation + various other features
  * Frits Dannenberg: Fast adaptive uniformisation
- * Vojtech Forejt: Various model checking code, including multi-objective + GUI enhancements
  * Hongyang Qu: Multi-objective model checking
  * Mateusz Ujma: Bug fixes and GUI improvements
  * Christian von Essen: Symbolic/explicit-state model checking
