@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+// 	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -73,7 +73,6 @@ public class CSGModelChecker extends ProbModelChecker
 	public static final int R_ZERO = 2;
 
 	protected HashMap<Integer, Distribution<Double>> adv; // probably shouldn't be global or be here at all
-
 
 	protected double scaleFactor = getSettings().getDouble(PrismSettings.PRISM_ZS_LP_SCALE_FACTOR);
 
@@ -174,11 +173,6 @@ public class CSGModelChecker extends ProbModelChecker
 		try {
 			lp = LpSolve.makeLp(maxCols + 1, maxRows + 1);
 			lp.setVerbose(LpSolve.CRITICAL);
-			if (min1)
-				lp.resizeLp(0, maxCols + 1);
-			else
-				lp.resizeLp(0, maxRows + 1);
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new PrismException(e.toString());
@@ -187,12 +181,7 @@ public class CSGModelChecker extends ProbModelChecker
 			mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
 			nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
 			if (genStrat) {
-				// player -> iteration -> state -> indexes -> value
-				if (lstrat.get(0).get(0).get(s) == null) {
-					lstrat.get(0).get(0).set(s, kstrat.get(s));
-				} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-					lstrat.get(0).get(0).set(s, kstrat.get(s));
-				}
+				updateStrategy(kstrat, lstrat, 0, s, false);
 			}
 		}
 		timer = System.currentTimeMillis() - timer;
@@ -465,9 +454,8 @@ public class CSGModelChecker extends ProbModelChecker
 		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
-		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
-		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
+		ArrayList<ArrayList<Double>> mgame;
 		List<List<List<Map<BitSet, Double>>>> lstrat = null;
 		List<Map<BitSet, Double>> kstrat = null;
 		Map<Integer, BitSet> mmap = null;
@@ -480,6 +468,7 @@ public class CSGModelChecker extends ProbModelChecker
 		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
+			// player -> iteration -> state -> indexes -> value
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>();
 			lstrat.add(0, new ArrayList<List<Map<BitSet, Double>>>());
 			lstrat.get(0).add(0, new ArrayList<Map<BitSet, Double>>());
@@ -516,29 +505,10 @@ public class CSGModelChecker extends ProbModelChecker
 			for (s = 0; s < csg.getNumStates(); s++) {
 				if (!known.get(s)) {
 					mgame = buildMatrixGame(csg, null, mmap, ntmp, s, min);
-					try {
-						if (min)
-							lp.resizeLp(0, maxCols + 1);
-						else
-							lp.resizeLp(0, maxRows + 1);
-
-					} catch (LpSolveException e) {
-						throw new PrismException("Exception raised by lpSolve when resizing linear program for state " + s + " at iteration " + k);
-					}
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, false, min);
 					// player -> iteration -> state -> indexes -> value
-					if (bounded && genStrat) {
-						if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
-							lstrat.get(0).get(k).set(s, kstrat.get(s));
-						} else {
-							lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
-						}
-					} else if (genStrat) {
-						if (lstrat.get(0).get(0).get(s) == null) {
-							lstrat.get(0).get(0).set(s, kstrat.get(s));
-						} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-							lstrat.get(0).get(0).set(s, kstrat.get(s));
-						}
+					if (genStrat) {
+						updateStrategy(kstrat, lstrat, k, s, bounded);
 					}
 				} else if (genStrat) {
 					lstrat.get(0).get(0).add(s, null);
@@ -556,6 +526,7 @@ public class CSGModelChecker extends ProbModelChecker
 		}
 		mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		timer = System.currentTimeMillis() - timer;
+		ModelCheckerResult res = new ModelCheckerResult();
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
@@ -606,10 +577,6 @@ public class CSGModelChecker extends ProbModelChecker
 				mgame.clear();
 				mgame = buildMatrixGame(csg, null, null, nsol, s, min1);
 				try {
-					if (min1)
-						lp.resizeLp(0, maxCols + 1);
-					else
-						lp.resizeLp(0, maxRows + 1);
 					nsoln2[s] = val(lp, mgame, kstrat, null, s, true, min1);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -1035,7 +1002,8 @@ public class CSGModelChecker extends ProbModelChecker
 		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
-			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>(1);
+			// player -> iteration -> state -> indexes -> value
+			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>();
 			lstrat.add(0, new ArrayList<List<Map<BitSet, Double>>>());
 			lstrat.get(0).add(0, new ArrayList<Map<BitSet, Double>>());
 			for (i = 0; i < csg.getNumStates(); i++) {
@@ -1081,29 +1049,11 @@ public class CSGModelChecker extends ProbModelChecker
 			for (s = 0; s < csg.getNumStates(); s++) {
 				if (unknown.get(s)) {
 					mgame = buildMatrixGame(csg, rewards, mmap, ntmp, s, min);
-					try {
-						if (min)
-							lp.resizeLp(0, maxCols + 1);
-						else
-							lp.resizeLp(0, maxRows + 1);
-					} catch (LpSolveException e) {
-						throw new PrismException("Exception raised by lpSolve when resizing linear program for state " + s + " at iteration " + k);
-					}
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min);
 					nsol[s] += rewards.getStateReward(s);
-					if (bounded && genStrat) {
+					if (genStrat) {
 						// player -> iteration -> state -> indexes -> value
-						if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
-							lstrat.get(0).get(k).set(s, kstrat.get(s));
-						} else {
-							lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
-						}
-					} else if (genStrat) {
-						if (lstrat.get(0).get(0).get(s) == null) {
-							lstrat.get(0).get(0).set(s, kstrat.get(s));
-						} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-							lstrat.get(0).get(0).set(s, kstrat.get(s));
-						}
+						updateStrategy(kstrat, lstrat, k, s, bounded);
 					}
 				}
 			}
@@ -1526,7 +1476,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/*
-	 * Eventually B
+	 * Eventually b
 	 */
 	public BitSet AF(CSG<Double> csg, BitSet b) throws PrismException
 	{
@@ -2088,6 +2038,10 @@ public class CSGModelChecker extends ProbModelChecker
 				return res;
 			} else {
 				try {
+					if (min)
+						lp.resizeLp(0, maxCols + 1);
+					else
+						lp.resizeLp(0, maxRows + 1);
 					buildLPLpsolve(lp, mgame, rew, min);
 				} catch (LpSolveException e1) {
 					throw new PrismException("Exception raised by lpSolve when building linear program for state  " + s);
@@ -2285,6 +2239,33 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Update the strategy
+	 *
+	 * @param kstrat The strategies for all states computed in iteration k
+	 * @param lstrat The overall strategy
+	 * @param k Iteration k, if bounded
+	 * @param s The index of the state
+	 * @param bounded
+	 */
+	public void updateStrategy(List<Map<BitSet, Double>> kstrat, List<List<List<Map<BitSet, Double>>>> lstrat, int k, int s, boolean bounded)
+	{
+		// player -> iteration -> state -> indexes -> value
+		if (bounded) {
+			if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
+				lstrat.get(0).get(k).set(s, kstrat.get(s));
+			} else {
+				lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
+			}
+		} else {
+			if (lstrat.get(0).get(0).get(s) == null) {
+				lstrat.get(0).get(0).set(s, kstrat.get(s));
+			} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
+				lstrat.get(0).get(0).set(s, kstrat.get(s));
+			}
+		}
+	}
+
+	/**
 	 * Constructs the DRA for the CSGxDRA product when computing mixed bounded equilibria.
 	 * @param labelA Label for accepting states
 	 * @param bounds Bound for either cumulative or instant rewards
@@ -2365,7 +2346,7 @@ public class CSGModelChecker extends ProbModelChecker
 		for (int c = 0; c < csg.getNumChoices(s); c++) { // gets all choices
 			Distribution<Double> d = new Distribution<>();
 			csg.forEachTransition(s, c, (__, t, pr) -> { // gets all targets
-				if (!map_state.keySet().contains(t)) { //if not yet explored
+				if (!map_state.keySet().contains(t)) { // if not yet explored
 					map_state.put(t, csg_rm.addState());
 					filterStates(csg, csg_rm, rewards, rew_rm, t);
 				}
