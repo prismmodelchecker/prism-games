@@ -1,0 +1,23 @@
+// Bug fix for until prob0 precomp in symbolic SMG model checking (thanks Tobias)
+
+smg
+
+player p1
+	[p1]
+endplayer
+
+player p2
+	[p2]
+endplayer
+
+module sys
+  s : [0 .. 5] init 0;
+  [p2] s=0 -> (s'=1);
+  [p2] s=0 -> (s'=2);
+  [p1] s=1 -> 0.5 : (s'=2)  + 0.5 : (s'=3);
+  [p1] s=1 -> (s'=3);
+  [p1] s=3 -> (s'=2);
+endmodule
+
+label "done" = s=2;
+label "unsafe" = s=3;

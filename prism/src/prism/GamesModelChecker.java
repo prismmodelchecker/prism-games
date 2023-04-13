@@ -697,7 +697,7 @@ public class GamesModelChecker extends NonProbModelChecker
 	 * @param b
 	 * @return
 	 */
-	protected JDDNode prob0(JDDNode target, boolean min1, boolean min2)
+	protected JDDNode prob0(JDDNode remain, JDDNode target, boolean min1, boolean min2)
 	{
 		JDDNode u, tmp;
 		boolean u_done;
@@ -721,7 +721,10 @@ public class GamesModelChecker extends NonProbModelChecker
 			tmp = JDD.ThereExists(JDD.And(tmp, trans01.copy()), allDDColVars);
 			// Exists/forall
 			tmp = computeExistsForall(tmp, !min1, !min2);
-			tmp = JDD.Or(tmp, target.copy());
+			// Add/remove target/non-remain
+			tmp = JDD.And(remain.copy(), tmp);
+			tmp = JDD.Or(target.copy(), tmp);
+			// Check termination
 			u_done = (u.equals(tmp));
 			JDD.Deref(u);
 			u = tmp;
@@ -730,6 +733,7 @@ public class GamesModelChecker extends NonProbModelChecker
 		JDD.Ref(target);
 		u = JDD.And(JDD.Not(u), JDD.Not(target), reach);
 		// Derefs
+		JDD.Deref(remain);
 		JDD.Deref(target);
 
 		timer = System.currentTimeMillis() - timer;
@@ -881,7 +885,7 @@ public class GamesModelChecker extends NonProbModelChecker
 			// Precomputation
 			long timerPrecomp = System.currentTimeMillis();
 			if (precomp && prob0) {
-				no = prob0(b2.copy(), min1, min2);
+				no = prob0(b1.copy(), b2.copy(), min1, min2);
 			} else {
 				no = JDD.And(reach.copy(), JDD.Not(JDD.Or(b1.copy(), b2.copy())));
 			}
