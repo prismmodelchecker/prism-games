@@ -72,8 +72,6 @@ public class CSGModelChecker extends ProbModelChecker
 	public static final int R_CUMULATIVE = 1;
 	public static final int R_ZERO = 2;
 
-	protected HashMap<Integer, Distribution<Double>> adv; // probably shouldn't be global or be here at all
-
 	protected double scaleFactor = getSettings().getDouble(PrismSettings.PRISM_ZS_LP_SCALE_FACTOR);
 
 	// Info about the current coalitions for model checking
@@ -270,7 +268,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * i.e. compute the min/max probability of reaching a state in {@code target}.
 	 * @param csg The CSG
 	 * @param target Target states
-	 * @param k Bound
+	 * @param bound Bound
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
@@ -354,7 +352,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
-	 * @param k Bound
+	 * @param bound Bound
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
@@ -447,7 +445,6 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param limit Bound
 	 * @param bounded Is the problem (step) bounded?
 	 * @param min Min or max probabilities for player 1 (true=min, false=max)
-	 * @param coalition The coalition of players which define player 1
 	 **/
 	public ModelCheckerResult computeReachProbsValIter(CSG<Double> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
@@ -628,7 +625,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Compute expected total rewards,
 	 * i.e. compute the min/max expected reward accumulated.
 	 * @param csg The CSG
-	 * @param csgRewards The rewards
+	 * @param rewards The rewards
 	 * @param coalition The coalition of players which define player 1
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
