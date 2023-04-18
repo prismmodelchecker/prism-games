@@ -91,6 +91,8 @@ public class CSGModelChecker extends ProbModelChecker
 	protected int maxRows;
 	/** For the current coalition, the max number of columns in the matrix game across all CSG states */
 	protected int maxCols;
+	/** For each coalition, the max number of actions across all CSG states */
+	protected int[] maxNumActions;
 	/** For each coalition, the average number of actions across all CSG states */
 	protected double[] avgNumActions;
 
@@ -1154,46 +1156,6 @@ public class CSGModelChecker extends ProbModelChecker
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
 		csgeq.inheritSettings(this);
 		res = csgeq.computeReachEquilibria(csg, coalitions, rewards, targets, null, min);
-		return res;
-	}
-
-	/**
-	 * Deal with multi-player probabilistic reachability formulae
-	 * @param csg The CSG
-	 * @param coalitions The list of coalitions
-	 * @param targets The list of sets of target states
-	 * @param remain The list of sets of states we need to remain in (in case of until)
-	 * @param min Whether we're minimising for the first coalition
-	 * @return
-	 * @throws PrismException
-	 */
-	public ModelCheckerResult computeMultiProbReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, boolean min)
-			throws PrismException
-	{
-		ModelCheckerResult res = new ModelCheckerResult();
-		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		csgeq.inheritSettings(this);
-		res = csgeq.computeMultiReachEquilibria(csg, coalitions, null, targets, remain, min);
-		return res;
-	}
-
-	/**
-	 * Deal with multi-player reachability rewards formulae
-	 * @param csg The CSG
-	 * @param coalitions The list of coalitions
-	 * @param rewards The list of reward structures
-	 * @param targets The list of sets of target states
-	 * @param min Whether we're minimising for the first coalition
-	 * @return
-	 * @throws PrismException
-	 */
-	public ModelCheckerResult computeMultiRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, boolean min)
-			throws PrismException
-	{
-		ModelCheckerResult res = new ModelCheckerResult();
-		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		csgeq.inheritSettings(this);
-		res = csgeq.computeMultiReachEquilibria(csg, coalitions, rewards, targets, null, min);
 		return res;
 	}
 

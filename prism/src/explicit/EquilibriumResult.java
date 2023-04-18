@@ -2,7 +2,6 @@
 //	
 //	Copyright (c) 2020-
 //	Authors:
-//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
 //	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
@@ -18,34 +17,52 @@
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//
+//	
 //	You should have received a copy of the GNU General Public License
 //	along with PRISM; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
+//	
 //==============================================================================
 
 package explicit;
 
+import explicit.CSGModelCheckerEquilibria.CSGResultStatus;
+
 import java.util.ArrayList;
 
-import prism.PrismException;
-
-public interface CSGLabeledPolytopes
+public class EquilibriumResult
 {
-	public String getSolverName();
+	private CSGResultStatus status;
+	private ArrayList<Double> payoffVector;
+	private ArrayList<Distribution<Double>> strategy;
 
-	public void update(int nrows, int ncols, double[][] a, double[][] b);
+	public CSGResultStatus getStatus()
+	{
+		return status;
+	}
 
-	public void computeEquilibria() throws PrismException;
+	public void setStatus(CSGResultStatus status)
+	{
+		this.status = status;
+	}
 
-	public void compPayoffs();
+	public ArrayList<Double> getPayoffVector()
+	{
+		return payoffVector;
+	}
 
-	public ArrayList<ArrayList<Distribution<Double>>> getStrat();
+	public void setPayoffVector(ArrayList<Double> payoffVector)
+	{
+		this.payoffVector = payoffVector;
+	}
 
-	public double[] getP1p();
+	public ArrayList<Distribution<Double>> getStrategy()
+	{
+		return strategy;
+	}
 
-	public double[] getP2p();
-
-	public int getNeq();
+	public void setStrategy(ArrayList<Distribution<Double>> strategy)
+	{
+		this.strategy = strategy;
+	}
 }
