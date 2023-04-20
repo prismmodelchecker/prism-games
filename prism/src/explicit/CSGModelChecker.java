@@ -329,7 +329,11 @@ public class CSGModelChecker extends ProbModelChecker
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
 		if (!bounded && precomp && prob1) {
-			yes.or(AF(csg, target));
+			if (!(exportAdv || genStrat)) {
+				yes.or(AF(csg, target));
+			} else {
+				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
+			}
 		}
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
@@ -417,7 +421,11 @@ public class CSGModelChecker extends ProbModelChecker
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
 		if (!bounded && precomp && prob1) {
-			yes.or(AF(csg, remain, target));
+			if (!(exportAdv || genStrat)) {
+				yes.or(AF(csg, remain, target));
+			} else {
+				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
+			}
 		}
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 		yes.or(target);
