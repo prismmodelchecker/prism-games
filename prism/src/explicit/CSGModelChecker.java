@@ -1136,6 +1136,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, exprs, targets, remain, bounds, min);
 		return res;
 	}
@@ -1155,6 +1156,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeReachEquilibria(csg, coalitions, null, targets, remain, min);
 		return res;
 	}
@@ -1175,6 +1177,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, min);
 		return res;
 	}
@@ -1194,6 +1197,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeReachEquilibria(csg, coalitions, rewards, targets, null, min);
 		return res;
 	}
@@ -1213,6 +1217,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeMultiReachEquilibria(csg, coalitions, null, targets, remain, min);
 		return res;
 	}
@@ -1232,6 +1237,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeMultiReachEquilibria(csg, coalitions, rewards, targets, null, min);
 		return res;
 	}
@@ -1255,6 +1261,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		LTLModelChecker ltlmc = new LTLModelChecker(this);
 		LTLProduct<CSG<Double>> product;
 		List<CSGRewards<Double>> newrewards = new ArrayList<>();
