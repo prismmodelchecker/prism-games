@@ -2,9 +2,8 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
-//	* Aistis Simaitis <aistis.aimaitis@cs.ox.ac.uk> (University of Oxford)
-//	
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
+//
 //------------------------------------------------------------------------------
 //	
 //	This file is part of PRISM.
@@ -27,8 +26,10 @@
 
 package strat;
 
+import explicit.ConstructInducedModel;
 import explicit.Model;
 import explicit.NondetModel;
+import prism.PrismException;
 import prism.PrismLog;
 
 /**
@@ -80,19 +81,24 @@ public class MDStrategyArray<Value> extends StrategyExplicit<Value> implements M
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision)
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		Model<Value> dtmcInd = model.constructInducedModel(this);
-		dtmcInd.exportToPrismExplicitTra(out, precision);
+		ConstructInducedModel cim = new ConstructInducedModel();
+		cim.setMode(options.getMode()).setReachOnly(options.getReachOnly());
+		Model<Value> inducedModel = cim.constructInducedModel(model, this);
+		inducedModel.exportToPrismExplicitTra(out, options.getModelPrecision());
+
+		// NB: for reach=false (and MDPs), it would be slightly cheaper to use:
+		//Model<Value> inducedModel = model.constructInducedModel(this);
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision)
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		// For now, we export just the reduced (induced) model
-		Model<Value> dtmcInd = model.constructInducedModel(this);
-		dtmcInd.exportToDotFile(out, null, true, precision);
-		//model.exportToDotFileWithStrat(out, null, choices, precision);
+		ConstructInducedModel cim = new ConstructInducedModel();
+		cim.setMode(options.getMode()).setReachOnly(options.getReachOnly());
+		Model<Value> inducedModel = cim.constructInducedModel(model, this);
+		inducedModel.exportToDotFile(out, null, options.getShowStates(), options.getModelPrecision());
 	}
 
 	@Override

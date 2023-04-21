@@ -1722,19 +1722,19 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	}
 
 	@Override
-	public void exportActions(PrismLog out)
+	public void exportActions(PrismLog out, StrategyExportOptions options)
 	{
 		out.print(this.toString());
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public void exportIndices(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision)
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO
 	}
@@ -1747,7 +1747,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision)
+	public void exportDotFile(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO Auto-generated method stub
 

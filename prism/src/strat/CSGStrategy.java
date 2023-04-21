@@ -137,7 +137,7 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 	}
 	
 	@Override
-	public void exportActions(PrismLog out) {
+	public void exportActions(PrismLog out, StrategyExportOptions options) {
 		try {
 			switch(type) {
 				case ZERO_SUM:
@@ -158,17 +158,17 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 	}
 
 	@Override
-	public void exportIndices(PrismLog out) {
+	public void exportIndices(PrismLog out, StrategyExportOptions options) {
 		// TODO Auto-generated method stub
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision) {
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) {
 		// TODO Auto-generated method stub
 	}
 	
 	@Override
-	public void exportDotFile(PrismLog out, int precision) {
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) {
 		// TODO Auto-generated method stub
 	}
 	

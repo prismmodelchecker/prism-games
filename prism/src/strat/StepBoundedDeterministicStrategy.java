@@ -223,7 +223,7 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	public void export(PrismLog out) {}
 
 	@Override
-	public void exportActions(PrismLog out)
+	public void exportActions(PrismLog out, StrategyExportOptions options)
 	{
 		int n = (int) model.getNumStates();
 		for (int s = 0; s < n; s++) {
@@ -242,7 +242,7 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public void exportIndices(PrismLog out, StrategyExportOptions options)
 	{
 		int n = (int) model.getNumStates();
 		for (int s = 0; s < n; s++) {
@@ -255,14 +255,14 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision)
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision)
+	public void exportDotFile(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO Auto-generated method stub
 		

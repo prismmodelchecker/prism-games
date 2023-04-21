@@ -47,7 +47,7 @@ import parser.ast.ExpressionReward;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
-import prism.Prism.StrategyExportType;
+import strat.StrategyExportOptions;
 import prism.ResultsExporter.ResultsExportShape;
 import prism.ResultsImporter.RawResultsCollection;
 import simulator.GenerateSimulationPath;
@@ -214,7 +214,7 @@ public class PrismCL implements PrismModelListener
 	private SimulationMethod simMethod = null;
 
 	// strategy export info
-	private Prism.StrategyExportType exportStratType = StrategyExportType.ACTIONS;
+	private StrategyExportOptions exportStratOptions = null;
 	
 	// parametric analysis info
 	private String[] paramLowerBounds = null;
@@ -466,7 +466,7 @@ public class PrismCL implements PrismModelListener
 						// if a strategy was generated, and we need to export it, do so
 						if (exportstrat && res.getStrategy() != null) {
 							try {
-								prism.exportStrategy(res.getStrategy(), exportStratType, exportStratFilename.equals("stdout") ? null : new File(exportStratFilename));
+								prism.exportStrategy(res.getStrategy(), exportStratOptions, exportStratFilename.equals("stdout") ? null : new File(exportStratFilename));
 							}
 							// in case of error, report it and proceed
 							catch (FileNotFoundException e) {
@@ -606,7 +606,7 @@ public class PrismCL implements PrismModelListener
 			// default to log going to stdout
 			// this means all errors etc. can be safely sent to the log
 			// even if a new log is created shortly
-		    
+
 			mainLog = new PrismFileLog("stdout");
 
 			// create prism object(s)
@@ -2284,7 +2284,16 @@ public class PrismCL implements PrismModelListener
 		// Store some settings (here and in PRISM)
 		exportstrat = true;
 		exportStratFilename = fileString;
+		exportStratOptions = new StrategyExportOptions();
 		prism.setGenStrat(true);
+		// Default strategy export type is based on filename extension
+		if (exportStratFilename.endsWith("tra")) {
+			exportStratOptions.setType(StrategyExportOptions.StrategyExportType.INDUCED_MODEL);
+		} else if (exportStratFilename.endsWith("dot")) {
+			exportStratOptions.setType(StrategyExportOptions.StrategyExportType.DOT_FILE);
+		} else {
+			exportStratOptions.setType(StrategyExportOptions.StrategyExportType.ACTIONS);
+		}
 		// Process options
 		String options[] = optionsString.split(",");
 		for (String opt : options) {
@@ -2296,26 +2305,57 @@ public class PrismCL implements PrismModelListener
 					throw new PrismException("No value provided for \"type\" option of -exportstrat");
 				String optVal = opt.substring(5);
 				if (optVal.equals("actions"))
-					exportStratType = StrategyExportType.ACTIONS;
+					exportStratOptions.setType(StrategyExportOptions.StrategyExportType.ACTIONS);
 				else if (optVal.equals("indices"))
-					exportStratType = StrategyExportType.INDICES;
-				else if (optVal.equals("induced"))
-					exportStratType = StrategyExportType.INDUCED_MODEL;
+					exportStratOptions.setType(StrategyExportOptions.StrategyExportType.INDICES);
+				else if (optVal.equals("model") || optVal.equals("induced"))
+					exportStratOptions.setType(StrategyExportOptions.StrategyExportType.INDUCED_MODEL);
 				else if (optVal.equals("dot"))
-					exportStratType = StrategyExportType.DOT_FILE;
-				else if (optVal.equals("matlab"))
-					exportStratType = StrategyExportType.MATLAB;
+					exportStratOptions.setType(StrategyExportOptions.StrategyExportType.DOT_FILE);
 				else
 					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"type\" option of -exportstrat");
+			}
+			else if (opt.startsWith("mode")) {
+				if (!opt.startsWith("mode="))
+					throw new PrismException("No value provided for \"mode\" option of -exportstrat");
+				String optVal = opt.substring(5);
+				if (optVal.equals("restrict"))
+					exportStratOptions.setMode(StrategyExportOptions.InducedModelMode.RESTRICT);
+				else if (optVal.equals("reduce"))
+					exportStratOptions.setMode(StrategyExportOptions.InducedModelMode.REDUCE);
+				else
+					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"mode\" option of -exportstrat");
 			}
 			else if (opt.startsWith("reach")) {
 				if (!opt.startsWith("reach="))
 					throw new PrismException("No value provided for \"reach\" option of -exportstrat");
 				String optVal = opt.substring(6);
 				if (optVal.equals("true"))
-					prism.setRestrictStratToReach(true);
+					exportStratOptions.setReachOnly(true);
 				else if (optVal.equals("false"))
-					prism.setRestrictStratToReach(false);
+					exportStratOptions.setReachOnly(false);
+				else
+					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"reach\" option of -exportstrat");
+			}
+			else if (opt.startsWith("states")) {
+				if (!opt.startsWith("states="))
+					throw new PrismException("No value provided for \"states\" option of -exportstrat");
+				String optVal = opt.substring(7);
+				if (optVal.equals("true"))
+					exportStratOptions.setShowStates(true);
+				else if (optVal.equals("false"))
+					exportStratOptions.setShowStates(false);
+				else
+					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"reach\" option of -exportstrat");
+			}
+			else if (opt.startsWith("obs")) {
+				if (!opt.startsWith("obs="))
+					throw new PrismException("No value provided for \"obs\" option of -exportstrat");
+				String optVal = opt.substring(4);
+				if (optVal.equals("true"))
+					exportStratOptions.setMergeObservations(true);
+				else if (optVal.equals("false"))
+					exportStratOptions.setMergeObservations(false);
 				else
 					throw new PrismException("Unknown value \"" + optVal + "\" provided for \"reach\" option of -exportstrat");
 			}
