@@ -68,7 +68,7 @@ public interface STPG<Value> extends MDP<Value>
 	}
 
 	@Override
-	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
+	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision)
 	{
 		// Copy any existing decorators
 		List<explicit.graphviz.Decorator> decoratorsNew = new ArrayList<>();
@@ -79,7 +79,7 @@ public interface STPG<Value> extends MDP<Value>
 		}
 		// And add a new one that draws states according to player owner
 		decoratorsNew.add(new StateOwnerDecorator(this::getPlayer));
-		MDP.super.exportToDotFile(out, decoratorsNew);
+		MDP.super.exportToDotFile(out, decoratorsNew, precision);
 	}
 	
 	@Override
