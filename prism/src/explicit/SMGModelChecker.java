@@ -81,7 +81,10 @@ import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.PrismUtils;
+import strat.FMDStrategyProduct;
+import strat.MDStrategy;
 import strat.StochasticUpdateStrategy;
+import strat.Strategy;
 
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
@@ -1047,7 +1050,13 @@ public class SMGModelChecker extends ProbModelChecker
 		mcProduct.inheritSettings(this);
 		ModelCheckerResult res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 		StateValues rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
-		
+
+		// If a strategy was generated, lift it to the product and store
+		if (res.strat != null) {
+			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, (MDStrategy<Double>) res.strat);
+			result.setStrategy(stratProduct);
+		}
+
 		// Mapping rewards in the original model
 		StateValues rewards = product.projectToOriginalModel(rewardsProduct);
 		rewardsProduct.clear();

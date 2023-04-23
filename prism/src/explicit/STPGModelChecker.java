@@ -50,8 +50,11 @@ import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
+import strat.FMDStrategyProduct;
 import strat.FMDStrategyStep;
+import strat.MDStrategy;
 import strat.MDStrategyArray;
+import strat.Strategy;
 
 /**
  * Explicit-state model checker for two-player stochastic games (STPGs).
@@ -116,6 +119,12 @@ public class STPGModelChecker extends ProbModelChecker
 				out.close();
 		}
 
+		// If a strategy was generated, lift it to the product and store
+		if (res.strat != null) {
+			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, (MDStrategy<Double>) res.strat);
+			result.setStrategy(stratProduct);
+		}
+
 		// Mapping probabilities in the original model
 		StateValues probs = product.projectToOriginalModel(probsProduct);
 		probsProduct.clear();
@@ -138,7 +147,6 @@ public class STPGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = null;
 		int n;
 		double soln[], soln2[];
-		int strat[] = null;
 		long timer;
 
 		timer = System.currentTimeMillis();
@@ -153,6 +161,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		// (except for target states, which are -2, denoting arbitrary)
+		int strat[] = null;
 		if (genStrat || exportAdv) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
@@ -511,7 +520,6 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[], initVal;
-		int strat[] = null;
 		boolean done;
 		long timer;
 
@@ -554,17 +562,17 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
+		int strat[] = null;
 		if (genStrat || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
 			}
-			int s;
-			for (i = 0; i < no.length(); i++) {
-				s = no.nextSetBit(i);
-				for (int c = 0; c < stpg.getNumChoices(s); c++) {
-					if (stpg.allSuccessorsInSet(s, c, no)) {
-						strat[i] = c;
+			for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
+				int numChoices = stpg.getNumChoices(i);
+				for (int k = 0; k < numChoices; k++) {
+					if (stpg.allSuccessorsInSet(i, k, no)) {
+						strat[i] = k;
 						break;
 					}
 				}
@@ -609,20 +617,6 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
-		}
-
-		// Print adversary
-		if (genStrat) {
-			PrismLog out = new PrismFileLog(exportAdvFilename);
-			if (exportAdvFilename.lastIndexOf('.') != -1 && exportAdvFilename.substring(exportAdvFilename.lastIndexOf('.') + 1).equals("dot")) {
-				stpg.exportToDotFileWithStrat(out, null, strat);
-			} else {
-				for (i = 0; i < n; i++) {
-					out.println(i + " " + (strat[i] != -1 ? stpg.getAction(i, strat[i]) : "-"));
-				}
-				out.println();
-			}
-			out.close();
 		}
 
 		return res;
@@ -685,13 +679,32 @@ public class STPGModelChecker extends ProbModelChecker
 		if (known != null)
 			unknown.andNot(known);
 
+		// If required, create/initialise strategy storage
+		// Set choices to -1, denoting unknown
+		int strat[] = null;
+		if (genStrat || exportAdv) {
+			strat = new int[n];
+			for (i = 0; i < n; i++) {
+				strat[i] = -1;
+			}
+			for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
+				int numChoices = stpg.getNumChoices(i);
+				for (int k = 0; k < numChoices; k++) {
+					if (stpg.allSuccessorsInSet(i, k, no)) {
+						strat[i] = k;
+						break;
+					}
+				}
+			}
+		}
+
 		// Start iterations
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false, termCrit == TermCrit.ABSOLUTE);
+			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false, termCrit == TermCrit.ABSOLUTE, strat);
 			// Check termination
 			done = maxDiff < termCritParam;
 		}
@@ -710,12 +723,16 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException(msg);
 		}
 
-		// Return results
+		// Store results/strategy
 		res = new ModelCheckerResult();
 		res.soln = soln;
 		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
+		if (genStrat) {
+			res.strat = new MDStrategyArray<>(stpg, strat);
+		}
+
 		return res;
 	}
 
@@ -788,7 +805,6 @@ public class STPGModelChecker extends ProbModelChecker
 		int n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
-		int strat[] = null;
 		FMDStrategyStep<Double> fmdStrat = null;
 
 		// Start bounded probabilistic reachability
@@ -806,6 +822,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		// (except for target states, which are -2, denoting arbitrary)
+		int strat[] = null;
 		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
@@ -953,7 +970,6 @@ public class STPGModelChecker extends ProbModelChecker
 		BitSet unknown, notInf;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
-		int strat[] = null;
 		boolean done;
 		long timer;
 
@@ -998,22 +1014,11 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
+		int strat[] = null;
 		if (genStrat || exportAdv) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
-			}
-
-			int s;
-			for (i = 0; i < inf.length(); i++) {
-				s = inf.nextSetBit(i);
-				for (int c = 0; c < stpg.getNumChoices(s); c++) {
-					// for player 1 check
-					if (stpg.getPlayer(s) == 0 && !stpg.allSuccessorsInSet(s, c, notInf)) {
-						strat[i] = c;
-						break;
-					}
-				}
 			}
 		}
 
@@ -1047,20 +1052,6 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1) {
 			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-		}
-
-		// Print adversary
-		if (genStrat) {
-			PrismLog out = new PrismFileLog(exportAdvFilename);
-			if (exportAdvFilename.lastIndexOf('.') != -1 && exportAdvFilename.substring(exportAdvFilename.lastIndexOf('.') + 1).equals("dot")) {
-				stpg.exportToDotFileWithStrat(out, null, strat);
-			} else {
-				for (i = 0; i < n; i++) {
-					out.println(i + " " + (strat[i] != -1 ? stpg.getAction(i, strat[i]) : "-"));
-				}
-				out.println();
-			}
-			out.close();
 		}
 
 		// Non-convergence is an error (usually)

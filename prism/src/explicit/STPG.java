@@ -240,7 +240,7 @@ public interface STPG<Value> extends MDP<Value>
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute);
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute, int adv[]);
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
@@ -250,7 +250,7 @@ public interface STPG<Value> extends MDP<Value>
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 */
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2);
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int[] adv);
 
 	/**
 	 * Do a matrix-vector multiplication and sum of action reward followed by min/max, i.e. one step of value iteration.

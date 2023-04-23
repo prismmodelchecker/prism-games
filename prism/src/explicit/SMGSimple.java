@@ -282,28 +282,28 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 
 	@Override
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute)
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute, int[] adv)
 	{
 		int s;
 		double d, diff, maxDiff = 0.0;
 		// Loop depends on subset/complement arguments
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2, adv);
 				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
 				maxDiff = diff > maxDiff ? diff : maxDiff;
 				vect[s] = d;
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2, adv);
 				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
 				maxDiff = diff > maxDiff ? diff : maxDiff;
 				vect[s] = d;
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
-				d = mvMultJacMinMaxSingle(s, vect, min1, min2);
+				d = mvMultJacMinMaxSingle(s, vect, min1, min2, adv);
 				diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
 				maxDiff = diff > maxDiff ? diff : maxDiff;
 				vect[s] = d;
@@ -313,10 +313,10 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 
 	@Override
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2)
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int[] adv)
 	{
 		boolean min = (getPlayer(s) == 0) ? min1 : min2;
-		return mvMultJacMinMaxSingle(s, vect, min, null);
+		return mvMultJacMinMaxSingle(s, vect, min, adv);
 	}
 
 	@Override

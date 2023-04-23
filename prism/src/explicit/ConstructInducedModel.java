@@ -95,6 +95,7 @@ public class ConstructInducedModel
 				case MDP:
 				case POMDP:
 				case STPG:
+				case SMG:
 					inducedModelType = ModelType.DTMC;
 					break;
 				case IMDP:
@@ -127,6 +128,9 @@ public class ConstructInducedModel
 				break;
 			case STPG:
 				inducedModel = new STPGSimple<>();
+				break;
+			case SMG:
+				inducedModel = new SMGSimple<>();
 				break;
 			default:
 				throw new PrismNotSupportedException("Product construction not supported for " + modelType + "s");
@@ -221,6 +225,9 @@ public class ConstructInducedModel
 				case STPG:
 					((STPGSimple<Value>) inducedModel).addState(((STPG<Value>) model).getPlayer(s));
 					break;
+				case SMG:
+					((SMGSimple<Value>) inducedModel).addState(((SMG<Value>) model).getPlayer(s));
+					break;
 				default:
 					inducedModel.addState();
 					break;
@@ -246,6 +253,9 @@ public class ConstructInducedModel
 				case STPG:
 					iter = ((STPG<Value>) model).getTransitionsIterator(s, j);
 					break;
+				case SMG:
+					iter = ((SMG<Value>) model).getTransitionsIterator(s, j);
+					break;
 				default:
 					throw new PrismNotSupportedException("Induced model construction not implemented for " + modelType + "s");
 			}
@@ -265,6 +275,7 @@ public class ConstructInducedModel
 					case MDP:
 					case POMDP:
 					case STPG:
+					case SMG:
 						prodDistr.set(map[s_2], prob);
 						break;
 					default:
@@ -280,6 +291,9 @@ public class ConstructInducedModel
 					break;
 				case STPG:
 					((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, ((STPG<Value>) model).getAction(s, j));
+					break;
+				case SMG:
+					((SMGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, ((SMG<Value>) model).getAction(s, j));
 					break;
 				default:
 					break;

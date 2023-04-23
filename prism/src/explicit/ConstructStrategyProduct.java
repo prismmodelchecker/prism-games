@@ -106,6 +106,7 @@ public class ConstructStrategyProduct
 				case MDP:
 				case POMDP:
 				case STPG:
+				case SMG:
 					productModelType = ModelType.DTMC;
 					break;
 				case IMDP:
@@ -138,6 +139,9 @@ public class ConstructStrategyProduct
 			break;
 		case STPG:
 			prodModel = new STPGSimple<>();
+			break;
+		case SMG:
+			prodModel = new SMGSimple<>();
 			break;
 		default:
 			throw new PrismNotSupportedException("Product construction not supported for " + modelType + "s");
@@ -216,6 +220,9 @@ public class ConstructStrategyProduct
 			case STPG:
 				((STPGSimple<Value>) prodModel).addState(((STPG<Value>) model).getPlayer(s_0));
 				break;
+			case SMG:
+				((SMGSimple<Value>) prodModel).addState(((SMG<Value>) model).getPlayer(s_0));
+				break;
 			default:
 				prodModel.addState();
 			break;
@@ -266,6 +273,9 @@ public class ConstructStrategyProduct
 				case STPG:
 					iter = ((STPG<Value>) model).getTransitionsIterator(s_1, j);
 					break;
+				case SMG:
+					iter = ((SMG<Value>) model).getTransitionsIterator(s_1, j);
+					break;
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
@@ -292,6 +302,9 @@ public class ConstructStrategyProduct
 						case STPG:
 							((STPGSimple<Value>) prodModel).addState(((STPG<Value>) model).getPlayer(s_2));
 							break;
+						case SMG:
+							((SMGSimple<Value>) prodModel).addState(((SMG<Value>) model).getPlayer(s_2));
+							break;
 						default:
 							prodModel.addState();
 							break;
@@ -309,6 +322,7 @@ public class ConstructStrategyProduct
 					case MDP:
 					case POMDP:
 					case STPG:
+					case SMG:
 						prodDistr.set(map[s_2 * memSize + q_2], prob);
 						break;
 					default:
@@ -324,6 +338,9 @@ public class ConstructStrategyProduct
 					break;
 				case STPG:
 					((STPGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * memSize + q_1], prodDistr, ((STPG<Value>) model).getAction(s_1, j));
+					break;
+				case SMG:
+					((SMGSimple<Value>) prodModel).addActionLabelledChoice(map[s_1 * memSize + q_1], prodDistr, ((SMG<Value>) model).getAction(s_1, j));
 					break;
 				default:
 					break;
