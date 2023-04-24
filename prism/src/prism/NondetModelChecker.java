@@ -2130,7 +2130,7 @@ public class NondetModelChecker extends NonProbModelChecker
 							probs = new StateValuesDV(probsDV, model);
 						}
 					}
-					if (genStrat && strat != null) {
+					if (genStrat && strat != null && result != null) {
 						result.setStrategy(new MDStrategyIV(model, strat));
 					}
 					break;

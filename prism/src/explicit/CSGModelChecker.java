@@ -155,7 +155,7 @@ public class CSGModelChecker extends ProbModelChecker
 		double[] nsol = new double[csg.getNumStates()];
 		long timer;
 		int s, i;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>(1);
@@ -186,7 +186,7 @@ public class CSGModelChecker extends ProbModelChecker
 		for (s = 0; s < csg.getNumStates(); s++) {
 			mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
 			nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
-			if ((genStrat || exportAdv)) {
+			if (genStrat) {
 				// player -> iteration -> state -> indexes -> value
 				if (lstrat.get(0).get(0).get(s) == null) {
 					lstrat.get(0).get(0).set(s, kstrat.get(s));
@@ -201,7 +201,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
-		if (genStrat || exportAdv)
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
 	}
@@ -329,7 +329,7 @@ public class CSGModelChecker extends ProbModelChecker
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
 		if (!bounded && precomp && prob1) {
-			if (!(exportAdv || genStrat)) {
+			if (!genStrat) {
 				yes.or(AF(csg, target));
 			} else {
 				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
@@ -421,7 +421,7 @@ public class CSGModelChecker extends ProbModelChecker
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
 		if (!bounded && precomp && prob1) {
-			if (!(exportAdv || genStrat)) {
+			if (!genStrat) {
 				yes.or(AF(csg, remain, target));
 			} else {
 				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
@@ -462,7 +462,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 **/
 	public ModelCheckerResult computeReachProbsValIter(CSG<Double> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
-		if ((genStrat || exportAdv) && bounded) {
+		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -477,7 +477,7 @@ public class CSGModelChecker extends ProbModelChecker
 		long timer;
 		int i, k, s;
 		boolean done = false;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>();
@@ -527,20 +527,20 @@ public class CSGModelChecker extends ProbModelChecker
 					}
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, false, min);
 					// player -> iteration -> state -> indexes -> value
-					if (bounded && (genStrat || exportAdv)) {
+					if (bounded && genStrat) {
 						if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
 							lstrat.get(0).get(k).set(s, kstrat.get(s));
 						} else {
 							lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
 						}
-					} else if (genStrat || exportAdv) {
+					} else if (genStrat) {
 						if (lstrat.get(0).get(0).get(s) == null) {
 							lstrat.get(0).get(0).set(s, kstrat.get(s));
 						} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
 							lstrat.get(0).get(0).set(s, kstrat.get(s));
 						}
 					}
-				} else if (genStrat || exportAdv) {
+				} else if (genStrat) {
 					lstrat.get(0).get(0).add(s, null);
 				}
 			}
@@ -558,7 +558,7 @@ public class CSGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat || exportAdv)
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
@@ -581,7 +581,7 @@ public class CSGModelChecker extends ProbModelChecker
 		LpSolve lp;
 		ModelCheckerResult res = new ModelCheckerResult();
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
-		List<Map<BitSet, Double>> kstrat = (genStrat || exportAdv) ? new ArrayList<Map<BitSet, Double>>() : null;
+		List<Map<BitSet, Double>> kstrat = (genStrat) ? new ArrayList<Map<BitSet, Double>>() : null;
 		double nsol[], nsoln2[], ntmp[];
 		long timer;
 		int i, n;
@@ -1017,7 +1017,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
-		if ((genStrat || exportAdv) && bounded) {
+		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -1032,7 +1032,7 @@ public class CSGModelChecker extends ProbModelChecker
 		long timer;
 		int i, k, s;
 		boolean done = false;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>(1);
@@ -1091,14 +1091,14 @@ public class CSGModelChecker extends ProbModelChecker
 					}
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min);
 					nsol[s] += rewards.getStateReward(s);
-					if (bounded && (genStrat || exportAdv)) {
+					if (bounded && genStrat) {
 						// player -> iteration -> state -> indexes -> value
 						if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
 							lstrat.get(0).get(k).set(s, kstrat.get(s));
 						} else {
 							lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
 						}
-					} else if (genStrat || exportAdv) {
+					} else if (genStrat) {
 						if (lstrat.get(0).get(0).get(s) == null) {
 							lstrat.get(0).get(0).set(s, kstrat.get(s));
 						} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
@@ -1121,7 +1121,7 @@ public class CSGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat || exportAdv)
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
@@ -2043,7 +2043,7 @@ public class CSGModelChecker extends ProbModelChecker
 		Map<BitSet, Double> d = new HashMap<BitSet, Double>();
 		// Special cases
 		if (allEqual) {
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(0), 1.0);
 				strat.set(s, d);
 			}
@@ -2057,7 +2057,7 @@ public class CSGModelChecker extends ProbModelChecker
 					srow = (min) ? col : 0;
 				}
 			}
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(srow), 1.0); // In case of min, rmap maps columns not rows
 				strat.set(s, d);
 			}
@@ -2071,7 +2071,7 @@ public class CSGModelChecker extends ProbModelChecker
 					scol = (min) ? 0 : row;
 				}
 			}
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(scol), 1.0);
 				strat.set(s, d);
 			}
@@ -2082,7 +2082,7 @@ public class CSGModelChecker extends ProbModelChecker
 			infty = valInfinity(mgame);
 			if (infty != -1) {
 				res = Double.POSITIVE_INFINITY;
-				if (genStrat || exportAdv) {
+				if (genStrat) {
 					d.put(rmap.get(infty), 1.0);
 				}
 				return res;
@@ -2108,7 +2108,7 @@ public class CSGModelChecker extends ProbModelChecker
 						res = lp.getObjective();
 						double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 						lp.getVariables(values);
-						if (genStrat || exportAdv) {
+						if (genStrat) {
 							for (int row = 1; row <= nrows; row++) {
 								if (values[row] > 0)
 									d.put(rmap.get(row - 1), values[row]);
@@ -2142,7 +2142,7 @@ public class CSGModelChecker extends ProbModelChecker
 							res = lp.getObjective();
 							double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 							lp.getVariables(values);
-							if (genStrat || exportAdv) {
+							if (genStrat) {
 								for (int row = 1; row <= nrows; row++) {
 									if (values[row] > 0)
 										d.put(rmap.get(row - 1), values[row]);

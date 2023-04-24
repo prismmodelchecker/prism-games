@@ -111,9 +111,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Is non-convergence of an iterative method an error?
 	protected boolean errorOnNonConverge = true;
-	// Adversary export
-	protected boolean exportAdv = false;
-	protected String exportAdvFilename;
 
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
@@ -307,13 +304,6 @@ public class ProbModelChecker extends NonProbModelChecker
 			if (settings.getBoolean(PrismSettings.PRISM_FAIRNESS)) {
 				throw new PrismNotSupportedException("The explicit engine does not support model checking MDPs under fairness");
 			}
-
-			// PRISM_EXPORT_ADV
-			s = settings.getString(PrismSettings.PRISM_EXPORT_ADV);
-			if (!(s.equals("None")))
-				setExportAdv(true);
-			// PRISM_EXPORT_ADV_FILENAME
-			setExportAdvFilename(settings.getString(PrismSettings.PRISM_EXPORT_ADV_FILENAME));
 		}
 	}
 
@@ -505,16 +495,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	public void setErrorOnNonConverge(boolean errorOnNonConverge)
 	{
 		this.errorOnNonConverge = errorOnNonConverge;
-	}
-
-	public void setExportAdv(boolean exportAdv)
-	{
-		this.exportAdv = exportAdv;
-	}
-
-	public void setExportAdvFilename(String exportAdvFilename)
-	{
-		this.exportAdvFilename = exportAdvFilename;
 	}
 
 	// Get methods for flags/settings

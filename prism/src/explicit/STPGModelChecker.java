@@ -102,7 +102,7 @@ public class STPGModelChecker extends ProbModelChecker
 		LTLModelChecker mcLtl = new LTLModelChecker(this);
 		LTLModelChecker.LTLProduct<STPG<Double>> product = mcLtl.constructDFAProductForCosafetyProbLTL(this, (STPG<Double>) model, expr, statesOfInterest);
 		doProductExports(product);
-		
+
 		// Find accepting states + compute reachability probabilities
 		BitSet acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
 		mainLog.println("\nComputing reachability probabilities...");
@@ -162,14 +162,14 @@ public class STPGModelChecker extends ProbModelChecker
 		// Set choices to -1, denoting unknown
 		// (except for target states, which are -2, denoting arbitrary)
 		int strat[] = null;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
 				strat[i] = target.get(i) ? -2 : -1;
 			}
 		}
 
-		// Next-step probabilities 
+		// Next-step probabilities
 		stpg.mvMultMinMax(soln, min1, min2, soln2, null, false, strat);
 
 		// Store results/strategy
@@ -254,9 +254,9 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param target Target states
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 * @param init Optionally, an initial solution vector (may be overwritten) 
+	 * @param init Optionally, an initial solution vector (may be overwritten)
 	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
 	public ModelCheckerResult computeReachProbs(STPG<Double> stpg, BitSet remain, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double bound)
 			throws PrismException
@@ -302,7 +302,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 		timerProb0 = System.currentTimeMillis() - timerProb0;
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1 && !(genStrat || exportAdv)) {
+		if (precomp && prob1 && !genStrat) {
 			yes = prob1(stpg, remain, target, min1, min2);
 		} else {
 			yes = (BitSet) target.clone();
@@ -316,7 +316,7 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 		// do value iteration only if the values needed wasn't handled by
 		// precomputation
-		if (bound < 1.0 || !(precomp && prob1 && !(genStrat || exportAdv))) {
+		if (bound < 1.0 || !(precomp && prob1 && !genStrat)) {
 			// Compute probabilities
 			switch (stpgSolnMethod) {
 			case VALUE_ITERATION:
@@ -348,7 +348,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		return res;
 	}
-	
+
 	/**
 	 * Prob0 precomputation algorithm.
 	 * i.e. determine the states of an STPG which, with min/max probability 0,
@@ -563,7 +563,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		int strat[] = null;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -682,7 +682,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		int strat[] = null;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -830,7 +830,7 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 			fmdStrat = new FMDStrategyStep<>(stpg, k);
 		}
-		
+
 		// Initialise solution vectors. Use passed in initial vector, if present
 		if (init != null) {
 			for (int i = 0; i < n; i++)
@@ -932,7 +932,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
 	 * @param init Optionally, an initial solution vector (may be overwritten)
 	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 * @param unreachingSemantics Determines how to treat runs that don't reach the target.
 	 * One of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {@link #R_ZERO}.
 	 */
@@ -950,7 +950,7 @@ public class STPGModelChecker extends ProbModelChecker
 			throw new PrismException("Unknown semantics for runs unreaching the target in STPGModelChecker: " + unreachingSemantics);
 		}
 	}
-	
+
 	/**
 	 * Compute expected reachability rewards using value iteration.
 	 * @param stpg The STPG
@@ -1015,7 +1015,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
 		int strat[] = null;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
 				strat[i] = -1;
@@ -1026,7 +1026,7 @@ public class STPGModelChecker extends ProbModelChecker
 		iters = 0;
 		done = false;
 		while (!done && iters < maxIters) {
-			
+
 		        //mainLog.println(soln);
 			//mainLog.println(rewards);
 			//mainLog.println(min1);
@@ -1034,7 +1034,7 @@ public class STPGModelChecker extends ProbModelChecker
 			//mainLog.println(soln2);
 			//mainLog.println(unknown);
 			//mainLog.println(genAdv);
-			
+
 			iters++;
 			// Matrix-vector multiply and min/max ops
 			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, strat, useDiscounting ? discountFactor : 1.0);
@@ -1078,7 +1078,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Computes the reachability reward under the semantics where nonreaching
 	 * runs get infinity.
-	 * 
+	 *
 	 * @param stpg
 	 * @param rewards
 	 * @param target
@@ -1120,7 +1120,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		timerProb1 = System.currentTimeMillis();
-		
+
 		// identify infinite values
 		inf = prob1(stpg, null, target, !min1, !min2);
 		inf.flip(0, n);
@@ -1249,7 +1249,7 @@ public class STPGModelChecker extends ProbModelChecker
 	 * Computes the reachability reward under the semantics where nonreaching
 	 * runs get their total cumulative reward (i.e. anything between 0 and
 	 * infinity).
-	 * 
+	 *
 	 * @param stpg
 	 * @param rewards
 	 * @param target
@@ -1387,7 +1387,7 @@ public class STPGModelChecker extends ProbModelChecker
 	/**
 	 * Computes the reachability reward under the semantics where nonreaching
 	 * runs get 0.
-	 * 
+	 *
 	 * @param stpg
 	 * @param rewards
 	 * @param target
@@ -1849,7 +1849,7 @@ public class STPGModelChecker extends ProbModelChecker
 		if (genStrat) {
 			res.strat = new BoundedRewardDeterministicStrategy<Double>(stpg, choices, lastSwitch, rewards);
 		}
-		
+
 		return res;
 	}
 
@@ -1997,7 +1997,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timePre = 0.0;
 		return res;
 	}
-	
+
 	/**
 	 * Compute expected cumulative (step-bounded) rewards.
 	 * i.e. compute the min/max reward accumulated within {@code k} steps.
@@ -2054,7 +2054,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		return res;
 	}
-	
+
 	/**
 	 * Simple test program.
 	 */
