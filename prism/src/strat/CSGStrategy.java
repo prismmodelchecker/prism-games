@@ -43,6 +43,7 @@ import parser.VarList;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import strat.CSGStrategy.CSGStrategyType;
 
 public class CSGStrategy extends PrismComponent implements Strategy<Double> {
@@ -138,7 +139,26 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 	}
 	
 	@Override
-	public void exportActions(PrismLog out, StrategyExportOptions options) {
+	public void exportActions(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
+
+	@Override
+	public void exportIndices(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
+
+	@Override
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
+	
+	@Override
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
 		try {
 			switch(type) {
 				case ZERO_SUM:
@@ -160,24 +180,9 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 					break;
 			}
 		}
-		catch (Exception e) {
-			e.printStackTrace();
+		catch (InvalidStrategyStateException e) {
+			throw new PrismException("Error during strategy processing: " + e.getMessage());
 		}
-	}
-
-	@Override
-	public void exportIndices(PrismLog out, StrategyExportOptions options) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out, StrategyExportOptions options) {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public void exportDotFile(PrismLog out, StrategyExportOptions options) {
-		// TODO Auto-generated method stub
 	}
 	
 	public void exportZeroSumStrategy(PrismLog out) throws PrismException {
