@@ -31,9 +31,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import explicit.EquilibriumResult;
 import parser.EvaluateContext;
 import parser.visitor.ASTVisitor;
 import parser.visitor.DeepCopy;
+import prism.PrismException;
 import prism.PrismLangException;
 
 /**
@@ -55,7 +57,22 @@ public class ExpressionStrategy extends Expression
 	
 	/** Is there just a single operand (P/R operator)? If not, the operand list will be parenthesised. **/
 	protected boolean singleOperand = false;
-	
+
+	// Options
+
+	/** Optional specification of options, appended in {...} */
+	protected ArrayList<Expression> optionsSpec = null;
+
+	/** Equilibrium type */
+	protected EquilibriumType equilibriumType;
+
+	public enum EquilibriumType { NASH, CORRELATED };
+
+	/** Equilibrium optimality criterion */
+	protected EquilibriumCriterion equilibriumCriterion;
+
+	public enum EquilibriumCriterion { SOCIAL, FAIR };
+
 	// Constructors
 
 	public ExpressionStrategy()
@@ -136,6 +153,38 @@ public class ExpressionStrategy extends Expression
 	public void setOperand(int i, Expression e)
 	{
 		operands.set(i, e);
+	}
+
+	/**
+	 * Process options (specified in {...}) as a list of expressions.
+	 */
+	public void processOptions(ArrayList<Expression> optionsSpec) throws PrismLangException
+	{
+		// Store for toString
+		this.optionsSpec = optionsSpec;
+		if (optionsSpec == null) {
+			return;
+		}
+		for (Expression option : optionsSpec) {
+			if (option instanceof ExpressionIdent &&
+					((ExpressionIdent) option).getName().equals("nash")) {
+				equilibriumType = EquilibriumType.NASH;
+			}
+			else if (option instanceof ExpressionIdent &&
+					((ExpressionIdent) option).getName().equals("correlated") || ((ExpressionIdent) option).getName().equals("corr")) {
+				equilibriumType = EquilibriumType.CORRELATED;
+			}
+			else if (option instanceof ExpressionIdent &&
+					((ExpressionIdent) option).getName().equals("social")) {
+				equilibriumCriterion = EquilibriumCriterion.SOCIAL;
+			}
+			else if (option instanceof ExpressionIdent &&
+					((ExpressionIdent) option).getName().equals("fair")) {
+				equilibriumCriterion = EquilibriumCriterion.FAIR;
+			} else {
+				throw new PrismLangException("Unknown option \"" + option + "\" for " + getOperatorString() + " operator");
+			}
+		}
 	}
 
 	// Get methods
@@ -222,6 +271,22 @@ public class ExpressionStrategy extends Expression
 		return operands;
 	}
 
+	/**
+	 * Get the equilibrium type (e.g., Nash, correlated), if specified.
+	 */
+	public EquilibriumType getEquilibriumType()
+	{
+		return equilibriumType;
+	}
+
+	/**
+	 * Get the equilibrium optimality criterion (e.g., social welfare/cost, fair), if specified.
+	 */
+	public EquilibriumCriterion getEquilibriumCriterion()
+	{
+		return equilibriumCriterion;
+	}
+
 	// Methods required for Expression:
 
 	@Override
@@ -266,6 +331,7 @@ public class ExpressionStrategy extends Expression
 	public ExpressionStrategy deepCopy(DeepCopy copier) throws PrismLangException
 	{
 		copier.copyAll(operands);
+		copier.copyAll(optionsSpec);
 
 		return this;
 	}
@@ -278,6 +344,9 @@ public class ExpressionStrategy extends Expression
 
 		clone.setCoalitions(coalitions); // NB: setCoalitions copies anyway
 		clone.operands  = (ArrayList<Expression>) operands.clone();
+		clone.optionsSpec = (ArrayList<Expression>) optionsSpec.clone();
+		clone.equilibriumType = equilibriumType;
+		clone.equilibriumCriterion = equilibriumCriterion;
 
 		return clone;
 	}
@@ -291,6 +360,9 @@ public class ExpressionStrategy extends Expression
 		s += (thereExists ? "<<" : "[[");
 		s += coalitions.stream().map(Coalition::toString).collect(Collectors.joining(":"));
 		s += (thereExists ? ">>" : "]]");
+		if (optionsSpec != null) {
+			s += "{" + optionsSpec.stream().map(Expression::toString).collect(Collectors.joining(",")) + "}";
+		}
 		if (singleOperand) {
 			s += operands.get(0);
 		} else {

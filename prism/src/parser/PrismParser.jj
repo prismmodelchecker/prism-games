@@ -663,7 +663,7 @@ PropertiesFile PropertiesFileSemicolonless() throws PrismLangException :
 
 // Property - expression, with optional name/comment
 
-Property Property() :
+Property Property() throws PrismLangException :
 {
 	String name = null;
 	Expression expr;
@@ -685,7 +685,7 @@ Property Property() :
 
 // A single expression
 
-Expression SingleExpression() :
+Expression SingleExpression() throws PrismLangException :
 {
 	Expression ret;
 }
@@ -695,7 +695,7 @@ Expression SingleExpression() :
 
 // A single LTL formula
 
-Expression SingleLTLFormula() :
+Expression SingleLTLFormula() throws PrismLangException :
 {
 	Expression ret;
 }
@@ -731,7 +731,7 @@ ModelType ModulesFileType() :
 
 // Formula definition
 
-void FormulaDef(FormulaList formulaList) :
+void FormulaDef(FormulaList formulaList) throws PrismLangException :
 {
 	ExpressionIdent name = null;
 	Expression expr = null;
@@ -758,7 +758,7 @@ void LabelDef(LabelList labelList) throws PrismLangException :
 
 // Constant definition
 
-void ConstantDef(ConstantList constantList) :
+void ConstantDef(ConstantList constantList) throws PrismLangException :
 {
 	Type type = TypeInt.getInstance();
 	ExpressionIdent name = null;
@@ -776,7 +776,7 @@ void ConstantDef(ConstantList constantList) :
 
 // Global variable declaration
 
-Declaration GlobalDecl() :
+Declaration GlobalDecl() throws PrismLangException :
 {
 	Declaration decl = null;
 }
@@ -787,7 +787,7 @@ Declaration GlobalDecl() :
 
 // Variable declaration
 
-Declaration Declaration() :
+Declaration Declaration() throws PrismLangException :
 {
 	Declaration decl;
 	String name = null;
@@ -809,7 +809,7 @@ Declaration Declaration() :
 
 // Type part of a declaration
 
-DeclarationType DeclarationVarType() :
+DeclarationType DeclarationVarType() throws PrismLangException :
 {
 	Expression low = null, high = null;
 	DeclarationType declType, subtype;
@@ -836,7 +836,7 @@ DeclarationType DeclarationVarType() :
 
 // Module
 
-parser.ast.Module Module() :
+parser.ast.Module Module() throws PrismLangException :
 {
 	ExpressionIdent name = null;
 	Declaration var = null;
@@ -856,7 +856,7 @@ parser.ast.Module Module() :
 
 // Command
 
-Command Command() :
+Command Command() throws PrismLangException :
 {
 	List<String> synchs = null;
 	Expression guard = null;
@@ -874,7 +874,7 @@ Command Command() :
 
 // Updates
 
-Updates Updates() :
+Updates Updates() throws PrismLangException :
 {
 	Expression prob;
 	Update update;
@@ -896,7 +896,7 @@ Updates Updates() :
 	{ updates.setPosition(begin, getToken(0)); return updates; }
 }
 
-Expression ProbOrRateOrInterval() :
+Expression ProbOrRateOrInterval() throws PrismLangException :
 {
 	Expression prob;
 }
@@ -905,7 +905,7 @@ Expression ProbOrRateOrInterval() :
 	{ return prob; }
 }
 
-Update Update() :
+Update Update() throws PrismLangException :
 {
 	Update update = new Update();
 	Token begin = null;
@@ -919,7 +919,7 @@ Update Update() :
 	{ update.setPosition(begin, getToken(0)); return update; }
 }
 
-void UpdateElement(Update update) :
+void UpdateElement(Update update) throws PrismLangException :
 {
 	ExpressionIdent var = null;
 	Expression expr = null;
@@ -932,7 +932,7 @@ void UpdateElement(Update update) :
 
 // Module renaming
 
-RenamedModule RenamedModule() :
+RenamedModule RenamedModule() throws PrismLangException :
 {
 	ExpressionIdent name = null, base = null;
 	RenamedModule rm = null;
@@ -960,7 +960,7 @@ void Rename(RenamedModule rm) :
 
 // Reward structure
 
-RewardStruct RewardStruct() :
+RewardStruct RewardStruct() throws PrismLangException :
 {
 	String name = null, s = null;
 	Expression guard = null, value = null;
@@ -998,7 +998,7 @@ List<String> ActionList() :
 
 // Initial states ("init...endinit" construct)
 
-Expression Init() :
+Expression Init() throws PrismLangException :
 {
 	Expression expr = null;
 }
@@ -1025,7 +1025,7 @@ ObservableVars ObservableVars() :
 
 // Individual observable (for partially observable models)
 
-Observable Observable() :
+Observable Observable() throws PrismLangException :
 {
 	Token begin = null;
 	String name = null;
@@ -1230,7 +1230,7 @@ void PlayerItem(Player player) :
 
 // Expression
 
-Expression Expression(boolean prop, boolean pathprop) :
+Expression Expression(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret;
 }
@@ -1258,7 +1258,7 @@ Expression Expression(boolean prop, boolean pathprop) :
 // This is because (like unary minus), R can appear on the left of a unary
 // operator (reward R operator) or in the middle of a binary operator (release).
 
-Expression ExpressionTemporalBinary(boolean prop, boolean pathprop) :
+Expression ExpressionTemporalBinary(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	ExpressionTemporal exprTemp;
@@ -1280,7 +1280,7 @@ Expression ExpressionTemporalBinary(boolean prop, boolean pathprop) :
 	{ return ret; }
 }
 
-Expression ExpressionTemporalUnary(boolean prop, boolean pathprop) :
+Expression ExpressionTemporalUnary(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	ExpressionTemporal exprTemp;
@@ -1306,7 +1306,7 @@ Expression ExpressionTemporalUnary(boolean prop, boolean pathprop) :
 // Time bound for temporal operators
 // (see ExpressionTemporal production for lookahead explanation)
 
-void TimeBound(ExpressionTemporal exprTemp) :
+void TimeBound(ExpressionTemporal exprTemp) throws PrismLangException :
 {
 	Expression lBound, uBound;
 }
@@ -1322,7 +1322,7 @@ void TimeBound(ExpressionTemporal exprTemp) :
 
 // Expression: if-then-else, i.e. "cond ? then : else"
 
-Expression ExpressionITE(boolean prop, boolean pathprop) :
+Expression ExpressionITE(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, left, right;
 	Token begin = null;
@@ -1338,7 +1338,7 @@ Expression ExpressionITE(boolean prop, boolean pathprop) :
 
 // Expression: implies
 
-Expression ExpressionImplies(boolean prop, boolean pathprop) :
+Expression ExpressionImplies(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1351,7 +1351,7 @@ Expression ExpressionImplies(boolean prop, boolean pathprop) :
 
 // Expression: if-and-only-iff
 
-Expression ExpressionIff(boolean prop, boolean pathprop) :
+Expression ExpressionIff(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1364,7 +1364,7 @@ Expression ExpressionIff(boolean prop, boolean pathprop) :
 
 // Expression: or
 
-Expression ExpressionOr(boolean prop, boolean pathprop) :
+Expression ExpressionOr(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1377,7 +1377,7 @@ Expression ExpressionOr(boolean prop, boolean pathprop) :
 
 // Expression: and
 
-Expression ExpressionAnd(boolean prop, boolean pathprop) :
+Expression ExpressionAnd(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1390,7 +1390,7 @@ Expression ExpressionAnd(boolean prop, boolean pathprop) :
 
 // Expression: not
 
-Expression ExpressionNot(boolean prop, boolean pathprop) :
+Expression ExpressionNot(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1406,7 +1406,7 @@ Expression ExpressionNot(boolean prop, boolean pathprop) :
 
 // Expression: equality operators: =, !=
 
-Expression ExpressionEquality(boolean prop, boolean pathprop) :
+Expression ExpressionEquality(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	int op;
@@ -1420,7 +1420,7 @@ Expression ExpressionEquality(boolean prop, boolean pathprop) :
 
 // Expression: relational operators: >, <, >=, <=
 
-Expression ExpressionRelop(boolean prop, boolean pathprop) :
+Expression ExpressionRelop(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	int op;
@@ -1441,7 +1441,7 @@ Expression ExpressionRelop(boolean prop, boolean pathprop) :
 // e.g. "-a-b" = "(-a)-b" = "-a" "-b"
 // Ignoring the warning results in the largest match being taken.
 
-Expression ExpressionPlusMinus(boolean prop, boolean pathprop) :
+Expression ExpressionPlusMinus(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	int op;
@@ -1458,7 +1458,7 @@ Expression ExpressionPlusMinus(boolean prop, boolean pathprop) :
 
 // Expression: times/divide
 
-Expression ExpressionTimesDivide(boolean prop, boolean pathprop) :
+Expression ExpressionTimesDivide(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	int op;
@@ -1475,7 +1475,7 @@ Expression ExpressionTimesDivide(boolean prop, boolean pathprop) :
 
 // Expression: unary minus
 
-Expression ExpressionUnaryMinus(boolean prop, boolean pathprop) :
+Expression ExpressionUnaryMinus(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret, expr;
 	Token begin = null;
@@ -1492,7 +1492,7 @@ Expression ExpressionUnaryMinus(boolean prop, boolean pathprop) :
 
 // Basic expression (top of operator precedence ordering)
 
-Expression ExpressionBasic(boolean prop, boolean pathprop) :
+Expression ExpressionBasic(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression ret;
 }
@@ -1537,7 +1537,7 @@ Expression ExpressionBasic(boolean prop, boolean pathprop) :
 // e.g. "a(b)" = "a" "(b)"
 // Ignoring the warning results in the largest match being taken.
 
-Expression ExpressionFuncOrIdent(boolean prop, boolean pathprop) :
+Expression ExpressionFuncOrIdent(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	String s = null;
 	Expression ret = null;
@@ -1557,7 +1557,7 @@ Expression ExpressionFuncOrIdent(boolean prop, boolean pathprop) :
 
 // Expression: min/max function (treated differently because min/max are keywords)
 
-Expression ExpressionFuncMinMax(boolean prop, boolean pathprop) :
+Expression ExpressionFuncMinMax(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	String s = null;
 	ExpressionFunc func = null;
@@ -1571,7 +1571,7 @@ Expression ExpressionFuncMinMax(boolean prop, boolean pathprop) :
 
 // Expression: old-style function, i.e. "func(name, ...)"
 
-Expression ExpressionFuncOldStyle(boolean prop, boolean pathprop) :
+Expression ExpressionFuncOldStyle(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	String s = null;
 	ExpressionFunc func = null;
@@ -1585,7 +1585,7 @@ Expression ExpressionFuncOldStyle(boolean prop, boolean pathprop) :
 
 // Arguments for a function in an expression
 
-void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) :
+void ExpressionFuncArgs(boolean prop, boolean pathprop, ExpressionFunc func) throws PrismLangException :
 {
 	Expression expr;
 }
@@ -1634,7 +1634,7 @@ Expression ExpressionLiteral(boolean prop, boolean pathprop) :
 
 // Expression: parentheses
 
-Expression ExpressionParenth(boolean prop, boolean pathprop) : 
+Expression ExpressionParenth(boolean prop, boolean pathprop) throws PrismLangException : 
 {
 	Expression expr, ret;
 	Token begin = null;
@@ -1646,7 +1646,7 @@ Expression ExpressionParenth(boolean prop, boolean pathprop) :
 
 // Expression: interval
 
-Expression ExpressionInterval(boolean prop, boolean pathprop) :
+Expression ExpressionInterval(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionInterval expr = null;
 	Expression expr1 = null, expr2 = null;
@@ -1667,7 +1667,7 @@ Expression ExpressionInterval(boolean prop, boolean pathprop) :
 
 // (Property) expression: probabilistic operator P
 
-Expression ExpressionProb(boolean prop, boolean pathprop) :
+Expression ExpressionProb(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionIdent modifier = null;
 	int r;
@@ -1729,7 +1729,7 @@ Expression ExpressionProb(boolean prop, boolean pathprop) :
 
 // Filter for a P/S/R operator
 
-Filter Filter() :
+Filter Filter() throws PrismLangException :
 {
 	Filter filter;
 	Expression expr;
@@ -1746,7 +1746,7 @@ Filter Filter() :
 
 // (Property) expression: steady-state operator S
 
-Expression ExpressionSS(boolean prop, boolean pathprop) :
+Expression ExpressionSS(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionIdent modifier = null;
 	int r;
@@ -1790,7 +1790,7 @@ Expression ExpressionSS(boolean prop, boolean pathprop) :
 
 // (Property) expression: expected reward operator R
 
-Expression ExpressionReward(boolean prop, boolean pathprop) :
+Expression ExpressionReward(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionIdent modifier = null;
 	int r;
@@ -1854,7 +1854,7 @@ Expression ExpressionReward(boolean prop, boolean pathprop) :
 
 // Reward struct index for R operator
 
-void RewardIndex(ExpressionReward exprRew) :
+void RewardIndex(ExpressionReward exprRew) throws PrismLangException :
 {
 	Object index = null;
 	Object indexDiv = null;
@@ -1887,7 +1887,7 @@ void RewardIndex(ExpressionReward exprRew) :
 // R [ S ], where "S" is the long-run reward operator, and R [ S [ ] ], where "S [ ]" is an LTL formula
 // comprising a single atomic proposition. We use lookahead to resolve the ambiguity.
 
-Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
+Expression ExpressionRewardContents(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression expr = null;
 	ExpressionTemporal exprTemp = null;
@@ -1916,7 +1916,7 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) :
 
 // (Property) expression: n-player Nash operator
 
-Expression ExpressionMultiNash(boolean prop, boolean pathprop) :
+Expression ExpressionMultiNash(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionMultiNash ret = new ExpressionMultiNash();
 	Expression bound = null;
@@ -1958,7 +1958,7 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) :
 
 // (Property) expression: probabilistic operator (n-player Nash)
 
-ExpressionQuant ExpressionMultiNashProb(boolean prop, boolean pathprop) :
+ExpressionQuant ExpressionMultiNashProb(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionMultiNashProb ret = new ExpressionMultiNashProb();
 	Expression expr = null;
@@ -1980,7 +1980,7 @@ ExpressionQuant ExpressionMultiNashProb(boolean prop, boolean pathprop) :
 
 // (Property) expression: reward operator (n-player Nash)
 
-ExpressionQuant ExpressionMultiNashReward(boolean prop, boolean pathprop) :
+ExpressionQuant ExpressionMultiNashReward(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionMultiNashReward ret = new ExpressionMultiNashReward();
 	Expression expr = null;
@@ -2002,7 +2002,7 @@ ExpressionQuant ExpressionMultiNashReward(boolean prop, boolean pathprop) :
 
 // (Reward) structure index for equilibria
 
-void MultiNashRewardIndexes(ExpressionMultiNashReward exprMultiNash) :
+void MultiNashRewardIndexes(ExpressionMultiNashReward exprMultiNash) throws PrismLangException :
 {
   	Object index = null;
 }
@@ -2018,7 +2018,7 @@ void MultiNashRewardIndexes(ExpressionMultiNashReward exprMultiNash) :
 
 // (Property) expression: CTL existential operator E
 
-Expression ExpressionExists(boolean prop, boolean pathprop) :
+Expression ExpressionExists(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionExists ret = new ExpressionExists();
 	Expression expr;
@@ -2037,7 +2037,7 @@ Expression ExpressionExists(boolean prop, boolean pathprop) :
 
 // (Property) expression: CTL universal operator A
 
-Expression ExpressionForAll(boolean prop, boolean pathprop) :
+Expression ExpressionForAll(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionForAll ret = new ExpressionForAll();
 	Expression expr;
@@ -2056,11 +2056,12 @@ Expression ExpressionForAll(boolean prop, boolean pathprop) :
 
 // (Property) expression: ATL strategy operators <<>> and [[]]
 
-Expression ExpressionStrategy(boolean prop, boolean pathprop) :
+Expression ExpressionStrategy(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionStrategy ret;
 	Expression expr;
 	List<Coalition> coalitions;
+	ArrayList<Expression> optionsSpec = null;
 	Token begin = null;
 }
 {
@@ -2071,6 +2072,9 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) :
 	(( begin = <DLT> { ret = new ExpressionStrategy(true); } coalitions = ExpressionStrategyCoalitionList() <DGT> )
 	| (begin = <DLBRACKET> { ret = new ExpressionStrategy(false); } coalitions = ExpressionStrategyCoalitionList() <DRBRACKET> ))
 	{ ret.setCoalitions(coalitions); }
+	// Options in {}
+	(<LBRACE> optionsSpec = ExpressionStrategyOptions() <RBRACE>)?
+	{ ret.processOptions(optionsSpec); }
 	// Child expression
 	(
 	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) | expr = ExpressionMultiNash(prop,pathprop) )
@@ -2126,6 +2130,18 @@ String ExpressionStrategyCoalitionPlayer() :
 	{ return s; }
 }
 
+// Options for a strategy operator
+
+ArrayList<Expression> ExpressionStrategyOptions() throws PrismLangException :
+{
+	Expression expr;
+	ArrayList<Expression> optionsSpec;
+}
+{
+	expr = Expression(false, false) { optionsSpec = new ArrayList<>(); optionsSpec.add(expr); } ( <COMMA> expr = Expression(false, false) { optionsSpec.add(expr); })*
+	{ return optionsSpec; }
+}
+
 // (Property) expression: label (including "init")
 
 Expression ExpressionLabel(boolean prop, boolean pathprop) :
@@ -2144,7 +2160,7 @@ Expression ExpressionLabel(boolean prop, boolean pathprop) :
 
 // (Property) expression: filter (using "filter" keyword)
 
-Expression ExpressionFilter(boolean prop, boolean pathprop) :
+Expression ExpressionFilter(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	ExpressionFilter expr = null;
 	String op = null;
@@ -2251,7 +2267,7 @@ int LtGt() :
 
 // For loop
 
-ForLoop ForLoop() :
+ForLoop ForLoop() throws PrismLangException :
 {
 	String s;
 	Expression from = null, to = null, step = null;

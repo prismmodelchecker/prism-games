@@ -671,7 +671,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// Equilibria
 		else if (exprSub instanceof ExpressionMultiNash) {
-			return checkExpressionMultiNash(model, (ExpressionMultiNash) exprSub, expr.getCoalitions());
+			return checkExpressionMultiNash(model, (ExpressionMultiNash) exprSub, expr.getCoalitions(), expr.getEquilibriumType(), expr.getEquilibriumCriterion());
 		}
 		// Anything else is treated as multi-objective 
 		else {
@@ -679,7 +679,8 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 	}
 	
-	protected StateValues checkExpressionMultiNash(Model<?> model, ExpressionMultiNash expr, List<Coalition> coalitions) throws PrismException {
+	protected StateValues checkExpressionMultiNash(Model<?> model, ExpressionMultiNash expr, List<Coalition> coalitions, ExpressionStrategy.EquilibriumType equilibriumType, ExpressionStrategy.EquilibriumCriterion equilibriumCriterion) throws PrismException
+	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<ExpressionQuant> formulae = expr.getOperands();
 		List<CSGRewards<Double>> rewards = new ArrayList<>();
@@ -694,8 +695,18 @@ public class ProbModelChecker extends NonProbModelChecker
 		boolean type = true;
 		boolean rew = false;
 		boolean min = expr.getRelOp().isMin();
-		int eqType = CSGModelCheckerEquilibria.NASH; //expr.getEqType();
-		int crit = CSGModelCheckerEquilibria.SWEQ; //expr.getCrit();
+		int eqType = CSGModelCheckerEquilibria.NASH;
+		if (equilibriumType == ExpressionStrategy.EquilibriumType.NASH) {
+			eqType = CSGModelCheckerEquilibria.NASH;
+		} else if (equilibriumType == ExpressionStrategy.EquilibriumType.CORRELATED) {
+			eqType = CSGModelCheckerEquilibria.CORR;
+		}
+		int crit = CSGModelCheckerEquilibria.SWEQ;
+		if (equilibriumCriterion == ExpressionStrategy.EquilibriumCriterion.SOCIAL) {
+			crit = CSGModelCheckerEquilibria.SWEQ;
+		} else if (equilibriumCriterion == ExpressionStrategy.EquilibriumCriterion.FAIR) {
+			crit = CSGModelCheckerEquilibria.FAIR;
+		}
 
 		Arrays.fill(remain, null);
 		Arrays.fill(targets, null);

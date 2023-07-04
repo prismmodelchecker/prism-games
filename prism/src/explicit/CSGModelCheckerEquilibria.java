@@ -166,8 +166,8 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 			case CORR:
 //				switch (lpSolver) {
 //					case "Z3":
-//						ceSolver = new CSGCorrelatedZ3(maxRows * maxCols, numCoalitions);
-//						name = ceSolver.getSolverName();
+						ceSolver = new CSGCorrelatedZ3(maxRows * maxCols, numCoalitions);
+						name = ceSolver.getSolverName();
 //						break;
 //					default: throw new PrismException("Unsupported solver for correlated equilibria computation");
 //				}
