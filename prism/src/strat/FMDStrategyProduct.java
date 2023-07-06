@@ -32,8 +32,11 @@ import explicit.Model;
 import explicit.NondetModel;
 import explicit.Product;
 import explicit.SuccessorsIterator;
+import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
+
+import java.util.List;
 
 /**
  * Class to store finite-memory deterministic (FMD) strategies
@@ -161,13 +164,15 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 	@Override
 	public void exportActions(PrismLog out, StrategyExportOptions options)
 	{
+		List<State> states = model.getStatesList();
+		boolean showStates = options.getShowStates() && states != null;
 		int n = product.getProductModel().getNumStates();
 		for (int i = 0; i < n; i++) {
 			int s = product.getModelState(i);
 			int m = product.getAutomatonState(i);
 			Object act = strat.getChoiceAction(i);
 			if (act != UNDEFINED) {
-				out.println(s + "," + m + ":" + act);
+				out.println((showStates ? states.get(s) : s) + "," + m + ":" + act);
 			}
 		}
 	}
@@ -186,10 +191,17 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 	@Override
 	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		ConstructStrategyProduct csp = new ConstructStrategyProduct();
-		csp.setMode(options.getMode());
-		Model<Value> prodModel = csp.constructProductModel(model, this);
-		prodModel.exportToPrismExplicitTra(out, options.getModelPrecision());
+		// If restricting to reachable states, construct product afresh
+		if (options.getReachOnly()) {
+			ConstructStrategyProduct csp = new ConstructStrategyProduct();
+			csp.setMode(options.getMode());
+			Model<Value> prodModel = csp.constructProductModel(model, this);
+			prodModel.exportToPrismExplicitTra(out, options.getModelPrecision());
+		}
+		// Otherwise, just export MD strategy, unmodified
+		else {
+			strat.exportInducedModel(out, options);
+		}
 	}
 
 	@Override

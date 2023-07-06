@@ -569,6 +569,7 @@ public class LTLModelChecker extends PrismComponent
 			break;
 		case POMDP:
 			prodModel = new POMDPSimple<>();
+			break;
 		case IDTMC:
 			prodModel = new IDTMCSimple<>();
 			break;
