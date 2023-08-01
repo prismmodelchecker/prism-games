@@ -2,6 +2,19 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Latest changes (up to 974395f):
+-----------------------------------------------------------------------------
+
+* Symbolic (MTBDD) model checking of turn-based stochastic games (SMGs)
+* Correlated and fair equilibria for CSGs
+* Add instantaneous (I=k) and cumulative (C<=k) rewards for SMGs
+* Merged latest changes from PRISM (up to v4.8) and extensions:
+  - improved strategy generation (-exportstrat and GUI)
+  - major code refactoring, e.g., generic model classes
+* Refactoring of CSG related classes
+* Various bugfixes + tidying
+
+-----------------------------------------------------------------------------
 Version 3.1 (first released 22/7/2021)
 -----------------------------------------------------------------------------
 
