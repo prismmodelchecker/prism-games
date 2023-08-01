@@ -210,11 +210,6 @@ public class ConstructRewards extends PrismComponent
 				for (int k = 0; k < numChoices; k++) {
 					Value rew = getAndCheckStateActionReward(s, stpg.getAction(s, k), rewardGen, r, statesList);
 					rewSimple.addToTransitionReward(s, k, rew);
-					int numChoices2 = stpg.getNumNestedChoices(s, k);
-					for (int l = 0; l < numChoices2; l++) {
-						rew = getAndCheckStateActionReward(s, stpg.getNestedAction(s, k, l), rewardGen, r, statesList);
-						rewSimple.addToNestedTransitionReward(s, k, l, rew);
-					}
 				}
 			}
 		}
@@ -516,13 +511,6 @@ public class ConstructRewards extends PrismComponent
 								checkTransitionReward(rew, statesList.get(s), rewStr.getReward(i));
 								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
 									rewSimple.addToTransitionReward(s, j, rew);
-								}
-								numChoices2 = stpg.getNumNestedChoices(s, j);
-								for (k = 0; k < numChoices2; k++) {
-									stpgAction = stpg.getNestedAction(s, j, k);
-									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-										rewSimple.addToNestedTransitionReward(s, j, k, rew);
-									}
 								}
 							}
 						}
