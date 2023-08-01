@@ -1386,9 +1386,6 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param min2
 	 * @param init
 	 * @param known
-	 * @param unreachingAsInfinity
-	 * @return
-	 * @throws PrismException
 	 */
 	public ModelCheckerResult computeReachRewardsZero(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known)
 			throws PrismException
@@ -1939,7 +1936,6 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param k Time step
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 * @param coalition The coalition of players which define player 1
 	 */
 	public ModelCheckerResult computeInstantaneousRewards(STPG<Double> stpg, STPGRewards<Double> rewards, int k, boolean min1, boolean min2) throws PrismException
 	{
@@ -1997,7 +1993,6 @@ public class STPGModelChecker extends ProbModelChecker
 	 * @param k Time step
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 * @param coalition The coalition of players which define player 1
 	 */
 	public ModelCheckerResult computeCumulativeRewards(STPG<Double> stpg, STPGRewards<Double> rewards, int k, boolean min1, boolean min2) throws PrismException
 	{
