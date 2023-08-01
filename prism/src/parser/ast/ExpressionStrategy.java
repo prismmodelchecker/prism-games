@@ -344,7 +344,7 @@ public class ExpressionStrategy extends Expression
 
 		clone.setCoalitions(coalitions); // NB: setCoalitions copies anyway
 		clone.operands  = (ArrayList<Expression>) operands.clone();
-		clone.optionsSpec = (ArrayList<Expression>) optionsSpec.clone();
+		clone.optionsSpec = (optionsSpec == null) ? null : (ArrayList<Expression>) optionsSpec.clone();
 		clone.equilibriumType = equilibriumType;
 		clone.equilibriumCriterion = equilibriumCriterion;
 
