@@ -3488,7 +3488,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
 		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(currentModulesFile, functionFactory, this));
 		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.EXACT);
-		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 
@@ -3564,7 +3563,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
 		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(currentModulesFile, functionFactory, this));
 		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.PARAMETRIC);
-		mc.setModelBuilder(builder);
 		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		Result result = mc.check(modelExpl, prop.getExpression());
