@@ -567,11 +567,11 @@ testppl:
 
 # Run a single test case from the test suite that relies on Z3 being properly installed
 testz3:
-	bin/prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver z3 -test
+	bin/prism ../prism-tests/functionality/verify/csgs/nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs/nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver z3 -test
 	
 # Run a single test case from the test suite that relies on Yices being properly installed
 testyices:
-	bin/prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs-nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver yices -test
+	bin/prism ../prism-tests/functionality/verify/csgs/nash/nash_prob_reach.prism ../prism-tests/functionality/verify/csgs/nash/nash_prob_reach.prism.bounded.props -prop 1 -smtsolver yices -test
 
 # Run all tests from the test suite (in ../prism-tests and ./tests)
 # Optionally, extra arguments for prism-auto are picked up via variable TESTS_ARGS
