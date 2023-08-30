@@ -283,12 +283,7 @@ public class Modules2MTBDD
 			
 			// translate modules file into dd
 			translateModules();
-			
-			// build game info
-			if (modelType == ModelType.SMG) {
-				buildDDGame();
-			}
-			
+
 			// get rid of any nondet dd variables not needed
 			if (modelType == ModelType.MDP || modelType == ModelType.SMG) {
 				tmp = JDD.GetSupport(trans);
@@ -303,6 +298,11 @@ public class Modules2MTBDD
 				JDD.Deref(tmp);
 				allDDNondetVars.derefAll();
 				allDDNondetVars = ddv;
+			}
+
+			// build game info
+			if (modelType == ModelType.SMG) {
+				buildDDGame();
 			}
 
 // 		// print dd variables actually used (support of trans)
