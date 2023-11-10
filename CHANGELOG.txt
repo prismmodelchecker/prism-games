@@ -2,7 +2,7 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
-Latest changes (up to 974395f):
+Version 3.2 (first released 13/11/2023)
 -----------------------------------------------------------------------------
 
 * Symbolic (MTBDD) model checking of turn-based stochastic games (SMGs)
