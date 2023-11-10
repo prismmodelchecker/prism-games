@@ -899,7 +899,7 @@ public abstract class Expression extends ASTElement
 	{
 		if (expr instanceof ExpressionTemporal) {
 			if (((ExpressionTemporal) expr).getOperator() == ExpressionTemporal.P_F) {
-				return ((ExpressionTemporal) expr).getOperand2().isProposition();
+				return ((ExpressionTemporal) expr).getOperand2().getType() instanceof TypeBool;
 			}
 		}
 		return false;
@@ -1094,9 +1094,9 @@ public abstract class Expression extends ASTElement
 			if (!isPositiveNormalFormLTL(expr))
 				return false;
 		}
-		// Check temporal operators
+		// Check temporal operators (don't recurse into P/R/S subformulas)
 		try {
-			ASTTraverse astt = new ASTTraverse()
+			ASTTraverse astt = new ExpressionTraverseNonNested()
 			{
 				public void visitPost(ExpressionTemporal e) throws PrismLangException
 				{

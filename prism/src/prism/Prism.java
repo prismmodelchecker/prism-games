@@ -1975,6 +1975,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void buildModel() throws PrismException
 	{
 		mainLog.printSeparator();
+		chooseEngineForModelBuild();
 		doBuildModel();
 	}
 
@@ -3258,11 +3259,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				return modelCheck(dc.getNewPropertiesFile(), dc.getNewPropertyToCheck());
 			} finally {
 				digital = false;
+				// Preserve strategy (setting to null stops it being cleared with model)
+				Strategy strategyDigital = strategy;
+				strategy = null;
+				// Restore/clear model info
 				currentModulesFile = oldModulesFile;
 				currentModelType = oldModulesFile.getModelType();
 				clearBuiltModel();
-				currentModel = null;
-				currentModelExpl = null;
+				// Restore strategy
+				strategy = strategyDigital;
 			}
 		}
 		// Other methods
