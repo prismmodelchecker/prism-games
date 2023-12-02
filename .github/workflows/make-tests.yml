@@ -26,7 +26,7 @@ jobs:
       run: |
         make
         make unittests
-        make test testz3
+        make test testz3 testyices
         make tests
 
   build-win:
@@ -63,5 +63,5 @@ jobs:
       run: >-
         make &&
         make unittests &&
-        make test testz3 &&
+        make test testz3 testyices &&
         make tests
