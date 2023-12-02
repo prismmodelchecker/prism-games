@@ -6,6 +6,8 @@ To simplify maintenance of scripts and config files, we mostly omit version numb
 
 * Z3 (and its Java interface) - version 4.12.4
 
+* Yices 2 (and its Java interface) - version 2.6.4 (and version 1.0.1 ish)
+
 See here for more details and links:
 
 http://www.prismmodelchecker.org/other-downloads.php

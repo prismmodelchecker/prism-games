@@ -35,25 +35,6 @@ make
 sudo make install
 cd ..
 
-# Download and build Yices 2.6.2 + Java wrapper
-# Commented out for now since yices binaries are included
-# sudo apt -y install gperf libgmp-dev
-# wget https://yices.csl.sri.com/releases/2.6.2/yices-2.6.2-src.tar.gz
-# tar xvfz yices-2.6.2-src.tar.gz
-# cd yices-2.6.2
-# ./configure
-# make
-# sudo make install
-# cp /usr/local/lib/libyices.so.2.6 ../prism-games/prism/ext/yices
-# cd ..
-# git clone https://github.com/SRI-CSL/yices2_java_bindings
-# cd yices2_java_bindings
-# ./ant.sh
-# jar cvfm dist/lib/yices.jar MANIFEST.txt -C build/classes .
-# cp dist/lib/libyices2java.so ../prism-games/prism/ext/yices
-# cp dist/lib/yices.jar ../prism-games/prism/ext/yices
-# cd ..
-
 # Compile PRISM-games and run a few tests (unless --nobuild passed)
 # (should ultimately display: "Testing result: PASS")
 if [ "$*" = "${*/--nobuild}" ]; then
