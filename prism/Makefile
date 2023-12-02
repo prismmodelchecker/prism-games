@@ -239,6 +239,7 @@ ifeq ($(OSTYPE),linux)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS)
 		BINDISTSUFFIX = linux64
+		BINDISTARCH = x86
 	else
 	ifeq ($(ARCH),ia64)
 		# Position Independent Code required on AMD64/Itanium
@@ -247,6 +248,7 @@ ifeq ($(OSTYPE),linux)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS)
 		BINDISTSUFFIX = linux64
+		BINDISTARCH = ia64
 	else
 	ifeq ($(ARCH),aarch64)
 		# Position Independent Code required on Aarch64
@@ -254,11 +256,13 @@ ifeq ($(OSTYPE),linux)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS)
 		BINDISTSUFFIX = linux64
+		BINDISTARCH = arm
 	else
 		CFLAGS = -m32 -malign-double -DHAVE_IEEE_754 -DBSD $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS)
 		BINDISTSUFFIX = linux32
+		BINDISTARCH = x86
 	endif
 	endif
 	endif
@@ -278,6 +282,7 @@ ifeq ($(OSTYPE),solaris)
 	CXXFLAGS = --std=c++11 $(CFLAGS)
 	LDFLAGS = $(CFLAGS)
 	BINDISTSUFFIX = solaris
+	BINDISTARCH = solaris
 	BIN_TARGETS=prism.linux xprism.linux
 	JFLAGS = -encoding UTF8
 	SHARED = -shared -mimpure-text
@@ -295,12 +300,14 @@ ifeq ($(OSTYPE),cygwin)
 		CXXFLAGS = --std=c++11 -DWIN32 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
 		BINDISTSUFFIX = win64
+		BINDISTARCH = x86
 	else
 		CFLAGS = -march=i686 -malign-double -DHAVE_IEEE_754 -DHAVE_GETRLIMIT=0 -DRLIMIT_DATA_DEFAULT=268435456 -DHAVE_SYS_RESOURCE_H=0 -DHAVE_SYS_WAIT_H=0 $(DEBUG) $(OPTIMISE) $(WARNINGS) -static-libgcc -static-libstdc++
 		# need -DWIN32 for lpsolve (WIN32 is only defined by mingw/gcc without --std=c++11)
 		CXXFLAGS = --std=c++11 -DWIN32 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
 		BINDISTSUFFIX = win32
+		BINDISTARCH = x86
 	endif
 	BIN_TARGETS=prism.cygwin xprism.linux prism.bat.win xprism.bat.win
 	JFLAGS = -encoding UTF8
@@ -319,6 +326,7 @@ ifeq ($(OSTYPE),darwin)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = osx64
+		BINDISTARCH = x86
 		BIN_TARGETS=prism.darwin64 xprism.linux
 	else
 	ifeq ($(ARCH),arm64)
@@ -326,12 +334,14 @@ ifeq ($(OSTYPE),darwin)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = osx64
+		BINDISTARCH = arm
 		BIN_TARGETS=prism.darwin64 xprism.linux
 	else
 		CFLAGS = -arch i386 -DHAVE_IEEE_754 -DBSD -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = osx32
+		BINDISTARCH = x86
 		BIN_TARGETS=prism.darwin32 xprism.linux
 	endif
 	endif
@@ -416,6 +426,7 @@ extpackages: checks
 	  SHARED="$(SHARED)" \
 	  LIBMATH="$(LIBMATH)" \
 	  BINDISTSUFFIX="$(BINDISTSUFFIX)" \
+	  BINDISTARCH="$(BINDISTARCH)" \
 	  JAVA_DIR="$(JAVA_DIR)" \
 	  JAVA_JNI_H_DIR="$(JAVA_JNI_H_DIR)" \
 	  JAVA_JNI_MD_H_DIR="$(JAVA_JNI_MD_H_DIR)" \
@@ -641,14 +652,15 @@ BRANCH = master
 # File/dir names for distribution
 SRC_DIST_DIR = prism-games-$(VERSION)-src
 SRC_DIST_FILE = $(SRC_DIST_DIR).tar.gz
-BIN_DIST_DIR = prism-games-$(VERSION)-$(BINDISTSUFFIX)
+BIN_DIST_DIR = prism-games-$(VERSION)-$(BINDISTSUFFIX)-$(BINDISTARCH)
 BIN_DIST_FILE = $(BIN_DIST_DIR).tar.gz
 BIN_DIST_INST = $(BIN_DIST_DIR)-installer.exe
 
 # Build a (binary) distribution in the release directory
+# (run "make clean_all && make all" first )
 
 release: JFLAGS += --release 9
-release: clean_all all binary release_check_version build_release clean_binary
+release: binary release_check_version build_release clean_binary
 
 release_check_version:
 	@if [ "$(VERSION)" = "" ]; then echo "Usage: make release VERSION=4.5"; exit 1; fi
@@ -656,7 +668,7 @@ release_check_version:
 build_release:
 	@if [ "$(BINDISTSUFFIX)" = "win32" -o "$(BINDISTSUFFIX)" = "win64" ]; then \
 		echo Creating Windows installer in "release/$(BIN_DIST_INST)"... && \
-		makensis /NOCD /DPRISM_NAME="PRISM-games $(VERSION)" /DPRISM_BUILD="prism-games-$(VERSION)" /DPRISM_BINDISTSUFFIX="$(BINDISTSUFFIX)" /DPRISM_DIR=".." $(PRISM_SRC_DIR)/nsis_script.nsi && \
+		makensis /NOCD /DPRISM_NAME="PRISM-games $(VERSION)" /DPRISM_BUILD="prism-$(VERSION)" /DPRISM_BINDISTSUFFIX="$(BINDISTSUFFIX)" /DPRISM_BINDISTARCH="$(BINDISTARCH)" /DPRISM_DIR=".." $(PRISM_SRC_DIR)/nsis_script.nsi && \
 		mkdir -p release && \
 		mv ../"$(BIN_DIST_INST)" release; \
 	else \
