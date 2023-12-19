@@ -9,14 +9,20 @@ default: all
 
 all: checks z3
 
-# Cygwin libs
+# Z3 library filenames
+Z3_LIB = z3_lib_missing
+Z3_JAVA_LIB = z3_java_lib_missing
+ifeq ($(OSTYPE),linux)
+    Z3_LIB = $(LIBPREFIX)z3$(LIBSUFFIX)
+    Z3_JAVA_LIB = $(LIBPREFIX)z3java$(LIBSUFFIX)
+endif
+ifeq ($(OSTYPE),darwin)
+    Z3_LIB = $(LIBPREFIX)z3$(LIBSUFFIX)
+    Z3_JAVA_LIB = $(LIBPREFIX)z3java$(LIBSUFFIX)
+endif
 ifeq ($(OSTYPE),cygwin)
     Z3_LIB = $(LIBPREFIX)libz3$(LIBSUFFIX)
     Z3_JAVA_LIB = $(LIBPREFIX)libz3java$(LIBSUFFIX)
-# Anything else (including unsupported OSs) - Mac/Linux libs
-else
-    Z3_LIB = $(LIBPREFIX)z3$(LIBSUFFIX)
-    Z3_JAVA_LIB = $(LIBPREFIX)z3java$(LIBSUFFIX)
 endif
 Z3_JAVA_JAR = com.microsoft.z3.jar
 
@@ -26,22 +32,38 @@ checks:
 	  (echo "Error: This Makefile is designed to be called from the main PRISM Makefile"; exit 1) \
 	fi; 
 
-z3:
-	@(if [ "$(OSTYPE)" = "linux" ]; then \
-	  echo "Copying Z3 libraries for Linux"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
-	@(if [ "$(OSTYPE)" = "darwin" ]; then \
-	  echo "Copying Z3 libraries for MacOS"; \
-	  cp "$(OSTYPE)/$(ARCH)/$(Z3_LIB)" "$(OSTYPE)/$(ARCH)/$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
-	@(if [ "$(OSTYPE)" = "cygwin" ]; then \
-	  echo "Copying Z3 libraries for Cywgin"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
+# Copy files if they exist and are newer
+z3: ../../$(PRISM_LIB_DIR)/$(Z3_LIB) ../../$(PRISM_LIB_DIR)/$(Z3_JAVA_LIB) ../../$(PRISM_LIB_DIR)/$(Z3_JAVA_JAR)
+
+../../$(PRISM_LIB_DIR)/$(Z3_LIB): $(OSTYPE)/$(ARCH)/$(Z3_LIB)
+	@if [ -f "$<" ]; then \
+	  echo cp $< $@; \
+	  cp $< $@; \
+	fi
+
+../../$(PRISM_LIB_DIR)/$(Z3_JAVA_LIB): $(OSTYPE)/$(ARCH)/$(Z3_JAVA_LIB)
+	@if [ -f "$<" ]; then \
+	  echo cp $< $@; \
+	  cp $< $@; \
+	fi
+
+../../$(PRISM_LIB_DIR)/$(Z3_JAVA_JAR): $(Z3_JAVA_JAR)
+	@if [ -f "$<" ]; then \
+	  echo cp $< $@; \
+	  cp $< $@; \
+	fi
+
+$(OSTYPE)/$(ARCH)/z3_lib_missing: missing
+
+$(OSTYPE)/$(ARCH)/z3_java_lib_missing: missing
+
+missing:
+	@echo "Missing pre-built native libraries for $(OSTYPE) $(ARCH)"
 
 clean: checks
-	rm -f "../../$(PRISM_LIB_DIR)/$(Z3_LIB)" "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_LIB)" "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_JAR)"
+	rm -f "../../$(PRISM_LIB_DIR)/$(Z3_LIB)"
+	rm -f "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_LIB)"
+	rm -f "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_JAR)"
 
 celan:	clean
 
