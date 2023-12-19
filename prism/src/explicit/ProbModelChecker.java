@@ -1864,6 +1864,8 @@ public class ProbModelChecker extends NonProbModelChecker
 		case MDP:
 		case POMDP:
 		case STPG:
+		case SMG:
+		case CSG:
 		case IMDP:
 			exportMDPStateRewardsToFile(model, (MDPRewards<Value>) modelRewards, r, exportType, out, noexportheaders, precision);
 			break;
@@ -1977,6 +1979,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			case MDP:
 			case POMDP:
 			case STPG:
+			case SMG:
+			case CSG:
 			case IMDP:
 				exportMDPTransRewardsToFile((NondetModel<Value>) model, (MDPRewards<Value>) modelRewards, r, exportType, out, noexportheaders, precision);
 				break;
