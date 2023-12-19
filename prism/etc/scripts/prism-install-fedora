@@ -19,5 +19,5 @@ git clone https://github.com/prismmodelchecker/prism-games.git
 # Compile PRISM-games and run a few tests (unless --nobuild passed)
 # (should ultimately display: "Testing result: PASS")
 if [ "$*" = "${*/--nobuild}" ]; then
-  (cd prism-games/prism && make && make test testppl testyices testz3)
+  (cd prism-games/prism && make && make test testyices testz3 testppl)
 fi

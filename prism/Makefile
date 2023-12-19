@@ -163,32 +163,6 @@ JAVA_JNI_H_DIR = $(shell \
 JAVA_JNI_MD_H_DIR = $(shell (ls "$(JAVA_JNI_H_DIR)"/jni_md.h "$(JAVA_JNI_H_DIR)"/*/jni_md.h | head -n 1 | sed 's/\/jni_md.h//') 2>/dev/null)
 JAVA_INCLUDES = -I $(JAVA_JNI_H_DIR) -I $(JAVA_JNI_MD_H_DIR)
 
-########
-# PPL  #
-########
-
-# PPL_DIR needs to be set to the location of the Parma Polyhedra Library installation.
-# (More precisely PPL_DIR should contain a directory 'ppl' containing libppl_java.* and ppl_java.jar)
-# This makefile will try to detect this automatically based on the information provided by the ppl-config command.
-# If this detection does not work, or you wish to override it,
-# either set the variable yourself by uncommenting and/or modifying one of the lines below
-# or pass a value to make directly, e.g.: make PPL_DIR=/usr/local/ppl/lib
-
-# Find PPL
-PPL_DIR = $(shell src/scripts/findppl.sh)
-
-#PPL_DIR = 		/usr/local/ppl/lib
-#PPL_DIR = 		/usr/local/lib
-
-# Expected names of (some) PPL files
-ifeq ($(OSTYPE),linux)
-	PPL_JAVA_LIB = libppl_java.so
-endif
-ifeq ($(OSTYPE),darwin)
-	PPL_JAVA_LIB = libppl_java.jnilib
-endif
-PPL_JAVA_JAR = ppl_java.jar
-
 ##################
 # Compilers etc. #
 ##################
@@ -368,7 +342,7 @@ export CFLAGS CXXFLAGS LDFLAGS JFLAGS LIBPREFIX LIBSUFFIX
 
 MAKE_DIRS = dd jdd odd dv prism mtbdd sparse hybrid parser settings userinterface pepa/compiler simulator jltl2ba jltl2dstar explicit pta param strat automata common cex
 
-EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3 yices
+EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3 yices ppl
 
 .PHONY: clean javadoc tests release
 
@@ -377,41 +351,13 @@ EXT_PACKAGES = lpsolve55 lp_solve_5.5_java z3 yices
 
 default: all
 
-all: cuddpackage ppl extpackages prism
+all: cuddpackage extpackages prism
 
 # Build our customised version of CUDD
 cuddpackage: checks
 	@echo Making cudd ...; \
 	cd $(CUDD_DIR) && \
 	$(MAKE) ICFLAGS="$(DEBUG) $(OPTIMISE) $(WARNINGS)" XCFLAGS="$(filter-out $(DEBUG) $(OPTIMISE) $(WARNINGS),$(CFLAGS))"
-
-# Copy PPL libraries to lib dir
-# (only if not already there, to avoid repeated copying).
-# We check for PPL_JAVA_LIB, which is consistently named
-# and whose presence likely indicates that the files have already been copied.
-# If not found, we use a local copy of the JAR (in ext/ppl_java) since this is needed for compilation.
-ppl: checks
-	@echo Copying PPL files ...; \
-	if [ "$(PPL_DIR)" = "" ]; then \
-		echo "PPL_DIR not specified/detected: cannot copy files"; \
-	else \
-		if [ -f "$(PRISM_LIB_DIR)"/"$(PPL_JAVA_LIB)" ]; then \
-			echo "PPL Java library $(PRISM_LIB_DIR)/$(PPL_JAVA_LIB) detected: nothing to do"; \
-		else \
-			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_LIB)" "$(PRISM_LIB_DIR)" || echo Failed to copy PPL Java library); \
-			(cp "$(PPL_DIR)"/ppl/"$(PPL_JAVA_JAR)" "$(PRISM_LIB_DIR)" || echo Failed to copy PPL Java JAR); \
-			if [ "$(OSTYPE)" = "linux" ]; then \
-				(cp "$(PPL_DIR)"/libppl.so.[0-9][0-9] "$(PRISM_LIB_DIR)" || echo Failed to copy PPL library); \
-			fi; \
-			if [ "$(OSTYPE)" = "darwin" ]; then \
-				(cp "$(PPL_DIR)"/libppl.[0-9][0-9].*lib "$(PRISM_LIB_DIR)" || echo Failed to copy PPL library); \
-			fi; \
-		fi; \
-	fi ; \
-	if [ ! -f "$(PRISM_LIB_DIR)"/"$(PPL_JAVA_JAR)" ]; then \
-		echo "PPL library files not copied; using local copy of JAR"; \
-		cp ext/ppl_java/"$(PPL_JAVA_JAR)" "$(PRISM_LIB_DIR)"; \
-	fi
 
 # Use this to force a rebuild (with javacc) of the main parser
 parser:
@@ -525,20 +471,6 @@ checks:
 	  echo "\033[0m"; \
 	  exit 1; \
 	fi; \
-	if [ "$(PPL_DIR)" = "" ]; then \
-	  echo "\033[33mPRISM was unable to find the directory which contains"; \
-	  echo "the Parma Polyhedra Library (PPL). Please specify this "; \
-	  echo "manually to make, as in this example:"; \
-	  echo; \
-	  echo "  make PPL_DIR=/usr/local/ppl/lib"; \
-	  echo; \
-	  echo "See the PRISM manual for further information."; \
-	  echo; \
-	  echo "Alternatively, if you wish, you can set the environment"; \
-	  echo "variable yourself (using setenv or export) or you"; \
-	  echo "can edit the value of PPL_DIR directly in the Makefile."; \
-	  echo "\033[0m"; \
-	fi; \
 	if [ ! -d "$(JAVA_DIR)" ]; then \
 	  echo "\033[33mJava directory \"$(JAVA_DIR)\" does not exist."; \
 	  echo "\033[0m"; \
@@ -562,7 +494,6 @@ checks:
 	echo "JAVA_DIR_BACKUP: $(JAVA_DIR_BACKUP)"; \
 	echo "JAVAC (which): "`which $(JAVAC)`; \
 	echo "JAVAC (version): "$(shell $(JAVAC) -version) \
-	echo "PPL_DIR: $(PPL_DIR)" \
 	)
 
 # Misc: count the number of lines of code
@@ -735,14 +666,10 @@ clean: checks
 celan: clean
 
 # Clean PRISM + CUDD and external libs
-clean_all: checks clean_cudd clean_ppl clean_ext clean clean_tests
+clean_all: checks clean_cudd clean_ext clean clean_tests
 
 clean_cudd:
 	@(cd $(CUDD_DIR) && $(MAKE) distclean)
-
-# Remove PPL libraries copied to lib
-clean_ppl:
-	@rm -f $(PRISM_LIB_DIR)/libppl* $(PRISM_LIB_DIR)/"$(PPL_JAVA_JAR)"
 
 clean_ext:
 	@(for ext in $(EXT_PACKAGES); do \
