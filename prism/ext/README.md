@@ -4,6 +4,8 @@ To simplify maintenance of scripts and config files, we mostly omit version numb
 
 * lpsolve (and its Java wrapper) - modification of version 5.5.2.0 (and version 5.5.0.14)
 
+* Z3 (and its Java interface) - version 4.12.4
+
 See here for more details and links:
 
 http://www.prismmodelchecker.org/other-downloads.php

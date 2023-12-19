@@ -54,19 +54,6 @@ cd ..
 # cp dist/lib/yices.jar ../prism-games/prism/ext/yices
 # cd ..
 
-# Download and build Z3 4.8.7
-# Commented out for now since z3 binaries are included
-# sudo apt -y install python
-# wget https://github.com/Z3Prover/z3/archive/z3-4.8.7.tar.gz
-# tar xvfz z3-4.8.7.tar.gz
-# cd z3-z3-4.8.7
-# python scripts/mk_make.py --java
-# cd build
-# make
-# sudo make install
-# cp /usr/lib/libz3.so ../prism-games/prism/lib
-# cd ..
-
 # Compile PRISM-games and run a few tests (unless --nobuild passed)
 # (should ultimately display: "Testing result: PASS")
 if [ "$*" = "${*/--nobuild}" ]; then
