@@ -20,23 +20,8 @@ sudo apt -y install python3
 # Download the latest development version from GitHub
 git clone https://github.com/prismmodelchecker/prism-games.git
 
-# Find the Java directory
-export JAVA_HOME=`prism-games/prism/src/scripts/findjavac.sh | sed 's/\/bin\/javac//'`
-
-# Download/build PPL + dependencies (needs Java 8 it seems)
-# Comment out the section below if multi-obj support not needed
-sudo apt -y install openjdk-8-jdk libgmp-dev m4
-export JAVA8_HOME=`find /usr/lib/jvm -name 'java-8*'`
-wget http://www.bugseng.com/products/ppl/download/ftp/releases/1.2/ppl-1.2.tar.gz
-tar xfz ppl-1.2.tar.gz
-cd ppl-1.2
-./configure --enable-interfaces=java --with-java=$JAVA8_HOME
-make
-sudo make install
-cd ..
-
 # Compile PRISM-games and run a few tests (unless --nobuild passed)
 # (should ultimately display: "Testing result: PASS")
 if [ "$*" = "${*/--nobuild}" ]; then
-  (cd prism-games/prism && make && make test testppl testyices testz3)
+  (cd prism-games/prism && make && make test testyices testz3 testppl)
 fi

@@ -63,5 +63,5 @@ jobs:
       run: >-
         make &&
         make unittests &&
-        make test testz3 testyices &&
+        make test testz3 testyices testppl &&
         make tests
