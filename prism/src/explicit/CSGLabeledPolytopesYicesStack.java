@@ -92,9 +92,9 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 
 	protected String eqPolicy;
 
-	public CSGLabeledPolytopesYicesStack()
+	public CSGLabeledPolytopesYicesStack() throws PrismException
 	{
-
+		initSolver();
 	}
 
 	public CSGLabeledPolytopesYicesStack(int nrows, int ncols) throws PrismException
@@ -181,7 +181,7 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 			cfg.set("mode", "push-pop");
 			ctx = new Context(cfg);
 			cfg.close();
-			solverName = "Yices " + Version.versionString;
+			solverName = "Yices " + Yices.version();
 		} catch (UnsatisfiedLinkError e) {
 			throw new PrismException("Could not initialise Yices: " + e.getMessage());
 		}
