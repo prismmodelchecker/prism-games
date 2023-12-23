@@ -73,7 +73,7 @@ fi
 ARGS=( "$@" )
 for ((i=0;i<${#ARGS[@]};i+=1)); do
 	if [ "${ARGS[$i]}" = "-javaparams" -o "${ARGS[$i]}" = "--javaparams" ]; then
-		JAVA_PARAMS=${JAVA_PARAMS}${JAVA_PARAMS:+ }${ARGS[$i+1]}
+		PRISM_JAVA_PARAMS=${PRISM_JAVA_PARAMS}${PRISM_JAVA_PARAMS:+ }${ARGS[$i+1]}
 	fi
 done
 
@@ -90,7 +90,7 @@ PRISM_CLASSPATH="$PRISM_DIR"/lib/prism.jar:"$PRISM_DIR"/classes:"$PRISM_DIR":"$P
 PRISM_LIB_PATH="$PRISM_DIR"/lib
 
 # Copy library path to relevant vars
-DYLD_LIBRARY_PATH=${PRISM_LIB_PATH}${DYLD_LIBRARY_PATH:+:}${DYLD_LIBRARY_PATH}
+DYLD_LIBRARY_PATH="${PRISM_LIB_PATH}${DYLD_LIBRARY_PATH:+:}${DYLD_LIBRARY_PATH}"
 JAVA_LIBRARY_PATH="$PRISM_LIB_PATH"
 
 # Export environment variables
