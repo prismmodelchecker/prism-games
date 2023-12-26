@@ -1,4 +1,4 @@
-@REM Script to prepare for installation of PRISM on a clean Windows install
+@REM Script to prepare for installation of PRISM-games on a clean Windows install
 @REM Run this in a Windows Command Prompt
 @REM e.g. cmd /K prism-install-windows.bat
 @REM Then run prism-install-cygwin in a Cygwin window

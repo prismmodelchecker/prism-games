@@ -62,8 +62,6 @@ cd ..
 # cp /usr/lib/libz3.so ../prism-games/prism/lib
 # cd ..
 
-# Compile PRISM-games and run two tests
-# (should ultimately display: "Testing result: PASS")
-cd prism-games/prism
-make PPL_DIR=/usr/local/lib
-make test testppl testyices testz3
+# Compile PRISM-games and run a few tests
+# (each should display: "Testing result: PASS")
+(cd prism-games/prism && make PPL_DIR=/usr/local/lib && make test testppl testyices testz3)
