@@ -704,8 +704,6 @@ build_release_source:
 	rm -f "release/$(SRC_DIST_FILE)" && \
 	mkdir -p "release/$(SRC_DIST_DIR)" && \
 	(cd .. && git archive $(BRANCH) --format=tar) | tar xf - -C "release/$(SRC_DIST_DIR)" && \
-	rm -rf "release/$(SRC_DIST_DIR)/prism/examples" && \
-	rm -rf "release/$(SRC_DIST_DIR)/prism/tests" && \
 	(cd release && tar cfz "$(SRC_DIST_FILE)" "$(SRC_DIST_DIR)") && rm -rf "release/$(SRC_DIST_DIR)"
 
 # Build Javadoc (and put in javadoc directory)
