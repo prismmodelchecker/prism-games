@@ -111,6 +111,16 @@ ifeq ($(OSTYPE),cygwin)
     endif
 endif
 
+##################
+# Pre-processing #
+##################
+
+# Convert scripts needed for building, in case extracted with CRLF endings
+PRE_PROC := $(shell if [ "$(OSTYPE)" = "cygwin" ]; then \
+  dos2unix "$(PRISM_SRC_DIR)"/scripts/*.sh; \
+  dos2unix "$(CUDD_DIR)"/setup.sh; \
+fi 2> /dev/null)
+
 ########
 # Java #
 ########
@@ -128,11 +138,7 @@ DETECT_JAVAC = $(shell $(PRISM_SRC_DIR)/scripts/findjavac.sh 2> /dev/null)
 ifeq ("$(DETECT_JAVAC)","")
   JAVA_DIR =
 else
-  ifneq (darwin,$(OSTYPE))
-    JAVA_DIR = $(shell dirname "$(DETECT_JAVAC)" | sed 's/\/bin//')
-  else
-    JAVA_DIR = $(shell dirname "$(DETECT_JAVAC)" | sed 's/\/Commands//')
-  endif
+  JAVA_DIR = $(shell dirname "$(DETECT_JAVAC)" | sed -e 's/\/bin//' -e 's/\/Commands//')
 endif
 
 # As a backup way of detecting JAVA_DIR, run java_home
@@ -327,7 +333,7 @@ ifeq ($(OSTYPE),darwin)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = mac64
 		BINDISTARCH = x86
-		BIN_TARGETS=prism.darwin64 xprism.linux
+		BIN_TARGETS=prism.darwin xprism.linux
 	else
 	ifeq ($(ARCH),arm64)
 		CFLAGS = -arch arm64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
@@ -335,14 +341,14 @@ ifeq ($(OSTYPE),darwin)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = mac64
 		BINDISTARCH = arm
-		BIN_TARGETS=prism.darwin64 xprism.linux
+		BIN_TARGETS=prism.darwin xprism.linux
 	else
 		CFLAGS = -arch i386 -DHAVE_IEEE_754 -DBSD -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
 		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
 		BINDISTSUFFIX = mac32
 		BINDISTARCH = x86
-		BIN_TARGETS=prism.darwin32 xprism.linux
+		BIN_TARGETS=prism.darwin xprism.linux
 	endif
 	endif
 	JFLAGS = -encoding UTF8
@@ -460,9 +466,12 @@ make_dirs:
 	  for lib in `ls *$(LIBSUFFIX)`; do ln -fs $$lib `echo $$lib | sed s/$(LIBSUFFIX)/.jnilib/`; done;); \
 	fi
 # On Windows, convert the generated JNI headers using dos2unix
-	@if [ "$(LIBSUFFIX)" = ".dll" ]; then \
-		(dos2unix $(PRISM_INCLUDE_DIR)/jni/*.h) \
-	fi;
+# and any scripts to be run from Cywgin, in case extracted with CRLF endings.
+	@if [ "$(OSTYPE)" = "cygwin" ]; then \
+	  dos2unix $(PRISM_INCLUDE_DIR)/jni/*.h; \
+	  find .. -name '*.sh' -exec dos2unix {} \; ; \
+	  dos2unix "$(PRISM_SRC_DIR)"/bin/prism.cygwin; \
+	fi
 
 # Compile unit tests
 make_tests:
@@ -551,7 +560,8 @@ checks:
 	echo "OSTYPE/ARCH: $(OSTYPE) $(ARCH)"; \
 	echo "JAVA_DIR: $(JAVA_DIR)"; \
 	echo "JAVA_DIR_BACKUP: $(JAVA_DIR_BACKUP)"; \
-	echo "JAVAC: "`which $(JAVAC)`; \
+	echo "JAVAC (which): "`which $(JAVAC)`; \
+	echo "JAVAC (version): "$(shell $(JAVAC) -version) \
 	echo "PPL_DIR: $(PPL_DIR)" \
 	)
 
@@ -571,6 +581,10 @@ unittests: make_tests
 # Run a single test case from the test suite (useful quick check that the build was ok)
 test:
 	bin/prism etc/tests/dtmc_pctl.prism etc/tests/dtmc_pctl.prism.props -h -test
+
+# Run a single test case from the test suite that relies on lpsolve being properly installed
+testlpsolve:
+	bin/prism etc/tests/test_lpsolve_mdpmo.prism etc/tests/test_lpsolve_mdpmo.prism.props -lp -test
 
 # Run a single test case from the test suite that relies on PPL being properly installed
 testppl:
