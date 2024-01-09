@@ -55,7 +55,7 @@ jobs:
           wget,
           unzip,
           python
-    - name: make tests
+    - name: make
       shell: bash
       env:
         CYGWIN: winsymlinks:native
@@ -63,5 +63,11 @@ jobs:
       run: >-
         make &&
         make unittests &&
-        make test testz3 testyices testppl &&
+        make test testz3 testyices testppl
+    - name: make tests
+      shell: bash
+      env:
+        CYGWIN: winsymlinks:native
+      working-directory: ./prism
+      run: >-
         make tests
