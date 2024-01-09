@@ -5,6 +5,11 @@
 set -e # Abort if one of the commands fails
 set -x # Print commands as they are executed
 
+# Avoid interruptions during install
+if [ -e "/etc/needrestart/needrestart.conf" ]; then
+  sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+fi
+
 # Install dependencies: make/gcc/Java/git
 sudo apt-get -y update
 sudo apt -y install make gcc g++ default-jdk git
@@ -62,6 +67,8 @@ cd ..
 # cp /usr/lib/libz3.so ../prism-games/prism/lib
 # cd ..
 
-# Compile PRISM-games and run a few tests
-# (each should display: "Testing result: PASS")
-(cd prism-games/prism && make PPL_DIR=/usr/local/lib && make test testppl testyices testz3)
+# Compile PRISM-games and run a few tests (unless --nobuild passed)
+# (should ultimately display: "Testing result: PASS")
+if [ "$*" = "${*/--nobuild}" ]; then
+  (cd prism-games/prism && make && make test testppl testyices testz3)
+fi

@@ -273,7 +273,7 @@ ifeq ($(OSTYPE),linux)
 	endif
 	endif
 	BIN_TARGETS=prism.linux xprism.linux
-	JFLAGS = -encoding UTF8
+	JFLAGS := -encoding UTF8
 	SHARED = -shared
 	#SHARED = -G
 	EXE =
@@ -290,7 +290,7 @@ ifeq ($(OSTYPE),solaris)
 	BINDISTSUFFIX = solaris
 	BINDISTARCH = solaris
 	BIN_TARGETS=prism.linux xprism.linux
-	JFLAGS = -encoding UTF8
+	JFLAGS := -encoding UTF8
 	SHARED = -shared -mimpure-text
 	EXE =
 	LIBPREFIX = lib
@@ -316,7 +316,7 @@ ifeq ($(OSTYPE),cygwin)
 		BINDISTARCH = x86
 	endif
 	BIN_TARGETS=prism.cygwin xprism.linux prism.bat.win xprism.bat.win
-	JFLAGS = -encoding UTF8
+	JFLAGS := -encoding UTF8
 	SHARED = -shared
 	#SHARED = -G
 	EXE = .exe
@@ -351,7 +351,7 @@ ifeq ($(OSTYPE),darwin)
 		BIN_TARGETS=prism.darwin xprism.linux
 	endif
 	endif
-	JFLAGS = -encoding UTF8
+	JFLAGS := -encoding UTF8
 	SHARED = -dynamiclib
 	EXE =
 	LIBPREFIX = lib
@@ -671,10 +671,11 @@ BIN_DIST_FILE = $(BIN_DIST_DIR).tar.gz
 BIN_DIST_INST = $(BIN_DIST_DIR)-installer.exe
 
 # Build a (binary) distribution in the release directory
-# (run "make clean_all && make all" first )
 
-release: JFLAGS += --release 9
-release: binary release_check_version build_release clean_binary
+release: release_config clean_all all binary release_check_version build_release clean_binary
+
+release_config:
+	$(eval JFLAGS := --release 9 $(JFLAGS))
 
 release_check_version:
 	@if [ "$(VERSION)" = "" ]; then echo "Usage: make release VERSION=4.5"; exit 1; fi
