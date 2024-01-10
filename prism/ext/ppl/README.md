@@ -9,7 +9,7 @@ We build GMP from source first. This allows us to statically link GMP
 to the PPL shared libraries, minimising dependencies to bundle.
 Also, we need JNI friendly libraries for Cygwin.
 We use a custom version of PPL that has some build fixes and additions,
-including the option to statically link GMP. 
+including the option to statically link GMP.
 
 ---
 
@@ -23,15 +23,22 @@ sudo apt -y install autoconf automake libtool
 
 # Set-up
 export BUILD_DIR="$HOME/tools"
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/default-java
 
-# Install a dynamic GMP and build a static GMP (incl. C++)
-sudo apt -y install libgmp-dev
+# Build a dynamic GMP and a static GMP (incl. C++)
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
-./configure --enable-cxx --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
+./configure --enable-cxx --disable-static --enable-shared --prefix=$BUILD_DIR/dynamic_gmp CC=gcc ABI=64 CFLAGS='-fPIC' CPPFLAGS=-DPIC
+make && make install
+# make check
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
+./configure --enable-cxx --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC' CPPFLAGS=-DPIC
 make && make install
 # make check
 
@@ -58,11 +65,18 @@ brew install autoconf automake libtool
 export BUILD_DIR="$HOME/tools/tmp"
 export JAVA_HOME=/opt/homebrew/Cellar/openjdk/20.0.2/libexec/openjdk.jdk/Contents/Home
 
-# Install a dynamic GMP and build a static GMP (incl. C++)
-brew install gmp
+# Build a dynamic GMP and a static GMP (incl. C++)
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
+./configure --enable-cxx --disable-static --enable-shared --prefix=$BUILD_DIR/dynamic_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
+make && make install
+# make check
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
 ./configure --enable-cxx --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
 make && make install
@@ -103,12 +117,16 @@ export JAVA_HOME2="$BUILD_DIR/java"
 # Build a dynamic GMP and a static GMP (incl. C++)
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
 ./configure --host=x86_64-w64-mingw32 --build=i686-pc-cygwin --enable-cxx LDFLAGS="-Wl,--add-stdcall-alias" --enable-shared --disable-static --prefix=$BUILD_DIR/dynamic_gmp
 make && make install
 # make check
-make clean
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
 ./configure --host=x86_64-w64-mingw32 --build=i686-pc-cygwin --enable-cxx LDFLAGS="-Wl,--add-stdcall-alias" --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp
 make && make install
 # make check
