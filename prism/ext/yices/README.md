@@ -30,15 +30,22 @@ sudo apt -y install autoconf automake libtool gperf
 
 # Set-up
 export BUILD_DIR="$HOME/tools"
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/default-java
 
-# Install a dynamic GMP and build a static GMP
-sudo apt -y install libgmp-dev
+# Build a dynamic GMP and a static GMP
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
-./configure --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
+./configure --disable-static --enable-shared --prefix=$BUILD_DIR/dynamic_gmp CC=gcc ABI=64 CFLAGS='-fPIC' CPPFLAGS=-DPIC
+make && make install
+# make check
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
+./configure --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC' CPPFLAGS=-DPIC
 make && make install
 # make check
 
@@ -48,10 +55,12 @@ wget https://yices.csl.sri.com/releases/2.6.4/yices-2.6.4-src.tar.gz
 tar xfz yices-2.6.4-src.tar.gz
 cd yices2-Yices-2.6.4
 autoconf
-./configure CPPFLAGS=-I/usr/include/x86_64-linux-gnu LDFLAGS=-L/usr/lib/x86_64-linux-gnu --with-pic-gmp=$BUILD_DIR/static_gmp/lib/libgmp.a --with-pic-gmp-include-dir=$BUILD_DIR/static_gmp/include
+./configure CPPFLAGS=-I$BUILD_DIR/static_gmp/include LDFLAGS=-L$BUILD_DIR/static_gmp/lib --with-pic-gmp=$BUILD_DIR/static_gmp/lib/libgmp.a --with-pic-gmp-include-dir=$BUILD_DIR/static_gmp/include
 make MODE=release static-dist
 cp build/*/static_dist/lib/libyices.so.2.6.4 $BUILD_DIR
 ln -s $BUILD_DIR/libyices.so.2.6.4 $BUILD_DIR/libyices.so.2.6
+ln -s $BUILD_DIR/libyices.so.2.6 $BUILD_DIR/libyices.so.2
+ln -s $BUILD_DIR/libyices.so.2 $BUILD_DIR/libyices.so
 cp build/*/static_dist/include/* $BUILD_DIR
 
 # Build Yices Java bindings
@@ -60,7 +69,7 @@ git clone https://github.com/SRI-CSL/yices2_java_bindings
 cd yices2_java_bindings
 cd src/main/java/com/sri/yices
 javac --release 9 -d ../../../../../../dist/lib -h . *.java
-g++ -fPIC -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" -I$BUILD_DIR -I/usr/include/x86_64-linux-gnu -c yicesJNI.cpp
+g++ -fPIC -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" -I$BUILD_DIR -I$BUILD_DIR/static_gmp/include -c yicesJNI.cpp
 g++ -shared -o libyices2java.so yicesJNI.o $BUILD_DIR/static_gmp/lib/libgmp.a -L$BUILD_DIR -lyices
 cd ../../../../../..
 jar cvfm yices.jar MANIFEST.txt -C dist/lib .
@@ -79,11 +88,18 @@ brew install autoconf automake libtool gperf
 export BUILD_DIR="$HOME/tools/tmp"
 export JAVA_HOME=/opt/homebrew/Cellar/openjdk/20.0.2/libexec/openjdk.jdk/Contents/Home
 
-# Install a dynamic GMP and build a static GMP
-brew install gmp
+# Build a dynamic GMP and a static GMP
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
+./configure --disable-static --enable-shared --prefix=$BUILD_DIR/dynamic_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
+make && make install
+# make check
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
 ./configure --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp CC=gcc ABI=64 CFLAGS='-fPIC -m64' CPPFLAGS=-DPIC
 make && make install
@@ -95,7 +111,7 @@ wget https://yices.csl.sri.com/releases/2.6.4/yices-2.6.4-src.tar.gz
 tar xfz yices-2.6.4-src.tar.gz
 cd yices2-Yices-2.6.4
 autoconf
-./configure CPPFLAGS=-I/opt/homebrew/include LDFLAGS=-L/opt/homebrew/lib --with-pic-gmp=$BUILD_DIR/static_gmp/lib/libgmp.a --with-pic-gmp-include-dir=$BUILD_DIR/static_gmp/include
+./configure CPPFLAGS=-I$BUILD_DIR/static_gmp/include LDFLAGS=-L$BUILD_DIR/static_gmp/lib --with-pic-gmp=$BUILD_DIR/static_gmp/lib/libgmp.a --with-pic-gmp-include-dir=$BUILD_DIR/static_gmp/include
 make OPTION=64bits MODE=release static-dist
 cp build/*/static_dist/lib/libyices.2.dylib $BUILD_DIR
 ln -s $BUILD_DIR/libyices.2.dylib $BUILD_DIR/libyices.dylib
@@ -107,7 +123,7 @@ git clone https://github.com/SRI-CSL/yices2_java_bindings
 cd yices2_java_bindings
 cd src/main/java/com/sri/yices
 javac --release 9 -d ../../../../../../dist/lib -h . *.java
-g++ -fPIC -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/darwin" -I$BUILD_DIR -I/opt/homebrew/include -c yicesJNI.cpp
+g++ -fPIC -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/darwin" -I$BUILD_DIR -I$BUILD_DIR/static_gmp/include -c yicesJNI.cpp
 g++ -dynamiclib -o libyices2java.dylib yicesJNI.o $BUILD_DIR/static_gmp/lib/libgmp.a -L$BUILD_DIR -lyices
 cd ../../../../../..
 jar cvfm yices.jar MANIFEST.txt -C dist/lib .
@@ -133,12 +149,16 @@ export JAVA_HOME="/cygdrive/c/Program Files/Eclipse Adoptium/jdk-11.0.21.9-hotsp
 # Build a dynamic GMP and a static GMP
 mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
 wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz 
+tar xf gmp-6.3.0.tar.xz
 cd gmp-6.3.0
 ./configure --host=x86_64-w64-mingw32 --build=i686-pc-cygwin LDFLAGS="-Wl,--add-stdcall-alias" --enable-shared --disable-static --prefix=$BUILD_DIR/dynamic_gmp
 make && make install
 # make check
-make clean
+mkdir -p $BUILD_DIR && cd $BUILD_DIR && mkdir -p dynamic_gmp && mkdir -p static_gmp
+rm -rf gmp-6*
+wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
+cd gmp-6.3.0
 ./configure --host=x86_64-w64-mingw32 --build=i686-pc-cygwin LDFLAGS="-Wl,--add-stdcall-alias" --enable-static --disable-shared --prefix=$BUILD_DIR/static_gmp
 make && make install
 # make check
