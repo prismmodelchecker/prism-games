@@ -34,14 +34,22 @@ libfiles: $(NATIVE_LIBS_COPY) $(COMMON_LIBS_COPY)
 
 ../../$(PRISM_LIB_DIR)/%: $(OSTYPE)/$(ARCH)/%
 	@if [ -f "$<" ]; then \
-	  echo cp -R $< $@; \
-	  cp -R $< $@; \
+	  echo Copying $< $@; \
+	  if [ $(OSTYPE) = "cywgin" ]; then \
+	    cp $< $@; \
+	  else \
+	    cp -R $< $@; \
+	  fi \
 	fi
 
 ../../$(PRISM_LIB_DIR)/%: common/%
 	@if [ -f "$<" ]; then \
-	  echo cp -R $< $@; \
-	  cp -R $< $@; \
+	  echo Copying $< $@; \
+	  if [ $(OSTYPE) = "cygwin" ]; then \
+	    cp $< $@; \
+	  else \
+	    cp -R $< $@; \
+	  fi \
 	fi
 
 clean: checks
