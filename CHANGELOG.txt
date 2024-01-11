@@ -2,6 +2,17 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.2.1 (first released 11/1/2024)
+-----------------------------------------------------------------------------
+
+* Improved support for external libraries (Z3/Yices/PPL)
+  - binaries installed for new versions and more OSs, including PPL on Windows
+  - improved, more robust install mechanism
+  - better documentation of library build process
+* Merged latest changes from PRISM:
+ - updates/fixes in install/launch/testing scripts and build process
+
+-----------------------------------------------------------------------------
 Version 3.2 (first released 13/11/2023)
 -----------------------------------------------------------------------------
 
