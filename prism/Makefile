@@ -203,7 +203,7 @@ OPTIMISE = -O3
 
 # Compiler warnings to enable:
 # (WARNING: must not contain a % symbol!)
-WARNINGS = -Wformat
+WARNINGS = #-Wformat
 
 # Flags for compilation/linking
 # Flags to generate shared libraries
@@ -215,32 +215,32 @@ WARNINGS = -Wformat
 ifeq ($(OSTYPE),linux)
 	ifeq ($(ARCH),amd64)
 		# Position Independent Code required on AMD64/Itanium
-		CFLAGS = -m64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -m64 -fPIC -DPIC $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS)
+		LDFLAGS =
 		BINDISTSUFFIX = linux64
 		BINDISTARCH = x86
 	else
 	ifeq ($(ARCH),ia64)
 		# Position Independent Code required on AMD64/Itanium
 		# Note: We omit the -m64 flag from here since it seems to be unsupported by gcc on IA64
-		CFLAGS = -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -fPIC -DPIC $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS)
+		LDFLAGS =
 		BINDISTSUFFIX = linux64
 		BINDISTARCH = ia64
 	else
 	ifeq ($(ARCH),aarch64)
 		# Position Independent Code required on Aarch64
-		CFLAGS = -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -fPIC -DPIC $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS)
+		LDFLAGS =
 		BINDISTSUFFIX = linux64
 		BINDISTARCH = arm
 	else
-		CFLAGS = -m32 -malign-double -DHAVE_IEEE_754 -DBSD $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -m32 $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS)
+		LDFLAGS =
 		BINDISTSUFFIX = linux32
 		BINDISTARCH = x86
 	endif
@@ -258,9 +258,9 @@ ifeq ($(OSTYPE),linux)
 endif
 # Solaris
 ifeq ($(OSTYPE),solaris)
-	CFLAGS = -mcpu=ultrasparc -DHAVE_IEEE_754 -DUNIX100 -DEPD_BIG_ENDIAN $(DEBUG) $(OPTIMISE) $(WARNINGS)
+	CFLAGS = -mcpu=ultrasparc $(DEBUG) $(OPTIMISE) $(WARNINGS)
 	CXXFLAGS = --std=c++11 $(CFLAGS)
-	LDFLAGS = $(CFLAGS)
+	LDFLAGS =
 	BINDISTSUFFIX = solaris
 	BINDISTARCH = solaris
 	BIN_TARGETS=prism.linux xprism.linux
@@ -274,18 +274,20 @@ ifeq ($(OSTYPE),solaris)
 endif
 # Cygwin
 ifeq ($(OSTYPE),cygwin)
+	# -DWIN32 needed for lpsolve (included e.g. in sparse) - WIN32 is only defined by mingw/gcc without --std=c++11
+	# -static-libgcc -static-libstdc+ needed to build binaries that don't rely on these libraries to be present
+	# -Wl,--add-stdcall-alias needed so shared libraries can be read from JNI
+	# -Wl ... -lpthread ... --no-whole-archive needed to statically include pthread in case missing
 	ifeq ($(ARCH),x86_64)
-		CFLAGS = -malign-double -DHAVE_IEEE_754 -DHAVE_GETRLIMIT=0 -DRLIMIT_DATA_DEFAULT=268435456 -DHAVE_SYS_RESOURCE_H=0 -DHAVE_SYS_WAIT_H=0 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=4 $(DEBUG) $(OPTIMISE) $(WARNINGS) -static-libgcc -static-libstdc++
-		# need -DWIN32 for lpsolve (WIN32 is only defined by mingw/gcc without --std=c++11)
+		CFLAGS = $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 -DWIN32 $(CFLAGS)
-		LDFLAGS = $(CFLAGS) -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
+		LDFLAGS = -static-libgcc -static-libstdc++ -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
 		BINDISTSUFFIX = win64
 		BINDISTARCH = x86
 	else
-		CFLAGS = -march=i686 -malign-double -DHAVE_IEEE_754 -DHAVE_GETRLIMIT=0 -DRLIMIT_DATA_DEFAULT=268435456 -DHAVE_SYS_RESOURCE_H=0 -DHAVE_SYS_WAIT_H=0 $(DEBUG) $(OPTIMISE) $(WARNINGS) -static-libgcc -static-libstdc++
-		# need -DWIN32 for lpsolve (WIN32 is only defined by mingw/gcc without --std=c++11)
+		CFLAGS = -march=i686 $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 -DWIN32 $(CFLAGS)
-		LDFLAGS = $(CFLAGS) -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
+		LDFLAGS = -static-libgcc -static-libstdc++ -Wl,--add-stdcall-alias -Wl,-Bstatic,--whole-archive -lpthread -Wl,-Bdynamic,--no-whole-archive
 		BINDISTSUFFIX = win32
 		BINDISTARCH = x86
 	endif
@@ -302,24 +304,24 @@ endif
 # Darwin
 ifeq ($(OSTYPE),darwin)
 	ifeq ($(ARCH),x86_64)
-		CFLAGS = -arch x86_64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -arch x86_64 -fPIC -DPIC $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
+		LDFLAGS = -Wl,-search_paths_first
 		BINDISTSUFFIX = mac64
 		BINDISTARCH = x86
 		BIN_TARGETS=prism.darwin xprism.linux
 	else
 	ifeq ($(ARCH),arm64)
-		CFLAGS = -arch arm64 -fPIC -DPIC -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -arch arm64 -fPIC -DPIC $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
+		LDFLAGS = -Wl,-search_paths_first
 		BINDISTSUFFIX = mac64
 		BINDISTARCH = arm
 		BIN_TARGETS=prism.darwin xprism.linux
 	else
-		CFLAGS = -arch i386 -DHAVE_IEEE_754 -DBSD -fno-common $(DEBUG) $(OPTIMISE) $(WARNINGS)
+		CFLAGS = -arch i386 $(DEBUG) $(OPTIMISE) $(WARNINGS)
 		CXXFLAGS = --std=c++11 $(CFLAGS)
-		LDFLAGS = $(CFLAGS) -Wl,-search_paths_first
+		LDFLAGS = -Wl,-search_paths_first
 		BINDISTSUFFIX = mac32
 		BINDISTARCH = x86
 		BIN_TARGETS=prism.darwin xprism.linux
@@ -354,10 +356,12 @@ default: all
 all: cuddpackage extpackages prism
 
 # Build our customised version of CUDD
+# (let CUDD choose its own linker - problems on Cygwin if not)
+# (should be no need for linker options - we use static CUDD libraries)
+# (note CFLAGS/CXXFLAGS _are_ passed on, e.g. to preserve PIC consistency)
 cuddpackage: checks
-	@echo Making cudd ...; \
-	cd $(CUDD_DIR) && \
-	$(MAKE) ICFLAGS="$(DEBUG) $(OPTIMISE) $(WARNINGS)" XCFLAGS="$(filter-out $(DEBUG) $(OPTIMISE) $(WARNINGS),$(CFLAGS))"
+	@echo Making cudd ...; cd $(CUDD_DIR) && \
+	LD= LDFLAGS= ./install.sh
 
 # Use this to force a rebuild (with javacc) of the main parser
 parser:
@@ -669,7 +673,7 @@ celan: clean
 clean_all: checks clean_cudd clean_ext clean clean_tests
 
 clean_cudd:
-	@(cd $(CUDD_DIR) && $(MAKE) distclean)
+	@(cd $(CUDD_DIR) && ./clean.sh)
 
 clean_ext:
 	@(for ext in $(EXT_PACKAGES); do \
