@@ -54,12 +54,13 @@ public class ExpressionBinaryOp extends Expression
 	public static final int MINUS = 12;
 	public static final int TIMES = 13;
 	public static final int DIVIDE = 14;
+	public static final int POW = 15;
 	// Operator symbols
-	public static final String opSymbols[] = { "", "=>", "<=>", "|", "&", "=", "!=", ">", ">=", "<", "<=", "+", "-", "*", "/" };
+	public static final String opSymbols[] = { "", "=>", "<=>", "|", "&", "=", "!=", ">", ">=", "<", "<=", "+", "-", "*", "/", "^" };
 	// Operator type testers
 	public static boolean isLogical(int op) { return op==IMPLIES || op==IFF || op==OR || op==AND; }
 	public static boolean isRelOp(int op) { return op==EQ || op==NE || op==GT ||  op==GE || op==LT || op==LE; }
-	public static boolean isArithmetic(int op) { return op==PLUS || op==MINUS || op==TIMES ||  op==DIVIDE; }
+	public static boolean isArithmetic(int op) { return op==PLUS || op==MINUS || op==TIMES || op==DIVIDE || op== POW; }
 	
 	// Operator
 	protected int op = 0;
@@ -215,6 +216,10 @@ public class ExpressionBinaryOp extends Expression
 				throw new PrismLangException("Unknown evaluation mode " + evalMode);
 			}
 
+		// Division (reuse code for pow())
+		case POW:
+			return ExpressionFunc.applyPow(getType(), eval1, eval2, evalMode);
+
 		// Other numerical (relations/arithmetic) - mix of doubles/ints
 		default:
 			try {
@@ -326,6 +331,39 @@ public class ExpressionBinaryOp extends Expression
 		return operand1.returnsSingleValue() && operand2.returnsSingleValue();
 	}
 
+	@Override
+	public Precedence getPrecedence()
+	{
+		switch (op) {
+			case IMPLIES:
+				return Precedence.IMPLIES;
+			case IFF:
+				return Precedence.IFF;
+			case OR:
+				return Precedence.OR;
+			case AND:
+				return Precedence.AND;
+			case EQ:
+			case NE:
+				return Precedence.EQUALITY;
+			case GT:
+			case GE:
+			case LT:
+			case LE:
+				return Precedence.RELOP;
+			case PLUS:
+			case MINUS:
+				return Precedence.PLUS_MINUS;
+			case TIMES:
+			case DIVIDE:
+				return Precedence.TIMES_DIVIDE;
+			case POW:
+				return Precedence.POW;
+			default:
+				return null;
+		}
+	}
+
 	// Methods required for ASTElement:
 
 	@Override
@@ -354,7 +392,25 @@ public class ExpressionBinaryOp extends Expression
 	@Override
 	public String toString()
 	{
-		return operand1 + opSymbols[op] + operand2;
+		StringBuilder builder = new StringBuilder();
+		if (op == IMPLIES || op == EQ || op == NE) {
+			// => is a (right-associative) non-commutative binary operator
+			// Don't treat = and != as associative since types may vary
+			builder.append(Expression.toStringPrecLeq(operand1, this));
+		} else {
+			// Others are commutative (or left-associative)
+			builder.append(Expression.toStringPrecLt(operand1, this));
+		}
+		builder.append(opSymbols[op]);
+		if (op == MINUS || op == DIVIDE || op == EQ || op == NE) {
+			// - and / are (left-associative) non-commutative binary operators
+			// Don't treat = and != as associative since types may vary
+			builder.append(Expression.toStringPrecLeq(operand2, this));
+		} else {
+			// Others are commutative (or right-associative)
+			builder.append(Expression.toStringPrecLt(operand2, this));
+		}
+		return builder.toString();
 	}
 
 	@Override

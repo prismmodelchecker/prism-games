@@ -120,7 +120,57 @@ public abstract class Expression extends ASTElement
 	 * when evaluated during model checking?
 	 */
 	public abstract boolean returnsSingleValue();
-	
+
+	/**
+	 * Ordered list defining precedence of operators in the PRISM expression grammar.
+	 * Earlier in the list means lower precedence (binds less tightly).
+	 */
+	enum Precedence {
+		TEMPORAL_BINARY,
+		TEMPORAL_UNARY,
+		ITE,
+		IMPLIES,
+		IFF,
+		OR,
+		AND,
+		NOT,
+		EQUALITY,
+		RELOP,
+		PLUS_MINUS,
+		TIMES_DIVIDE,
+		POW,
+		UNARY_MINUS,
+		BASIC
+	}
+
+	/**
+	 * Get the relative precedence ordering of this expression in the PRISM expression grammar,
+	 * primarily for the purposes of making sure toString() is parseable.
+	 */
+	public Precedence getPrecedence()
+	{
+		// Default to "basic" (atomic, highest precedence)
+		return Precedence.BASIC;
+	}
+
+	/**
+	 * Returns true if {@code expr1} has (strictly) lower operator precedence than {@code expr2},
+	 * i.e., if {@code expr1} needs parenthesising when a child of {@code expr2}.
+	 */
+	public static boolean hasPrecedenceLessThan(Expression expr1, Expression expr2)
+	{
+		return expr2.getPrecedence() != Precedence.BASIC && expr1.getPrecedence().ordinal() < expr2.getPrecedence().ordinal();
+	}
+
+	/**
+	 * Returns true if {@code expr1} has lower or equal operator precedence than {@code expr2},
+	 * i.e., if {@code expr1} needs parenthesising when a child of {@code expr2}.
+	 */
+	public static boolean hasPrecedenceLessThanOrEquals(Expression expr1, Expression expr2)
+	{
+		return expr2.getPrecedence() != Precedence.BASIC && expr1.getPrecedence().ordinal() <= expr2.getPrecedence().ordinal();
+	}
+
 	// Overwritten version of deepCopy() and deepCopy(DeepCopy copier) from superclass ASTElement (to reduce casting).
 
 	@Override
@@ -783,6 +833,11 @@ public abstract class Expression extends ASTElement
 		return new ExpressionBinaryOp(ExpressionBinaryOp.DIVIDE, expr1, expr2);
 	}
 
+	public static ExpressionBinaryOp Pow(Expression expr1, Expression expr2)
+	{
+		return new ExpressionBinaryOp(ExpressionBinaryOp.POW, expr1, expr2);
+	}
+
 	public static ExpressionUnaryOp Parenth(Expression expr)
 	{
 		return new ExpressionUnaryOp(ExpressionUnaryOp.PARENTH, expr);
@@ -1224,6 +1279,38 @@ public abstract class Expression extends ASTElement
 		default:
 			throw new PrismException("Cannot convert jltl2ba formula " + ltl);
 		}
+	}
+
+	/**
+	 * Convert {@code expr} to a string, enclosing in () if its precedence is (strictly) less than {@code parent}.
+	 * @param expr Expression to convert to string
+	 * @param parent Parent expression directly containing {@code expr}
+	 */
+	public static String toStringPrecLt(Expression expr, Expression parent)
+	{
+		StringBuilder builder = new StringBuilder();
+		builder.append(expr.toString());
+		if (hasPrecedenceLessThan(expr, parent)) {
+			builder.insert(0, "(");
+			builder.append(")");
+		}
+		return builder.toString();
+	}
+
+	/**
+	 * Convert {@code expr} to a string, enclosing in () if its precedence is less than or equal to its {@code parent}.
+	 * @param expr Expression to convert to string
+	 * @param parent Parent expression directly containing {@code expr}
+	 */
+	public static String toStringPrecLeq(Expression expr, Expression parent)
+	{
+		StringBuilder builder = new StringBuilder();
+		builder.append(expr.toString());
+		if (hasPrecedenceLessThanOrEquals(expr, parent)) {
+			builder.insert(0, "(");
+			builder.append(")");
+		}
+		return builder.toString();
 	}
 }
 
