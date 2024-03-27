@@ -30,6 +30,8 @@ import java.math.BigInteger;
 
 import param.BigRational;
 import parser.EvaluateContext.EvalMode;
+import parser.ast.DeclarationDoubleUnbounded;
+import parser.ast.DeclarationType;
 import prism.PrismLangException;
 
 public class TypeDouble extends Type 
@@ -71,7 +73,13 @@ public class TypeDouble extends Type
 	}
 	
 	@Override
-	public boolean canAssign(Type type)
+	public DeclarationType defaultDeclarationType()
+	{
+		return new DeclarationDoubleUnbounded();
+	}
+	
+	@Override
+	public boolean canCastTypeTo(Type type)
 	{
 		return (type instanceof TypeDouble || type instanceof TypeInt);
 	}

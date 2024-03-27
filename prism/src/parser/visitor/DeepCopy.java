@@ -37,6 +37,7 @@ import parser.ast.Declaration;
 import parser.ast.DeclarationArray;
 import parser.ast.DeclarationBool;
 import parser.ast.DeclarationClock;
+import parser.ast.DeclarationDoubleUnbounded;
 import parser.ast.DeclarationInt;
 import parser.ast.DeclarationIntUnbounded;
 import parser.ast.ExpressionBinaryOp;
@@ -201,6 +202,12 @@ public class DeepCopy implements ASTVisitor
 
 	@Override
 	public Object visit(DeclarationIntUnbounded e) throws PrismLangException
+	{
+		return e.clone().deepCopy(this);
+	}
+
+	@Override
+	public Object visit(DeclarationDoubleUnbounded e) throws PrismLangException
 	{
 		return e.clone().deepCopy(this);
 	}

@@ -27,6 +27,7 @@
 package parser.type;
 
 import parser.EvaluateContext.EvalMode;
+import parser.ast.DeclarationType;
 import prism.PrismLangException;
 
 public abstract class Type 
@@ -55,9 +56,18 @@ public abstract class Type
 	}
 	
 	/**
-	 * Returns true iff a variable of this type can be assigned a value that is of type {@code type}. 
+	 * Returns an appropriate DeclarationType object for this type, assuming no info about bounds, etc.
 	 */
-	public boolean canAssign(Type type)
+	public DeclarationType defaultDeclarationType() throws PrismLangException
+	{
+		// Not implemented by default
+		throw new PrismLangException("Cannot create a DeclarationType for type " + getTypeString());
+	}
+	
+	/**
+	 * Returns true iff a value of type {@code type} can be cast to a value of this type.
+	 */
+	public boolean canCastTypeTo(Type type)
 	{
 		// Play safe: assume not possible, unless explicitly overridden.
 		return false;

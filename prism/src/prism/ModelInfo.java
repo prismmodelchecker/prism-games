@@ -32,16 +32,12 @@ import java.util.Collections;
 import java.util.List;
 
 import parser.EvaluateContext;
+import parser.EvaluateContext.EvalMode;
 import parser.Values;
 import parser.VarList;
-import parser.EvaluateContext.EvalMode;
 import parser.ast.ASTElement;
-import parser.ast.DeclarationBool;
-import parser.ast.DeclarationIntUnbounded;
 import parser.ast.DeclarationType;
 import parser.type.Type;
-import parser.type.TypeBool;
-import parser.type.TypeInt;
 
 /**
  * Interface for classes that provide some basic (syntactic) information about a probabilistic model.
@@ -78,7 +74,7 @@ public interface ModelInfo
 	/**
 	 * Set values for some undefined constants.
 	 * It is preferable to use {@link #setSomeUndefinedConstants(EvaluateContext)} instead.
-	 * By default, this method creates an {@link EvaluateContext} via {@link EvaluateContext#create(someValues)}.
+	 * By default, this method creates an {@link EvaluateContext} via {@link EvaluateContext#create(Values)}.
 	 * If this will be called frequently, it is better to maintain your own {@link EvaluateContext}.
 	 * Also, this method can only handle the default (floating point) evaluation mode.
 	 */
@@ -100,7 +96,7 @@ public interface ModelInfo
 
 	/**
 	 * Get access to the values for all constants in the model, including the 
-	 * undefined constants set previously via the method {@link #setSomeUndefinedConstants()}.
+	 * undefined constants set previously via the method {@link #setSomeUndefinedConstants(EvaluateContext)}.
 	 * Until they are set for the first time, this method may return null.
 	 */
 	public default Values getConstantValues()
@@ -112,7 +108,7 @@ public interface ModelInfo
 	/**
 	 * Get access to an EvaluateContext object defining the values
 	 * for all constants in the model, including the undefined constants
-	 * set previously via the method {@link #setSomeUndefinedConstants()}.
+	 * set previously via the method {@link #setSomeUndefinedConstants(EvaluateContext)}.
 	 * This also specified the evaluation mode being used.
 	 */
 	public default EvaluateContext getEvaluateContext()
@@ -185,7 +181,7 @@ public interface ModelInfo
 	 * For example, for integer variables, this can define
 	 * the lower and upper bounds of the range of the variable.
 	 * This is specified using a subclass of {@link DeclarationType},
-	 * which specifies info such as bounds using {@link Expression} objects.
+	 * which specifies info such as bounds using {@link parser.ast.Expression} objects.
 	 * These can use constants which will later be supplied,
 	 * e.g., via the {@link #setSomeUndefinedConstants(Values)} method.
 	 * If this method is not provided, a default implementation supplies sensible
@@ -194,14 +190,11 @@ public interface ModelInfo
 	 */
 	public default DeclarationType getVarDeclarationType(int i) throws PrismException
 	{
-		Type type = getVarType(i);
-		// Construct default declarations for basic types (int/boolean)
-		if (type instanceof TypeInt) {
-			return new DeclarationIntUnbounded();
-		} else if (type instanceof TypeBool) {
-			return new DeclarationBool();
+		try {
+			return getVarType(i).defaultDeclarationType();
+		} catch (PrismLangException e) {
+			throw new PrismException("No default declaration available for type " + getVarType(i));
 		}
-		throw new PrismException("No default declaration avaiable for type " + type);
 	}
 	
 	/**

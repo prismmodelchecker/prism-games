@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Vojtech Forejt <vojtech.forejt@cs.ox.ac.uk> (University of Oxford)
+//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -24,61 +24,52 @@
 //	
 //==============================================================================
 
-package parser.type;
+package parser.ast;
 
-import parser.EvaluateContext.EvalMode;
+import parser.type.*;
+import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 
-public class TypeVoid extends Type 
+public class DeclarationDoubleUnbounded extends DeclarationType
 {
-	private static TypeVoid singleton;
-	
-	static
+	public DeclarationDoubleUnbounded()
 	{
-		singleton = new TypeVoid();
+		// The type stored for a Declaration/DeclarationType object
+		// is static - it is not computed during type checking.
+		// (But we re-use the existing "type" field for this purpose)
+		setType(TypeDouble.getInstance());
+	}
+
+	@Override
+	public Expression getDefaultStart()
+	{
+		return Expression.Double(0);
 	}
 	
-	private TypeVoid()
-	{		
-	}	
-	
-	public boolean equals(Object o)
-	{
-		return (o instanceof TypeVoid);
-	}
+	// Methods required for ASTElement:
 	
 	@Override
-	public String getTypeString()
+	public Object accept(ASTVisitor v) throws PrismLangException
 	{
-		return "void";
+		return v.visit(this);
 	}
-	
+
 	@Override
-	public Object defaultValue()
+	public String toString()
 	{
-		return null;
+		return "double";
 	}
-	
-	public static TypeVoid getInstance()
-	{
-		return singleton;
-	}
-	
+
 	@Override
-	public boolean canCastTypeTo(Type type)
+	public DeclarationDoubleUnbounded deepCopy(DeepCopy copier)
 	{
-		return false;
+		return this;
 	}
-	
+
 	@Override
-	public Object castValueTo(Object value) throws PrismLangException
+	public DeclarationDoubleUnbounded clone()
 	{
-		throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
-	}
-	
-	@Override
-	public Object castValueTo(Object value, EvalMode evalMode) throws PrismLangException
-	{
-		throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		return (DeclarationDoubleUnbounded) super.clone();
 	}
 }

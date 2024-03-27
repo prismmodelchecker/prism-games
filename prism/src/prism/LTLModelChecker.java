@@ -492,7 +492,7 @@ public class LTLModelChecker extends PrismComponent
 
 		// Create a (new, unique) name for the variable that will represent DA states
 		daVar = "_da";
-		while (varList.getIndex(daVar) != -1) {
+		while (varList.exists(daVar)) {
 			daVar = "_" + daVar;
 		}
 
@@ -538,7 +538,11 @@ public class LTLModelChecker extends PrismComponent
 		newVarList = (VarList) varList.clone();
 		// NB: if DA only has one state, we add an extra dummy state
 		Declaration decl = new Declaration(daVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
-		newVarList.addVar(before ? 0 : varList.getNumVars(), decl, 1, model.getConstantValues());
+		if (before) {
+			newVarList.addVarAtStart(decl, 1);
+		} else {
+			newVarList.addVar(decl, 1);
+		}
 
 		// Build transition matrix for product
 		newTrans = buildTransMask(da, labelDDs, allDDRowVars, allDDColVars, daDDRowVars, daDDColVars);
@@ -783,7 +787,7 @@ public class LTLModelChecker extends PrismComponent
 
 		// Create a (new, unique) name for the variable that will represent DA states
 		daVar = "_da";
-		while (varList.getIndex(daVar) != -1) {
+		while (varList.exists(daVar)) {
 			daVar = "_" + daVar;
 		}
 
@@ -829,8 +833,11 @@ public class LTLModelChecker extends PrismComponent
 		newVarList = (VarList) varList.clone();
 		// NB: if DA only has one state, we add an extra dummy state
 		Declaration decl = new Declaration(daVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
-		newVarList.addVar(before ? 0 : varList.getNumVars(), decl, 1, model.getConstantValues());
-
+		if (before) {
+			newVarList.addVarAtStart(decl, 1);
+		} else {
+			newVarList.addVar(decl, 1);
+		}
 
 		// Build transition matrix for product
 		newTrans = buildTransMask(da, labelDDs, allDDRowVars, allDDColVars, daDDRowVars, daDDColVars);

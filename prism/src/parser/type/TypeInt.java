@@ -29,6 +29,8 @@ package parser.type;
 import java.math.BigInteger;
 
 import parser.EvaluateContext.EvalMode;
+import parser.ast.DeclarationIntUnbounded;
+import parser.ast.DeclarationType;
 import prism.PrismLangException;
 
 public class TypeInt extends Type 
@@ -70,7 +72,13 @@ public class TypeInt extends Type
 	}
 	
 	@Override
-	public boolean canAssign(Type type)
+	public DeclarationType defaultDeclarationType()
+	{
+		return new DeclarationIntUnbounded();
+	}
+	
+	@Override
+	public boolean canCastTypeTo(Type type)
 	{
 		return (type instanceof TypeInt);
 	}

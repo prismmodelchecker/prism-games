@@ -27,6 +27,8 @@
 package parser.type;
 
 import parser.EvaluateContext.EvalMode;
+import parser.ast.DeclarationBool;
+import parser.ast.DeclarationType;
 import prism.PrismLangException;
 
 public class TypeBool extends Type 
@@ -68,9 +70,15 @@ public class TypeBool extends Type
 	}
 	
 	@Override
-	public boolean canAssign(Type type)
+	public boolean canCastTypeTo(Type type)
 	{
 		return (type instanceof TypeBool);
+	}
+	
+	@Override
+	public DeclarationType defaultDeclarationType()
+	{
+		return new DeclarationBool();
 	}
 	
 	@Override
