@@ -45,6 +45,7 @@ import parser.Values;
 import parser.VarList;
 import prism.Evaluator;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
@@ -645,6 +646,9 @@ public interface Model<Value>
 	{
 		final int numStates = getNumStates();
 		String s = "";
+		if (this instanceof PlayerInfoOwner) {
+			s += ", " + ((PlayerInfoOwner) this).getNumPlayers() + " observables";
+		}
 		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		if (this instanceof PartiallyObservableModel) {
 			s += ", " + ((PartiallyObservableModel) this).getNumObservations() + " observables";
@@ -665,6 +669,9 @@ public interface Model<Value>
 	{
 		final int numStates = getNumStates();
 		String s = "";
+		if (this instanceof PlayerInfoOwner) {
+			s += "Players:     " + ((PlayerInfoOwner) this).getNumPlayers() + "\n";
+		}
 		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
 		if (this instanceof PartiallyObservableModel) {
 			s += "Obs/unobs:   " + ((PartiallyObservableModel) this).getNumObservations() + "/" + ((PartiallyObservableModel) this).getNumUnobservations() + "\n";
