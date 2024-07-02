@@ -149,9 +149,17 @@ public class ChoiceActionsSimple
 			return null;
 		}
 		try {
+			// Undersized list means no actions in this state
+			if (s >= actions.size()) {
+				return null;
+			}
 			ArrayList<Object> list = actions.get(s);
 			// Null list means no (null) actions in this state
 			if (list == null) {
+				return null;
+			}
+			// Undersized list means no action on this choice
+			if (i >= list.size()) {
 				return null;
 			}
 			return list.get(i);
