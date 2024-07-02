@@ -28,13 +28,17 @@
 package explicit;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import explicit.rewards.SMGRewards;
 import prism.ModelType;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Interface for classes that provide (read) access to an explicit-state SMG.
@@ -56,6 +60,33 @@ public interface SMG<Value> extends STPG<Value>, PlayerInfoOwner
 	default ModelType getModelType()
 	{
 		return ModelType.SMG;
+	}
+
+	@Override
+	default void exportToPrismExplicitTra(PrismLog out, int precision)
+	{
+		// Output transitions to .tra file
+		int numStates = getNumStates();
+		out.print(numStates + ":" + getNumPlayers() + " " + getNumChoices() + " " + getNumTransitions() + "\n");
+		TreeMap<Integer, Value> sorted = new TreeMap<Integer, Value>();
+		for (int i = 0; i < numStates; i++) {
+			int numChoices = getNumChoices(i);
+			for (int j = 0; j < numChoices; j++) {
+				// Extract transitions and sort by destination state index (to match PRISM-exported files)
+				Iterator<Map.Entry<Integer, Value>> iter = getTransitionsIterator(i, j);
+				while (iter.hasNext()) {
+					Map.Entry<Integer, Value> e = iter.next();
+					sorted.put(e.getKey(), e.getValue());
+				}
+				// Print out (sorted) transitions
+				for (Map.Entry<Integer, Value> e : sorted.entrySet()) {
+					out.print(i + ":" + getPlayer(i) + " " + j + " " + e.getKey() + " " + getEvaluator().toStringExport(e.getValue(), precision));
+					Object action = getAction(i, j);
+					out.print(action == null ? "\n" : (" " + action + "\n"));
+				}
+				sorted.clear();
+			}
+		}
 	}
 
 	// Accessors

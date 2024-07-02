@@ -1,0 +1,11 @@
+# Export all model info
+
+-exportmodel smg_example.prism.all -ex
+
+# Export model info separately
+
+-exportmodel smg_example.prism.tra -ex
+-exportmodel smg_example.prism.sta -ex
+-exportmodel smg_example.prism.lab -ex
+-exportmodel smg_example.prism.srew -ex
+-exportmodel smg_example.prism.trew -ex
