@@ -650,7 +650,7 @@ public interface Model<Value>
 		final int numStates = getNumStates();
 		String s = "";
 		if (this instanceof PlayerInfoOwner) {
-			s += ", " + ((PlayerInfoOwner) this).getNumPlayers() + " observables";
+			s += ", " + ((PlayerInfoOwner) this).getNumPlayers() + " players";
 		}
 		s += numStates + " states (" + getNumInitialStates() + " initial)";
 		if (this instanceof PartiallyObservableModel) {
