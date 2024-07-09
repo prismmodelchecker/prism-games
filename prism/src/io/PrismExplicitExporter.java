@@ -32,7 +32,7 @@ import explicit.MDP;
 import explicit.Model;
 import explicit.NondetModel;
 import explicit.PartiallyObservableModel;
-import explicit.SMG;
+import explicit.STPG;
 import explicit.SuccessorsIterator;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
@@ -111,7 +111,7 @@ public class PrismExplicitExporter<Value> extends Exporter<Value>
 				for (Transition<Value> transition : getSortedTransitionsIterator(model, s, j, showActions)) {
 					out.print(s);
 					if (modelType.multiplePlayers() && !modelType.concurrent()) {
-						out.print(":" + ((SMG) model).getPlayer(s));
+						out.print(":" + ((STPG) model).getPlayer(s));
 					}
 					if (modelType.nondeterministic()) {
 						out.print(" " + j);

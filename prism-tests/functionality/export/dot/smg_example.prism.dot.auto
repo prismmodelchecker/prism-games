@@ -1,0 +1,2 @@
+-exporttransdot smg_example.prism.dot -ex
+-exporttransdotstates smg_example.prism.sta.dot -ex

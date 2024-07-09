@@ -32,14 +32,18 @@ import explicit.MDP;
 import explicit.Model;
 import explicit.NondetModel;
 import explicit.PartiallyObservableModel;
+import explicit.STPG;
 import explicit.graphviz.Decorator;
+import explicit.graphviz.StateOwnerDecorator;
 import prism.Evaluator;
 import io.ModelExportOptions;
 import prism.ModelType;
 import prism.Pair;
 import prism.PrismLog;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -81,6 +85,18 @@ public class DotExporter<Value> extends Exporter<Value>
 		// Output header
 		out.println("digraph " + modelType + " {");
 		out.println("node " + defaults.toString() + ";");
+
+		// Add player annotation for turn-based game models
+		if (modelType.multiplePlayers() && !modelType.concurrent()) {
+			List<Decorator> decoratorsNew = new ArrayList<>();
+			decoratorsNew.add(new StateOwnerDecorator(((STPG) model)::getPlayer));
+			if (decorators != null) {
+				for (Decorator decorator : decorators) {
+					decoratorsNew.add(decorator);
+				}
+			}
+			decorators = decoratorsNew;
+		}
 
 		// Output transitions in Dot format
 		// Iterate through states
