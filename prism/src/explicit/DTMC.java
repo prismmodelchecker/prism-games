@@ -64,56 +64,6 @@ public interface DTMC<Value> extends Model<Value>
 	}
 
 	@Override
-	default void exportToPrismExplicitTra(PrismLog out, int precision)
-	{
-		// Output transitions to .tra file
-		int numStates = getNumStates();
-		out.print(numStates + " " + getNumTransitions() + "\n");
-		TreeMap<Integer, Pair<Value, Object>> sorted = new TreeMap<Integer, Pair<Value, Object>>();
-		for (int i = 0; i < numStates; i++) {
-			// Extract transitions and sort by destination state index (to match PRISM-exported files)
-			Iterator<Map.Entry<Integer,Pair<Value, Object>>> iter = getTransitionsAndActionsIterator(i);
-			while (iter.hasNext()) {
-				Map.Entry<Integer, Pair<Value, Object>> e = iter.next();
-				sorted.put(e.getKey(), e.getValue());
-			}
-			// Print out (sorted) transitions
-			for (Map.Entry<Integer, Pair<Value, Object>> e : sorted.entrySet()) {
-				out.print(i + " " + e.getKey() + " " + getEvaluator().toStringExport(e.getValue().first, precision));
-				Object action = e.getValue().second; 
-				if (action != null && !"".equals(action)) {
-					out.print(" " + action);
-				}
-				out.print("\n");
-			}
-			sorted.clear();
-		}
-	}
-
-	@Override
-	default void exportTransitionsToDotFile(int i, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision)
-	{
-		// Iterate through outgoing transitions for this state
-		Iterator<Map.Entry<Integer, Value>> iter = getTransitionsIterator(i);
-		while (iter.hasNext()) {
-			Map.Entry<Integer, Value> e = iter.next();
-			// Print a new dot file line for the arrow for this transition
-			out.print(i + " -> " + e.getKey());
-			// Annotate this arrow with the probability 
-			explicit.graphviz.Decoration d = new explicit.graphviz.Decoration();
-			d.setLabel(getEvaluator().toStringExport(e.getValue(), precision));
-			// Apply any other decorators requested
-			if (decorators != null) {
-				for (Decorator decorator : decorators) {
-					d = decorator.decorateProbability(i, e.getKey(), e.getValue(), d);
-				}
-			}
-			// Append to the dot file line for this transition
-			out.println(" " + d.toString() + ";");
-		}
-	}
-
-	@Override
 	default void exportToPrismLanguage(final String filename, int precision) throws PrismException
 	{
 		try (FileWriter out = new FileWriter(filename)) {
