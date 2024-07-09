@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import explicit.graphviz.StateOwnerDecorator;
 import explicit.rewards.STPGRewards;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
@@ -46,7 +47,7 @@ import prism.PrismUtils;
  * Probabilistic states do not need to be stored explicitly; instead, like in an MDP,
  * players have several 'choices', each of which is a probability distribution over successor states.
  */
-public interface STPG<Value> extends MDP<Value>
+public interface STPG<Value> extends MDP<Value>, TurnBasedGame
 {
 	// Accessors (for Model) - default implementations
 	
@@ -63,13 +64,6 @@ public interface STPG<Value> extends MDP<Value>
 	}
 	
 	// Accessors
-	
-	/**
-	 * Get the player that owns state {@code s}.
-	 * Returns the index of the player (0-indexed).
-	 * @param s Index of state (0-indexed)
-	 */
-	public int getPlayer(int s);
 	
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},

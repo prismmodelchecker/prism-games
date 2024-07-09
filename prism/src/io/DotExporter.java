@@ -32,7 +32,7 @@ import explicit.MDP;
 import explicit.Model;
 import explicit.NondetModel;
 import explicit.PartiallyObservableModel;
-import explicit.STPG;
+import explicit.TurnBasedGame;
 import explicit.graphviz.Decorator;
 import explicit.graphviz.StateOwnerDecorator;
 import prism.Evaluator;
@@ -89,7 +89,7 @@ public class DotExporter<Value> extends Exporter<Value>
 		// Add player annotation for turn-based game models
 		if (modelType.multiplePlayers() && !modelType.concurrent()) {
 			List<Decorator> decoratorsNew = new ArrayList<>();
-			decoratorsNew.add(new StateOwnerDecorator(((STPG) model)::getPlayer));
+			decoratorsNew.add(new StateOwnerDecorator(((TurnBasedGame) model)::getPlayer));
 			if (decorators != null) {
 				for (Decorator decorator : decorators) {
 					decoratorsNew.add(decorator);
