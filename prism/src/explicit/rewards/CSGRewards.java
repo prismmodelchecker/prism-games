@@ -27,16 +27,14 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
+/**
+ * Classes that provide (read) access to explicit-state rewards for a CSG.
+ * This is no longer needed - just use {@link Rewards}.
+ */
 public interface CSGRewards<Value> extends STPGRewards<Value>
 {
-	/**
-	 * Build an MDPRewards object containing all the same rewards except for the nested ones.
-	 */
-	public abstract MDPRewards<Value> buildMDPRewards();
-
 	@Override
-	public abstract CSGRewards<Value> liftFromModel(Product<?> product);
+	CSGRewards<Value> liftFromModel(Product<?> product);
 }

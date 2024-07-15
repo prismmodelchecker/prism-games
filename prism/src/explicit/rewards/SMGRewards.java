@@ -32,15 +32,10 @@ import explicit.Product;
 
 /**
  * Classes that provide (read) access to explicit-state rewards for an SMG.
- * See the {@link explicit.SMG} interface for details of the accompanying model.
+ * This is no longer needed - just use {@link Rewards}.
  */
 public interface SMGRewards<Value> extends STPGRewards<Value>
 {
-	/**
-	 * Build an MDPRewards object containing all the same rewards except for the nested ones.
-	 */
-	public abstract MDPRewards<Value> buildMDPRewards();
-
 	@Override
-	public abstract SMGRewards<Value> liftFromModel(Product<?> product);
+	SMGRewards<Value> liftFromModel(Product<?> product);
 }

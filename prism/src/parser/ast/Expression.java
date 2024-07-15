@@ -980,7 +980,20 @@ public abstract class Expression extends ASTElement
 		}
 		return false;
 	}
-	
+
+	/**
+	 * Test if an expression is a reward operator using instantaneous rewards only.
+	 */
+	public static boolean usesInstantaneousReward(Expression expr)
+	{
+		if (expr instanceof ExpressionTemporal) {
+			if (((ExpressionTemporal) expr).getOperator() == ExpressionTemporal.R_I) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Test if an expression contains any reward-bounded path formulas (i.e. of the form R(path)~r). 
 	 */

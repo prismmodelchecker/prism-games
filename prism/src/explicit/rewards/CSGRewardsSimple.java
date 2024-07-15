@@ -27,10 +27,13 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
-public class CSGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements CSGRewards<Value>
+/**
+ * Simple explicit-state storage of rewards for a CSG.
+ * This is no longer needed - just use {@link RewardsSimple}.
+ */
+public class CSGRewardsSimple<Value> extends RewardsSimple<Value>
 {
 	public CSGRewardsSimple(int numStates) 
 	{
@@ -53,23 +56,5 @@ public class CSGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements 
 	public CSGRewardsSimple(MDPRewardsSimple<Value> rews)
 	{
 		super(rews);
-	}
-
-	// Accessors
-	
-	// Converters
-	@Override
-	public CSGRewards<Value> liftFromModel(Product<?> product)
-	{
-		// Lift MDP part
-		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);
-		return new CSGRewardsSimple<>(rewardsProdMDP);
-	}
-	
-	// Other
-	@Override
-	public MDPRewards<Value> buildMDPRewards()
-	{
-		return new MDPRewardsSimple<>(this);
 	}
 }

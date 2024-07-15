@@ -38,11 +38,13 @@ import java.util.Map.Entry;
 import acceptance.AcceptanceReach;
 import common.IterableBitSet;
 import explicit.rewards.MDPRewardsSimple;
+import explicit.rewards.RewardsSimple;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsSimple;
 import explicit.rewards.StateRewardsConstant;
 import parser.ast.Expression;
 import prism.AccuracyFactory;
+import prism.Evaluator;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -1176,21 +1178,11 @@ public class STPGModelChecker extends ProbModelChecker
 				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
 			}
 
-			// Modify the rewards
-			double origZeroReplacement;
-			if (rewards instanceof MDPRewardsSimple) {
-				origZeroReplacement = ((MDPRewardsSimple<Double>) rewards).getZeroReplacement();
-				((MDPRewardsSimple<Double>) rewards).setZeroReplacement(epsilon);
-			} else {
-				throw new PrismException("To compute expected reward I need to modify the reward structure. But I don't know how to modify"
-						+ rewards.getClass().getName());
-			}
-
 			// Compute the value when rewards are nonzero
 			switch (stpgSolnMethod) {
 			case VALUE_ITERATION:
 			case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
-				res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
+				res = computeReachRewardsValIter(stpg, replaceZeroRewards(rewards, epsilon), target, inf, min1, min2, init, known);
 				break;
 			default:
 				throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
@@ -1200,11 +1192,6 @@ public class STPGModelChecker extends ProbModelChecker
 			// next part
 			// in which "proper" zero rewards are used
 			init = res.soln;
-
-			// Return the rewards to the original state
-			if (rewards instanceof MDPRewardsSimple) {
-				((MDPRewardsSimple<Double>) rewards).setZeroReplacement(origZeroReplacement);
-			}
 
 			timerApprox = System.currentTimeMillis() - timerApprox;
 
@@ -1476,9 +1463,9 @@ public class STPGModelChecker extends ProbModelChecker
 		// First, remove the rewards which are gained at places from which the
 		// target can't be reached
 		STPGRewards<Double> rewardsRestricted;
-		if (rewards instanceof MDPRewardsSimple) {
+		if (rewards instanceof RewardsSimple<Double>) {
 			// And make sure only the best actions are used
-			STPGRewardsSimple<Double> rewardsRestrictedSimple = new STPGRewardsSimple<>((MDPRewardsSimple<Double>) rewards);
+			RewardsSimple<Double> rewardsRestrictedSimple = new RewardsSimple<>((RewardsSimple<Double>) rewards);
 
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
@@ -1499,7 +1486,7 @@ public class STPGModelChecker extends ProbModelChecker
 			rewardsRestricted = rewardsRestrictedSimple;
 		} else if (rewards instanceof StateRewardsConstant) {
 			// And make sure only the best actions are used
-			STPGRewardsSimple<Double> rewardsRestrictedSimple = new STPGRewardsSimple<>(n);
+			RewardsSimple<Double> rewardsRestrictedSimple = new RewardsSimple<>(n);
 
 			for (int s = 0; s < n; s++) {
 				if (positiveProb.get(s))
@@ -1586,9 +1573,9 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Next, reweigh the rewards and make sure that only optimal actions are
 		// taken
-		if (rewards instanceof MDPRewardsSimple) {
+		if (rewards instanceof RewardsSimple) {
 			// And make sure only the best actions are used
-			STPGRewardsSimple<Double> rewardsRestrictedSimple = new STPGRewardsSimple<>((MDPRewardsSimple<Double>) rewards);
+			RewardsSimple<Double> rewardsRestrictedSimple = new RewardsSimple<>((RewardsSimple<Double>) rewards);
 
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {
@@ -1617,7 +1604,7 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 			rewardsRestricted = rewardsRestrictedSimple;
 		} else if (rewards instanceof StateRewardsConstant) {
-			STPGRewardsSimple<Double> rewardsRestrictedSimple = new STPGRewardsSimple<>(n);
+			RewardsSimple<Double> rewardsRestrictedSimple = new RewardsSimple<>(n);
 
 			for (int s = 0; s < n; s++) {
 				for (int c = 0; c < stpg.getNumChoices(s); c++) {

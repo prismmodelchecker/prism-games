@@ -39,6 +39,7 @@ import explicit.rewards.ConstructRewards;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.Rewards;
+import explicit.rewards.RewardsExplicit;
 import explicit.rewards.SMGRewards;
 import explicit.rewards.STPGRewards;
 import parser.BooleanUtils;
@@ -1288,7 +1289,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Build rewards
 		int r = expr.getRewardStructIndexByIndexObject(rewardGen, constantValues);
 		mainLog.println("Building reward structure...");
-		Rewards<?> rewards = constructRewards(model, r);
+		Rewards<?> rewards = Expression.usesInstantaneousReward(expr.getExpression()) ? constructRewards(model, r) : constructExpectedRewards(model, r);
 
 		// Compute rewards
 		StateValues rews = checkRewardFormula(model, rewards, expr.getExpression(), minMax, statesOfInterest);
@@ -1797,5 +1798,52 @@ public class ProbModelChecker extends NonProbModelChecker
 			double pInit = 1.0 / numInitStates;
 			return StateValues.create(TypeDouble.getInstance(), s -> model.isInitialState(s) ? pInit : 0.0, model);
 		}
+	}
+
+	/**
+	 * Wrap a reward structure, replacing zeros with another small value {@code epsilon}.
+	 */
+	protected RewardsExplicit<Double> replaceZeroRewards(Rewards<Double> rewards, double epsilon)
+	{
+		return new RewardsExplicit<>() {
+
+			@Override
+			public Evaluator<Double> getEvaluator()
+			{
+				return rewards.getEvaluator();
+			}
+
+			@Override
+			public boolean hasStateRewards()
+			{
+				return rewards.hasStateRewards();
+			}
+
+			@Override
+			public boolean hasTransitionRewards()
+			{
+				return rewards.hasTransitionRewards();
+			}
+
+			@Override
+			public Double getStateReward(int s)
+			{
+				double r = rewards.getStateReward(s);
+				return r == 0 ? epsilon : r;
+			}
+
+			@Override
+			public Double getTransitionReward(int s, int i)
+			{
+				double r = rewards.getTransitionReward(s, i);
+				return r == 0 ? epsilon : r;
+			}
+
+			@Override
+			public RewardsExplicit<Double> liftFromModel(Product<?> product)
+			{
+				return (RewardsExplicit<Double>) rewards.liftFromModel(product);
+			}
+		};
 	}
 }

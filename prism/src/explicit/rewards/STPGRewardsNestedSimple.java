@@ -132,18 +132,18 @@ public class STPGRewardsNestedSimple<Value> extends MDPRewardsSimple<Value> impl
 		List<List<Value>> list1;
 		List<Value> list2;
 		if (nestedTransRewards == null || (list1 = nestedTransRewards.get(s)) == null)
-			return this.getZeroReplacement();
+			return getEvaluator().zero();
 		if (list1.size() <= i || (list2 = list1.get(i)) == null)
-			return this.getZeroReplacement();
+			return getEvaluator().zero();
 		if (list2.size() <= j)
-			return this.getZeroReplacement();
-		return (!getEvaluator().isZero(list2.get(j))) ? list2.get(j) : getZeroReplacement();
+			return getEvaluator().zero();
+		return list2.get(j);
 	}
 
 	// Converters
 
 	@Override
-	public STPGRewards<Value> liftFromModel(Product<?> product)
+	public STPGRewardsNestedSimple<Value> liftFromModel(Product<?> product)
 	{
 		// Lift MDP part
 		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) ((MDPRewardsSimple<Value>) this).liftFromModel(product);
@@ -167,14 +167,6 @@ public class STPGRewardsNestedSimple<Value> extends MDPRewardsSimple<Value> impl
 			}
 		}
 		return rewardsProd;
-	}
-
-	// Other
-
-	@Override
-	public MDPRewards<Value> buildMDPRewards()
-	{
-		return new MDPRewardsSimple<>(this);
 	}
 
 	@Override

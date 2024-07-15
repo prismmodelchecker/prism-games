@@ -844,35 +844,6 @@ public class SMGModelChecker extends ProbModelChecker
 
 	}
 
-	/**
-	 * Resolves StateRewardsConstant in reward structure.
-	 * 
-	 * @param model The SMG.
-	 * @param rewStruct The reward structure to be resolved.
-	 * @return
-	 * @throws PrismException
-	 */
-	private SMGRewardsSimple<Double> constructSMGRewards(SMG<Double> model, RewardStruct rewStruct) throws PrismException
-	{
-		if (rewStruct == null)
-			return null;
-
-		int gameSize = model.getNumStates();
-		ConstructRewards constructRewards = new ConstructRewards(this);
-		SMGRewards<Double> smgreward = constructRewards.buildSMGRewardStructure(model, rewStruct, constantValues);
-		SMGRewardsSimple<Double> reward = null;
-		if (smgreward instanceof SMGRewardsSimple) {
-			reward = (SMGRewardsSimple<Double>) smgreward;
-		} else if (smgreward instanceof StateRewardsConstant) {
-			// construct reward structure manually
-			reward = new SMGRewardsSimple<>(gameSize);
-			for (int s = 0; s < gameSize; s++) {
-				reward.setStateReward(s, ((StateRewardsConstant<Double>) smgreward).getStateReward(s));
-			}
-		}
-		return reward;
-	}
-
 	private void parseExpressionQuant(Model<?> model, ExpressionQuant expr_i, MultiParameters params) throws PrismException
 	{
 		// First check if this is an R(path) nested in a P>=1 (rather than just an R)
@@ -915,15 +886,13 @@ public class SMGModelChecker extends ProbModelChecker
 		}
 
 		// Get reward structures from expression
-		
-		
-		RewardStruct reward_struct = modulesFile.getRewardStruct(exprReward.getRewardStructIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues));
-		SMGRewardsSimple<Double> reward = constructSMGRewards((SMG<Double>) model, reward_struct);
-		params.reward_names.add(reward_struct.getName());
-		int divisor_struct_index = exprReward.getRewardStructDivIndexByIndexObject(modulesFile.getRewardStructNames(), constantValues);
-		RewardStruct divisor_struct = divisor_struct_index == -1 ? null : modulesFile.getRewardStruct(divisor_struct_index);
-		SMGRewardsSimple<Double> divisor = constructSMGRewards((SMG<Double>) model, divisor_struct);
-		params.divisor_names.add(divisor_struct == null ? null : divisor_struct.getName());
+
+		int r1 = exprReward.getRewardStructIndexByIndexObject(rewardGen, constantValues);
+		SMGRewardsSimple<Double> reward = (SMGRewardsSimple<Double>) constructExpectedRewards(model, r1);
+		params.reward_names.add(exprReward.getRewardStructIndex().toString());
+		int r2 = exprReward.getRewardStructDivIndexByIndexObject(rewardGen, constantValues);
+		SMGRewardsSimple<Double> divisor = (SMGRewardsSimple<Double>) constructExpectedRewards(model, r2);
+		params.divisor_names.add(exprReward.getRewardStructIndexDiv().toString());
 		// register reward structures
 		params.rewards.add(reward);
 		params.divisors.add(divisor);

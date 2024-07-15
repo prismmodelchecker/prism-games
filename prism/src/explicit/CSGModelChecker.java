@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import explicit.rewards.STPGRewards;
 import org.apache.commons.math3.util.Precision;
 
 import acceptance.AcceptanceRabin;
@@ -823,19 +824,10 @@ public class CSGModelChecker extends ProbModelChecker
 				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
 			}
 
-			// Modifies the rewards
-			double origZeroReplacement;
-			if (rewards instanceof CSGRewardsSimple) {
-				origZeroReplacement = ((CSGRewardsSimple<Double>) rewards).getZeroReplacement();
-				((CSGRewardsSimple<Double>) rewards).setZeroReplacement(epsilon);
-			} else {
-				throw new PrismException(
-						"To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
-			}
 			// Computes the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				init = computeReachRewardsValIter(csg, rewards, target, null, inf, null, maxIters, false, min1).soln;
+				init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1).soln;
 				break;
 			default:
 				throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -844,10 +836,6 @@ public class CSGModelChecker extends ProbModelChecker
 			// Set the value iteration result to be the initial solution for the
 			// next part in which "proper" zero rewards are used
 
-			// Returns the rewards to the original state
-			if (rewards instanceof CSGRewardsSimple) {
-				((CSGRewardsSimple<Double>) rewards).setZeroReplacement(origZeroReplacement);
-			}
 			timerApprox = System.currentTimeMillis() - timerApprox;
 
 			if (verbosity >= 1) {

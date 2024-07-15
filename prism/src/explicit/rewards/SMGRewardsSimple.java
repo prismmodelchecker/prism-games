@@ -27,11 +27,11 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
 /**
  * Simple explicit-state storage of rewards for an SMG.
+ * This is no longer needed - just use {@link RewardsSimple}.
  */
 public class SMGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements SMGRewards<Value>
 {
@@ -60,23 +60,5 @@ public class SMGRewardsSimple<Value> extends MDPRewardsSimple<Value> implements 
 	public SMGRewardsSimple(MDPRewardsSimple<Value> rews)
 	{
 		super(rews);
-	}
-
-	// Converters
-	
-	@Override
-	public SMGRewards<Value> liftFromModel(Product<?> product)
-	{
-		// Lift MDP part
-		MDPRewardsSimple<Value> rewardsProdMDP = (MDPRewardsSimple<Value>) super.liftFromModel(product);
-		return new SMGRewardsSimple<>(rewardsProdMDP);
-	}
-	
-	// Other
-
-	@Override
-	public MDPRewards<Value> buildMDPRewards()
-	{
-		return new MDPRewardsSimple<>(this);
 	}
 }
