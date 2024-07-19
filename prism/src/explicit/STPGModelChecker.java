@@ -111,7 +111,7 @@ public class STPGModelChecker extends ProbModelChecker
 		STPGModelChecker mcProduct = new STPGModelChecker(this);
 		mcProduct.inheritSettings(this);
 		ModelCheckerResult res = mcProduct.computeReachProbs(product.getProductModel(), acc, minMax.isMin1(), minMax.isMin2());
-		StateValues probsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+		StateValues probsProduct = StateValues.createFromArrayResult(res, product.getProductModel());
 
 		// Output vector over product, if required
 		if (getExportProductVector()) {

@@ -1018,7 +1018,7 @@ public class SMGModelChecker extends ProbModelChecker
 		SMGModelChecker mcProduct = new SMGModelChecker(this);
 		mcProduct.inheritSettings(this);
 		ModelCheckerResult res = mcProduct.computeReachRewards(product.getProductModel(), productRewards, acc, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
-		StateValues rewardsProduct = StateValues.createFromDoubleArrayResult(res, product.getProductModel());
+		StateValues rewardsProduct = StateValues.createFromArrayResult(res, product.getProductModel());
 
 		// If a strategy was generated, lift it to the product and store
 		if (res.strat != null) {
