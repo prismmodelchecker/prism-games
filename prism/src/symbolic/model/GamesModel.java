@@ -39,8 +39,8 @@ import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 import prism.PrismException;
 
-/*
- * Class for MTBDD-based storage of a PRISM model that is an SMG.
+/**
+ * Class for symbolic (BDD-based) representation of an SMG.
  */
 public class GamesModel extends NondetModel implements PlayerInfoOwner
 {
@@ -52,7 +52,9 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 
 	/** Player + coalition information */
 	protected PlayerInfo playerInfo;
-	
+
+	// Constructor
+
 	public GamesModel(JDDNode tr, JDDNode s, JDDNode[] sr, JDDNode[] trr, String[] rsn, JDDVars arv, JDDVars acv, JDDVars asyv, JDDVars asv,
 					  JDDVars achv, JDDVars andv, ModelVariablesDD mvdd, int nv,
 					  VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv, JDDVars apvs, JDDNode[] ddPlayerCubes, PlayerInfo playerInfo) {
@@ -63,27 +65,51 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		this.playerInfo = playerInfo;
 	}
 
+	// Accessors (for Model)
+
+	@Override
 	public ModelType getModelType()
 	{
 		return ModelType.SMG;
 	}
-	
-	public JDDVars getAllDDPlayerVars()
+
+	@Override
+	public void clear()
 	{
-		return allDDPlayerVars;
+		super.clear();
+		allDDPlayerVars.derefAll();
+		JDD.DerefArray(ddPlayerCubes, getNumPlayers());
 	}
 
-	public JDDNode getDdPlayerCube(int p)
-	{
-		return ddPlayerCubes[p];
-	}
+	// Accessors (for PlayerInfoOwner)
 
 	@Override
 	public PlayerInfo getPlayerInfo()
 	{
 		return playerInfo;
 	}
-	
+
+	// Accessors (for SMG)
+
+	/**
+	 * Get the DD variables for encoding players
+	 */
+	public JDDVars getAllDDPlayerVars()
+	{
+		return allDDPlayerVars;
+	}
+
+	/**
+	 * Get a cube over DD vars for each player (i.e. one-hot encoding).
+	 */
+	public JDDNode getDdPlayerCube(int p)
+	{
+		return ddPlayerCubes[p];
+	}
+
+	/**
+	 * Convert to an MDP.
+	 */
 	public NondetModel toMDP() throws PrismException
 	{
 		JDDNode transMDP = JDD.SumAbstract(trans.copy(), allDDPlayerVars);
@@ -111,13 +137,5 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		equivMDP.filterReachableStates();
 		
 		return equivMDP;
-	}
-	
-	@Override
-	public void clear()
-	{
-		super.clear();
-		allDDPlayerVars.derefAll();
-		JDD.DerefArray(ddPlayerCubes, getNumPlayers());
 	}
 }
