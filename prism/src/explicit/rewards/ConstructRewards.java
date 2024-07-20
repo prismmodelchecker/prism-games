@@ -559,10 +559,13 @@ public class ConstructRewards extends PrismComponent
 	private <Value> void checkStateReward(Value rew, Evaluator<Value> eval, Object stateIndex, ASTElement ast) throws PrismException
 	{
 		String error = null;
-		if (!eval.isFinite(rew)) {
-			error = "State reward is not finite";
-		} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
-			error = "State reward is negative (" + rew + ")";
+		// We omit the check in symbolic (parametric) cases - too expensive
+		if (!eval.isSymbolic()) {
+			if (!eval.isFinite(rew)) {
+				error = "State reward is not finite";
+			} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
+				error = "State reward is negative (" + rew + ")";
+			}
 		}
 		if (error != null) {
 			if (stateIndex != null) {
@@ -588,10 +591,13 @@ public class ConstructRewards extends PrismComponent
 	private <Value> void checkTransitionReward(Value rew, Evaluator<Value> eval, Object stateIndex, ASTElement ast) throws PrismException
 	{
 		String error = null;
-		if (!eval.isFinite(rew)) {
-			error = "Transition reward is not finite";
-		} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
-			error = "Transition reward is negative (" + rew + ")";
+		// We omit the check in symbolic (parametric) cases - too expensive
+		if (!eval.isSymbolic()) {
+			if (!eval.isFinite(rew)) {
+				error = "Transition reward is not finite";
+			} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
+				error = "Transition reward is negative (" + rew + ")";
+			}
 		}
 		if (error != null) {
 			if (stateIndex != null) {

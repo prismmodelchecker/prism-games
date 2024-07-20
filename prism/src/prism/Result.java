@@ -29,6 +29,7 @@
 package prism;
 
 import explicit.Pareto;
+import param.BigRational;
 import strat.Strategy;
 
 /**
@@ -52,7 +53,7 @@ public class Result
 	private StateVector vect;
         // parameter string (optional)
         private String parameterString;
-	
+
 	/**
 	 * Construct an empty Result object.
 	 */
@@ -121,7 +122,7 @@ public class Result
 	{
 	        this.parameterString = parameterString;
 	}
-	
+
 	/**
 	 * Set the result vector (null denotes n/a).
 	 */
@@ -181,7 +182,7 @@ public class Result
 	{
 		return parameterString;
 	}
-	
+
 	/**
 	 * Get the result vector (null denotes n/a).
 	 */
@@ -201,7 +202,7 @@ public class Result
 		} else {
 		        s = result.toString();
 		}
-		
+
 		if (explanation != null)
 			s += " (" + explanation +")";
 		return s;
@@ -212,14 +213,19 @@ public class Result
 	 */
 	public String getResultAndAccuracy()
 	{
+		String resultString = result.toString();
+		// If accuracy is missing or blank, omit it
 		if (accuracy != null) {
 			String accuracyString = accuracy.toString(result);
 			if (accuracyString != null && !"".equals(accuracyString)) {
-				return result.toString() + " (" + accuracy.toString(result) + ")";
+				resultString += " (" + accuracy.toString(result) + ")";
 			}
 		}
-		// If accuracy is missing or blank, omit it
-		return result.toString();
+		// Append approximate value for exact results
+		if (result instanceof BigRational) {
+			resultString += " (" + ((BigRational) result).toApproximateString() + ")";
+		}
+		return resultString;
 	}
 	
 	/**

@@ -236,10 +236,10 @@ public interface Evaluator<Value>
 	/**
 	 * Create an evaluator for intervals of the {@code Value} object.
 	 */
-	public default Evaluator<Interval<Value>> createIntervalEvaluator()
+	public default Evaluator<Interval<Value>> createIntervalEvaluator() throws PrismException
 	{
 		// Not supported by default
-		throw new UnsupportedOperationException("Intervals not supported for " + evalMode());
+		throw new PrismException("Intervals not supported for " + evalMode());
 	}
 
 	// Utility functions
@@ -551,6 +551,14 @@ public interface Evaluator<Value>
 		public EvaluatorFunction(FunctionFactory functionFactory)
 		{
 			this.functionFactory = functionFactory;
+		}
+
+		/**
+		 * Get the FunctionFactory used for manipulating Function objects.
+		 */
+		public FunctionFactory getFunctionFactory()
+		{
+			return functionFactory;
 		}
 
 		@Override

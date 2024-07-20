@@ -30,6 +30,7 @@ import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.PrismNotSupportedException;
 import prism.RewardGenerator;
 
 public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, RewardGenerator<Value>
@@ -120,21 +121,6 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	
 	/**
 	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
-	 * This method builds a generator for a parametric model using the function factory provided.
-	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Function>}.
-	 * Throw an explanatory exception if the model generator cannot be created.
-	 * @param modulesFile The PRISM model
-	 * @param functionFactory Factory for creating/manipulating rational functions 
-	 * @param parent Parent, used e.g. for settings (can be null)
-	 */
-	public static ModulesFileModelGenerator<Function> createForRationalFunctions(ModulesFile modulesFile, FunctionFactory functionFactory, PrismComponent parent) throws PrismException
-	{
-		Evaluator<Function> eval = Evaluator.forRationalFunction(functionFactory);
-		return new ModulesFileModelGenerator<>(modulesFile, eval, parent);
-	}
-	
-	/**
-	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
 	 * This method assumes that doubles are used to represent probabilities (rather than, say, exact arithmetic).
 	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Double>}.
 	 * Throw an explanatory exception if the model generator cannot be created.
@@ -146,7 +132,62 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		Evaluator<Double> eval = Evaluator.forDouble();
 		return new ModulesFileModelGenerator<>(modulesFile, eval, parent);
 	}
-	
+
+	/**
+	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
+	 * This method assumes that Functions are used to represent probabilities parametrically.
+	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Function>}.
+	 * Throw an explanatory exception if the model generator cannot be created.
+	 * @param modulesFile The PRISM model
+	 * @param paramNames names of parameters
+	 * @param lowerStr lower bounds of parameters as strings
+	 * @param upperStr upper bounds of parameters as strings
+	 * @param parent Parent, used e.g. for settings (can be null)
+	 */
+	public static ModulesFileModelGenerator<Function> createForRationalFunctions(ModulesFile modulesFile, String[] paramNames, String[] lowerStr, String[] upperStr, PrismComponent parent) throws PrismException
+	{
+		FunctionFactory functionFactory = FunctionFactory.create(paramNames, lowerStr, upperStr, parent.getSettings());
+		return createForRationalFunctions(modulesFile, functionFactory, parent);
+	}
+
+	/**
+	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
+	 * This method assumes that Functions are used to represent probabilities parametrically,
+	 * but that all probabilities are in fact constant, i.e., represented by rationals.
+	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Function>}.
+	 * Throw an explanatory exception if the model generator cannot be created.
+	 * @param modulesFile The PRISM model
+	 * @param parent Parent, used e.g. for settings (can be null)
+	 */
+	public static ModulesFileModelGenerator<Function> createForRationalFunctions(ModulesFile modulesFile, PrismComponent parent) throws PrismException
+	{
+		// Uncertain models not supported - catch here for better error message
+		if (modulesFile.getModelType().uncertain()) {
+			throw new PrismNotSupportedException("Exact " + modulesFile.getModelType() + "s are not supported");
+		}
+		// Set up a dummy parameter (not used)
+		String[] paramNames = new String[] { "dummy" };
+		String[] lowerStr = new String[] { "0" };
+		String[] upperStr = new String[] { "1" };
+		FunctionFactory functionFactory = FunctionFactory.create(paramNames, lowerStr, upperStr, parent.getSettings());
+		return createForRationalFunctions(modulesFile, functionFactory, parent);
+	}
+
+	/**
+	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
+	 * This method builds a generator for a parametric model using the function factory provided.
+	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Function>}.
+	 * Throw an explanatory exception if the model generator cannot be created.
+	 * @param modulesFile The PRISM model
+	 * @param functionFactory Factory for creating/manipulating rational functions
+	 * @param parent Parent, used e.g. for settings (can be null)
+	 */
+	public static ModulesFileModelGenerator<Function> createForRationalFunctions(ModulesFile modulesFile, FunctionFactory functionFactory, PrismComponent parent) throws PrismException
+	{
+		Evaluator<Function> eval = Evaluator.forRationalFunction(functionFactory);
+		return new ModulesFileModelGenerator<>(modulesFile, eval, parent);
+	}
+
 	/**
 	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
 	 * This constructor assumes that doubles are used to represent probabilities (rather than, say, exact arithmetic).
@@ -189,7 +230,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		
 		// No support for system...endsystem yet
 		if (modulesFile.getSystemDefn() != null) {
-			throw new PrismException("The system...endsystem construct is not currently supported");
+			throw new PrismNotSupportedException("The system...endsystem construct is not currently supported");
 		}
 		
 		// Store basic model info
@@ -500,7 +541,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 						acts.add(getChoiceActionString(i));
 					}
 				}
-				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player"; 
+				String errMsg = "There are multiple choices (" + String.join(",", acts) +  ") in state " + exploreState + " not assigned to any player";
 				throw new PrismException(errMsg);
 			}
 		}
@@ -510,7 +551,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		}
 		return player;
     }
-	
+
 	@Override
 	public int getNumChoices() throws PrismException
 	{
@@ -569,7 +610,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
 			return a < 0 ? -1 : a - 1;
 		} else {
-			throw new PrismException("Action index info not available"); 
+			throw new PrismException("Action index info not available");
 		}
 	}
 
@@ -608,7 +649,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			int a = transitions.getChoiceModuleOrActionIndex(index);
 			return a < 0 ? -1 : a - 1;
 		} else {
-			throw new PrismException("Action index info not available"); 
+			throw new PrismException("Action index info not available");
 		}
 	}
 
@@ -626,11 +667,11 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 
 	@Override
-	public int[] getTransitionIndexes(int i) 
+	public int[] getTransitionIndexes(int i)
 	{
 		return transitionList.getTransitionActionIndexes(i);
 	}
-	
+
 	/**
 	 * Utility method to get a description for an action label:
 	 * "[a]" for a synchronous action a and "M" for an unlabelled
@@ -669,7 +710,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		s += "]";
 		return s;
 	}
-	
+
 	@Override
 	public Expression getChoiceClockGuard(int i) throws PrismException
 	{
@@ -830,13 +871,18 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 					Value rew = eval.evaluate(rewStr.getReward(i), modulesFile.getConstantValues(), state);
 					// Check reward is finite/non-negative (would be checked at model construction time,
 					// but more fine grained error reporting can be done here)
+					// We omit the check in symbolic (parametric) cases - too expensive
 					// Note use of original model since modulesFile may have been simplified
-					if (!eval.isFinite(rew)) {
-						throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
-					}
-					// NB: for now, disable negative reward check for CSGs 
-					if (modelType != ModelType.CSG && !eval.geq(rew, eval.zero())) {
-						throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+					if (!eval.isSymbolic()) {
+						if (!eval.isFinite(rew)) {
+							throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
+						}
+						// For now, disable negative reward check for CSGs
+						if (modelType != ModelType.CSG) {
+							if (!eval.geq(rew, eval.zero())) {
+								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+							}
+						}
 					}
 					d = eval.add(d, rew);
 				}
@@ -848,9 +894,9 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	@Override
 	public Value getStateActionReward(int r, State state, Object action) throws PrismException
 	{
-		Value d = eval.zero();
 		RewardStruct rewStr = modulesFile.getRewardStruct(r);
 		int n = rewStr.getNumItems();
+		Value d = eval.zero();
 		if (modelType != ModelType.CSG) {
 			for (int i = 0; i < n; i++) {
 				if (rewStr.getRewardStructItem(i).isTransitionReward()) {
@@ -862,12 +908,15 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 							Value rew = eval.evaluate(rewStr.getReward(i), modulesFile.getConstantValues(), state);
 							// Check reward is finite/non-negative (would be checked at model construction time,
 							// but more fine grained error reporting can be done here)
+							// We omit the check in symbolic (parametric) cases - too expensive
 							// Note use of original model since modulesFile may have been simplified
-							if (!eval.isFinite(rew)) {
-								throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
-							}
-							if (!eval.geq(rew, eval.zero())) {
-								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+							if (!eval.isSymbolic()) {
+								if (!eval.isFinite(rew)) {
+									throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
+								}
+								if (!eval.geq(rew, eval.zero())) {
+									throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+								}
 							}
 							d = eval.add(d, rew);
 						}
@@ -904,7 +953,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 							if (!eval.isFinite(rew)) {
 								throw new PrismLangException("Reward structure is not finite at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
 							}
-							// NB: for now, disable negative reward check for CSGs 
+							// NB: for now, disable negative reward check for CSGs
 //							if (!eval.geq(rew, eval.zero())) {
 //								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
 //							}
@@ -914,7 +963,6 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 				}
 			}
 		}
-
 		return d;
 	}
 
@@ -943,7 +991,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			}
 			else {
  				updater.calculateTransitions(exploreState, transitionList);
-			}				
+			}
 			transitionListBuilt = true;
 		}
 

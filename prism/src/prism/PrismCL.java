@@ -820,7 +820,7 @@ public class PrismCL implements PrismModelListener
 			}
 		}
 
-		if (param || prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED)) {
+		if (param) {
 			if (exporttrans ||
 			    exportstaterewards ||
 			    exporttransrewards ||

@@ -55,9 +55,8 @@ import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
 import param.BigRational;
-import param.FunctionFactory;
-import param.ModelBuilder;
-import param.ParamModel;
+import param.Function;
+import param.ParamMode;
 import param.ParamModelChecker;
 import param.ParamResult;
 import parser.PrismParser;
@@ -255,11 +254,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	public enum ModelBuildType {
-		SYMBOLIC, EXPLICIT
+		SYMBOLIC, EXPLICIT, EXACT
 	}
 	
 	public enum PrismEngine {
-		SYMBOLIC, EXPLICIT
+		SYMBOLIC, EXPLICIT, EXACT
 	}
 
 	/** Class to store details about a loaded model */
@@ -1610,11 +1609,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		setModelType(modulesFile.getModelType());
 		setModelInfo(modulesFile);
 		setPRISMModel(modulesFile);
-		// Don't create ModelGenerator yet; do it on demand
-		setModelGenerator(null);
-		// For now, use ModulesFile as a RewardGenerator (via reward struct objects)
-		// If we build a ModelGenerator too, that can be used for rewards too
-		setRewardGenerator(modulesFile);
+		// Reset model/reward generator (will be created properly when needed)
+		resetGenerators();
+		// No constant definitions yet
 		setDefinedMFConstants(null);
 		// Clear any existing built model(s)
 		clearBuiltModel();
@@ -1665,6 +1662,21 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * For model sources where model/reward generators are created automatically,
+	 * reset these to default settings, so will be recreated when neeeded.
+	 */
+	private void resetGenerators() throws PrismException
+	{
+		if (getModelSource() == ModelSource.PRISM_MODEL) {
+			// Don't create ModelGenerator yet; do it on demand
+			setModelGenerator(null);
+			// For now, use ModulesFile as a RewardGenerator (via reward struct objects)
+			// If we build a ModelGenerator too, that can be used for rewards too
+			setRewardGenerator(getPRISMModel());
+		}
+	}
+
+	/**
 	 * Set (some or all) undefined constants for the currently loaded PRISM model
 	 * (assuming they have changed since the last time this was called).
 	 * <br>
@@ -1687,12 +1699,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// If there is no change in constants, there is nothing to do
 		boolean currentMFNone = getUndefinedModelValues() == null || getUndefinedModelValues().getNumValues() == 0;
 		boolean newMFNone = definedMFConstants == null || definedMFConstants.getNumValues() == 0;
-		if (currentMFNone && newMFNone && areUndefinedModelValuesExact() == exact) {
+		boolean exactSame = areUndefinedModelValuesExact() == exact;
+		if (currentMFNone && newMFNone && exactSame) {
 			return;
 		}
 		if (getUndefinedModelValues() != null &&
-				getUndefinedModelValues().equals(definedMFConstants) &&
-				areUndefinedModelValuesExact() == exact) {
+				getUndefinedModelValues().equals(definedMFConstants) && exactSame) {
 			return;
 		}
 
@@ -1703,7 +1715,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (getPRISMModel() != null) {
 			getPRISMModel().setSomeUndefinedConstants(definedMFConstants, exact);
 		}
-		if (getModelGenerator(false) != null) {
+		// Reset/update model generator
+		if (!exactSame) {
+			resetGenerators();
+		} else if (getModelGenerator(false) != null) {
 			getModelGenerator(false).setSomeUndefinedConstants(definedMFConstants, exact);
 		}
 	}
@@ -1824,7 +1839,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public PrismEngine getCurrentEngine()
 	{
-		if (getEngine() == Prism.EXPLICIT) {
+		if (settings.getBoolean(PrismSettings.PRISM_EXACT_ENABLED)) {
+			return PrismEngine.EXACT;
+		} else if (getEngine() == Prism.EXPLICIT) {
 			return PrismEngine.EXPLICIT;
 		} else {
 			return PrismEngine.SYMBOLIC;
@@ -1857,8 +1874,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			case PRISM_MODEL:
 				if (getPRISMModel() != null) {
 					// Create a model generator via ModulesFileModelGenerator
-					setModelGenerator(ModulesFileModelGenerator.create(getPRISMModel(), this));
-					setRewardGenerator((ModulesFileModelGenerator<?>) currentModelDetails.modelGenerator);
+					ModulesFileModelGenerator<?> mfmg = null;
+					if (getCurrentEngine() == PrismEngine.EXACT) {
+						// Exact model checking uses rationals
+						mfmg = ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), this);
+					} else {
+						// Anything else (explicit engine, simulation, etc.) uses doubles
+						mfmg = ModulesFileModelGenerator.create(getPRISMModel(), this);
+					}
+					setModelGenerator(mfmg);
+					setRewardGenerator(mfmg);
 				} else {
 					throw new PrismException("There is no currently loaded PRISM model");
 				}
@@ -1960,6 +1985,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			return ModelBuildType.EXPLICIT;
 		case SYMBOLIC:
 			return ModelBuildType.SYMBOLIC;
+		case EXACT:
+			return ModelBuildType.EXACT;
 		default:
 			return null;
 		}
@@ -2102,6 +2129,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				}
 				break;
 			case EXPLICIT:
+			case EXACT:
 				explicit.Model<?> newModelExpl;
 				switch (getModelSource()) {
 				case PRISM_MODEL:
@@ -2114,7 +2142,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					ConstructModel constructModel = new ConstructModel(this);
 					constructModel.setFixDeadlocks(getFixDeadlocks());
 					newModelExpl = constructModel.constructModel(getModelGenerator());
-					setBuiltModel(ModelBuildType.EXPLICIT, newModelExpl);
+					setBuiltModel(getModelBuildTypeForEngine(getCurrentEngine()), newModelExpl);
 					break;
 				case EXPLICIT_FILES:
 					ExplicitFiles2Model expf2model = new ExplicitFiles2Model(this);
@@ -3061,15 +3089,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// Remove old strategy if present
 		clearStrategy();
-		
+
+		// Exact model checking only support for some models
+		if (getCurrentEngine() == PrismEngine.EXACT) {
+			if (!(getModelType() == ModelType.DTMC || getModelType() == ModelType.CTMC || getModelType() == ModelType.MDP || !getModelType().isProbabilistic())) {
+				throw new PrismNotSupportedException("Exact model checking not supported for " + getModelType() + "s");
+			}
+		}
 		// PTA (and similar) model checking is handled separately
 		if (getModelType().realTime()) {
 			return modelCheckPTA(propertiesFile, prop.getExpression(), definedPFConstants);
-		}
-
-		// For exact model checking
-		if (settings.getBoolean(PrismSettings.PRISM_EXACT_ENABLED)) {
-			return modelCheckExact(propertiesFile, prop);
 		}
 		// For fast adaptive uniformisation
 		if (getModelType() == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
@@ -3168,9 +3197,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			if (getCurrentEngine() == PrismEngine.SYMBOLIC) {
 				ModelChecker mc = createModelChecker(propertiesFile);
 				res = mc.check(prop.getExpression());
-			} else {
+			} else if (getCurrentEngine() == PrismEngine.EXPLICIT) {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
 				mc.setComputeParetoSet(computePareto);
+				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
+			} else if (getCurrentEngine() == PrismEngine.EXACT) {
+				ParamModelChecker mc = new ParamModelChecker(this, ParamMode.EXACT);
+				mc.setModelCheckingInfo(getPRISMModel(), propertiesFile, getRewardGenerator());
 				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
 			}
 			
@@ -3328,6 +3361,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public Result modelCheckSimulator(PropertiesFile propertiesFile, Expression expr, Values definedPFConstants, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
 	{
+		if (getCurrentEngine() == PrismEngine.EXACT) {
+			throw new PrismNotSupportedException("Simulation does not support exact computation");
+		}
+
 		// Print info
 		mainLog.printSeparator();
 		mainLog.println("\nSimulating: " + expr);
@@ -3370,6 +3407,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public Result[] modelCheckSimulatorSimultaneously(PropertiesFile propertiesFile, List<Expression> exprs, Values definedPFConstants, State initialState,
 			long maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
+		if (getCurrentEngine() == PrismEngine.EXACT) {
+			throw new PrismNotSupportedException("Simulation does not support exact computation");
+		}
+
 		// Print info
 		mainLog.printSeparator();
 		mainLog.print("\nSimulating");
@@ -3426,6 +3467,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public void modelCheckSimulatorExperiment(PropertiesFile propertiesFile, UndefinedConstants undefinedConstants, ResultsCollection results, Expression expr,
 			State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException, InterruptedException
 	{
+		if (getCurrentEngine() == PrismEngine.EXACT) {
+			throw new PrismNotSupportedException("Simulation does not support exact computation");
+		}
+
 		// Print info
 		mainLog.printSeparator();
 		mainLog.println("\nSimulating: " + expr);
@@ -3439,66 +3484,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Do simulation
 		loadModelIntoSimulator();
 		getSimulator().modelCheckExperiment(propertiesFile, undefinedConstants, results, expr, initialState, maxPathLength, simMethod);
-	}
-
-	/**
-	 * Perform model checking on the currently loaded model using exact methods
-	 * (currently, this is done via the parametric model checking functionality)
-	 * @param propertiesFile parent properties file
-	 * @param prop property to model check
-	 */
-	public Result modelCheckExact(PropertiesFile propertiesFile, Property prop) throws PrismException
-	{
-		// Some checks
-		if (!(getModelType() == ModelType.DTMC || getModelType() == ModelType.CTMC || getModelType() == ModelType.MDP))
-			throw new PrismNotSupportedException("Exact model checking is only supported for DTMCs, CTMCs and MDPs");
-
-		if (getModelType() == ModelType.MDP && getFairness())
-			throw new PrismNotSupportedException("Exact model checking does not support checking MDPs under fairness");
-
-		// Remove old strategy if present
-		clearStrategy();
-		
-		// Set up a dummy parameter (not used)
-		String[] paramNames = new String[] { "dummy" };
-		String[] paramLowerBounds = new String[] { "0" };
-		String[] paramUpperBounds = new String[] { "1" };
-		// And execute parameteric model checking
-		param.ModelBuilder builder = new ModelBuilder(this, param.ParamMode.EXACT);
-		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
-		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), functionFactory, this));
-		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.EXACT);
-		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		mc.setModulesFileAndPropertiesFile(getPRISMModel(), propertiesFile);
-
-		if (isModelSourceDigitalClocks()) {
-			// have to do deadlock checks, as we are in digital clock mode for PTA checking,
-			// cf. doBuildModelDigitalClocksChecks()
-			if (modelExpl.getNumDeadlockStates() > 0) {
-				int dl = modelExpl.getFirstDeadlockState();
-				String dls = modelExpl.getStatesList().get(dl).toString(getModelInfo());
-				throw new PrismException("Timelock in PTA, e.g. in state " + dls);
-			}
-		}
-
-		Result result = mc.check(modelExpl, prop.getExpression());
-
-		// Convert result of parametric model checking to a single value,
-		// either boolean for boolean properties or a rational for numeric properties
-		// There should be just one region since no parameters are used
-		ParamResult paramResult = (ParamResult) result.getResult();
-		result.setResult(paramResult.getSimpleResult(prop.getType()));
-		result.setAccuracy(new Accuracy(AccuracyLevel.EXACT));
-
-		// Print result to log
-		String resultString = "Result";
-		resultString += ": " + result.getResultAndAccuracy();
-		if (result.getResult() instanceof BigRational) {
-			resultString += " (" + ((BigRational) result.getResult()).toApproximateString() + ")";
-		}
-		mainLog.println("\n" + resultString);
-
-		return result;
 	}
 
 	/**
@@ -3538,21 +3523,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 		// Remove old strategy if present
 		clearStrategy();
-		
-		param.ModelBuilder builder = new ModelBuilder(this, param.ParamMode.PARAMETRIC);
-		FunctionFactory functionFactory = builder.getFunctionFactory(paramNames, paramLowerBounds, paramUpperBounds);
-		ParamModel modelExpl = builder.constructModel(ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), functionFactory, this));
-		ParamModelChecker mc = new ParamModelChecker(this, param.ParamMode.PARAMETRIC);
-		mc.setParameters(paramNames, paramLowerBounds, paramUpperBounds);
-		mc.setModulesFileAndPropertiesFile(getPRISMModel(), propertiesFile);
-		Result result = mc.check(modelExpl, prop.getExpression());
 
-		// Print result to log
-		String resultString = "Result";
-		if (!("Result".equals(prop.getExpression().getResultName())))
-			resultString += " (" + prop.getExpression().getResultName().toLowerCase() + ")";
-		resultString += ": " + result.getResultString();
-		mainLog.print("\n" + resultString);
+		// Execute parameteric model checking
+		ConstructModel constructModel = new ConstructModel(this);
+		constructModel.setFixDeadlocks(getFixDeadlocks());
+		ModulesFileModelGenerator<Function> modelGenFunc  = ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), paramNames, paramLowerBounds, paramUpperBounds, this);
+		explicit.Model<?> modelExpl = constructModel.constructModel(modelGenFunc);
+		ParamModelChecker mc = new ParamModelChecker(this, ParamMode.PARAMETRIC);
+		mc.setModelCheckingInfo(getPRISMModel(), propertiesFile, modelGenFunc);
+		Result result = mc.check(modelExpl, prop.getExpression());
 
 		return result;
 	}
@@ -4160,6 +4139,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				currentModelDetails.modelExpl = null;
 				break;
 			case EXPLICIT:
+			case EXACT:
 				if (!(newModel instanceof explicit.Model)) {
 					throw new PrismException("Attempt to store model of incorrect type");
 				}
@@ -4483,6 +4463,23 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				break;
 		}
 		return exportOptions;
+	}
+
+	/**
+	 * Perform model checking on the currently loaded model using exact methods
+	 * (currently, this is done via the parametric model checking functionality)
+	 * @param propertiesFile parent properties file
+	 * @param prop property to model check
+	 * @deprecated Better to use {@link #modelCheck(PropertiesFile, Property)} now.
+	 */
+	@Deprecated
+	public Result modelCheckExact(PropertiesFile propertiesFile, Property prop) throws PrismException
+	{
+		boolean exactOld = settings.getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+		settings.set(PrismSettings.PRISM_EXACT_ENABLED, Boolean.TRUE);
+		Result result = modelCheck(propertiesFile, prop);
+		settings.set(PrismSettings.PRISM_EXACT_ENABLED, exactOld);
+		return result;
 	}
 }
 
