@@ -583,11 +583,6 @@ public class LTLModelChecker extends PrismComponent
 				newAllDDRowVars, newAllDDColVars,
 				// New model variables
 				newModelVariables,
-				// Module info (unchanged)
-				model.getNumModules(),
-				model.getModuleNames(),
-				JDDVars.copyArray(model.getModuleDDRowVars()),
-				JDDVars.copyArray(model.getModuleDDColVars()),
 				// New var info
 				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
 				// Constants (no change)
@@ -883,11 +878,6 @@ public class LTLModelChecker extends PrismComponent
 				model.getAllDDNondetVars().copy(),
 				// New model variables
 				newModelVariables,
-				// Module info (unchanged)
-				model.getNumModules(),
-				model.getModuleNames(),
-				JDDVars.copyArray(model.getModuleDDRowVars()),
-				JDDVars.copyArray(model.getModuleDDColVars()),
 				// New var info
 				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
 				// Constants (no change)

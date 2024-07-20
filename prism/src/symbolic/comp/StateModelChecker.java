@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import explicit.ModelExplicit;
 import mtbdd.PrismMTBDD;
 import dv.DoubleVector;
 import jdd.*;
@@ -50,9 +51,12 @@ import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 import prism.Result;
+import symbolic.model.ModelSymbolic;
+import symbolic.model.NondetModel;
 import symbolic.states.StateListMTBDD;
 import symbolic.states.StateValues;
 import symbolic.states.StateValuesDV;
@@ -126,7 +130,9 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		varList = model.getVarList();
 		trans = model.getTrans();
 		trans01 = model.getTrans01();
-		transActions = model.getTransActions();
+		if (m instanceof NondetModel) {
+			transActions = ((NondetModel) model).getTransActions();
+		}
 		start = model.getStart();
 		reach = model.getReach();
 		odd = model.getODD();
@@ -173,10 +179,6 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		                      allDDRowVars.copy(), // allDDRowVars
 		                      new JDDVars(),    // allDDColVars
 		                      null,             // ddVarNames
-		                      0,                // numModules
-		                      null,             // moduleNames
-		                      null,             // moduleRowVars
-		                      null,             // moduleColVars
 		                      varDDRowVars.length, // numVars
 		                      varList,          // varList
 		                      JDDVars.copyArray(varDDRowVars), // varDDRowVars
@@ -1580,6 +1582,11 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 	 */
 	public Expression handleMaximalStateFormulas(Expression expr) throws PrismException
 	{
+		if (!(model instanceof ModelSymbolic)) {
+			// needs a ModelSymbolic to allow attaching labels in the handleMaximalStateFormulas step
+			throw new PrismNotSupportedException("Need ModelSymbolic for LTL checking in this instance");
+		}
+
 		Vector<JDDNode> labelDD = new Vector<JDDNode>();
 
 		// construct LTL model checker, using this model checker instance
@@ -1598,7 +1605,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			String currentLabel = "L"+i;
 			// Attach satisfaction set for Li to the model, record necessary
 			// label renaming
-			String newLabel = model.addUniqueLabelDD("phi", labelDD.get(i), getDefinedLabelNames());
+			String newLabel = ((ModelSymbolic) model).addUniqueLabelDD("phi", labelDD.get(i), getDefinedLabelNames());
 			labelReplacements.put(currentLabel, newLabel);
 		}
 		// rename the labels

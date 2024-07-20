@@ -4,7 +4,7 @@
 //	Authors:
 //	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
 //	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
-//	
+//
 //------------------------------------------------------------------------------
 //	
 //	This file is part of PRISM.
@@ -38,6 +38,7 @@ import parser.ast.*;
 import prism.*;
 import symbolic.comp.StateModelChecker;
 import symbolic.model.GamesModel;
+import symbolic.model.ModelSymbolic;
 import symbolic.model.ModelVariablesDD;
 import symbolic.model.Model;
 import symbolic.model.NondetModel;
@@ -138,7 +139,7 @@ public class Modules2MTBDD
 	private boolean storeTransParts = false; 
 	// hidden option - do we also store action info for the transition matrix? (supersedes the above)
 	private boolean storeTransActions = true; 
-	
+
 	/** Flag, tracking whether the model was already constructed (to know how much cleanup we have to do) */
 	private boolean modelWasBuilt = false;
 
@@ -253,7 +254,7 @@ public class Modules2MTBDD
 	// main method - translate
 	public Model translate() throws PrismException
 	{
-		Model model = null;
+		ModelSymbolic model = null;
 		JDDNode tmp, tmp2;
 		JDDVars ddv;
 		int i;
@@ -272,7 +273,7 @@ public class Modules2MTBDD
 		synchs = modulesFile.getSynchs();
 		numSynchs = synchs.size();
 		numPlayers = modulesFile.getNumPlayers();
-		
+
 		// check model type is supported
 		if (!(modelType == ModelType.DTMC || modelType == ModelType.MDP || modelType == ModelType.CTMC || modelType == ModelType.SMG)) {
 			throw new PrismException("Symbolic construction of " + modelType + "s not supported");
@@ -345,18 +346,15 @@ public class Modules2MTBDD
 			// create new Model object to be returned
 			if (modelType == ModelType.DTMC) {
 				model = new ProbModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-				                      numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 				                      numVars, varList, varDDRowVars, varDDColVars, constantValues);
 			}
 			else if (modelType == ModelType.MDP) {
 				model = new NondetModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars,
 				                        allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables,
-				                        numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 				                        numVars, varList, varDDRowVars, varDDColVars, constantValues);
 			}
 			else if (modelType == ModelType.CTMC) {
 				model = new StochModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-				                       numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 				                       numVars, varList, varDDRowVars, varDDColVars, constantValues);
 			}
 			else if (modelType == ModelType.SMG) {
@@ -366,7 +364,6 @@ public class Modules2MTBDD
 				}
 				model = new GamesModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars,
 									   allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables,
-									   numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 									   numVars, varList, varDDRowVars, varDDColVars, constantValues, allDDPlayerVars, ddPlayerCubes, playerInfo);
 			}
 			modelWasBuilt = true;
@@ -385,8 +382,11 @@ public class Modules2MTBDD
 			if (storeTransActions) {
 				// Note: one of these will be null, depending on model type
 				// but this is fine: null = none stored.
-				model.setTransActions(transActions);
-				model.setTransPerAction(transPerAction);
+				if (!(modelType == ModelType.MDP || modelType == ModelType.SMG)) {
+					((ProbModel) model).setTransPerAction(transPerAction);
+				} else {
+					((NondetModel) model).setTransActions(transActions);
+				}
 			}
 
 			// do reachability (or not)
@@ -495,7 +495,7 @@ public class Modules2MTBDD
 
 	// allocate DD vars for system
 	// i.e. decide on variable ordering and request variables from CUDD
-	
+
 	private void allocateDDVars()
 	{
 		int i, j, m, n, last;
@@ -2121,7 +2121,7 @@ public class Modules2MTBDD
 				}
 			}
 		}
-		
+
 		// Get the transition matrix for each individual player
 		// and find the set of states controlled by each player
 		JDDNode ddPlayerTrans[] = new JDDNode[numPlayers];
@@ -2131,7 +2131,7 @@ public class Modules2MTBDD
 			ddPlayerStates[p] = JDD.GreaterThan(ddPlayerTrans[p].copy(), 0);
 			ddPlayerStates[p] = JDD.ThereExists(JDD.ThereExists(ddPlayerStates[p], allDDNondetVars), allDDColVars);
 		}
-		
+
 		// Get transition matrix for actions assigned to no player
 		JDDNode ddPlayerNoneCube = JDD.Constant(1);
 		for (int p = 0; p < numPlayers; p++) {
@@ -2140,7 +2140,7 @@ public class Modules2MTBDD
 		JDDNode ddPlayerNoneTrans = JDD.Restrict(trans.copy(), ddPlayerNoneCube.copy());
 		JDDNode ddPlayerNoneStates = JDD.GreaterThan(ddPlayerNoneTrans.copy(), 0);
 		ddPlayerNoneStates = JDD.ThereExists(JDD.ThereExists(ddPlayerNoneStates, allDDNondetVars), allDDColVars);
-		
+
 		// Also extract transition rewards for each player (and unassigned)
 		JDDNode ddPlayerTransRewards[][] = new JDDNode[numRewardStructs][numPlayers];
 		JDDNode ddPlayerNoneTransRewards[] = new JDDNode[numRewardStructs];
@@ -2151,7 +2151,7 @@ public class Modules2MTBDD
 			}
 			ddPlayerNoneTransRewards[j] = JDD.Restrict(transRewards[j].copy(), ddPlayerNoneCube.copy());
 		}
-		
+
 		// Check for overlaps in player-controlled states
 		JDDNode ddPlayerOverlaps = JDD.Constant(0);
 		for (int p = 0; p < numPlayers; p++) {
@@ -2185,7 +2185,7 @@ public class Modules2MTBDD
 		JDD.Deref(ddPlayerStates[0]);
 		ddPlayerStates[0] = JDD.GreaterThan(ddPlayerTrans[0].copy(), 0);
 		ddPlayerStates[0] = JDD.ThereExists(JDD.ThereExists(ddPlayerStates[0], allDDNondetVars), allDDColVars);
-		
+
 		// Reconstruct trans
 		JDD.Deref(trans);
 		trans = JDD.Constant(0);
@@ -2201,7 +2201,7 @@ public class Modules2MTBDD
 				transRewards[j] = JDD.Plus(transRewards[j], JDD.Times(ddPlayerCubes[p].copy(), ddPlayerTransRewards[j][p].copy()));
 			}
 		}
-		
+
 		// Derefs
 		JDD.DerefArray(ddPlayerTrans, numPlayers);
 		JDD.DerefArray(ddPlayerStates, numPlayers);
@@ -2213,7 +2213,7 @@ public class Modules2MTBDD
 			JDD.Deref(ddPlayerNoneTransRewards[j]);
 		}
 	}
-	
+
 	// build state and transition rewards
 	
 	private void computeRewards(SystemDDs sysDDs) throws PrismException
@@ -2364,7 +2364,7 @@ public class Modules2MTBDD
 	
 	// symmetrification
 	
-	private void doSymmetry(Model model) throws PrismException
+	private void doSymmetry(ModelSymbolic model) throws PrismException
 	{
 		JDDNode tmp, transNew, reach, trans, transRewards[];
 		int i, j, k, numSwaps;

@@ -54,10 +54,10 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 	protected PlayerInfo playerInfo;
 	
 	public GamesModel(JDDNode tr, JDDNode s, JDDNode[] sr, JDDNode[] trr, String[] rsn, JDDVars arv, JDDVars acv, JDDVars asyv, JDDVars asv,
-					  JDDVars achv, JDDVars andv, ModelVariablesDD mvdd, int nm, String[] mn, JDDVars[] mrv, JDDVars[] mcv, int nv, 
+					  JDDVars achv, JDDVars andv, ModelVariablesDD mvdd, int nv,
 					  VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv, JDDVars apvs, JDDNode[] ddPlayerCubes, PlayerInfo playerInfo) {
-		super(tr, s, sr, trr, rsn, arv, acv, asyv, asv, achv, andv, mvdd, nm, mn, mrv,
-				mcv, nv, vl, vrv, vcv, cv);
+		super(tr, s, sr, trr, rsn, arv, acv, asyv, asv, achv, andv, mvdd,
+				nv, vl, vrv, vcv, cv);
 		this.allDDPlayerVars = apvs;
 		this.ddPlayerCubes = ddPlayerCubes;
 		this.playerInfo = playerInfo;
@@ -98,7 +98,6 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		
 		NondetModel equivMDP =  new NondetModel(transMDP, start, stateRewards, transRewardsMDP, rewardStructNames, allDDRowVars, allDDColVars,
 			     						allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVarsMDP, modelVariables,
-			     						numModules, moduleNames, moduleDDRowVars, moduleDDColVars,
 			     						numVars, varList, varDDRowVars, varDDColVars, constantValues);
 		
 		equivMDP.setSynchs((Vector<String>)synchs);
@@ -107,8 +106,7 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		equivMDP.setTransSynch(transSynch);
 		
 		equivMDP.setTransActions(transActions);
-		equivMDP.setTransPerAction(transPerAction);
-		
+
 		equivMDP.doReachability();
 		equivMDP.filterReachableStates();
 		
