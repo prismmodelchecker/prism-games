@@ -138,7 +138,7 @@ public class Modules2MTBDD
 	// hidden option - do we also store each part of the transition matrix separately? (now defunct)
 	private boolean storeTransParts = false; 
 	// hidden option - do we also store action info for the transition matrix? (supersedes the above)
-	private boolean storeTransActions = true; 
+	private boolean storeTransActions = true;
 
 	/** Flag, tracking whether the model was already constructed (to know how much cleanup we have to do) */
 	private boolean modelWasBuilt = false;
@@ -345,27 +345,27 @@ public class Modules2MTBDD
 
 			// create new Model object to be returned
 			if (modelType == ModelType.DTMC) {
-				model = new ProbModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-				                      numVars, varList, varDDRowVars, varDDColVars, constantValues);
+				model = new ProbModel(trans, start, allDDRowVars, allDDColVars, modelVariables,
+				                      varList, varDDRowVars, varDDColVars);
 			}
 			else if (modelType == ModelType.MDP) {
-				model = new NondetModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars,
-				                        allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables,
-				                        numVars, varList, varDDRowVars, varDDColVars, constantValues);
+				model = new NondetModel(trans, start, allDDRowVars, allDDColVars, allDDNondetVars, modelVariables,
+									    varList, varDDRowVars, varDDColVars);
 			}
 			else if (modelType == ModelType.CTMC) {
-				model = new StochModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-				                       numVars, varList, varDDRowVars, varDDColVars, constantValues);
+				model = new StochModel(trans, start, allDDRowVars, allDDColVars, modelVariables,
+				                       varList, varDDRowVars, varDDColVars);
 			}
 			else if (modelType == ModelType.SMG) {
 				PlayerInfo playerInfo = new PlayerInfo();
 				for (int player = 0; player < numPlayers; player++) {
 					playerInfo.addPlayer(modulesFile.getPlayer(player).getName());
 				}
-				model = new GamesModel(trans, start, stateRewards, transRewards, rewardStructNames, allDDRowVars, allDDColVars,
-									   allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables,
-									   numVars, varList, varDDRowVars, varDDColVars, constantValues, allDDPlayerVars, ddPlayerCubes, playerInfo);
+				model = new GamesModel(trans, start, allDDRowVars, allDDColVars, allDDNondetVars, modelVariables,
+									   varList, varDDRowVars, varDDColVars, allDDPlayerVars, ddPlayerCubes, playerInfo);
 			}
+			model.setRewards(stateRewards, transRewards, rewardStructNames);
+			model.setConstantValues(constantValues);
 			modelWasBuilt = true;
 
 			// We also store a copy of the list of action label names
@@ -435,6 +435,10 @@ public class Modules2MTBDD
 			globalDDRowVars.derefAll();
 		if (globalDDColVars != null)
 			globalDDColVars.derefAll();
+		if (moduleDDRowVars != null)
+			JDDVars.derefAllArray(moduleDDRowVars);
+		if (moduleDDColVars != null)
+			JDDVars.derefAllArray(moduleDDColVars);
 		JDD.DerefArrayNonNull(moduleIdentities, numModules);
 		JDD.DerefArrayNonNull(moduleRangeDDs, numModules);
 		JDD.DerefArrayNonNull(varIdentities, numVars);
@@ -444,6 +448,12 @@ public class Modules2MTBDD
 		JDD.DerefArrayNonNull(ddSynchVars);
 		JDD.DerefArrayNonNull(ddSchedVars);
 		JDD.DerefArrayNonNull(ddChoiceVars);
+		if (allDDSynchVars != null)
+			allDDSynchVars.derefAll();
+		if (allDDSchedVars != null)
+			allDDSchedVars.derefAll();
+		if (allDDChoiceVars != null)
+			allDDChoiceVars.derefAll();
 		JDD.DerefArrayNonNull(ddPlayerVars);
 
 		if (doSymmetry) {
@@ -476,11 +486,6 @@ public class Modules2MTBDD
 				allDDNondetVars.derefAll();
 			if (allDDPlayerVars != null)
 				allDDPlayerVars.derefAll();
-
-			if (moduleDDRowVars != null)
-				JDDVars.derefAllArray(moduleDDRowVars);
-			if (moduleDDColVars != null)
-				JDDVars.derefAllArray(moduleDDColVars);
 
 			JDDVars.derefAllArray(varDDRowVars);
 			JDDVars.derefAllArray(varDDColVars);

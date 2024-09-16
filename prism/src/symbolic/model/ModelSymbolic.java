@@ -56,11 +56,9 @@ public abstract class ModelSymbolic implements Model
 	// Model info
 
 	// Vars/consts
-	/** Total number of model variables */
-	protected int numVars;
 	/** Model variable info */
 	protected VarList varList;
-	/** Values of constants */
+	/** Values of constants (optional) */
 	protected Values constantValues;
 	// Actions
 	/** Number of action labels */
@@ -95,7 +93,7 @@ public abstract class ModelSymbolic implements Model
 	/** State rewards MTBDDs */
 	protected JDDNode stateRewards[];
 	/** Transition rewards MTBDDs */
-	protected JDDNode transRewards[]; // transition rewards dds
+	protected JDDNode transRewards[];
 
 	/** DD variable info */
 	protected ModelVariablesDD modelVariables;
@@ -116,24 +114,17 @@ public abstract class ModelSymbolic implements Model
 
 	// Constructor
 
-	public ModelSymbolic(JDDNode tr, JDDNode s, JDDNode sr[], JDDNode trr[], String rsn[], JDDVars arv, JDDVars acv, ModelVariablesDD mvdd,
-						 int nv, VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv)
+	public ModelSymbolic(JDDNode trans, JDDNode start, JDDVars allDDRowVars, JDDVars allDDColVars, ModelVariablesDD modelVariables,
+						 VarList varList, JDDVars[] varDDRowVars, JDDVars[] varDDColVars)
 	{
-		trans = tr;
-		start = s;
-		deadlocks = null;
-		stateRewards = sr;
-		transRewards = trr;
-		numRewardStructs = stateRewards.length; // which should == transRewards.length
-		rewardStructNames = rsn;
-		allDDRowVars = arv;
-		allDDColVars = acv;
-		modelVariables = mvdd;
-		numVars = nv;
-		varList = vl;
-		varDDRowVars = vrv;
-		varDDColVars = vcv;
-		constantValues = cv;
+		this.trans = trans;
+		this.start = start;
+		this.allDDRowVars = allDDRowVars;
+		this.allDDColVars = allDDColVars;
+		this.modelVariables = modelVariables;
+		this.varList = varList;
+		this.varDDRowVars = varDDRowVars;
+		this.varDDColVars = varDDColVars;
 
 		// calculate 0-1 version of trans
 		JDD.Ref(trans);
@@ -283,6 +274,19 @@ public abstract class ModelSymbolic implements Model
 	}
 
 	/**
+	 * Set all reward info and DDs.
+	 *
+	 * <br>[ STORES: stateRewards, transRewards, deref on later call to clear() ]
+	 */
+	public void setRewards(JDDNode[] stateRewards, JDDNode[] transRewards, String[] rewardStructNames)
+	{
+		this.stateRewards = stateRewards;
+		this.transRewards = transRewards;
+		this.numRewardStructs = stateRewards.length;
+		this.rewardStructNames = rewardStructNames;
+	}
+
+	/**
 	 * Reset transition rewards DD for reward with index i.
 	 *
 	 * <br>[ STORES: transRewards, DEREFS: <i>old trans reward DD</i> ]
@@ -306,6 +310,14 @@ public abstract class ModelSymbolic implements Model
 			JDD.Deref(this.stateRewards[i]);
 		}
 		this.stateRewards[i] = stateRewards;
+	}
+
+	/**
+	 * Set the associated (read-only) constant values.
+	 */
+	public void setConstantValues(Values constantValues)
+	{
+		this.constantValues = constantValues;
 	}
 
 	/**
@@ -380,7 +392,7 @@ public abstract class ModelSymbolic implements Model
 		trans01 = JDD.GreaterThan(trans, 0);
 
 		// remove non-reachable states from state/transition rewards
-		for (int i = 0; i < stateRewards.length; i++) {
+		for (int i = 0; i < numRewardStructs; i++) {
 			// state rewards vector
 			JDD.Ref(reach);
 			stateRewards[i] = JDD.Apply(JDD.TIMES, reach, stateRewards[i]);

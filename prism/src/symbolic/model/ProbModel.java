@@ -55,12 +55,10 @@ public class ProbModel extends ModelSymbolic
 
 	// Constructor
 
-	public ProbModel(JDDNode tr, JDDNode s, JDDNode sr[], JDDNode trr[], String rsn[], JDDVars arv, JDDVars acv, ModelVariablesDD mvdd,
-					 int nv, VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv)
+	public ProbModel(JDDNode trans, JDDNode start, JDDVars allDDRowVars, JDDVars allDDColVars, ModelVariablesDD modelVariables,
+					 VarList varList, JDDVars[] varDDRowVars, JDDVars[] varDDColVars)
 	{
-		super(tr, s, sr, trr, rsn, arv, acv, mvdd, nv, vl, vrv, vcv, cv);
-		// action label info (optional) is initially null
-		transPerAction = null;
+		super(trans, start, allDDRowVars, allDDColVars, modelVariables, varList, varDDRowVars, varDDColVars);
 	}
 
 	// Mutators
@@ -322,18 +320,16 @@ public class ProbModel extends ModelSymbolic
 		ProbModel result = new ProbModel(
 				// New transition matrix/start state
 				newTrans, newStart,
-				// New reward information
-				newStateRewards,
-				newTransRewards,
-				this.rewardStructNames.clone(),
 				// New list of all row/col vars
 				newAllDDRowVars, newAllDDColVars,
 				// New model variables
 				newModelVariables,
 				// New var info
-				newVarList.getNumVars(), newVarList, newVarDDRowVars, newVarDDColVars,
-				// Constants (no change)
-				this.getConstantValues());
+				newVarList, newVarDDRowVars, newVarDDColVars);
+		// New reward information
+		result.setRewards(newStateRewards, newTransRewards, this.rewardStructNames.clone());
+		// Constants (no change)
+		result.setConstantValues(this.getConstantValues());
 
 		// Do reachability/etc. for the new model
 		JDDNode S;

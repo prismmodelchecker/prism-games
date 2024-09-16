@@ -577,16 +577,14 @@ public class LTLModelChecker extends PrismComponent
 		ProbModel modelProd = new ProbModel(
 		// New transition matrix/start state
 				newTrans, newStart,
-				// Don't pass in any rewards info
-				new JDDNode[0], new JDDNode[0], new String[0],
 				// New list of all row/col vars
 				newAllDDRowVars, newAllDDColVars,
 				// New model variables
 				newModelVariables,
 				// New var info
-				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
-				// Constants (no change)
-				model.getConstantValues());
+				newVarList, newVarDDRowVars, newVarDDColVars);
+		// Constants (no change)
+		modelProd.setConstantValues(model.getConstantValues());
 
 		// Do reachability/etc. for the new model
 		modelProd.doReachability();
@@ -867,21 +865,16 @@ public class LTLModelChecker extends PrismComponent
 		NondetModel modelProd = new NondetModel(
 		// New transition matrix/start state
 				newTrans, newStart,
-				// Don't pass in any rewards info
-				new JDDNode[0], new JDDNode[0], new String[0],
 				// New list of all row/col vars
 				newAllDDRowVars, newAllDDColVars,
 				// Nondet variables (unchanged)
-				model.getAllDDSchedVars().copy(),
-				model.getAllDDSynchVars().copy(),
-				model.getAllDDChoiceVars().copy(),
 				model.getAllDDNondetVars().copy(),
 				// New model variables
 				newModelVariables,
 				// New var info
-				model.getNumVars() + 1, newVarList, newVarDDRowVars, newVarDDColVars,
-				// Constants (no change)
-				model.getConstantValues());
+				newVarList, newVarDDRowVars, newVarDDColVars);
+		// Constants (no change)
+		modelProd.setConstantValues(model.getConstantValues());
 
 		// Copy action info MTBDD across directly
 		// If present, just needs filtering to reachable states,

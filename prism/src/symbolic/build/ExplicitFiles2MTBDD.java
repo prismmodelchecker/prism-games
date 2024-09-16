@@ -86,31 +86,16 @@ public class ExplicitFiles2MTBDD
 
 	// dds/dd vars - whole system
 	private JDDNode trans; // transition matrix dd
-	private JDDNode range; // dd giving range for system
 	private JDDNode start; // dd for start state
 	private JDDNode stateRewards[]; // array of dds for state rewards
 	private JDDNode transRewards[]; // array of dds for transition rewards
 	private JDDVars allDDRowVars; // all dd vars (rows)
 	private JDDVars allDDColVars; // all dd vars (cols)
-	private JDDVars allDDSynchVars; // all dd vars (synchronising actions)
-	private JDDVars allDDSchedVars; // all dd vars (scheduling)
-	private JDDVars allDDChoiceVars; // all dd vars (internal non-det.)
 	private JDDVars allDDNondetVars; // all dd vars (all non-det.)
-	// dds/dd vars - modules
-	private JDDVars[] moduleDDRowVars; // dd vars for each module (rows)
-	private JDDVars[] moduleDDColVars; // dd vars for each module (cols)
-	private JDDNode[] moduleRangeDDs; // dd giving range for each module
-	private JDDNode[] moduleIdentities; // identity matrix for each module
 	// dds/dd vars - variables
 	private JDDVars[] varDDRowVars; // dd vars (row/col) for each module variable
 	private JDDVars[] varDDColVars;
-	private JDDNode[] varRangeDDs; // dd giving range for each module variable
-	private JDDNode[] varColRangeDDs; // dd giving range for each module variable (in col vars)
-	private JDDNode[] varIdentities; // identity matrix for each module variable
 	// dds/dd vars - nondeterminism
-	private JDDNode[] ddSynchVars; // individual dd vars for synchronising actions
-	private JDDNode[] ddSchedVars; // individual dd vars for scheduling non-det.
-	private JDDNode[] ddChoiceVars; // individual dd vars for local non-det.
 
 	private ModelVariablesDD modelVariables;
 	
@@ -219,9 +204,6 @@ public class ExplicitFiles2MTBDD
 
 		// allocate dd variables
 		allocateDDVars();
-		sortDDVars();
-		sortIdentities();
-		sortRanges();
 
 		// construct transition matrix from file
 		buildTrans();
@@ -278,16 +260,17 @@ public class ExplicitFiles2MTBDD
 		int numModules = 1;
 		String moduleNames[] = new String[] { "M" };
 		if (modelType == ModelType.DTMC) {
-			model = new ProbModel(trans, start, stateRewards, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-					numVars, varList, varDDRowVars, varDDColVars, constantValues);
+			model = new ProbModel(trans, start, allDDRowVars, allDDColVars, modelVariables,
+					varList, varDDRowVars, varDDColVars);
 		} else if (modelType == ModelType.MDP) {
-			model = new NondetModel(trans, start, stateRewards, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, allDDSynchVars,
-					allDDSchedVars, allDDChoiceVars, allDDNondetVars, modelVariables, numVars, varList,
-					varDDRowVars, varDDColVars, constantValues);
+			model = new NondetModel(trans, start, allDDRowVars, allDDColVars, allDDNondetVars, modelVariables,
+					varList, varDDRowVars, varDDColVars);
 		} else if (modelType == ModelType.CTMC) {
-			model = new StochModel(trans, start, stateRewards, transRewardsArray, rewardStructNames, allDDRowVars, allDDColVars, modelVariables,
-					numVars, varList, varDDRowVars, varDDColVars, constantValues);
+			model = new StochModel(trans, start, allDDRowVars, allDDColVars, modelVariables,
+					varList, varDDRowVars, varDDColVars);
 		}
+		model.setRewards(stateRewards, transRewardsArray, rewardStructNames);
+		model.setConstantValues(constantValues);
 		// set action info
 		// TODO: disable if not required?
 		model.setSynchs(synchs);
@@ -320,25 +303,6 @@ public class ExplicitFiles2MTBDD
 		attachLabels(model);
 
 		// deref spare dds
-		JDD.Deref(moduleIdentities[0]);
-		JDD.Deref(moduleRangeDDs[0]);
-		for (i = 0; i < numVars; i++) {
-			JDD.Deref(varIdentities[i]);
-			JDD.Deref(varRangeDDs[i]);
-			JDD.Deref(varColRangeDDs[i]);
-		}
-		JDD.Deref(range);
-		if (modelType == ModelType.MDP) {
-			for (i = 0; i < ddSynchVars.length; i++) {
-				JDD.Deref(ddSynchVars[i]);
-			}
-			for (i = 0; i < ddSchedVars.length; i++) {
-				JDD.Deref(ddSchedVars[i]);
-			}
-			for (i = 0; i < ddChoiceVars.length; i++) {
-				JDD.Deref(ddChoiceVars[i]);
-			}
-		}
 		if (labelsDD != null) {
 			for (JDDNode d : labelsDD.values()) {
 				JDD.Deref(d);
@@ -395,15 +359,8 @@ public class ExplicitFiles2MTBDD
 
 		modelVariables = new ModelVariablesDD();
 
-		
 		// create arrays/etc. first
 
-		// nondeterministic variables
-		if (modelType == ModelType.MDP) {
-			ddSynchVars = new JDDNode[0];
-			ddSchedVars = new JDDNode[0];
-			ddChoiceVars = new JDDNode[maxNumChoices];
-		}
 		// module variable (row/col) vars
 		varDDRowVars = new JDDVars[numVars];
 		varDDColVars = new JDDVars[numVars];
@@ -416,14 +373,17 @@ public class ExplicitFiles2MTBDD
 
 		// allocate nondeterministic variables
 		if (modelType == ModelType.MDP) {
+			allDDNondetVars = new JDDVars();
 			for (i = 0; i < maxNumChoices; i++) {
-				ddChoiceVars[i] = modelVariables.allocateVariable("l" + i);
+				allDDNondetVars.addVar(modelVariables.allocateVariable("l" + i));
 			}
 		}
 
 		// allocate dd variables for module variables (i.e. rows/cols)
 		// go through all vars in order (incl. global variables)
 		// so overall ordering can be specified by ordering in the input file
+		allDDRowVars = new JDDVars();
+		allDDColVars = new JDDVars();
 		for (i = 0; i < numVars; i++) {
 			// get number of dd variables needed
 			// (ceiling of log2 of range of variable)
@@ -435,112 +395,9 @@ public class ExplicitFiles2MTBDD
 				// new dd col variable
 				varDDColVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "'." + j));
 			}
-		}
-	}
-
-	/**
-	 * sort out DD variables and the arrays they are stored in
-	 * (more than one copy of most variables is stored)
-	 */
-	private void sortDDVars()
-	{
-		int i;
-
-		// put refs for all vars in each module together
-		// create arrays
-		moduleDDRowVars = new JDDVars[1];
-		moduleDDColVars = new JDDVars[1];
-		moduleDDRowVars[0] = new JDDVars();
-		moduleDDColVars[0] = new JDDVars();
-		// go thru all variables
-		for (i = 0; i < numVars; i++) {
-			moduleDDRowVars[0].copyVarsFrom(varDDRowVars[i]);
-			moduleDDColVars[0].copyVarsFrom(varDDColVars[i]);
-		}
-
-		// put refs for all vars in whole system together
-		// create arrays
-		allDDRowVars = new JDDVars();
-		allDDColVars = new JDDVars();
-		if (modelType == ModelType.MDP) {
-			allDDSynchVars = new JDDVars();
-			allDDSchedVars = new JDDVars();
-			allDDChoiceVars = new JDDVars();
-			allDDNondetVars = new JDDVars();
-		}
-		// go thru all variables
-		for (i = 0; i < numVars; i++) {
-			// add to list
 			allDDRowVars.copyVarsFrom(varDDRowVars[i]);
 			allDDColVars.copyVarsFrom(varDDColVars[i]);
 		}
-		if (modelType == ModelType.MDP) {
-			for (i = 0; i < ddChoiceVars.length; i++) {
-				// add to list
-				JDD.Ref(ddChoiceVars[i]);
-				JDD.Ref(ddChoiceVars[i]);
-				allDDChoiceVars.addVar(ddChoiceVars[i]);
-				allDDNondetVars.addVar(ddChoiceVars[i]);
-			}
-		}
-	}
-
-	/** sort DDs for identities */
-	private void sortIdentities()
-	{
-		int i, j;
-		JDDNode id;
-
-		// variable identities
-		varIdentities = new JDDNode[numVars];
-		for (i = 0; i < numVars; i++) {
-			// set each element of the identity matrix
-			id = JDD.Constant(0);
-			for (j = 0; j < varList.getRange(i); j++) {
-				id = JDD.SetMatrixElement(id, varDDRowVars[i], varDDColVars[i], j, j, 1);
-			}
-			varIdentities[i] = id;
-		}
-		// module identities
-		moduleIdentities = new JDDNode[1];
-		// product of identities for vars in module
-		id = JDD.Constant(1);
-		for (j = 0; j < numVars; j++) {
-			if (varList.getModule(j) == 0) {
-				JDD.Ref(varIdentities[j]);
-				id = JDD.Apply(JDD.TIMES, id, varIdentities[j]);
-			}
-		}
-		moduleIdentities[0] = id;
-	}
-
-	/** Sort DDs for ranges */
-	private void sortRanges()
-	{
-		int i;
-
-		// initialise range for whole system
-		range = JDD.Constant(1);
-
-		// variable ranges		
-		varRangeDDs = new JDDNode[numVars];
-		varColRangeDDs = new JDDNode[numVars];
-		for (i = 0; i < numVars; i++) {
-			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDColVars[i]);
-			// obtain range dd by abstracting from identity matrix
-			JDD.Ref(varIdentities[i]);
-			varColRangeDDs[i] = JDD.SumAbstract(varIdentities[i], varDDRowVars[i]);
-			// build up range for whole system as we go
-			JDD.Ref(varRangeDDs[i]);
-			range = JDD.Apply(JDD.TIMES, range, varRangeDDs[i]);
-		}
-		// module ranges
-		moduleRangeDDs = new JDDNode[1];
-		// obtain range dd by abstracting from identity matrix
-		JDD.Ref(moduleIdentities[0]);
-		moduleRangeDDs[0] = JDD.SumAbstract(moduleIdentities[0], moduleDDColVars[0]);
 	}
 
 	/** Construct transition matrix from file */
@@ -610,7 +467,7 @@ public class ExplicitFiles2MTBDD
 						}
 						/// ...for mdps...
 						else {
-							elem = JDD.Set3DMatrixElement(JDD.Constant(0), varDDRowVars[0], varDDColVars[0], allDDChoiceVars, r, c, k, 1.0);
+							elem = JDD.Set3DMatrixElement(JDD.Constant(0), varDDRowVars[0], varDDColVars[0], allDDNondetVars, r, c, k, 1.0);
 						}
 					}
 					// case where we do have a state list...
@@ -621,7 +478,7 @@ public class ExplicitFiles2MTBDD
 							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), varDDColVars[i], statesArray[c][i], 1));
 						}
 						if (modelType == ModelType.MDP) {
-							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), allDDChoiceVars, k, 1));
+							elem = JDD.Apply(JDD.TIMES, elem, JDD.SetVectorElement(JDD.Constant(0), allDDNondetVars, k, 1));
 						}
 					}
 					// add it into mtbdds for transition matrix and transition rewards

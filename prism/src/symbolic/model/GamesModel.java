@@ -55,12 +55,11 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 
 	// Constructor
 
-	public GamesModel(JDDNode tr, JDDNode s, JDDNode[] sr, JDDNode[] trr, String[] rsn, JDDVars arv, JDDVars acv, JDDVars asyv, JDDVars asv,
-					  JDDVars achv, JDDVars andv, ModelVariablesDD mvdd, int nv,
-					  VarList vl, JDDVars[] vrv, JDDVars[] vcv, Values cv, JDDVars apvs, JDDNode[] ddPlayerCubes, PlayerInfo playerInfo) {
-		super(tr, s, sr, trr, rsn, arv, acv, asyv, asv, achv, andv, mvdd,
-				nv, vl, vrv, vcv, cv);
-		this.allDDPlayerVars = apvs;
+	public GamesModel(JDDNode trans, JDDNode start, JDDVars allDDRowVars, JDDVars allDDColVars, JDDVars allDDNondetVars, ModelVariablesDD modelVariables,
+					   VarList varList, JDDVars[] varDDRowVars, JDDVars[] varDDColVars, JDDVars allDDPlayerVars, JDDNode[] ddPlayerCubes, PlayerInfo playerInfo)
+	{
+		super(trans, start, allDDRowVars, allDDColVars, allDDNondetVars, modelVariables, varList, varDDRowVars, varDDColVars);
+		this.allDDPlayerVars = allDDPlayerVars;
 		this.ddPlayerCubes = ddPlayerCubes;
 		this.playerInfo = playerInfo;
 	}
@@ -122,10 +121,10 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		JDDVars allDDNondetVarsMDP = allDDNondetVars.copy();
 		allDDNondetVarsMDP.removeVars(allDDPlayerVars);
 		
-		NondetModel equivMDP =  new NondetModel(transMDP, start, stateRewards, transRewardsMDP, rewardStructNames, allDDRowVars, allDDColVars,
-			     						allDDSynchVars, allDDSchedVars, allDDChoiceVars, allDDNondetVarsMDP, modelVariables,
-			     						numVars, varList, varDDRowVars, varDDColVars, constantValues);
-		
+		NondetModel equivMDP =  new NondetModel(transMDP, start, allDDRowVars, allDDColVars, allDDNondetVarsMDP, modelVariables,
+												varList, varDDRowVars, varDDColVars);
+		equivMDP.setRewards(stateRewards, transRewardsMDP, rewardStructNames);
+
 		equivMDP.setSynchs((Vector<String>)synchs);
 	
 		equivMDP.setTransInd(transInd);
