@@ -32,7 +32,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import common.iterable.Range;
 import dv.DoubleVector;
@@ -42,11 +41,12 @@ import explicit.ConstructModel;
 import explicit.DTMC;
 import explicit.DTMCModelChecker;
 import explicit.ExplicitFiles2Model;
+import explicit.ExplicitFiles2Rewards;
 import explicit.FastAdaptiveUniformisation;
 import explicit.FastAdaptiveUniformisationModelChecker;
 import explicit.ModelModelGenerator;
-import explicit.PartiallyObservableModel;
 import hybrid.PrismHybrid;
+import io.ExplicitModelImporter;
 import io.ModelExportOptions;
 import io.ModelExportOptions.ModelExportFormat;
 import jdd.JDD;
@@ -54,11 +54,9 @@ import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
-import param.BigRational;
 import param.Function;
 import param.ParamMode;
 import param.ParamModelChecker;
-import param.ParamResult;
 import parser.PrismParser;
 import parser.State;
 import parser.Values;
@@ -68,7 +66,6 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
-import prism.Accuracy.AccuracyLevel;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
@@ -81,8 +78,7 @@ import strat.StrategyExportOptions;
 import strat.StrategyExportOptions.StrategyExportType;
 import strat.StrategyGenerator;
 import symbolic.build.ExplicitFiles2MTBDD;
-import symbolic.build.ExplicitFiles2ModelInfo;
-import symbolic.build.ExplicitFilesRewardGenerator4MTBDD;
+import io.PrismExplicitImporter;
 import symbolic.build.ExplicitModel2MTBDD;
 import symbolic.build.ModelGenerator2MTBDD;
 import symbolic.build.Modules2MTBDD;
@@ -321,11 +317,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private Strategy<?> strategy = null;
 	
 	// Info for explicit files load
-	private File explicitFilesStatesFile = null;
-	private File explicitFilesTransFile = null;
-	private File explicitFilesLabelsFile = null;
-	private List<File> explicitFilesStateRewardsFiles = new ArrayList<>();
-	private int explicitFilesNumStates = -1;
+	private ExplicitModelImporter modelImporter;
 
 	// Has the CUDD library been initialised yet?
 	private boolean cuddStarted = false;
@@ -1247,6 +1239,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		ModulesFile modulesFile = null;
 
 		// open file
+		mainLog.print("\nParsing PRISM model file \"" + file + "\"...\n");
 		strModel = new FileInputStream(file);
 
 		try {
@@ -1349,6 +1342,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public ModulesFile importModelFile(String lang, File file) throws PrismException, PrismLangException
 	{
+		mainLog.print("\nImporting " + lang.toUpperCase() + " file \"" + file + "\"...\n");
 		PrismLanguageTranslator importer = createPrismLanguageTranslator(lang);
 		importer.load(file);
 		String prismModelString = importer.translateToString();
@@ -1360,6 +1354,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public ModulesFile importModelString(String lang, String s) throws PrismException, PrismLangException
 	{
+		mainLog.print("\nImporting " + lang.toUpperCase() + " model...\n");
 		PrismLanguageTranslator importer = createPrismLanguageTranslator(lang);
 		importer.load(s);
 		String prismModelString = importer.translateToString();
@@ -1395,6 +1390,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		String modelString;
 
 		// Compile preprocessor file to a string
+		mainLog.print("\nImporting PRISM preprocessor file \"" + file + "\"...\n");
 		Preprocessor pp = new Preprocessor(this, file);
 		pp.setParameters(params);
 		modelString = pp.preprocess();
@@ -1578,6 +1574,22 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Check if a string is a keyword in the PRISM language.
+	 */
+	public static boolean isKeyword(String s)
+	{
+		return PrismParser.isKeyword(s);
+	}
+
+	/**
+	 * Check if a string is a valid identifier in the PRISM language.
+	 */
+	public static boolean isValidIdentifier(String s)
+	{
+		return s.matches("[_a-zA-Z][_a-zA-Z0-9]*") && !PrismParser.isKeyword(s);
+	}
+
+	/**
 	 * Clear storage of the current model, if any.
 	 */
 	public void clearModel() throws PrismException
@@ -1616,16 +1628,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Clear any existing built model(s)
 		clearBuiltModel();
 		// Print basic model info
-		mainLog.println();
-		mainLog.println("Type:        " + getModelInfo().getModelType());
-		if (getModelInfo().getModelType().multiplePlayers()) {
-			mainLog.println("Players:     " + String.join(" ", getModelInfo().getPlayerNames()));
-		}
-		mainLog.println("Modules:     " + String.join(" ", getPRISMModel().getModuleNames()));
-		mainLog.println("Variables:   " + String.join(" ", getModelInfo().getVarNames()));
-		if (getModelInfo().getModelType().partiallyObservable()) {
-			mainLog.println("Observables: " + String.join(" ", getModelInfo().getObservableNames()));
-		}
+		printModelInfo();
 	}
 
 	/**
@@ -1639,6 +1642,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (modelGen == null) {
 			clearModel();
 		}
+		mainLog.println("Loading model generator " + getModelGenerator().getClass().getName() + "...");
 		// Update model info
 		setModelSource(ModelSource.MODEL_GENERATOR);
 		setModelType(modelGen.getModelType());
@@ -1655,10 +1659,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Clear any existing built model(s)
 		clearBuiltModel();
 		// Print basic model info
+		printModelInfo();
 		mainLog.println();
-		mainLog.println("Generator: " + getModelGenerator().getClass().getName());
-		mainLog.println("Type:      " + getModelInfo().getModelType());
-		mainLog.println("Variables: " + String.join(" ", getModelInfo().getVarNames()));
 	}
 
 	/**
@@ -1774,24 +1776,82 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void loadModelFromExplicitFiles(File statesFile, File transFile, File labelsFile, List<File> stateRewardsFiles, ModelType typeOverride) throws PrismException
 	{
+		loadModelFromExplicitFiles(statesFile, transFile, labelsFile, stateRewardsFiles, null, typeOverride);
+	}
+
+	/**
+	 * Load files containing an explicit list of transitions/etc. for subsequent model building.
+	 * @param statesFile File containing a list of states (optional, can be null)
+	 * @param transFile File containing the list of transitions (required)
+	 * @param labelsFile File containing label definitions (optional, can be null)
+	 * @param stateRewardsFiles Files containing state reward definitions (optional, can be null)
+	 * @param transRewardsFiles Files containing state reward definitions (optional, can be null)
+	 * @param typeOverride Model type (auto-detected if {@code null})
+	 */
+	public void loadModelFromExplicitFiles(File statesFile, File transFile, File labelsFile, List<File> stateRewardsFiles, List<File> transRewardsFiles, ModelType typeOverride) throws PrismException
+	{
+		ExplicitModelImporter importer = new PrismExplicitImporter(statesFile, transFile, labelsFile, stateRewardsFiles, transRewardsFiles, typeOverride);
+		loadModelFromExplicitFiles(importer);
+	}
+
+	/**
+	 * Load an explicit file model importer for subsequent model building.
+	 */
+	public void loadModelFromExplicitFiles(ExplicitModelImporter importer) throws PrismException
+	{
+		mainLog.println("\nImporting model from " + importer.sourceString() + "...");
+		// Update model source info
 		setModelSource(ModelSource.EXPLICIT_FILES);
+		setPRISMModel(null);
+		modelImporter = importer;
 		// Clear any existing built model(s)
 		clearBuiltModel();
-		// Construct ModelInfo
-		ExplicitFiles2ModelInfo ef2mi = new ExplicitFiles2ModelInfo(this);
-		setModelInfo(ef2mi.buildModelInfo(statesFile, transFile, labelsFile, typeOverride));
-		setPRISMModel(null);
-		// Construct reward generator
-		setRewardGenerator(ef2mi.buildRewardInfo((stateRewardsFiles == null || stateRewardsFiles.isEmpty()) ? null : stateRewardsFiles.get(0)));
-		// Store explicit files info for later
-		explicitFilesStatesFile = statesFile;
-		explicitFilesTransFile = transFile;
-		explicitFilesLabelsFile = labelsFile;
-		explicitFilesStateRewardsFiles = stateRewardsFiles == null ? new ArrayList<>() : new ArrayList<>(stateRewardsFiles);
-		explicitFilesNumStates = ef2mi.getNumStates();
-		// Reset dependent info
-		setModelType(getModelInfo() == null ? null : getModelInfo().getModelType());
+		// Get/store model/reward info from importer
+		setModelInfo(importer.getModelInfo());
+		setModelType(getModelInfo().getModelType());
+		setRewardGenerator(importer.getRewardInfo());
 		setDefinedMFConstants(null);
+		// Print basic model info
+		printModelInfo();
+	}
+
+	/**
+	 * Print basic info about the (unbuilt) current model: type, variables, etc.
+	 */
+	private void printModelInfo() throws PrismException
+	{
+		printModelInfo(getModelInfo(), getRewardGenerator());
+	}
+
+	/**
+	 * Print basic info about an (unbuilt) model: type, variables, etc.
+	 * @param modelInfo The model info
+	 * @param rewardInfo The reward info (optional, can be null)
+	 */
+	private void printModelInfo(ModelInfo modelInfo, RewardGenerator<?> rewardInfo) throws PrismException
+	{
+		mainLog.println();
+		if (getModelSource() == ModelSource.EXPLICIT_FILES && modelImporter != null) {
+			mainLog.println("Type:        " + modelImporter.getModelTypeString());
+		} else {
+			mainLog.println("Type:        " + modelInfo.getModelType());
+		}
+		if (modelInfo.getModelType().multiplePlayers()) {
+			mainLog.println("Players:     " + String.join(" ", modelInfo.getPlayerNames()));
+		}
+		if (modelInfo instanceof ModulesFile) {
+			mainLog.println("Modules:     " + String.join(" ", ((ModulesFile) modelInfo).getModuleNames()));
+		}
+		mainLog.println("Variables:   " + String.join(" ", modelInfo.getVarNames()));
+		if (modelInfo.getModelType().partiallyObservable()) {
+			mainLog.println("Observables: " + "\"" + String.join("\" \"", modelInfo.getObservableNames()) + "\"");
+		}
+		if (modelInfo.getNumLabels() > 0) {
+			mainLog.println("Labels:      " + "\"" + String.join("\" \"", modelInfo.getLabelNames()) + "\"");
+		}
+		if (rewardInfo.getNumRewardStructs() > 0) {
+			mainLog.println("Rewards:     " + String.join(" ", rewardInfo.getRewardStructReferences()));
+		}
 	}
 
 	/**
@@ -2091,7 +2151,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				throw new PrismException("You cannot build a " + getModelType() + " model explicitly, only perform model checking");
 			}
 
-			mainLog.print("\nBuilding model...\n");
+			mainLog.print("\nBuilding model (engine:" + getCurrentEngine().toString().toLowerCase() + ")...\n");
 			if (getUndefinedModelValues() != null && getUndefinedModelValues().getNumValues() > 0)
 				mainLog.println("Model constants: " + getUndefinedModelValues());
 
@@ -2115,12 +2175,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					break;
 				case EXPLICIT_FILES:
 					ExplicitFiles2MTBDD expf2mtbdd = new ExplicitFiles2MTBDD(this);
-					ExplicitFilesRewardGenerator4MTBDD erfg4m = new ExplicitFilesRewardGenerator4MTBDD(this, explicitFilesStateRewardsFiles, explicitFilesNumStates);
-					newModelSymb = expf2mtbdd.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, getModelInfo(), explicitFilesNumStates, erfg4m);
+					newModelSymb = expf2mtbdd.build(modelImporter);
 					setBuiltModel(ModelBuildType.SYMBOLIC, newModelSymb);
-					// Also build a RewardGenerator
-					// (needed e.g. when (multiple) reward files are later exported)
-					setRewardGenerator(erfg4m);
 					// No current support for building a ModelGenerator
 					// (e.g. for simulation)
 					break;
@@ -2146,14 +2202,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					break;
 				case EXPLICIT_FILES:
 					ExplicitFiles2Model expf2model = new ExplicitFiles2Model(this);
-					newModelExpl = expf2model.build(explicitFilesStatesFile, explicitFilesTransFile, explicitFilesLabelsFile, getModelInfo(), explicitFilesNumStates);
-					setBuiltModel(ModelBuildType.EXPLICIT, newModelExpl);
+					Evaluator<?> eval = (getCurrentEngine() == PrismEngine.EXACT) ? Evaluator.forBigRational() : Evaluator.forDouble();
+					newModelExpl = expf2model.build(modelImporter, eval);
+					setBuiltModel(getModelBuildTypeForEngine(getCurrentEngine()), newModelExpl);
 					// Also build a Model/RewardGenerator
 					// (the latter since rewards are built later, the former e.g. for simulation)
 					setModelGenerator(new ModelModelGenerator<>(getBuiltModelExplicit(), getModelInfo()));
-					ExplicitFilesRewardGenerator efrg4e = new ExplicitFilesRewardGenerator4Explicit(this, explicitFilesStateRewardsFiles, explicitFilesNumStates);
-					efrg4e.setStatesList(getBuiltModelExplicit().getStatesList());
-					setRewardGenerator(efrg4e);
+					ExplicitFiles2Rewards expf2rews = new ExplicitFiles2Rewards<>(this, modelImporter);
+					expf2rews.setModel(getBuiltModelExplicit());
+					setRewardGenerator(expf2rews);
 					break;
 				default:
 					throw new PrismException("Cannot do explicit model construction for model source " + getModelSource());

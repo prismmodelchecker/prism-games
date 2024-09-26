@@ -35,12 +35,11 @@ import prism.Evaluator;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.PrismUtils;
 import prism.RewardGenerator;
 
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Class to manage export of built models to Storm's DRN file format.
@@ -89,8 +88,7 @@ public class DRNExporter<Value> extends Exporter<Value>
 
 		// Output reward structure info
 		out.println("@reward_models");
-		//out.println(String.join(" ", rewardGen.getRewardStructNames().reversed()));
-		out.println(rewardGen.getRewardStructNames().stream().sorted(Collections.reverseOrder()).collect(Collectors.joining(" ")));
+		out.println(String.join(" ", PrismUtils.listReversed(rewardGen.getRewardStructNames())));
 
 		// Output model stats
 		out.println("@nr_states");
@@ -139,7 +137,10 @@ public class DRNExporter<Value> extends Exporter<Value>
 				} else {
 					out.print(j);
 				}
-				out.println(" " + getTransitionRewardTuple(allRewards, s, j).toStringReversed(e -> formatValue(e, evalRewards), ", "));
+				if (numRewardStructs > 0) {
+					out.print(" " + getTransitionRewardTuple(allRewards, s, j).toStringReversed(e -> formatValue(e, evalRewards), ", "));
+				}
+				out.println();
 				// Print out (sorted) transitions
 				for (Transition<Value> transition : getSortedTransitionsIterator(model, s, j, showActions)) {
 					out.println("\t\t" + transition.target + " : " + formatValue(transition.value));

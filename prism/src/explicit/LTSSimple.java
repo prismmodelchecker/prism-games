@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import io.ExplicitModelImporter;
 import prism.PrismException;
 import strat.MDStrategy;
 
@@ -109,6 +110,19 @@ public class LTSSimple<Value> extends ModelExplicit<Value> implements LTS<Value>
 		numTransitions = lts.numTransitions;
 	}
 
+	@Override
+	public void buildFromExplicitImport(ExplicitModelImporter modelImporter) throws PrismException
+	{
+		initialise(modelImporter.getNumStates());
+		modelImporter.extractLTSTransitions((s, i, s2, a) -> {
+			if (i > getNumChoices(s)) {
+				throw new PrismException("Missing choice indices in state " + s + " when importing transitions");
+			}
+			// Then add transition
+			addActionLabelledTransition(s, s2, a);
+		});
+	}
+
 	// Mutators (for ModelSimple)
 
 	@Override
@@ -147,12 +161,6 @@ public class LTSSimple<Value> extends ModelExplicit<Value> implements LTS<Value>
 			trans.add(new ArrayList<Integer>());
 			numStates++;
 		}
-	}
-
-	@Override
-	public void buildFromPrismExplicit(String filename) throws PrismException
-	{
-		throw new UnsupportedOperationException();
 	}
 
 	// Mutators (other)
