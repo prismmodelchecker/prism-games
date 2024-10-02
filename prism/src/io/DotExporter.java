@@ -92,7 +92,11 @@ public class DotExporter<Value> extends Exporter<Value>
 		for (int s = 0; s < numStates; s++) {
 			// Set up Dot Decoration
 			explicit.graphviz.Decoration d = new explicit.graphviz.Decoration(defaults);
-			d.setLabel(Integer.toString(s));
+			String sLabel = Integer.toString(s);
+			if (modelType.multiplePlayers() && !modelType.concurrent()) {
+				sLabel += ":" + ((TurnBasedGame) model).getPlayer(s);
+			}
+			d.setLabel(sLabel);
 			if (modelExportOptions.getShowStates()) {
 				if (modelType.partiallyObservable()) {
 					d = new explicit.graphviz.ShowStatesDecorator(model.getStatesList(), ((PartiallyObservableModel<Value>) model)::getObservationAsState).decorateState(s, d);
