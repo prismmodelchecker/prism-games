@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import prism.JointAction;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 
@@ -44,7 +45,7 @@ import prism.PlayerInfoOwner;
 public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 {
 	/** List of all action labels */
-	protected Vector<String> actions;
+	protected List<Object> actions;
 	
 	/** List of player action indices for each state/choice,
 	 * stored as an array giving the (1-indexed) index for the action
@@ -132,29 +133,58 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	/**
 	 * Add a choice (distribution {@code distr}) to state {@code s} (which must exist).
 	 * Behaves the same as {@link MDPSimple#addActionLabelledChoice(int, Distribution, Object)},
+	 * but the action must be a {@link JointAction}, from which indexing info is generated
+	 * (it can then be accessed via {@link #getIndexes(int, int)}).
+	 */
+	@Override
+	public int addActionLabelledChoice(int s, Distribution<Value> distr, Object action)
+	{
+		if (!(action instanceof JointAction)) {
+			throw new RuntimeException("CSG action labels must be JointAction objects");
+		}
+		JointAction jointAction = (JointAction) action;
+		// Store choice in underlying MDP
+		int i = super.addActionLabelledChoice(s, distr, jointAction);
+		// Generate indexing info
+		int numPlayers = getNumPlayers();
+		int[] indexes = new int[numPlayers];
+		for (int p = 0; p < numPlayers; p++) {
+			if (jointAction.get(p) == JointAction.IDLE_ACTION) {
+				indexes[p] = -1;
+			} else {
+				int j = getActions().indexOf(jointAction.get(p));
+				if (j == -1) {
+					throw new RuntimeException("CSG action labels must be valid JointAction objects");
+				}
+				indexes[p] = j + 1;
+				this.indexes[p].set(indexes[p]);
+
+			}
+		}
+		transIndexes.get(s).add(i, indexes);
+		return i;
+	}
+
+	/**
+	 * Add a choice (distribution {@code distr}) to state {@code s} (which must exist).
+	 * Behaves the same as {@link MDPSimple#addActionLabelledChoice(int, Distribution, Object)},
 	 * but {@code indexes} is an array storing the (1-indexed) index for the action
 	 * performed by each player in this transition, and -1 indicates that the player idles.
-	 * A string representation of this is stored as an action label (accessible via e.g.
+	 * A representation of this is stored as a {@link JointAction} (accessible via e.g.
 	 * {@link #getAction(int, int)}), whereas the array of indices can be accessed via
 	 * {@link #getIndexes(int, int)}.
 	 */
 	public int addActionLabelledChoice(int s, Distribution<Value> distr, int[] indexes)
 	{
-		int i, j;
-		String label = "";
-		for (j = 0; j < indexes.length; j++) {
-			if (indexes[j] >= 0)
-				label += "[" + actions.get(indexes[j] - 1) + "]";
-			else
-				label += "<" + j + ">";
-		}
-		i = super.addActionLabelledChoice(s, distr, label);
-		//System.out.println("-- label" + label);
-		for (j = 0; j < indexes.length; j++) {
-			if (indexes[j] >= 0)
-				this.indexes[j].set(indexes[j]);
-			//else 
-			//this.indexes[j].set(idles[j]);
+		int numPlayers = getNumPlayers();
+		// Create joint action and store choice in underlying MDP
+		JointAction jointAction = new JointAction(indexes, actions);
+		int i = super.addActionLabelledChoice(s, distr, jointAction);
+		// Store indexing info
+		for (int p = 0; p < numPlayers; p++) {
+			if (indexes[p] >= 0) {
+				this.indexes[p].set(indexes[p]);
+			}
 		}
 		transIndexes.get(s).add(i, indexes);
 		return i;
@@ -179,18 +209,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	 */
 	public void setActions(List<Object> actions)
 	{
-		this.actions = new Vector<String>();
-		for (Object action : actions) {
-			this.actions.add(action.toString());
-		}
-	}
-
-	/**
-	 * Set the list of all action labels
-	 */
-	public void setActions(Vector<String> actions)
-	{
-		this.actions = new Vector<String>(actions);
+		this.actions = new ArrayList<>(actions);
 	}
 
 	public void setIndexes(BitSet[] indexes)
@@ -262,7 +281,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	// Accessors (for CSG)
 
 	@Override
-	public Vector<String> getActions()
+	public List<Object> getActions()
 	{
 		return actions;
 	}
@@ -294,7 +313,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		int[] indexes = getIndexes(s, i);
 		String[] result = new String[indexes.length];
 		for (int a = 0; a < indexes.length; a++) {
-			result[a] = (indexes[a] > 0) ? actions.get(indexes[a] - 1) : "<" + a + ">";
+			result[a] = (indexes[a] > 0) ? actions.get(indexes[a] - 1).toString() : "<" + a + ">";
 		}
 		return result;
 	}
@@ -348,9 +367,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		return transIndexes.get(s);
 	}
 
-	public List<String> getActionsForPlayer(int p)
+	public List<Object> getActionsForPlayer(int p)
 	{
-		List<String> result = new ArrayList<String>();
+		List<Object> result = new ArrayList<>();
 		for (int i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {
 			result.add(actions.get(i));
 		}

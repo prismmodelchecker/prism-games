@@ -28,7 +28,7 @@
 package explicit;
 
 import java.util.BitSet;
-import java.util.Vector;
+import java.util.List;
 
 import prism.ModelType;
 import prism.PlayerInfoOwner;
@@ -51,7 +51,7 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 	/**
 	 * Get the list of all action labels
 	 */
-	public Vector<String> getActions();
+	public List<Object> getActions();
 	
 	/**
 	 * Get the list of player action indices for choice {@code i} of state {@code s},
