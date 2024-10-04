@@ -145,7 +145,7 @@ public abstract class ModelExplicit<Value> implements Model<Value>
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
 		deadlocks = new TreeSet<Integer>();
-		statesList = new ArrayList<State>(numStates);
+		statesList = null;
 		constantValues = null;
 		varList = null;
 		labels = new TreeMap<String, BitSet>();
