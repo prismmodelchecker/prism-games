@@ -83,7 +83,7 @@ Version 1.0 (first released 18/10/2012)
 Below are the details of the changes in each new version of PRISM.
 
 -----------------------------------------------------------------------------
-Changes since last release (up to 4c095aae5)
+Changes since last release (up to ed80e0ed7)
 -----------------------------------------------------------------------------
 
 * Explicit engine improvements
@@ -95,6 +95,11 @@ Changes since last release (up to 4c095aae5)
   - preliminary DRN (Storm) output
   - actions=true/false option
   - remove old options (MRMC format, unordered)
+
+* Import functionality (from explicit files)
+  - import of transition rewards
+  - import for exact mode, LTSs
+  - import progress display (symbolic engine)
 
 * Minor modelling language updates
   - new power operator a^b, equivalent to pow(a,b)
@@ -108,8 +113,8 @@ Changes since last release (up to 4c095aae5)
   - prism.Prism: refactored storage/access for model info
   - prism.Prism: integration of exact model building/checking
   - redesign/refactoring of explicit engine reward classes
-  - refactoring of explicit engine model export code
-    (moved from model classes, centralised in io package)
+  - refactoring of explicit engine model import/export code
+    (centralised in io package, export moved from model classes)
   - parametric engine refactored to use explicit models/rewards
   - symbolic code rearranged (new symbolic package)
   - symbolic model storage refactored, simplified, documented
