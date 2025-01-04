@@ -1463,7 +1463,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// First, remove the rewards which are gained at places from which the
 		// target can't be reached
 		STPGRewards<Double> rewardsRestricted;
-		if (rewards instanceof RewardsSimple<Double>) {
+		if (rewards instanceof RewardsSimple) {
 			// And make sure only the best actions are used
 			RewardsSimple<Double> rewardsRestrictedSimple = new RewardsSimple<>((RewardsSimple<Double>) rewards);
 
