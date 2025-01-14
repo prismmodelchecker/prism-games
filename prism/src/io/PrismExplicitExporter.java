@@ -77,7 +77,7 @@ public class PrismExplicitExporter<Value> extends Exporter<Value>
 		int numStates = model.getNumStates();
 		out.print(numStates);
 		if (modelType.multiplePlayers()) {
-			out.print(":" + ((PlayerInfoOwner) model).getNumPlayers());
+			out.print(":" + model.getNumPlayers());
 		}
 		if (modelType.nondeterministic()) {
 			out.print(" " + ((NondetModel<Value>) model).getNumChoices());

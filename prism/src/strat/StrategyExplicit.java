@@ -46,13 +46,13 @@ public abstract class StrategyExplicit<Value> extends StrategyWithStates<Value>
 			setStateLookUp(state -> -1);
 		}
 	}
-	
+
 	@Override
-	public int getNumStates()
+	public NondetModel<Value> getModel()
 	{
-		return model.getNumStates();
+		return model;
 	}
-	
+
 	@Override
 	public Evaluator<Value> getEvaluator()
 	{

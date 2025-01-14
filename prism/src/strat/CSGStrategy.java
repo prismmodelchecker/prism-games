@@ -38,6 +38,7 @@ import explicit.CSG;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
+import explicit.NondetModel;
 import parser.State;
 import parser.VarList;
 import prism.PrismComponent;
@@ -89,7 +90,13 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 		this.inf = inf;
 		this.type = type;
 	}
-	
+
+	@Override
+	public CSG<Double> getModel()
+	{
+		return model;
+	}
+
 	@Override
 	public int getNumStates()
 	{
@@ -137,7 +144,13 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 		// TODO
 		throw new UnsupportedOperationException();
 	}
-	
+
+	@Override
+	public prism.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy product not yet supported");
+	}
+
 	@Override
 	public void exportActions(PrismLog out, StrategyExportOptions options) throws PrismException
 	{

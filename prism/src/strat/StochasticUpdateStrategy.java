@@ -68,6 +68,7 @@ import parma_polyhedra_library.Variable;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 
 public class StochasticUpdateStrategy extends StrategyExplicit<Double>
@@ -1719,6 +1720,12 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 			result.add(e.getKey(), e.getValue() / total);
 		}
 		return result;
+	}
+
+	@Override
+	public prism.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("Strategy product not yet supported");
 	}
 
 	@Override

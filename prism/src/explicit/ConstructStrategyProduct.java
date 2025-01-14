@@ -100,23 +100,9 @@ public class ConstructStrategyProduct
 
 		// Determine type of induced model
 		ModelType modelType = model.getModelType();
-		ModelType productModelType = null;
-		if (mode == StrategyExportOptions.InducedModelMode.REDUCE) {
-			switch (modelType) {
-				case MDP:
-				case POMDP:
-				case STPG:
-				case SMG:
-					productModelType = ModelType.DTMC;
-					break;
-				case IMDP:
-					productModelType = ModelType.IDTMC;
-					break;
-				default:
-					throw new PrismNotSupportedException("Product construction not supported for " + modelType + "s");
-			}
-		} else {
-			productModelType = modelType;
+		ModelType productModelType = strat.getInducedModelType(mode);
+		if (productModelType == null) {
+			throw new PrismNotSupportedException("Product construction not supported for " + modelType + "s");
 		}
 
 		// Create a (simple, mutable) model of the appropriate type
@@ -245,16 +231,28 @@ public class ConstructStrategyProduct
 			if (decision == StrategyInfo.UNDEFINED && numChoices > 0) {
 				decision = model.getAction(s_1, 0);
 			}
-			// Go through transitions from state s_1 in original model
+			// To build nondeterministic models, store new transitions in a distribution
+			Object inducedAction = null;
+			Distribution<Value> prodDistr = null;
+			if (productModelType.nondeterministic()) {
+				prodDistr = new Distribution<>(model.getEvaluator());
+			}
+			// Go through choices from state s_1 in original model
 			for (int j = 0; j < numChoices; j++) {
 				Object act = model.getAction(s_1, j);
 				// Skip choices not picked by the strategy
 				if (!strat.isActionChosen(decision, act)) {
 					continue;
 				}
+				// Get strategy choice probability if needed
 				if (strat.isRandomised()) {
 					stratChoiceProb = strat.getChoiceActionProbability(decision, act);
 				}
+				// Get choice action for induced model if needed
+				if (productModelType.nondeterministic()) {
+					inducedAction = strat.getInducedAction(decision, act);
+				}
+				// Go through transitions of original model
 				Iterator<Map.Entry<Integer, Value>> iter;
 				switch (modelType) {
 				case MDP:
@@ -272,10 +270,6 @@ public class ConstructStrategyProduct
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
-				Distribution<Value> prodDistr = null;
-				if (productModelType.nondeterministic()) {
-					prodDistr = new Distribution<>(model.getEvaluator());
-				}
 				while (iter.hasNext()) {
 					Map.Entry<Integer, Value> e = iter.next();
 					int s_2 = e.getKey();
@@ -287,30 +281,33 @@ public class ConstructStrategyProduct
 
 					switch (productModelType) {
 					case DTMC:
-						((DTMCSimple<Value>) prodModel).setProbability(map_1, map_2, prob, act);
+						((DTMCSimple<Value>) prodModel).addToProbability(map_1, map_2, prob, act);
 						break;
 					case MDP:
 					case POMDP:
 					case STPG:
 					case SMG:
-						prodDistr.set(map_2, prob);
+						prodDistr.add(map_2, prob);
 						break;
 					default:
 						throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 					}
 				}
+			}
+			// Add distribution to nondeterministic model
+			if (productModelType.nondeterministic()) {
 				switch (productModelType) {
 				case MDP:
-					((MDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, act);
+					((MDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, inducedAction);
 					break;
 				case POMDP:
-					((POMDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, act);
+					((POMDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, inducedAction);
 					break;
 				case STPG:
-					((STPGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, act);
+					((STPGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, inducedAction);
 					break;
 				case SMG:
-					((SMGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, ((SMG<Value>) model).getAction(s_1, j));
+					((SMGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, inducedAction);
 					break;
 				default:
 					break;

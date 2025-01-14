@@ -30,8 +30,9 @@ import parser.State;
 import prism.ModelType;
 import prism.PrismException;
 import prism.PrismNotSupportedException;
-import strat.MDStrategy;
+import strat.Strategy;
 import strat.StrategyExportOptions.InducedModelMode;
+import strat.StrategyInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +40,6 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Construct the model induced by a memoryless deterministic strategy on a nondeterministic model
@@ -85,27 +85,18 @@ public class ConstructInducedModel
 	 * @return The induced model
 	 */
 	@SuppressWarnings("unchecked")
-	public <Value> Model<Value> constructInducedModel(NondetModel<Value> model, MDStrategy<Value> strat) throws PrismException
+	public <Value> Model<Value> constructInducedModel(NondetModel<Value> model, Strategy<Value> strat) throws PrismException
 	{
+		// This is for memoryless strategies
+		if (strat.hasMemory()) {
+			throw new PrismException("Induced model construction is for memoryless strategies");
+		}
+
 		// Determine type of induced model
 		ModelType modelType = model.getModelType();
-		ModelType inducedModelType = null;
-		if (mode == InducedModelMode.REDUCE) {
-			switch (modelType) {
-				case MDP:
-				case POMDP:
-				case STPG:
-				case SMG:
-					inducedModelType = ModelType.DTMC;
-					break;
-				case IMDP:
-					inducedModelType = ModelType.IDTMC;
-					break;
-				default:
-					throw new PrismNotSupportedException("Induced model construction not supported for " + modelType + "s");
-			}
-		} else {
-			inducedModelType = modelType;
+		ModelType inducedModelType = strat.getInducedModelType(mode);
+		if (inducedModelType == null) {
+			throw new PrismNotSupportedException("Induced model construction not supported for " + modelType + "s");
 		}
 
 		// Create a (simple, mutable) model of the appropriate type
@@ -139,7 +130,7 @@ public class ConstructInducedModel
 	 * @return The product model
 	 */
 	@SuppressWarnings("unchecked")
-	public <Value> Model<Value> doConstructInducedModel(ModelType modelType, ModelType inducedModelType, ModelSimple<Value> inducedModel, NondetModel<Value> model, MDStrategy<Value> strat) throws PrismException
+	public <Value> Model<Value> doConstructInducedModel(ModelType modelType, ModelType inducedModelType, ModelSimple<Value> inducedModel, NondetModel<Value> model, Strategy<Value> strat) throws PrismException
 	{
 		// Create new states list if needed
 		List<State> inducedStatesList = model.getStatesList();
@@ -158,20 +149,31 @@ public class ConstructInducedModel
 				map[is] = 0;
 				explore.set(is);
 			}
+
 			// Compute reachable states (and store 0s in map)
 			while (!explore.isEmpty()) {
 				for (int s = explore.nextSetBit(0); s >= 0; s = explore.nextSetBit(s + 1)) {
 					explore.set(s, false);
-					// Extract strategy decision (if it is undefined, just pick the first choice)
-					int j = strat.getChoiceIndex(s);
-					if (j < 0) {
-						j = 0;
+					int numChoices =  model.getNumChoices(s);
+					// Extract strategy decision
+					Object decision = strat.getChoiceAction(s, -1);
+					// If it is undefined, just pick the first one
+					if (decision == StrategyInfo.UNDEFINED && numChoices > 0) {
+						decision = model.getAction(s, 0);
 					}
-					for (Iterator<Integer> it = model.getSuccessorsIterator(s, j); it.hasNext(); ) {
-						int dest = it.next();
-						if (map[dest] == -1) {
-							map[dest] = 0;
-							explore.set(dest);
+					// Go through transitions from state s_1 in original model
+					for (int j = 0; j < numChoices; j++) {
+						Object act = model.getAction(s, j);
+						// Skip choices not picked by the strategy
+						if (!strat.isActionChosen(decision, act)) {
+							continue;
+						}
+						for (Iterator<Integer> it = model.getSuccessorsIterator(s, j); it.hasNext(); ) {
+							int dest = it.next();
+							if (map[dest] == -1) {
+								map[dest] = 0;
+								explore.set(dest);
+							}
 						}
 					}
 				}
@@ -191,6 +193,7 @@ public class ConstructInducedModel
 		}
 
 		// Iterate through reachable states to create new model
+		Value stratChoiceProb = model.getEvaluator().one();
 		for (int s = 0; s < numStates; s++) {
 			if (map[s] == -1) {
 				continue;
@@ -215,68 +218,93 @@ public class ConstructInducedModel
 				inducedStatesList.add(model.getStatesList().get(s));
 			}
 
-			// Go through transitions of original model
-			// (for chosen strategy decision; if it is undefined, just pick the first choice)
-			int j = strat.getChoiceIndex(s);
-			if (j < 0) {
-				j = 0;
+			int numChoices =  model.getNumChoices(s);
+			// Extract strategy decision
+			Object decision = strat.getChoiceAction(s, -1);
+			// If it is undefined, just pick the first one
+			if (decision == StrategyInfo.UNDEFINED && numChoices > 0) {
+				decision = model.getAction(s, 0);
 			}
-			Iterator<Map.Entry<Integer, Value>> iter;
-			switch (modelType) {
-				case MDP:
-					iter = ((MDP<Value>) model).getTransitionsIterator(s, j);
-					break;
-				case POMDP:
-					iter = ((POMDP<Value>) model).getTransitionsIterator(s, j);
-					break;
-				case STPG:
-					iter = ((STPG<Value>) model).getTransitionsIterator(s, j);
-					break;
-				case SMG:
-					iter = ((SMG<Value>) model).getTransitionsIterator(s, j);
-					break;
-				default:
-					throw new PrismNotSupportedException("Induced model construction not implemented for " + modelType + "s");
-			}
-			Object action = model.getAction(s, j);
+			// To build nondeterministic models, store new transitions in a distribution
+			Object inducedAction = null;
 			Distribution<Value> prodDistr = null;
 			if (inducedModelType.nondeterministic()) {
 				prodDistr = new Distribution<>(model.getEvaluator());
 			}
-			while (iter.hasNext()) {
-				Map.Entry<Integer, Value> e = iter.next();
-				int s_2 = e.getKey();
-				Value prob = e.getValue();
-				// Add transition to model
-				switch (inducedModelType) {
-					case DTMC:
-						((DTMCSimple<Value>) inducedModel).setProbability(map[s], map[s_2], prob, action);
-						break;
+			// Go through choices from state s in original model
+			for (int j = 0; j < numChoices; j++) {
+				Object act = model.getAction(s, j);
+				// Skip choices not picked by the strategy
+				if (!strat.isActionChosen(decision, act)) {
+					continue;
+				}
+				// Get strategy choice probability if needed
+				if (strat.isRandomised()) {
+					stratChoiceProb = strat.getChoiceActionProbability(decision, act);
+				}
+				// Get choice action for induced model if needed
+				if (inducedModelType.nondeterministic()) {
+					inducedAction = strat.getInducedAction(decision, act);
+				}
+				// Go through transitions of original model
+				Iterator<Map.Entry<Integer, Value>> iter;
+				switch (modelType) {
 					case MDP:
+						iter = ((MDP<Value>) model).getTransitionsIterator(s, j);
+						break;
 					case POMDP:
+						iter = ((POMDP<Value>) model).getTransitionsIterator(s, j);
+						break;
 					case STPG:
+						iter = ((STPG<Value>) model).getTransitionsIterator(s, j);
+						break;
 					case SMG:
-						prodDistr.set(map[s_2], prob);
+						iter = ((SMG<Value>) model).getTransitionsIterator(s, j);
 						break;
 					default:
 						throw new PrismNotSupportedException("Induced model construction not implemented for " + modelType + "s");
 				}
+				while (iter.hasNext()) {
+					Map.Entry<Integer, Value> e = iter.next();
+					int s_2 = e.getKey();
+					Value prob = e.getValue();
+					if (strat.isRandomised()) {
+						prob = model.getEvaluator().multiply(prob, stratChoiceProb);
+					}
+					// Add transition to model
+					switch (inducedModelType) {
+						case DTMC:
+							((DTMCSimple<Value>) inducedModel).addToProbability(map[s], map[s_2], prob, act);
+							break;
+						case MDP:
+						case POMDP:
+						case STPG:
+						case SMG:
+							prodDistr.add(map[s_2], prob);
+							break;
+						default:
+							throw new PrismNotSupportedException("Induced model construction not implemented for " + modelType + "s");
+					}
+				}
 			}
-			switch (inducedModelType) {
-				case MDP:
-					((MDPSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, action);
-					break;
-				case POMDP:
-					((POMDPSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, action);
-					break;
-				case STPG:
-					((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, action);
-					break;
-				case SMG:
-					((SMGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, ((SMG<Value>) model).getAction(s, j));
-					break;
-				default:
-					break;
+			// Add distribution to nondeterministic model
+			if (inducedModelType.nondeterministic()) {
+				switch (inducedModelType) {
+					case MDP:
+						((MDPSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
+						break;
+					case POMDP:
+						((POMDPSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
+						break;
+					case STPG:
+						((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
+						break;
+					case SMG:
+						((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
+						break;
+					default:
+						break;
+				}
 			}
 		}
 

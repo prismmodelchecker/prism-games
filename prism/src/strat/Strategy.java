@@ -29,6 +29,7 @@ package strat;
 
 import explicit.Distribution;
 import explicit.MDPSimple;
+import prism.ModelType;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
@@ -186,11 +187,50 @@ public interface Strategy<Value> extends StrategyInfo<Value>
     	// No memory by default
     	return -1;
     }
-    
+
+	/**
+	 * Get the model associated with this strategy.
+	 */
+	public prism.Model<Value> getModel();
+
 	/**
 	 * Get the number of states of the model associated with this strategy.
 	 */
-	public int getNumStates();
+	public default int getNumStates()
+	{
+		return getModel().getNumStates();
+	}
+
+	/**
+	 * Get the number of players of the model associated with this strategy.
+	 */
+	public default int getNumModelPlayers()
+	{
+		return getModel().getNumPlayers();
+	}
+
+	/**
+	 * Get the type of model induced by this strategy when applied to its associated model.
+	 * Returns null if the model type cannot be deduced.
+	 * @param mode Mode of induced model construction ("restrict" or "reduce")
+	 */
+	public default ModelType getInducedModelType(StrategyExportOptions.InducedModelMode mode)
+	{
+		return getInducedModelType(getModel().getModelType(), getNumModelPlayers(), mode);
+	}
+
+	/**
+	 * Export the model induced by this strategy to a PrismLog.
+	 */
+	public default prism.Model<Value> constructInducedModel() throws PrismException
+	{
+		return constructInducedModel(new StrategyExportOptions());
+	}
+
+	/**
+	 * Export the model induced by this strategy to a PrismLog.
+	 */
+	public prism.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException;
 
 	/**
 	 * Export the strategy to a PrismLog, with specified export type and options.
@@ -282,6 +322,7 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 		PrismLog mainLog = new PrismPrintStreamLog(System.out);
 
 		MDPSimple mdp = new MDPSimple(2);
+		mdp.addInitialState(0);
 		Distribution distr2 = Distribution.ofDouble();
 		distr2.add(0, 0.4);
 		distr2.add(1, 0.6);
@@ -293,17 +334,33 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 		mdp.addActionLabelledChoice(1, distr2, "d");
 
 		try {
+			System.out.println("MDP: " + mdp);
+
 			Strategy strat = null;
 
 			strat = new MDStrategyArray(mdp, new int[] {0,1});
-			System.out.println(strat);
+			System.out.println("MDStrategyArray: " + strat);
 			strat.exportActions(mainLog);
+			((explicit.Model) strat.constructInducedModel()).exportToPrismExplicitTra("stdout");
+			System.out.println();
 
 			strat = new FMDStrategyStep(mdp, 2);
 			((FMDStrategyStep) strat).setStepChoices(0, new int[] {0,1});
 			((FMDStrategyStep) strat).setStepChoices(1, new int[] {1,1});
-			System.out.println(strat);
+			System.out.println("FMDStrategyStep: " + strat);
 			strat.exportActions(mainLog);
+			((explicit.Model) strat.constructInducedModel()).exportToPrismExplicitTra("stdout");
+			System.out.println();
+
+			strat = new MRStrategy(mdp);
+			((MRStrategy) strat).setChoiceProbability(0, 0, 0.1);
+			((MRStrategy) strat).setChoiceProbability(0, 1, 0.9);
+			((MRStrategy) strat).setChoiceProbability(1, 0, 1.0);
+			System.out.println("MRStrategy: " + strat);
+			strat.exportActions(mainLog);
+			((explicit.Model) strat.constructInducedModel(new StrategyExportOptions().setMode(StrategyExportOptions.InducedModelMode.REDUCE))).exportToPrismExplicitTra("stdout");
+			((explicit.Model) strat.constructInducedModel(new StrategyExportOptions().setMode(StrategyExportOptions.InducedModelMode.RESTRICT))).exportToPrismExplicitTra("stdout");
+			System.out.println();
 
 		} catch (PrismException e) {
 			throw new RuntimeException(e);

@@ -1,7 +1,9 @@
 package strat;
 
 import explicit.NondetModel;
+import prism.PrismException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 
 public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Value>
 {
@@ -239,6 +241,12 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	public void clear()
 	{
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public prism.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("Strategy product not yet supported");
 	}
 
 	@Override
