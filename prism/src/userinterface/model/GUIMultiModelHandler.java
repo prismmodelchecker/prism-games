@@ -650,7 +650,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		}
 		try {
 			// currently, don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -738,8 +739,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// currently, don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -779,8 +780,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// for steady-state, currently don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -818,8 +819,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// for transient computation, currently don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;

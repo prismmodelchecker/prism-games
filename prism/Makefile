@@ -409,12 +409,7 @@ make_dirs:
 	  LIBMATH="$(LIBMATH)" \
 	  CLASSPATHSEP="$(CLASSPATHSEP)") \
 	  || exit 1; \
-	done; \
-	if [ "$(OSTYPE)" = "darwin" ]; then \
-	  echo Creating shared library symlinks...; \
-	  (cd $(PRISM_LIB_DIR) && \
-	  for lib in `ls *$(LIBSUFFIX)`; do ln -fs $$lib `echo $$lib | sed s/$(LIBSUFFIX)/.jnilib/`; done;); \
-	fi
+	done
 # On Windows, convert the generated JNI headers using dos2unix
 # and any scripts to be run from Cywgin, in case extracted with CRLF endings.
 	@if [ "$(OSTYPE)" = "cygwin" ]; then \
@@ -511,7 +506,7 @@ count_loc:
 # Run all unit tests
 unittests: make_tests
 	# Provide Regex to match our test classes. If none is given, only certain test classes are excluded by default.
-	$(JAVA) -jar lib/junit-platform-console-standalone.jar -cp classes --include-classname '^(Test.*|.+[.$$]Test.*|.+Tests?[.$$].+|.*Tests?)$$' -scan-classpath
+	$(JAVA) -jar lib/junit-platform-console-standalone.jar -cp classes --include-classname '^(Test.*|.+[.$$]Test.*|.+Tests?[.$$].+|.*Tests?)$$' -scan-classpath --details=summary
 
 # Run a single test case from the test suite (useful quick check that the build was ok)
 test:
