@@ -90,10 +90,12 @@ autoreconf -i
 ./configure --enable-interfaces=java --with-java="$JAVA_HOME" --disable-documentation --prefix=$BUILD_DIR --with-gmp-include="$BUILD_DIR/static_gmp/include" --with-gmp-lib-static="$BUILD_DIR/static_gmp/lib/libgmpxx.a $BUILD_DIR/static_gmp/lib/libgmp.a" CXXFLAGS="-std=c++11" JAVACFLAGS="--release 9"
 make
 make install
-cp $BUILD_DIR/lib/libppl.15.dylib $BUILD_DIR/lib/ppl/libppl_java.jnilib $BUILD_DIR/lib/ppl/ppl_java.jar $BUILD_DIR
+cp $BUILD_DIR/lib/libppl.15.dylib $BUILD_DIR
+cp $BUILD_DIR/lib/ppl/libppl_java.jnilib $BUILD_DIR/libppl_java.dylib
+cp $BUILD_DIR/lib/ppl/ppl_java.jar $BUILD_DIR
 ```
 
-Files `libppl.15.dylib`, `libppl_java.jnilib` an `ppl_java.jar` are then in `$BUILD_DIR`.
+Files `libppl.15.dylib`, `libppl_java.dylib` an `ppl_java.jar` are then in `$BUILD_DIR`.
 
 ---
 
