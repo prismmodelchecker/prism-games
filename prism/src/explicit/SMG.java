@@ -28,17 +28,13 @@
 package explicit;
 
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-import explicit.rewards.SMGRewards;
+import explicit.rewards.Rewards;
 import prism.ModelType;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 import prism.PrismException;
-import prism.PrismLog;
 
 /**
  * Interface for classes that provide (read) access to an explicit-state SMG.
@@ -87,6 +83,6 @@ public interface SMG<Value> extends STPG<Value>, PlayerInfoOwner
 	 * @param cut cut off everything that is strictly above the negative orthant (used for energy objectives)
 	 * @param M maximum bound on Pareto sets (quantity is positive)
 	 */
-	public Pareto[] pMultiObjective(Pareto[] Xk, List<SMGRewards<Double>> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
-			List<Pareto>[] stochasticStates, boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException;
+	public Pareto[] pMultiObjective(Pareto[] Xk, List<Rewards<Double>> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
+									List<Pareto>[] stochasticStates, boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException;
 }

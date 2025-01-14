@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import explicit.rewards.Rewards;
 import org.apache.commons.math3.fraction.BigFraction;
 
 import parma_polyhedra_library.C_Polyhedron;
@@ -59,7 +60,6 @@ import parma_polyhedra_library.Variable;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
-import explicit.rewards.SMGRewards;
 
 /**
  * Class containing several methods to augment the Parma Polyhedra Library
@@ -555,15 +555,15 @@ public class PPLSupport
 	 * rewards ... reward structure of appropriate dimension
 	 * extra_rewards ... extra rewards to add at the respective dimensions
 	 */
-	public static Polyhedron add_rewards(Polyhedron X, int s, int d, List<SMGRewards<Double>> rewards, double[] extra_rewards)
+	public static Polyhedron add_rewards(Polyhedron X, int s, int d, List<Rewards<Double>> rewards, double[] extra_rewards)
 	{
 		int n = rewards != null ? rewards.size() : extra_rewards.length;
 
 		// check if reward is zero and if so, ignore
 		boolean zero_reward = true;
-		Iterator<SMGRewards<Double>> rewards_iterator = rewards != null ? rewards.iterator() : null;
+		Iterator<Rewards<Double>> rewards_iterator = rewards != null ? rewards.iterator() : null;
 		for (int i = 0; i < n; i++) {
-			SMGRewards<Double> reward = rewards_iterator != null ? rewards_iterator.next() : null;
+			Rewards<Double> reward = rewards_iterator != null ? rewards_iterator.next() : null;
 			if (d < 0) {
 				double rew = (reward == null ? 0.0 : reward.getStateReward(s)) + (extra_rewards == null ? 0.0 : extra_rewards[i]);
 				if (!PrismUtils.doublesAreEqual(rew, 0.0)) {
@@ -588,7 +588,7 @@ public class PPLSupport
 		Coefficient c = new Coefficient(BigInteger.ONE);
 		rewards_iterator = rewards != null ? rewards.iterator() : null;
 		for (int i = 0; i < n; i++) {
-			SMGRewards<Double> reward = rewards_iterator != null ? rewards_iterator.next() : null;
+			Rewards<Double> reward = rewards_iterator != null ? rewards_iterator.next() : null;
 			BigFraction r;
 			if (d < 0) {
 				double rew = (reward == null ? 0.0 : reward.getStateReward(s)) + (extra_rewards == null ? 0.0 : extra_rewards[i]);

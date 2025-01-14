@@ -36,10 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import explicit.rewards.Rewards;
 import org.apache.commons.math3.fraction.BigFraction;
 
 import explicit.rewards.MDPRewards;
-import explicit.rewards.SMGRewards;
 import explicit.rewards.STPGRewards;
 import parma_polyhedra_library.C_Polyhedron;
 import parma_polyhedra_library.Coefficient;
@@ -489,7 +489,7 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 	
 	@Override
-	public Pareto[] pMultiObjective(Pareto[] Xk, List<SMGRewards<Double>> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
+	public Pareto[] pMultiObjective(Pareto[] Xk, List<Rewards<Double>> rewards, boolean gaussSeidel, long baseline_accuracy, double[] biggest_reward,
 			List<Pareto>[] stochasticStates, boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException
 	{
 		Pareto[] result = new Pareto[Xk.length];
@@ -567,7 +567,7 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 		return result;
 	}
 
-    protected Pareto stochasticState(int s, Distribution<Value> distr, int d, Pareto[] Xk, List<SMGRewards<Double>> rewards, double[] extra_rewards, boolean cut, long M)
+    protected Pareto stochasticState(int s, Distribution<Value> distr, int d, Pareto[] Xk, List<Rewards<Double>> rewards, double[] extra_rewards, boolean cut, long M)
 			throws PrismException
 	{
 		int n = rewards.size();
@@ -648,7 +648,7 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 
 	// distPolys will hold the polyhedra of the stochastic states
-	private Pareto pMultiObjectiveSingle(int s, Pareto[] Xk, List<SMGRewards<Double>> rewards, long baseline_accuracy, double[] biggest_reward, List<Pareto> distPolys,
+	private Pareto pMultiObjectiveSingle(int s, Pareto[] Xk, List<Rewards<Double>> rewards, long baseline_accuracy, double[] biggest_reward, List<Pareto> distPolys,
 					     boolean rounding, boolean union_with_previous, boolean cut, long M) throws PrismException
 	{
 		int n = rewards.size();

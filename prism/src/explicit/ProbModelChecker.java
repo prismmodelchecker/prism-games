@@ -40,7 +40,6 @@ import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.Rewards;
 import explicit.rewards.RewardsExplicit;
-import explicit.rewards.SMGRewards;
 import explicit.rewards.STPGRewards;
 import parser.BooleanUtils;
 import parser.ast.Coalition;
@@ -1376,7 +1375,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((STPGModelChecker) this).computeInstantaneousRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, k, minMax.isMin1(), minMax.isMin2());
 			break;
 		case SMG:
-			res = ((SMGModelChecker) this).computeInstantaneousRewards((SMG<Double>) model, (SMGRewards<Double>) modelRewards, k, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+			res = ((SMGModelChecker) this).computeInstantaneousRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, k, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeInstantaneousRewards((CSG<Double>) model, (CSGRewards<Double>) modelRewards, minMax.coalition, k, minMax.isMin1(), minMax.isMin2());
@@ -1439,7 +1438,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((STPGModelChecker) this).computeCumulativeRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2());
 			break;
 		case SMG:
-			res = ((SMGModelChecker) this).computeCumulativeRewards((SMG<Double>) model, (SMGRewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+			res = ((SMGModelChecker) this).computeCumulativeRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeCumulativeRewards((CSG<Double>) model, (CSGRewards<Double>) modelRewards, minMax.getCoalition(), timeInt, minMax.isMin1(), minMax.isMin2(), false);
@@ -1564,13 +1563,13 @@ public class ProbModelChecker extends NonProbModelChecker
 		case SMG:
 			switch (expr.getOperator()) {
 			case ExpressionTemporal.P_F:
-				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (SMGRewards<Double>) modelRewards, target, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 				break;
 			case ExpressionTemporal.R_Fc:
-				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (SMGRewards<Double>) modelRewards, target, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 				break;
 			case ExpressionTemporal.R_F0:
-				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (SMGRewards<Double>) modelRewards, target, STPGModelChecker.R_ZERO, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_ZERO, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
 				break;
 			}
 			break;

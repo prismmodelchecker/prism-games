@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import explicit.rewards.Rewards;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.apache.commons.math3.optim.MaxIter;
 import org.apache.commons.math3.optim.PointValuePair;
@@ -59,7 +60,6 @@ import explicit.Distribution;
 import explicit.PPLSupport;
 import explicit.Pareto;
 import explicit.SMG;
-import explicit.rewards.SMGRewards;
 import parma_polyhedra_library.Generator;
 import parma_polyhedra_library.Generator_System;
 import parma_polyhedra_library.Generator_Type;
@@ -756,8 +756,8 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	 * @param logStrategy turn logging on or off during strategy construction.
 	 * @param mainLog logger during the strategy construction.
 	 */
-	public StochasticUpdateStrategy(SMG<Double> G, double[] v, Pareto[] X, List<Pareto>[] Y, List<SMGRewards<Double>> rewards, double[] biggest_reward, long baseline_accuracy,
-					boolean reachable_only, boolean rounding, double varepsilon, boolean logStrategy, PrismLog mainLog) throws PrismException
+	public StochasticUpdateStrategy(SMG<Double> G, double[] v, Pareto[] X, List<Pareto>[] Y, List<Rewards<Double>> rewards, double[] biggest_reward, long baseline_accuracy,
+									boolean reachable_only, boolean rounding, double varepsilon, boolean logStrategy, PrismLog mainLog) throws PrismException
 	{
 		super(G);
 		
@@ -993,7 +993,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	 * return value:
 	 * corners_to_cover ... whether new corners need to be covered in the reachable_only search
 	 **/
-	private boolean getP1Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<SMGRewards<Double>> rewards,
+	private boolean getP1Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<Rewards<Double>> rewards,
 			long[] accuracy, SimplexSolver solver, boolean reachable_only, boolean rounding) throws PrismException
 	{
 		int n = rewards.size();
@@ -1327,7 +1327,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	 * return value:
 	 * corners_to_cover ... whether new corners need to be covered in the reachable_only search
 	 **/
-	private boolean getP2Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<SMGRewards<Double>> rewards,
+	private boolean getP2Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<Rewards<Double>> rewards,
 			long[] accuracy, SimplexSolver solver, boolean reachable_only, boolean rounding) throws PrismException
 	{
 		int n = rewards.size();
@@ -1572,7 +1572,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	 * reachable_only ... only construct strategy with reachable corners and states
 	 * rounding ... whethe rounding is active
 	 **/
-	private Distribution<Double>[] getActions(SMG<Double> G, int ntu, int u, int t, int q, int n, List<SMGRewards<Double>> rewards, long[] accuracy, SimplexSolver solver,
+	private Distribution<Double>[] getActions(SMG<Double> G, int ntu, int u, int t, int q, int n, List<Rewards<Double>> rewards, long[] accuracy, SimplexSolver solver,
 			List<double[]> gsYtu, List<double[]>[] LIST_gsX, boolean rounding) throws PrismException
 	{
 		// interpret u as a stochastic state, and look at all its successors w

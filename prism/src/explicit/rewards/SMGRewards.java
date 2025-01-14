@@ -27,7 +27,6 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
 /**
