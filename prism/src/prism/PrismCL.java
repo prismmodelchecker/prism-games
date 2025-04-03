@@ -64,7 +64,6 @@ import simulator.method.CIiterations;
 import simulator.method.CIwidth;
 import simulator.method.SPRTMethod;
 import simulator.method.SimulationMethod;
-import strat.Strategy;
 
 // prism - command line version
 
@@ -82,7 +81,6 @@ public class PrismCL implements PrismModelListener
 	private boolean importresults = false;
 	private boolean steadystate = false;
 	private boolean dotransient = false;
-	private boolean computePareto = false;
 	private boolean exportprism = false;
 	private boolean exportprismconst = false;
 	private boolean exporttrans = false;
@@ -198,9 +196,6 @@ public class PrismCL implements PrismModelListener
 	// info about which properties to model check
 	private int numPropertiesToCheck = 0;
 	private List<Property> propertiesToCheck = null;
-
-        // strategies for compositional systems
-        private List<Strategy> subsystemStrategies = null;
 
 	// info about undefined constants
 	private UndefinedConstants undefinedConstants[];
@@ -443,7 +438,7 @@ public class PrismCL implements PrismModelListener
 							}
 							// Normal model checking
 							if (!simulate) {
-								res = prism.modelCheck(propertiesFile, propertiesToCheck.get(j), computePareto);
+								res = prism.modelCheck(propertiesFile, propertiesToCheck.get(j));
 							}
 							// Approximate (simulation-based) model checking
 							else {
@@ -1401,10 +1396,6 @@ public class PrismCL implements PrismModelListener
 						errorAndExit("No value specified for -" + sw + " switch");
 					}
 				}
-				// compute Pareto sets
-				else if (sw.equals("pareto")) {
-					computePareto = true;
-				}
 				// generate random path with simulator
 				else if (sw.equals("simpath")) {
 					if (i < args.length - 2) {
@@ -2083,6 +2074,10 @@ public class PrismCL implements PrismModelListener
 				// enable bisimulation minimisation before model checking (hidden option)
 				else if (sw.equals("bisim")) {
 					prism.setDoBisim(true);
+				}
+				// compute a Pareto curve for an SMG multi-objective query
+				else if (sw.equals("pareto")) {
+					prism.setSMGPareto(true);
 				}
 
 				// Other switches - pass to PrismSettings

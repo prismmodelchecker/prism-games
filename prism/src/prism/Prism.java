@@ -205,6 +205,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected boolean restrictStratToReach = true;
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
+	// Compute Pareto curve for SMG multi-objective?
+	protected boolean smgPareto = false;
 
 	// A few miscellaneous options (i.e. defunct/hidden/undocumented/etc.)
 	// See constructor below for default values
@@ -701,6 +703,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		this.doBisim = doBisim;
 	}
 
+	/**
+	 * Specify whether or not to compute a Pareto curve for an SMG multi-objective query.
+	 */
+	public void setSMGPareto(boolean smgPareto)
+	{
+		this.smgPareto = smgPareto;
+	}
+
 	public void setDoReach(boolean b) throws PrismException
 	{
 		doReach = b;
@@ -1028,6 +1038,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean getDoBisim()
 	{
 		return doBisim;
+	}
+
+	/**
+	 * Whether or not to compute a Pareto curve for an SMG multi-objective query.
+	 */
+	public boolean getSMGPareto()
+	{
+		return smgPareto;
 	}
 
 	public boolean getDoReach()
@@ -3204,11 +3222,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public Result modelCheck(PropertiesFile propertiesFile, Property prop) throws PrismException, PrismLangException
 	{
-		return modelCheck(propertiesFile, prop, false); // default is to not compute the Pareto
-	}
-
-	public Result modelCheck(PropertiesFile propertiesFile, Property prop, boolean computePareto) throws PrismException, PrismLangException
-	{
 		Result res = null;
 		Values definedPFConstants = propertiesFile.getConstantValues();
 		boolean engineSwitch = false, switchToMTBDDEngine = false, switchedToExplicitEngine = false;
@@ -3304,9 +3317,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		}
 		try {
 
-			// resolve property references in the property
-			//Expression e = (Expression) prop.getExpression().expandPropRefsAndLabels(propertiesFile, null);
-
 			// Build model, if necessary
 			buildModelIfRequired();
 
@@ -3346,7 +3356,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				res = mc.check(prop.getExpression());
 			} else if (getCurrentEngine() == PrismEngine.EXPLICIT) {
 				explicit.StateModelChecker mc = createModelCheckerExplicit(propertiesFile);
-				mc.setComputeParetoSet(computePareto);
 				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
 			} else if (getCurrentEngine() == PrismEngine.EXACT) {
 				ParamModelChecker mc = new ParamModelChecker(this, ParamMode.EXACT);
@@ -4329,6 +4338,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setGenStrat(genStrat);
 		mc.setRestrictStratToReach(restrictStratToReach);
 		mc.setDoBisim(doBisim);
+		mc.setComputeParetoSet(smgPareto);
 
 		return mc;
 	}

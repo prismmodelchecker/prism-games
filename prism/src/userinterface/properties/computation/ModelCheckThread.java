@@ -53,25 +53,29 @@ public class ModelCheckThread extends GUIComputationThread
 	// (Also need properties file for access to constants/labels/etc.)
 	private PropertiesFile propertiesFile;
 	private ArrayList<GUIProperty> guiProps;
-
-        private boolean computePareto = false;
+	// Compute Pareto curve for SMG multi-objective?
+	private boolean computePareto = false;
 
 	/**
 	 * Create a new instance of ModelCheckThread (where a Model has been built)
 	 */
 	public ModelCheckThread(GUIMultiProperties parent, PropertiesFile propertiesFile, ArrayList<GUIProperty> guiProps)
 	{
+		this(parent, propertiesFile, guiProps, false);
+	}
+
+	/**
+	 * Create a new instance of ModelCheckThread (where a Model has been built)
+	 */
+	public ModelCheckThread(GUIMultiProperties parent, PropertiesFile propertiesFile, ArrayList<GUIProperty> guiProps, boolean computePareto)
+	{
 		super(parent);
 		this.parent = parent;
 		this.propertiesFile = propertiesFile;
 		this.guiProps = guiProps;
-	}
-        public ModelCheckThread(GUIMultiProperties parent, PropertiesFile propertiesFile, ArrayList<GUIProperty> guiProps, boolean computePareto)
-        {
-	        this(parent, propertiesFile, guiProps); // call original constructor
 		this.computePareto = computePareto;
-        }
-        
+	}
+
 
 	public void run()
 	{
@@ -81,10 +85,7 @@ public class ModelCheckThread extends GUIComputationThread
 			public void run()
 			{
 				parent.startProgress();
-				if(computePareto)
-				    parent.setTaskBarText("Compute Pareto sets...");
-				else 
-				    parent.setTaskBarText("Verifying properties...");
+				parent.setTaskBarText(computePareto ? "Compute Pareto sets..." : "Verifying properties...");
 				parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, parent));
 			}
 		});
@@ -114,7 +115,9 @@ public class ModelCheckThread extends GUIComputationThread
 
 			// Do model checking
 			try {
-			        result = prism.modelCheck(propertiesFile, propertiesFile.getPropertyObject(i), computePareto);
+				prism.setSMGPareto(computePareto);
+				result = prism.modelCheck(propertiesFile, propertiesFile.getPropertyObject(i));
+				prism.setSMGPareto(false);
 			} catch (Exception e) {
 				result = new Result(e);
 				error(e);
@@ -131,10 +134,7 @@ public class ModelCheckThread extends GUIComputationThread
 			}
 			//while(!ic.canContinue){}
 			gp.setResult(result);
-			if (computePareto)
-			    gp.setMethodString("Pareto set computation");
-			else 
-			    gp.setMethodString("Verification");
+			gp.setMethodString(computePareto ? "Pareto set computation" : "Verification");
 			// set parameters if available
 			gp.appendMethodString(result.getParameterString());
 			// set number of warnings
@@ -149,7 +149,7 @@ public class ModelCheckThread extends GUIComputationThread
 			public void run()
 			{
 				parent.stopProgress();
-				if(computePareto) {
+				if (computePareto) {
 				    parent.setTaskBarText("Computing Pareto sets... done.");
 				    parent.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, parent));
 				    parent.notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.PARETO_END));
