@@ -499,6 +499,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	{
 		this.exploreState = exploreState;
 		transitionListBuilt = false;
+		transitionListIntBuilt = false;
 	}
 	
 	@Override
@@ -1007,7 +1008,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			return null;
 		}
 		// Compute the current transition list, if required
-		if (!transitionListBuilt) {
+		if (!transitionListIntBuilt) {
 			updaterInt.calculateTransitions(exploreState, transitionListInt);
 			transitionListIntBuilt = true;
 		}

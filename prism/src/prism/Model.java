@@ -52,7 +52,8 @@ public interface Model<Value>
 		if (this instanceof PlayerInfoOwner) {
 			return ((PlayerInfoOwner) this).getPlayerInfo().getNumPlayers();
 		}
-		return getModelType() == ModelType.STPG ? 2 : 1;
+		ModelType modelType = getModelType();
+		return modelType.nondeterministic() ? (modelType == ModelType.STPG ? 2 : 1) : 0;
 	}
 
 	/**

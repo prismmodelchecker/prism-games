@@ -155,7 +155,7 @@ public class PrismSettings implements Observer
         public static final	String LOG_MULTI_R_PARETO			= "log.multiRPareto";
         public static final	String LOG_MULTI_STRATEGY			= "log.multiStrategy";
 
-	
+
 	public static final String PRISM_LTL2DA_TOOL					= "prism.ltl2daTool";
 	public static final String PRISM_LTL2DA_SYNTAX					= "prism.ltl2daSyntax";
 
@@ -277,7 +277,7 @@ public class PrismSettings implements Observer
 																			"Which method to use for model checking of PTAs." },
 			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",																
 																			"Which method to use for computing transient probabilities in CTMCs." },
-			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Z3",															"Z3,Yices",																
+			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Z3",															"Z3,Yices",
 																			"Which external solver to use for SMT problems." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
@@ -352,25 +352,25 @@ public class PrismSettings implements Observer
 			{ STRING_TYPE,		PRISM_EXPORT_PARETO_FILENAME,			"Pareto curve export filename",			"4.0.3",			"",															"0,",																						
 																			"If non-empty, any Pareto curve generated will be exported to this file." },
 			// MULTI-OBJECTIVE SYNTHESIS:
-			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		Boolean.valueOf(true),															"",																							
+			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		Boolean.valueOf(true),															"",
 																			"Use Gauss-Seidel value iteration for solving multi-objective SGs. Only used for cumulative total rewards (Pareto set computation and strategy synthesis), and for strategy synthesis of average and ratio rewards." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to solve conjunctive queries using value iteration. The same value is used for computing the conjunctions involved in mixed queries." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to compute the Pareto sets for ratio rewards using value iteration." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to solve disjunctive queries using value iteration. The same value is used for computing the disjunctions involved in mixed queries." },
-			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			Integer.valueOf(1),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			Integer.valueOf(1),															"0,",
 																			"Start the disjunctive iteration at this iteration." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MIN_M,					"Minimum Box Size (M)",			"4.0.3",			Integer.valueOf(2),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MIN_M,					"Minimum Box Size (M)",			"4.0.3",			Integer.valueOf(2),															"0,",
 																			"Set the minimum size for the box for multi-objective mean-payoff objectives." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_M,					"Maximum Box Size (M)",			"4.0.3",			Integer.valueOf(16),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_M,					"Maximum Box Size (M)",			"4.0.3",			Integer.valueOf(16),															"0,",
 																			"Set the maximum size for the box for multi-objective mean-payoff objectives." },
-			{ BOOLEAN_TYPE,		PRISM_MULTI_ROUNDING,							"Use rounding in multi-objective engine",				"4.0.3",		Boolean.valueOf(false),															"",																							
+			{ BOOLEAN_TYPE,		PRISM_MULTI_ROUNDING,							"Use rounding in multi-objective engine",				"4.0.3",		Boolean.valueOf(false),															"",
 																			"Whether to use rounding in the multi-objective games engine" },
-			{ INTEGER_TYPE,		PRISM_MULTI_BASELINE_ACCURACY,					"Baseline accuracy for conjunctive query value iteration",			"4.0.3",			Integer.valueOf(200),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_BASELINE_ACCURACY,					"Baseline accuracy for conjunctive query value iteration",			"4.0.3",			Integer.valueOf(200),															"0,",
 																			"Value iteration starts computing points rounded to the maximum reward in each dimension divided by the baseline accuracy, and this accuracy is increased by the increase factor after every iteration." },
-			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			Double.valueOf(1.01),															"0,",																						
+			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			Double.valueOf(1.01),															"0,",
 																			"Accuracy of conjunctive query value iteration is increased by the increase factor after every iteration." },
 			// CSG ZERO-SUM LP SCALE FACTOR
 			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR, 					"Scale factor for LPs",			"4.5", 				Double.valueOf(1.0), 			"1,",
@@ -1586,7 +1586,7 @@ public class PrismSettings implements Observer
 				throw new PrismException("No value specified for -" + sw + " switch");
 			}
 		}
-		
+
 		// OUTPUT OPTIONS:
 		
 		// Verbosity
@@ -2056,7 +2056,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-explicit (or -ex) ............. Use the explicit engine");
 		mainLog.println("-exact ......................... Perform exact (arbitrary precision) model checking");
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
-		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
+		mainLog.println("-transientmethod <name> ........ CTMC transient analysis method (unif, fau) [default: unif]");
 		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: z3]");
 		mainLog.println("-heuristic <mode> .............. Automatic choice of engines/settings (none, speed, memory) [default: none]");
 		mainLog.println();
