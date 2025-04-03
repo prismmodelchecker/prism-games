@@ -888,8 +888,8 @@ public class SMGModelChecker extends ProbModelChecker
 		RewardsExplicit<Double> reward = (RewardsExplicit<Double>) constructExpectedRewards(model, r1);
 		params.reward_names.add(exprReward.getRewardStructIndex().toString());
 		int r2 = exprReward.getRewardStructDivIndexByIndexObject(rewardGen, constantValues);
-		RewardsExplicit<Double> divisor = (RewardsExplicit<Double>) constructExpectedRewards(model, r2);
-		params.divisor_names.add(exprReward.getRewardStructIndexDiv().toString());
+		RewardsExplicit<Double> divisor = r2 == -1 ? null : (RewardsExplicit<Double>) constructExpectedRewards(model, r2);
+		params.divisor_names.add(r2 == -1 ? null : exprReward.getRewardStructIndexDiv().toString());
 		// register reward structures
 		params.rewards.add(reward);
 		params.divisors.add(divisor);
