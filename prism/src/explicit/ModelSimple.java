@@ -127,6 +127,9 @@ public interface ModelSimple<Value> extends Model<Value>
 			case SMG:
 				prodModel = new SMGSimple<>();
 				break;
+			case CSG:
+				prodModel = new CSGSimple<>();
+				break;
 			default:
 				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
 		}
