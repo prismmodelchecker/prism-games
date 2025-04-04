@@ -501,7 +501,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 		out.print("MemUpdMoves:\n");
 		out.print("// first index: current state\n");
 		out.print("// second index: current move\n");
-		out.print("// third index: curent corner (at move)\n");
+		out.print("// third index: current corner (at move)\n");
 		out.print("// fourth index: next state\n");
 		for (int s = 0; s < pi_u.length; s++) { // go through states
 			if (pi_u[s] != null) {
