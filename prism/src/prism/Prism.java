@@ -317,6 +317,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		ModulesFile modulesFile = null;
 		// Model generator (null if none loaded)
 		ModelGenerator<?> modelGenerator = null;
+		// Reward info (null if none loaded)
+		RewardInfo rewardInfo = null;
 		// Reward generator (null if none loaded)
 		RewardGenerator<?> rewardGenerator = null;
 		// Constants to be defined for PRISM model (null if none/undefined)
@@ -346,6 +348,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			modelInfo = other.modelInfo;
 			modulesFile = other.modulesFile;
 			modelGenerator = other.modelGenerator;
+			rewardInfo = other.rewardInfo;
 			rewardGenerator = other.rewardGenerator;
 			definedMFConstants = other.definedMFConstants;
 			definedMFConstantsAreExact = other.definedMFConstantsAreExact;
@@ -1690,6 +1693,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		setModelInfo(null);
 		setPRISMModel(null);
 		setModelGenerator(null);
+		setRewardInfo(null);
 		setRewardGenerator(null);
 		setDefinedMFConstants(null);
 		// Clear built model storage too
@@ -1712,6 +1716,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		setModelType(modulesFile.getModelType());
 		setModelInfo(modulesFile);
 		setPRISMModel(modulesFile);
+		setRewardInfo(modulesFile);
 		// Reset model/reward generator (will be created properly when needed)
 		resetGenerators();
 		// No constant definitions yet
@@ -1733,19 +1738,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (modelGen == null) {
 			clearModel();
 		}
-		mainLog.println("Loading model generator " + getModelGenerator().getClass().getName() + "...");
+		mainLog.println("Loading model generator " +  modelGen.getClass().getName() + "...");
 		// Update model info
 		setModelSource(ModelSource.MODEL_GENERATOR);
 		setModelType(modelGen.getModelType());
 		setModelInfo(modelGen);
 		setPRISMModel(null);
 		setModelGenerator(modelGen);
-		// Create a blank reward generator if nor provided by the model generator
-		if (modelGen instanceof RewardGenerator) {
-			setRewardGenerator((RewardGenerator<?>) modelGen);
-		} else {
-			setRewardGenerator(new RewardGenerator<Object>() {});
-		}
+		// Create a blank reward generator if not provided by the model generator
+		RewardGenerator<?> newRewardGen = (modelGen instanceof RewardGenerator) ? (RewardGenerator<?>) modelGen : new RewardGenerator<>() {};
+		setRewardInfo(newRewardGen);
+		setRewardGenerator(newRewardGen);
 		setDefinedMFConstants(null);
 		// Clear any existing built model(s)
 		clearBuiltModel();
@@ -1832,6 +1835,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Reset dependent info
 		setModelType(modulesFile == null ? null : modulesFile.getModelType());
 		setModelInfo(modulesFile);
+		setRewardInfo(modulesFile);
 		setDefinedMFConstants(null);
 		// Store built model info
 		setBuiltModel(ModelBuildType.SYMBOLIC, model);
@@ -1900,7 +1904,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Get/store model/reward info from importer
 		setModelInfo(importer.getModelInfo());
 		setModelType(getModelInfo().getModelType());
-		setRewardGenerator(importer.getRewardInfo());
+		setRewardInfo(importer.getRewardInfo());
 		setDefinedMFConstants(null);
 		// Print basic model info
 		printModelInfo();
@@ -1911,7 +1915,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	private void printModelInfo() throws PrismException
 	{
-		printModelInfo(getModelInfo(), getRewardGenerator());
+		printModelInfo(getModelInfo(), getRewardInfo());
 	}
 
 	/**
@@ -1919,7 +1923,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * @param modelInfo The model info
 	 * @param rewardInfo The reward info (optional, can be null)
 	 */
-	private void printModelInfo(ModelInfo modelInfo, RewardGenerator<?> rewardInfo) throws PrismException
+	private void printModelInfo(ModelInfo modelInfo, RewardInfo rewardInfo) throws PrismException
 	{
 		mainLog.println();
 		if (getModelSource() == ModelSource.EXPLICIT_FILES && modelImporter != null) {
@@ -1940,7 +1944,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (modelInfo.getNumLabels() > 0) {
 			mainLog.println("Labels:      " + "\"" + String.join("\" \"", modelInfo.getLabelNames()) + "\"");
 		}
-		if (rewardInfo.getNumRewardStructs() > 0) {
+		if (rewardInfo != null && rewardInfo.getNumRewardStructs() > 0) {
 			mainLog.println("Rewards:     " + String.join(" ", rewardInfo.getRewardStructReferences()));
 		}
 	}
@@ -2061,6 +2065,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			throw new PrismException("Could not create a model generator");
 		}
 		return currentModelDetails.modelGenerator;
+	}
+
+	/**
+	 * Get the reward info for the currently loaded model.
+	 */
+	public RewardInfo getRewardInfo() throws PrismException
+	{
+		return currentModelDetails.rewardInfo;
 	}
 
 	/**
@@ -2307,9 +2319,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					// Also build a Model/RewardGenerator
 					// (the latter since rewards are built later, the former e.g. for simulation)
 					setModelGenerator(new ModelModelGenerator<>(getBuiltModelExplicit(), getModelInfo()));
-					ExplicitFiles2Rewards expf2rews = new ExplicitFiles2Rewards<>(this, modelImporter);
-					expf2rews.setModel(getBuiltModelExplicit());
-					setRewardGenerator(expf2rews);
+					ExplicitFiles2Rewards<?> expf2rews = new ExplicitFiles2Rewards<>(this, modelImporter, getBuiltModelExplicit(), eval);
+					setRewardGenerator(expf2rews.getRewardGenerator());
 					break;
 				default:
 					throw new PrismException("Cannot do explicit model construction for model source " + getModelSource());
@@ -2650,7 +2661,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportBuiltModelStateRewards(File file, ModelExportOptions exportOptions) throws PrismException, FileNotFoundException
 	{
-		int numRewardStructs = getRewardGenerator().getNumRewardStructs();
+		int numRewardStructs = getRewardInfo().getNumRewardStructs();
 		if (numRewardStructs == 0) {
 			mainLog.println("\nOmitting state reward export as there are no reward structures");
 			return;
@@ -2711,7 +2722,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportBuiltModelTransRewards(File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
 	{
-		int numRewardStructs = getRewardGenerator().getNumRewardStructs();
+		int numRewardStructs = getRewardInfo().getNumRewardStructs();
 		if (numRewardStructs == 0) {
 			mainLog.println("\nOmitting transition reward export as there are no reward structures");
 			return;
@@ -4207,6 +4218,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private void setModelGenerator(ModelGenerator modelGenerator) throws PrismException
 	{
 		currentModelDetails.modelGenerator = modelGenerator;
+	}
+
+	/**
+	 * Set the reward info for the currently loaded model.
+	 */
+	private void setRewardInfo(RewardInfo rewardInfo) throws PrismException
+	{
+		currentModelDetails.rewardInfo = rewardInfo;
 	}
 
 	/**
