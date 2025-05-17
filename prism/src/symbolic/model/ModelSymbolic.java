@@ -69,7 +69,7 @@ public abstract class ModelSymbolic implements Model
 	/** Number of reward structs */
 	protected int numRewardStructs;
 	/** Reward struct names */
-	protected String[] rewardStructNames;
+	protected String[] rewardStructNames = new String[0];
 	// Stats
 	/** Number of states */
 	protected double numStates;
@@ -91,9 +91,9 @@ public abstract class ModelSymbolic implements Model
 	/** Deadlock states BDD (may have been fixed) */
 	protected JDDNode deadlocks;
 	/** State rewards MTBDDs */
-	protected JDDNode stateRewards[];
+	protected JDDNode stateRewards[] = new JDDNode[0];
 	/** Transition rewards MTBDDs */
-	protected JDDNode transRewards[];
+	protected JDDNode transRewards[] = new JDDNode[0];
 
 	/** DD variable info */
 	protected ModelVariablesDD modelVariables;
@@ -638,17 +638,9 @@ public abstract class ModelSymbolic implements Model
 		log.println();
 
 		log.print(getTransName() + ": " + JDD.GetInfoString(trans, getNumDDVarsInTrans()));
-		log.print(", vars: " + getNumDDRowVars() + "r/" + getNumDDColVars() + "c\n");
+		log.print(", vars: " + getTransDDVarSummary() + "\n");
 		if (extra) {
-			log.print("DD vars (r/c):");
-			n = allDDRowVars.getNumVars();
-			for (i = 0; i < n; i++) {
-				j = allDDRowVars.getVarIndex(i);
-				log.print(" " + j + ":" + getDDVarNames().get(j));
-				j = allDDColVars.getVarIndex(i);
-				log.print(" " + j + ":" + getDDVarNames().get(j));
-			}
-			log.println();
+			log.print(getTransDDVarInfo() + "\n");
 			log.print(getTransName() + " terminals: " + JDD.GetTerminalsAndNumbersString(trans, getNumDDVarsInTrans()) + "\n");
 			log.print("Reach: " + JDD.GetNumNodes(reach) + " nodes\n");
 			log.print("ODD: " + ODDUtils.GetNumODDNodes() + " nodes\n");
@@ -677,6 +669,26 @@ public abstract class ModelSymbolic implements Model
 				}
 			}
 		}
+	}
+
+	@Override
+	public String getTransDDVarSummary()
+	{
+		return getNumDDRowVars() + "r/" + getNumDDColVars() + "c";
+	}
+
+	@Override
+	public String getTransDDVarInfo()
+	{
+		String s = "DD vars (r/c):";
+		int n = allDDRowVars.getNumVars();
+		for (int i = 0; i < n; i++) {
+			int j = allDDRowVars.getVarIndex(i);
+			s += " " + j + ":" + getDDVarNames().get(j);
+			j = allDDColVars.getVarIndex(i);
+			s += " " + j + ":" + getDDVarNames().get(j);
+		}
+		return s;
 	}
 
 	@Override
