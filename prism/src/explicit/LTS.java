@@ -36,7 +36,7 @@ import prism.PrismLog;
 /**
  * Interface for classes that provide (read) access to an explicit-state labelled transition system (LTS).
  */
-public interface LTS extends NondetModel
+public interface LTS<Value> extends NondetModel<Value>
 {
 	// Accessors (for Model) - default implementations
 	
@@ -44,22 +44,6 @@ public interface LTS extends NondetModel
 	default ModelType getModelType()
 	{
 		return ModelType.LTS;
-	}
-
-	@Override
-	default void exportToPrismExplicitTra(PrismLog out, int precision)
-	{
-		// Output transitions to .tra file
-		int numStates = getNumStates();
-		out.print(numStates + " " + getNumChoices() + "\n");
-		for (int i = 0; i < numStates; i++) {
-			int numChoices = getNumChoices(i);
-			for (int j = 0; j < numChoices; j++) {
-				out.print(i + " " + j + " " + getSuccessor(i, j));
-				Object action = getAction(i, j);
-				out.print(action == null ? "\n" : (" " + action + "\n"));
-			}
-		}
 	}
 
 	@Override
@@ -89,24 +73,6 @@ public interface LTS extends NondetModel
 	default void exportToPrismLanguage(String filename, int precision) throws PrismException
 	{
 		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	default String infoString()
-	{
-		String s = "";
-		s += getNumStates() + " states (" + getNumInitialStates() + " initial)";
-		s += ", " + getNumTransitions() + " transitions";
-		return s;
-	}
-
-	@Override
-	default String infoStringTable()
-	{
-		String s = "";
-		s += "States:      " + getNumStates() + " (" + getNumInitialStates() + " initial)\n";
-		s += "Transitions: " + getNumTransitions() + "\n";
-		return s;
 	}
 
 	// Accessors (for NondetModel) - default implementations

@@ -26,95 +26,78 @@
 
 package explicit.rewards;
 
-import java.util.ArrayList;
+import java.util.function.Function;
 
 import explicit.Model;
-import explicit.Product;
+import prism.Evaluator;
 
 /**
  * Explicit-state storage of just state rewards (mutable).
  */
-public class StateRewardsSimple extends StateRewards
+public class StateRewardsSimple<Value> extends RewardsSimple<Value>
 {
-	/** Arraylist of state rewards **/
-	protected ArrayList<Double> stateRewards;
-
 	/**
 	 * Constructor: all zero rewards.
 	 */
 	public StateRewardsSimple()
 	{
-		stateRewards = new ArrayList<Double>();
+		super(0);
 	}
 
 	/**
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
-	public StateRewardsSimple(StateRewardsSimple rews)
+	public StateRewardsSimple(StateRewardsSimple<Value> rews)
 	{
-		if (rews.stateRewards == null) {
-			stateRewards = null;
-		} else {
-			int n = rews.stateRewards.size();
-			stateRewards = new ArrayList<Double>(n);
-			for (int i = 0; i < n; i++) {
-				stateRewards.add(rews.stateRewards.get(i));
-			}
-		}
+		super(rews);
 	}
-
-	// Mutators
 
 	/**
-	 * Set the reward for state {@code s} to {@code r}.
+	 * Copy constructor.
+	 * @param rews Rewards to copy
+	 * @param model Associated model (needed for sizes)
 	 */
-	public void setStateReward(int s, double r)
+	public StateRewardsSimple(StateRewardsSimple<Value> rews, Model<?> model)
 	{
-		if (r == 0.0 && s >= stateRewards.size())
-			return;
-		// If list not big enough, extend
-		int n = s - stateRewards.size() + 1;
-		if (n > 0) {
-			for (int j = 0; j < n; j++) {
-				stateRewards.add(0.0);
-			}
-		}
-		// Set reward
-		stateRewards.set(s, r);
+		this(rews, model, r -> r);
 	}
 
-	// Accessors
-
-	@Override
-	public double getStateReward(int s)
+	/**
+	 * Copy constructor, mapping reward values using the provided function.
+	 * Since the type changes (T -> Value), an Evaluator for Value must be given.
+	 * @param rews Rewards to copy
+	 * @param model Associated model (needed for sizes)
+	 * @param rewMap Reward value map
+	 */
+	public StateRewardsSimple(StateRewardsSimple<Value> rews, Model<?> model, Function<? super Value, ? extends Value> rewMap)
 	{
-		try {
-			return stateRewards.get(s);
-		} catch (IndexOutOfBoundsException e) {
-			return 0.0;
-		}
+		this(rews, model, rewMap, rews.getEvaluator());
 	}
 
-	// Converters
-	
-	@Override
-	public StateRewards liftFromModel(Product<? extends Model> product)
+	/**
+	 * Copy constructor, mapping reward values using the provided function.
+	 * Since the type changes (T -> Value), an Evaluator for Value must be given.
+	 * @param rews Rewards to copy
+	 * @param model Associated model (needed for sizes)
+	 * @param rewMap Reward value map
+	 * @param eval Evaluator for Value
+	 */
+	public <T> StateRewardsSimple(StateRewardsSimple<T> rews, Model<?> model, Function<? super T, ? extends Value> rewMap, Evaluator<Value> eval)
 	{
-		Model modelProd = product.getProductModel();
-		int numStatesProd = modelProd.getNumStates();
-		StateRewardsSimple rewardsProd = new StateRewardsSimple();
-		for (int s = 0; s < numStatesProd; s++) {
-			rewardsProd.setStateReward(s, getStateReward(product.getModelState(s)));
-		}
-		return rewardsProd;
+		super(rews, model, rewMap, eval);
 	}
-	
-	// Other
 
 	@Override
-	public StateRewardsSimple deepCopy()
+	public void setTransitionReward(int s, int i, Value r)
 	{
-		return new StateRewardsSimple(this);
+		throw new UnsupportedOperationException("StateRewardsSimple does not support transition rewards");
+	}
+
+	@Override
+	public boolean hasTransitionRewards()
+	{
+		// Only state rewards
+		return false;
 	}
 }

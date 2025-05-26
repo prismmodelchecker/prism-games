@@ -3,10 +3,10 @@
 # Startup script for PRISM GUI (Linux/Solaris)
 
 # PRISM home directory
-PRISM_DIR=/users/clewil/Documents/D2013/prism-games-multi/prism-games-multi/prism
+PRISM_DIR=/home/luser/prism
 
 # Launch using main PRISM script
 PRISM_MAINCLASS=userinterface.GUIPrism
 PRISM_HEADLESS=false
 export PRISM_MAINCLASS PRISM_HEADLESS
-$PRISM_DIR/bin/prism "$@"
+"$PRISM_DIR"/bin/prism "$@"

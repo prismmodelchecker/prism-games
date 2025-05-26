@@ -1,9 +1,9 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2020-
 //	Authors:
 //	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -18,11 +18,11 @@
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//	
+//
 //	You should have received a copy of the GNU General Public License
 //	along with PRISM; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//	
+//
 //==============================================================================
 
 package explicit;
@@ -31,22 +31,21 @@ import java.util.ArrayList;
 
 import prism.PrismException;
 
-public interface CSGLabeledPolytopes {
-	
-    public String getSolverName();
-    
+public interface CSGLabeledPolytopes
+{
+	public String getSolverName();
+
 	public void update(int nrows, int ncols, double[][] a, double[][] b);
-	
+
 	public void computeEquilibria() throws PrismException;
-	
+
 	public void compPayoffs();
-	
-	public ArrayList<ArrayList<Distribution>> getStrat();
-	
-	public double[] getP1p(); 
-	
-	public double[] getP2p(); 
-	
+
+	public ArrayList<ArrayList<Distribution<Double>>> getStrat();
+
+	public double[] getP1p();
+
+	public double[] getP2p();
+
 	public int getNeq();
-	
 }

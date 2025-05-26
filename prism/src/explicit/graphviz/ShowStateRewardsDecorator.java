@@ -31,28 +31,28 @@ import java.util.List;
 
 import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewards;
-import explicit.rewards.StateRewards;
+import explicit.rewards.Rewards;
 
 /**
  * A decorator that attaches state rewards
  * to the labels of nodes, according to the
  * given reward structure(s).
  */
-public class ShowStateRewardsDecorator implements Decorator
+public class ShowStateRewardsDecorator<Value> implements Decorator
 {
 	/** List of state reward structures */
-	private List<StateRewards> rewards;
+	private List<Rewards<Value>> rewards;
 	/** Output state rewards even if they are all zero for a state? */
 	private boolean showAllZero;
 
 	/** Constructor, single reward structure */
-	public ShowStateRewardsDecorator(explicit.rewards.StateRewards rewards, boolean showZero)
+	public ShowStateRewardsDecorator(Rewards<Value> rewards, boolean showZero)
 	{
 		this(Collections.singletonList(rewards), showZero);
 	}
 
 	/** Constructor, multiple reward structures */
-	public ShowStateRewardsDecorator(List<explicit.rewards.StateRewards> rewards, boolean showAllZero)
+	public ShowStateRewardsDecorator(List<Rewards<Value>> rewards, boolean showAllZero)
 	{
 		this.rewards = rewards;
 		this.showAllZero = showAllZero;
@@ -64,14 +64,9 @@ public class ShowStateRewardsDecorator implements Decorator
 	{
 		boolean allZero = true;
 
-		for (StateRewards rew : rewards) {
-			double reward = 0;
-			if (rew instanceof MCRewards) {
-				reward = ((MCRewards) rewards).getStateReward(state);
-			} else if (rew instanceof MDPRewards) {
-				reward = ((MDPRewards) rewards).getStateReward(state);
-			}
-			if (reward != 0) {
+		for (Rewards<Value> rew : rewards) {
+			Value reward = rew.getStateReward(state);
+			if (!rew.getEvaluator().isZero(reward)) {
 				allZero = false;
 				break;
 			}
@@ -80,13 +75,8 @@ public class ShowStateRewardsDecorator implements Decorator
 			return d;
 
 		String values = "";
-		for (StateRewards rew : rewards) {
-			double reward = 0;
-			if (rew instanceof MCRewards) {
-				reward = ((MCRewards) rewards).getStateReward(state);
-			} else if (rew instanceof MDPRewards) {
-				reward = ((MDPRewards) rewards).getStateReward(state);
-			}
+		for (Rewards<Value> rew : rewards) {
+			Value reward = rew.getStateReward(state);
 			if (!values.isEmpty())
 				values += ",";
 			values += reward;

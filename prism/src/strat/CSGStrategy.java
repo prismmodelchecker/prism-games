@@ -38,16 +38,18 @@ import explicit.CSG;
 import explicit.Distribution;
 import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
+import explicit.NondetModel;
 import parser.State;
 import parser.VarList;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import strat.CSGStrategy.CSGStrategyType;
 
-public class CSGStrategy extends PrismComponent implements Strategy {
+public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 
-	protected CSG model;
+	protected CSG<Double> model;
 	protected List<List<List<Map<BitSet, Double>>>> csgchoices; // player -> iteration -> state -> indexes -> value
 	protected ModelCheckerResult[] prechoices;
 	protected BitSet[] targets;
@@ -62,7 +64,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R, EQUILIBRIA_CE_P, EQUILIBRIA_CE_R, EQUILIBRIA_CE_M;
 	}
 
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.subgames = subgames;
@@ -70,7 +72,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		this.type = type;
 	}
 	
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, ModelCheckerResult[] prechoices, BitSet[] targets, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, ModelCheckerResult[] prechoices, BitSet[] targets, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = prechoices;
@@ -78,7 +80,7 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		this.type = type;
 	}
 
-	public CSGStrategy(CSG model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = null;
@@ -88,7 +90,13 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		this.inf = inf;
 		this.type = type;
 	}
-	
+
+	@Override
+	public CSG<Double> getModel()
+	{
+		return model;
+	}
+
 	@Override
 	public int getNumStates()
 	{
@@ -136,9 +144,34 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 		// TODO
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public prism.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy product not yet supported");
+	}
+
+	@Override
+	public void exportActions(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
+
+	@Override
+	public void exportIndices(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
+
+	@Override
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+	}
 	
 	@Override
-	public void exportActions(PrismLog out) {
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
 		try {
 			switch(type) {
 				case ZERO_SUM:
@@ -160,24 +193,9 @@ public class CSGStrategy extends PrismComponent implements Strategy {
 					break;
 			}
 		}
-		catch (Exception e) {
-			e.printStackTrace();
+		catch (InvalidStrategyStateException e) {
+			throw new PrismException("Error during strategy processing: " + e.getMessage());
 		}
-	}
-
-	@Override
-	public void exportIndices(PrismLog out) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out, int precision) {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public void exportDotFile(PrismLog out, int precision) {
-		// TODO Auto-generated method stub
 	}
 	
 	public void exportZeroSumStrategy(PrismLog out) throws PrismException {

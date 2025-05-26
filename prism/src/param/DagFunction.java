@@ -26,6 +26,10 @@
 
 package param;
 
+import parser.ast.Expression;
+import prism.PrismException;
+import prism.PrismNotSupportedException;
+
 /**
  * TODO implement completely
  * @author Ernst Moritz Hahn <emhahn@cs.ox.ac.uk> (University of Oxford)
@@ -117,6 +121,11 @@ public class DagFunction extends Function {
 	}
 
 	@Override
+	public Function pow(int exp) {
+		throw new RuntimeException("DagFunction does not support powers");
+	}
+
+	@Override
 	public Function star() {
 		return dagFactory.star(this);
 	}
@@ -145,6 +154,11 @@ public class DagFunction extends Function {
 			return BigRational.MINF;
 		}
 		throw new RuntimeException("Illegal type");
+	}
+
+	@Override
+	public Expression asExpression() throws PrismException {
+		throw new PrismNotSupportedException("DagFunction does not yet generate Expressions");
 	}
 
 	@Override

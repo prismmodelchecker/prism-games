@@ -3,7 +3,7 @@
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+// 	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import explicit.rewards.STPGRewards;
 import org.apache.commons.math3.util.Precision;
 
 import acceptance.AcceptanceRabin;
@@ -71,8 +72,6 @@ public class CSGModelChecker extends ProbModelChecker
 	public static final int R_INFINITY = 0;
 	public static final int R_CUMULATIVE = 1;
 	public static final int R_ZERO = 2;
-
-	protected HashMap<Integer, Distribution> adv; // probably shouldn't be global or be here at all
 
 	protected double scaleFactor = getSettings().getDouble(PrismSettings.PRISM_ZS_LP_SCALE_FACTOR);
 
@@ -109,7 +108,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 *  as a BitSet, to the value, stored in a 1-element ArrayList */
 	protected HashMap<BitSet, ArrayList<Double>> utilities;
 	/** CSG distribution used to compute value, again as mapping from BitSet */
-	protected HashMap<BitSet, ArrayList<Distribution>> probabilities;
+	protected HashMap<BitSet, ArrayList<Distribution<Double>>> probabilities;
 	
 	/** Total number of coalition actions in s */
 	protected int varIndex;
@@ -131,7 +130,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		super(parent);
 		utilities = new HashMap<BitSet, ArrayList<Double>>();
-		probabilities = new HashMap<BitSet, ArrayList<Distribution>>();
+		probabilities = new HashMap<BitSet, ArrayList<Distribution<Double>>>();
 		actions = new ArrayList<ArrayList<String>>();
 		strategies = new ArrayList<ArrayList<Integer>>();
 		lpSolver = getSettings().getString(PrismSettings.PRISM_CSG_LPSOLVER);
@@ -149,7 +148,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeNextProbs(CSG csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeNextProbs(CSG<Double> csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
@@ -160,7 +159,8 @@ public class CSGModelChecker extends ProbModelChecker
 		double[] nsol = new double[csg.getNumStates()];
 		long timer;
 		int s, i;
-		if (genStrat || exportAdv) {
+
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>(1);
@@ -171,51 +171,33 @@ public class CSGModelChecker extends ProbModelChecker
 				kstrat.add(i, null);
 			}
 		}
-		if (verbosity >= 1)
-			mainLog.println("\nStarting next probabilistic reachability for CSGs...");
 		timer = System.currentTimeMillis();
 		buildCoalitions(csg, coalition, min1);
-		switch (solnMethod) {
-		case VALUE_ITERATION:
-			for (s = 0; s < csg.getNumStates(); s++) {
-				nsol[s] = target.get(s)? 1.0 : 0.0;
+		for (s = 0; s < csg.getNumStates(); s++) {
+			nsol[s] = target.get(s) ? 1.0 : 0.0;
+		}
+		try {
+			lp = LpSolve.makeLp(maxCols + 1, maxRows + 1);
+			lp.setVerbose(LpSolve.CRITICAL);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new PrismException(e.toString());
+		}
+		for (s = 0; s < csg.getNumStates(); s++) {
+			mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
+			nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
+			if (genStrat) {
+				updateStrategy(kstrat, lstrat, 0, s, false);
 			}
-			try {
-				lp = LpSolve.makeLp(maxCols + 1, maxRows + 1);
-				lp.setVerbose(LpSolve.CRITICAL);
-				if (min1)
-					lp.resizeLp(0, maxCols + 1);
-				else
-					lp.resizeLp(0, maxRows + 1);
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new PrismException(e.toString());
-			}
-			for (s = 0; s < csg.getNumStates(); s++) {
-				mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
-				nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
-				if ((genStrat || exportAdv)) {
-					// player -> iteration -> state -> indexes -> value
-					if (lstrat.get(0).get(0).get(s) == null) {
-						lstrat.get(0).get(0).set(s, kstrat.get(s));
-					} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-						lstrat.get(0).get(0).set(s, kstrat.get(s));
-					}
-				}
-			}
-			break;
-		default:
-			throw new PrismException("Unknown CSG solution method " + solnMethod);
 		}
 		timer = System.currentTimeMillis() - timer;
-		mainLog.println("Next probability computation took " + 1 + " iters and " + timer / 1000.0 + " seconds.");
 		res.soln = nsol;
 		res.lastSoln = null;
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
-		if (genStrat || exportAdv)
+
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
 	}
@@ -233,7 +215,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeBoundedReachProbs(CSG csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition,
+	public ModelCheckerResult computeBoundedReachProbs(CSG<Double> csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition,
 			boolean genAdv) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -269,7 +251,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeUntilProbs(CSG csg, BitSet remain, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeUntilProbs(CSG<Double> csg, BitSet remain, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		return computeUntilProbs(csg, remain, target, maxIters, min1, min2, coalition);
 	}
@@ -287,7 +269,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeBoundedUntilProbs(CSG csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition)
+	public ModelCheckerResult computeBoundedUntilProbs(CSG<Double> csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
 		ModelCheckerResult res;
@@ -305,12 +287,12 @@ public class CSGModelChecker extends ProbModelChecker
 	 * 
 	 * @param csg The CSG
 	 * @param target Target states
-	 * @param k Bound
+	 * @param bound Bound
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeReachProbs(CSG csg, BitSet target, boolean min1, boolean min2, int bound, Coalition coalition,
+	public ModelCheckerResult computeReachProbs(CSG<Double> csg, BitSet target, boolean min1, boolean min2, int bound, Coalition coalition,
 			boolean genAdv) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -318,6 +300,8 @@ public class CSGModelChecker extends ProbModelChecker
 		BitSet no, yes;
 		int n, numYes, numNo;
 		long timerProb0, timerProb1;
+		boolean bounded = (bound != maxIters);
+		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability...");
 		n = csg.getNumStates();
@@ -336,7 +320,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, !min1);
 		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
+		if (!bounded && precomp && prob0) {
 			no.or(target);
 			no.flip(0, n);
 			no = G(csg, no);
@@ -350,8 +334,12 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
-			yes.or(AF(csg, target));
+		if (!bounded && precomp && prob1) {
+			if (!genStrat) {
+				yes.or(AF(csg, target));
+			} else {
+				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
+			}
 		}
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 
@@ -384,12 +372,12 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
-	 * @param k Bound
+	 * @param bound Bound
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeUntilProbs(CSG csg, BitSet remain, BitSet target, int bound, boolean min1, boolean min2, Coalition coalition)
+	public ModelCheckerResult computeUntilProbs(CSG<Double> csg, BitSet remain, BitSet target, int bound, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -397,6 +385,9 @@ public class CSGModelChecker extends ProbModelChecker
 		BitSet no, tmp, yes;
 		int n, numYes, numNo;
 		long timerProb0, timerProb1;
+
+		boolean bounded = (bound != maxIters);
+		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability (until)...");
 		n = csg.getNumStates();
@@ -416,7 +407,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 		buildCoalitions(csg, coalition, !min1);
 		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
+		if (!bounded && precomp && prob0) {
 			no.or(target);
 			no.flip(0, n);
 			no = G(csg, no);
@@ -428,16 +419,20 @@ public class CSGModelChecker extends ProbModelChecker
 		tmp.andNot(remain);
 		tmp.andNot(target);
 		no.or(tmp);
-		
+
 		// If <<C>>Pmax=?[phi1 U ph2], sets coalition to compute <<C>>Pmax>=1 [F phi2] to compute the set "yes"", that is, the
 		// set of states from which C can reach phi with proability 1 while remaining in phi1
 		// If <<C>>Pmin=? [phi1 U phi2], sets coalition to compute <<N\C>>Pmax>=1 [F phi2] to compute the set "yes", that is, the
 		// set of state from which N\C can force C to reach phi with probability 1 while remaining in phi1
-
+		
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
-			yes.or(AF(csg, remain, target));
+		if (!bounded && precomp && prob1) {
+			if (!genStrat) {
+				yes.or(AF(csg, remain, target));
+			} else {
+				mainLog.println("Disabling Prob1 precomputation to allow strategy generation");
+			}
 		}
 		timerProb1 = System.currentTimeMillis() - timerProb1;
 		yes.or(target);
@@ -456,9 +451,9 @@ public class CSGModelChecker extends ProbModelChecker
 		}
 
 		res.timeProb0 = timerProb0 / 1000.0;
-		res.timePre = (timerProb0 + timerProb1) / 1000.0;				
+		res.timePre = (timerProb0 + timerProb1) / 1000.0;
 		if (verbosity >= 1)
-			mainLog.println("Precomputation took " +  res.timePre / 1000.0 + " seconds.");
+			mainLog.println("Precomputation took " + res.timePre + " seconds.");
 		return res;
 	}
 
@@ -471,11 +466,10 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param limit Bound
 	 * @param bounded Is the problem (step) bounded?
 	 * @param min Min or max probabilities for player 1 (true=min, false=max)
-	 * @param coalition The coalition of players which define player 1
 	 **/
-	public ModelCheckerResult computeReachProbsValIter(CSG csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
+	public ModelCheckerResult computeReachProbsValIter(CSG<Double> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
-		if ((genStrat || exportAdv) && bounded) {
+		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
 		LpSolve lp;
@@ -489,7 +483,7 @@ public class CSGModelChecker extends ProbModelChecker
 		long timer;
 		int i, k, s;
 		boolean done = false;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			// player -> iteration -> state -> indexes -> value
@@ -531,10 +525,10 @@ public class CSGModelChecker extends ProbModelChecker
 					mgame = buildMatrixGame(csg, null, mmap, ntmp, s, min);
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, false, min);
 					// player -> iteration -> state -> indexes -> value
-					if (genStrat || exportAdv) {
+					if (genStrat) {
 						updateStrategy(kstrat, lstrat, k, s, bounded);
-					} 
-				} else if (genStrat || exportAdv) {
+					}
+				} else if (genStrat) {
 					lstrat.get(0).get(0).add(s, null);
 				}
 			}
@@ -553,7 +547,7 @@ public class CSGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = new ModelCheckerResult();
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat || exportAdv)
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
@@ -570,14 +564,14 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeInstantaneousRewards(CSG csg, CSGRewards csgRewards, Coalition coalition, int k, boolean min1, boolean min2)
+	public ModelCheckerResult computeInstantaneousRewards(CSG<Double> csg, CSGRewards<Double> csgRewards, Coalition coalition, int k, boolean min1, boolean min2)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		LpSolve lp;
 		ModelCheckerResult res = new ModelCheckerResult();
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
-		List<Map<BitSet, Double>> kstrat = (genStrat || exportAdv) ? new ArrayList<Map<BitSet, Double>>() : null;
+		List<Map<BitSet, Double>> kstrat = (genStrat) ? new ArrayList<Map<BitSet, Double>>() : null;
 		double nsol[], nsoln2[], ntmp[];
 		long timer;
 		int i, n;
@@ -602,10 +596,6 @@ public class CSGModelChecker extends ProbModelChecker
 				mgame.clear();
 				mgame = buildMatrixGame(csg, null, null, nsol, s, min1);
 				try {
-					if (min1)
-						lp.resizeLp(0, maxCols + 1);
-					else
-						lp.resizeLp(0, maxRows + 1);
 					nsoln2[s] = val(lp, mgame, kstrat, null, s, true, min1);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -638,7 +628,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param genAdv Whether or not to generate a strategy
 	 */
-	public ModelCheckerResult computeCumulativeRewards(CSG csg, CSGRewards csgRewards, Coalition coalition, int k, boolean min1, boolean min2, boolean genAdv)
+	public ModelCheckerResult computeCumulativeRewards(CSG<Double> csg, CSGRewards<Double> csgRewards, Coalition coalition, int k, boolean min1, boolean min2, boolean genAdv)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -664,7 +654,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeTotalRewards(CSG csg, CSGRewards rewards, Coalition coalition, boolean min1, boolean min2) throws PrismException
+	public ModelCheckerResult computeTotalRewards(CSG<Double> csg, CSGRewards<Double> rewards, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -750,7 +740,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param unreachingSemantics How to handle paths not reaching target
 	 */
-	public ModelCheckerResult computeReachRewards(CSG csg, CSGRewards rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2,
+	public ModelCheckerResult computeReachRewards(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2,
 			Coalition coalition) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -777,7 +767,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachRewardsInfinity(CSG csg, Coalition coalition, CSGRewards rewards, BitSet target, boolean min1, boolean min2)
+	public ModelCheckerResult computeReachRewardsInfinity(CSG<Double> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -857,19 +847,10 @@ public class CSGModelChecker extends ProbModelChecker
 				mainLog.println("Computing the upper bound where " + epsilon + " is used instead of 0.0");
 			}
 
-			// Modifies the rewards
-			double origZeroReplacement;
-			if (rewards instanceof CSGRewardsSimple) {
-				origZeroReplacement = ((CSGRewardsSimple) rewards).getZeroReplacement();
-				((CSGRewardsSimple) rewards).setZeroReplacement(epsilon);
-			} else {
-				throw new PrismException(
-						"To compute expected reward I need to modify the reward structure. But I don't know how to modify" + rewards.getClass().getName());
-			}
 			// Computes the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				init = computeReachRewardsValIter(csg, rewards, target, null, inf, null, maxIters, false, min1).soln;
+				init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1).soln;
 				break;
 			default:
 				throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -878,10 +859,6 @@ public class CSGModelChecker extends ProbModelChecker
 			// Set the value iteration result to be the initial solution for the
 			// next part in which "proper" zero rewards are used
 
-			// Returns the rewards to the original state
-			if (rewards instanceof CSGRewardsSimple) {
-				((CSGRewardsSimple) rewards).setZeroReplacement(origZeroReplacement);
-			}
 			timerApprox = System.currentTimeMillis() - timerApprox;
 
 			if (verbosity >= 1) {
@@ -921,7 +898,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachRewardsCumulative(CSG csg, Coalition coalition, CSGRewards rewards, BitSet target, boolean min1, boolean min2,
+	public ModelCheckerResult computeReachRewardsCumulative(CSG<Double> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2,
 			boolean genAdv) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -1016,10 +993,10 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param bounded Is the problem (step) bounded?
 	 * @param min Min or max probabilities for player 1 (true=min, false=max)
 	 **/
-	public ModelCheckerResult computeReachRewardsValIter(CSG csg, CSGRewards rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
+	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
-		if ((genStrat || exportAdv) && bounded) {
+		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -1034,7 +1011,7 @@ public class CSGModelChecker extends ProbModelChecker
 		long timer;
 		int i, k, s;
 		boolean done = false;
-		if (genStrat || exportAdv) {
+		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
 			// player -> iteration -> state -> indexes -> value
@@ -1086,7 +1063,7 @@ public class CSGModelChecker extends ProbModelChecker
 					mgame = buildMatrixGame(csg, rewards, mmap, ntmp, s, min);
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min);
 					nsol[s] += rewards.getStateReward(s);
-					if (genStrat || exportAdv) {
+					if (genStrat) {
 						// player -> iteration -> state -> indexes -> value
 						updateStrategy(kstrat, lstrat, k, s, bounded);
 					}
@@ -1106,15 +1083,15 @@ public class CSGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat || exportAdv)
+		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
-	
+
 	/**
-	 * Deal with two-player bounded probabilistic reachability formulae
-	 * 
+	 * Deals with two-player bounded probabilistic reachability formulae
+	 *
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
 	 * @param exprs The list of objectives
@@ -1125,17 +1102,18 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeProbBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<ExpressionTemporal> exprs, BitSet[] targets,
+	public ModelCheckerResult computeProbBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<ExpressionTemporal> exprs, BitSet[] targets,
 			BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeBoundedEquilibria(csg, coalitions, null, exprs, targets, remain, bounds, eqType, crit, min);
 		return res;
 	}
 
 	/**
-	 * Deal with two-player probabilistic reachability formulae
+	 * Deals with two-player probabilistic reachability formulae
 	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
@@ -1145,17 +1123,18 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeProbReachEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, 
-			int eqType, int crit, boolean min) throws PrismException 
+	public ModelCheckerResult computeProbReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, int eqType, int crit, boolean min)
+			throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeReachEquilibria(csg, coalitions, null, targets, remain, eqType, crit, min);
 		return res;
 	}
 
 	/**
-	 * Deal with two-player bounded reachability rewards
+	 * Deals with two-player bounded reachability rewards
 	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
@@ -1166,17 +1145,18 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeRewBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs,
+	public ModelCheckerResult computeRewBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs,
 			int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, eqType, crit, min);
 		return res;
 	}
 
 	/**
-	 * Deal with two-player reachability rewards formulae
+	 * Deals with two-player reachability rewards formulae
 	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
@@ -1186,18 +1166,18 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeRewReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, 
-			int eqType, int crit, boolean min)
+	public ModelCheckerResult computeRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, int eqType, int crit, boolean min)
 			throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		res = csgeq.computeReachEquilibria(csg, coalitions, rewards, targets, null, eqType, crit, min);
 		return res;
 	}
 
 	/**
-	 * Deal with multi-player bounded probabilistic formulae
+	 * Deals with multi-player bounded probabilistic formulae
 	 * 
 	 * @param csg
 	 * @param coalitions
@@ -1232,7 +1212,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeMultiRewBoundedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs, 
+	public ModelCheckerResult computeMultiRewBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, 
 			int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
@@ -1272,7 +1252,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeMultiRewReachEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, BitSet[] targets, 
+	public ModelCheckerResult computeMultiRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, 
 			int eqType, int crit, boolean min)
 			throws PrismException
 	{
@@ -1283,7 +1263,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with computing mixed bounded and unbounded equilibria.
+	 * Deals with computing mixed bounded and unbounded equilibria.
 	 * 
 	 * @param csg The CSG
 	 * @param coalitions The list of coalitions
@@ -1297,14 +1277,15 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ModelCheckerResult computeMixedEquilibria(CSG csg, List<Coalition> coalitions, List<CSGRewards> rewards, List<ExpressionTemporal> exprs,
+	public ModelCheckerResult computeMixedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs,
 			BitSet bounded, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		csgeq.inheritSettings(this);
 		LTLModelChecker ltlmc = new LTLModelChecker(this);
-		LTLProduct<CSG> product;
-		List<CSGRewards> newrewards = new ArrayList<CSGRewards>();
+		LTLProduct<CSG<Double>> product;
+		List<CSGRewards<Double>> newrewards = new ArrayList<>();
 		BitSet newremain[];
 		BitSet newtargets[];
 		int index, i, s, t;
@@ -1385,8 +1366,8 @@ public class CSGModelChecker extends ProbModelChecker
 			product = ltlmc.constructProductCSG(this, csg, exprs.get(index), null, allowedAcceptance);
 		}
 
-		((ModelExplicit) product.productModel).clearInitialStates();
-		((ModelExplicit) product.productModel).addInitialState(product.getModelState(csg.getFirstInitialState()));
+		((ModelExplicit<Double>) product.productModel).clearInitialStates();
+		((ModelExplicit<Double>) product.productModel).addInitialState(product.getModelState(csg.getFirstInitialState()));
 
 		/*
 		product.productModel.exportToDotFile(path + "/product.dot");
@@ -1424,12 +1405,12 @@ public class CSGModelChecker extends ProbModelChecker
 
 		if (rew) {
 			for (i = 0; i < coalitions.size(); i++) {
-				CSGRewards reward = new CSGRewardsSimple(product.productModel.getNumStates());
+				CSGRewards<Double> reward = new CSGRewardsSimple<>(product.productModel.getNumStates());
 				if (i != index) {
 					for (s = 0; s < product.productModel.getNumStates(); s++) {
-						((CSGRewardsSimple) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
+						((CSGRewardsSimple<Double>) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
 						for (t = 0; t < product.productModel.getNumChoices(s); t++) {
-							((CSGRewardsSimple) reward).addToTransitionReward(s, t, rewards.get(i).getTransitionReward(product.getModelState(s), t));
+							((CSGRewardsSimple<Double>) reward).addToTransitionReward(s, t, rewards.get(i).getTransitionReward(product.getModelState(s), t));
 						}
 					}
 				} else {
@@ -1440,24 +1421,24 @@ public class CSGModelChecker extends ProbModelChecker
 								for (Iterator<Integer> iter = product.productModel.getSuccessorsIterator(s, t); iter.hasNext();) {
 									int u = iter.next();
 									if (newtargets[index].get(u)) {
-										((CSGRewardsSimple) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
+										((CSGRewardsSimple<Double>) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
 									}
 								}
-								((CSGRewardsSimple) reward).addToTransitionReward(s, t, 0.0);
+								((CSGRewardsSimple<Double>) reward).addToTransitionReward(s, t, 0.0);
 							}
 						}
 						break;
 					case ExpressionTemporal.R_C:
 						for (s = 0; s < product.productModel.getNumStates(); s++) {
 							if (!newtargets[index].get(s)) {
-								((CSGRewardsSimple) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
+								((CSGRewardsSimple<Double>) reward).addToStateReward(s, rewards.get(i).getStateReward(product.getModelState(s)));
 								for (t = 0; t < product.productModel.getNumChoices(s); t++) {
-									((CSGRewardsSimple) reward).addToTransitionReward(s, t, rewards.get(i).getTransitionReward(product.getModelState(s), t));
+									((CSGRewardsSimple<Double>) reward).addToTransitionReward(s, t, rewards.get(i).getTransitionReward(product.getModelState(s), t));
 								}
 							} else {
-								((CSGRewardsSimple) reward).addToStateReward(s, 0.0);
+								((CSGRewardsSimple<Double>) reward).addToStateReward(s, 0.0);
 								for (t = 0; t < product.productModel.getNumChoices(s); t++) {
-									((CSGRewardsSimple) reward).addToTransitionReward(s, t, 0.0);
+									((CSGRewardsSimple<Double>) reward).addToTransitionReward(s, t, 0.0);
 								}
 							}
 						}
@@ -1508,7 +1489,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Auxiliary method (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public BitSet A(ArrayList<ArrayList<Distribution>> mdist, BitSet v2, BitSet y)
+	public BitSet A(ArrayList<ArrayList<Distribution<Double>>> mdist, BitSet v2, BitSet y)
 	{
 		BitSet result = new BitSet();
 		int col, row;
@@ -1528,7 +1509,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Auxiliary method (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public BitSet B(ArrayList<ArrayList<Distribution>> mdist, BitSet v1, BitSet x)
+	public BitSet B(ArrayList<ArrayList<Distribution<Double>>> mdist, BitSet v1, BitSet x)
 	{
 		BitSet result = new BitSet();
 		int col, row;
@@ -1546,13 +1527,12 @@ public class CSGModelChecker extends ProbModelChecker
 		return result;
 	}
 
-
 	/*
 	 * Auxiliary method for AF (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public BitSet apreXY(CSG csg, BitSet x, BitSet y) throws PrismException
+	public BitSet apreXY(CSG<Double> csg, BitSet x, BitSet y) throws PrismException
 	{
-		ArrayList<ArrayList<Distribution>> mdist;
+		ArrayList<ArrayList<Distribution<Double>>> mdist;
 		BitSet result = new BitSet();
 		int s;
 		for (s = 0; s < csg.getNumStates(); s++) {
@@ -1565,7 +1545,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Eventually b
 	 */
-	public BitSet AF(CSG csg, BitSet b) throws PrismException
+	public BitSet AF(CSG<Double> csg, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet x, y, sol1;
@@ -1596,7 +1576,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Eventually b, while remaining in a
 	 */
-	public BitSet AF(CSG csg, BitSet a, BitSet b) throws PrismException
+	public BitSet AF(CSG<Double> csg, BitSet a, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet x, y, sol1;
@@ -1628,7 +1608,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Auxiliary method for AFG (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public boolean apreXYZ(ArrayList<ArrayList<Distribution>> mdist, BitSet x, BitSet y, BitSet z)
+	public boolean apreXYZ(ArrayList<ArrayList<Distribution<Double>>> mdist, BitSet x, BitSet y, BitSet z)
 	{
 		BitSet a, ab, e, v;
 		e = new BitSet();
@@ -1653,9 +1633,9 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Auxiliary method for AFG (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public BitSet apreXYZ(CSG csg, BitSet x, BitSet y, BitSet z) throws PrismException
+	public BitSet apreXYZ(CSG<Double> csg, BitSet x, BitSet y, BitSet z) throws PrismException
 	{
-		ArrayList<ArrayList<Distribution>> mdist;
+		ArrayList<ArrayList<Distribution<Double>>> mdist;
 		BitSet result = new BitSet();
 		for (int s = 0; s < csg.getNumStates(); s++) {
 			mdist = buildMatrixDist(csg, s);
@@ -1667,7 +1647,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Eventually globally b
 	 */
-	public BitSet AFG(CSG csg, BitSet b) throws PrismException
+	public BitSet AFG(CSG<Double> csg, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet x, y, z, sol1, sol2;
@@ -1710,7 +1690,7 @@ public class CSGModelChecker extends ProbModelChecker
 		return z;
 	}
 
-	public boolean pre1(ArrayList<ArrayList<Distribution>> mdist, BitSet x)
+	public boolean pre1(ArrayList<ArrayList<Distribution<Double>>> mdist, BitSet x)
 	{
 		int row, col;
 		boolean b = false;
@@ -1725,19 +1705,19 @@ public class CSGModelChecker extends ProbModelChecker
 		return b;
 	}
 
-	public void pre1(CSG csg, BitSet x, BitSet sol) throws PrismException
+	public void pre1(CSG<Double> csg, BitSet x, BitSet sol) throws PrismException
 	{
-		ArrayList<ArrayList<Distribution>> mdist;
+		ArrayList<ArrayList<Distribution<Double>>> mdist;
 		for (int s = 0; s < csg.getNumStates(); s++) {
 			mdist = buildMatrixDist(csg, s);
 			sol.set(s, pre1(mdist, x));
 		}
 	}
-	
+
 	/*
 	 * Globally b
 	 */
-	public BitSet G(CSG csg, BitSet b) throws PrismException
+	public BitSet G(CSG<Double> csg, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet sol1, x;
@@ -1759,32 +1739,6 @@ public class CSGModelChecker extends ProbModelChecker
 	// Utility methods for CSG solving
 	
 	/**
-	 * Update the strategy
-	 * 
-	 * @param kstrat The strategies for all states computed in iteration k 
-	 * @param lstrat The overall strategy
-	 * @param k Iteration k, if bounded
-	 * @param s The index of the state
-	 * @param bounded
-	 */
-	public void updateStrategy(List<Map<BitSet, Double>> kstrat, List<List<List<Map<BitSet, Double>>>> lstrat, int k, int s, boolean bounded) {
-		// player -> iteration -> state -> indexes -> value
-		if (bounded) {
-			if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
-				lstrat.get(0).get(k).set(s, kstrat.get(s));
-			} else {
-				lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
-			}
-		} else {
-			if (lstrat.get(0).get(0).get(s) == null) {
-				lstrat.get(0).get(0).set(s, kstrat.get(s));
-			} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-				lstrat.get(0).get(0).set(s, kstrat.get(s));
-			}
-		}
-	}
-	
-	/**
 	 * Compute and store information about coalitions (for a zero-sum problem):
 	 * - numPlayers and numCoalitions
 	 * - coalitionIndexes (players in each coalition)
@@ -1798,7 +1752,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param coalition The coalition of players which aims to minimise/maximise
 	 * @param min Min or max values for the coalition (true=min, false=max)
 	 */
-	public void buildCoalitions(CSG csg, Coalition coalition, boolean min) throws PrismException
+	public void buildCoalitions(CSG<Double> csg, Coalition coalition, boolean min) throws PrismException
 	{
 		if (coalition == null || coalition.isEmpty()) {
 			throw new PrismException("Coalitions must not be empty");
@@ -1848,7 +1802,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * 
 	 * @param csg The CSG
 	 */
-	public void findMaxRowsCols(CSG csg)
+	public void findMaxRowsCols(CSG<Double> csg)
 	{
 		int p, mc, mr, s;
 		maxRows = 0;
@@ -1883,14 +1837,14 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public ArrayList<ArrayList<Distribution>> buildMatrixDist(CSG csg, int s) throws PrismException
+	public ArrayList<ArrayList<Distribution<Double>>> buildMatrixDist(CSG<Double> csg, int s) throws PrismException
 	{
-		ArrayList<ArrayList<Distribution>> mdist = new ArrayList<ArrayList<Distribution>>();
+		ArrayList<ArrayList<Distribution<Double>>> mdist = new ArrayList<>();
 		BitSet action = new BitSet();
 		int col, row;
 		buildStepGame(csg, null, null, null, s);
 		for (row = 0; row < strategies.get(0).size(); row++) {
-			mdist.add(row, new ArrayList<Distribution>());
+			mdist.add(row, new ArrayList<>());
 			action.clear();
 			action.set(strategies.get(0).get(row));
 			for (col = 0; col < strategies.get(1).size(); col++) {
@@ -1922,18 +1876,18 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param s Index of state to build matrix game for 
 	 * @param min Min or max values for the coalition (true=min, false=max)
 	 */
-	public ArrayList<ArrayList<Double>> buildMatrixGame(CSG csg, CSGRewards r, Map<Integer, BitSet> mmap, double[] val, int s, boolean min)
+	public ArrayList<ArrayList<Double>> buildMatrixGame(CSG<Double> csg, CSGRewards<Double> r, Map<Integer, BitSet> mmap, double[] val, int s, boolean min)
 			throws PrismException
 	{
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
-		ArrayList<CSGRewards> rewards = null;
+		ArrayList<CSGRewards<Double>> rewards = null;
 		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
 		Map<Integer, BitSet> rmap;
 		BitSet action = new BitSet();
 		int col, row;
 		// Build matrix game info
 		if (r != null) {
-			rewards = new ArrayList<CSGRewards>();
+			rewards = new ArrayList<>();
 			rewards.add(0, r);
 		}
 		buildStepGame(csg, rewards, imap, val, s);
@@ -1994,7 +1948,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param val Array (over states) of values to multiply by when computing matrix values
 	 * @param s Index of state to build matrix game for 
 	 */
-	public void buildStepGame(CSG csg, List<CSGRewards> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException
+	public void buildStepGame(CSG<Double> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException
 	{
 		BitSet jidx;
 		BitSet indexes = new BitSet();
@@ -2061,7 +2015,7 @@ public class CSGModelChecker extends ProbModelChecker
 			// Compute matrix value and store
 			// (also store distribution and update allEqual/minEntry)
 			utilities.put(jidx, new ArrayList<Double>());
-			probabilities.put(jidx, new ArrayList<Distribution>());
+			probabilities.put(jidx, new ArrayList<Distribution<Double>>());
 			v = 0.0;
 			if (val != null) {
 				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext();) {
@@ -2086,7 +2040,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Solve a matrix game and return its value.
+	 * Solves a matrix game and return its value.
 	 * If requested, store an optimal strategy for the coalition being solved for.   
 	 * 
 	 * @param lp LpSolve instance to use for solving
@@ -2109,7 +2063,7 @@ public class CSGModelChecker extends ProbModelChecker
 		Map<BitSet, Double> d = new HashMap<BitSet, Double>();
 		// Special cases
 		if (allEqual) {
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(0), 1.0);
 				strat.set(s, d);
 			}
@@ -2123,7 +2077,7 @@ public class CSGModelChecker extends ProbModelChecker
 					srow = (min) ? col : 0;
 				}
 			}
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(srow), 1.0); // In case of min, rmap maps columns not rows
 				strat.set(s, d);
 			}
@@ -2137,7 +2091,7 @@ public class CSGModelChecker extends ProbModelChecker
 					scol = (min) ? 0 : row;
 				}
 			}
-			if (genStrat || exportAdv) {
+			if (genStrat) {
 				d.put(rmap.get(scol), 1.0);
 				strat.set(s, d);
 			}
@@ -2148,7 +2102,7 @@ public class CSGModelChecker extends ProbModelChecker
 			infty = valInfinity(mgame);
 			if (infty != -1) {
 				res = Double.POSITIVE_INFINITY;
-				if (genStrat || exportAdv) {
+				if (genStrat) {
 					d.put(rmap.get(infty), 1.0);
 				}
 				return res;
@@ -2178,7 +2132,7 @@ public class CSGModelChecker extends ProbModelChecker
 						res = lp.getObjective();
 						double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 						lp.getVariables(values);
-						if (genStrat || exportAdv) {
+						if (genStrat) {
 							for (int row = 1; row <= nrows; row++) {
 								if (values[row] > 0)
 									d.put(rmap.get(row - 1), values[row]);
@@ -2212,7 +2166,7 @@ public class CSGModelChecker extends ProbModelChecker
 							res = lp.getObjective();
 							double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 							lp.getVariables(values);
-							if (genStrat || exportAdv) {
+							if (genStrat) {
 								for (int row = 1; row <= nrows; row++) {
 									if (values[row] > 0)
 										d.put(rmap.get(row - 1), values[row]);
@@ -2235,7 +2189,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with infinite cases in solving a matrix game.
+	 * Deals with infinite cases in solving a matrix game.
 	 * If all values in some row are +inf, return the index of that row (it's optimal).
 	 * Then remove any column containing a +inf and return -1. 
 	 */
@@ -2355,6 +2309,33 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Update the strategy
+	 *
+	 * @param kstrat The strategies for all states computed in iteration k
+	 * @param lstrat The overall strategy
+	 * @param k Iteration k, if bounded
+	 * @param s The index of the state
+	 * @param bounded
+	 */
+	public void updateStrategy(List<Map<BitSet, Double>> kstrat, List<List<List<Map<BitSet, Double>>>> lstrat, int k, int s, boolean bounded)
+	{
+		// player -> iteration -> state -> indexes -> value
+		if (bounded) {
+			if (lstrat.get(0).get(k).get(s) == null || !lstrat.get(0).get(k - 1).get(s).equals(kstrat.get(s))) {
+				lstrat.get(0).get(k).set(s, kstrat.get(s));
+			} else {
+				lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
+			}
+		} else {
+			if (lstrat.get(0).get(0).get(s) == null) {
+				lstrat.get(0).get(0).set(s, kstrat.get(s));
+			} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
+				lstrat.get(0).get(0).set(s, kstrat.get(s));
+			}
+		}
+	}
+
+	/**
 	 * Constructs the DRA for the CSGxDRA product when computing mixed bounded equilibria.
 	 * @param labelA Label for accepting states
 	 * @param bounds Bound for either cumulative or instant rewards
@@ -2428,12 +2409,12 @@ public class CSGModelChecker extends ProbModelChecker
 	protected HashMap<Integer, Integer> map_state;
 	protected List<State> list_state;
 
-	public void filterStates(CSG csg, CSGSimple csg_rm, List<CSGRewards> rewards, List<CSGRewards> rew_rm, int s)
+	public void filterStates(CSG<Double> csg, CSGSimple<Double> csg_rm, List<CSGRewards<Double>> rewards, List<CSGRewards<Double>> rew_rm, int s)
 	{
 		int i;
 		list_state.add(csg.getStatesList().get(s));
 		for (int c = 0; c < csg.getNumChoices(s); c++) { // gets all choices
-			Distribution d = new Distribution();
+			Distribution<Double> d = new Distribution<>();
 			csg.forEachTransition(s, c, (__, t, pr) -> { // gets all targets
 				if (!map_state.keySet().contains(t)) { // if not yet explored
 					map_state.put(t, csg_rm.addState());
@@ -2446,14 +2427,14 @@ public class CSGModelChecker extends ProbModelChecker
 			if (rewards != null && rew_rm != null) {
 				for (int r = 0; r < rewards.size(); r++) {
 					if (rewards.get(r) != null && rew_rm.get(r) != null)
-						((CSGRewardsSimple) rew_rm.get(r)).addToTransitionReward(map_state.get(s), i, rewards.get(r).getTransitionReward(s, c));
+						((CSGRewardsSimple<Double>) rew_rm.get(r)).addToTransitionReward(map_state.get(s), i, rewards.get(r).getTransitionReward(s, c));
 				}
 			}
 		}
 		if (rewards != null && rew_rm != null) {
 			for (int r = 0; r < rewards.size(); r++) {
 				if (rewards.get(r) != null && rew_rm.get(r) != null)
-					((CSGRewardsSimple) rew_rm.get(r)).addToStateReward(map_state.get(s), rewards.get(r).getStateReward(s));
+					((CSGRewardsSimple<Double>) rew_rm.get(r)).addToStateReward(map_state.get(s), rewards.get(r).getStateReward(s));
 			}
 		}
 	}

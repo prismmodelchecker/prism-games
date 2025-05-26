@@ -109,8 +109,8 @@ import userinterface.graph.Graph;
 public class SimulatorEngine extends PrismComponent
 {
 	// The current parsed model + info
-	private ModelGenerator modelGen;
-	private RewardGenerator rewardGen;
+	private ModelGenerator<Double> modelGen;
+	private RewardGenerator<Double> rewardGen;
 	private ModelType modelType;
 	// Variable info
 	private VarList varList;
@@ -119,7 +119,7 @@ public class SimulatorEngine extends PrismComponent
 	private Values mfConstants;
 
 	// Loaded strategy
-	private StrategyGenerator stratGen;
+	private StrategyGenerator<Double> stratGen;
 	// Whether the strategy should be enforced
 	private boolean stratEnforced;
 
@@ -190,16 +190,24 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
+	 * Re-initialise the random number generator using a specified seed.
+	 */
+	public void setRandomNumberGeneratorSeed(int seed)
+	{
+		rng = new RandomNumberGenerator(seed);
+	}
+
+	/**
 	 * Loads a new model (and its rewards) into the simulator.
 	 * Note: All constants in the model must have already been defined.
 	 * @param modelGen The model generator for simulation
 	 * @param rewardGen Reward generator for simulation (null if not needed)
 	 */
-	public void loadModel(ModelGenerator modelGen, RewardGenerator rewardGen) throws PrismException
+	public void loadModel(ModelGenerator<Double> modelGen, RewardGenerator<Double> rewardGen) throws PrismException
 	{
 		// Create an empty RewardGenerator if missing
 		if (rewardGen == null) {
-			rewardGen = new RewardGenerator() {} ;
+			rewardGen = new RewardGenerator<Double>() {} ;
 		}
 		
 		// Store model, some info and constants
@@ -225,7 +233,7 @@ public class SimulatorEngine extends PrismComponent
 	 * Typically, {@link #loadModel(ModelGenerator, RewardGenerator) is used.
 	 * @param modelGen The model generator for simulation
 	 */
-	public void loadModel(ModelGenerator modelGen) throws PrismException
+	public void loadModel(ModelGenerator<Double> modelGen) throws PrismException
 	{
 		loadModel(modelGen, null);
 	}
@@ -249,7 +257,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get access to the currently loaded model
 	 */
-	public ModelGenerator getModel()
+	public ModelGenerator<Double> getModel()
 	{
 		return modelGen;
 	}
@@ -257,7 +265,7 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get access to the currently loaded reward generator
 	 */
-	public RewardGenerator getRewardGenerator()
+	public RewardGenerator<Double> getRewardGenerator()
 	{
 		return rewardGen;
 	}
@@ -271,7 +279,7 @@ public class SimulatorEngine extends PrismComponent
 	 * This will be enforced (during automated exploration or path generation)
 	 * by default; call {@code setStrategyEnforced(false)} to disable.
 	 */
-	public void loadStrategy(StrategyGenerator stratGen)
+	public void loadStrategy(StrategyGenerator<Double> stratGen)
 	{
 		this.stratGen = stratGen;
 		setStrategyEnforced(true);
@@ -298,7 +306,7 @@ public class SimulatorEngine extends PrismComponent
 	 * Get the strategy currently loaded into the simulator, if present.
 	 * Returns null if none loaded.
 	 */
-	public StrategyGenerator getStrategy()
+	public StrategyGenerator<Double> getStrategy()
 	{
 		return stratGen;
 	}
@@ -458,7 +466,7 @@ public class SimulatorEngine extends PrismComponent
 			executeTransition(i, 0, -1);
 			break;
 		default:
-			throw new PrismNotSupportedException(modelType + " not supported");
+			throw new PrismNotSupportedException("Automatic exploration not supported for " + modelType + "s");
 		}
 
 		return true;
@@ -921,7 +929,11 @@ public class SimulatorEngine extends PrismComponent
 	{
 		int numRewardStructs = rewardGen.getNumRewardStructs();
 		for (int r = 0; r < numRewardStructs; r++) {
-			stateRewards[r] = rewardGen.getStateReward(r, state);
+			if (rewardGen.rewardStructHasStateRewards(r)) {
+				stateRewards[r] = rewardGen.getStateReward(r, state);
+			} else {
+				stateRewards[r] = 0.0;
+			}
 		}
 	}
 	
@@ -932,7 +944,11 @@ public class SimulatorEngine extends PrismComponent
 	{
 		int numRewardStructs = rewardGen.getNumRewardStructs();
 		for (int r = 0; r < numRewardStructs; r++) {
-			transitionRewards[r] = rewardGen.getStateActionReward(r, state, action);
+			if (rewardGen.rewardStructHasTransitionRewards(r)) {
+				transitionRewards[r] = rewardGen.getStateActionReward(r, state, action);
+			} else {
+				transitionRewards[r] = 0.0;
+			}
 		}
 	}
 	
@@ -952,7 +968,7 @@ public class SimulatorEngine extends PrismComponent
 			index = modelGen.getTotalIndexOfTransition(i, offset);
 		}
 		// Get probability and action for transition
-		double p = modelGen.getTransitionProbability(i, offset);
+		Object p = modelGen.getTransitionProbabilityObject(i, offset);
 		Object action = modelGen.getChoiceAction(i);
 		String actionString = modelGen.getChoiceActionString(i);
 		// Compute its transition rewards
@@ -992,7 +1008,7 @@ public class SimulatorEngine extends PrismComponent
 			index = modelGen.getTotalIndexOfTransition(i, offset);
 		}
 		// Get probability and action for transition
-		double p = modelGen.getTransitionProbability(i, offset);
+		Object p = modelGen.getTransitionProbabilityObject(i, offset);
 		Object action = modelGen.getChoiceAction(i);
 		String actionString = modelGen.getChoiceActionString(i);
 		// Compute its transition rewards
@@ -1254,6 +1270,26 @@ public class SimulatorEngine extends PrismComponent
 		int i = modelGen.getChoiceIndexOfTransition(index);
 		int offset = modelGen.getChoiceOffsetOfTransition(index);
 		return getTransitionProbability(i, offset);
+	}
+
+	/**
+	 * Get a string for the probability/rate of a transition within a choice, specified by its index/offset.
+	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
+	 */
+	public String getTransitionProbabilityString(int i, int offset) throws PrismException
+	{
+		return modelGen.getTransitionProbabilityString(i, offset);
+	}
+
+	/**
+	 * Get a string for the probability/rate of a transition, specified by its index.
+	 * Usually, this is for the current (final) state of the path but, if you called {@link #computeTransitionsForStep(int step)}, it will be for this state instead.
+	 */
+	public String getTransitionProbabilityString(int index) throws PrismException
+	{
+		int i = modelGen.getChoiceIndexOfTransition(index);
+		int offset = modelGen.getChoiceOffsetOfTransition(index);
+		return getTransitionProbabilityString(i, offset);
 	}
 
 	/**

@@ -223,6 +223,15 @@ public class ASTTraverseModify implements ASTVisitor
 	}
 	public void visitPost(DeclarationIntUnbounded e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+	public void visitPre(DeclarationDoubleUnbounded e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(DeclarationDoubleUnbounded e) throws PrismLangException
+	{
+		visitPre(e);
+		visitPost(e);
+		return e;
+	}
+	public void visitPost(DeclarationDoubleUnbounded e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
 	public void visitPre(parser.ast.Module e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(parser.ast.Module e) throws PrismLangException
 	{
@@ -549,6 +558,17 @@ public class ASTTraverseModify implements ASTVisitor
 	}
 	public void visitPost(ExpressionVar e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionInterval e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionInterval e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getOperand1() != null) e.setOperand1((Expression)(e.getOperand1().accept(this)));
+		if (e.getOperand2() != null) e.setOperand2((Expression)(e.getOperand2().accept(this)));
+		visitPost(e);
+		return e;
+	}
+	public void visitPost(ExpressionInterval e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionProb e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionProb e) throws PrismLangException
 	{
@@ -601,6 +621,17 @@ public class ASTTraverseModify implements ASTVisitor
 		return e;
 	}
 	public void visitPost(ExpressionMultiNashProb e) throws PrismLangException { defaultVisitPost(e); }
+	// -----------------------------------------------------------------------------------
+	public void visitPre(ExpressionMultiNashReward e) throws PrismLangException { defaultVisitPre(e); }
+	public Object visit(ExpressionMultiNashReward e) throws PrismLangException
+	{
+		visitPre(e);
+		if (e.getExpression() != null)
+			e.setExpression((Expression)(((Expression)e.getExpression()).accept(this)));
+		visitPost(e);
+		return e;
+	}
+	public void visitPost(ExpressionMultiNashReward e) throws PrismLangException { defaultVisitPost(e); }
 	// -----------------------------------------------------------------------------------
 	public void visitPre(ExpressionSS e) throws PrismLangException { defaultVisitPre(e); }
 	public Object visit(ExpressionSS e) throws PrismLangException

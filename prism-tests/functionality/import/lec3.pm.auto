@@ -1,0 +1,4 @@
+-importmodel lec3.all -exportmodel lec3.all -ex
+-importmodel lec3.all -exportmodel lec3.all
+-importmodel lec3.tra,sta,lab,srew,trew -exportmodel lec3.tra,sta,lab,srew,trew -ex
+-importmodel lec3.tra,sta,lab,srew,trew -exportmodel lec3.tra,sta,lab,srew,trew

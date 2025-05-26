@@ -1,5 +1,8 @@
 package strat;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import explicit.NondetModel;
 import explicit.rewards.STPGRewards;
 
@@ -8,22 +11,23 @@ import explicit.rewards.STPGRewards;
  * @author aissim
  * @version
  */
-public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministicStrategy
+public class BoundedRewardDeterministicStrategy<Value> extends StepBoundedDeterministicStrategy<Value>
 {
 
 	// rewards
-	private double[] rewards;
+	private List<Value> rewards;
 
 	// number of states in the game for which the strategy is defined
 	private int nStates;
 
-	public BoundedRewardDeterministicStrategy(NondetModel model, int[][] choices, int bound, STPGRewards rewards)
+	public BoundedRewardDeterministicStrategy(NondetModel<Value> model, int[][] choices, int bound, STPGRewards<Value> rewards)
 	{
 		super(model, choices, bound);
 		nStates = choices.length;
-		this.rewards = new double[nStates];
-		for (int i = 0; i < nStates; i++)
-			this.rewards[i] = rewards.getStateReward(i);
+		this.rewards = new ArrayList<>(nStates);
+		for (int i = 0; i < nStates; i++) {
+			this.rewards.add(rewards.getStateReward(i));
+		}
 	}
 
 	/**
@@ -45,13 +49,13 @@ public class BoundedRewardDeterministicStrategy extends StepBoundedDeterministic
 	@Override
 	public int getInitialMemory(int sInit)
 	{
-		return bound - (int) rewards[sInit];
+		return bound - (int) (double) rewards.get(sInit);
 	}
 	
 	@Override
 	public int getUpdatedMemory(int m, Object action, int sNext)
 	{
-		int memory = m - (int) rewards[sNext];
+		int memory = m - (int) (double) rewards.get(sNext);
 		return memory < 0 ? 0 : memory;
 	}
 	

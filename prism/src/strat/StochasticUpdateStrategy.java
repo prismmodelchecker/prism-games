@@ -26,11 +26,8 @@
 
 package strat;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.AbstractMap.SimpleEntry;
@@ -44,9 +41,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import explicit.rewards.Rewards;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.apache.commons.math3.optim.MaxIter;
 import org.apache.commons.math3.optim.PointValuePair;
@@ -60,24 +57,21 @@ import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 
 import explicit.Distribution;
-import explicit.Model;
 import explicit.PPLSupport;
 import explicit.Pareto;
 import explicit.SMG;
-import explicit.rewards.SMGRewards;
 import parma_polyhedra_library.Generator;
 import parma_polyhedra_library.Generator_System;
 import parma_polyhedra_library.Generator_Type;
 import parma_polyhedra_library.Linear_Expression;
 import parma_polyhedra_library.Variable;
-import prism.Prism.StrategyExportType;
-import strat.StrategyInfo.Memory;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
+import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 
-public class StochasticUpdateStrategy extends StrategyExplicit
+public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 {
 	// turn on for specific debugging
 	private boolean log_problem = false;
@@ -98,7 +92,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * INITIAL DISTRIBUTION
 	 * first index: corner
 	 **/
-	protected Distribution alpha;
+	protected Distribution<Double> alpha;
 
 	/**
 	 * MEMORY UPDATE FUNCTION: PLAYER STATES
@@ -107,7 +101,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * third index: next (stochastic) state = next move
 	 * returns: distribution over next corner
 	 **/
-	protected Map<Integer, Map<Integer, Distribution>>[] pi_t; // pi_u(t, p, u)[q]
+	protected Map<Integer, Map<Integer, Distribution<Double>>>[] pi_t; // pi_u(t, p, u)[q]
 	/**
 	 * MEMORY UPDATE FUNCTION: STOCHASTIC STATES
 	 * first index: current state
@@ -116,7 +110,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * fourth index: next state
 	 * returns: distribution over next corner
 	 **/
-	protected Map<Integer, Map<Integer, Map<Integer, Distribution>>>[] pi_u; // pi_u((t,u), q, w)[j]
+	protected Map<Integer, Map<Integer, Map<Integer, Distribution<Double>>>>[] pi_u; // pi_u((t,u), q, w)[j]
 
 	/**
 	 * NEXT STATE FUNCTION
@@ -124,7 +118,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * second index: current corner
 	 * returns: distribution over next move (next corner is determined by pi_u)
 	 **/
-	protected Map<Integer, Distribution>[] pi_n; // pi_n(t, p) = u
+	protected Map<Integer, Distribution<Double>>[] pi_n; // pi_n(t, p) = u
 
 	// memory size
 	protected int memorySize = -1;
@@ -187,7 +181,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	}
 
 	//@Override
-	public Distribution getNextMove(int state) throws InvalidStrategyStateException
+	public Distribution<Double> getNextMove(int state) throws InvalidStrategyStateException
 	{
 	        if (log_problem) {
 			System.out.printf("getting next move: %d (last_state=%d, last_corner=%d)\n", state, lastState, lastCorner);
@@ -199,8 +193,8 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 
 		if(pi_n.length <= state || pi_n[state] == null)
 		    throw new InvalidStrategyStateException(String.format("No choice for state %i specified", state));
-		Distribution result = pi_n[state].get(lastCorner);
-		return result == null ? new Distribution() : result;
+		Distribution<Double> result = pi_n[state].get(lastCorner);
+		return result == null ? new Distribution<>() : result;
 	}
 
 	//@Override
@@ -234,7 +228,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 		}
 	}
 
-	public Distribution memoryUpdate(int action, int state) throws InvalidStrategyStateException
+	public Distribution<Double> memoryUpdate(int action, int state) throws InvalidStrategyStateException
 	{
 	        if(pi_t.length <= lastState
 		   || pi_t[lastState] == null
@@ -243,8 +237,8 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 		    throw new InvalidStrategyStateException("Cannot proceed to states not selected by the strategy. No stochastic memory update present");
 
 		// first go to stochastic state, according to the action
-		Distribution result = new Distribution();
-		Distribution state_to_action = pi_t[lastState].get(lastCorner).get(action);
+		Distribution<Double> result = new Distribution<>();
+		Distribution<Double> state_to_action = pi_t[lastState].get(lastCorner).get(action);
 		for (Integer tempCorner : state_to_action.getSupport()) { // for each corner at the stochastic state
 			double p_tC = state_to_action.get(tempCorner); // probability to go to tempCorner
 
@@ -255,7 +249,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 			   || pi_u[lastState].get(action).get(tempCorner).get(state) == null)
 			    throw new InvalidStrategyStateException("Cannot proceed to states not selected by the strategy. No stochastic memory update present");
 
-			Distribution action_to_state = pi_u[lastState].get(action).get(tempCorner).get(state);
+			Distribution<Double> action_to_state = pi_u[lastState].get(action).get(tempCorner).get(state);
 			if (action_to_state != null) {
 				for (Integer nextCorner : action_to_state.getSupport()) { // for each corner at the next state
 					double p_nC = action_to_state.get(nextCorner); // probability to go to nextCorner
@@ -269,8 +263,8 @@ public class StochasticUpdateStrategy extends StrategyExplicit
     public String memoryUpdateString(int state, int choice, int next, NumberFormat df) throws InvalidStrategyStateException
     {
 		// display probability and memory update
-		Distribution dist = getNextMove(state);
-		Distribution mu = memoryUpdate(choice, next);
+		Distribution<Double> dist = getNextMove(state);
+		Distribution<Double> mu = memoryUpdate(choice, next);
 		String label = df.format(dist.get(choice)) + " mu: {";
 		boolean first = true;
 		for (Integer m : mu.getSupport()) {
@@ -291,9 +285,9 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 		lastState = -1;
 	}
 
-	public Distribution parseDistribution(String line)
+	public Distribution<Double> parseDistribution(String line)
 	{
-		Distribution d = new Distribution();
+		Distribution<Double> d = new Distribution<>();
 		StringTokenizer st = new StringTokenizer(line.trim(), ",={}");
 		while (st.hasMoreTokens()) {
 			d.add(Integer.parseInt(st.nextToken().trim()), Double.parseDouble(st.nextToken().trim()));
@@ -540,7 +534,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	//@Override
 	public Object getCurrentMemoryElement()
 	{
-		Entry mem = new SimpleEntry<Integer, Integer>(lastState, lastCorner);
+		Entry<Integer, Integer> mem = new SimpleEntry<Integer, Integer>(lastState, lastCorner);
 		return mem;
 		// note that this can only be of a non-stochastic state,
 		// as strategy steps over these
@@ -763,8 +757,8 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * @param logStrategy turn logging on or off during strategy construction.
 	 * @param mainLog logger during the strategy construction.
 	 */
-	public StochasticUpdateStrategy(SMG G, double[] v, Pareto[] X, List<Pareto>[] Y, List<SMGRewards> rewards, double[] biggest_reward, long baseline_accuracy,
-					boolean reachable_only, boolean rounding, double varepsilon, boolean logStrategy, PrismLog mainLog) throws PrismException
+	public StochasticUpdateStrategy(SMG<Double> G, double[] v, Pareto[] X, List<Pareto>[] Y, List<Rewards<Double>> rewards, double[] biggest_reward, long baseline_accuracy,
+									boolean reachable_only, boolean rounding, double varepsilon, boolean logStrategy, PrismLog mainLog) throws PrismException
 	{
 		super(G);
 		
@@ -822,7 +816,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 
 		//----------------------------------------------------------------------
 		// INITIAL DISTRIBUTION
-		alpha = new Distribution(); // initialize initial distribution to empty.
+		alpha = new Distribution<>(); // initialize initial distribution to empty.
 
 		// put value of v - reward(t) into bounds for LP
 		double[] bounds = new double[n];
@@ -942,11 +936,11 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 
 					// initialize only if necessary, i.e. if t hasn't been visited yet
 					if (pi_n[t] == null)
-						pi_n[t] = new HashMap<Integer, Distribution>();
+						pi_n[t] = new HashMap<Integer, Distribution<Double>>();
 					if (pi_t[t] == null)
-						pi_t[t] = new HashMap<Integer, Map<Integer, Distribution>>();
+						pi_t[t] = new HashMap<Integer, Map<Integer, Distribution<Double>>>();
 					if (pi_u[t] == null)
-						pi_u[t] = new HashMap<Integer, Map<Integer, Map<Integer, Distribution>>>();
+						pi_u[t] = new HashMap<Integer, Map<Integer, Map<Integer, Distribution<Double>>>>();
 
 					// initialize corner tracking for successors of t
 					if (reachable_only) {
@@ -1000,7 +994,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * return value:
 	 * corners_to_cover ... whether new corners need to be covered in the reachable_only search
 	 **/
-	private boolean getP1Choices(SMG G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<SMGRewards> rewards,
+	private boolean getP1Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<Rewards<Double>> rewards,
 			long[] accuracy, SimplexSolver solver, boolean reachable_only, boolean rounding) throws PrismException
 	{
 		int n = rewards.size();
@@ -1024,7 +1018,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 					if (logStrategy) mainLog.print(String.format("looking for: t:%d p:%d(%s) ----> \n", t, p, Arrays.toString(LIST_gsX[t].get(p))));
 
 					if (!pi_t[t].containsKey(p)) {
-						pi_t[t].put(p, new HashMap<Integer, Distribution>());
+						pi_t[t].put(p, new HashMap<Integer, Distribution<Double>>());
 					}
 
 					// put value of p - reward(t) -varepsilon into bounds
@@ -1180,7 +1174,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 									}
 								}
 							}
-							Distribution next_move = new Distribution(); // NEXT MOVE - specific to t and p
+							Distribution<Double> next_move = new Distribution<>(); // NEXT MOVE - specific to t and p
 							go_through_moves: for (int u = 0; u < nt; u++) {
 								// calculate alpha^u
 								double alpha_u = 0.0;
@@ -1192,7 +1186,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 									continue go_through_moves;
 								next_move.add(u, alpha_u);
 
-								Distribution d = new Distribution(); // NEXT MEMORY - specific to t, p and u
+								Distribution<Double> d = new Distribution<>(); // NEXT MEMORY - specific to t, p and u
 								for (int i = 0; i < l; i++) {
 									Integer index = gss.get(u).indexOf(LIST_multiTuple.get(u).get(i));
 									double prob = solution_point[l * u + i] / alpha_u; // beta^u_i = gamma^u_i / alpha^u
@@ -1222,7 +1216,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 								}
 
 								if (pi_u[t].get(u) == null) { // make sure to not overwrite
-									pi_u[t].put(u, new HashMap<Integer, Map<Integer, Distribution>>());
+									pi_u[t].put(u, new HashMap<Integer, Map<Integer, Distribution<Double>>>());
 								}
 
 								int ntu = G.getNumTransitions(t, u);
@@ -1235,12 +1229,12 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 												c_Y[t].get(u).clear(q_index); // reset
 
 											if (pi_u[t].get(u).get(q_index) == null) { // make sure to not replace
-												pi_u[t].get(u).put(q_index, new HashMap<Integer, Distribution>());
+												pi_u[t].get(u).put(q_index, new HashMap<Integer, Distribution<Double>>());
 											}
 
 											// ll is number of objectives, i.e. number of required corners
 											// start with 1, continue up to n, i.e. total number of goals
-											Distribution[] action = null;
+											Distribution<Double>[] action = null;
 											search_for_stochastic_corners: for (int ll = 1; ll < n + 1; ll++) {
 												try {
 													action = getActions(G, ntu, u, t, q_index, ll, rewards, accuracy, solver, gsYtu, LIST_gsX, rounding);
@@ -1256,7 +1250,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 													Entry<Integer, Double> e_w = dtu.next();
 													int key_w = e_w.getKey();
 													double val_w = e_w.getValue();
-													Distribution mem_d = renormDistribution(action[w]);
+													Distribution<Double> mem_d = renormDistribution(action[w]);
 													pi_u[t].get(u).get(q_index).put(key_w, mem_d);
 													memorySize += action[w].size();
 													if (log_problem) System.out.printf("pi_u(%d)\tt:%d, u:%d, q:%d --w:%d--> %s \n", G.getPlayer(t), t, u, q_index, key_w, action[w].toString());
@@ -1334,7 +1328,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * return value:
 	 * corners_to_cover ... whether new corners need to be covered in the reachable_only search
 	 **/
-	private boolean getP2Choices(SMG G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<SMGRewards> rewards,
+	private boolean getP2Choices(SMG<Double> G, int t, List<Pareto>[] Y, List<double[]>[] LIST_gsX, BitSet[] c_X, Map<Integer, BitSet>[] c_Y, List<Rewards<Double>> rewards,
 			long[] accuracy, SimplexSolver solver, boolean reachable_only, boolean rounding) throws PrismException
 	{
 		int n = rewards.size();
@@ -1350,7 +1344,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 			// for each action need to build a new distribution
 			for (int u = 0; u < G.getNumChoices(t); u++) { // for each stochastic successor (i.e. action u)
 				if (pi_u[t].get(u) == null) { // make sure to not overwrite
-					pi_u[t].put(u, new HashMap<Integer, Map<Integer, Distribution>>());
+					pi_u[t].put(u, new HashMap<Integer, Map<Integer, Distribution<Double>>>());
 				}
 				if (log_problem) System.out.printf("looking for: t:%d --u:%d--> \n", t, u);
 				if (logStrategy) mainLog.print(String.format("looking for: t:%d --u:%d--> \n", t, u));
@@ -1378,7 +1372,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 						if (logStrategy) mainLog.print(String.format("looking for: t:%d p:%d(%s) --u:%d--> \n", t, p, Arrays.toString(LIST_gsX[t].get(p)), u));
 
 						if (!pi_t[t].containsKey(p)) {
-							pi_t[t].put(p, new HashMap<Integer, Distribution>());
+							pi_t[t].put(p, new HashMap<Integer, Distribution<Double>>());
 						}
 						// put value of p - reward(t) - varepsilon into bounds
 						bounds = new double[n];
@@ -1456,7 +1450,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 								}
 
 								// memory-update distribution for non-stochastic state part
-								Distribution d = new Distribution(); // specific to t, p, and u
+								Distribution<Double> d = new Distribution<>(); // specific to t, p, and u
 								for (int i = 0; i < l; i++) {
 									Integer q_index = gsYtu.indexOf(LIST_tuple.get(i));
 									double beta = solution.getPoint()[i]; // beta^u_i
@@ -1493,12 +1487,12 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 								c_Y[t].get(u).clear(q_index); // reset
 
 							if (pi_u[t].get(u).get(q_index) == null) { // make sure to not replace
-								pi_u[t].get(u).put(q_index, new HashMap<Integer, Distribution>());
+								pi_u[t].get(u).put(q_index, new HashMap<Integer, Distribution<Double>>());
 							}
 
 							// ll is number of objectives, i.e. number of required corners
 							// start with 1, continue up to n, i.e. total number of goals
-							Distribution[] action = null;
+							Distribution<Double>[] action = null;
 							search_for_stochastic_corners: for (int ll = 1; ll < n + 1; ll++) {
 								try {
 									action = getActions(G, ntu, u, t, q_index, ll, rewards, accuracy, solver, gsYtu, LIST_gsX, rounding);
@@ -1515,7 +1509,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 									Entry<Integer, Double> e_w = dtu.next();
 									int key_w = e_w.getKey();
 									double val_w = e_w.getValue();
-									Distribution d = renormDistribution(action[w]);
+									Distribution<Double> d = renormDistribution(action[w]);
 									pi_u[t].get(u).get(q_index).put(key_w, d);
 									memorySize += action[w].size();
 									if (log_problem) System.out.printf("pi_u(%d)\tt:%d, u:%d, q:%d --w:%d--> %s \n", G.getPlayer(t), t, u, q_index, key_w, action[w].toString());
@@ -1579,13 +1573,13 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	 * reachable_only ... only construct strategy with reachable corners and states
 	 * rounding ... whethe rounding is active
 	 **/
-	private Distribution[] getActions(SMG G, int ntu, int u, int t, int q, int n, List<SMGRewards> rewards, long[] accuracy, SimplexSolver solver,
+	private Distribution<Double>[] getActions(SMG<Double> G, int ntu, int u, int t, int q, int n, List<Rewards<Double>> rewards, long[] accuracy, SimplexSolver solver,
 			List<double[]> gsYtu, List<double[]>[] LIST_gsX, boolean rounding) throws PrismException
 	{
 		// interpret u as a stochastic state, and look at all its successors w
 
 		// the result:
-		Distribution[] stochastic = new Distribution[ntu];
+		Distribution<Double>[] stochastic = new Distribution[ntu];
 
 		int dim = rewards.size();
 
@@ -1692,7 +1686,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 			// can extract the distribution now from the solution
 			dtu = G.getTransitionsIterator(t, u);
 			for (int w = 0; w < ntu; w++) { // for each successor
-				stochastic[w] = new Distribution(); // initialize for corner q of u
+				stochastic[w] = new Distribution<>(); // initialize for corner q of u
 
 				int key_w = dtu.next().getKey();
 				for (int i = 0; i < n; i++) { // for each dimension
@@ -1715,9 +1709,9 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	/**
 	 * scales probabilities in a distribution to sum to one
 	 **/
-	private Distribution renormDistribution(Distribution d)
+	private Distribution<Double> renormDistribution(Distribution<Double> d)
 	{
-		Distribution result = new Distribution();
+		Distribution<Double> result = new Distribution<>();
 		double total = 0.0;
 		for (Entry<Integer, Double> e : d) {
 			total += e.getValue();
@@ -1729,19 +1723,25 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	}
 
 	@Override
-	public void exportActions(PrismLog out)
+	public prism.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismNotSupportedException("Strategy product not yet supported");
+	}
+
+	@Override
+	public void exportActions(PrismLog out, StrategyExportOptions options)
 	{
 		out.print(this.toString());
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public void exportIndices(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision)
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO
 	}
@@ -1754,7 +1754,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision)
+	public void exportDotFile(PrismLog out, StrategyExportOptions options)
 	{
 		// TODO Auto-generated method stub
 

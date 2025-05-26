@@ -47,28 +47,10 @@ import prism.PrismUtils;
  * choice indexing) in each equivalent state. This is enforced
  * when calling setObservation().
  */
-public class POMDPSimple extends MDPSimple implements POMDP
+public class POMDPSimple<Value> extends MDPSimple<Value> implements POMDP<Value>
 {
-	/**
-	 * Information about the observations of this model.
-	 * Each observation is a State containing the value for each observable.
-	 */
-	protected List<State> observationsList;
-
-	/**
-	 * Information about the unobservations of this model.
-	 * Each observation is a State containing the value of variables that are not observable.
-	 */
-	protected List<State> unobservationsList;
-
-	/** One state corresponding to each observation (used to look up info about it) */
-	protected List<Integer> observationStates;
-	
-	/** Observable assigned to each state */
-	protected List<Integer> observablesMap;
-
-	/** Unobservable assigned to each state */
-	protected List<Integer> unobservablesMap;
+	// Observations
+	protected ObservationsSimple observations;
 
 	// Constructors
 
@@ -78,7 +60,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	public POMDPSimple()
 	{
 		super();
-		initialiseObservables();
+		observations = new ObservationsSimple();
 	}
 
 	/**
@@ -87,94 +69,36 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	public POMDPSimple(int numStates)
 	{
 		super(numStates);
-		initialiseObservables();
+		observations = new ObservationsSimple(numStates);
 	}
 
 	/**
 	 * Copy constructor.
 	 */
-	public POMDPSimple(POMDPSimple pomdp)
+	public POMDPSimple(POMDPSimple<Value> pomdp)
 	{
 		super(pomdp);
-		observationsList = new ArrayList<>(pomdp.observationsList);
-		unobservationsList = new ArrayList<>(pomdp.unobservationsList);
-		observationStates = new ArrayList<>(pomdp.observationStates);
-		observablesMap = new ArrayList<>(pomdp.observablesMap);
-		unobservablesMap = new ArrayList<>(pomdp.unobservablesMap);
+		observations = new ObservationsSimple(pomdp.observations);
 	}
 
 	/**
 	 * Construct a POMDP from an existing one and a state index permutation,
 	 * i.e. in which state index i becomes index permut[i].
 	 */
-	public POMDPSimple(POMDPSimple pomdp, int permut[])
+	public POMDPSimple(POMDPSimple<Value> pomdp, int permut[])
 	{
 		super(pomdp, permut);
-		observationsList = new ArrayList<>(pomdp.observationsList);
-		unobservationsList = new ArrayList<>(pomdp.unobservationsList);
-		int numObservations = pomdp.getNumObservations();
-		observationStates = new ArrayList<>(numObservations);
-		for (int o = 0; o < numObservations; o++) {
-			int s = pomdp.observationStates.get(o);
-			observationStates.add(s == -1 ? -1 : permut[s]);
-		}
-		observablesMap = new ArrayList<Integer>(getNumStates());
-		unobservablesMap = new ArrayList<Integer>(getNumStates());
-		for (int s = 0; s < numStates; s++) {
-			observablesMap.add(-1);
-			unobservablesMap.add(-1);
-		}
-		for (int s = 0; s < numStates; s++) {
-			observablesMap.set(permut[s], pomdp.observablesMap.get(s));
-			unobservablesMap.set(permut[s], pomdp.unobservablesMap.get(s));
-		}
+		observations = new ObservationsSimple(pomdp.observations, permut);
 	}
 
 	/**
 	 * Construct a POMDP from an existing MDP.
 	 */
-	public POMDPSimple(MDPSimple mdp)
+	public POMDPSimple(MDPSimple<Value> mdp)
 	{
 		super(mdp);
-		initialiseObservables(mdp.numStates);
-		for (int s = 0; s < numStates; s++) {
-			// Observation of a state is the state itself
-			try {
-				setObservation(s, s);
-			} catch (PrismException e) {
-				// Won't happen
-			}
-			// Unobservation of a state is null
-			unobservablesMap.set(s, null);
-		}
-	}
-
-	/**
-	 * Initialise storage for observable info
-	 */
-	protected void initialiseObservables()
-	{
-		observationsList = new ArrayList<>();
-		unobservationsList = new ArrayList<>();
-		observationStates = new ArrayList<>();
-		observablesMap = new ArrayList<>();
-		unobservablesMap = new ArrayList<>();
-	}
-
-	/**
-	 * Initialise storage for observable info when the model has {@code numStates} states
-	 */
-	protected void initialiseObservables(int numStates)
-	{
-		observationsList = new ArrayList<>();
-		unobservationsList = new ArrayList<>();
-		observationStates = new ArrayList<>();
-		observablesMap = new ArrayList<>(numStates);
-		unobservablesMap = new ArrayList<>(numStates);
-		for (int i = 0; i < numStates; i++) {
-			observablesMap.add(-1);
-			unobservablesMap.add(-1);
-		}
+		observations = new ObservationsSimple(mdp.numStates);
+		observations.setIdentityObservations();
 	}
 
 	// Mutators (for ModelSimple)
@@ -183,18 +107,14 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	public void clearState(int s)
 	{
 		super.clearState(s);
-		observablesMap.set(s, -1);
-		unobservablesMap.set(s, -1);
+		observations.clearState(s);
 	}
 
 	@Override
 	public void addStates(int numToAdd)
 	{
 		super.addStates(numToAdd);
-		for (int i = 0; i < numToAdd; i++) {
-			observablesMap.add(-1);
-			unobservablesMap.add(-1);
-		}
+		observations.addStates(numToAdd);
 	}
 
 	// Mutators (other)
@@ -204,15 +124,15 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	 */
 	public void setObservationsList(List<State> observationsList)
 	{
-		this.observationsList = observationsList;
+		observations.setObservationsList(observationsList);
 	}
 
 	/**
-	 * Set the associated (read-only) observation list.
+	 * Set the associated (read-only) unobservation list.
 	 */
 	public void setUnobservationsList(List<State> unobservationsList)
 	{
-		this.unobservationsList = unobservationsList;
+		observations.setUnobservationsList(unobservationsList);
 	}
 
 	/**
@@ -228,30 +148,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	 */
 	public void setObservation(int s, State observ, State unobserv, List<String> observableNames) throws PrismException
 	{
-		// See if the observation already exists and add it if not
-		int oIndex = observationsList.indexOf(observ);
-		if (oIndex == -1) {
-			// Add new observation
-			observationsList.add(observ);
-			oIndex = observationsList.size() - 1;
-			// Also extend the observationStates list, to be filled shortly
-			observationStates.add(-1);
-		}
-		// Assign the observation (index) to the state
-		try {
-			setObservation(s, oIndex);
-		} catch (PrismException e) {
-			String sObs = observableNames == null ? observ.toString() : observ.toString(observableNames);
-			throw new PrismException("Problem with observation " + sObs + ": " + e.getMessage());
-		}
-		// See if the unobservation already exists and add it if not
-		int unobservIndex = unobservationsList.indexOf(unobserv);
-		if (unobservIndex == -1) {
-			unobservationsList.add(unobserv);
-			unobservIndex = unobservationsList.size() - 1;
-		}
-		// Assign the unobservation (index) to the state
-		unobservablesMap.set(s, unobservIndex);
+		observations.setObservation(s, observ, unobserv, observableNames, this);
 	}
 	
 	/**
@@ -263,71 +160,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	 */
 	protected void setObservation(int s, int o) throws PrismException
 	{
-		// Set observation
-		observablesMap.set(s, o);
-		// If this is first state with this observation, store its index
-		int observationState = observationStates.get(o);
-		if (observationState == -1) {
-			observationStates.set(o, s);
-		}
-		// Otherwise, check that the actions for existing states with
-		// the same observation match this one
-		else {
-			checkActionsMatchExactly(s, observationState);
-		}
-	}
-	
-	/**
-	 * Check that the available actions and their ordering
-	 * in states s1 and s2 match, and throw an exception if not.
-	 */
-	protected void checkActionsMatchExactly(int s1, int s2) throws PrismException
-	{
-		int numChoices = getNumChoices(s1);
-		if (numChoices != getNumChoices(s2)) {
-			throw new PrismException("Differing actions found in states: " + getAvailableActions(s1) + " vs. " + getAvailableActions(s2));
-		}
-		for (int i = 0; i < numChoices; i++) {
-			Object action1 = getAction(s1, i);
-			Object action2 = getAction(s2, i);
-			if (action1 == null) {
-				if (action2 != null) {
-					throw new PrismException("Differing actions found in states: " + getAvailableActions(s1) + " vs. " + getAvailableActions(s2));
-				}
-			} else {
-				if (!action1.equals(action2)) {
-					throw new PrismException("Differing actions found in states: " + getAvailableActions(s1) + " vs. " + getAvailableActions(s2));
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Check that the *sets* of available actions in states s1 and s2 match,
-	 * and throw an exception if not.
-	 */
-	protected void checkActionsMatch(int s1, int s2) throws PrismException
-	{
-		// Get and sort action strings for s1
-		List<String> s1Actions = new ArrayList<>();
-		int numChoices = getNumChoices(s1);
-		for (int i = 0; i < numChoices; i++) {
-			Object action = getAction(s1, i);
-			s1Actions.add(action == null ? "" : action.toString());
-		}
-        Collections.sort(s1Actions);
-		// Get and sort action strings for s2
-		List<String> s2Actions = new ArrayList<>();
-		numChoices = getNumChoices(s2);
-		for (int i = 0; i < numChoices; i++) {
-			Object action = getAction(s2, i);
-			s2Actions.add(action == null ? "" : action.toString());
-		}
-        Collections.sort(s2Actions);
-        // Check match
-		if (!(s1Actions.equals(s2Actions))) {
-			throw new PrismException("Differing actions found in states: " + s1Actions + " vs. " + s2Actions);
-		}
+		observations.setObservation(s, o, this);
 	}
 	
 	// Accessors (for PartiallyObservableModel)
@@ -335,31 +168,31 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	@Override
 	public List<State> getObservationsList()
 	{
-		return observationsList;
+		return observations.getObservationsList();
 	}
 
 	@Override
 	public List<State> getUnobservationsList()
 	{
-		return unobservationsList;
+		return observations.getUnobservationsList();
 	}
 
 	@Override
 	public int getObservation(int s)
 	{
-		return observablesMap == null ? -1 : observablesMap.get(s);
+		return observations.getObservation(s);
 	}
 
 	@Override
 	public int getUnobservation(int s)
 	{
-		return unobservablesMap.get(s);
+		return observations.getUnobservation(s);
 	}
 
 	@Override
 	public int getNumChoicesForObservation(int o)
 	{
-		return getNumChoices(observationStates.get(o));
+		return getNumChoices(observations.getObservationState(o));
 	}
 	
 	// Accessors (for POMDP)
@@ -367,7 +200,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	@Override
 	public Object getActionForObservation(int o, int i)
 	{
-		return getAction(observationStates.get(o), i);
+		return getAction(observations.getObservationState(o), i);
 	}
 	
 	@Override
@@ -407,7 +240,8 @@ public class POMDPSimple extends MDPSimple implements POMDP
 		double[] nextBeliefInDist = new double[n];
 		for (int sp = 0; sp < n; sp++) {
 			if (beliefInDist[sp] >= 1.0e-6) {
-				Distribution distr = getChoice(sp, i);
+				@SuppressWarnings("unchecked")
+				Distribution<Double> distr = (Distribution<Double>) getChoice(sp, i);
 				for (Map.Entry<Integer, Double> e : distr) {
 					int s = (Integer) e.getKey();
 					double prob = (Double) e.getValue();
@@ -484,7 +318,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	}
 	
 	@Override
-	public double getRewardAfterChoice(Belief belief, int i, MDPRewards mdpRewards)
+	public double getRewardAfterChoice(Belief belief, int i, MDPRewards<Double> mdpRewards)
 	{
 		double[] beliefInDist = belief.toDistributionOverStates(this);
 		double cost = getRewardAfterChoice(beliefInDist, i, mdpRewards);
@@ -492,7 +326,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	}
 
 	@Override
-	public double getRewardAfterChoice(double[] beliefInDist, int i, MDPRewards mdpRewards)
+	public double getRewardAfterChoice(double[] beliefInDist, int i, MDPRewards<Double> mdpRewards)
 	{
 		double cost = 0;
 		for (int s = 0; s < beliefInDist.length; s++) {
@@ -561,7 +395,7 @@ public class POMDPSimple extends MDPSimple implements POMDP
 	{
 		if (o == null || !(o instanceof POMDPSimple))
 			return false;
-		POMDPSimple mdp = (POMDPSimple) o;
+		POMDPSimple<?> mdp = (POMDPSimple<?>) o;
 		if (numStates != mdp.numStates)
 			return false;
 		if (!initialStates.equals(mdp.initialStates))

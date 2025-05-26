@@ -26,8 +26,8 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
+import prism.Evaluator;
 
 
 /**
@@ -35,47 +35,46 @@ import explicit.Product;
  * from an MDP rewards structure and a memoryless deterministic strategy, specified as an array of integer indices.
  * This class is read-only: most of data is pointers to other model info.
  */
-public class MCRewardsFromMDPRewards implements MCRewards
+public class MCRewardsFromMDPRewards<Value> extends RewardsExplicit<Value> implements MCRewards<Value>
 {
 	// MDP rewards
-	protected MDPRewards mdpRewards;
+	protected MDPRewards<Value> mdpRewards;
 	// Strategy (array of choice indices; -1 denotes no choice)
-	protected int strat[];
+	protected int[] strat;
 
 	/**
 	 * Constructor: create from MDP rewards and memoryless adversary.
 	 */
-	public MCRewardsFromMDPRewards(MDPRewards mdpRewards, int strat[])
+	public MCRewardsFromMDPRewards(MDPRewards<Value> mdpRewards, int[] strat)
 	{
 		this.mdpRewards = mdpRewards;
 		this.strat = strat;
 	}
 
 	@Override
-	public double getStateReward(int s)
+	public Evaluator<Value> getEvaluator()
 	{
-		// For now, state/transition rewards from MDP are both put into state reward
-		// This works fine for cumulative rewards, but not instantaneous ones
-		return mdpRewards.getStateReward(s) + mdpRewards.getTransitionReward(s, strat[s]);
-	}
-
-	@Override
-	public double getTransitionReward(int s, int i)
-	{
-		// For now, state/transition rewards from MDP are both put into state reward
-		return 0;
-	}
-	
-	@Override
-	public MCRewards liftFromModel(Product<? extends Model> product)
-	{
-		throw new UnsupportedOperationException();
+		return mdpRewards.getEvaluator();
 	}
 
 	@Override
 	public boolean hasTransitionRewards()
 	{
-		// only state rewards
+		// Only state rewards
 		return false;
+	}
+
+	@Override
+	public Value getStateReward(int s)
+	{
+		// For now, state/transition rewards from MDP are both put into state reward
+		// This works fine for cumulative rewards, but not instantaneous ones
+		return getEvaluator().add(mdpRewards.getStateReward(s), mdpRewards.getTransitionReward(s, strat[s]));
+	}
+
+	@Override
+	public MCRewardsFromMDPRewards<Value> liftFromModel(Product<?> product)
+	{
+		throw new UnsupportedOperationException();
 	}
 }

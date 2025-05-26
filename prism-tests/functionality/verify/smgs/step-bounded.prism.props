@@ -29,7 +29,7 @@ const int k;
 // RESULT: 1.0
 <<p1>> Pmin=? [ F "T" ]
 
-// RESULT: 0.9777777361032984
+// RESULT: 44/45
 <<p1>> Pmax=? [ F "T" ]
 
 // RESULT (k=0): 0.0

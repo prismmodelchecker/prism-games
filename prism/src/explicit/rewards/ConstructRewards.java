@@ -32,12 +32,15 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import explicit.CSG;
 import explicit.DTMC;
 import explicit.MDP;
 import explicit.Model;
+import explicit.NondetModel;
 import explicit.SMG;
 import explicit.STPG;
 import parser.State;
@@ -46,6 +49,9 @@ import parser.ast.ASTElement;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
 import parser.ast.RewardStruct;
+import prism.Evaluator;
+import prism.ModelType;
+import prism.Pair;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
@@ -56,7 +62,7 @@ import prism.RewardGenerator.RewardLookup;
 public class ConstructRewards extends PrismComponent
 {
 	protected ModulesFile modulesFile;
-	
+
 	public ConstructRewards(PrismComponent parent)
 	{
 		super(parent);
@@ -72,166 +78,120 @@ public class ConstructRewards extends PrismComponent
 	}
 
 	/**
+	 * Construct expected reward, i.e., using probability-weighted sum for any rewards
+	 * attached to transitions, assigning them to states/choices. Defaults to false.
+	 */
+	protected boolean expectedRewards = false;
+
+	/**
+	 * Specify whether to construct expected reward, i.e., using probability-weighted sum for any rewards
+	 * attached to transitions, assigning them to states/choices. Defaults to false.
+	 */
+	public void setExpectedRewards(boolean expectedRewards)
+	{
+		this.expectedRewards = expectedRewards;
+	}
+
+	/**
 	 * Construct the rewards for a model from a reward generator. 
 	 * @param model The model
 	 * @param rewardGen The RewardGenerator defining the rewards
 	 * @param r The index of the reward structure to build
 	 */
-	public Rewards buildRewardStructure(Model model, RewardGenerator rewardGen, int r) throws PrismException
+	@SuppressWarnings("unchecked")
+	public <Value> Rewards<Value> buildRewardStructure(Model<Value> model, RewardGenerator<Value> rewardGen, int r) throws PrismException
 	{
-		switch (model.getModelType()) {
-		case DTMC:
-		case CTMC:
-			return buildMCRewardStructure((DTMC) model, rewardGen, r);
-		case MDP:
-		case POMDP:
-			return buildMDPRewardStructure((MDP) model, rewardGen, r);
-		case STPG:
-			return buildSTPGRewardStructure((STPG) model, rewardGen, r);
-		case SMG:
-			return buildSMGRewardStructure((SMG) model, rewardGen, r);
-		case CSG:
-			return buildCSGRewardStructure((CSG) model, rewardGen, r);
-		default:
-			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
+		if (model.getModelType() == ModelType.CSG) {
+			return buildCSGRewardStructure((CSG<Value>) model, rewardGen, r);
 		}
-	}
 
-	/**
-	 * Construct the rewards for a Markov chain (DTMC or CTMC) from a reward generator. 
-	 * @param mc The DTMC or CTMC
-	 * @param rewardGen The RewardGenerator defining the rewards
-	 * @param r The index of the reward structure to build
-	 */
-	public MCRewards buildMCRewardStructure(DTMC mc, RewardGenerator rewardGen, int r) throws PrismException
-	{
-		if (rewardGen.rewardStructHasTransitionRewards(r)) {
-			throw new PrismNotSupportedException("Explicit engine does not yet handle transition rewards for D/CTMCs");
+		// If the RewardGenerator already has the rewards built, use this (after checking)
+		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_REWARD_OBJECT)) {
+			Rewards<Value> rewardsObj = rewardGen.getRewardObject(r);
+			checkRewardObject(rewardsObj, rewardGen.getRewardObjectModel(), rewardGen.getRewardEvaluator());
+			return rewardsObj;
 		}
-		int numStates = mc.getNumStates();
-		List<State> statesList = mc.getStatesList();
-		StateRewardsArray rewSA = new StateRewardsArray(numStates);
-		for (int s = 0; s < numStates; s++) {
-			if (rewardGen.rewardStructHasStateRewards(r)) {
-				double rew = getAndCheckStateReward(s, rewardGen, r, statesList);
-				rewSA.addToStateReward(s, rew);
-			}
+		// Extract some model info
+		int numStates = model.getNumStates();
+		List<State> statesList = model.getStatesList();
+		// Create reward structure object of appropriate type
+		// (can be more efficient if just double-valued state rewards)
+		RewardsExplicit<Value> rewards;
+		boolean nondet = model.getModelType().nondeterministic();
+		boolean dbl = rewardGen.getRewardEvaluator().one() instanceof Double;
+		boolean sr = !(rewardGen.rewardStructHasTransitionRewards(r) && !(expectedRewards && !nondet));
+		if (dbl && sr && !model.getModelType().multiplePlayers()) {
+			rewards = (RewardsExplicit<Value>) new StateRewardsArray(numStates);
+		} else {
+			rewards = new RewardsSimple<>(numStates);
 		}
-		return rewSA;
-	}
-
-	/**
-	 * Construct the rewards for an MDP from a reward generator. 
-	 * @param mdp The MDP
-	 * @param rewardGen The RewardGenerator defining the rewards
-	 * @param r The index of the reward structure to build
-	 */
-	public MDPRewards buildMDPRewardStructure(MDP mdp, RewardGenerator rewardGen, int r) throws PrismException
-	{
-		int numStates = mdp.getNumStates();
-		List<State> statesList = mdp.getStatesList();
-		MDPRewardsSimple rewSimple = new MDPRewardsSimple(numStates);
+		rewards.setEvaluator(rewardGen.getRewardEvaluator());
+		// Add rewards
 		for (int s = 0; s < numStates; s++) {
+			// State rewards
 			if (rewardGen.rewardStructHasStateRewards(r)) {
-				double rew = getAndCheckStateReward(s, rewardGen, r, statesList);
-				rewSimple.addToStateReward(s, rew);
+				Value rew = getAndCheckStateReward(s, rewardGen, r, statesList);
+				rewards.addToStateReward(s, rew);
 			}
+			// Transition rewards
 			if (rewardGen.rewardStructHasTransitionRewards(r)) {
 				// Don't add rewards to transitions added to "fix" deadlock states
-				if (mdp.isDeadlockState(s)) {
+				if (model.isDeadlockState(s)) {
 					continue;
 				}
-				int numChoices = mdp.getNumChoices(s);
-				for (int k = 0; k < numChoices; k++) {
-					double rew = getAndCheckStateActionReward(s, mdp.getAction(s, k), rewardGen, r, statesList);
-					rewSimple.addToTransitionReward(s, k, rew);
+				// Nondet models (reward on choice/action)
+				if (nondet) {
+					NondetModel<Value> nondetModel = (NondetModel<Value>) model;
+					int numChoices = nondetModel.getNumChoices(s);
+					for (int k = 0; k < numChoices; k++) {
+						Value rew = getAndCheckStateActionReward(s, nondetModel.getAction(s, k), rewardGen, r, statesList);
+						rewards.addToTransitionReward(s, k, rew);
+					}
 				}
-			}
-		}
-		return rewSimple;
-	}
-	
-	/**
-	 * Construct the rewards for an STPG from a reward generator. 
-	 * @param stpg The STPG
-	 * @param rewardGen The RewardGenerator defining the rewards
-	 * @param r The index of the reward structure to build
-	 */
-	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardGenerator rewardGen, int r) throws PrismException
-	{
-		int numStates = stpg.getNumStates();
-		List<State> statesList = stpg.getStatesList();
-		STPGRewardsSimple rewSimple = new STPGRewardsSimple(numStates);
-		for (int s = 0; s < numStates; s++) {
-			if (rewardGen.rewardStructHasStateRewards(r)) {
-				double rew = getAndCheckStateReward(s, rewardGen, r, statesList);
-				rewSimple.addToStateReward(s, rew);
-			}
-			if (rewardGen.rewardStructHasTransitionRewards(r)) {
-				// Don't add rewards to transitions added to "fix" deadlock states
-				if (stpg.isDeadlockState(s)) {
-					continue;
-				}
-				int numChoices = stpg.getNumChoices(s);
-				for (int k = 0; k < numChoices; k++) {
-					double rew = getAndCheckStateActionReward(s, stpg.getAction(s, k), rewardGen, r, statesList);
-					rewSimple.addToTransitionReward(s, k, rew);
-					int numChoices2 = stpg.getNumNestedChoices(s, k);
-					for (int l = 0; l < numChoices2; l++) {
-						rew = getAndCheckStateActionReward(s, stpg.getNestedAction(s, k, l), rewardGen, r, statesList);
-						rewSimple.addToNestedTransitionReward(s, k, l, rew);
+				// Markov chain models (rewards on transitions)
+				else {
+					DTMC<Value> mcModel = (DTMC<Value>) model;
+					Iterator<Map.Entry<Integer, Pair<Value, Object>>> iter = mcModel.getTransitionsAndActionsIterator(s);
+					int i = 0;
+					while (iter.hasNext()) {
+						Map.Entry<Integer, Pair<Value, Object>> e = iter.next();
+						Value rew = getAndCheckStateActionReward(s, e.getValue().second, rewardGen, r, statesList);
+						if (rewardGen.getRewardEvaluator().isZero(rew)) {
+							i++;
+							continue;
+						}
+						if (expectedRewards) {
+							Value rewWeighted = rewardGen.getRewardEvaluator().multiply(e.getValue().first, rew);
+							rewards.addToStateReward(s, rewWeighted);
+						} else {
+							rewards.addToTransitionReward(s, i, rew);
+						}
+						i++;
 					}
 				}
 			}
 		}
-		return rewSimple;
+		return rewards;
 	}
-	
+
 	/**
-	 * Construct the rewards for an SMG from a reward generator. 
-	 * @param smg The SMG
-	 * @param rewardGen The RewardGenerator defining the rewards
-	 * @param r The index of the reward structure to build
-	 */
-	public SMGRewards buildSMGRewardStructure(SMG smg, RewardGenerator rewardGen, int r) throws PrismException
-	{
-		int numStates = smg.getNumStates();
-		List<State> statesList = smg.getStatesList();
-		SMGRewardsSimple rewSimple = new SMGRewardsSimple(numStates);
-		for (int s = 0; s < numStates; s++) {
-			if (rewardGen.rewardStructHasStateRewards(r)) {
-				double rew = getAndCheckStateReward(s, rewardGen, r, statesList);
-				rewSimple.addToStateReward(s, rew);
-			}
-			if (rewardGen.rewardStructHasTransitionRewards(r)) {
-				// Don't add rewards to transitions added to "fix" deadlock states
-				if (smg.isDeadlockState(s)) {
-					continue;
-				}
-				int numChoices = smg.getNumChoices(s);
-				for (int k = 0; k < numChoices; k++) {
-					double rew = getAndCheckStateActionReward(s, smg.getAction(s, k), rewardGen, r, statesList);
-					rewSimple.addToTransitionReward(s, k, rew);
-				}
-			}
-		}
-		return rewSimple;
-	}
-	
-	/**
-	 * Construct the rewards for a CSG from a reward generator. 
+	 * Construct the rewards for a CSG from a reward generator.
 	 * @param csg The CSG
 	 * @param rewardGen The RewardGenerator defining the rewards
 	 * @param r The index of the reward structure to build
 	 */
-	public CSGRewards buildCSGRewardStructure(CSG csg, RewardGenerator rewardGen, int r) throws PrismException
+	public <Value> CSGRewards<Value> buildCSGRewardStructure(CSG<Value> csg, RewardGenerator<Value> rewardGen, int r) throws PrismException
 	{
 		int numStates = csg.getNumStates();
 		List<State> statesList = csg.getStatesList();
-		CSGRewardsSimple rewSimple = new CSGRewardsSimple(numStates);
+		CSGRewardsSimple<Value> rewSimple = null;
+		// Create reward structure object
+		rewSimple = new CSGRewardsSimple<>(numStates);
+		rewSimple.setEvaluator(rewardGen.getRewardEvaluator());
+		// Add rewards to it
 		for (int s = 0; s < numStates; s++) {
 			if (rewardGen.rewardStructHasStateRewards(r)) {
-				double rew = getAndCheckStateReward(s, rewardGen, r, statesList);
+				Value rew = getAndCheckStateReward(s, rewardGen, r, statesList);
 				rewSimple.addToStateReward(s, rew);
 			}
 			if (rewardGen.rewardStructHasTransitionRewards(r)) {
@@ -241,25 +201,26 @@ public class ConstructRewards extends PrismComponent
 				}
 				int numChoices = csg.getNumChoices(s);
 				for (int k = 0; k < numChoices; k++) {
-					double rew = getAndCheckStateActionReward(s, csg.getIndexes(s, k), rewardGen, r, statesList);
+					Value rew = getAndCheckStateActionReward(s, csg.getIndexes(s, k), rewardGen, r, statesList);
 					rewSimple.addToTransitionReward(s, k, rew);
 				}
 			}
 		}
 		return rewSimple;
 	}
-	
+
 	/**
 	 * Get a state reward for a specific state and reward structure from a RewardGenerator.
 	 * Also check that the state reward is legal. Throw an exception if not.
 	 * @param s The index of the state
 	 * @param rewardGen The RewardGenerator defining the rewards
 	 * @param r The index of the reward structure to build
-	 * @param statesLists List of states (maybe needed for state look up)
+	 * @param statesList List of states (maybe needed for state look up)
 	 */
-	private double getAndCheckStateReward(int s, RewardGenerator rewardGen, int r, List<State> statesList) throws PrismException
+	private <Value> Value getAndCheckStateReward(int s, RewardGenerator<Value> rewardGen, int r, List<State> statesList) throws PrismException
 	{
-		double rew = 0;
+		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
+		Value rew = eval.zero();
 		Object stateIndex = null;
 		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
@@ -271,21 +232,22 @@ public class ConstructRewards extends PrismComponent
 		} else {
 			throw new PrismException("Unknown reward lookup mechanism for reward generator");
 		}
-		checkStateReward(rew, stateIndex, null);
+		checkStateReward(rew, eval, stateIndex, null);
 		return rew;
 	}
 
 	/**
-	 * Get a state reward for a specific state and reward structure from a RewardGenerator.
+	 * Get a state-action reward for a specific state and reward structure from a RewardGenerator.
 	 * Also check that the state reward is legal. Throw an exception if not.
 	 * @param s The index of the state
 	 * @param rewardGen The RewardGenerator defining the rewards
 	 * @param r The index of the reward structure to build
-	 * @param statesLists List of states (maybe needed for state look up)
+	 * @param statesList List of states (maybe needed for state look up)
 	 */
-	private double getAndCheckStateActionReward(int s, Object action, RewardGenerator rewardGen, int r, List<State> statesList) throws PrismException
+	private <Value> Value getAndCheckStateActionReward(int s, Object action, RewardGenerator<Value> rewardGen, int r, List<State> statesList) throws PrismException
 	{
-		double rew = 0;
+		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
+		Value rew = eval.zero();
 		Object stateIndex = null;
 		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
@@ -297,7 +259,7 @@ public class ConstructRewards extends PrismComponent
 		} else {
 			throw new PrismException("Unknown reward lookup mechanism for reward generator");
 		}
-		checkTransitionReward(rew, stateIndex, null);
+		checkTransitionReward(rew, eval, stateIndex, null);
 		return rew;
 	}
 
@@ -307,262 +269,99 @@ public class ConstructRewards extends PrismComponent
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
-	public Rewards buildRewardStructure(Model model, RewardStruct rewStr, Values constantValues) throws PrismException
+	public Rewards<Double> buildRewardStructure(Model<Double> model, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
-		switch (model.getModelType()) {
-		case DTMC:
-		case CTMC:
-			return buildMCRewardStructure((DTMC) model, rewStr, constantValues);
-		case MDP:
-		case POMDP:
-			return buildMDPRewardStructure((MDP) model, rewStr, constantValues);
-		case STPG:
-			return buildSTPGRewardStructure((STPG) model, rewStr, constantValues);
-		case SMG:
-			return buildSMGRewardStructure((SMG) model, rewStr, constantValues);
-		case CSG:
-			return buildCSGRewardStructure((CSG) model, rewStr, constantValues);
-		default:
-			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
+		if (model.getModelType() == ModelType.CSG) {
+			return buildCSGRewardStructure((CSG<Double>) model, rewStr, constantValues);
 		}
-	}
 
-	/**
-	 * Construct the rewards for a Markov chain (DTMC or CTMC) from a model and reward structure. 
-	 * @param mc The DTMC or CTMC
-	 * @param rewStr The reward structure
-	 * @param constantValues Values for any undefined constants needed
-	 */
-	public MCRewards buildMCRewardStructure(DTMC mc, RewardStruct rewStr, Values constantValues) throws PrismException
-	{
-		List<State> statesList;
-		Expression guard;
-		int i, j, n, numStates;
-
-		if (rewStr.getNumTransItems() > 0) {
-			throw new PrismNotSupportedException("Explicit engine does not yet handle transition rewards for D/CTMCs");
-		}
 		// Special case: constant rewards
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
 			checkStateReward(rew, null, rewStr.getReward(0));
-			return new StateRewardsConstant(rew);
+			return new StateRewardsConstant<>(rew);
 		}
-		// Normal: state rewards
-		else {
-			numStates = mc.getNumStates();
-			statesList = mc.getStatesList();
-			StateRewardsArray rewSA = new StateRewardsArray(numStates);
-			n = rewStr.getNumItems();
-			for (i = 0; i < n; i++) {
-				guard = rewStr.getStates(i);
-				for (j = 0; j < numStates; j++) {
-					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
-						double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
-						checkStateReward(rew, statesList.get(j), rewStr.getReward(i));
-						rewSA.addToStateReward(j, rew);
-					}
-				}
-			}
-			return rewSA;
+		// Extract some model info
+		int numStates = model.getNumStates();
+		List<State> statesList = model.getStatesList();
+		// Create reward structure object of appropriate type
+		// (can be more efficient if just (double-valued) state rewards)
+		RewardsExplicit<Double> rewards;
+		boolean nondet = model.getModelType().nondeterministic();
+		boolean sr = !(rewStr.getNumTransItems() > 0 && !(expectedRewards && !nondet));
+		if (sr) {
+			rewards = new StateRewardsArray(numStates);
+		} else {
+			rewards = new RewardsSimple<>(numStates);
 		}
-	}
-
-	/**
-	 * Construct the rewards for an MDP from a model and reward structure. 
-	 * @param mdp The MDP
-	 * @param rewStr The reward structure
-	 * @param constantValues Values for any undefined constants needed
-	 */
-	public MDPRewards buildMDPRewardStructure(MDP mdp, RewardStruct rewStr, Values constantValues) throws PrismException
-	{
-		List<State> statesList;
-		Expression guard;
-		String action;
-		Object mdpAction;
-		int i, j, k, n, numStates, numChoices;
-
-		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
-			checkStateReward(rew, null, rewStr.getReward(0));
-			return new StateRewardsConstant(rew);
-		}
-		// Normal: state and transition rewards
-		else {
-			numStates = mdp.getNumStates();
-			statesList = mdp.getStatesList();
-			MDPRewardsSimple rewSimple = new MDPRewardsSimple(numStates);
-			n = rewStr.getNumItems();
-			for (i = 0; i < n; i++) {
-				guard = rewStr.getStates(i);
-				action = rewStr.getSynch(i);
-				for (j = 0; j < numStates; j++) {
-					// Is guard satisfied?
-					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
-						// Transition reward
-						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
-							if (mdp.isDeadlockState(j)) {
-								// As state s is a deadlock state, any outgoing transition
-								// was added to "fix" the deadlock and thus does not get a reward.
-								// Skip to next state
-								continue;
-							}
-							numChoices = mdp.getNumChoices(j);
-							for (k = 0; k < numChoices; k++) {
-								mdpAction = mdp.getAction(j, k);
+		// Add rewards
+		int n = rewStr.getNumItems();
+		for (int i = 0; i < n; i++) {
+			Expression guard = rewStr.getStates(i);
+			String action = rewStr.getSynch(i);
+			for (int s = 0; s < numStates; s++) {
+				// Is guard satisfied?
+				if (guard.evaluateBoolean(constantValues, statesList.get(s))) {
+					// Transition reward
+					if (rewStr.getRewardStructItem(i).isTransitionReward()) {
+						// Don't add rewards to transitions added to "fix" deadlock states
+						if (model.isDeadlockState(s)) {
+							continue;
+						}
+						// Nondet models (reward on choice/action)
+						if (nondet) {
+							NondetModel<Double> nondetModel = (NondetModel<Double>) model;
+							int numChoices = nondetModel.getNumChoices(s);
+							for (int k = 0; k < numChoices; k++) {
+								Object mdpAction = nondetModel.getAction(s, k);
 								if (mdpAction == null ? (action.isEmpty()) : mdpAction.equals(action)) {
-									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
-									checkTransitionReward(rew, statesList.get(j), rewStr.getReward(i));
-									rewSimple.addToTransitionReward(j, k, rew);
+									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+									checkTransitionReward(rew, statesList.get(s), rewStr.getReward(i));
+									rewards.addToTransitionReward(s, k, rew);
 								}
 							}
-						}
-						// State reward
-						else {
-							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
-							checkStateReward(rew, statesList.get(j), rewStr.getReward(i));
-							rewSimple.addToStateReward(j, rew);
-						}
-					}
-				}
-			}
-			return rewSimple;
-		}
-	}
-
-	/**
-	 * Construct the rewards for an STPG from a model and reward structure. 
-	 * @param stpg The STPG
-	 * @param rewStr The reward structure
-	 * @param constantValues Values for any undefined constants needed
-	 */
-	public STPGRewards buildSTPGRewardStructure(STPG stpg, RewardStruct rewStr, Values constantValues) throws PrismException
-	{
-		List<State> statesList;
-		Expression guard;
-		String action;
-		Object stpgAction;
-		int i, s, j, k, numItems, numStates, numChoices, numChoices2;
-
-		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
-			checkStateReward(rew, null, rewStr.getReward(0));
-			return new StateRewardsConstant(rew);
-		}
-		// Normal: state and transition rewards
-		else {
-			numStates = stpg.getNumStates();
-			statesList = stpg.getStatesList();
-			STPGRewardsSimple rewSimple = new STPGRewardsSimple(numStates);
-			numItems = rewStr.getNumItems();
-			for (i = 0; i < numItems; i++) {
-				guard = rewStr.getStates(i);
-				action = rewStr.getSynch(i);
-				for (s = 0; s < numStates; s++) {
-					// Is guard satisfied?
-					if (guard.evaluateBoolean(constantValues, statesList.get(s))) {
-						// Transition reward
-						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
-							numChoices = stpg.getNumChoices(s);
-							for (j = 0; j < numChoices; j++) {
-								stpgAction = stpg.getAction(s, j);
-								double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
-								checkTransitionReward(rew, statesList.get(s), rewStr.getReward(i));
-								if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-									rewSimple.addToTransitionReward(s, j, rew);
-								}
-								numChoices2 = stpg.getNumNestedChoices(s, j);
-								for (k = 0; k < numChoices2; k++) {
-									stpgAction = stpg.getNestedAction(s, j, k);
-									if (stpgAction == null ? (action.isEmpty()) : stpgAction.equals(action)) {
-										rewSimple.addToNestedTransitionReward(s, j, k, rew);
+						} else {
+							DTMC<Double> mcModel = (DTMC<Double>) model;
+							Iterator<Map.Entry<Integer, Pair<Double, Object>>> iter = mcModel.getTransitionsAndActionsIterator(s);
+							int j = 0;
+							while (iter.hasNext()) {
+								Map.Entry<Integer, Pair<Double, Object>> e = iter.next();
+								Object mcAction = e.getValue().second;
+								if (mcAction == null ? (action.isEmpty()) : mcAction.equals(action)) {
+									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+									if (expectedRewards) {
+										double rewWeighted = e.getValue().first * rew;
+										rewards.addToStateReward(s, rewWeighted);
+									} else {
+										rewards.addToTransitionReward(s, j, rew);
 									}
 								}
+								j++;
 							}
 						}
-						// State reward
-						else {
-							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
-							checkStateReward(rew, statesList.get(s), rewStr.getReward(i));
-							rewSimple.addToStateReward(s, rew);
-						}
+					}
+					// State reward
+					else {
+						double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(s));
+						checkStateReward(rew, statesList.get(s), rewStr.getReward(i));
+						rewards.addToStateReward(s, rew);
 					}
 				}
 			}
-			return rewSimple;
 		}
+		return rewards;
 	}
 
 	/**
-	 * Construct the rewards for an SMG from a model and reward structure. 
-	 * @param smg The SMG
-	 * @param rewStr The reward structure
-	 * @param constantValues Values for any undefined constants needed
-	 */
-	public SMGRewards buildSMGRewardStructure(SMG smg, RewardStruct rewStr, Values constantValues) throws PrismException
-	{
-		List<State> statesList;
-		SMGRewardsSimple rewSimple;
-		Expression guard;
-		String action;
-		Object smgAction;
-		int i, j, k, n, numStates, numChoices;
-
-		// Special case: constant state rewards
-		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
-			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
-			checkStateReward(rew, null, rewStr.getReward(0));
-			return new StateRewardsConstant(rew);
-		}
-		// Normal: state and transition rewards
-		else {
-			numStates = smg.getNumStates();
-			statesList = smg.getStatesList();
-			rewSimple = new SMGRewardsSimple(numStates);
-			n = rewStr.getNumItems();
-			for (i = 0; i < n; i++) {
-				guard = rewStr.getStates(i);
-				action = rewStr.getSynch(i);
-				for (j = 0; j < numStates; j++) {
-					// Is guard satisfied?
-					if (guard.evaluateBoolean(constantValues, statesList.get(j))) {
-						// Transition reward
-						if (rewStr.getRewardStructItem(i).isTransitionReward()) {
-							numChoices = smg.getNumChoices(j);
-							for (k = 0; k < numChoices; k++) {
-								smgAction = smg.getAction(j, k);
-								if (smgAction == null ? (action.isEmpty()) : smgAction.equals(action)) {
-									double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
-									checkTransitionReward(rew, statesList.get(j), rewStr.getReward(i));
-									rewSimple.addToTransitionReward(j, k, rew);
-								}
-							}
-						}
-						// State reward
-						else {
-							double rew = rewStr.getReward(i).evaluateDouble(constantValues, statesList.get(j));
-							checkStateReward(rew, statesList.get(j), rewStr.getReward(i));
-							rewSimple.addToStateReward(j, rew);
-						}
-					}
-				}
-			}
-			return rewSimple;
-		}
-	}
-
-	/**
-	 * Construct the rewards for a CSG from a model and reward structure. 
+	 * Construct the rewards for a CSG from a model and reward structure.
 	 * @param csg The CSG
 	 * @param rewStr The reward structure
 	 * @param constantValues Values for any undefined constants needed
 	 */
-	public CSGRewards buildCSGRewardStructure(CSG csg, RewardStruct rewStr, Values constantValues) throws PrismException
+	public CSGRewards<Double> buildCSGRewardStructure(CSG<Double> csg, RewardStruct rewStr, Values constantValues) throws PrismException
 	{
 		List<State> statesList;
-		CSGRewardsSimple rewSimple;
+		CSGRewardsSimple<Double> rewSimple;
 		Expression guard;
 		BitSet active = new BitSet();
 		BitSet indexes = new BitSet();
@@ -572,13 +371,13 @@ public class ConstructRewards extends PrismComponent
 		if (rewStr.getNumStateItems() == 1 && Expression.isTrue(rewStr.getStates(0)) && rewStr.getReward(0).isConstant()) {
 			double rew = rewStr.getReward(0).evaluateDouble(constantValues);
 			checkStateReward(rew, null, rewStr.getReward(0));
-			return (CSGRewards) new StateRewardsConstant(rew);
+			return (CSGRewards<Double>) new StateRewardsConstant<>(rew);
 		}
 		// Normal: state and transition rewards
 		else {
 			numStates = csg.getNumStates();
 			statesList = csg.getStatesList();
-			rewSimple = new CSGRewardsSimple(numStates);
+			rewSimple = new CSGRewardsSimple<>(numStates);
 			n = rewStr.getNumItems();
 			double rew;
 			for (i = 0; i < n; i++) {
@@ -618,18 +417,18 @@ public class ConstructRewards extends PrismComponent
 						}
 					}
 				}
-			}		
+			}
 		}
 		return rewSimple;
 	}
-	
+
 	/**
 	 * Construct the rewards for a Markov chain (DTMC or CTMC) from files exported explicitly by PRISM. 
 	 * @param mc The DTMC or CTMC
 	 * @param rews The file containing state rewards (ignored if null)
 	 * @param rewt The file containing transition rewards (ignored if null)
 	 */
-	public MCRewards buildMCRewardsFromPrismExplicit(DTMC mc, File rews, File rewt) throws PrismException
+	public MCRewards<Double> buildMCRewardsFromPrismExplicit(DTMC<Double> mc, File rews, File rewt) throws PrismException
 	{
 		String s, ss[];
 		int i, lineNum = 0;
@@ -676,16 +475,16 @@ public class ConstructRewards extends PrismComponent
 	
 	/**
 	 * Construct the rewards for an MDP from files exported explicitly by PRISM.
-	 * @param model The MDP
+	 * @param mdp The MDP
 	 * @param rews The file containing state rewards (ignored if null)
 	 * @param rewt The file containing transition rewards (ignored if null)
 	 */
-	public MDPRewards buildMDPRewardsFromPrismExplicit(MDP mdp, File rews, File rewt) throws PrismException
+	public MDPRewards<Double> buildMDPRewardsFromPrismExplicit(MDP<Double> mdp, File rews, File rewt) throws PrismException
 	{
 		String s, ss[];
 		int i, j, lineNum = 0;
 		double reward;
-		MDPRewardsSimple rs = new MDPRewardsSimple(mdp.getNumStates());
+		MDPRewardsSimple<Double> rs = new MDPRewardsSimple<>(mdp.getNumStates());
 
 		if (rews != null) {
 			// Open state rewards file, automatic close
@@ -759,16 +558,20 @@ public class ConstructRewards extends PrismComponent
 	 * Optionally, provide a state where the error occurs (as an Object),
 	 * and/or a pointer to where the error occurs syntactically (as an ASTElement) 
 	 * @param rew The reward value
+	 * @param eval Evaluator matching the type {@code Value} of the reward value
 	 * @param stateIndex The index of the state, for error reporting (optional)
 	 * @param ast Where the error occurred, for error reporting (optional)
 	 */
-	private void checkStateReward(double rew, Object stateIndex, ASTElement ast) throws PrismException
+	private <Value> void checkStateReward(Value rew, Evaluator<Value> eval, Object stateIndex, ASTElement ast) throws PrismException
 	{
 		String error = null;
-		if (!Double.isFinite(rew)) {
-			error = "State reward is not finite";
-		} else if (!allowNegative && rew < 0) {
-			error = "State reward is negative (" + rew + ")";
+		// We omit the check in symbolic (parametric) cases - too expensive
+		if (!eval.isSymbolic()) {
+			if (!eval.isFinite(rew)) {
+				error = "State reward is not finite";
+			} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
+				error = "State reward is negative (" + rew + ")";
+			}
 		}
 		if (error != null) {
 			if (stateIndex != null) {
@@ -783,21 +586,24 @@ public class ConstructRewards extends PrismComponent
 	}
 
 	/**
-	 * Check that a state reward is legal. Throw an exception if not.
-	 * @param rew The reward value
+	 * Check that a transition reward is legal. Throw an exception if not.
 	 * Optionally, provide a state where the error occurs (as an Object),
 	 * and/or a pointer to where the error occurs syntactically (as an ASTElement) 
 	 * @param rew The reward value
+	 * @param eval Evaluator matching the type {@code Value} of the reward value
 	 * @param stateIndex The index of the state, for error reporting (optional)
 	 * @param ast Where the error occurred, for error reporting (optional)
 	 */
-	private void checkTransitionReward(double rew, Object stateIndex, ASTElement ast) throws PrismException
+	private <Value> void checkTransitionReward(Value rew, Evaluator<Value> eval, Object stateIndex, ASTElement ast) throws PrismException
 	{
 		String error = null;
-		if (!Double.isFinite(rew)) {
-			error = "Transition reward is not finite";
-		} else if (!allowNegative && rew < 0) {
-			error = "Transition reward is negative (" + rew + ")";
+		// We omit the check in symbolic (parametric) cases - too expensive
+		if (!eval.isSymbolic()) {
+			if (!eval.isFinite(rew)) {
+				error = "Transition reward is not finite";
+			} else if (!allowNegative && !eval.geq(rew, eval.zero())) {
+				error = "Transition reward is negative (" + rew + ")";
+			}
 		}
 		if (error != null) {
 			if (stateIndex != null) {
@@ -809,5 +615,66 @@ public class ConstructRewards extends PrismComponent
 				throw new PrismException(error);
 			}
 		}
+	}
+
+	/**
+	 * Check that all state/transition rewards in a Rewards object are legal. Throw an exception if not.
+	 * Optionally, provide a state where the error occurs (as an Object),
+	 * and/or a pointer to where the error occurs syntactically (as an ASTElement)
+	 * @param rewards The rewards
+	 * @param model The model for the rewards
+	 * @param eval Evaluator matching the type {@code Value} of the reward value
+	 */
+	private <Value> void checkRewardObject(Rewards<Value> rewards, Model<Value> model, Evaluator<Value> eval) throws PrismException
+	{
+		int numStates = model.getNumStates();
+		// State rewards
+		for (int s = 0; s < numStates; s++) {
+			checkStateReward(rewards.getStateReward(s), eval, s, null);
+		}
+		// Transition rewards (nondet models)
+		if (model.getModelType().nondeterministic()) {
+			for (int s = 0; s < numStates; s++) {
+				int numChoices = ((NondetModel<?>) model).getNumChoices(s);
+				for (int i = 0; i < numChoices; i++) {
+					checkTransitionReward(rewards.getTransitionReward(s, i), eval, s, null);
+				}
+			}
+		}
+		// Transition rewards (Markov chain like models)
+		else {
+			for (int s = 0; s < numStates; s++) {
+				int numTrans = model.getNumTransitions(s);
+				for (int i = 0; i < numTrans; i++) {
+					checkTransitionReward(rewards.getTransitionReward(s, i), eval, s, null);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check that a (double-valued) state reward is legal. Throw an exception if not.
+	 * Optionally, provide a state where the error occurs (as an Object),
+	 * and/or a pointer to where the error occurs syntactically (as an ASTElement) 
+	 * @param rew The reward value
+	 * @param stateIndex The index of the state, for error reporting (optional)
+	 * @param ast Where the error occurred, for error reporting (optional)
+	 */
+	private <Value> void checkStateReward(double rew, Object stateIndex, ASTElement ast) throws PrismException
+	{
+		checkStateReward(rew, Evaluator.forDouble(), stateIndex, ast);
+	}
+
+	/**
+	 * Check that a (double-valued) transition reward is legal. Throw an exception if not.
+	 * Optionally, provide a state where the error occurs (as an Object),
+	 * and/or a pointer to where the error occurs syntactically (as an ASTElement) 
+	 * @param rew The reward value
+	 * @param stateIndex The index of the state, for error reporting (optional)
+	 * @param ast Where the error occurred, for error reporting (optional)
+	 */
+	private <Value> void checkTransitionReward(double rew, Object stateIndex, ASTElement ast) throws PrismException
+	{
+		checkTransitionReward(rew, Evaluator.forDouble(), stateIndex, ast);
 	}
 }

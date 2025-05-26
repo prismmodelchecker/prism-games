@@ -27,9 +27,13 @@
 package strat;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import dv.IntegerVector;
-import prism.Model;
+import explicit.ConstructStrategyProduct;
+import explicit.NondetModel;
+import symbolic.model.Model;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
@@ -39,12 +43,11 @@ import prism.PrismNotSupportedException;
  * as an IntegerVector (i.e. stored natively as an array)
  * associated with a sparse/symbolic engine model.
  */
-public class MDStrategyIV extends StrategyWithStates implements MDStrategy
+public class MDStrategyIV extends StrategyWithStates<Double> implements MDStrategy<Double>
 {
 	// Model associated with the strategy
 	private Model model;
 	// Other model info
-	private int numStates;
 	private List<String> actions;
 	// Array storing MD strategy: *action* index (not choice index) for each state
 	private IntegerVector iv;
@@ -55,7 +58,6 @@ public class MDStrategyIV extends StrategyWithStates implements MDStrategy
 	public MDStrategyIV(Model model, IntegerVector iv)
 	{
 		this.model = model;
-		numStates = (int) model.getNumStates();
 		actions = model.getSynchs();
 		this.iv = iv;
 		setStateLookUp(state -> {
@@ -96,19 +98,25 @@ public class MDStrategyIV extends StrategyWithStates implements MDStrategy
 	}
 
 	@Override
-	public int getNumStates()
+	public prism.Model<Double> getModel()
 	{
-		return numStates;
+		return model;
 	}
-	
+
 	@Override
-	public void exportInducedModel(PrismLog out, int precision) throws PrismException
+	public Model constructInducedModel(StrategyExportOptions options) throws PrismException
 	{
 		throw new PrismException("Induced model construction not yet supported for symbolic engines");
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision) throws PrismException
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		throw new PrismException("Induced model construction not yet supported for symbolic engines");
+	}
+
+	@Override
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
 		throw new PrismException("Strategy dot export not yet supported for symbolic engines");
 	}
@@ -118,5 +126,13 @@ public class MDStrategyIV extends StrategyWithStates implements MDStrategy
 	{
 		iv.clear();
 		iv = null;
+	}
+
+	@Override
+	public String toString()
+	{
+		return "[" + IntStream.range(0, getNumStates())
+				.mapToObj(s -> s + "=" + getChoiceActionString(s))
+				.collect(Collectors.joining(",")) + "]";
 	}
 }

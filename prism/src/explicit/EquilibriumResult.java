@@ -1,9 +1,8 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2020-
 //	Authors:
-//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -27,37 +26,43 @@
 
 package explicit;
 
-import java.util.ArrayList;
 import explicit.CSGModelCheckerEquilibria.CSGResultStatus;
 
-public class EquilibriumResult {
+import java.util.ArrayList;
 
+public class EquilibriumResult
+{
 	private CSGResultStatus status;
 	private ArrayList<Double> payoffVector;
-	private ArrayList<Distribution> strategy;
+	private ArrayList<Distribution<Double>> strategy;
 
-	public CSGResultStatus getStatus() {
+	public CSGResultStatus getStatus()
+	{
 		return status;
 	}
 
-	public void setStatus(CSGResultStatus status) {
+	public void setStatus(CSGResultStatus status)
+	{
 		this.status = status;
 	}
 
-	public ArrayList<Double> getPayoffVector() {
+	public ArrayList<Double> getPayoffVector()
+	{
 		return payoffVector;
 	}
 
-	public void setPayoffVector(ArrayList<Double> payoffVector) {
+	public void setPayoffVector(ArrayList<Double> payoffVector)
+	{
 		this.payoffVector = payoffVector;
 	}
 
-	public ArrayList<Distribution> getStrategy() {
+	public ArrayList<Distribution<Double>> getStrategy()
+	{
 		return strategy;
 	}
 
-	public void setStrategy(ArrayList<Distribution> strategy) {
+	public void setStrategy(ArrayList<Distribution<Double>> strategy)
+	{
 		this.strategy = strategy;
 	}
-	
 }

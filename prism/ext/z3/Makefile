@@ -7,18 +7,16 @@
 
 default: all
 
-all: checks z3
+all: checks libfiles
 
-# Cygwin libs
-ifeq ($(OSTYPE),cygwin)
-    Z3_LIB = $(LIBPREFIX)libz3$(LIBSUFFIX)
-    Z3_JAVA_LIB = $(LIBPREFIX)libz3java$(LIBSUFFIX)
-# Anything else (including unsupported OSs) - Mac/Linux libs
-else
-    Z3_LIB = $(LIBPREFIX)z3$(LIBSUFFIX)
-    Z3_JAVA_LIB = $(LIBPREFIX)z3java$(LIBSUFFIX)
+# Files to copy
+NATIVE_LIBS =
+ifdef OSTYPE
+	NATIVE_LIBS = $(wildcard $(OSTYPE)/$(ARCH)/*)
 endif
-Z3_JAVA_JAR = com.microsoft.z3.jar
+NATIVE_LIBS_COPY = $(NATIVE_LIBS:$(OSTYPE)/$(ARCH)/%=../../$(PRISM_LIB_DIR)/%)
+COMMON_LIBS = $(wildcard common/*)
+COMMON_LIBS_COPY = $(COMMON_LIBS:common/%=../../$(PRISM_LIB_DIR)/%)
 
 # Try and prevent accidental makes (i.e. called manually, not from top-level Makefile)
 checks:
@@ -26,22 +24,45 @@ checks:
 	  (echo "Error: This Makefile is designed to be called from the main PRISM Makefile"; exit 1) \
 	fi; 
 
-z3:
-	@(if [ "$(OSTYPE)" = "linux" ]; then \
-	  echo "Copying Z3 libraries for Linux"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
-	@(if [ "$(OSTYPE)" = "darwin" ]; then \
-	  echo "Copying Z3 libraries for MacOS"; \
-	  cp "$(OSTYPE)/$(ARCH)/$(Z3_LIB)" "$(OSTYPE)/$(ARCH)/$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
-	@(if [ "$(OSTYPE)" = "cygwin" ]; then \
-	  echo "Copying Z3 libraries for Cywgin"; \
-	  cp "$(Z3_LIB)" "$(Z3_JAVA_LIB)" "$(Z3_JAVA_JAR)" ../../$(PRISM_LIB_DIR)/ ; \
-	fi)
+# Copy files/links if they exist and are newer
+# If a file is in both an OS-specific directory and common, the former takes precedence
+
+libfiles: $(NATIVE_LIBS_COPY) $(COMMON_LIBS_COPY)
+	@if [ "$(NATIVE_LIBS_COPY)" = "" ]; then \
+	  echo "Missing pre-built native libraries for $(OSTYPE) $(ARCH)"; \
+	fi
+
+../../$(PRISM_LIB_DIR)/%: $(OSTYPE)/$(ARCH)/%
+	@if [ -f "$<" ]; then \
+	  echo Copying $< $@; \
+	  if [ $(OSTYPE) = "cywgin" ]; then \
+	    cp $< $@; \
+	  else \
+	    cp -R $< $@; \
+	  fi \
+	fi
+
+../../$(PRISM_LIB_DIR)/%: common/%
+	@if [ -f "$<" ]; then \
+	  echo Copying $< $@; \
+	  if [ $(OSTYPE) = "cygwin" ]; then \
+	    cp $< $@; \
+	  else \
+	    cp -R $< $@; \
+	  fi \
+	fi
 
 clean: checks
-	rm -f "../../$(PRISM_LIB_DIR)/$(Z3_LIB)" "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_LIB)" "../../$(PRISM_LIB_DIR)/$(Z3_JAVA_JAR)"
+	# Remove installed files if present
+	@if [ "$(COMMON_LIBS_COPY)" != "" ]; then \
+	  echo Removing "$(COMMON_LIBS_COPY)" && rm -f "$(COMMON_LIBS_COPY)"; \
+	fi
+	@if [ "$(NATIVE_LIBS_COPY)" != "" ]; then \
+	  echo Removing "$(NATIVE_LIBS_COPY)" && rm -f "$(NATIVE_LIBS_COPY)"; \
+	fi
+	# Overapproximate and remove all native libraries files for any OS
+	rm -f ../../$(PRISM_LIB_DIR)/*lib*z3*
+	rm -f ../../$(PRISM_LIB_DIR)/*z3*dll*
 
 celan:	clean
 

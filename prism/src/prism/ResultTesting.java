@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 
 import param.BigRational;
 import param.ParamResult;
+import parser.EvaluateContext;
 import parser.Values;
 import parser.ast.ConstantList;
 import parser.ast.Expression;
@@ -136,6 +137,10 @@ public class ResultTesting
 	 */
 	private static boolean checkExceptionAgainstExpectedResultString(String strExpected, Exception result) throws PrismException
 	{
+		if (result instanceof PrismNotSupportedException) {
+			// not supported -> handle in caller
+			throw (PrismNotSupportedException)result;
+		}
 		String errMsg = result.getMessage();
 		if (strExpected.startsWith("Error")) {
 			// handle expected errors
@@ -145,16 +150,12 @@ public class ResultTesting
 					if (word.length() == 0) {
 						throw new PrismException("Invalid RESULT specification: no expected words immediately following 'Error:'");
 					}
-					if (!errMsg.toLowerCase().contains(word)) {
+					if (!errMsg.toLowerCase().contains(word.toLowerCase())) {
 						throw new PrismException("Error message should contain \"" + word + "\"");
 					}
 				}
 			}
 			return true;
-		}
-		if (result instanceof PrismNotSupportedException) {
-			// not supported -> handle in caller
-			throw (PrismNotSupportedException)result;
 		}
 		throw new PrismException("Unexpected error: " + errMsg);
 	}
@@ -202,7 +203,7 @@ public class ResultTesting
 	{
 		try {
 			Expression expectedExpr = Prism.parseSingleExpressionString(strExpected);
-			expectedExpr = (Expression) expectedExpr.findAllConstants(new ConstantList(constValues));
+			expectedExpr = (Expression) expectedExpr.findAllConstants(constValues.getNames(), constValues.getTypes());
 			expectedExpr.typeCheck();
 			return expectedExpr;
 		} catch (PrismLangException e) {
@@ -402,7 +403,7 @@ public class ResultTesting
 		}
 		// If not, could be an expression
 		catch (NumberFormatException e) {
-			rationalExp = parseExpectedResultString(strExpected, constValues).evaluateExact(constValues);
+			rationalExp = parseExpectedResultString(strExpected, constValues).evaluateBigRational(EvaluateContext.create(constValues, EvaluateContext.EvalMode.EXACT));
 		}
 		// Check result
 		if (!rationalRes.equals(rationalExp)) {

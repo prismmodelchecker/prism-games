@@ -2,7 +2,7 @@
 //	
 //	Copyright (c) 2002-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import explicit.graphviz.StateOwnerDecorator;
 import explicit.rewards.STPGRewards;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismUtils;
@@ -45,19 +46,8 @@ import prism.PrismUtils;
  * These are turn-based STPGs, i.e. at most one player controls each state.
  * Probabilistic states do not need to be stored explicitly; instead, like in an MDP,
  * players have several 'choices', each of which is a probability distribution over successor states.
- * <br><br>
- * For convenience/efficiency, STPGs can actually store two transitions/choices in two ways.
- * The first is as described above: a state has a list of choices which are distributions over states.
- * {@link #getNumChoices(s)} gives the number of choices, {@link #getAction(s)} gives an (optional) action label
- * for each one and {@link #getTransitionsIterator(s, i)} provides an iterator over target-state/probability pairs.
- * The second way is 'nested' choices: the choices in a state are instead transitions directly to states of the other player.
- * Each of those states then has has several choices that are distributions over states, as above.
- * The middle layer of states are not stored explicitly, however. If the {@code i}th choice of state {@code s}
- * is nested in this way, then {@link #isChoiceNested(s, i)} is true and {@link #getTransitionsIterator(s, i)} returns null.
- * Use {@link #getNumNestedChoices(s, i)}, {@link #getNestedAction(s, i)} and {@link #getNestedTransitionsIterator(s, i, j)}
- * to access the information.
  */
-public interface STPG extends MDP
+public interface STPG<Value> extends MDP<Value>, TurnBasedGame
 {
 	// Accessors (for Model) - default implementations
 	
@@ -68,104 +58,13 @@ public interface STPG extends MDP
 	}
 
 	@Override
-	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
-	{
-		// Copy any existing decorators
-		List<explicit.graphviz.Decorator> decoratorsNew = new ArrayList<>();
-		if (decorators != null) {
-			for (explicit.graphviz.Decorator decorator : decorators) {
-				decoratorsNew.add(decorator);
-			}
-		}
-		// And add a new one that draws states according to player owner
-		decoratorsNew.add(new StateOwnerDecorator(this::getPlayer));
-		MDP.super.exportToDotFile(out, decoratorsNew);
-	}
-	
-	@Override
 	default void exportToPrismLanguage(final String filename, int precision) throws PrismException
 	{
 		throw new UnsupportedOperationException();
 	}
 	
-	@Override
-	default String infoString()
-	{
-		final int numStates = getNumStates();
-		String s = "";
-		s += numStates + " states (" + getNumInitialStates() + " initial)";
-		s += ", " + getNumTransitions() + " transitions";
-		s += ", " + getNumChoices() + " choices";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates);
-		return s;
-	}
-
-	@Override
-	default String infoStringTable()
-	{
-		final int numStates = getNumStates();
-		String s = "";
-		s += "States:      " + numStates + " (" + getNumInitialStates() + " initial)\n";
-		s += "Transitions: " + getNumTransitions() + "\n";
-		s += "Choices:     " + getNumChoices() + "\n";
-		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / numStates) + "\n";
-		return s;
-	}
-
 	// Accessors
 	
-	/**
-	 * Get the player that owns state {@code s}.
-	 * Returns the index of the player (0-indexed).
-	 * @param s Index of state (0-indexed)
-	 */
-	public int getPlayer(int s);
-	
-	/**
-	 * Is choice {@code i} of state {@code s} in nested form? (See {@link explicit.STPG} for details)
-	 */
-	default boolean isChoiceNested(int s, int i)
-	{
-		// Default: No nested choices
-		return false;
-	}
-
-	/**
-	 * Get the number of (nested) choices in choice {@code i} of state {@code s}.
-	 */
-	default int getNumNestedChoices(int s, int i)
-	{
-		// Default: No nested choices
-		return 0;
-	}
-
-	/**
-	 * Get the action label (if any) for nested choice {@code i,j} of state {@code s}.
-	 */
-	default Object getNestedAction(int s, int i, int j)
-	{
-		// Default: No nested choices
-		return null;
-	}
-
-	/**
-	 * Get the number of transitions from nested choice {@code i,j} of state {@code s}.
-	 */
-	default int getNumNestedTransitions(int s, int i, int j)
-	{
-		// Default: No nested choices
-		return 0;
-	}
-
-	/**
-	 * Get an iterator over the transitions from nested choice {@code i,j} of state {@code s}.
-	 */
-	default Iterator<Entry<Integer, Double>> getNestedTransitionsIterator(int s, int i, int j)
-	{
-		// Default: No nested choices
-		return null;
-	}
-
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some player 1 choices, for all/some player 2 choices,
@@ -177,7 +76,7 @@ public interface STPG extends MDP
 	 * @param forall2 For-all or there-exists for player 2 (true=for-all, false=there-exists)
 	 * @param result Store results here
 	 */
-	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean min2, BitSet result);
+	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result);
 
 	/**
 	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
@@ -191,7 +90,7 @@ public interface STPG extends MDP
 	 * @param forall2 For-all or there-exists for player 2 (true=for-all, false=there-exists)
 	 * @param result Store results here
 	 */
-	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean min1, boolean min2, BitSet result);
+	public void prob1step(BitSet subset, BitSet u, BitSet v, boolean forall1, boolean forall2, BitSet result);
 
 	/**
 	 * Do a matrix-vector multiplication followed by two min/max ops, i.e. one step of value iteration,
@@ -240,7 +139,7 @@ public interface STPG extends MDP
 	 * @param absolute If true, compute absolute, rather than relative, difference
 	 * @return The maximum difference between old/new elements of {@code vect}
 	 */
-	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute);
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, BitSet subset, boolean complement, boolean absolute, int adv[]);
 
 	/**
 	 * Do a single row of Jacobi-style matrix-vector multiplication followed by min/max.
@@ -250,12 +149,13 @@ public interface STPG extends MDP
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 */
-	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2);
+	public double mvMultJacMinMaxSingle(int s, double vect[], boolean min1, boolean min2, int[] adv);
 
 	/**
 	 * Do a matrix-vector multiplication and sum of action reward followed by min/max, i.e. one step of value iteration.
 	 * i.e. for all s: result[s] = min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param result Vector to store result in
@@ -263,41 +163,42 @@ public interface STPG extends MDP
 	 * @param complement If true, {@code subset} is taken to be its complement (ignored if {@code subset} is null)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public void mvMultRewMinMax(double vect[], STPGRewards rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], BitSet subset, boolean complement, int adv[]);
 
 	/**
 	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
 	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
 	 * @param s Row index
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 */
-	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, int adv[]);
-
-	/**
-	 * Do a single row of matrix-vector multiplication and sum of action reward followed by min/max.
-	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
-	 * @param s Row index
-	 * @param vect Vector to multiply by
-	 * @param min1 Min or max for player 1 (true=min, false=max)
-	 * @param min2 Min or max for player 2 (true=min, false=max)
-	 * @param adv Storage for adversary choice indices (ignored if null)
-	 * @param disc discounting factor
-	 */
-	void mvMultRewMinMax(double[] vect, STPGRewards rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv,
-			double disc);
+	public double mvMultRewMinMaxSingle(int s, double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, int adv[]);
 
 	/**
 	 * Determine which choices result in min/max after a single row of matrix-vector multiplication and sum of action reward.
 	 * @param s Row index
 	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
 	 * @param min1 Min or max for player 1 (true=min, false=max)
 	 * @param min2 Min or max for player 2 (true=min, false=max)
 	 * @param val Min or max value to match
 	 */
-	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards rewards, boolean min1, boolean min2, double val);
+	public List<Integer> mvMultRewMinMaxSingleChoices(int s, double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double val);
+
+	/**
+	 * Do a single row of (discounted) matrix-vector multiplication and sum of action reward followed by min/max.
+	 * i.e. return min/max_{k1,k2} { rew(s) + sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc Discount factor
+	 */
+	void mvMultRewMinMax(double[] vect, STPGRewards<Double> rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv, double disc);
 
 	/**
 	 * Checks  whether all successors of action c in state s are in a given set

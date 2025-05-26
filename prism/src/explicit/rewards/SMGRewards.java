@@ -27,25 +27,14 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
 /**
  * Classes that provide (read) access to explicit-state rewards for an SMG.
- * See the {@link explicit.SMG} interface for details of the accompanying model.
+ * This is no longer needed - just use {@link Rewards}.
  */
-public interface SMGRewards extends STPGRewards
+public interface SMGRewards<Value> extends STPGRewards<Value>
 {
-	/**
-	 * Get the state reward for state {@code s}.
-	 */
-	public abstract double getStateReward(int s);
-	
-	/**
-	 * Get the transition reward for the {@code i}th choice from state {@code s}.
-	 */
-	public abstract double getTransitionReward(int s, int i); 
-	
 	@Override
-	public abstract SMGRewards liftFromModel(Product<? extends Model> product);
+	SMGRewards<Value> liftFromModel(Product<?> product);
 }

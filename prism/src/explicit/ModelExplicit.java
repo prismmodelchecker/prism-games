@@ -26,6 +26,7 @@
 
 package explicit;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -34,18 +35,24 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import io.ExplicitModelImporter;
+import io.PrismExplicitImporter;
 import parser.State;
 import parser.Values;
 import parser.VarList;
-import prism.Prism;
+import prism.Evaluator;
+import prism.ModelType;
 import prism.PrismException;
-import prism.PrismLog;
 
 /**
  * Base class for explicit-state model representations.
  */
-public abstract class ModelExplicit implements Model
+public abstract class ModelExplicit<Value> implements Model<Value>
 {
+	/** Evaluator for manipulating values in the model (of type {@code Value}) */
+	@SuppressWarnings("unchecked")
+	protected Evaluator<Value> eval = (Evaluator<Value>) Evaluator.forDouble();
+	
 	// Basic model information
 
 	/** Number of states */
@@ -77,11 +84,20 @@ public abstract class ModelExplicit implements Model
 	// Mutators
 
 	/**
+	 * Set the {@link Evaluator} object for manipulating values in the model
+	 */
+	public void setEvaluator(Evaluator<Value> eval)
+	{
+		this.eval = eval;
+	}
+	
+	/**
 	 * Copy data from another Model (used by superclass copy constructors).
 	 * Assumes that this has already been initialise()ed.
 	 */
-	public void copyFrom(Model model)
+	public void copyFrom(Model<?> model)
 	{
+		setEvaluator((Evaluator<Value>) model.getEvaluator());
 		numStates = model.getNumStates();
 		for (int in : model.getInitialStates()) {
 			addInitialState(in);
@@ -103,8 +119,9 @@ public abstract class ModelExplicit implements Model
 	 * Assumes that this has already been initialise()ed.
 	 * Pointer to states list is NOT copied (since now wrong).
 	 */
-	public void copyFrom(Model model, int permut[])
+	public void copyFrom(Model<Value> model, int permut[])
 	{
+		setEvaluator(model.getEvaluator());
 		numStates = model.getNumStates();
 		for (int in : model.getInitialStates()) {
 			addInitialState(permut[in]);
@@ -128,7 +145,7 @@ public abstract class ModelExplicit implements Model
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
 		deadlocks = new TreeSet<Integer>();
-		statesList = new ArrayList<State>(numStates);
+		statesList = null;
 		constantValues = null;
 		varList = null;
 		labels = new TreeMap<String, BitSet>();
@@ -159,11 +176,27 @@ public abstract class ModelExplicit implements Model
 	}
 
 	/**
+	 * Build (anew) from a list of transitions provided by an explicit model importer.
+	 * Note that initial states are not configured
+	 * so this needs to be done separately (using {@link #addInitialState(int)}.
+	 */
+	public void buildFromExplicitImport(ExplicitModelImporter modelImporter) throws PrismException
+	{
+		// Not implemented by default
+		throw new PrismException("Explicit model not yet supported for this model");
+	}
+
+	/**
 	 * Build (anew) from a list of transitions exported explicitly by PRISM (i.e. a .tra file).
 	 * Note that initial states are not configured (since this info is not in the file),
 	 * so this needs to be done separately (using {@link #addInitialState(int)}.
 	 */
-	public abstract void buildFromPrismExplicit(String filename) throws PrismException;
+	public void buildFromPrismExplicit(String filename) throws PrismException
+	{
+		ExplicitModelImporter modelImporter = new PrismExplicitImporter(null, new File(filename), null, null, null, ModelType.DTMC);
+		buildFromExplicitImport(modelImporter);
+	}
+
 
 	/**
 	 * Set the associated (read-only) state list.
@@ -245,6 +278,12 @@ public abstract class ModelExplicit implements Model
 
 	// Accessors (for Model interface)
 
+	@Override
+	public Evaluator<Value> getEvaluator()
+	{
+		return eval;
+	}
+	
 	@Override
 	public int getNumStates()
 	{
@@ -362,45 +401,11 @@ public abstract class ModelExplicit implements Model
 	public abstract void checkForDeadlocks(BitSet except) throws PrismException;
 
 	@Override
-	public void exportStates(int exportType, VarList varList, PrismLog log) throws PrismException
-	{
-		if (statesList == null)
-			return;
-
-		// Print header: list of model vars
-		if (exportType == Prism.EXPORT_MATLAB)
-			log.print("% ");
-		log.print("(");
-		int numVars = varList.getNumVars();
-		for (int i = 0; i < numVars; i++) {
-			log.print(varList.getName(i));
-			if (i < numVars - 1)
-				log.print(",");
-		}
-		log.println(")");
-		if (exportType == Prism.EXPORT_MATLAB)
-			log.println("states=[");
-
-		// Print states
-		int numStates = statesList.size();
-		for (int i = 0; i < numStates; i++) {
-			if (exportType != Prism.EXPORT_MATLAB)
-				log.println(i + ":" + statesList.get(i).toString());
-			else
-				log.println(statesList.get(i).toStringNoParentheses());
-		}
-
-		// Print footer
-		if (exportType == Prism.EXPORT_MATLAB)
-			log.println("];");
-	}
-
-	@Override
 	public boolean equals(Object o)
 	{
 		if (o == null || !(o instanceof ModelExplicit))
 			return false;
-		ModelExplicit model = (ModelExplicit) o;
+		ModelExplicit<?> model = (ModelExplicit<?>) o;
 		if (numStates != model.numStates)
 			return false;
 		if (!initialStates.equals(model.initialStates))
@@ -408,7 +413,7 @@ public abstract class ModelExplicit implements Model
 		return true;
 	}
 
-	@Override
+@Override
 	public boolean hasStoredPredecessorRelation() {
 		return (predecessorRelation != null);
 	}
@@ -431,5 +436,4 @@ public abstract class ModelExplicit implements Model
 	public void clearPredecessorRelation() {
 		predecessorRelation = null;
 	}
-
 }

@@ -34,47 +34,34 @@ package parser;
  */
 public class EvaluateContextStateAndNextState extends EvaluateContext
 {
-	private Values constantValues;
 	private Object[] varValues;
 	private Object[] nextVarValues;
 
 	public EvaluateContextStateAndNextState(State state, State nextState)
 	{
-		this.constantValues = null;
 		this.varValues = state.varValues;
 		this.nextVarValues = nextState.varValues;
 	}
 
 	public EvaluateContextStateAndNextState(Values constantValues, State state, State nextState)
 	{
-		this.constantValues = constantValues;
+		setConstantValues(constantValues);
 		this.varValues = state.varValues;
 		this.nextVarValues = nextState.varValues;
 	}
 
-	public Object getConstantValue(String name)
-	{
-		if (constantValues == null)
-			return null;
-		int i = constantValues.getIndexOf(name);
-		if (i == -1)
-			return null;
-		return constantValues.getValue(i);
-	}
-
+	@Override
 	public Object getVarValue(String name, int index)
 	{
-		// Use index to look up value
-		if(index >= varValues.length)
-			return null;
+		// There is no variable name info available,
+		// so use index if provided; otherwise unknown
 		return index == -1 ? null : varValues[index];
 	}
 
 	public Object getPrimedVarValue(String name, int index)
 	{
-		// Use index to look up value
-		if(index >= nextVarValues.length)
-			return null;
+		// There is no variable name info available,
+		// so use index if provided; otherwise unknown
 		return index == -1 ? null : nextVarValues[index];
 	}
 }

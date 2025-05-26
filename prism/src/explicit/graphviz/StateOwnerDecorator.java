@@ -39,7 +39,7 @@ public class StateOwnerDecorator implements Decorator
 	/**
 	 * Shapes for players (Graphviz keywords).
 	 */
-	public static final List<String> playerShapes = Arrays.asList("diamond", "box", "oval", "hexagon");
+	public static final List<String> playerShapes = Arrays.asList("box", "oval", "hexagon", "diamond");
 
 	/**
 	 * State ownership function: state (0-indexed) to player (0-indexed)

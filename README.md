@@ -10,6 +10,26 @@ Up-to-date installation instructions can be found here:
 
 http://www.prismmodelchecker.org/games/installation.php
 
+Very abbreviated instructions for installing/running PRISM are as follows:
+
+For Windows binary distributions:
+
+ * to install, run `prism-XXX-win64-installer.exe`
+ * to run, use Desktop/Start menu shortcuts or double-click `bin\xprism.bat`
+
+For other binary distributions:
+
+ * to install, enter the PRISM directory and type `./install.sh`
+ * to run, execute `bin/xprism` or `bin/prism`
+
+For source code distributions:
+
+ * enter the PRISM directory and type `cd prism` then `make`
+ * to check the install, type `make test` or `etc/tests/run.sh`
+ * to run, execute `bin/xprism` or `bin/prism`
+
+If you have problems check the manual, especially the section "Common Problems And Questions".
+
 
 ## Documentation
 
@@ -20,6 +40,13 @@ Documentation specifically for PRISM-games can be found here:
 
   http://www.prismmodelchecker.org/games/
 
+For other PRISM-related information, see the website:
+
+  https://www.prismmodelchecker.org/doc
+
+Information for developers is kept here:
+
+  https://github.com/prismmodelchecker/prism/wiki
 
 ## Licensing
 
@@ -27,17 +54,12 @@ PRISM-games is distributed under the GNU General Public License (GPL), version 2
 A copy of this license can be found in the file `COPYING.txt`.
 For more information, see:
 
-  http://www.gnu.org/licenses/
-
-PRISM-games uses the CUDD (Colorado University Decision Diagram) library of Fabio Somenzi,
-which is freely available. For more information about this library, see:
-
-  http://vlsi.colorado.edu/~fabio/CUDD/
+  https://www.gnu.org/licenses/
 
 PRISM-games also uses various other libraries (mainly to be found in the lib directory).
-For details of those, and for links to source where we distribute only binaries, see:
+For details of those, including licenses and links to downloads and source code, see:
 
-http://www.prismmodelchecker.org/other-downloads.php
+https://www.prismmodelchecker.org/other-downloads.php
 
 
 ## Acknowledgements
@@ -48,29 +70,35 @@ PRISM was created and is still actively maintained by:
  * Gethin Norman (University of Glasgow)
  * Marta Kwiatkowska (University of Oxford) 
 
-Development of the tool is currently led from Oxford by Dave Parker. Other current key developers are:
+Development of the tool is currently led from Oxford by Dave Parker.
 
+The following have made a wide range of contributions to
+PRISM covering many different aspects of the tool
+(in approximately reverse chronological order):
+
+ * Steffen Märcker (Technische Universität Dresden)
  * Joachim Klein (formerly Technische Universität Dresden)
+ * Vojtech Forejt (formerly University of Oxford)
 
-In addition, the following have worked specifically worked on PRISM-games
+The following have worked specifically worked on PRISM-games
 (in approximately reverse chronological order):
 
 * Gabriel Santos: concurrent stochastic games and equilibria
 * Clemens Wiltsche: multi-objective and compositional techniques
 * Mateusz Ujma: turn-based stochastic games
-* Vojtěch Forejt: turn-based stochastic games
 * Aistis Simaitis: turn-based stochastic games
 
-We gratefully acknowledge contributions to the PRISM code-base from various sources,
-including (in approximately reverse chronological order):
+We also gratefully acknowledge contributions to the PRISM code-base from
+(in approximately reverse chronological order):
 
+ * Max Kurze: Language parser code improvements
+ * Ludwig Pauly: Reward import/export
+ * Alberto Puggelli: First version of interval DTMC/MDP code
  * Xueyi Zou: Partially observable Markov decision processes (POMDPs)
- * Steffen Märcker: Fixes and improvements, especially in explicit engine
  * Chris Novakovic: Build infrastructure and explicit engine improvements
  * Clemens Wiltsche: Multi-objective and compositional synthesis for stochastic games
  * Ernst Moritz Hahn: Parametric model checking, fast adaptive uniformisation + various other features
  * Frits Dannenberg: Fast adaptive uniformisation
- * Vojtech Forejt: Various model checking code, including multi-objective + GUI enhancements
  * Hongyang Qu: Multi-objective model checking
  * Mateusz Ujma: Bug fixes and GUI improvements
  * Christian von Essen: Symbolic/explicit-state model checking
@@ -89,14 +117,14 @@ including (in approximately reverse chronological order):
 
 For more details see:
 
-  http://www.prismmodelchecker.org/people.php
+  https://www.prismmodelchecker.org/people.php
 
 
 ## Contact
 
 If you have problems or questions regarding PRISM, please use the help forum provided. See:
 
-  http://www.prismmodelchecker.org/support.php
+  https://www.prismmodelchecker.org/support.php
 
 Other comments and feedback about any aspect of PRISM are also very welcome. Please contact:
 

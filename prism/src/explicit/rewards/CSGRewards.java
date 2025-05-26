@@ -27,21 +27,14 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
-public interface CSGRewards extends STPGRewards
+/**
+ * Classes that provide (read) access to explicit-state rewards for a CSG.
+ * This is no longer needed - just use {@link Rewards}.
+ */
+public interface CSGRewards<Value> extends STPGRewards<Value>
 {
-	/**
-	 * Get the state reward for state {@code s}.
-	 */
-	public abstract double getStateReward(int s);
-	
-	/**
-	 * Get the transition reward for the {@code i}th choice from state {@code s}.
-	 */
-	public abstract double getTransitionReward(int s, int i); 
-	
 	@Override
-	public abstract CSGRewards liftFromModel(Product<? extends Model> product);
+	CSGRewards<Value> liftFromModel(Product<?> product);
 }

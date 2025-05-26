@@ -27,26 +27,14 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
 
 /**
  * Classes that provide (read) access to explicit-state rewards for an STPG.
- * See the {@link explicit.STPG} interface for details of the accompanying model,
- * in particular, for an explanation of nested transitions. 
+ * This is no longer needed - just use {@link Rewards}.
  */
-public interface STPGRewards extends MDPRewards
+public interface STPGRewards<Value> extends MDPRewards<Value>
 {
-	/**
-	 * Get the transition reward for the {@code i,j}th nested choice from state {@code s}.
-	 */
-	public abstract double getNestedTransitionReward(int s, int i, int j);
-
-	/**
-	 * Build an MDPRewards object containing all the same rewards except for the nested ones.
-	 */
-	public abstract MDPRewards buildMDPRewards();
-
 	@Override
-	public STPGRewards liftFromModel(Product<? extends Model> product);
+	STPGRewards<Value> liftFromModel(Product<?> product);
 }

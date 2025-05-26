@@ -4,6 +4,7 @@ import param.BigRational;
 import parser.EvaluateContext;
 import parser.Values;
 import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.OpRelOpBound;
 import prism.PrismException;
 import prism.PrismLangException;
@@ -49,31 +50,34 @@ public class ExpressionMultiNashReward extends ExpressionReward {
 	}
 
 	@Override
-	public BigRational evaluateExact(EvaluateContext ec) throws PrismLangException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public boolean returnsSingleValue() {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
+	// Methods required for ASTElement:
+
 	@Override
-	public Expression deepCopy() {
-		ExpressionMultiNashReward expr = new ExpressionMultiNashReward();
-		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
-		expr.setRewardStructIndex(getRewardStructIndex());
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
+	public Object accept(ASTVisitor v) throws PrismLangException
+	{
+		return v.visit(this);
 	}
 
 	@Override
-	public Object accept(ASTVisitor v) throws PrismLangException {
-		return v.visit(this);
+	public ExpressionMultiNashReward deepCopy(DeepCopy copier) throws PrismLangException
+	{
+		super.deepCopy(copier);
+		expr = copier.copy(expr);
+		return this;
 	}
+
+	@Override
+	public ExpressionMultiNashReward clone()
+	{
+		return (ExpressionMultiNashReward) super.clone();
+	}
+
+	// Standard methods
 
 	@Override
 	public String toString() {

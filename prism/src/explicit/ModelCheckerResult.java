@@ -35,8 +35,10 @@ import strat.Strategy;
  */
 public class ModelCheckerResult
 {
-	// Solution vector
+	// Solution vector (doubles)
 	public double[] soln = null;
+	// Solution vector (objects)
+	public Object[] solnObj = null;
 	// Accuracy info
 	public Accuracy accuracy = null;
 	// Solution vector from previous iteration
@@ -50,7 +52,7 @@ public class ModelCheckerResult
 	// Time taken for Prob0-type precomputation (secs)
 	public double timeProb0 = 0.0;
 	// Strategy
-	public Strategy strat = null;
+	public Strategy<?> strat = null;
 
 	/**
 	 * Clear all stored data, including setting of array pointers to null
@@ -59,6 +61,7 @@ public class ModelCheckerResult
 	public void clear()
 	{
 		soln = lastSoln = null;
+		solnObj = null;
 		numIters = 0;
 		timeTaken = timePre = timeProb0 = 0.0;
 	}

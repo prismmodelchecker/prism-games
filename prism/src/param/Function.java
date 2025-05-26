@@ -26,6 +26,9 @@
 
 package param;
 
+import parser.ast.Expression;
+import prism.PrismException;
+
 /**
  * Represents a rational function.
  * Allows for the usual operations (addition, multiplication, etc.) which
@@ -100,6 +103,14 @@ public abstract class Function extends StateValue
 	public abstract Function divide(Function other);
 
 	/**
+	 * Raises this function to the power {@code exp}.
+	 *
+	 * @param exp integer exponent
+	 * @return {@code this} to the power {@code exp}
+	 */
+	public abstract Function pow(int exp);
+
+	/**
 	 * Performs the {@code star} operation with this function.
 	 * The value of the result is equal to 1/(1-{@code this}).
 	 * It might however be represented in a different way than the
@@ -143,6 +154,13 @@ public abstract class Function extends StateValue
 	 * @return BigRational representation of this function
 	 */
 	public abstract BigRational asBigRational();
+
+	/**
+	 * Returns an Expression representing this object.
+	 *
+	 * @return Expression representation of this function
+	 */
+	public abstract Expression asExpression() throws PrismException;
 
 	/**
 	 * Returns true iff this function represents not-a-number.

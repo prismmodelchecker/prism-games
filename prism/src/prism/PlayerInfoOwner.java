@@ -81,14 +81,6 @@ public interface PlayerInfoOwner
 	// Default implementations of methods to access player info
 	
 	/**
-	 * Get the number of players in the game.
-	 */
-	public default int getNumPlayers()
-	{
-		return getPlayerInfo().getNumPlayers();
-	}
-	
-	/**
 	 * Get the name of player {@code i}. Returns "" if unnamed.
 	 * @param i Index of player (0-indexed)
 	 */

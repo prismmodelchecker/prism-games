@@ -29,12 +29,18 @@ package explicit;
 
 import java.util.List;
 
+import io.ModelExportOptions;
+import io.PrismExplicitExporter;
 import parser.State;
+import prism.ModelInfo;
+import prism.Prism;
+import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Interface for classes that provide (read-only) access to an explicit-state model with partial observability.
  */
-public interface PartiallyObservableModel extends Model
+public interface PartiallyObservableModel<Value> extends Model<Value>
 {
 	// Accessors
 
@@ -92,7 +98,7 @@ public interface PartiallyObservableModel extends Model
 
 	/**
 	 * Get the unobservation of state {@code s} as a {@code State}.
-	 * Equivalent to calling {@link #getUnbservation(int)}
+	 * Equivalent to calling {@link #getUnobservation(int)}
 	 * and then looking up via {@link #getUnobservationsList()}.
 	 * Returns null if the unobservation is unavailable.
 	 */
@@ -115,7 +121,25 @@ public interface PartiallyObservableModel extends Model
 	}
 
 	/**
-	 * Get the number of choices for observation {@code 0}.
+	 * Get the number of choices for observation {@code o}.
 	 */
 	public int getNumChoicesForObservation(int o);
+
+	/**
+	 * Export observations list.
+	 */
+	public default void exportObservations(ModelInfo modelInfo, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		new PrismExplicitExporter<Value>(exportOptions).exportObservations(this, modelInfo, out);
+	}
+
+	/**
+	 * @deprecated
+	 * Export observations list.
+	 */
+	@Deprecated
+	public default void exportObservations(int exportType, ModelInfo modelInfo, PrismLog out) throws PrismException
+	{
+		exportObservations(modelInfo, out, Prism.convertExportType(exportType));
+	}
 }

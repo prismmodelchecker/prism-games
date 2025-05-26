@@ -26,9 +26,16 @@
 
 package strat;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import explicit.ConstructInducedModel;
 import explicit.ConstructStrategyProduct;
 import explicit.Model;
 import explicit.NondetModel;
+import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
 
@@ -37,26 +44,26 @@ import prism.PrismLog;
  * giving a different choice for each state across k steps of execution.
  * So the memory is simply the number of elapsed steps.
  */
-public class FMDStrategyStep extends StrategyExplicit
+public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 {
 	// Model size
 	private int numStates;
 	// Max number of steps considered
 	private int k;
 	// Memoryless strategy over product model
-	private StepChoices choices[];
+	private ArrayList<StepChoices> choices;
 	
 	/**
 	 * Create a blank FMDStrategyStep for a specified model and maximum step count.
 	 */
-	public FMDStrategyStep(NondetModel model, int k)
+	public FMDStrategyStep(NondetModel<Value> model, int k)
 	{
 		super(model);
 		numStates = model.getNumStates();
 		this.k = k;
-		choices = new StepChoices[numStates];
+		choices = new ArrayList<>(numStates);
 		for (int s = 0; s < numStates; s++) {
-			choices[s] = new StepChoicesArray(k);
+			choices.add(new StepChoicesArray(k));
 		}
 	}
 
@@ -66,7 +73,7 @@ public class FMDStrategyStep extends StrategyExplicit
 	 */
 	public void setStepChoice(int s, int i, int ch)
 	{
-		choices[s].setChoiceForStep(i, ch);
+		choices.get(s).setChoiceForStep(i, ch);
 	}
 	
 	/**
@@ -76,7 +83,7 @@ public class FMDStrategyStep extends StrategyExplicit
 	public void setStepChoices(int i, int ch[])
 	{
 		for (int s = 0; s < numStates; s++) {
-			choices[s].setChoiceForStep(i, ch[s]);
+			choices.get(s).setChoiceForStep(i, ch[s]);
 		}
 	}
 	
@@ -97,7 +104,7 @@ public class FMDStrategyStep extends StrategyExplicit
 	public int getChoiceIndex(int s, int m)
 	{
 		// Only defined for 0...k-1
-		return m < k ? choices[s].getChoiceForStep(m) : -1;
+		return m < k ? choices.get(s).getChoiceForStep(m) : -1;
 	}
 	
 	@Override
@@ -119,45 +126,54 @@ public class FMDStrategyStep extends StrategyExplicit
 		// Step count increases by 1 each time (up to k)
 		return m >= k ? k : m + 1;
 	}
-	
+
 	@Override
-	public void exportActions(PrismLog out)
+	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
 	{
+		ConstructStrategyProduct csp = new ConstructStrategyProduct();
+		csp.setMode(options.getMode());
+		Model<Value> prodModel = csp.constructProductModel(model, this);
+		return prodModel;
+	}
+
+	@Override
+	public void exportActions(PrismLog out, StrategyExportOptions options)
+	{
+		List<State> states = model.getStatesList();
+		boolean showStates = options.getShowStates() && states != null;
 		for (int s = 0; s < numStates; s++) {
 			for (int m = 0; m < k; m++) {
 				if (isChoiceDefined(s, m)) {
-					out.println(s + "," + m + ":" + getChoiceAction(s, m));
+					out.println((showStates ? states.get(s) : s) + "," + m + "=" + getChoiceActionString(s, m));
 				}
 			}
 		}
 	}
 
 	@Override
-	public void exportIndices(PrismLog out)
+	public void exportIndices(PrismLog out, StrategyExportOptions options)
 	{
 		for (int s = 0; s < numStates; s++) {
 			for (int m = 0; m < k; m++) {
 				if (isChoiceDefined(s, m)) {
-					out.println(s + "," + m + ":" + getChoiceIndex(s, m));
+					out.println(s + "," + m + "=" + getChoiceIndex(s, m));
 				}
 			}
 		}
 	}
 
 	@Override
-	public void exportInducedModel(PrismLog out, int precision) throws PrismException
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		ConstructStrategyProduct csp = new ConstructStrategyProduct();
-		Model prodModel = csp.constructProductModel(model, this);
-		prodModel.exportToPrismExplicitTra(out, precision);
+		Model<Value> prodModel = constructInducedModel(options);
+		prodModel.exportToPrismExplicitTra(out, options.getModelPrecision());
 	}
 
 	@Override
-	public void exportDotFile(PrismLog out, int precision) throws PrismException
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		ConstructStrategyProduct csp = new ConstructStrategyProduct();
-		Model prodModel = csp.constructProductModel(model, this);
-		prodModel.exportToDotFile(out, null, true, precision);
+		Model<Value> prodModel = constructInducedModel(options);
+		prodModel.exportToDotFile(out, null, options.getShowStates(), options.getModelPrecision());
 	}
 
 	@Override
@@ -165,7 +181,17 @@ public class FMDStrategyStep extends StrategyExplicit
 	{
 		choices = null;
 	}
-	
+
+	@Override
+	public String toString()
+	{
+		return "[" + IntStream.range(0, getNumStates())
+				.mapToObj(s -> IntStream.range(0, k)
+				.mapToObj(m -> s + "," + m + "=" + getChoiceActionString(s, m))
+				.collect(Collectors.joining(",")))
+				.collect(Collectors.joining(",")) + "]";
+	}
+
 	// Classes to store the choice for each step (0...k-1) in one state
 	
 	/**
@@ -185,7 +211,7 @@ public class FMDStrategyStep extends StrategyExplicit
 	}
 	
 	/**
-	 * Simple implementation of {@link #StepChoices},
+	 * Simple implementation of {@link StepChoices},
 	 * just storing choice indices in an array of size k
 	 */
 	class StepChoicesArray extends StepChoices

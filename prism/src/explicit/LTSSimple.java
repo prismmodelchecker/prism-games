@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import io.ExplicitModelImporter;
 import prism.PrismException;
 import strat.MDStrategy;
 
@@ -41,7 +42,7 @@ import strat.MDStrategy;
  * Each transition from a state is considered to be a separate (singleton) "choice",
  * following the terminology in other nondeterministic explicit-state models.
  */
-public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
+public class LTSSimple<Value> extends ModelExplicit<Value> implements LTS<Value>, NondetModelSimple<Value>
 {
 	// Transition relation
 	protected List<List<Integer>> trans;
@@ -73,7 +74,7 @@ public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
 	/**
 	 * Construct an LTS from an existing one.
 	 */
-	public LTSSimple(LTSSimple lts)
+	public LTSSimple(LTSSimple<Value> lts)
 	{
 		this(lts.getNumStates());
 		copyFrom(lts);
@@ -93,7 +94,7 @@ public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
 	 * Construct an LTS from an existing one and a state index permutation,
 	 * i.e. in which state index i becomes index permut[i].
 	 */
-	public LTSSimple(LTSSimple lts, int permut[])
+	public LTSSimple(LTSSimple<Value> lts, int permut[])
 	{
 		this(lts.getNumStates());
 		copyFrom(lts, permut);
@@ -107,6 +108,19 @@ public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
 		actions = new ChoiceActionsSimple(lts.actions, permut);
 		// Copy stats too
 		numTransitions = lts.numTransitions;
+	}
+
+	@Override
+	public void buildFromExplicitImport(ExplicitModelImporter modelImporter) throws PrismException
+	{
+		initialise(modelImporter.getNumStates());
+		modelImporter.extractLTSTransitions((s, i, s2, a) -> {
+			if (i > getNumChoices(s)) {
+				throw new PrismException("Missing choice indices in state " + s + " when importing transitions");
+			}
+			// Then add transition
+			addActionLabelledTransition(s, s2, a);
+		});
 	}
 
 	// Mutators (for ModelSimple)
@@ -147,12 +161,6 @@ public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
 			trans.add(new ArrayList<Integer>());
 			numStates++;
 		}
-	}
-
-	@Override
-	public void buildFromPrismExplicit(String filename) throws PrismException
-	{
-		throw new UnsupportedOperationException();
 	}
 
 	// Mutators (other)
@@ -283,7 +291,7 @@ public class LTSSimple extends ModelExplicit implements LTS, NondetModelSimple
 	}
 
 	@Override
-	public Model constructInducedModel(MDStrategy strat)
+	public Model<Value> constructInducedModel(MDStrategy<Value> strat)
 	{
 		throw new UnsupportedOperationException();
 	}

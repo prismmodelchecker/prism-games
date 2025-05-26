@@ -34,6 +34,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import common.IterableStateSet;
+import common.iterable.FunctionalPrimitiveIterator;
 import parser.State;
 import parser.ast.ExpressionFilter;
 import parser.type.Type;
@@ -129,7 +131,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The values for states are provided as a mapping from integer index to Object.
 	 * The passed in model determines the vector size (and states list).
 	 */
-	public StateValues(Type type, ValueDefinition values, Model model) throws PrismException
+	public StateValues(Type type, ValueDefinition values, Model<?> model) throws PrismException
 	{
 		initialise(type, model);
 		setFromValueDefinition(values);
@@ -139,7 +141,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * Construct a new state values vector with the same value in every state.
 	 * The passed in model determines the vector size (and states list).
 	 */
-	public StateValues(Type type, Object value, Model model) throws PrismException
+	public StateValues(Type type, Object value, Model<?> model) throws PrismException
 	{
 		initialise(type, model);
 		setToSingleValue(value);
@@ -150,7 +152,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The value for all states is set to the default value for the type.
 	 * The passed in model determines the vector size (and states list).
 	 */
-	public StateValues(Type type, Model model) throws PrismException
+	public StateValues(Type type, Model<?> model) throws PrismException
 	{
 		this(type, type.defaultValue(), model);
 	}
@@ -160,7 +162,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	/**
 	 * Initialise the vector/model info (but not the value storage)
 	 */
-	private void initialise(Type type, Model model)
+	private void initialise(Type type, Model<?> model)
 	{
 		this.type = type;
 		this.size = model.getNumStates();
@@ -254,7 +256,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The values for states are provided as a mapping from integer index to Object.
 	 * The passed in model determines the vector size (and states list).
 	 */
-	public static StateValues create(Type type, ValueDefinition values, Model model) throws PrismException
+	public static StateValues create(Type type, ValueDefinition values, Model<?> model) throws PrismException
 	{
 		StateValues sv = new StateValues();
 		sv.initialise(type, model);
@@ -267,7 +269,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * where the value is the same for every state.
 	 * The passed in model determines the vector size (and states list).
 	 */
-	public static StateValues createFromSingleValue(Type type, Object value, Model model) throws PrismException
+	public static StateValues createFromSingleValue(Type type, Object value, Model<?> model) throws PrismException
 	{
 		StateValues sv = new StateValues();
 		sv.initialise(type, model);
@@ -280,7 +282,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The array is stored directly, not copied.
 	 * Also set associated model (whose state space size should match vector size).
 	 */
-	public static StateValues createFromObjectArray(Type type, Object[] array, Model model)
+	public static StateValues createFromObjectArray(Type type, Object[] array, Model<?> model)
 	{
 		StateValues sv = new StateValues();
 		sv.initialise(type, model);
@@ -292,7 +294,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * Create a new (double-valued) state values vector from an existing array of doubles.
 	 * Also set associated model (whose state space size should match vector size).
 	 */
-	public static StateValues createFromDoubleArray(double[] array, Model model) throws PrismException
+	public static StateValues createFromDoubleArray(double[] array, Model<?> model) throws PrismException
 	{
 		return create(TypeDouble.getInstance(), i -> array[i], model);
 	}
@@ -313,7 +315,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * stored in a ModelCheckerResult object. Accuracy information is also extracted.
 	 * Also set associated model (whose state space size should match vector size).
 	 */
-	public static StateValues createFromDoubleArrayResult(ModelCheckerResult res, Model model) throws PrismException
+	public static StateValues createFromDoubleArrayResult(ModelCheckerResult res, Model<?> model) throws PrismException
 	{
 		StateValues sv = createFromDoubleArray(res.soln, model);
 		sv.setAccuracy(res.accuracy);
@@ -325,7 +327,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The BitSet is stored directly, not copied.
 	 * Also set associated model (and this determines the vector size).
 	 */
-	public static StateValues createFromBitSet(BitSet bs, Model model)
+	public static StateValues createFromBitSet(BitSet bs, Model<?> model)
 	{
 		StateValues sv = new StateValues();
 		sv.initialise(TypeBool.getInstance(), model);
@@ -340,17 +342,34 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * The bitset is not modified or stored.
 	 * The accuracy for the result is also set automatically.
 	 */
-	public static StateValues createFromBitSetAsDoubles(BitSet bitset, Model model) throws PrismException
+	public static StateValues createFromBitSetAsDoubles(BitSet bitset, Model<?> model) throws PrismException
 	{
 		StateValues sv = create(TypeDouble.getInstance(), i -> bitset.get(i) ? 1.0 : 0.0, model);
 		sv.setAccuracy(AccuracyFactory.doublesFromQualitative());
 		return sv;
 	}
-	
+
+	/**
+	 * Create a new state values vector from an existing array of values,
+	 * stored in a ModelCheckerResult object. Accuracy information is also extracted.
+	 * Also set associated model (whose state space size should match vector size).
+	 */
+	public static StateValues createFromArrayResult(ModelCheckerResult res, Model<?> model) throws PrismException
+	{
+		StateValues sv = null;
+		if (res.solnObj != null) {
+			sv = createFromObjectArray(TypeDouble.getInstance(), res.solnObj, model);
+		} else {
+			sv = createFromDoubleArray(res.soln, model);
+		}
+		sv.setAccuracy(res.accuracy);
+		return sv;
+	}
+
 	/**
 	 * Create a new state values vector, reading in the values from a file.
 	 */
-	public static StateValues createFromFile(Type type, File file, Model model) throws PrismException
+	public static StateValues createFromFile(Type type, File file, Model<?> model) throws PrismException
 	{
 		StateValues sv = new StateValues();
 		sv.initialise(type, model);
@@ -365,7 +384,7 @@ public class StateValues implements StateVector, Iterable<Object>
 	 * @param newModel The new model
 	 * @param reverseStateMapping Mapping from indices of the new model to the old one
 	 */
-	public StateValues mapToNewModel(Model newModel, IntFunction<Integer> reverseStateMapping) throws PrismException
+	public StateValues mapToNewModel(Model<?> newModel, IntFunction<Integer> reverseStateMapping) throws PrismException
 	{
 		int numStates = newModel.getNumStates();
 		StateValues sv = create(type, i -> {
@@ -392,8 +411,8 @@ public class StateValues implements StateVector, Iterable<Object>
 	 */
 	public StateValues projectToOriginalModel(final Product<?> product) throws PrismException
 	{
-		Model productModel = product.getProductModel();
-		Model originalModel = product.getOriginalModel();
+		Model<?> productModel = product.getProductModel();
+		Model<?> originalModel = product.getOriginalModel();
 		StateValues sv = new StateValues(type, originalModel);
 		for (int productState : productModel.getInitialStates()) {
 			int modelState = product.getModelState(productState);
@@ -483,6 +502,23 @@ public class StateValues implements StateVector, Iterable<Object>
 	}
 
 	/**
+	 * Modify the vector by applying (pointwise) a unary function, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, UnaryFunction func, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
+			setValue(i, func.apply(getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+
+	/**
 	 * Modify the vector by applying (pointwise) a binary function
 	 * to this and another vector.
 	 * @param retType Function return type
@@ -493,6 +529,25 @@ public class StateValues implements StateVector, Iterable<Object>
 	{
 		initStorage(retType);
 		for (int i = 0; i < size; i++) {
+			setValue(i, func.apply(getValue(i), sv2.getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+	
+	/**
+	 * Modify the vector by applying (pointwise) a binary function
+	 * to this and another vector, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param sv2 Vector 2
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, BinaryFunction func, StateValues sv2, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
 			setValue(i, func.apply(getValue(i), sv2.getValue(i)), retType);
 		}
 		type = retType;
@@ -511,6 +566,26 @@ public class StateValues implements StateVector, Iterable<Object>
 	{
 		initStorage(retType);
 		for (int i = 0; i < size; i++) {
+			setValue(i, func.apply(getValue(i), sv2.getValue(i), sv3.getValue(i)), retType);
+		}
+		type = retType;
+		clearOldStorage();
+	}
+	
+	/**
+	 * Modify the vector by applying (pointwise) a ternary function
+	 * to this and two other vectors, only over the states in {@code subset}.
+	 * @param retType Function return type
+	 * @param func Function definition
+	 * @param sv2 Vector 2
+	 * @param sv3 Vector 3
+	 * @param subset Subset of states for application (all if null)
+	 */
+	public void applyFunction(Type retType, TernaryFunction func, StateValues sv2, StateValues sv3, BitSet subset) throws PrismException
+	{
+		initStorage(retType);
+		for (FunctionalPrimitiveIterator.OfInt iter = new IterableStateSet(subset, size).iterator(); iter.hasNext();) {
+			int i = iter.nextInt();
 			setValue(i, func.apply(getValue(i), sv2.getValue(i), sv3.getValue(i)), retType);
 		}
 		type = retType;

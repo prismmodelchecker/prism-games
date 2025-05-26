@@ -26,6 +26,9 @@
 
 package param;
 
+import parser.ast.Expression;
+import prism.PrismException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -243,7 +246,13 @@ final class CachedFunctionFactory extends FunctionFactory {
 		Function function2 = getFunctionFromCache(cached2);
 		return makeUnique(function1.divide(function2));
 	}
-	
+
+	Function pow(Function cached1, int exp)
+	{
+		Function function1 = getFunctionFromCache(cached1);
+		return makeUnique(function1.pow(exp));
+	}
+
 	Function star(Function cached) {
 		Function result;
 		if (useOpCache) {
@@ -287,6 +296,11 @@ final class CachedFunctionFactory extends FunctionFactory {
 	public BigRational asBigRational(CachedFunction cached) {
 		Function function = getFunctionFromCache(cached);
 		return function.asBigRational();
+	}
+
+	public Expression asExpression(CachedFunction cached) throws PrismException {
+		Function function = getFunctionFromCache(cached);
+		return function.asExpression();
 	}
 
 	public boolean check(CachedFunction cached, Point point,

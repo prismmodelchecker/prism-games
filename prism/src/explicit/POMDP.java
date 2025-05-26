@@ -45,7 +45,7 @@ import prism.PrismUtils;
  * that these actions appear in the same order (in terms of choice indexing)
  * in each observationally equivalent state.
  */
-public interface POMDP extends MDP, PartiallyObservableModel
+public interface POMDP<Value> extends MDP<Value>, PartiallyObservableModel<Value>
 {
 	// Accessors (for Model) - default implementations
 	
@@ -53,59 +53,6 @@ public interface POMDP extends MDP, PartiallyObservableModel
 	default ModelType getModelType()
 	{
 		return ModelType.POMDP;
-	}
-
-	@Override
-	default void exportToPrismExplicitTra(PrismLog out, int precision)
-	{
-		// Output transitions to .tra file
-		int numStates = getNumStates();
-		out.print(numStates + " " + getNumChoices() + " " + getNumTransitions() + " " + getNumObservations() + "\n");
-		TreeMap<Integer, Double> sorted = new TreeMap<Integer, Double>();
-		for (int i = 0; i < numStates; i++) {
-			int numChoices = getNumChoices(i);
-			for (int j = 0; j < numChoices; j++) {
-				// Extract transitions and sort by destination state index (to match PRISM-exported files)
-				Iterator<Map.Entry<Integer, Double>> iter = getTransitionsIterator(i, j);
-				while (iter.hasNext()) {
-					Map.Entry<Integer, Double> e = iter.next();
-					sorted.put(e.getKey(), e.getValue());
-				}
-				// Print out (sorted) transitions
-				for (Map.Entry<Integer, Double> e : sorted.entrySet()) {
-					// Note use of PrismUtils.formatDouble to match PRISM-exported files
-					out.print(i + " " + j + " " + e.getKey() + " " + PrismUtils.formatDouble(precision, e.getValue()) + " " + getObservation(e.getKey()));
-					Object action = getAction(i, j);
-					out.print(action == null ? "\n" : (" " + action + "\n"));
-				}
-				sorted.clear();
-			}
-		}
-	}
-
-	@Override
-	default String infoString()
-	{
-		String s = "";
-		s += getNumStates() + " states (" + getNumInitialStates() + " initial)";
-		s += ", " + getNumTransitions() + " transitions";
-		s += ", " + getNumChoices() + " choices";
-		s += ", dist max/avg = " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / getNumStates());
-		s += ", " + getNumObservations() + " observables";
-		s += ", " + getNumUnobservations() + " unobservables";
-		return s;
-	}
-
-	@Override
-	default String infoStringTable()
-	{
-		String s = "";
-		s += "States:      " + getNumStates() + " (" + getNumInitialStates() + " initial)\n";
-		s += "Obs/unobs:   " + getNumObservations() + "/" + getNumUnobservations() + "\n";
-		s += "Transitions: " + getNumTransitions() + "\n";
-		s += "Choices:     " + getNumChoices() + "\n";
-		s += "Max/avg:     " + getMaxNumChoices() + "/" + PrismUtils.formatDouble2dp(((double) getNumChoices()) / getNumStates()) + "\n";
-		return s;
 	}
 
 	// Accessors
@@ -116,6 +63,27 @@ public interface POMDP extends MDP, PartiallyObservableModel
 	 */
 	public Object getActionForObservation(int o, int i);
 	
+	/**
+	 * Get the index of the (first) choice of observation {@code o} with action label {@code action}.
+	 * Action labels (which are {@link Object}s) are tested for equality using {@link Object#equals(Object)}.
+	 * Returns -1 if there is no matching action.
+	 */
+	public default int getChoiceByActionForObservation(int o, Object action)
+	{
+		int numChoices = getNumChoicesForObservation(o);
+		for (int i = 0; i < numChoices; i++) {
+			Object a = getActionForObservation(o, i);
+			if (a == null) {
+				if (action == null) {
+					return i;
+				}
+			} else if (a.equals(action)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	/**
 	 * Get the initial belief state, as a {@link Belief} object.
 	 */
@@ -176,12 +144,12 @@ public interface POMDP extends MDP, PartiallyObservableModel
 	 * Get the expected (state and transition) reward value when taking the
 	 * {@code i}th choice from belief state {@code belief}.
 	 */
-	public double getRewardAfterChoice(Belief belief, int i, MDPRewards mdpRewards);
+	public double getRewardAfterChoice(Belief belief, int i, MDPRewards<Double> mdpRewards);
 
 	/**
 	 * Get the expected (state and transition) reward value when taking the
 	 * {@code i}th choice from belief state {@code belief}.
 	 * The belief state is given as an array of probabilities over all states.
 	 */
-	public double getRewardAfterChoice(double[] belief, int i, MDPRewards mdpRewards);
+	public double getRewardAfterChoice(double[] belief, int i, MDPRewards<Double> mdpRewards);
 }

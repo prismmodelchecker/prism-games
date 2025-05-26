@@ -32,13 +32,13 @@ import prism.PrismLog;
 /**
  * Interface for classes to store memoryless deterministic (MD) strategies.
  */
-public interface MDStrategy extends Strategy
+public interface MDStrategy<Value> extends Strategy<Value>
 {
 	// Additional queries for memoryless strategies (just ignore memory)
 	
 	/**
 	 * Get the action chosen by the strategy in the state index s
-	 * Returns {@link #StrategyInfo.UNDEFINED} if undefined.
+	 * Returns {@link StrategyInfo#UNDEFINED} if undefined.
 	 */
 	public default Object getChoiceAction(int s)
 	{
@@ -63,25 +63,35 @@ public interface MDStrategy extends Strategy
 		return isChoiceDefined(s, -1);
 	}
 
+	/**
+	 * Get a string representing the choice made by the strategy in the state index s.
+	 * For unlabelled choices, this should return "", not null.
+	 * This may also indicate the reason why it is undefined, if it is.
+	 */
+	public default String getChoiceActionString(int s)
+	{
+		return getChoiceActionString(s, -1);
+	}
+
 	// Methods for Strategy
 	
 	@Override
-	public default void exportActions(PrismLog out)
+	public default void exportActions(PrismLog out, StrategyExportOptions options)
 	{
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
 			if (isChoiceDefined(s))
-				out.println(s + ":" + getChoiceAction(s));
+				out.println(s + "=" + getChoiceActionString(s));
 		}
 	}
 
 	@Override
-	public default void exportIndices(PrismLog out)
+	public default void exportIndices(PrismLog out, StrategyExportOptions options)
 	{
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
 			if (isChoiceDefined(s))
-				out.println(s + ":" + getChoiceIndex(s));
+				out.println(s + "=" + getChoiceIndex(s));
 		}
 	}
 }

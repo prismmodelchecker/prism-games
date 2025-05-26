@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import parser.EvaluateContext;
 import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 
 import java.util.Objects;
@@ -114,6 +115,12 @@ public class ExpressionBinaryOpShortCircuitTest
 		public Object accept(ASTVisitor v) throws PrismLangException
 		{
 			return null;
+		}
+
+		@Override
+		public ExpressionMock deepCopy(DeepCopy copier)
+		{
+			return this;
 		}
 
 		@Override

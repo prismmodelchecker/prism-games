@@ -27,30 +27,70 @@
 
 package explicit.rewards;
 
-import explicit.Model;
 import explicit.Product;
+import prism.Evaluator;
 
 /**
  * Interface implemented by all reward classes.
  */
-public interface Rewards
+public interface Rewards<Value>
 {
+	/**
+	 * Get an Evaluator for the reward values stored in this class.
+	 * This is needed, for example, to compute sums, check for equality to 0/1, etc.
+	 * A default implementation provides an evaluator for the (usual) case when Value is Double.
+	 */
+	@SuppressWarnings("unchecked")
+	default Evaluator<Value> getEvaluator()
+	{
+		return (Evaluator<Value>) Evaluator.forDouble();
+	}
+
+	/**
+	 * Returns true if this reward structure has state rewards.
+	 * This method can sometimes return true even if there are none,
+	 * but a value of false always indicates that none are present.
+	 */
+	default boolean hasStateRewards()
+	{
+		// Safe to assume true by default
+		return true;
+	}
+
+	/**
+	 * Returns true if this reward structure has transition rewards.
+	 * This method can sometimes return true even if there are none,
+	 * but a value of false always indicates that none are present.
+	 */
+	default boolean hasTransitionRewards()
+	{
+		// Safe to assume true by default
+		return true;
+	}
+
 	/**
 	 * Get the state reward for state {@code s}.
 	 */
-	public abstract double getStateReward(int s);
-	
+	default Value getStateReward(int s)
+	{
+		// Default implementation assumes all zero rewards
+		return getEvaluator().zero();
+	}
+
 	/**
-	 * Get the transition reward for the {@code i}th choice from state {@code s}.
+	 * Get the transition reward with index {@code i} from state {@code s}.
+	 * For a nondeterministic model, this refers to the {@code i}th choice,
+	 * for a Markov chain like model, it refers to the {@code i}th transition.
 	 */
-	public abstract double getTransitionReward(int s, int i);
+	default Value getTransitionReward(int s, int i)
+	{
+		// Default implementation assumes all zero rewards
+		return getEvaluator().zero();
+	}
 
 	/**
 	 * Create a new reward structure that lifts this one such that it is defined over states of a
-	 * model that is a product of the one that this reward structure is defined over. 
+	 * model that is a product of the one that this reward structure is defined over.
 	 */
-	public Rewards liftFromModel(Product<? extends Model> product);
-
-	/** Returns true if this reward structure has transition rewards */
-	public boolean hasTransitionRewards();
+	Rewards<Value> liftFromModel(Product<?> product);
 }

@@ -4,81 +4,96 @@ import param.BigRational;
 import parser.EvaluateContext;
 import parser.Values;
 import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.OpRelOpBound;
 import prism.PrismException;
 import prism.PrismLangException;
 
-public class ExpressionMultiNashProb extends ExpressionQuant {
-	
+public class ExpressionMultiNashProb extends ExpressionQuant
+{
+
 	protected Expression expr;
 
-	public ExpressionMultiNashProb() {
-		
+	public ExpressionMultiNashProb()
+	{
+
 	}
-	
-	public void setExpression(Expression e) {
+
+	public void setExpression(Expression e)
+	{
 		this.expr = e;
 	}
-	
-	public Expression getExpression() {
+
+	public Expression getExpression()
+	{
 		return this.expr;
 	}
 
 	@Override
-	public OpRelOpBound getRelopBoundInfo(Values constantValues) throws PrismException {
+	public OpRelOpBound getRelopBoundInfo(Values constantValues) throws PrismException
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean isConstant() {
+	public boolean isConstant()
+	{
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean isProposition() {
+	public boolean isProposition()
+	{
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public Object evaluate(EvaluateContext ec) throws PrismLangException {
+	public Object evaluate(EvaluateContext ec) throws PrismLangException
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public BigRational evaluateExact(EvaluateContext ec) throws PrismLangException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean returnsSingleValue() {
+	public boolean returnsSingleValue()
+	{
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
-	public Expression deepCopy() {
-		ExpressionMultiNashProb expr = new ExpressionMultiNashProb();
-		expr.setExpression(getExpression() == null ? null : getExpression().deepCopy());
-		expr.setType(type);
-		expr.setPosition(this);
-		return expr;
-	}
+	// Methods required for ASTElement:
 
 	@Override
-	public Object accept(ASTVisitor v) throws PrismLangException {
+	public Object accept(ASTVisitor v) throws PrismLangException
+	{
 		return v.visit(this);
 	}
-	
+
 	@Override
-	public String toString() {
+	public ExpressionMultiNashProb deepCopy(DeepCopy copier) throws PrismLangException
+	{
+		super.deepCopy(copier);
+		expr = copier.copy(expr);
+		return this;
+	}
+
+	@Override
+	public ExpressionMultiNashProb clone()
+	{
+		return (ExpressionMultiNashProb) super.clone();
+	}
+
+	// Standard methods
+
+	@Override
+	public String toString()
+	{
 		// TODO Auto-generated method stub
 		String s = "P[" + expr.toString() + "]";
 		return s;
 	}
-	
+
 }

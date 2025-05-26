@@ -29,37 +29,33 @@ package explicit.rewards;
 import explicit.Model;
 import explicit.Product;
 
+import java.util.Arrays;
+
 /**
  * Explicit-state storage of just state rewards (as an array).
  */
-public class StateRewardsArray extends StateRewards
+public class StateRewardsArray extends RewardsExplicit<Double>
 {
 	/** Array of state rewards **/
-	protected double stateRewards[] = null;
-	
+	protected double stateRewards[];
+
 	/**
 	 * Constructor: all zero rewards.
 	 * @param numStates Number of states
 	 */
 	public StateRewardsArray(int numStates)
 	{
+		// Default to all zero
 		stateRewards = new double[numStates];
-		for (int i = 0; i < numStates; i++) {
-			stateRewards[i] = 0.0;
-		}
 	}
-	
+
 	/**
 	 * Copy constructor
 	 * @param rews Rewards to copy
 	 */
 	public StateRewardsArray(StateRewardsArray rews)
 	{
-		int numStates= rews.stateRewards.length;
-		stateRewards = new double[numStates];
-		for (int i = 0; i < numStates; i++) {
-			stateRewards[i] = rews.stateRewards[i];
-		}
+		stateRewards = Arrays.copyOf(rews.stateRewards, rews.stateRewards.length);
 	}
 
 	// Mutators
@@ -67,7 +63,7 @@ public class StateRewardsArray extends StateRewards
 	/**
 	 * Set the reward for state {@code s} to {@code r}.
 	 */
-	public void setStateReward(int s, double r)
+	public void setStateReward(int s, Double r)
 	{
 		stateRewards[s] = r;
 	}
@@ -75,38 +71,35 @@ public class StateRewardsArray extends StateRewards
 	/**
 	 * Add {@code r} to the state reward for state {@code s} .
 	 */
-	public void addToStateReward(int s, double r)
+	public void addToStateReward(int s, Double r)
 	{
 		stateRewards[s] += r;
 	}
 	
 	// Accessors
-	
+
 	@Override
-	public double getStateReward(int s)
+	public boolean hasTransitionRewards()
+	{
+		// Only state rewards
+		return false;
+	}
+
+	@Override
+	public Double getStateReward(int s)
 	{
 		return stateRewards[s];
 	}
 	
-	// Converters
-	
 	@Override
-	public StateRewards liftFromModel(Product<? extends Model> product)
+	public StateRewardsArray liftFromModel(Product<?> product)
 	{
-		Model modelProd = product.getProductModel();
+		Model<?> modelProd = product.getProductModel();
 		int numStatesProd = modelProd.getNumStates();
 		StateRewardsArray rewardsProd = new StateRewardsArray(numStatesProd);
 		for (int s = 0; s < numStatesProd; s++) {
 			rewardsProd.setStateReward(s, stateRewards[product.getModelState(s)]);
 		}
 		return rewardsProd;
-	}
-	
-	// Other
-
-	@Override
-	public StateRewardsArray deepCopy()
-	{
-		return new StateRewardsArray(this);
 	}
 }

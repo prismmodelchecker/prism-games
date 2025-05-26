@@ -30,7 +30,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import parser.visitor.*;
+import parser.visitor.ASTVisitor;
+import parser.visitor.DeepCopy;
 import prism.PrismLangException;
 
 public class RewardStructItem extends ASTElement
@@ -41,11 +42,11 @@ public class RewardStructItem extends ASTElement
 	//   usually exactly 1, but can be more for concurrent games: 
 	//   -  "" = empty/unlabelled/asynchronous action
 	//   -  "act" = "act"-labelled action
-	private List<String> synchs;
+	private ArrayList<String> synchs;
 	// Index of action label in model's list of all actions ("synchs")
 	// This is 1-indexed, with 0 denoting independent (unlabelled).
 	// -1 denotes either none (i.e. state reward, synch==null) or not (yet) known.
-	private List<Integer> synchIndices;
+	private ArrayList<Integer> synchIndices;
 	// Guard expression
 	private Expression states;
 	// Reward expression
@@ -114,7 +115,7 @@ public class RewardStructItem extends ASTElement
 				synchIndices = new ArrayList<Integer>(1);
 				synchIndices.add(-1);
 			} else {
-				this.synchs = synchs;
+				this.synchs = new ArrayList<>(synchs);
 				synchIndices = new ArrayList<>(Collections.nCopies(synchs.size(), -1));
 			}
 		}
@@ -252,16 +253,27 @@ public class RewardStructItem extends ASTElement
 		return s;
 	}
 	
-	/**
-	 * Perform a deep copy.
-	 */
-	public ASTElement deepCopy() 
+	@Override
+	public RewardStructItem deepCopy(DeepCopy copier) throws PrismLangException
 	{
-		List<String> synchsCopy = synchs == null ? null : new ArrayList<String>(synchs);
-		RewardStructItem ret = new RewardStructItem(synchsCopy, states.deepCopy(), reward.deepCopy());
-		ret.synchIndices = synchIndices == null ? null : new ArrayList<Integer>(synchIndices);
-		ret.setPosition(this);
-		return ret;
+		states = copier.copy(states);
+		reward = copier.copy(reward);
+
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public RewardStructItem clone()
+	{
+		RewardStructItem clone = (RewardStructItem) super.clone();
+		
+		if (synchs != null)
+			clone.synchs = (ArrayList<String>) synchs.clone();
+		if (synchIndices != null)
+			clone.synchIndices = (ArrayList<Integer>) synchIndices.clone();
+		
+		return (RewardStructItem) super.clone();
 	}
 }
 

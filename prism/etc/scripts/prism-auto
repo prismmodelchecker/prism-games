@@ -12,7 +12,7 @@
 # Run "prism-auto -h" for details of further options.
 
 import os,sys,re,subprocess,signal,tempfile,functools,logging,time,platform,csv
-from pipes import quote
+from shlex import quote
 from optparse import OptionParser
 from threading import Timer
 
@@ -333,7 +333,7 @@ def addExtraArgs(argLists):
 
 def possibleNameClash(fullName):
     withoutExt = fullName.rsplit('.', 1)[0]
-    exts = ['lab','tra','stat','srew','trew']
+    exts = ['lab','tra','sta','srew','trew','obs']
 
     return any(map (os.path.exists, [fullName] + [withoutExt + '.' + ext for ext in exts] +  [withoutExt + '1.' + ext for ext in exts]))
 
@@ -396,9 +396,9 @@ def hasExportSwitches(args):
 # and that multiple reward structures will result in filenames extended with a number
 
 def getExpectedOutFilesFromArgs(args):
-    options = [args[i+1] for i in range(len(args)-1) if args[i].startswith("-export") and not args[i]=="-exportmodelprecision"]
+    argsOptions = [args[i+1] for i in range(len(args)-1) if args[i].startswith("-export") and not args[i]=="-exportmodelprecision"]
     # Sometimes there are options appended, after a ":" - remove these
-    files = map(lambda option: option.split(':')[0], options)
+    files = map(lambda option: option.split(':')[0], argsOptions)
 
     resultFiles = []
     for file in files:
@@ -412,7 +412,7 @@ def getExpectedOutFilesFromArgs(args):
         if (len(split) == 1): split = split + [""]
         # Determine relevant extensions
         if split[1] == 'all':
-            exts = ['lab','tra','sta','srew','trew']
+            exts = ['lab','tra','sta','srew','trew','obs']
         else:
             exts = [split[1]]
         if (moreExts): exts = exts + moreExts;
@@ -431,7 +431,7 @@ def getExpectedOutFilesFromArgs(args):
                     i += 1
                     fullName = base + str(i) + '.' + ext
                     foundFile = True
-            if not foundFile:
+            if not foundFile and (options.showWarnings or options.verboseTest):
                 printColoured('WARNING', "Warning: There is no file of the form " + base + "[number]." + ext + " to compare against -- will skip")
                 incrementTestStat('WARNING')
     return resultFiles
@@ -613,7 +613,8 @@ def runPrism(args, bmArgs, dir=""):
                 prismArgs += ['|', 'grep "Testing result:"']
         print(' '.join(prismArgs))
         return
-    print(' '.join(prismArgs))
+    if not options.errorsOnly:
+        print(' '.join(prismArgs))
     sys.stdout.flush()
     if options.logDir:
         logDir = options.logDir
@@ -649,15 +650,15 @@ def runPrism(args, bmArgs, dir=""):
     if options.ddWarnings:
         for line in open(logFile, 'r').readlines():
             if re.match('Warning: CUDD reports .* non-zero references', line):
-                printTestResult(line)
+                printTestResult(line, prismArgs)
     # Extract test results if needed
     if options.test:
         for line in open(logFile, 'r').readlines():
             if re.match('Testing result:', line):
-                printTestResult(line)
+                printTestResult(line, prismArgs)
             elif re.match('Warning:', line):
                 if options.showWarnings or options.verboseTest:
-                    printTestResult(line)
+                    printTestResult(line, prismArgs)
                 else:
                     # We don't print it, but we count it
                     countTestResult(line)
@@ -678,10 +679,15 @@ def runPrism(args, bmArgs, dir=""):
             cleanupLogFile = False
             for line in open(logFile, 'r').readlines():
                 if re.match('Error:', line):
-                    printTestResult(line)
-            print("To see log file, run:")
-            print("edit " + logFile)
-            prismArgsPrint = prismArgs.copy()
+                    printTestResult(line, prismArgs)
+            if (options.printFailures):
+                print("Failing test log file:")
+                for line in open(logFile, 'r').readlines():
+                    print(line, end="")
+            else:
+                print("To see log file, run:")
+                print("edit " + logFile)
+            prismArgsPrint = list(prismArgs)
             prismArgsPrint[0] = options.prismExec
             print("To re-run failing test:")
             print(' '.join(prismArgsPrint))
@@ -735,8 +741,14 @@ def execute(args):
 
 # Print a testing-related message, colour coding if needed
 
-def printTestResult(msg):
+def printTestResult(msg, prismArgs=[]):
     global testColours
+    if options.errorsOnly:
+        if not ('Error:' in msg or 'FAIL' in msg or ('Warning:' in msg and (options.showWarnings or options.verboseTest))):
+            return
+        else:
+            if prismArgs:
+                print(' '.join(prismArgs))
     msg = str.rstrip(msg)
     countTestResult(msg)
     if not isColourEnabled():
@@ -1011,7 +1023,10 @@ def benchmarkAutoFile(autoFile):
     if dir == "": dir = "."
     if options.matching:
         matchingModelFiles = getMatchingModelsInDir(dir, autoFile)
-        modelFiles = map(lambda file: [file,[]], matchingModelFiles)
+        if matchingModelFiles:
+            modelFiles = map(lambda file: [file,[]], matchingModelFiles)
+        else:
+            modelFiles = []
     else:
         modelFiles = getModelsInDir(dir)
     logging.debug("Model files: " + str(modelFiles))
@@ -1073,11 +1088,16 @@ def benchmarkPropListFile(propListFile):
         benchmarkPropertiesFile(os.path.join(dir, propFile))
 
 # (Re-)start the nailgun server
-# We first try to stop an existing server (which should fail quickly if there is none running)
 def restartNailGunServer():
+	# First try to stop an existing server (which should fail quickly if there is none running)
     print("Stopping existing nailgun server, if it's running...")
     sys.stdout.flush()
     subprocess.Popen([options.ngprism, "stop"]).wait()
+    # For Java version >=19, running Nailgun needs a workaround
+    javaVersion = getJavaVersion()
+    if javaVersion is not None and javaVersion >= 19:
+        os.environ['PRISM_JAVA_PARAMS'] = '-Djava.security.manager=allow'
+    # Start the server and make sure it is running
     print("Starting nailgun server...")
     sys.stdout.flush()
     os.system(options.prismExec + " -ng &")
@@ -1089,6 +1109,20 @@ def restartNailGunServer():
         time.sleep(0.5)
         tries = tries + 1
         exitCode = subprocess.Popen([options.ngprism, "-version"]).wait()
+        
+# Get the (major) version of Java used to run PRISM, return as an integer (or None if failed)
+def getJavaVersion():
+    try:
+        # Get the output of "prism -javaversion", extract version as regexp
+        result = subprocess.run([options.prismExec, '-javaversion'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        javaVersionMajor = None
+        if result.returncode == 0:
+            javaVersionString = re.search(r'"(\d+)', result.stderr)
+            if javaVersionString:
+                javaVersionMajor = int(javaVersionString.group(1))
+        return javaVersionMajor
+    except FileNotFoundError: # prismExec call fails
+        return None
 
 #==================================================================================================
 # Main program
@@ -1127,6 +1161,7 @@ parser.add_option("-x", "--extra", action="append", dest="extraArgs", metavar="X
 parser.add_option("-t", "--test", action="store_true", dest="test", default=False, help="Run in test mode")
 parser.add_option("--verbose-test", action="store_true", dest="verboseTest", default=False, help="Run in verbose test mode (implies --test)")
 parser.add_option("-w", "--show-warnings", action="store_true", dest="showWarnings", default=False, help="Show warnings (as well as errors) when in test mode")
+parser.add_option("--errors-only", action="store_true", dest="errorsOnly", default=False, help="Only show errors when in test mode")
 parser.add_option("--nailgun", action="store_true", dest="nailgun", default=False, help="Run PRISM in Nailgun mode")
 parser.add_option("--ngprism", dest="ngprism", metavar="FILE", default=None, help="Specify the location of ngprism (for Nailgun mode) [default: derive from --prog setting]")
 parser.add_option("--test-all", action="store_true", dest="testAll", default=False, help="In test mode, don't stop after an error")
@@ -1143,6 +1178,7 @@ parser.add_option("--skip-duplicate-runs", action="store_true", dest="skipDuplic
 parser.add_option("--timeout", dest="timeout", metavar="N", default=None, help='Timeout for each PRISM run (examples values for N: 5 / 5s for seconds, 5m / 5h for minutes / hours)')
 parser.add_option("--dd-warnings", action="store_true", dest="ddWarnings", default=False, help="Print the DD reference count warnings")
 parser.add_option("--colour", dest="colourEnabled", metavar="X", type="choice", choices=["yes","no","auto"], default="auto", help="Whether to colour test results: yes, no, auto (yes iff in terminal mode) [default=auto]")
+parser.add_option("--print-failures", action="store_true", dest="printFailures", default=False, help="Display logs for failing tests")
 (options, args) = parser.parse_args()
 if len(args) < 1:
     parser.print_help()

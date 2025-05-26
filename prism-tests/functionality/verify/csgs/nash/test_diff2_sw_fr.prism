@@ -1,0 +1,32 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+	s : bool init false;
+	[a1] !s -> (s'=!s);
+	[b1] !s -> (s'=!s);
+	[c1] s -> true;
+endmodule
+
+module m2
+	[a2] !s -> true;
+	[b2] !s -> true;
+	[c2] s -> true;
+endmodule
+
+rewards "r1"
+	[a1,a2] !s : 5.0;
+	[a1,b2] !s : 2.0;
+	[b1,a2] !s : 6.0;
+	[b1,b2] !s : 0.0;
+endrewards
+
+rewards "r2"
+	[a1,a2] !s : 5.0;
+	[a1,b2] !s : 6.0;
+	[b1,a2] !s : 2.0;
+	[b1,b2] !s : 1.0;
+endrewards
+

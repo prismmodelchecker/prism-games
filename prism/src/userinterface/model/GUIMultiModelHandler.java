@@ -46,7 +46,7 @@ import javax.swing.border.TitledBorder;
 
 import parser.Values;
 import parser.ast.ModulesFile;
-import prism.Model;
+import symbolic.model.Model;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismException;
@@ -79,6 +79,7 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 	public static final int TRANS_REWARDS_EXPORT = 3;
 	public static final int STATES_EXPORT = 4;
 	public static final int LABELS_EXPORT = 5;
+	public static final int OBSERVATIONS_EXPORT = 6;
 
 	private GUIMultiModel theModel;
 	private GUIMultiModelTree tree;
@@ -649,7 +650,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		}
 		try {
 			// currently, don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -678,20 +680,11 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		builtNoStates.setText("?");
 		builtNoInitStates.setText("?");
 		builtNoTransitions.setText("?");
-		if (!prism.getExplicit()) {
-			Model m = prism.getBuiltModel();
-			if (m != null) {
-				builtNoStates.setText("" + m.getNumStatesString());
-				builtNoInitStates.setText("" + m.getNumStartStates());
-				builtNoTransitions.setText("" + m.getNumTransitionsString());
-			}
-		} else {
-			explicit.Model m = prism.getBuiltModelExplicit();
-			if (m != null) {
-				builtNoStates.setText("" + m.getNumStates());
-				builtNoInitStates.setText("" + m.getNumInitialStates());
-				builtNoTransitions.setText("" + m.getNumTransitions());
-			}
+		prism.Model<?> model = prism.getBuiltModel();
+		if (model != null) {
+			builtNoStates.setText("" + model.getNumStatesString());
+			builtNoInitStates.setText("" + model.getNumInitialStatesString());
+			builtNoTransitions.setText("" + model.getNumTransitionsString());
 		}
 	}
 
@@ -746,8 +739,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// currently, don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -755,7 +748,9 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		// if export is being done to log, switch view to log
 		if (exportFile == null)
 			theModel.logToFront();
-		new ExportBuiltModelThread(this, exportEntity, exportType, exportFile).start();
+		new ExportBuiltModelThread(this, exportEntity, exportType, exportFile)
+		    .setExportModelLabels(true)
+		    .start();
 	}
 
 	// Compute steady-state...
@@ -785,8 +780,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// for steady-state, currently don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;
@@ -824,8 +819,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
-			// for transient computation, currently don't evaluate constants exactly
-			prism.setPRISMModelConstants(unC.getMFConstantValues(), false);
+			boolean exact = prism.getSettings().getBoolean(PrismSettings.PRISM_EXACT_ENABLED);
+			prism.setPRISMModelConstants(unC.getMFConstantValues(), exact);
 		} catch (PrismException e) {
 			theModel.error(e.getMessage());
 			return;

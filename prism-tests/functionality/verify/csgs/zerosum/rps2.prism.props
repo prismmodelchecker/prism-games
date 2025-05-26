@@ -1,3 +1,5 @@
+const int k;
+
 // maximum probability a player eventually wins a rounds
 
 // RESULT: 1
@@ -5,14 +7,24 @@
 // RESULT: 1
 <<player2>> Pmax=? [ F win=2 ];
 
+// maximum probability a player wins a rounds within k steps
+
+// RESULT (k=2): 5/9
+<<player1>> Pmax=? [ F<=k win=1 ];
+// RESULT (k=2): 5/9
+<<player2>> Pmax=? [ F<=k win=2 ];
+
+// maximum probability player 1 can ensure that no-one wins the first round
+
+// RESULT: 1/3
+<<player1>> Pmax=? [ X !(win=1|win=2) ];
+
 // maximum probability player wins a round first
 
 // RESULT: 0.5
 <<player1>> Pmax=? [ win!=2 U win=1 ];
 // RESULT: 0.5
 <<player2>> Pmax=? [ win!=1 U win=2 ];
-
-const int k; // number of rounds
 
 // max utility of a player over k rounds
 // when K=1 have a single round, i.e. the matrix game

@@ -1,0 +1,11 @@
+// RESULT: 16/2
+<<p1:p2>>{nash,social}max=?(R{"r1"}[F s] + R{"r2"}[F s]);
+
+// RESULT: 15/2
+<<p1:p2>>{nash,fair}max=?(R{"r1"}[F s] + R{"r2"}[F s]);
+
+// RESULT: 44/5
+<<p1:p2>>{corr,social}max=?(R{"r1"}[F s] + R{"r2"}[F s]);
+
+// RESULT: 26/3
+<<p1:p2>>{corr,fair}max=?(R{"r1"}[F s] + R{"r2"}[F s]);

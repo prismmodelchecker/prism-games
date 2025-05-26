@@ -1,0 +1,11 @@
+# Export all model info in different formats
+
+-exportmodel robot.prism.all
+
+# Export model info separately (for a few formats)
+
+-exportmodel robot.prism.tra
+-exportmodel robot.prism.sta
+-exportmodel robot.prism.lab
+-exportmodel robot.prism.srew
+-exportmodel robot.prism.trew

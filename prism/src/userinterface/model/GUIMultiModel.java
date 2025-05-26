@@ -76,11 +76,11 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	//GUI
 	private JTextField fileTextField;
 	private JMenu modelMenu, newMenu, viewMenu, exportMenu, computeMenu, computeExportMenu;
-	private JMenu exportStatesMenu, exportTransMenu, exportStateRewardsMenu, exportTransRewardsMenu, exportLabelsMenu, exportSSMenu, exportTrMenu;
-	private AbstractAction viewStates, viewTrans, viewStateRewards, viewTransRewards, viewLabels, viewPrismCode, computeSS, computeTr, newPRISMModel,
+	private JMenu exportStatesMenu, exportTransMenu, exportObsMenu, exportStateRewardsMenu, exportTransRewardsMenu, exportLabelsMenu, exportSSMenu, exportTrMenu;
+	private AbstractAction viewStates, viewTrans, viewObs, viewStateRewards, viewTransRewards, viewLabels, viewPrismCode, computeSS, computeTr, newPRISMModel,
 			newPEPAModel, loadModel, reloadModel, saveModel, saveAsModel, parseModel, buildModel, exportStatesPlain, exportStatesMatlab,
-			exportTransPlain, exportTransMatlab, exportTransDot, exportTransDotStates, exportTransMRMC, exportStateRewardsPlain, exportStateRewardsMatlab,
-			exportStateRewardsMRMC, exportTransRewardsPlain, exportTransRewardsMatlab, exportTransRewardsMRMC, exportLabelsPlain, exportLabelsMatlab,
+			exportTransPlain, exportTransMatlab, exportTransDot, exportTransDotStates, exportObsPlain, exportObsMatlab, exportStateRewardsPlain, exportStateRewardsMatlab,
+			exportTransRewardsPlain, exportTransRewardsMatlab, exportLabelsPlain, exportLabelsMatlab,
 			exportSSPlain, exportSSMatlab, exportTrPlain, exportTrMatlab;
 	private JPopupMenu popup;
 	//Contents
@@ -88,6 +88,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	private Map<String,FileFilter> modelFilters;
 	private Map<String,FileFilter> staFilters;
 	private Map<String,FileFilter> traFilters;
+	private Map<String,FileFilter> obsFilters;
 	private Map<String,FileFilter> labFilters;
 	private FileFilter textFilter;
 	private FileFilter matlabFilter;
@@ -176,6 +177,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		buildModel.setEnabled(!computing);
 		viewStates.setEnabled(!computing);
 		viewTrans.setEnabled(!computing);
+		viewObs.setEnabled(!computing);
 		viewStateRewards.setEnabled(!computing);
 		viewTransRewards.setEnabled(!computing);
 		viewLabels.setEnabled(!computing);
@@ -188,13 +190,12 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportTransMatlab.setEnabled(!computing);
 		exportTransDot.setEnabled(!computing);
 		exportTransDotStates.setEnabled(!computing);
-		exportTransMRMC.setEnabled(!computing);
+		exportObsPlain.setEnabled(!computing);
+		exportObsMatlab.setEnabled(!computing);
 		exportStateRewardsPlain.setEnabled(!computing);
 		exportStateRewardsMatlab.setEnabled(!computing);
-		exportStateRewardsMRMC.setEnabled(!computing);
 		exportTransRewardsPlain.setEnabled(!computing);
 		exportTransRewardsMatlab.setEnabled(!computing);
-		exportTransRewardsMRMC.setEnabled(!computing);
 		exportLabelsPlain.setEnabled(!computing);
 		exportLabelsMatlab.setEnabled(!computing);
 	}
@@ -376,6 +377,9 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 				break;
 			case GUIMultiModelHandler.TRANS_EXPORT:
 				res = showSaveFileDialog(traFilters.values(), traFilters.get("tra"));
+				break;
+			case GUIMultiModelHandler.OBSERVATIONS_EXPORT:
+				res = showSaveFileDialog(obsFilters.values(), obsFilters.get("obs"));
 				break;
 			case GUIMultiModelHandler.LABELS_EXPORT:
 				res = showSaveFileDialog(labFilters.values(), labFilters.get("lab"));
@@ -689,17 +693,29 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportTransDotStates.putValue(Action.NAME, "Dot file (with states)");
 		exportTransDotStates.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileDot.png"));
 
-		exportTransMRMC = new AbstractAction()
+		exportObsPlain = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				a_exportBuildAs(GUIMultiModelHandler.TRANS_EXPORT, Prism.EXPORT_MRMC);
+				a_exportBuildAs(GUIMultiModelHandler.OBSERVATIONS_EXPORT, Prism.EXPORT_PLAIN);
 			}
 		};
-		exportTransMRMC.putValue(Action.LONG_DESCRIPTION, "Exports the transition matrix to a MRMC file");
-		exportTransMRMC.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_R));
-		exportTransMRMC.putValue(Action.NAME, "MRMC file");
-		exportTransMRMC.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
+		exportObsPlain.putValue(Action.LONG_DESCRIPTION, "Exports the observations to a plain text file");
+		exportObsPlain.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_P));
+		exportObsPlain.putValue(Action.NAME, "Plain text file");
+		exportObsPlain.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
+
+		exportObsMatlab = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportBuildAs(GUIMultiModelHandler.OBSERVATIONS_EXPORT, Prism.EXPORT_MATLAB);
+			}
+		};
+		exportObsMatlab.putValue(Action.LONG_DESCRIPTION, "Exports the observations to a Matlab file");
+		exportObsMatlab.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_M));
+		exportObsMatlab.putValue(Action.NAME, "Matlab file");
+		exportObsMatlab.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileMatlab.png"));
 
 		exportStateRewardsPlain = new AbstractAction()
 		{
@@ -725,18 +741,6 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportStateRewardsMatlab.putValue(Action.NAME, "Matlab file");
 		exportStateRewardsMatlab.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileMatlab.png"));
 
-		exportStateRewardsMRMC = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_exportBuildAs(GUIMultiModelHandler.STATE_REWARDS_EXPORT, Prism.EXPORT_MRMC);
-			}
-		};
-		exportStateRewardsMRMC.putValue(Action.LONG_DESCRIPTION, "Exports the state rewards vector graph to a MRMC file");
-		exportStateRewardsMRMC.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_R));
-		exportStateRewardsMRMC.putValue(Action.NAME, "MRMC file");
-		exportStateRewardsMRMC.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
-
 		exportTransRewardsPlain = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -760,18 +764,6 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportTransRewardsMatlab.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_M));
 		exportTransRewardsMatlab.putValue(Action.NAME, "Matlab file");
 		exportTransRewardsMatlab.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileMatlab.png"));
-
-		exportTransRewardsMRMC = new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				a_exportBuildAs(GUIMultiModelHandler.TRANS_REWARDS_EXPORT, Prism.EXPORT_MRMC);
-			}
-		};
-		exportTransRewardsMRMC.putValue(Action.LONG_DESCRIPTION, "Exports the transition rewards matrix to a MRMC file");
-		exportTransRewardsMRMC.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_R));
-		exportTransRewardsMRMC.putValue(Action.NAME, "MRMC file");
-		exportTransRewardsMRMC.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
 
 		exportLabelsPlain = new AbstractAction()
 		{
@@ -896,6 +888,18 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		viewTrans.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_T));
 		viewTrans.putValue(Action.NAME, "Transition matrix");
 		viewTrans.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
+
+		viewObs = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_viewBuild(GUIMultiModelHandler.OBSERVATIONS_EXPORT, Prism.EXPORT_PLAIN);
+			}
+		};
+		viewObs.putValue(Action.LONG_DESCRIPTION, "Print the observations to the log");
+		viewObs.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_S));
+		viewObs.putValue(Action.NAME, "Observations");
+		viewObs.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStates.png"));
 
 		viewStateRewards = new AbstractAction()
 		{
@@ -1054,21 +1058,24 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportTransMenu.add(exportTransMatlab);
 		exportTransMenu.add(exportTransDot);
 		exportTransMenu.add(exportTransDotStates);
-		exportTransMenu.add(exportTransMRMC);
 		exportMenu.add(exportTransMenu);
+		exportObsMenu = new JMenu("Observations");
+		exportObsMenu.setMnemonic('O');
+		exportObsMenu.setIcon(GUIPrism.getIconFromImage("smallStates.png"));
+		exportObsMenu.add(exportObsPlain);
+		exportObsMenu.add(exportObsMatlab);
+		exportMenu.add(exportObsMenu);
 		exportStateRewardsMenu = new JMenu("State rewards");
 		exportStateRewardsMenu.setMnemonic('R');
 		exportStateRewardsMenu.setIcon(GUIPrism.getIconFromImage("smallStates.png"));
 		exportStateRewardsMenu.add(exportStateRewardsPlain);
 		exportStateRewardsMenu.add(exportStateRewardsMatlab);
-		exportStateRewardsMenu.add(exportStateRewardsMRMC);
 		exportMenu.add(exportStateRewardsMenu);
 		exportTransRewardsMenu = new JMenu("Transition rewards");
 		exportTransRewardsMenu.setMnemonic('E');
 		exportTransRewardsMenu.setIcon(GUIPrism.getIconFromImage("smallMatrix.png"));
 		exportTransRewardsMenu.add(exportTransRewardsPlain);
 		exportTransRewardsMenu.add(exportTransRewardsMatlab);
-		exportTransRewardsMenu.add(exportTransRewardsMRMC);
 		exportMenu.add(exportTransRewardsMenu);
 		exportLabelsMenu = new JMenu("Labels");
 		exportLabelsMenu.setMnemonic('L');
@@ -1086,6 +1093,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		viewMenu.setIcon(GUIPrism.getIconFromImage("smallView.png"));
 		viewMenu.add(viewStates);
 		viewMenu.add(viewTrans);
+		viewMenu.add(viewObs);
 		viewMenu.add(viewStateRewards);
 		viewMenu.add(viewTransRewards);
 		viewMenu.add(viewLabels);
@@ -1191,6 +1199,9 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		staFilters = new HashMap<String,FileFilter>();
 		staFilters.put("sta", new FileNameExtensionFilter("State list files (*.sta)", "sta"));
 		staFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
+		obsFilters = new HashMap<String,FileFilter>();
+		obsFilters.put("obs", new FileNameExtensionFilter("Observations files (*.obs)", "obs"));
+		obsFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
 		traFilters = new HashMap<String,FileFilter>();
 		traFilters.put("tra", new FileNameExtensionFilter("Transition matrix files (*.tra)", "tra"));
 		traFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));

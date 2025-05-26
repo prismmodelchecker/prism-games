@@ -2,6 +2,30 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.2.1 (first released 11/1/2024)
+-----------------------------------------------------------------------------
+
+* Improved support for external libraries (Z3/Yices/PPL)
+  - binaries installed for new versions and more OSs, including PPL on Windows
+  - improved, more robust install mechanism
+  - better documentation of library build process
+* Merged latest changes from PRISM:
+ - updates/fixes in install/launch/testing scripts and build process
+
+-----------------------------------------------------------------------------
+Version 3.2 (first released 13/11/2023)
+-----------------------------------------------------------------------------
+
+* Symbolic (MTBDD) model checking of turn-based stochastic games (SMGs)
+* Correlated and fair equilibria for CSGs
+* Add instantaneous (I=k) and cumulative (C<=k) rewards for SMGs
+* Merged latest changes from PRISM (up to v4.8) and extensions:
+  - improved strategy generation (-exportstrat and GUI)
+  - major code refactoring, e.g., generic model classes
+* Refactoring of CSG related classes
+* Various bugfixes + tidying
+
+-----------------------------------------------------------------------------
 Version 3.1 (first released 22/7/2021)
 -----------------------------------------------------------------------------
 
@@ -57,6 +81,115 @@ Version 1.0 (first released 18/10/2012)
 
 
 Below are the details of the changes in each new version of PRISM.
+
+-----------------------------------------------------------------------------
+Changes since last release (up to ed80e0ed7)
+-----------------------------------------------------------------------------
+
+* Explicit engine improvements
+  - support for transition rewards in Markov chains
+  - storage (and export) of actions for Markov chains
+
+* Export functionality (explicit engine)
+  - export of exact (arbitrary precision) models
+  - preliminary DRN (Storm) output
+  - actions=true/false option
+  - remove old options (MRMC format, unordered)
+
+* Import functionality (from explicit files)
+  - import of transition rewards
+  - import for exact mode, LTSs
+  - import progress display (symbolic engine)
+
+* Minor modelling language updates
+  - new power operator a^b, equivalent to pow(a,b)
+  - fix: implication (=>) is right-associative
+
+* Simulator can take a random seed (API only)
+
+* Development and code-level changes
+  - prism.Prism API: new model export methods
+  - prism.Prism API: remove some old deprecated methods
+  - prism.Prism: refactored storage/access for model info
+  - prism.Prism: integration of exact model building/checking
+  - redesign/refactoring of explicit engine reward classes
+  - refactoring of explicit engine model import/export code
+    (centralised in io package, export moved from model classes)
+  - parametric engine refactored to use explicit models/rewards
+  - symbolic code rearranged (new symbolic package)
+  - symbolic model storage refactored, simplified, documented
+
+* Various bugfixes
+
+* [More minor development and code-level changes]
+
+  - explicit engine product construction refactoring
+  - explicit model refactoring (infoString etc.)
+  - default implementation of getVarDeclarationType in ModelGenerator
+  - POMDP observation info storage refactoring
+  - Expression.toString() respects operator precedence
+  - VarList aware of EvaluationContext/EvalMode
+  - parametric engine: improved error reporting and formatting
+  - prism.API: exportprism moved from setting to API call
+
+-----------------------------------------------------------------------------
+Version 4.8.1 (first released 13/1/2024)
+-----------------------------------------------------------------------------
+
+* Migrate to CUDD version 3
+* Transition reward export (MDP-like models) for explicit engine
+* Fix broken transient probability computation
+* Updates/fixes in install/launch/testing scripts and build process
+* New tests in etc/tests available for easier build tests
+* New -javaversion switch to show Java version used
+* New --print-failures switch for prism-auto
+* Various bugfixes
+
+-----------------------------------------------------------------------------
+Version 4.8 (first released 5/7/2023)
+-----------------------------------------------------------------------------
+
+* Support for interval DTMC (IDTMC) and interval MDP (IMDP) model checking
+
+* Improved strategy (policy) generation
+  - switch -exportstrat exports to tra/dot/txt format
+  - additional export options (restrict/reduce, states, reach)
+  - strategy generation extended for bounded reachability, LTL, POMDPs
+  - GUI support for generating, exporting and simulating strategies
+
+* Other features/enhancements:
+  - PTA model checking supports global/non-local variables
+  - ModelGenerator interface now supports real-time models (e.g., PTAs)
+  - new -javaparams switch to pass command-line arguments to JVM
+  - prism-log-extract: new field 'dd_nodes' for model MTBDD size
+
+* Import/export enhancements:
+  - import of multiple (and named) reward structures
+  - reward exports include header with name/type
+  - new setting for model export precision (-exportmodelprecision)
+  - new "proplabels" option for -exportmodel and -exportlabels
+  - new -exportproplabels switch to export (just) properties file labels
+  - explicit model import without -importmodel: prism model.all
+  - results export to new formats: PRISM comment, dataframe
+  - results import from dataframe format (-importresults or GUI)
+  - observation export for POMDPs (-exportobs or GUI)
+
+* Fixes / upgrades
+  - compile fix for newer MacOS
+  - library updates: JAS (2.7.90), Log4j (2.16.0), jhoafparser (1.1.1)
+  - various bugfixes
+
+* Development and code-level changes
+  - automated testing via GitHub Actions
+  - unit testing via JUnit
+  - JavaCC upgraded from version 6.0 to 7.0
+  - major refactoring:
+    > generic model/reward classes
+    > ASTElement deepCopy()
+    > Expression evaluation
+    > explicit.StateValues
+    > Strategy and related classes
+    > Modules2MTBDD
 
 -----------------------------------------------------------------------------
 Version 4.7 (first released 19/3/2021)

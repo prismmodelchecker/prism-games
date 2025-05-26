@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 
 import common.IterableStateSet;
+import io.ModelExportOptions;
 import parser.State;
 import parser.Values;
 import parser.VarList;
@@ -48,10 +49,10 @@ import strat.MDStrategy;
  * used to translate between state ids for model and sub-model. Created sub-model will have new 
  * state numbering from 0 to number of states in the sub model.
  */
-public class SubNondetModel implements NondetModel
+public class SubNondetModel<Value> implements NondetModel<Value>
 {
 
-	private NondetModel model = null;
+	private NondetModel<Value> model = null;
 	private BitSet states = null;
 	private Map<Integer, BitSet> actions = null;
 	private BitSet initialStates = null;
@@ -69,7 +70,7 @@ public class SubNondetModel implements NondetModel
 	private int maxNumChoices = 0;
 	private int numChoices = 0;
 
-	public SubNondetModel(NondetModel model, BitSet states, Map<Integer, BitSet> actions, BitSet initialStates)
+	public SubNondetModel(NondetModel<Value> model, BitSet states, Map<Integer, BitSet> actions, BitSet initialStates)
 	{
 		this.model = model;
 		this.states = states;
@@ -244,7 +245,7 @@ public class SubNondetModel implements NondetModel
 	}
 
 	@Override
-	public void exportStates(int exportType, VarList varList, PrismLog log) throws PrismException
+	public void exportStates(VarList varList, PrismLog out, ModelExportOptions exportOptions) throws PrismException
 	{
 		throw new UnsupportedOperationException();
 	}
@@ -355,7 +356,7 @@ public class SubNondetModel implements NondetModel
 	}
 
 	@Override
-	public Model constructInducedModel(MDStrategy strat)
+	public Model<Value> constructInducedModel(MDStrategy<Value> strat)
 	{
 		throw new RuntimeException("Not implemented");
 	}

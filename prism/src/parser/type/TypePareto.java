@@ -27,6 +27,7 @@
 package parser.type;
 
 import explicit.Pareto;
+import parser.EvaluateContext;
 import prism.PrismLangException;
 
 public class TypePareto extends Type 
@@ -41,12 +42,14 @@ public class TypePareto extends Type
 	private TypePareto()
 	{		
 	}
-	
-	public boolean equals(Object o)
+
+	public static TypePareto getInstance()
 	{
-		return (o instanceof TypePareto);
+		return singleton;
 	}
-	
+
+	// Methods required for Type:
+
 	@Override
 	public String getTypeString()
 	{
@@ -57,16 +60,10 @@ public class TypePareto extends Type
 	public Object defaultValue()
 	{
 	    return new Pareto();
-
-	}
-	
-	public static TypePareto getInstance()
-	{
-		return singleton;
 	}
 	
 	@Override
-	public boolean canAssign(Type type)
+	public boolean canCastTypeTo(Type type)
 	{
 		return (type instanceof TypePareto);
 	}
@@ -74,11 +71,29 @@ public class TypePareto extends Type
 	@Override
 	public Pareto castValueTo(Object value) throws PrismLangException
 	{
-		if (value instanceof Pareto)  // only identity casting allowed
-		    return (Pareto) value;
-		else {
-		    Thread.dumpStack();
+		// only identity casting allowed
+		if (value instanceof Pareto) {
+			return (Pareto) value;
+		} else {
 		    throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
 		}
+	}
+
+	@Override
+	public Pareto castValueTo(Object value, EvaluateContext.EvalMode evalMode) throws PrismLangException
+	{
+		// only identity casting allowed
+		if (value instanceof Pareto) {
+			return (Pareto) value;
+		} else {
+			throw new PrismLangException("Can't convert " + value.getClass() + " to type " + getTypeString());
+		}
+	}
+
+	// Standard methods:
+
+	public boolean equals(Object o)
+	{
+		return (o instanceof TypePareto);
 	}
 }

@@ -70,7 +70,7 @@ public class PrismSettings implements Observer
 
 	// Constraint constants
 	public static final Range RANGE_EXPORT_DOUBLE_PRECISION = Range.closed(1, 17);
-	public static final int DEFAULT_EXPORT_MODEL_PRECISION = 17;
+	public static final int DEFAULT_EXPORT_MODEL_PRECISION = 16;
 
 	//Property Constant Keys
 	//======================
@@ -96,12 +96,15 @@ public class PrismSettings implements Observer
 	public static final	String PRISM_INTERVAL_ITER_OPTIONS			= "prism.intervalIterOptions";
 	public static final	String PRISM_MDP_SOLN_METHOD				= "prism.mdpSolnMethod";
 	public static final	String PRISM_MDP_MULTI_SOLN_METHOD			= "prism.mdpMultiSolnMethod";
+	public static final	String PRISM_STPG_SOLN_METHOD				= "prism.stpgSolnMethod";
+	public static final	String PRISM_IMDP_SOLN_METHOD				= "prism.imdpSolnMethod";
 	public static final	String PRISM_TERM_CRIT						= "prism.termCrit";//"prism.termination";
 	public static final	String PRISM_TERM_CRIT_PARAM				= "prism.termCritParam";//"prism.terminationEpsilon";
 	public static final	String PRISM_MAX_ITERS						= "prism.maxIters";//"prism.maxIterations";
 	public static final String PRISM_EXPORT_ITERATIONS				= "prism.exportIterations";
 	public static final	String PRISM_GRID_RESOLUTION				= "prism.gridResolution";
-	public static final String PRISM_EXPORT_MODEL_PRECISION         = "prism.exportmodelprecision";
+	public static final String PRISM_EXPORT_MODEL_PRECISION         = "prism.exportModelPrecision";
+	public static final String PRISM_EXPORT_MODEL_HEADERS           = "prism.exportModelHeaders";
 
 	public static final	String PRISM_CUDD_MAX_MEM					= "prism.cuddMaxMem";
 	public static final	String PRISM_CUDD_EPSILON					= "prism.cuddEpsilon";
@@ -154,7 +157,7 @@ public class PrismSettings implements Observer
     public static final	String LOG_MULTI_R_PARETO			= "log.multiRPareto";
     public static final	String LOG_MULTI_STRATEGY			= "log.multiStrategy";
 
-	
+
 	public static final String PRISM_LTL2DA_TOOL					= "prism.ltl2daTool";
 	public static final String PRISM_LTL2DA_SYNTAX					= "prism.ltl2daSyntax";
 
@@ -276,7 +279,7 @@ public class PrismSettings implements Observer
 																			"Which method to use for model checking of PTAs." },
 			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",																
 																			"Which method to use for computing transient probabilities in CTMCs." },
-			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Z3",															"Z3,Yices",																
+			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",	"4.5",		"Z3",															"Z3,Yices",
 																			"Which external solver to use for SMT problems." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
@@ -295,7 +298,11 @@ public class PrismSettings implements Observer
 																			"Which method to use when solving Markov decision processes." },
 			{ CHOICE_TYPE,		PRISM_MDP_MULTI_SOLN_METHOD,			"MDP multi-objective solution method",				"4.0.3",			"Value iteration",											"Value iteration,Gauss-Seidel,Linear programming",
 																			"Which method to use when solving multi-objective queries on Markov decision processes." },
-			{ CHOICE_TYPE,		PRISM_TERM_CRIT,						"Termination criteria",					"2.1",			"Relative",																	"Absolute,Relative",																		
+			{ CHOICE_TYPE,		PRISM_STPG_SOLN_METHOD,					"STPG solution method",				"4.7",			"Gauss-Seidel",																"Value iteration,Gauss-Seidel",
+																			"Which method to use when solving stochastic two-player games." },
+			{ CHOICE_TYPE,		PRISM_IMDP_SOLN_METHOD,					"IMDP/DTMC solution method",				"4.7",			"Gauss-Seidel",																"Value iteration,Gauss-Seidel",
+																			"Which method to use when solving interval Markov decision processes and Markov chains." },
+			{ CHOICE_TYPE,		PRISM_TERM_CRIT,						"Termination criteria",					"2.1",			"Relative",																	"Absolute,Relative",
 																			"Criteria to use for checking termination of iterative numerical methods." },
 			{ DOUBLE_TYPE,		PRISM_TERM_CRIT_PARAM,					"Termination epsilon",					"2.1",			Double.valueOf(1.0E-6),															"0.0,",																						
 																			"Epsilon value to use for checking termination of iterative numerical methods." },
@@ -305,8 +312,10 @@ public class PrismSettings implements Observer
 																			"Export solution vectors for iteration algorithms to iterations.html"},
 			{ INTEGER_TYPE,		PRISM_GRID_RESOLUTION,					"Fixed grid resolution",			    "4.5",			Integer.valueOf(10),															"1,",																						
 																			"The resolution for the fixed grid approximation algorithm for POMDPs." },
-			{ INTEGER_TYPE,		PRISM_EXPORT_MODEL_PRECISION,			"Precision of model export",			"4.7dev",			17,																		RANGE_EXPORT_DOUBLE_PRECISION.min() + "-" + RANGE_EXPORT_DOUBLE_PRECISION.max(),
-																			"Export probabilities/rewards with n significant decimal places"},
+			{ INTEGER_TYPE,		PRISM_EXPORT_MODEL_PRECISION,			"Precision of model export",			"4.7",			16,																		RANGE_EXPORT_DOUBLE_PRECISION.min() + "-" + RANGE_EXPORT_DOUBLE_PRECISION.max(),
+																			"Export model probabilities/rewards to n significant decimal places."},
+			{ BOOLEAN_TYPE,		PRISM_EXPORT_MODEL_HEADERS,				"Include headers in model exports",		"4.7",			Boolean.valueOf(true),															"",
+																			"Whether to include #-commented header lines when exporting model data to explicit files."},
 			// MODEL CHECKING OPTIONS:
 			{ BOOLEAN_TYPE,		PRISM_PRECOMPUTATION,					"Use precomputation",					"2.1",			Boolean.valueOf(true),															"",																							
 																			"Whether to use model checking precomputation algorithms (Prob0, Prob1, etc.), where optional." },
@@ -345,25 +354,25 @@ public class PrismSettings implements Observer
 			{ STRING_TYPE,		PRISM_EXPORT_PARETO_FILENAME,			"Pareto curve export filename",			"4.0.3",			"",															"0,",																						
 																			"If non-empty, any Pareto curve generated will be exported to this file." },
 			// MULTI-OBJECTIVE SYNTHESIS:
-			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		Boolean.valueOf(true),															"",																							
+			{ BOOLEAN_TYPE,		PRISM_MULTI_GAUSS_SEIDEL,							"Use Gauss-Seidel value iteration for solving multi-objective SGs.",				"4.0.3",		Boolean.valueOf(true),															"",
 																			"Use Gauss-Seidel value iteration for solving multi-objective SGs. Only used for cumulative total rewards (Pareto set computation and strategy synthesis), and for strategy synthesis of average and ratio rewards." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_C_ITER,					"Max. iterations for conjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to solve conjunctive queries using value iteration. The same value is used for computing the conjunctions involved in mixed queries." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_R_ITER,					"Max. iterations for ratio rewards",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to compute the Pareto sets for ratio rewards using value iteration." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_D_ITER,					"Max. iterations for disjunctive query",			"4.0.3",			Integer.valueOf(500),															"0,",
 																			"Maximum number of iterations performed to solve disjunctive queries using value iteration. The same value is used for computing the disjunctions involved in mixed queries." },
-			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			Integer.valueOf(1),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_D_ITER_OFFSET,					"Disjunctive query iteration offset",			"4.0.3",			Integer.valueOf(1),															"0,",
 																			"Start the disjunctive iteration at this iteration." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MIN_M,					"Minimum Box Size (M)",			"4.0.3",			Integer.valueOf(2),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MIN_M,					"Minimum Box Size (M)",			"4.0.3",			Integer.valueOf(2),															"0,",
 																			"Set the minimum size for the box for multi-objective mean-payoff objectives." },
-			{ INTEGER_TYPE,		PRISM_MULTI_MAX_M,					"Maximum Box Size (M)",			"4.0.3",			Integer.valueOf(16),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_MAX_M,					"Maximum Box Size (M)",			"4.0.3",			Integer.valueOf(16),															"0,",
 																			"Set the maximum size for the box for multi-objective mean-payoff objectives." },
-			{ BOOLEAN_TYPE,		PRISM_MULTI_ROUNDING,							"Use rounding in multi-objective engine",				"4.0.3",		Boolean.valueOf(false),															"",																							
+			{ BOOLEAN_TYPE,		PRISM_MULTI_ROUNDING,							"Use rounding in multi-objective engine",				"4.0.3",		Boolean.valueOf(false),															"",
 																			"Whether to use rounding in the multi-objective games engine" },
-			{ INTEGER_TYPE,		PRISM_MULTI_BASELINE_ACCURACY,					"Baseline accuracy for conjunctive query value iteration",			"4.0.3",			Integer.valueOf(200),															"0,",																						
+			{ INTEGER_TYPE,		PRISM_MULTI_BASELINE_ACCURACY,					"Baseline accuracy for conjunctive query value iteration",			"4.0.3",			Integer.valueOf(200),															"0,",
 																			"Value iteration starts computing points rounded to the maximum reward in each dimension divided by the baseline accuracy, and this accuracy is increased by the increase factor after every iteration." },
-			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			Double.valueOf(1.01),															"0,",																						
+			{ DOUBLE_TYPE,		PRISM_MULTI_INCREASE_FACTOR,					"Increase factor for conjunctive query value iteration",			"4.0.3",			Double.valueOf(1.01),															"0,",
 																			"Accuracy of conjunctive query value iteration is increased by the increase factor after every iteration." },
 			// CSG ZERO-SUM LP SCALE FACTOR
 			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR, 					"Scale factor for LPs",			"4.5", 				Double.valueOf(1.0), 			"1,",
@@ -1088,7 +1097,7 @@ public class PrismSettings implements Observer
 				else if (s.equals("backwards") || s.equals("bw"))
 					set(PRISM_PTA_METHOD, "Backwards reachability");
 				else
-					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: digital, games)");
+					throw new PrismException("Unrecognised option for -" + sw + " switch (options are: digital, games, backwards)");
 			} else {
 				throw new PrismException("No parameter specified for -" + sw + " switch");
 			}
@@ -1148,6 +1157,8 @@ public class PrismSettings implements Observer
 			set(PRISM_MDP_SOLN_METHOD, "Gauss-Seidel");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Gauss-Seidel");
 			set(PRISM_MULTI_GAUSS_SEIDEL, "true");
+			set(PRISM_STPG_SOLN_METHOD, "Gauss-Seidel");
+			set(PRISM_IMDP_SOLN_METHOD, "Gauss-Seidel");
 		} else if (sw.equals("bgaussseidel") || sw.equals("bgs")) {
 			set(PRISM_LIN_EQ_METHOD, "Backwards Gauss-Seidel");
 		} else if (sw.equals("pgaussseidel") || sw.equals("pgs")) {
@@ -1167,6 +1178,8 @@ public class PrismSettings implements Observer
 		} else if (sw.equals("valiter")) {
 			set(PRISM_MDP_SOLN_METHOD, "Value iteration");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Value iteration");
+			set(PRISM_STPG_SOLN_METHOD, "Value iteration");
+			set(PRISM_IMDP_SOLN_METHOD, "Value iteration");
 		} else if (sw.equals("politer")) {
 			set(PRISM_MDP_SOLN_METHOD, "Policy iteration");
 		} else if (sw.equals("modpoliter")) {
@@ -1326,6 +1339,10 @@ public class PrismSettings implements Observer
 			} else {
 				throw new PrismException("No value specified for -" + sw + " switch");
 			}
+		}
+		// export headers off
+		else if (sw.equals("noexportheaders")) {
+			set(PRISM_EXPORT_MODEL_HEADERS, false);
 		}
 
 		// MODEL CHECKING OPTIONS:
@@ -1596,7 +1613,7 @@ public class PrismSettings implements Observer
 				throw new PrismException("No value specified for -" + sw + " switch");
 			}
 		}
-		
+
 		// OUTPUT OPTIONS:
 		
 		// Verbosity
@@ -2055,6 +2072,10 @@ public class PrismSettings implements Observer
 	public static void printHelp(PrismLog mainLog)
 	{
 		mainLog.println();
+		mainLog.println("EXPORT OPTIONS:");
+		mainLog.println("-exportmodelprecision <n>....... Export probabilities/rewards with n significant decimal places");
+		mainLog.println("-noexportheaders ............... Don't include headers when exporting rewards");
+		mainLog.println();
 		mainLog.println("ENGINES/METHODS:");
 		mainLog.println("-mtbdd (or -m) ................. Use the MTBDD engine");
 		mainLog.println("-sparse (or -s) ................ Use the Sparse engine");
@@ -2062,7 +2083,7 @@ public class PrismSettings implements Observer
 		mainLog.println("-explicit (or -ex) ............. Use the explicit engine");
 		mainLog.println("-exact ......................... Perform exact (arbitrary precision) model checking");
 		mainLog.println("-ptamethod <name> .............. Specify PTA engine (games, digital, backwards) [default: games]");
-		mainLog.println("-transientmethod <name> ........ CTMC transient analysis methof (unif, fau) [default: unif]");
+		mainLog.println("-transientmethod <name> ........ CTMC transient analysis method (unif, fau) [default: unif]");
 		mainLog.println("-smtsolver <name> .............. SMT solver (z3, yices) [default: z3]");
 		mainLog.println("-heuristic <mode> .............. Automatic choice of engines/settings (none, speed, memory) [default: none]");
 		mainLog.println();

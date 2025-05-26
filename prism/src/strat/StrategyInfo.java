@@ -29,13 +29,20 @@ package strat;
 import java.util.Objects;
 
 import explicit.DistributionOver;
+import prism.Evaluator;
+import prism.ModelType;
+import prism.Prism;
+import prism.PrismNotSupportedException;
 import simulator.RandomNumberGenerator;
+import strat.StrategyExportOptions.InducedModelMode;
 
 /**
  * Super-interface for Strategy and StrategyGenerator interfaces.
  * Constants, enums and methods for basic information about strategies. 
+ * This is a generic class where {@code Value} is the type of
+ * probabilities when the strategy is randomised.
  */
-public interface StrategyInfo
+public interface StrategyInfo<Value>
 {
 	// Constants / enums
 	
@@ -88,12 +95,12 @@ public interface StrategyInfo
 	 * @param act The action to check
 	 */
 	@SuppressWarnings("unchecked")
-	public default double getChoiceActionProbability(Object decision, Object act)
+	public default Value getChoiceActionProbability(Object decision, Object act)
 	{
 		if (decision instanceof DistributionOver) {
-			return ((DistributionOver<Object>) decision).getProbability(act);
+			return ((DistributionOver<Value,Object>) decision).getProbability(act);
 		} else {
-			return Objects.equals(act, decision) ? 1.0 : 0.0;
+			return Objects.equals(act, decision) ? getEvaluator().one() : getEvaluator().zero();
 		}
 	}
 	
@@ -110,7 +117,8 @@ public interface StrategyInfo
 	{
 		if (decision instanceof DistributionOver) {
 			// Randomised strategy: check positive probability
-			return ((DistributionOver<Object>) decision).getProbability(act) > 0;
+			Value prob = ((DistributionOver<Value,Object>) decision).getProbability(act);
+			return getEvaluator().gt(prob, getEvaluator().zero());
 		} else {
 			// Deterministic strategy: check equality (including nulls)
 			return Objects.equals(act, decision);
@@ -123,7 +131,7 @@ public interface StrategyInfo
 	 * as returned by getChoiceAction().
 	 * For a deterministic strategy, this returns the (unique) chosen action;
 	 * for a randomised strategy, an action is sampled according to the strategy's distribution.
-	 * Returns {@link #StrategyInfo.UNDEFINED} if undefined.
+	 * Returns {@link StrategyInfo#UNDEFINED} if undefined.
 	 * @param decision The decision taken by the strategy
 	 * @param rng Random number generator
 	 */
@@ -135,10 +143,79 @@ public interface StrategyInfo
 		}
 		if (decision instanceof DistributionOver) {
 			// Randomised strategy: sample from distribution
-			return ((DistributionOver<Object>) decision).sample(rng);
+			return ((DistributionOver<Value,Object>) decision).sample(rng);
 		} else {
 			// Deterministic strategy: return unique action choice
 			return decision;
 		}
 	}
+
+	/**
+	 * Get the action label for a choice in the model induced by this strategy.
+	 * For a deterministic strategy, it is unchanged.
+	 * For a randomised strategy, a descriptive string identifier is created.
+	 * @param decision The decision taken by the strategy
+	 * @param act The action to check
+	 */
+	public default Object getInducedAction(Object decision, Object act)
+	{
+		if (decision == UNDEFINED) {
+			return null;
+		}
+		if (decision instanceof DistributionOver) {
+			return Prism.toIdentifier(decision);
+		} else {
+			return decision;
+		}
+	}
+
+	/**
+	 * For a strategy with memory, get a description of a given memory value.
+	 * By default, this is a just the integer value of the memory as a string,
+	 * but some strategies will provide a more meaningful representation.
+	 * Returns "?" if memory is not applicable (or unknown).
+	 * @param m Memory value to look up
+	 */
+    public default String getMemoryString(int m)
+    {
+		return m == -1 ? "?" : Integer.toString(m);
+    }
+
+	/**
+	 * Get the type of model induced by this strategy when applied to a type of model.
+	 * Returns null if the model type cannot be deduced.
+	 * @param modelType The type of model to which the strategy will be applied
+	 * @param numPlayers The number of players in the model (if relevant)
+	 * @param mode Mode of induced model construction ("restrict" or "reduce")
+	 */
+	public default ModelType getInducedModelType(ModelType modelType, int numPlayers, InducedModelMode mode)
+	{
+		ModelType inducedModelType = null;
+		if (mode == InducedModelMode.REDUCE) {
+			switch (modelType) {
+				case MDP:
+				case POMDP:
+				case STPG:
+				case SMG:
+					inducedModelType = ModelType.DTMC;
+					break;
+				case IMDP:
+					inducedModelType = ModelType.IDTMC;
+					break;
+			}
+		} else {
+			inducedModelType = modelType;
+		}
+		return inducedModelType;
+	}
+
+	/**
+	 * Get an Evaluator for the probability values returned when this strategy is randomised.
+	 * By default, this is an evaluator for the (usual) case when Value is Double.
+	 */
+	@SuppressWarnings("unchecked")
+	public default Evaluator<Value> getEvaluator()
+	{
+		return (Evaluator<Value>) Evaluator.forDouble();
+	}	
 }

@@ -27,24 +27,35 @@
 package strat;
 
 import explicit.NondetModel;
+import prism.Evaluator;
 
 /**
  * Base class for implementations of Strategy associated with an explicit engine model.
  */
-public abstract class StrategyExplicit extends StrategyWithStates
+public abstract class StrategyExplicit<Value> extends StrategyWithStates<Value>
 {
 	// Model associated with the strategy
-	protected NondetModel model;
+	protected NondetModel<Value> model;
 
-	public StrategyExplicit(NondetModel model)
+	public StrategyExplicit(NondetModel<Value> model)
 	{
 		this.model = model;
-		setStateLookUp(state -> model.getStatesList().indexOf(state));
+		if (model.getStatesList() != null) {
+			setStateLookUp(state -> model.getStatesList().indexOf(state));
+		} else {
+			setStateLookUp(state -> -1);
+		}
 	}
-	
+
 	@Override
-	public int getNumStates()
+	public NondetModel<Value> getModel()
 	{
-		return model.getNumStates();
+		return model;
+	}
+
+	@Override
+	public Evaluator<Value> getEvaluator()
+	{
+		return model.getEvaluator();
 	}
 }

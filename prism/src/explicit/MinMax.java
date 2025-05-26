@@ -90,10 +90,30 @@ public class MinMax
 	{
 		return bound;
 	}
-	
+
 	public Coalition getCoalition()
 	{
 		return coalition;
+	}
+
+	// Additional info about quantification over uncertainty
+	
+	protected boolean minUnc;
+	
+	public MinMax setMinUnc(boolean minUnc)
+	{
+		this.minUnc = minUnc;
+		return this;
+	}
+	
+	public boolean isMinUnc()
+	{
+		return minUnc;
+	}
+	
+	public boolean isMaxUnc()
+	{
+		return !minUnc;
 	}
 
 	// Create a new instance by applying some operation
@@ -105,6 +125,7 @@ public class MinMax
 		neg.setMinMin(!isMin1(), !isMin2());
 		neg.setBound(bound == -1 ? -1 : 1.0 - bound);
 		neg.setCoalition(coalition);
+		neg.setMinUnc(!isMinUnc());
 		return neg;
 	}
 	

@@ -201,8 +201,13 @@ public class SimulationView extends Observable
 
 	public void refreshToDefaultView(boolean pathActive, ModulesFile parsedModel)
 	{
+		boolean canUseCurrentView = false;
+		if (!pathActive && useChangeRenderer != simulator.usingChangeRenderer()) {
+			simulator.setRenderer(useChangeRenderer);
+		}
+
 		// First see if we can get away with using current settings...
-		boolean canUseCurrentView = true;
+		/*boolean canUseCurrentView = true;
 		if (!pathActive) {
 			canUseCurrentView = false;
 		} else {
@@ -281,7 +286,7 @@ public class SimulationView extends Observable
 			} catch (PrismException e) {
 				canUseCurrentView = false;
 			}
-		}
+		}*/
 
 		if (!canUseCurrentView && pathActive) {
 			visibleVariables.clear();
@@ -710,20 +715,20 @@ public class SimulationView extends Observable
 	
 	public class MemoryValue
 	{
-		private Integer value;
+		private Object value;
 		private boolean memoryValueUnknown;
 
-		public MemoryValue(Integer value)
+		public MemoryValue(Object value)
 		{
 			this.value = value;
 		}
 
-		public Integer getValue()
+		public Object getValue()
 		{
 			return value;
 		}
 
-		public void setValue(Integer value)
+		public void setValue(Object value)
 		{
 			this.value = value;
 		}

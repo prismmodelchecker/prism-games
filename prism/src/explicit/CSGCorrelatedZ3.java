@@ -1,9 +1,8 @@
 //==============================================================================
 //	
-//	Copyright (c) 2002-
+//	Copyright (c) 2020-
 //	Authors:
-//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
-//  * Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
+//	* Gabriel Santos <gabriel.santos@cs.ox.ac.uk> (University of Oxford)
 //	
 //------------------------------------------------------------------------------
 //	
@@ -34,7 +33,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map.Entry;
-
 import com.microsoft.z3.AlgebraicNum;
 import com.microsoft.z3.ArithExpr;
 import com.microsoft.z3.BoolExpr;
@@ -47,7 +45,6 @@ import com.microsoft.z3.RatNum;
 import com.microsoft.z3.RealExpr;
 import com.microsoft.z3.Status;
 import com.microsoft.z3.Version;
-
 import prism.Pair;
 import prism.PrismException;
 
@@ -72,7 +69,7 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 	
 	private String name;
 	private int n_coalitions;
-			
+
 	/**
 	 * Creates a new CSGCorrelatedZ3 (without initialisation)
 	 */
@@ -185,8 +182,8 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 												HashMap<BitSet, Integer> ce_var_map, int type) {
 		EquilibriumResult result = new EquilibriumResult();
 		ArrayList<Double> payoffs_result = new ArrayList<Double>();
-		ArrayList<Distribution> strategy_result = new ArrayList<Distribution>();
-		Distribution d = new Distribution();
+		ArrayList<Distribution<Double>> strategy_result = new ArrayList<>();
+		Distribution<Double> d = new Distribution<>();
 		ArithExpr expr;
 		BitSet is, js;
 		double u;
@@ -214,7 +211,6 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 			s.Add(ctx.mkEq(payoff_vars[c], payoffs[c]));
 		}
 	
-		
 		// In case of the fair variant (minimise the difference between the largest and smallest payoffs)
 		// we first need to add auxiliary constraints
 		// The default case is social-welfare, in which we just maximise the sum
@@ -281,7 +277,6 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 			}
 		}
 		
-		
 		// Sets unused variables to zero
 		for (c = utilities.size(); c < vars.length; c++) {
 			s.Add(ctx.mkEq(vars[c], zero));
@@ -329,7 +324,7 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 												HashMap<BitSet, Integer> ce_var_map, int type) {
 		EquilibriumResult result = new EquilibriumResult();
 		ArrayList<Double> payoffs_result = new ArrayList<Double>();
-		ArrayList<Distribution> strategy_result = new ArrayList<Distribution>();
+		ArrayList<Distribution<Double>> strategy_result = new ArrayList<Distribution<Double>>();
 		Distribution d = new Distribution();
 		ArithExpr expr;
 		BitSet is, js, ts;
@@ -589,7 +584,7 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 		
 		return result;
 	}
-	
+
 	/**
 	 * Return a double value for a given expression (usually variable), converting from BigInt fractions
 	 * @param model The SMT model

@@ -27,10 +27,7 @@
 
 package explicit;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -40,6 +37,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import explicit.rewards.ConstructRewards;
+import explicit.rewards.Rewards;
+import io.DotExporter;
+import io.DRNExporter;
+import io.MatlabExporter;
+import io.ModelExportOptions;
+import io.PrismExplicitExporter;
+import io.PrismExplicitImporter;
 import parser.EvaluateContext.EvalMode;
 import parser.State;
 import parser.Values;
@@ -143,7 +148,7 @@ public class StateModelChecker extends PrismComponent
 	// Model info (for reward structures, etc.)
 	protected ModulesFile modulesFile = null;
 	protected ModelInfo modelInfo = null;
-	protected RewardGenerator rewardGen = null;
+	protected RewardGenerator<?> rewardGen = null;
 
 	// Properties file (for labels, constants, etc.)
 	protected PropertiesFile propertiesFile = null;
@@ -219,6 +224,12 @@ public class StateModelChecker extends PrismComponent
 		case SMG:
 			mc = new SMGModelChecker(parent);
 			break;
+		case IDTMC:
+			mc = new IDTMCModelChecker(parent);
+			break;
+		case IMDP:
+			mc = new IMDPModelChecker(parent);
+			break;
 		case LTS:
 			mc = new NonProbModelChecker(parent);
 			break;
@@ -244,6 +255,7 @@ public class StateModelChecker extends PrismComponent
 	{
 		setModelCheckingInfo(other.modelInfo, other.propertiesFile, other.rewardGen);
 		setLog(other.getLog());
+		result = other.result;
 		setVerbosity(other.getVerbosity());
 		setExportTarget(other.getExportTarget());
 		setExportTargetFilename(other.getExportTargetFilename());
@@ -535,7 +547,7 @@ public class StateModelChecker extends PrismComponent
 	 * Set the attached model file (for e.g. reward structures when model checking)
 	 * and the attached properties file (for e.g. constants/labels when model checking)
 	 */
-	public void setModelCheckingInfo(ModelInfo modelInfo, PropertiesFile propertiesFile, RewardGenerator rewardGen)
+	public void setModelCheckingInfo(ModelInfo modelInfo, PropertiesFile propertiesFile, RewardGenerator<?> rewardGen)
 	{
 		this.modelInfo = modelInfo;
 		if (modelInfo instanceof ModulesFile) {
@@ -558,7 +570,7 @@ public class StateModelChecker extends PrismComponent
 	 * {@link #setModelCheckingInfo(ModelInfo, PropertiesFile, RewardGenerator)}.
 	 * to attach the original model/properties files.
 	 */
-	public Result check(Model model, Expression expr) throws PrismException
+	public <Value> Result check(Model<Value> model, Expression expr) throws PrismException
 	{
 		long timer = 0;
 		StateValues vals;
@@ -587,10 +599,12 @@ public class StateModelChecker extends PrismComponent
 			ArrayList<String> propNames = new ArrayList<String>();
 			ArrayList<BitSet> propBSs = new ArrayList<BitSet>();
 			Expression exprNew = checkMaximalPropositionalFormulas(model, expr.deepCopy(), propNames, propBSs);
-			Bisimulation bisim = new Bisimulation(this);
+			Bisimulation<Value> bisim = new Bisimulation<>(this);
 			model = bisim.minimise(model, propNames, propBSs);
 			mainLog.println("Modified property: " + exprNew);
 			expr = exprNew;
+			//model.exportToPrismExplicitTra("bisim.tra");
+			//model.exportStates(Prism.EXPORT_PLAIN, modelInfo.createVarList(), new PrismFileLog("bisim.sta"));
 		}
 
 		// Do model checking and store result vector
@@ -622,10 +636,10 @@ public class StateModelChecker extends PrismComponent
 	 * @param statesOfInterest a set of states for which results should be calculated (null = all states).
 	 *        The calculated values for states not of interest are arbitrary and should to be ignored.
 	 */
-	public StateValues checkExpression(Model model, Expression expr, BitSet statesOfInterest) throws PrismException
+	public StateValues checkExpression(Model<?> model, Expression expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res = null;
-		
+
 		// If-then-else
 		if (expr instanceof ExpressionITE) {
 			res = checkExpressionITE(model, (ExpressionITE) expr, statesOfInterest);
@@ -695,15 +709,25 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a binary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionITE(Model model, ExpressionITE expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionITE(Model<?> model, ExpressionITE expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null, res2 = null, res3 = null;
 
-		// Check operands recursively
 		try {
+			// Check operand 1 (condition) recursively
 			res1 = checkExpression(model, expr.getOperand1(), statesOfInterest);
-			res2 = checkExpression(model, expr.getOperand2(), statesOfInterest);
-			res3 = checkExpression(model, expr.getOperand3(), statesOfInterest);
+			// Compute new statesOfInterest sets to implement short-circuiting
+			BitSet statesOfInterestThen = (BitSet) res1.getBitSet().clone();
+			BitSet statesOfInterestElse = (BitSet) statesOfInterestThen.clone();
+			statesOfInterestElse.flip(0, model.getNumStates());
+			if (statesOfInterest != null) {
+				statesOfInterestThen.and(statesOfInterest);
+				statesOfInterestElse.and(statesOfInterest);
+			}
+			// Check operands 2 and 3 (then/else) recursively,
+			// but only where needed, to implement short-circuiting
+			res2 = checkExpression(model, expr.getOperand2(), statesOfInterestThen);
+			res3 = checkExpression(model, expr.getOperand3(), statesOfInterestElse);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
@@ -713,7 +737,7 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		// Apply operation
-		res1.applyFunction(expr.getType(), (v1, v2, v3) -> expr.apply(v1, v2, v3, EvalMode.FP), res2, res3);
+		res1.applyFunction(expr.getType(), (v1, v2, v3) -> expr.apply(v1, v2, v3, EvalMode.FP), res2, res3, statesOfInterest);
 		res2.clear();
 		res3.clear();
 
@@ -724,20 +748,39 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a binary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionBinaryOp(Model model, ExpressionBinaryOp expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionBinaryOp(Model<?> model, ExpressionBinaryOp expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null, res2 = null;
 		// Check operands recursively
 		try {
+			// Check operand 1 recursively
 			res1 = checkExpression(model, expr.getOperand1(), statesOfInterest);
-			res2 = checkExpression(model, expr.getOperand2(), statesOfInterest);
+			// Where short-circuiting is needed, see which states remain to be considered
+			BitSet statesOfInterestRhs = null;
+			switch (expr.getOperator()) {
+			case ExpressionBinaryOp.IMPLIES:
+			case ExpressionBinaryOp.AND:
+				statesOfInterestRhs = (BitSet) res1.getBitSet().clone();
+				break;
+			case ExpressionBinaryOp.OR:
+				statesOfInterestRhs = (BitSet) res1.getBitSet().clone();
+				statesOfInterestRhs.flip(0, model.getNumStates());
+				break;
+			default:
+				statesOfInterestRhs = statesOfInterest;
+			}
+			if (statesOfInterestRhs != null && statesOfInterest != null) {
+				statesOfInterestRhs.and(statesOfInterest);
+			}
+			// Check operand 2 recursively, but only where needed, to implement short-circuiting
+			res2 = checkExpression(model, expr.getOperand2(), statesOfInterestRhs);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
 			throw e;
 		}
 		// Apply operation
-		res1.applyFunction(expr.getType(), (v1, v2) -> expr.apply(v1, v2, EvalMode.FP), res2);
+		res1.applyFunction(expr.getType(), (v1, v2) -> expr.apply(v1, v2, EvalMode.FP), res2, statesOfInterest);
 		res2.clear();
 
 		return res1;
@@ -747,7 +790,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a unary operator.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionUnaryOp(Model model, ExpressionUnaryOp expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionUnaryOp(Model<?> model, ExpressionUnaryOp expr, BitSet statesOfInterest) throws PrismException
 	{
 		StateValues res1 = null;
 		int op = expr.getOperator();
@@ -760,7 +803,7 @@ public class StateModelChecker extends PrismComponent
 			return res1;
 
 		// Apply operation
-		res1.applyFunction(expr.getType(), v -> expr.apply(v, EvalMode.FP));
+		res1.applyFunction(expr.getType(), v -> expr.apply(v, EvalMode.FP), statesOfInterest);
 
 		return res1;
 	}
@@ -769,7 +812,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a function.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFunc(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		switch (expr.getNameCode()) {
 		case ExpressionFunc.MIN:
@@ -790,14 +833,14 @@ public class StateModelChecker extends PrismComponent
 		}
 	}
 
-	protected StateValues checkExpressionFuncUnary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncUnary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check operand recursively
 		StateValues res1 = checkExpression(model, expr.getOperand(0), statesOfInterest);
 
 		// Apply operation
 		try {
-			res1.applyFunction(expr.getType(), v -> expr.applyUnary(v, EvalMode.FP));
+			res1.applyFunction(expr.getType(), v -> expr.applyUnary(v, EvalMode.FP), statesOfInterest);
 		} catch (PrismException e) {
 			if (res1 != null)
 				res1.clear();
@@ -809,7 +852,7 @@ public class StateModelChecker extends PrismComponent
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncBinary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncBinary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check operands recursively
 		StateValues res1 = null, res2 = null;
@@ -824,7 +867,7 @@ public class StateModelChecker extends PrismComponent
 
 		// Apply operation
 		try {
-			res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2);
+			res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2, statesOfInterest);
 			res2.clear();
 		} catch (PrismException e) {
 			if (res1 != null)
@@ -839,7 +882,7 @@ public class StateModelChecker extends PrismComponent
 		return res1;
 	}
 
-	protected StateValues checkExpressionFuncNary(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFuncNary(Model<?> model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Check first operand recursively
 		StateValues res1 = null, res2 = null;
@@ -857,7 +900,7 @@ public class StateModelChecker extends PrismComponent
 			}
 			// Apply operation
 			try {
-				res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2);
+				res1.applyFunction(expr.getType(), (v1, v2) -> expr.applyBinary(v1, v2, EvalMode.FP), res2, statesOfInterest);
 				res2.clear();
 			} catch (PrismException e) {
 				if (res1 != null)
@@ -876,7 +919,7 @@ public class StateModelChecker extends PrismComponent
 	/**
 	 * Model check a literal.
 	 */
-	protected StateValues checkExpressionLiteral(Model model, ExpressionLiteral expr) throws PrismException
+	protected StateValues checkExpressionLiteral(Model<?> model, ExpressionLiteral expr) throws PrismException
 	{
 		return StateValues.createFromSingleValue(expr.getType(), expr.evaluate(), model);
 	}
@@ -884,7 +927,7 @@ public class StateModelChecker extends PrismComponent
 	/**
 	 * Model check a constant.
 	 */
-	protected StateValues checkExpressionConstant(Model model, ExpressionConstant expr) throws PrismException
+	protected StateValues checkExpressionConstant(Model<?> model, ExpressionConstant expr) throws PrismException
 	{
 		return StateValues.createFromSingleValue(expr.getType(), expr.evaluate(constantValues), model);
 	}
@@ -893,7 +936,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a variable reference.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionVar(Model model, ExpressionVar expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionVar(Model<?> model, ExpressionVar expr, BitSet statesOfInterest) throws PrismException
 	{
 		// TODO (JK): optimize evaluation using statesOfInterest
 		List<State> statesList = model.getStatesList();
@@ -904,9 +947,9 @@ public class StateModelChecker extends PrismComponent
 	 * Model check an observable reference.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionObs(Model model, ExpressionObs expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionObs(Model<?> model, ExpressionObs expr, BitSet statesOfInterest) throws PrismException
 	{
-		PartiallyObservableModel poModel = (PartiallyObservableModel) model;
+		PartiallyObservableModel<?> poModel = (PartiallyObservableModel<?>) model;
 		int iObservable = modelInfo.getObservableIndex(expr.getName());
 		return StateValues.create(expr.getType(), i -> poModel.getObservationAsState(i).varValues[iObservable], model);
 	}
@@ -915,7 +958,7 @@ public class StateModelChecker extends PrismComponent
 	 * Model check a label.
 	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionLabel(Model model, ExpressionLabel expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionLabel(Model<?> model, ExpressionLabel expr, BitSet statesOfInterest) throws PrismException
 	{
 		// TODO: optimize evaluation using statesOfInterest
 
@@ -957,8 +1000,8 @@ public class StateModelChecker extends PrismComponent
 }
 
 	// Check property ref
-	
-	protected StateValues checkExpressionProp(Model model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
+
+	protected StateValues checkExpressionProp(Model<?> model, ExpressionProp expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Look up property and check recursively
 		Property prop = propertiesFile.lookUpPropertyObjectByName(expr.getName());
@@ -972,7 +1015,7 @@ public class StateModelChecker extends PrismComponent
 
 	// Check filter
 
-	protected StateValues checkExpressionFilter(Model model, ExpressionFilter expr, BitSet statesOfInterest) throws PrismException
+	protected StateValues checkExpressionFilter(Model<?> model, ExpressionFilter expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Translate filter
 		Expression filter = expr.getFilter();
@@ -1290,7 +1333,7 @@ public class StateModelChecker extends PrismComponent
 	 * <br>
 	 * Returns the modified Expression.
 	 */
-	public Expression handleMaximalStateFormulas(ModelExplicit model, Expression expr) throws PrismException
+	public Expression handleMaximalStateFormulas(ModelExplicit<?> model, Expression expr) throws PrismException
 	{
 		Vector<BitSet> labelBS = new Vector<BitSet>();
 
@@ -1321,7 +1364,7 @@ public class StateModelChecker extends PrismComponent
 	 * are put into the list {@code propBSs}, which should be empty when this function is called.
 	 * The names of the labels (L0, L1, etc. by default) are put into {@code propNames}, which should also be empty. 
 	 */
-	public Expression checkMaximalPropositionalFormulas(Model model, Expression expr, List<String> propNames, List<BitSet> propBSs) throws PrismException
+	public Expression checkMaximalPropositionalFormulas(Model<?> model, Expression expr, List<String> propNames, List<BitSet> propBSs) throws PrismException
 	{
 		Expression exprNew = (Expression) expr.accept(new CheckMaximalPropositionalFormulas(this, model, propNames, propBSs));
 		return exprNew;
@@ -1334,11 +1377,11 @@ public class StateModelChecker extends PrismComponent
 	class CheckMaximalPropositionalFormulas extends ASTTraverseModify
 	{
 		private StateModelChecker mc;
-		private Model model;
+		private Model<?> model;
 		private List<String> propNames;
 		private List<BitSet> propBSs;
 
-		public CheckMaximalPropositionalFormulas(StateModelChecker mc, Model model, List<String> propNames, List<BitSet> propBSs)
+		public CheckMaximalPropositionalFormulas(StateModelChecker mc, Model<?> model, List<String> propNames, List<BitSet> propBSs)
 		{
 			this.mc = mc;
 			this.model = model;
@@ -1451,175 +1494,245 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Loads labels from a PRISM labels file and stores them in BitSet objects.
-	 * (Actually, it returns a map from label name Strings to BitSets.)
-	 * (Note: the size of the BitSet may be smaller than the number of states.) 
+	 * Construct rewards for the reward structure with index r of the reward generator and a model.
+	 * Ensures non-negative rewards.
+	 * <br>
+	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 */
+	protected <Value> Rewards<Value> constructRewards(Model<Value> model, int r) throws PrismException
+	{
+		return constructRewards(model, r, model.getModelType() == ModelType.CSG);
+	}
+
+	/**
+	 * Construct rewards for the reward structure with index r of the reward generator and a model.
+	 * <br>
+	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative, i.e., weights.
+	 * <br>
+	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 */
+	@SuppressWarnings("unchecked")
+	protected <Value> Rewards<Value> constructRewards(Model<Value> model, int r, boolean allowNegativeRewards) throws PrismException
+	{
+		ConstructRewards constructRewards = new ConstructRewards(this);
+		if (allowNegativeRewards)
+			constructRewards.allowNegativeRewards();
+		return constructRewards.buildRewardStructure(model, (RewardGenerator<Value>) rewardGen, r);
+	}
+
+	/**
+	 * Construct expected rewards for the reward structure with index r of the reward generator and a model,
+	 * i.e., using probability-weighted sum for any rewards attached to transitions,
+	 * assigning them to states/choices.
+	 * Ensures non-negative rewards.
+	 * <br>
+	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 */
+	protected <Value> Rewards<Value> constructExpectedRewards(Model<Value> model, int r) throws PrismException
+	{
+		if (model.getModelType() == ModelType.IDTMC && rewardGen.rewardStructHasTransitionRewards(r)) {
+			throw new PrismNotSupportedException("Transition rewards not supported for " + model.getModelType() + "s");
+
+		}
+		ConstructRewards constructRewards = new ConstructRewards(this);
+		constructRewards.setExpectedRewards(true);
+		if (model.getModelType() == ModelType.CSG) {
+			constructRewards.allowNegativeRewards();
+		}
+		return constructRewards.buildRewardStructure(model, (RewardGenerator<Value>) rewardGen, r);
+	}
+
+	/**
+	 * Load all labels from a PRISM labels (.lab) file and store them in BitSet objects.
+	 * Return a map from label name Strings to BitSets.
+	 * This is for all labels in the file, including "init", "deadlock".
+	 * Note: the size of the BitSet may be smaller than the number of states.
 	 */
 	public static Map<String, BitSet> loadLabelsFile(String filename) throws PrismException
 	{
-		ArrayList<String> labels;
-		BitSet bitsets[];
-		Map<String, BitSet> res;
-		String s, ss[];
-		int i, j, k;
+		PrismExplicitImporter modelImporter = new PrismExplicitImporter(null, null, new File(filename), null, null, null);
+		return modelImporter.extractAllLabels();
+	}
 
-		// open file for reading, automatic close when done
-		try (BufferedReader in = new BufferedReader(new FileReader(new File(filename)))) {
-			// Parse first line to get label list
-			s = in.readLine();
-			if (s == null) {
-				in.close();
-				throw new PrismException("Empty labels file");
-			}
-			ss = s.split(" ");
-			labels = new ArrayList<String>(ss.length);
-			for (i = 0; i < ss.length; i++) {
-				s = ss[i];
-				j = s.indexOf('=');
-				if (j < 0) {
-					in.close();
-					throw new PrismException("Corrupt labels file (line 1)");
-				}
-				k = Integer.parseInt(s.substring(0, j));
-				while (labels.size() <= k)
-					labels.add("?");
-				labels.set(k, s.substring(j + 2, s.length() - 1));
-			}
-			// Build list of bitsets
-			bitsets = new BitSet[labels.size()];
-			for (i = 0; i < bitsets.length; i++)
-				bitsets[i] = new BitSet();
-			// Parse remaining lines
-			s = in.readLine();
-			while (s != null) {
-				// Skip blank lines
-				s = s.trim();
-				if (s.length() > 0) {
-					// Split line
-					ss = s.split(":");
-					i = Integer.parseInt(ss[0].trim());
-					ss = ss[1].trim().split(" ");
-					for (j = 0; j < ss.length; j++) {
-						if (ss[j].length() == 0)
-							continue;
-						k = Integer.parseInt(ss[j]);
-						// Store label info
-						bitsets[k].set(i);
-					}
-				}
-				// Prepare for next iter
-				s = in.readLine();
-			}
-			// Build BitSet map
-			res = new HashMap<String, BitSet>();
-			for (i = 0; i < labels.size(); i++) {
-				if (!labels.get(i).equals("?")) {
-					res.put(labels.get(i), bitsets[i]);
-				}
-			}
-			return res;
-		} catch (IOException e) {
-			throw new PrismException("Error reading labels file \"" + filename + "\"");
-		} catch (NumberFormatException e) {
-			throw new PrismException("Error in labels file");
+	/**
+	 * Export various aspects of a model, combined.
+	 * @param model The model
+	 * @param labelNames Names of labels to include in export
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportModelCombined(Model<Value> model, List<String> labelNames, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.DRN) {
+			return;
+		}
+		List<Rewards<Value>> rewards = new ArrayList<>();
+		for (int r = 0; r < rewardGen.getNumRewardStructs(); r++) {
+			rewards.add(constructRewards(model, r));
+		}
+		List<BitSet> labelStates = checkLabels(model, labelNames);
+		DRNExporter<Value> exporter = new DRNExporter<>(exportOptions);
+		exporter.exportModel(model, (RewardGenerator<Value>) rewardGen, rewards, labelNames, labelStates, out);
+	}
+
+	/**
+	 * Export the transition matrix of a model.
+	 * @param model The model
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportTransitions(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		switch (exportOptions.getFormat()) {
+			case EXPLICIT:
+				new PrismExplicitExporter<Value>(exportOptions).exportTransitions(model, out);
+				break;
+			case MATLAB:
+				throw new PrismNotSupportedException("Export not yet supported");
+			case DOT:
+				new DotExporter<Value>(exportOptions).exportModel(model, out, null);
+				break;
+		}
+	}
+
+	/**
+	 * Export the state rewards for one reward structure of a model.
+	 * @param model The model
+	 * @param r Index of reward structure to export (0-indexed)
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportStateRewards(Model<Value> model, int r, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.EXPLICIT) {
+			throw new PrismNotSupportedException("Exporting state rewards in the requested format is currently not supported by the explicit engine");
+		}
+
+		Rewards<Value> modelRewards = constructRewards(model, r);
+		PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
+		exporter.exportStateRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+	}
+
+	/**
+	 * Export the transition rewards for one reward structure of a model.
+	 * @param model The model
+	 * @param r Index of reward structure to export (0-indexed)
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportTransRewards(Model<Value> model, int r, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.EXPLICIT) {
+			throw new PrismNotSupportedException("Exporting transition rewards in the requested format is currently not supported by the explicit engine");
+		}
+
+		Rewards<Value> modelRewards = constructRewards(model, r);
+		PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
+		exporter.exportTransRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+	}
+
+	/**
+	 * Export the set of states for a model.
+	 * @param model The model
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportStates(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		switch (exportOptions.getFormat()) {
+			case EXPLICIT:
+				new PrismExplicitExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+				break;
+			case MATLAB:
+				new MatlabExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+				break;
+		}
+	}
+
+	/**
+	 * Export the observations for a (partially observable) model.
+	 * @param model The model
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportObservations(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		switch (exportOptions.getFormat()) {
+			case EXPLICIT:
+				new PrismExplicitExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
+				break;
+			case MATLAB:
+				new MatlabExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
+				break;
 		}
 	}
 
 	/**
 	 * Export a set of labels and the states that satisfy them.
 	 * @param model The model
-	 * @param labels The states that satisfy each label, specified as a BitSet
-	 * @param labelNames The name of each label
-	 * @param exportType The format in which to export
+	 * @param labelNames The names of the labels to export
 	 * @param out Where to export
+	 * @param exportOptions The options for export
 	 */
-	public void exportLabels(Model model, List<String> labelNames, int exportType, PrismLog out) throws PrismException
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, PrismLog out, ModelExportOptions exportOptions) throws PrismException
 	{
-		List<BitSet> labels = new ArrayList<BitSet>();
+		List<BitSet> labelStates = checkLabels(model, labelNames);
+		exportLabels(model, labelNames, labelStates, out, exportOptions);
+	}
+
+	/**
+	 * Determine the set of states that satisfy a specified list of labels,
+	 * and return the states sets as a corresponding list of BitSets.
+	 * @param model The model
+	 * @param labelNames The names of the labels to export
+	 */
+	private List<BitSet> checkLabels(Model<?> model, List<String> labelNames) throws PrismException
+	{
+		List<BitSet> labelStates = new ArrayList<BitSet>();
 		for (String labelName : labelNames) {
 			StateValues sv = checkExpression(model, new ExpressionLabel(labelName), null);
-			labels.add(sv.getBitSet());
+			labelStates.add(sv.getBitSet());
 		}
-		exportLabels(model, labels, labelNames, exportType, out);
+		return labelStates;
 	}
-	
+
 	/**
 	 * Export a set of labels and the states that satisfy them.
 	 * @param model The model
-	 * @param labels The states that satisfy each label, specified as a BitSet
-	 * @param labelNames The name of each label
-	 * @param exportType The format in which to export
+	 * @param labelNames The names of the labels to export
+	 * @param labelStates The states that satisfy each label, specified as a BitSet
 	 * @param out Where to export
+	 * @param format The format in which to export
 	 */
-	public void exportLabels(Model model, List<BitSet> labels, List<String> labelNames, int exportType, PrismLog out)
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, PrismLog out, ModelExportOptions.ModelExportFormat format) throws PrismException
 	{
-		String matlabVarName = "l";
-		int numStates = model.getNumStates();
-		
-		// Print list of labels
-		int numLabels = labels.size();
-		if (exportType == Prism.EXPORT_MRMC) {
-			out.println("#DECLARATION");
-		}
-		for (int i = 0; i < numLabels; i++) {
-			switch (exportType) {
-			case Prism.EXPORT_PLAIN:
-				out.print((i > 0 ? " " : "") + i + "=\"" + labelNames.get(i) + "\"");
+		exportLabels(model, labelNames, labelStates, out, new ModelExportOptions(format));
+	}
+
+	/**
+	 * Export a set of labels and the states that satisfy them.
+	 * @param model The model
+	 * @param labelNames The names of the labels to export
+	 * @param labelStates The states that satisfy each label, specified as a BitSet
+	 * @param out Where to export
+	 * @param exportOptions The options for export
+	 */
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		switch (exportOptions.getFormat()) {
+			case EXPLICIT:
+				new PrismExplicitExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
 				break;
-			case Prism.EXPORT_MATLAB:
-				out.println(matlabVarName + "_" + labelNames.get(i) + "=sparse(" + numStates + ",1);");
+			case MATLAB:
+				new MatlabExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
 				break;
-			case Prism.EXPORT_MRMC:
-				out.print((i > 0 ? " " : "") + labelNames.get(i));
-				break;
-			}
-		}
-		out.println();
-		if (exportType == Prism.EXPORT_MRMC) {
-			out.println("#END");
-		}
-		
-		// Go through states and print satisfying label indices for each one
-		for (int s = 0; s < numStates; s++) {
-			boolean first = true;
-			for (int i = 0; i < numLabels; i++) {
-				if (labels.get(i).get(s)) {
-					if (first) {
-						switch (exportType) {
-						case Prism.EXPORT_PLAIN:
-							out.print(s + ":");
-							break;
-						case Prism.EXPORT_MATLAB:
-							break;
-						case Prism.EXPORT_MRMC:
-							out.print(s + 1);
-							break;
-						}
-						first = false;
-					}
-					switch (exportType) {
-						case Prism.EXPORT_PLAIN:
-							out.print(" " + i);
-							break;
-						case Prism.EXPORT_MATLAB:
-							out.println(matlabVarName + "_" + labelNames.get(i) + "(" + (s + 1) + ")=1;");
-							break;
-						case Prism.EXPORT_MRMC:
-							out.print(" " + labelNames.get(i));
-							break;
-					}
-				}
-			}
-			if (!first && exportType != Prism.EXPORT_MATLAB) {
-				out.println();
-			}
 		}
 	}
-	
+
 	/**
 	 * Do any exports after a model-automaton product construction, if requested
 	 */
-	public void doProductExports(Product<? extends Model> product) throws PrismException
+	public void doProductExports(Product<?> product) throws PrismException
 	{
 		if (getExportProductTrans()) {
 			mainLog.println("\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
@@ -1631,10 +1744,10 @@ public class StateModelChecker extends PrismComponent
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
 			VarList newVarList = (VarList) modulesFile.createVarList().clone();
 			String daVar = "_da";
-			while (newVarList.getIndex(daVar) != -1) {
+			while (newVarList.exists(daVar)) {
 				daVar = "_" + daVar;
 			}
-			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			newVarList.addVarAtStart(new Declaration(daVar, new DeclarationIntUnbounded()), 1);
 			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
 			out.close();
 		}

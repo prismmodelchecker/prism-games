@@ -26,16 +26,21 @@
 
 package explicit;
 
+import java.io.File;
 import java.util.BitSet;
 import java.util.List;
 
+import io.ExplicitModelImporter;
+import io.PrismExplicitImporter;
 import parser.State;
+import prism.ModelType;
 import prism.PrismException;
+import prism.PrismNotSupportedException;
 
 /**
  * Interface for simple mutable explicit-state model representations.
  */
-public interface ModelSimple extends Model
+public interface ModelSimple<Value> extends Model<Value>
 {
 	/**
 	 * Add a state to the list of initial states.
@@ -43,11 +48,26 @@ public interface ModelSimple extends Model
 	public abstract void addInitialState(int i);
 
 	/**
+	 * Build (anew) from a list of transitions provided by an explicit model importer.
+	 * Note that initial states are not configured
+	 * so this needs to be done separately (using {@link #addInitialState(int)}.
+	 */
+	default void buildFromExplicitImport(ExplicitModelImporter modelImporter) throws PrismException
+	{
+		// Not implemented by default
+		throw new PrismException("Explicit model not yet supported for this model");
+	}
+
+	/**
 	 * Build (anew) from a list of transitions exported explicitly by PRISM (i.e. a .tra file).
 	 * Note that initial states are not configured (since this info is not in the file),
 	 * so this needs to be done separately (using {@link #addInitialState(int)}.
 	 */
-	public abstract void buildFromPrismExplicit(String filename) throws PrismException;
+	default void buildFromPrismExplicit(String filename) throws PrismException
+	{
+		ExplicitModelImporter modelImporter = new PrismExplicitImporter(null, new File(filename), null, null, null, ModelType.DTMC);
+		buildFromExplicitImport(modelImporter);
+	}
 
 	/**
 	 * Clear all information for a state (i.e. remove all transitions).
@@ -76,4 +96,40 @@ public interface ModelSimple extends Model
 	 * @param states The states that satisfy the label 
 	 */
 	public void addLabel(String name, BitSet states);
+
+	// Static helper methods
+
+	/**
+	 * Create a new ModelSimple object of the appropriate kind for a given model type
+	 */
+	public static ModelSimple<?> forModelType(ModelType modelType) throws PrismException
+	{
+		ModelSimple<?> prodModel = null;
+		switch (modelType) {
+			case DTMC:
+				prodModel = new DTMCSimple<>();
+				break;
+			case MDP:
+				prodModel = new MDPSimple<>();
+				break;
+			case POMDP:
+				prodModel = new POMDPSimple<>();
+				break;
+			case IDTMC:
+				prodModel = new IDTMCSimple<>();
+				break;
+			case IMDP:
+				prodModel = new IMDPSimple<>();
+				break;
+			case STPG:
+				prodModel = new STPGSimple<>();
+				break;
+			case SMG:
+				prodModel = new SMGSimple<>();
+				break;
+			default:
+				throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
+		}
+		return prodModel;
+	}
 }
