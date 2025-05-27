@@ -81,7 +81,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 
 	private int ndigits = 9;
 
-	private ArrayList<ArrayList<Distribution>> strat;
+	private ArrayList<ArrayList<Distribution<Double>>> strat;
 
 	public CSGLabeledPolytopesZ3() {
 		cfg = new HashMap<String, String>();
@@ -129,7 +129,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 		p2vars = new RealExpr[ncols];
 		lvp1 = new String[nrows];
 		lvp2 = new String[ncols];
-		strat = new ArrayList<ArrayList<Distribution>>();
+		strat = new ArrayList<ArrayList<Distribution<Double>>>();
 		int i = 0, j = 0;
 		for(; i < nrows; i++) {
 			vars[i] = ctx.mkRealConst("x" + i);
@@ -252,7 +252,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 	}
 
 	public void computeEquilibria() {
-		ArrayList<Distribution> dists;
+		ArrayList<Distribution<Double>> dists;
 		Distribution dist1;
 		Distribution dist2;
 		double p;
@@ -302,7 +302,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 
 		j = 0; 
 
-		strat = new ArrayList<ArrayList<Distribution>>();
+		strat = new ArrayList<ArrayList<Distribution<Double>>>();
 		eqs = new HashMap<String,ArrayList<Double>> ();
 
 		/*
@@ -399,7 +399,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 			//System.out.println(getDoubleValue(model, payvars[1]));
 			//compPayoffs(model);
 
-			dists = new ArrayList<Distribution>();
+			dists = new ArrayList<Distribution<Double>>();
 			dist1 = new Distribution();
 			dist2 = new Distribution();
 
@@ -602,7 +602,7 @@ public class CSGLabeledPolytopesZ3 implements CSGLabeledPolytopes {
 		return neq;
 	}
 
-	public ArrayList<ArrayList<Distribution>> getStrat() {
+	public ArrayList<ArrayList<Distribution<Double>>> getStrat() {
 		return strat;
 	}
 
