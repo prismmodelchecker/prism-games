@@ -37,12 +37,15 @@ import com.sri.yices.Terms;
 import com.sri.yices.Version;
 import com.sri.yices.Yices;
 
+import prism.PrismSettings;
 import prism.PrismException;
+
 
 public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 {
-	private String solverName = "Yices";
+	private String solverName;
 
+	private Config cfg;
 	private Context ctx;
 
 	private int realType;
@@ -208,7 +211,8 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 		for (int i = 0; i < nrows + ncols; i++) {
 			if (i < nrows) {
 				xlabels[i] = Terms.arithEq(vars[i], zero);
-			} else {
+			}
+			else {
 				for (int k = 0; k < ncols; k++) {
 					if (j != k) {
 						tmpc[l] = Terms.arithGeq(xexps[j], xexps[k]);
@@ -247,7 +251,8 @@ public class CSGLabeledPolytopesYicesStack implements CSGLabeledPolytopes
 				}
 				j++;
 				l = 0;
-			} else {
+			}
+			else {
 				ylabels[i] = Terms.arithEq(vars[i], zero);
 			}
 		}
