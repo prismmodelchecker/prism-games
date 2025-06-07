@@ -42,7 +42,10 @@ import explicit.rewards.Rewards;
 import io.DotExporter;
 import io.DRNExporter;
 import io.MatlabExporter;
+import io.ModelExportFormat;
 import io.ModelExportOptions;
+import io.ModelExportTask;
+import io.ModelExporter;
 import io.PrismExplicitExporter;
 import io.PrismExplicitImporter;
 import parser.EvaluateContext.EvalMode;
@@ -75,6 +78,7 @@ import parser.type.TypeDouble;
 import parser.visitor.ASTTraverseModify;
 import parser.visitor.ReplaceLabels;
 import prism.Accuracy;
+import prism.Evaluator;
 import prism.Filter;
 import prism.ModelInfo;
 import prism.ModelType;
@@ -1555,115 +1559,147 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Export various aspects of a model, combined.
+	 * Export a model.
 	 * @param model The model
-	 * @param labelNames Names of labels to include in export
-	 * @param out Where to export
-	 * @param exportOptions The options for export
+	 * @param exportTask Export task (destination, which parts of the model to export, options)
 	 */
-	public <Value> void exportModelCombined(Model<Value> model, List<String> labelNames, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportModel(Model<Value> model, ModelExportTask exportTask) throws PrismException
 	{
-		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.DRN) {
-			return;
+		ModelExportOptions exportOptions = exportTask.getExportOptions();
+		// Build an exporter of the required type
+		ModelExporter<Value> exporter;
+		switch (exportOptions.getFormat()) {
+			case EXPLICIT:
+				if (exportOptions.getExplicitRows()) {
+					throw new PrismNotSupportedException("Export in rows format not yet supported by explicit engine");
+				}
+				exporter = new PrismExplicitExporter<>(exportOptions);
+				break;
+			case DOT:
+				exporter = new DotExporter<>(exportOptions);
+				break;
+			case DRN:
+				exporter = new DRNExporter<>(exportOptions);
+				break;
+			default:
+				throw new PrismNotSupportedException("Export " + exportOptions.getFormat().description() + " not supported by explicit engine");
 		}
-		List<Rewards<Value>> rewards = new ArrayList<>();
-		for (int r = 0; r < rewardGen.getNumRewardStructs(); r++) {
-			rewards.add(constructRewards(model, r));
+		exporter.setModelInfo(modelInfo);
+		File file = exportTask.getFile();
+		// If needed, add label/reward info
+		if (exportOptions.getFormat() == ModelExportFormat.DRN) {
+			// Get rewards/labels
+			List<Rewards<Value>> rewards = new ArrayList<>();
+			for (int r = 0; r < rewardGen.getNumRewardStructs(); r++) {
+				rewards.add(constructRewards(model, r));
+			}
+			List<String> labelNames = new ArrayList<>();
+			if (exportTask.initLabelIncluded()) {
+				labelNames.add("init");
+			}
+			if (exportTask.deadlockLabelIncluded()) {
+				labelNames.add("deadlock");
+			}
+			labelNames.addAll(modelInfo.getLabelNames());
+			List<BitSet> labelStates = checkLabels(model, labelNames);
+			// Add to exporter
+			exporter.addRewards(rewards, rewardGen.getRewardStructNames());
+			exporter.setRewardEvaluator((Evaluator<Value>) rewardGen.getRewardEvaluator());
+			exporter.addLabels(labelStates, labelNames);
 		}
-		List<BitSet> labelStates = checkLabels(model, labelNames);
-		DRNExporter<Value> exporter = new DRNExporter<>(exportOptions);
-		exporter.exportModel(model, (RewardGenerator<Value>) rewardGen, rewards, labelNames, labelStates, out);
+		// Export to log
+		try (PrismLog out = getPrismLogForFile(file)) {
+			exporter.exportModel(model, out);
+		}
 	}
 
 	/**
-	 * Export the transition matrix of a model.
-	 * @param model The model
-	 * @param out Where to export
+	 * Export the transition function/matrix of a model.
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportTransitions(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportTransitions(Model<Value> model, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		switch (exportOptions.getFormat()) {
-			case EXPLICIT:
-				new PrismExplicitExporter<Value>(exportOptions).exportTransitions(model, out);
-				break;
-			case MATLAB:
-				throw new PrismNotSupportedException("Export not yet supported");
-			case DOT:
-				new DotExporter<Value>(exportOptions).exportModel(model, out, null);
-				break;
-		}
+		exportModel(model, ModelExportTask.fromOptions(file, exportOptions));
 	}
 
 	/**
 	 * Export the state rewards for one reward structure of a model.
 	 * @param model The model
 	 * @param r Index of reward structure to export (0-indexed)
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportStateRewards(Model<Value> model, int r, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportStateRewards(Model<Value> model, int r, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.EXPLICIT) {
+		if (exportOptions.getFormat() != ModelExportFormat.EXPLICIT) {
 			throw new PrismNotSupportedException("Exporting state rewards in the requested format is currently not supported by the explicit engine");
 		}
 
-		Rewards<Value> modelRewards = constructRewards(model, r);
-		PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
-		exporter.exportStateRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+		try (PrismLog out = getPrismLogForFile(file)) {
+			Rewards<Value> modelRewards = constructRewards(model, r);
+			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
+			exporter.exportStateRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+		}
 	}
 
 	/**
 	 * Export the transition rewards for one reward structure of a model.
 	 * @param model The model
 	 * @param r Index of reward structure to export (0-indexed)
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportTransRewards(Model<Value> model, int r, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportTransRewards(Model<Value> model, int r, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		if (exportOptions.getFormat() != ModelExportOptions.ModelExportFormat.EXPLICIT) {
+		if (exportOptions.getFormat() != ModelExportFormat.EXPLICIT) {
 			throw new PrismNotSupportedException("Exporting transition rewards in the requested format is currently not supported by the explicit engine");
 		}
 
-		Rewards<Value> modelRewards = constructRewards(model, r);
-		PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
-		exporter.exportTransRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+		try (PrismLog out = getPrismLogForFile(file)) {
+			Rewards<Value> modelRewards = constructRewards(model, r);
+			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
+			exporter.exportTransRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
+		}
 	}
 
 	/**
 	 * Export the set of states for a model.
 	 * @param model The model
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportStates(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportStates(Model<Value> model, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		switch (exportOptions.getFormat()) {
-			case EXPLICIT:
-				new PrismExplicitExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
-				break;
-			case MATLAB:
-				new MatlabExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
-				break;
+		try (PrismLog out = getPrismLogForFile(file)) {
+			switch (exportOptions.getFormat()) {
+				case EXPLICIT:
+					new PrismExplicitExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+					break;
+				case MATLAB:
+					new MatlabExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+					break;
+			}
 		}
 	}
 
 	/**
 	 * Export the observations for a (partially observable) model.
 	 * @param model The model
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportObservations(Model<Value> model, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportObservations(Model<Value> model, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		switch (exportOptions.getFormat()) {
-			case EXPLICIT:
-				new PrismExplicitExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
-				break;
-			case MATLAB:
-				new MatlabExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
-				break;
+		try (PrismLog out = getPrismLogForFile(file)) {
+			switch (exportOptions.getFormat()) {
+				case EXPLICIT:
+					new PrismExplicitExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
+					break;
+				case MATLAB:
+					new MatlabExporter<Value>(exportOptions).exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
+					break;
+			}
 		}
 	}
 
@@ -1671,13 +1707,13 @@ public class StateModelChecker extends PrismComponent
 	 * Export a set of labels and the states that satisfy them.
 	 * @param model The model
 	 * @param labelNames The names of the labels to export
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, File file, ModelExportOptions exportOptions) throws PrismException
 	{
 		List<BitSet> labelStates = checkLabels(model, labelNames);
-		exportLabels(model, labelNames, labelStates, out, exportOptions);
+		exportLabels(model, labelNames, labelStates, file, exportOptions);
 	}
 
 	/**
@@ -1701,12 +1737,12 @@ public class StateModelChecker extends PrismComponent
 	 * @param model The model
 	 * @param labelNames The names of the labels to export
 	 * @param labelStates The states that satisfy each label, specified as a BitSet
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param format The format in which to export
 	 */
-	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, PrismLog out, ModelExportOptions.ModelExportFormat format) throws PrismException
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, File file, ModelExportFormat format) throws PrismException
 	{
-		exportLabels(model, labelNames, labelStates, out, new ModelExportOptions(format));
+		exportLabels(model, labelNames, labelStates, file, new ModelExportOptions(format));
 	}
 
 	/**
@@ -1714,18 +1750,20 @@ public class StateModelChecker extends PrismComponent
 	 * @param model The model
 	 * @param labelNames The names of the labels to export
 	 * @param labelStates The states that satisfy each label, specified as a BitSet
-	 * @param out Where to export
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	public <Value> void exportLabels(Model<Value> model, List<String> labelNames, List<BitSet> labelStates, File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		switch (exportOptions.getFormat()) {
-			case EXPLICIT:
-				new PrismExplicitExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
-				break;
-			case MATLAB:
-				new MatlabExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
-				break;
+		try (PrismLog out = getPrismLogForFile(file)) {
+			switch (exportOptions.getFormat()) {
+				case EXPLICIT:
+					new PrismExplicitExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
+					break;
+				case MATLAB:
+					new MatlabExporter<Value>(exportOptions).exportLabels(model, labelNames, labelStates, out);
+					break;
+			}
 		}
 	}
 

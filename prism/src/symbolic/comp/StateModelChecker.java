@@ -34,7 +34,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import explicit.ModelExplicit;
+import io.ModelExportFormat;
+import io.ModelExportOptions;
+import io.ModelExportTask;
 import mtbdd.PrismMTBDD;
 import dv.DoubleVector;
 import jdd.*;
@@ -51,6 +53,7 @@ import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
@@ -1695,12 +1698,101 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 	}
 
 	/**
+	 * Export the model.
+	 * @param exportTask Export task (destination, which parts of the model to export, options)
+	 */
+	public void exportModel(ModelExportTask exportTask) throws PrismException
+	{
+		ModelExportOptions exportOptions = exportTask.getExportOptions();
+		File file = exportTask.getFile();
+		if (exportOptions.getFormat() == ModelExportFormat.DD_DOT) {
+			JDD.ExportDDToDotFileLabelled(model.getTrans(), file.getPath(), model.getDDVarNames());
+			return;
+		}
+		if (exportOptions.getFormat() == ModelExportFormat.DRN) {
+			throw new PrismException("DRN export not yet supported by the symbolic engine");
+		}
+
+		int precision = exportOptions.getModelPrecision();
+		try {
+			model.exportToFile(Prism.convertExportTypeTrans(exportOptions), true, file, precision);
+		} catch (FileNotFoundException e) {
+			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
+		}
+
+		// For export to Dot with states, need to insert states info into file
+		if (exportOptions.getFormat() == ModelExportFormat.DOT) {
+			try (PrismLog out = getPrismLogForFile(file, true)) {
+				model.getReachableStates().printDot(out);
+				// Print footer
+				out.println("}");
+			}
+		}
+	}
+
+	/**
+	 * Export the transition function/matrix.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	public void exportTransitions(File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		exportModel(ModelExportTask.fromOptions(file, exportOptions));
+	}
+
+	/**
+	 * Export the state rewards for one reward structure.
+	 * @param r Index of reward structure to export (0-indexed)
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	public void exportStateRewards(int r, File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		int precision = exportOptions.getModelPrecision();
+		boolean noexportheaders = !exportOptions.getPrintHeaders();
+		try {
+			model.exportStateRewardsToFile(r, Prism.convertExportType(exportOptions), file, precision, noexportheaders);
+		} catch (FileNotFoundException e) {
+			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
+		}
+	}
+
+	/**
+	 * Export the transition rewards for one reward structure.
+	 * @param r Index of reward structure to export (0-indexed)
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	public void exportTransRewards(int r, File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		int precision = exportOptions.getModelPrecision();
+		boolean noexportheaders = !exportOptions.getPrintHeaders();
+		try {
+			model.exportTransRewardsToFile(r, Prism.convertExportTypeTrans(exportOptions), true, file, precision, noexportheaders);
+		} catch (FileNotFoundException e) {
+			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
+		}
+	}
+
+	/**
+	 * Export the set of states.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	public void exportStates(File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		try (PrismLog out = getPrismLogForFile(file)) {
+			model.exportStates(Prism.convertExportType(exportOptions), out);
+		}
+	}
+
+	/**
 	 * Export a set of labels and the states that satisfy them.
 	 * @param labelNames The name of each label
-	 * @param exportType The format in which to export
-	 * @param file Where to export
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
 	 */
-	public void exportLabels(List<String> labelNames, int exportType, File file) throws PrismException, FileNotFoundException
+	public void exportLabels(List<String> labelNames, File file, ModelExportOptions exportOptions) throws PrismException
 	{
 		// Convert labels to BDDs
 		int numLabels = labelNames.size();
@@ -1712,12 +1804,39 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		// Export them using the MTBDD engine
 		String matlabVarName = "l";
 		String labelNamesArr[] = labelNames.toArray(new String[labelNames.size()]);
-		PrismMTBDD.ExportLabels(labels, labelNamesArr, matlabVarName, allDDRowVars, odd, exportType, (file != null) ? file.getPath() : null);
-		
+		try {
+			PrismMTBDD.ExportLabels(labels, labelNamesArr, matlabVarName, allDDRowVars, odd, Prism.convertExportType(exportOptions), (file != null) ? file.getPath() : null);
+		} catch (FileNotFoundException e) {
+			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
+		}
+
 		// Derefs
 		for (int i = 0; i < numLabels; i++) {
 			JDD.Deref(labels[i]);
 		}
+	}
+
+	/**
+	 * Export the transition matrix to a Spy file.
+	 * @param file File to export to
+	 */
+	public void exportTransitionsToSpyFile(File file) throws PrismException
+	{
+		// choose depth
+		int depth = model.getAllDDRowVars().n();
+		if (depth > 9)
+			depth = 9;
+
+		// get rid of non det vars if necessary
+		JDDNode tmp = model.getTrans();
+		JDD.Ref(tmp);
+		if (model.getModelType() == ModelType.MDP) {
+			tmp = JDD.MaxAbstract(tmp, ((NondetModel) model).getAllDDNondetVars());
+		}
+
+		// export to spy file
+		JDD.ExportMatrixToSpyFile(tmp, model.getAllDDRowVars(), model.getAllDDColVars(), depth, file.getPath());
+		JDD.Deref(tmp);
 	}
 }
 

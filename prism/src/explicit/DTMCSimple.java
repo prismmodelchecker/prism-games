@@ -164,6 +164,7 @@ public class DTMCSimple<Value> extends DTMCExplicit<Value> implements ModelSimpl
 		succ.get(i).clear();
 		trans.get(i).clear();
 		actions.clearState(i);
+		actionList.markNeedsRecomputing();
 	}
 
 	@Override
@@ -224,6 +225,7 @@ public class DTMCSimple<Value> extends DTMCExplicit<Value> implements ModelSimpl
 		iSucc.add(j);
 		iTrans.add(prob);
 		actions.setAction(i, numSucc, action);
+		actionList.markNeedsRecomputing();
 	}
 
 	/**
@@ -256,9 +258,22 @@ public class DTMCSimple<Value> extends DTMCExplicit<Value> implements ModelSimpl
 		iSucc.add(j);
 		iTrans.add(prob);
 		actions.setAction(i, numSucc, action);
+		actionList.markNeedsRecomputing();
 	}
 
 	// Accessors (for Model)
+
+	@Override
+	public List<Object> findActionsUsed()
+	{
+		return actions.findActionsUsed(getNumStates(), this::getNumTransitions);
+	}
+
+	@Override
+	public boolean onlyNullActionUsed()
+	{
+		return actions.onlyNullActionUsed();
+	}
 
 	@Override
 	public int getNumTransitions(int s)
@@ -356,6 +371,28 @@ public class DTMCSimple<Value> extends DTMCExplicit<Value> implements ModelSimpl
 			{
 				Pair<Value, Object> probAction = new Pair<>(trans.get(s).get(i), actions.getAction(s, i));
 				return new AbstractMap.SimpleImmutableEntry<>(succ.get(s).get(i++), probAction);
+			}
+
+			@Override
+			public boolean hasNext()
+			{
+				return i < n;
+			}
+		};
+	}
+
+	@Override
+	public Iterator<Object> getActionsIterator(int s)
+	{
+		// Create iterator (no removal of duplicates)
+		return new Iterator<>() {
+			private final int n = succ.get(s).size();
+			private int i = 0;
+
+			@Override
+			public Object next()
+			{
+				return actions.getAction(s, i++);
 			}
 
 			@Override

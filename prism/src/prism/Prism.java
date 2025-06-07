@@ -48,13 +48,13 @@ import explicit.ModelModelGenerator;
 import hybrid.PrismHybrid;
 import io.ExplicitModelImporter;
 import io.ModelExportOptions;
-import io.ModelExportOptions.ModelExportFormat;
+import io.ModelExportTask;
+import io.ModelExportFormat;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
 import mtbdd.PrismMTBDD;
 import odd.ODDUtils;
-import param.Function;
 import param.ParamMode;
 import param.ParamModelChecker;
 import parser.PrismParser;
@@ -80,6 +80,7 @@ import strat.StrategyGenerator;
 import symbolic.build.ExplicitFiles2MTBDD;
 import io.PrismExplicitImporter;
 import symbolic.build.ExplicitModel2MTBDD;
+import symbolic.build.MTBDD2ExplicitModel;
 import symbolic.build.ModelGenerator2MTBDD;
 import symbolic.build.Modules2MTBDD;
 import symbolic.comp.ECComputer;
@@ -2172,6 +2173,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Returns true if the current model has been built (for any engine).
+	 */
+	public boolean someModelIsBuilt()
+	{
+		return getBuiltModelType() != null;
+	}
+
+	/**
 	 * Get the currently stored strategy (null if none)
 	 */
 	public Strategy<?> getStrategy()
@@ -2483,7 +2492,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Export the currently loaded and parsed PRISM model to a file.
-	 * @param file File to export to
+	 * @param file File to export to (if null, print to the log instead)
 	 */
 	public void exportPRISMModel(File file) throws FileNotFoundException, PrismException
 	{
@@ -2499,7 +2508,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	/**
 	 * Export the currently loaded and parsed PRISM model to a file,
 	 * after expanding all constants to their actual, defined values.
-	 * @param file File to export to
+	 * @param file File to export to (if null, print to the log instead)
 	 */
 	public void exportPRISMModelWithExpandedConstants(File file) throws FileNotFoundException, PrismException
 	{
@@ -2517,299 +2526,138 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Export various aspects of the current built model together.
-	 * @param file File to export to
+	 * Export the current model, building it first if needed.
+	 * To configure which model parts are exported, use {@link #exportBuiltModelTask(ModelExportTask)}.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModel(File file, ModelExportFormat exportFormat) throws PrismException
+	{
+		exportBuiltModelTask(ModelExportTask.fromFormat(file, exportFormat));
+	}
+
+	/**
+	 * Export the current model, building it first if needed.
+	 * The format to use is specified within {@code exportOptions}.
+	 * To configure which model parts are exported, use {@link #exportBuiltModelTask(ModelExportTask)}
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public void exportBuiltModelCombined(File file, ModelExportOptions exportOptions) throws PrismException, FileNotFoundException
+	public void exportBuiltModel(File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			mainLog.println("\nDRN export currently only supported by explicit engine");
-			return;
-		}
-
-		// Print message
-		mainLog.print("\nExporting model ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Export (explicit engine only)
-		try (PrismLog out = getPrismLogForFile(file)) {
-			List<String> labelNames = new ArrayList<String>();
-			labelNames.add("init");
-			labelNames.add("deadlock");
-			labelNames.addAll(getModelInfo().getLabelNames());
-			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-			mcExpl.exportModelCombined(getBuiltModelExplicit(), labelNames, out, exportOptions);
-		}
+		exportBuiltModelTask(ModelExportTask.fromOptions(file, exportOptions));
 	}
 
 	/**
-	 * Export the transition matrix for the current built model.
-	 * @param file File to export to
+	 * Export the transition matrix/function for the current model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelTransitions(File file, ModelExportFormat exportFormat) throws PrismException
+	{
+		// This is equivalent to exportBuiltModel
+		exportBuiltModel(file, exportFormat);
+	}
+
+	/**
+	 * Export the transition matrix/function for the current model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public void exportBuiltModelTransitions(File file, ModelExportOptions exportOptions) throws PrismException, FileNotFoundException
+	public void exportBuiltModelTransitions(File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Print message
-		mainLog.print("\nExporting transition matrix ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// do export
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			int precision = settings.getInteger(PrismSettings.PRISM_EXPORT_MODEL_PRECISION);
-			getBuiltModelSymbolic().exportToFile(convertExportTypeTrans(exportOptions), true, file, precision);
-		} else {
-			PrismLog tmpLog = getPrismLogForFile(file);
-			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-			mcExpl.exportTransitions(getBuiltModelExplicit(), tmpLog, exportOptions);
-			tmpLog.close();
-		}
-
-		// for export to dot with states, need to do a bit more
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC && convertExportTypeTrans(exportOptions) == EXPORT_DOT_STATES) {
-			// open (appending to) existing new file log or use main log
-			PrismLog tmpLog = getPrismLogForFile(file, true);
-			// insert states info into dot file
-			getBuiltModelSymbolic().getReachableStates().printDot(tmpLog);
-			// print footer
-			tmpLog.println("}");
-			// tidy up
-			if (file != null) {
-				tmpLog.close();
-			}
-		}
+		// This is equivalent to exportBuiltModel
+		exportBuiltModel(file, exportOptions);
 	}
 
 	/**
-	 * Export the currently loaded model's transition matrix to a Spy file.
-	 * @param file File to export to
-	 */
-	public void exportToSpyFile(File file) throws FileNotFoundException, PrismException
-	{
-		int depth;
-		JDDNode tmp;
-
-		if (getCurrentEngine() == PrismEngine.EXPLICIT) {
-			throw new PrismNotSupportedException("Export to Spy file not yet supported by explicit engine");
-		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		mainLog.println("\nExporting to spy file \"" + file + "\"...");
-
-		// choose depth
-		depth = getBuiltModelSymbolic().getAllDDRowVars().n();
-		if (depth > 9)
-			depth = 9;
-
-		// get rid of non det vars if necessary
-		tmp = getBuiltModelSymbolic().getTrans();
-		JDD.Ref(tmp);
-		if (getModelType() == ModelType.MDP) {
-			tmp = JDD.MaxAbstract(tmp, ((NondetModel) getBuiltModelSymbolic()).getAllDDNondetVars());
-		}
-
-		// export to spy file
-		JDD.ExportMatrixToSpyFile(tmp, getBuiltModelSymbolic().getAllDDRowVars(), getBuiltModelSymbolic().getAllDDColVars(), depth, file.getPath());
-		JDD.Deref(tmp);
-	}
-
-	/**
-	 * Export the MTBDD for the currently loaded model's transition matrix to a Dot file.
-	 * @param file File to export to
-	 */
-	public void exportToDotFile(File file) throws FileNotFoundException, PrismException
-	{
-		if (getCurrentEngine() == PrismEngine.EXPLICIT) {
-			throw new PrismNotSupportedException("Export to Dot file not yet supported by explicit engine");
-		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Check again (in case engine was switched)
-		if (getCurrentEngine() == PrismEngine.EXPLICIT) {
-			throw new PrismNotSupportedException("Export to Dot file not yet supported by explicit engine");
-		}
-		
-		// Export to dot file
-		mainLog.println("\nExporting to dot file \"" + file + "\"...");
-		JDD.ExportDDToDotFileLabelled(getBuiltModelSymbolic().getTrans(), file.getPath(), getBuiltModelSymbolic().getDDVarNames());
-	}
-
-	/**
-	 * Export the state rewards for the current built model.
+	 * Export the state rewards for the current model, building it first if needed.
 	 * If there is more than 1 reward structure, then multiple files are generated
 	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
-	 * @param file File to export to
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelStateRewards(File file, ModelExportFormat exportFormat) throws PrismException
+	{
+		exportBuiltModelStateRewards(file, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export the state rewards for the current model, building it first if needed.
+	 * If there is more than 1 reward structure, then multiple files are generated
+	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	public void exportBuiltModelStateRewards(File file, ModelExportOptions exportOptions) throws PrismException, FileNotFoundException
+	public void exportBuiltModelStateRewards(File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		int numRewardStructs = getRewardInfo().getNumRewardStructs();
-		if (numRewardStructs == 0) {
+		if (getRewardInfo().getNumRewardStructs() == 0) {
 			mainLog.println("\nOmitting state reward export as there are no reward structures");
 			return;
 		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Print message
-		mainLog.print("\nExporting state rewards ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Do export, writing to multiple files if necessary
-		List <String> files = new ArrayList<>();
-		for (int r = 0; r < numRewardStructs; r++) {
-			String filename = (file != null) ? file.getPath() : null;
-			if (filename != null && numRewardStructs > 1) {
-				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
-				files.add(filename);
-			}
-			File fileToUse = (filename == null) ? null : new File(filename);
-			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-				int precision = settings.getInteger(PrismSettings.PRISM_EXPORT_MODEL_PRECISION);
-				boolean noexportheaders = !settings.getBoolean(PrismSettings.PRISM_EXPORT_MODEL_HEADERS);
-				getBuiltModelSymbolic().exportStateRewardsToFile(r, convertExportType(exportOptions), fileToUse, precision, noexportheaders);
-			} else {
-				explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-				try (PrismLog out = getPrismLogForFile(fileToUse)){
-					mcExpl.exportStateRewards(getBuiltModelExplicit(), r, out, exportOptions);
-				} catch (PrismNotSupportedException e1) {
-					mainLog.println("\nReward export failed: " + e1.getMessage());
-					try {
-						if (fileToUse != null) {
-							fileToUse.delete();
-						}
-					} catch (SecurityException e2) {
-						// Cannot delete File; continue
-					}
-				}
-			}
-		}
-		
-		if (files.size() > 1) {
-			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
-		}
+		exportBuiltModelTask(new ModelExportTask(ModelExportTask.ModelExportEntity.STATE_REWARDS, file, exportOptions));
 	}
 
 	/**
-	 * Export the transition rewards for the current built model.
+	 * Export the transition rewards for the current model, building it first if needed.
 	 * If there is more than 1 reward structure, then multiple files are generated
 	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
-	 * @param file File to export to
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelTransRewards(File file, ModelExportFormat exportFormat) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelTransRewards(file, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export the transition rewards for the current model, building it first if needed.
+	 * If there is more than 1 reward structure, then multiple files are generated
+	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
 	public void exportBuiltModelTransRewards(File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
 	{
-		int numRewardStructs = getRewardInfo().getNumRewardStructs();
-		if (numRewardStructs == 0) {
+		if (getRewardInfo().getNumRewardStructs() == 0) {
 			mainLog.println("\nOmitting transition reward export as there are no reward structures");
 			return;
 		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Print message
-		mainLog.print("\nExporting transition rewards ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Do export, writing to multiple files if necessary
-		List <String> files = new ArrayList<>();
-		for (int r = 0; r < numRewardStructs; r++) {
-			String filename = (file != null) ? file.getPath() : null;
-			if (filename != null && numRewardStructs > 1) {
-				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
-				files.add(filename);
-			}
-			File fileToUse = (filename == null) ? null : new File(filename);
-			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-				int precision = settings.getInteger(PrismSettings.PRISM_EXPORT_MODEL_PRECISION);
-				boolean noexportheaders = !settings.getBoolean(PrismSettings.PRISM_EXPORT_MODEL_HEADERS);
-				getBuiltModelSymbolic().exportTransRewardsToFile(r, convertExportTypeTrans(exportOptions), true, fileToUse, precision, noexportheaders);
-			} else {
-				explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-				try (PrismLog out = getPrismLogForFile(fileToUse)){
-					mcExpl.exportTransRewards(getBuiltModelExplicit(), r, out, exportOptions);
-				} catch (PrismNotSupportedException e1) {
-					mainLog.println("\nReward export failed: " + e1.getMessage());
-					try {
-						if (fileToUse != null) {
-							fileToUse.delete();
-						}
-					} catch (SecurityException e2) {
-						// Cannot delete File; continue
-					}
-				}
-			}
-		}
-		
-		if (files.size() > 1) {
-			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
-		}
+		exportBuiltModelTask(new ModelExportTask(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, file, exportOptions));
 	}
 
 	/**
-	 * Export the states of the currently loaded model.
+	 * Export the states of the currently loaded model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelStates(File file, ModelExportFormat exportFormat) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelStates(file, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export the states of the currently loaded model, building it first if needed.
 	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
 	public void exportBuiltModelStates(File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
 	{
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Print message
-		mainLog.print("\nExporting list of reachable states ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Create new file log or use main log
-		PrismLog out = getPrismLogForFile(file);
-
-		// Export
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			getBuiltModelSymbolic().exportStates(convertExportType(exportOptions), out);
-		} else {
-			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-			mcExpl.exportStates(getBuiltModelExplicit(), out, exportOptions);
-		}
-
-		// Tidy up
-		if (file != null)
-			out.close();
+		exportBuiltModelTask(new ModelExportTask(ModelExportTask.ModelExportEntity.STATES, file, exportOptions));
 	}
 
 	/**
-	 * Export the observations of the currently loaded (partially observable) model.
+	 * Export the observations of the currently loaded (partially observable) loaded model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelObservations(File file, ModelExportFormat exportFormat) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelObservations(file, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export the observations of the currently loaded (partially observable) loaded model, building it first if needed.
 	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
@@ -2819,54 +2667,50 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			mainLog.println("\nOmitting observations export as the model is not partially observable");
 			return;
 		}
-
-		// Build model, if necessary
-		buildModelIfRequired();
-
-		// Print message
-		mainLog.print("\nExporting list of observations ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
-
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Create new file log or use main log
-		PrismLog out = getPrismLogForFile(file);
-
-		// Export (explicit engine only)
-		explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
-		mcExpl.exportObservations(getBuiltModelExplicit(), out, exportOptions);
-
-		// Tidy up
-		if (file != null)
-			out.close();
+		exportBuiltModelTask(new ModelExportTask(ModelExportTask.ModelExportEntity.OBSERVATIONS, file, exportOptions));
 	}
 
 	/**
-	 * Export the states satisfying labels from the currently loaded model and (optionally) a properties file to a file.
-	 * The PropertiesFile should correspond to the currently loaded model.
+	 * Export the labels and satisfying states of the currently loaded model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 */
+	public void exportBuiltModelLabels(File file, ModelExportFormat exportFormat) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelLabels(file, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export the labels and satisfying states of the currently loaded model, building it first if needed.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	public void exportBuiltModelLabels(File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelLabels(null, file, exportOptions);
+	}
+
+	/**
+	 * Export model, and optionally property file, labels and the satisfying states
+	 * of the currently loaded model, building it first if needed.
+	 * The PropertiesFile (if non-null) should correspond to the currently loaded model.
 	 * @param propertiesFile The properties file, for further labels (ignored if null)
 	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
 	public void exportBuiltModelLabels(PropertiesFile propertiesFile, File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
 	{
-		// Collect names of labels to export from model
-		List<String> labelNames = new ArrayList<String>();
-		labelNames.add("init");
-		labelNames.add("deadlock");
-		labelNames.addAll(getModelInfo().getLabelNames());
-		// Collect names of labels to export from properties file
+		ModelExportTask exportTask = new ModelExportTask(ModelExportTask.ModelExportEntity.LABELS, file, exportOptions);
 		if (propertiesFile != null) {
-			LabelList ll = propertiesFile.getLabelList();
-			new Range(ll.size()).map((int i) -> ll.getLabelName(i)).collect(labelNames);
+			exportTask.setLabelExportSet(ModelExportTask.LabelExportSet.ALL);
+			exportTask.setExtraLabelsSource(propertiesFile);
 		}
-		doExportBuiltModelLabels(propertiesFile, labelNames, file, exportOptions);
+		exportBuiltModelTask(exportTask);
 	}
 
 	/**
-	 * Export the states satisfying labels from the properties file to a file.
+	 * Export labels from a properties file and the satisfying states
+	 * of the currently loaded model, building it first if needed.
 	 * The PropertiesFile should correspond to the currently loaded model.
 	 * @param propertiesFile The properties file (for further labels)
 	 * @param file File to export to (if null, print to the log instead)
@@ -2874,45 +2718,221 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public void exportBuiltModelPropLabels(PropertiesFile propertiesFile, File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
 	{
-		// Collect names of labels to export from properties file
-		List<String> labelNames = new ArrayList<String>();
-		if (propertiesFile != null) {
-			LabelList ll = propertiesFile.getLabelList();
-			new Range(ll.size()).map((int i) -> ll.getLabelName(i)).collect(labelNames);
-		}
-		doExportBuiltModelLabels(propertiesFile, labelNames, file, exportOptions);
+		ModelExportTask exportTask = new ModelExportTask(ModelExportTask.ModelExportEntity.LABELS, file, exportOptions);
+		exportTask.setLabelExportSet(ModelExportTask.LabelExportSet.EXTRA);
+		exportTask.setExtraLabelsSource(propertiesFile);
+		exportBuiltModelTask(exportTask);
 	}
 
 	/**
-	 * Export the states satisfying labels from the currently loaded model and/or a properties file to a file.
-	 * The PropertiesFile should correspond to the currently loaded model.
-	 * @param propertiesFile The properties file, for further labels (ignored if null)
-	 * @param labelNames The list of label names to export
-	 * @param file File to export to
+	 * Perform an export task for the current model, building it first if needed.
+	 * @param exportTask Export task
+	 */
+	public void exportBuiltModelTask(ModelExportTask exportTask) throws PrismException
+	{
+		// Skip non-applicable tasks
+		if (!exportTask.isApplicable(getModelInfo())) {
+			return;
+		}
+		boolean engineSwitch = false;
+		int lastEngine = -1;
+		try {
+			// NB: currently no engine auto-switch needed
+			// Build model, if necessary
+			buildModelIfRequired();
+			// Merge export options with PRISM settings and do export
+			mainLog.println("\n" + exportTask.getMessage());
+			ModelExportOptions exportOptions = newMergedModelExportOptions(exportTask.getExportOptions());
+			//long timer = System.currentTimeMillis();
+			switch (exportTask.getEntity()) {
+				case MODEL:
+					doExportBuiltModel(new ModelExportTask(exportTask, exportOptions));
+					break;
+				case STATE_REWARDS:
+					doExportBuiltModelStateRewards(exportTask.getFile(), exportOptions);
+					break;
+				case TRANSITION_REWARDS:
+					doExportBuiltModelTransRewards(exportTask.getFile(), exportOptions);
+					break;
+				case STATES:
+					doExportBuiltModelStates(exportTask.getFile(), exportOptions);
+					break;
+				case OBSERVATIONS:
+					doExportBuiltModelObservations(exportTask.getFile(), exportOptions);
+					break;
+				case LABELS:
+					doExportBuiltModelLabels(new ModelExportTask(exportTask, exportOptions));
+					break;
+			}
+			//timer = System.currentTimeMillis() - timer;
+			//mainLog.println("Time for model export: " + timer / 1000.0 + " seconds.");
+		} finally {
+			// Undo auto-switch (if any)
+			if (engineSwitch) {
+				setEngine(lastEngine);
+			}
+		}
+	}
+
+	/**
+	 * Export the transition matrix/function for the current built model.
+	 * This assumes that the model has already been built.
+	 * Various other parts/annotations of the model may also be exported,
+	 * as specified by the {@code exportTask} object.
+	 * @param exportTask Export task (destination, which parts of the model to export, options)
+	 */
+	private void doExportBuiltModel(ModelExportTask exportTask) throws PrismException
+	{
+		// Export via either symbolic/explicit model checker
+		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
+			// In some cases, we need to convert to an explicit model first
+			if (exportTask.getExportOptions().getFormat() == ModelExportFormat.DRN) {
+				MTBDD2ExplicitModel m2m = new MTBDD2ExplicitModel(this);
+				explicit.Model<Double> modelExpl = m2m.convertModel(getBuiltModelSymbolic());
+				explicit.StateModelChecker mcExpl = explicit.StateModelChecker.createModelChecker(getModelType(), this);
+				RewardGenerator<Double> rewardGen = m2m.getRewardConverter(getBuiltModelSymbolic(), modelExpl, getRewardInfo());
+				mcExpl.setModelCheckingInfo(getModelInfo(), null, rewardGen);
+				mcExpl.exportModel(modelExpl, exportTask);
+			} else {
+				symbolic.comp.StateModelChecker mcSymb = createModelChecker(null);
+				mcSymb.exportModel(exportTask);
+			}
+		} else {
+			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+			mcExpl.exportModel(getBuiltModelExplicit(), exportTask);
+		}
+	}
+
+	/**
+	 * Export the state rewards for the current built model.
+	 * This assumes that the model has already been built.
+	 * If there is more than 1 reward structure, then multiple files are generated
+	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
+	 * @param file File to export to (if null, print to the log instead)
 	 * @param exportOptions The options for export
 	 */
-	private void doExportBuiltModelLabels(PropertiesFile propertiesFile, List<String> labelNames, File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
+	private void doExportBuiltModelStateRewards(File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		// Build model, if necessary
-		buildModelIfRequired();
+		// Export to multiple files if necessary
+		List <String> files = new ArrayList<>();
+		int numRewardStructs = getRewardInfo().getNumRewardStructs();
+		for (int r = 0; r < numRewardStructs; r++) {
+			String filename = (file != null) ? file.getPath() : null;
+			if (filename != null && numRewardStructs > 1) {
+				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
+				files.add(filename);
+			}
+			File fileToUse = (filename == null) ? null : new File(filename);
+			// Export via either symbolic/explicit model checker
+			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
+				symbolic.comp.StateModelChecker mcSymb = createModelChecker(null);
+				mcSymb.exportStateRewards(r, fileToUse, exportOptions);
+			} else {
+				explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+				mcExpl.exportStateRewards(getBuiltModelExplicit(), r, fileToUse, exportOptions);
+			}
+		}
+		if (files.size() > 1) {
+			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
+		}
+	}
 
-		// Print message
-		mainLog.print("\nExporting labels and satisfying states ");
-		mainLog.print(exportOptions.getFormat().description() + " ");
-		mainLog.println(getDestinationStringForFile(file));
+	/**
+	 * Export the transition rewards for the current built model.
+	 * This assumes that the model has already been built.
+	 * If there is more than 1 reward structure, then multiple files are generated
+	 * (e.g. "rew.sta" becomes "rew1.sta", "rew2.sta", ...)
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	private void doExportBuiltModelTransRewards(File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		// Export to multiple files if necessary
+		List <String> files = new ArrayList<>();
+		int numRewardStructs = getRewardInfo().getNumRewardStructs();
+		for (int r = 0; r < numRewardStructs; r++) {
+			String filename = (file != null) ? file.getPath() : null;
+			if (filename != null && numRewardStructs > 1) {
+				filename = PrismUtils.addCounterSuffixToFilename(filename, r + 1);
+				files.add(filename);
+			}
+			File fileToUse = (filename == null) ? null : new File(filename);
+			// Export via either symbolic/explicit model checker
+			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
+				symbolic.comp.StateModelChecker mcSymb = createModelChecker(null);
+				mcSymb.exportTransRewards(r, fileToUse, exportOptions);
+			} else {
+				explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+				mcExpl.exportTransRewards(getBuiltModelExplicit(), r, fileToUse, exportOptions);
+			}
+		}
+		if (files.size() > 1) {
+			mainLog.println("Rewards were exported to multiple files: " + PrismUtils.joinString(files, ","));
+		}
+	}
 
-		// Merge export options with settings
-		exportOptions = newMergedModelExportOptions(exportOptions);
-
-		// Export
-		if (getBuiltModelType() != ModelBuildType.SYMBOLIC) {
-			PrismLog out = getPrismLogForFile(file);
-			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(propertiesFile);
-			mcExpl.exportLabels(getBuiltModelExplicit(), labelNames, out, exportOptions);
-			out.close();
+	/**
+	 * Export the states of the currently built model.
+	 * This assumes that the model has already been built.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	private void doExportBuiltModelStates(File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		// Export via either symbolic/explicit model checker
+		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
+			symbolic.comp.StateModelChecker mcSymb = createModelChecker(null);
+			mcSymb.exportStates(file, exportOptions);
 		} else {
-			StateModelChecker mc = createModelChecker(propertiesFile);
-			mc.exportLabels(labelNames, convertExportType(exportOptions), file);
+			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+			mcExpl.exportStates(getBuiltModelExplicit(), file, exportOptions);
+		}
+	}
+
+	/**
+	 * Export the observations of the current built (partially observable) model.
+	 * This assumes that the model has already been built.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 */
+	private void doExportBuiltModelObservations(File file, ModelExportOptions exportOptions) throws PrismException
+	{
+		// Export (explicit engine only)
+		explicit.StateModelChecker mcExpl = createModelCheckerExplicit(null);
+		mcExpl.exportObservations(getBuiltModelExplicit(), file, exportOptions);
+	}
+
+	/**
+	 * Export the states satisfying a set of labels, as specified in a ModelExportTask.
+	 * @param exportTask Export task (destination, which labels to export, options)
+	 */
+	private void doExportBuiltModelLabels(ModelExportTask exportTask) throws PrismException
+	{
+		// Collect names of labels to export from model and/or properties file
+		List<String> labelNames = new ArrayList<>();
+		if (exportTask.getLabelExportSet() == ModelExportTask.LabelExportSet.MODEL || exportTask.getLabelExportSet() == ModelExportTask.LabelExportSet.ALL) {
+			if (exportTask.initLabelIncluded()) {
+				labelNames.add("init");
+			}
+			if (exportTask.deadlockLabelIncluded()) {
+				labelNames.add("deadlock");
+			}
+			labelNames.addAll(getModelInfo().getLabelNames());
+		}
+		if (exportTask.getLabelExportSet() == ModelExportTask.LabelExportSet.EXTRA || exportTask.getLabelExportSet() == ModelExportTask.LabelExportSet.ALL) {
+			LabelList ll = exportTask.getExtraLabelsSource().getLabelList();
+			new Range(ll.size()).map((int i) -> ll.getLabelName(i)).collect(labelNames);
+		}
+		// Export via either symbolic/explicit model checker
+		PropertiesFile propertiesFile = exportTask.getExtraLabelsSource();
+		File file = exportTask.getFile();
+		ModelExportOptions exportOptions = exportTask.getExportOptions();
+		if (getBuiltModelType() != ModelBuildType.SYMBOLIC) {
+			explicit.StateModelChecker mcExpl = createModelCheckerExplicit(propertiesFile);
+			mcExpl.exportLabels(getBuiltModelExplicit(), labelNames, file, exportOptions);
+		} else {
+			symbolic.comp.StateModelChecker mcSymb = createModelChecker(propertiesFile);
+			mcSymb.exportLabels(labelNames, file, exportOptions);
 		}
 	}
 
@@ -3187,7 +3207,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Return a new {@code ModelExportOptions} object with any relevant PRISM settings applied,
-	 * then merged with the passed ewxport options (which take precedence).
+	 * then merged with the passed export options (which take precedence).
 	 */
 	private ModelExportOptions newMergedModelExportOptions(ModelExportOptions exportOptions)
 	{
@@ -3736,74 +3756,82 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
-	 * Output probability distribution to log. 
+	 * Compute/export steady-state probabilities for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
 	 */
-	public void doSteadyState() throws PrismException
+	public void exportSteadyStateProbabilities(File file, ModelExportFormat exportFormat) throws PrismException
 	{
-		doSteadyState(EXPORT_PLAIN, null, null);
+		exportSteadyStateProbabilities(file, new ModelExportOptions(exportFormat), null);
 	}
 
 	/**
-	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
-	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log). 
-	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Compute/export steady-state probabilities for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 * @param initDistFile Initial distribution (ignored if null)
 	 */
-	public void doSteadyState(int exportType, File fileOut, File fileIn) throws PrismException
+	public void exportSteadyStateProbabilities(File file, ModelExportFormat exportFormat, File initDistFile) throws PrismException
 	{
-		long l = 0; // timer
-		StateValues probs = null;
-		explicit.StateValues probsExpl = null;
-		PrismLog tmpLog;
+		exportSteadyStateProbabilities(file, new ModelExportOptions(exportFormat), initDistFile);
+	}
 
-		// Do some checks
-		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC))
+	/**
+	 * Compute/export steady-state probabilities for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 * @param initDistFile Initial distribution (ignored if null)
+	 */
+	public void exportSteadyStateProbabilities(File file, ModelExportOptions exportOptions, File initDistFile) throws PrismException
+	{
+		prism.StateVector probs = computeSteadyStateProbabilities(initDistFile);
+		mainLog.print("\nExporting steady-state probabilities ");
+		mainLog.println(exportOptions.getFormat().description() + " " + getDestinationStringForFile(file));
+		try (PrismLog out = getPrismLogForFile(file)) {
+			probs.print(out, file == null, exportOptions.getFormat() == ModelExportFormat.MATLAB, file == null, file == null);
+		}
+		probs.clear();
+	}
+
+	/**
+	 * Compute steady-state probabilities for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param initDistFile Initial distribution (ignored if null)
+	 */
+	public prism.StateVector computeSteadyStateProbabilities(File initDistFile) throws PrismException
+	{
+		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC)) {
 			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN; // rows format does not apply to states output
-
-		// Print message
+		}
+		if (getCurrentEngine() == PrismEngine.EXACT || getCurrentEngine() == PrismEngine.PARAM) {
+			throw new PrismException("Steady-state probabilities cannot be computed with " + getCurrentEngine().description() + " engine");
+		}
 		mainLog.printSeparator();
 		mainLog.println("\nComputing steady-state probabilities...");
-
 		// Build model, if necessary
 		buildModelIfRequired();
-
-		l = System.currentTimeMillis();
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			probs = computeSteadyStateProbabilities(getBuiltModelSymbolic(), fileIn);
-		} else {
-			probsExpl = computeSteadyStateProbabilitiesExplicit(getBuiltModelExplicit(), fileIn);
+		// Do computation
+		long l = System.currentTimeMillis();
+		prism.StateVector probs;
+		switch (getBuiltModelType()) {
+			case SYMBOLIC:
+				probs = computeSteadyStateProbabilities(getBuiltModelSymbolic(), initDistFile);
+				break;
+			case EXPLICIT:
+				probs = computeSteadyStateProbabilitiesExplicit(getBuiltModelExplicit(), initDistFile);
+				break;
+			default:
+				throw new PrismException("Steady-state probability computation not supported for " + getBuiltModelType().description() + " models");
 		}
 		l = System.currentTimeMillis() - l;
-
-		// print message
-		mainLog.print("\nPrinting steady-state probabilities ");
-		mainLog.print(getStringForExportType(exportType) + " ");
-		mainLog.println(getDestinationStringForFile(fileOut));
-
-		// create new file log or use main log
-		tmpLog = getPrismLogForFile(fileOut);
-
-		// print out or export probabilities
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
-		} else {
-			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
-		}
-
-		// print out computation time
 		mainLog.println("\nTime for steady-state probability computation: " + l / 1000.0 + " seconds.");
-
-		// tidy up
-		if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-			probs.clear();
-		} else {
-			probsExpl.clear();
-		}
-		if (fileOut != null)
-			tmpLog.close();
+		return probs;
 	}
 
 	/**
@@ -3850,257 +3878,281 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
-	 * Output probability distribution to log.
-	 * For a discrete-time model, {@code time} will be cast to an integer.
+	 * Compute/export transient probabilities (forwards) for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only. For a DTMC, {@code time} will be cast to an integer.
+	 * @param time Time instant for transient probabilities
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
 	 */
-	public void doTransient(double time) throws PrismException
+	public void exportTransientProbabilities(double time, File file, ModelExportFormat exportFormat) throws PrismException
 	{
-		doTransient(time, EXPORT_PLAIN, null, null);
+		exportTransientProbabilities(time, file, new ModelExportOptions(exportFormat), null);
 	}
 
 	/**
-	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
-	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log). 
-	 * For a discrete-time model, {@code time} will be cast to an integer.
-	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Compute/export transient probabilities (forwards) for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only. For a DTMC, {@code time} will be cast to an integer.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param time Time instant for transient probabilities
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportFormat The format to use for export
+	 * @param initDistFile Initial distribution (ignored if null)
 	 */
-	public void doTransient(double time, int exportType, File fileOut, File fileIn) throws PrismException
+	public void exportTransientProbabilities(double time, File file, ModelExportFormat exportFormat, File initDistFile) throws PrismException
 	{
-		long l = 0; // timer
-		ModelChecker mc = null;
-		StateValues probs = null;
-		explicit.StateValues probsExpl = null;
-		PrismLog tmpLog;
+		exportTransientProbabilities(time, file, new ModelExportOptions(exportFormat), initDistFile);
+	}
 
-		// Do some checks
-		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC))
-			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-		if (time < 0)
+	/**
+	 * Compute/export transient probabilities (forwards) for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only. The time (or times) for which transient probabilities are to be computed
+	 * are specified as a string, which should give an integer/double for discrete/continuous time models.
+	 * Multiple times can also be given in "experiment" notation ("1:10", "0.1:0.1:1.0").
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param timeSpec Time instant(s) for transient probabilities
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 * @param initDistFile Initial distribution (ignored if null)
+	 */
+	public void exportTransientProbabilities(String timeSpec, File file, ModelExportOptions exportOptions, File initDistFile) throws PrismException
+	{
+		// Parse time specification, store as UndefinedConstant for constant T
+		// (NB: use "null" for model to avoid a potential name clash with T)
+		String timeType = getModelType().continuousTime() ? "double" : "int";
+		UndefinedConstants ucTransient = new UndefinedConstants(null, parsePropertiesString(null, "const " + timeType + " T; T;"));
+		try {
+			ucTransient.defineUsingConstSwitch("T=" + timeSpec);
+		} catch (PrismException e) {
+			if (timeSpec.contains(":")) {
+				throw new PrismException("\"" + timeSpec + "\" is not a valid time range for a " + getModelType());
+			} else {
+				throw new PrismException("\"" + timeSpec + "\" is not a valid time for a " + getModelType());
+			}
+		}
+		exportTransientProbabilities(ucTransient, file, exportOptions, initDistFile);
+	}
+
+	/**
+	 * Compute/export transient probabilities (forwards) for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only. For a DTMC, {@code time} will be cast to an integer.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param time Time instant for transient probabilities
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 * @param initDistFile Initial distribution (ignored if null)
+	 */
+	public void exportTransientProbabilities(double time, File file, ModelExportOptions exportOptions, File initDistFile) throws PrismException
+	{
+		prism.StateVector probs = computeTransientProbabilities(time, initDistFile);
+		mainLog.print("\nExporting transient probabilities ");
+		mainLog.println(exportOptions.getFormat().description() + " " + getDestinationStringForFile(file));
+		try (PrismLog out = getPrismLogForFile(file)) {
+			probs.print(out, file == null, exportOptions.getFormat() == ModelExportFormat.MATLAB, file == null, file == null);
+		}
+		probs.clear();
+	}
+
+	/**
+	 * Compute transient probabilities (forwards) for the current model, building it first if needed.
+	 * For a discrete-time model, {@code time} will be cast to an integer.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param time Time instant for transient probabilities
+	 * @param initDistFile Initial distribution (ignored if null)
+	 */
+	public prism.StateVector computeTransientProbabilities(double time, File initDistFile) throws PrismException
+	{
+		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC)) {
+			throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
+		}
+		if (getCurrentEngine() == PrismEngine.EXACT || getCurrentEngine() == PrismEngine.PARAM) {
+			throw new PrismException("Transient probabilities cannot be computed with " + getCurrentEngine().description() + " engine");
+		}
+		if (time < 0) {
 			throw new PrismException("Cannot compute transient probabilities for negative time value");
-		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN; // rows format does not apply to states output
-
-		// Print message
+		}
 		mainLog.printSeparator();
 		String strTime = getModelType().continuousTime() ? Double.toString(time) : Integer.toString((int) time);
 		mainLog.println("\nComputing transient probabilities (time = " + strTime + ")...");
-
-		l = System.currentTimeMillis();
-
+		// Do computation
+		long l = System.currentTimeMillis();
+		prism.StateVector probs;
 		// FAU
 		if (getModelType() == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
-			if (fileIn != null) {
+			if (initDistFile != null) {
 				throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
 			}
 			ModulesFileModelGenerator<Double> prismModelGen = ModulesFileModelGenerator.createForDoubles(getPRISMModel(), this);
 			FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 			fau.setConstantValues(getPRISMModel().getConstantValues());
-			probsExpl = fau.doTransient(time);
+			probs = fau.doTransient(time);
 		}
 		// Non-FAU
 		else {
 			// Build model, if necessary
 			buildModelIfRequired();
-			// Symbolic
-			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-				if (getModelType() == ModelType.DTMC) {
-					mc = new ProbModelChecker(this, getBuiltModelSymbolic(), null);
-					probs = ((ProbModelChecker) mc).doTransient((int) time, fileIn);
-				} else {
-					mc = new StochModelChecker(this, getBuiltModelSymbolic(), null);
-					probs = ((StochModelChecker) mc).doTransient(time, fileIn);
-				}
-			}
-			// Explicit
-			else {
-				if (getModelType() == ModelType.DTMC) {
-					DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
-					probsExpl = mcDTMC.doTransient((DTMC<Double>) getBuiltModelExplicit(), (int) time, fileIn);
-				} else if (getModelType() == ModelType.CTMC) {
-					CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
-					probsExpl = mcCTMC.doTransient((CTMC<Double>) getBuiltModelExplicit(), time, fileIn);
-				} else {
-					throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
-				}
+			// Then solve
+			switch (getBuiltModelType()) {
+				case SYMBOLIC:
+					if (getModelType() == ModelType.DTMC) {
+						ModelChecker mcDTMC = new ProbModelChecker(this, getBuiltModelSymbolic(), null);
+						probs = ((ProbModelChecker) mcDTMC).doTransient((int) time, initDistFile);
+					} else {
+						ModelChecker mcCTMC = new StochModelChecker(this, getBuiltModelSymbolic(), null);
+						probs = ((StochModelChecker) mcCTMC).doTransient(time, initDistFile);
+					}
+					break;
+				case EXPLICIT:
+					if (getModelType() == ModelType.DTMC) {
+						DTMCModelChecker mcDTMC = new DTMCModelChecker(this);
+						probs = mcDTMC.doTransient((DTMC<Double>) getBuiltModelExplicit(), (int) time, initDistFile);
+					} else {
+						CTMCModelChecker mcCTMC = new CTMCModelChecker(this);
+						probs = mcCTMC.doTransient((CTMC<Double>) getBuiltModelExplicit(), time, initDistFile);
+					}
+					break;
+				default:
+					throw new PrismException("Transient probability computation not supported for " + getBuiltModelType().description() + " models");
 			}
 		}
-
 		l = System.currentTimeMillis() - l;
-
-		// print message
-		mainLog.print("\nPrinting transient probabilities ");
-		mainLog.print(getStringForExportType(exportType) + " ");
-		mainLog.println(getDestinationStringForFile(fileOut));
-
-		// create new file log or use main log
-		tmpLog = getPrismLogForFile(fileOut);
-
-		// print out or export probabilities
-		if (probs != null)
-			probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
-		else
-			probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, fileOut == null);
-
-		// print out computation time
 		mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
-
-		// tidy up
-		if (probs != null)
-			probs.clear();
-		if (probsExpl != null)
-			probsExpl.clear();
-		if (fileOut != null)
-			tmpLog.close();
+		return probs;
 	}
 
 	/**
-	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only)
-	 * for a range of time points. Each distribution is computed incrementally.
-	 * Output probability distribution to a file (or, if file is null, to log).
-	 * Time points are specified using an UndefinedConstants with a single ranging variable  
-	 * (of the appropriate type (int/double) and with arbitrary name).
-	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Compute/export transient probabilities (forwards) for the current model, building it first if needed.
+	 * Applicable for DTMCs/CTMCs only. For a DTMC, {@code time} will be cast to an integer.
 	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @param times Time instants for transient probabilities
+	 * @param file File to export to (if null, print to the log instead)
+	 * @param exportOptions The options for export
+	 * @param initDistFile Initial distribution (ignored if null)
 	 */
-	public void doTransient(UndefinedConstants times, int exportType, File fileOut, File fileIn) throws PrismException
+	public void exportTransientProbabilities(UndefinedConstants times, File file, ModelExportOptions exportOptions, File initDistFile) throws PrismException
 	{
-		int i, timeInt = 0, initTimeInt = 0;
-		double timeDouble = 0, initTimeDouble = 0;
-		Object time;
-		long l = 0; // timer
-		StateValues probs = null, initDist = null;
-		explicit.StateValues probsExpl = null, initDistExpl = null;
-		PrismLog tmpLog = null;
-		File fileOutActual = null;
-
-		// Do some checks
-		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC))
-			throw new PrismException("Steady-state probabilities only computed for DTMCs/CTMCs");
-		if (exportType == EXPORT_ROWS)
-			exportType = EXPORT_PLAIN; // rows format does not apply to states output
-
+		if (!(getModelType() == ModelType.CTMC || getModelType() == ModelType.DTMC)) {
+			throw new PrismException("Transient probabilities only computed for DTMCs/CTMCs");
+		}
+		if (getCurrentEngine() == PrismEngine.EXACT || getCurrentEngine() == PrismEngine.PARAM) {
+			throw new PrismException("Transient probabilities cannot be computed with " + getCurrentEngine().description() + " engine");
+		}
 		// Step through required time points
-		for (i = 0; i < times.getNumPropertyIterations(); i++) {
+		prism.StateVector probs = null;
+		symbolic.states.StateValues probsSym = null, initDistSym = null;
+		explicit.StateValues probsExpl = null, initDistExpl = null;
+		int timeInt = 0, initTimeInt = 0;
+		double timeDouble = 0, initTimeDouble = 0;
+		for (int i = 0; i < times.getNumPropertyIterations(); i++) {
 
 			// Get time, check non-negative
-			time = times.getPFConstantValues().getValue(0);
-			if (getModelType().continuousTime())
+			Object time = times.getPFConstantValues().getValue(0);
+			if (getModelType().continuousTime()) {
 				timeDouble = ((Double) time).doubleValue();
-			else
+			} else {
 				timeInt = ((Integer) time).intValue();
-			if (getModelType().continuousTime() ? (((Double) time).doubleValue() < 0) : (((Integer) time).intValue() < 0))
+			}
+			if (getModelType().continuousTime() ? (((Double) time).doubleValue() < 0) : (((Integer) time).intValue() < 0)) {
 				throw new PrismException("Cannot compute transient probabilities for negative time value");
-
-			// Print message
+			}
 			mainLog.printSeparator();
 			mainLog.println("\nComputing transient probabilities (time = " + time + ")...");
-
-			l = System.currentTimeMillis();
-
+			// Do computation
+			long l = System.currentTimeMillis();
 			// FAU
 			if (getModelType() == ModelType.CTMC && settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
-				if (fileIn != null) {
+				if (initDistFile != null) {
 					throw new PrismException("Fast adaptive uniformisation cannot read an initial distribution from a file");
 				}
 				ModulesFileModelGenerator<Double> prismModelGen = ModulesFileModelGenerator.createForDoubles(getPRISMModel(), this);
 				FastAdaptiveUniformisation fau = new FastAdaptiveUniformisation(this, prismModelGen);
 				fau.setConstantValues(getPRISMModel().getConstantValues());
 				if (i == 0) {
-					probsExpl = fau.doTransient(timeDouble);
+					probs = probsExpl = fau.doTransient(timeDouble);
 					initTimeDouble = 0.0;
 				} else {
-					probsExpl = fau.doTransient(timeDouble - initTimeDouble, probsExpl);
+					probs = probsExpl = fau.doTransient(timeDouble - initTimeDouble, probsExpl);
 				}
 			}
 			// Non-FAU
 			else {
 				// Build model, if necessary
 				buildModelIfRequired();
-				// Symbolic
-				if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-					if (getModelType().continuousTime()) {
-						StochModelChecker mc = new StochModelChecker(this, getBuiltModelSymbolic(), null);
-						if (i == 0) {
-							initDist = mc.readDistributionFromFile(fileIn);
-							initTimeDouble = 0;
+				// Then solve
+				switch (getBuiltModelType()) {
+					case SYMBOLIC:
+						if (getModelType().continuousTime()) {
+							StochModelChecker mc = new StochModelChecker(this, getBuiltModelSymbolic(), null);
+							if (i == 0) {
+								initDistSym = mc.readDistributionFromFile(initDistFile);
+								initTimeDouble = 0;
+							}
+							probs = probsSym = ((StochModelChecker) mc).doTransient(timeDouble - initTimeDouble, initDistSym);
+						} else {
+							ProbModelChecker mc = new ProbModelChecker(this, getBuiltModelSymbolic(), null);
+							if (i == 0) {
+								initDistSym = mc.readDistributionFromFile(initDistFile);
+								initTimeInt = 0;
+							}
+							probs = probsSym = ((ProbModelChecker) mc).doTransient(timeInt - initTimeInt, initDistSym);
 						}
-						probs = ((StochModelChecker) mc).doTransient(timeDouble - initTimeDouble, initDist);
-					} else {
-						ProbModelChecker mc = new ProbModelChecker(this, getBuiltModelSymbolic(), null);
-						if (i == 0) {
-							initDist = mc.readDistributionFromFile(fileIn);
-							initTimeInt = 0;
+						if (initDistSym != null) {
+							initDistSym.clear();
 						}
-						probs = ((ProbModelChecker) mc).doTransient(timeInt - initTimeInt, initDist);
-					}
-				}
-				// Explicit
-				else {
-					if (getModelType().continuousTime()) {
-						CTMCModelChecker mc = new CTMCModelChecker(this);
-						if (i == 0) {
-							initDistExpl = mc.readDistributionFromFile(fileIn, getBuiltModelExplicit());
-							initTimeDouble = 0;
+						break;
+					case EXPLICIT:
+						if (getModelType().continuousTime()) {
+							CTMCModelChecker mc = new CTMCModelChecker(this);
+							if (i == 0) {
+								initDistExpl = mc.readDistributionFromFile(initDistFile, getBuiltModelExplicit());
+								initTimeDouble = 0;
+							}
+							probs = probsExpl = mc.doTransient((CTMC<Double>) getBuiltModelExplicit(), timeDouble - initTimeDouble, initDistExpl);
+						} else {
+							DTMCModelChecker mc = new DTMCModelChecker(this);
+							if (i == 0) {
+								initDistExpl = mc.readDistributionFromFile(initDistFile, getBuiltModelExplicit());
+								initTimeInt = 0;
+							}
+							probs = probsExpl = mc.doTransient((DTMC<Double>) getBuiltModelExplicit(), timeInt - initTimeInt, initDistExpl);
 						}
-						probsExpl = mc.doTransient((CTMC<Double>) getBuiltModelExplicit(), timeDouble - initTimeDouble, initDistExpl);
-					} else {
-						DTMCModelChecker mc = new DTMCModelChecker(this);
-						if (i == 0) {
-							initDistExpl = mc.readDistributionFromFile(fileIn, getBuiltModelExplicit());
-							initTimeInt = 0;
+						if (initDistExpl != null) {
+							initDistExpl.clear();
 						}
-						probsExpl = mc.doTransient((DTMC<Double>) getBuiltModelExplicit(), timeInt - initTimeInt, initDistExpl);
-					}
+						break;
+					default:
+						throw new PrismException("Transient probability computation not supported for " + getBuiltModelType().description() + " models");
 				}
 			}
-
 			l = System.currentTimeMillis() - l;
-
-			// If output is to a file and there are multiple points, change filename
-			if (fileOut != null && times.getNumPropertyIterations() > 1) {
-				fileOutActual = new File(PrismUtils.addSuffixToFilename(fileOut.getPath(), time.toString()));
-			} else {
-				fileOutActual = fileOut;
-			}
-
-			// print message
-			mainLog.print("\nPrinting transient probabilities ");
-			mainLog.print(getStringForExportType(exportType) + " ");
-			mainLog.println(getDestinationStringForFile(fileOutActual));
-
-			// create new file log or use main log
-			tmpLog = getPrismLogForFile(fileOutActual);
-
-			// print out or export probabilities
-			if (probs != null)
-				probs.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null);
-			else if (!settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
-				probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, fileOut == null, true);
-			} else {
-				// If full state space not computed, don't print vectors and always show states
-				probsExpl.print(tmpLog, fileOut == null, exportType == EXPORT_MATLAB, true, false);
-			}
-
-			// print out computation time
 			mainLog.println("\nTime for transient probability computation: " + l / 1000.0 + " seconds.");
 
+			// If output is to a file and there are multiple points, change filename
+			File fileOutActual;
+			if (file != null && times.getNumPropertyIterations() > 1) {
+				fileOutActual = new File(PrismUtils.addSuffixToFilename(file.getPath(), time.toString()));
+			} else {
+				fileOutActual = file;
+			}
+			// Print/export probabilities
+			mainLog.print("\nExporting transient probabilities ");
+			mainLog.println(exportOptions.getFormat().description() + " " + getDestinationStringForFile(fileOutActual));
+			try (PrismLog out = getPrismLogForFile(fileOutActual)) {
+				if (!settings.getString(PrismSettings.PRISM_TRANSIENT_METHOD).equals("Fast adaptive uniformisation")) {
+					probs.print(out, file == null, exportOptions.getFormat() == ModelExportFormat.MATLAB, file == null, true);
+				} else {
+					// If full state space not computed, don't print vectors and always show states
+					probs.print(out, file == null, exportOptions.getFormat() == ModelExportFormat.MATLAB, true, false);
+				}
+			}
+
 			// Prepare for next iteration
-			initDist = probs;
+			initDistSym = probsSym;
 			initDistExpl = probsExpl;
 			initTimeInt = timeInt;
 			initTimeDouble = timeDouble;
 			times.iterateProperty();
 		}
-
-		// tidy up
-		if (probs != null)
-			probs.clear();
-		if (probsExpl != null)
-			probsExpl.clear();
-		if (fileOut != null)
-			tmpLog.close();
+		probs.clear();
 	}
 
 	public void explicitBuildTest() throws PrismException
@@ -4363,34 +4415,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Either create a new PrismFileLog for {@code file} or,
-	 * if {@code file} is null, return {@code mainLog}.
-	 * Throws a {@code PrismException} if there is a problem opening the file.
-	 */
-	private PrismLog getPrismLogForFile(File file) throws PrismException
-	{
-		return getPrismLogForFile(file, false);
-	}
-
-	/**
-	 * Either create a new PrismFileLog for {@code file} or,
-	 * if {@code file} is null, return {@code mainLog}.
-	 * Throws a {@code PrismException} if there is a problem opening the file.
-	 * If {@code append} is true, file should be opened in "append" mode.
-	 */
-	private PrismLog getPrismLogForFile(File file, boolean append) throws PrismException
-	{
-		// create new file log or use main log
-		PrismLog tmpLog;
-		if (file != null) {
-			tmpLog = PrismFileLog.create(file.getPath(), append);
-		} else {
-			tmpLog = mainLog;
-		}
-		return tmpLog;
-	}
-
-	/**
 	 * Get a string describing an output format, e.g. "in plain text format" for EXPORT_PLAIN.
 	 */
 	private static String getStringForExportType(int exportType)
@@ -4409,15 +4433,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		default:
 			return "in ? format";
 		}
-	}
-
-	/**
-	 * Get a string describing the output destination specified by a File:
-	 * "to file \"filename\"..." if non-null; "below:" if null
-	 */
-	private static String getDestinationStringForFile(File file)
-	{
-		return (file == null) ? "below:" : "to file \"" + file + "\"...";
 	}
 
 	//------------------------------------------------------------------------------
@@ -4525,6 +4540,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * @deprecated
 	 * Export the states satisfying labels from the properties file to a file.
 	 * The PropertiesFile should correspond to the currently loaded model.
 	 * @param propertiesFile The properties file (for further labels)
@@ -4534,9 +4550,99 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * </ul>
 	 * @param file File to export to (if null, print to the log instead)
 	 */
+	@Deprecated
 	public void exportPropLabelsToFile(PropertiesFile propertiesFile, int exportType, File file) throws FileNotFoundException, PrismException
 	{
 		exportBuiltModelPropLabels(propertiesFile, file, convertExportType(exportType));
+	}
+
+	/**
+	 * @deprecated
+	 * Export the MTBDD for the currently loaded model's transition matrix to a Dot file.
+	 * @param file File to export to
+	 */
+	@Deprecated
+	public void exportToDotFile(File file) throws FileNotFoundException, PrismException
+	{
+		exportBuiltModelTransitions(file, new ModelExportOptions(ModelExportFormat.DD_DOT));
+	}
+
+	/**
+	 * @deprecated
+	 * Export various aspects of the current built model together.
+	 * @param file File to export to
+	 * @param exportOptions The options for export
+	 */
+	@Deprecated
+	public void exportBuiltModelCombined(File file, ModelExportOptions exportOptions) throws PrismException, FileNotFoundException
+	{
+		exportBuiltModel(file, exportOptions);
+	}
+
+	/**
+	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to log.
+	 * @deprecated Use {@link #exportSteadyStateProbabilities(File, ModelExportFormat)}
+	 */
+	@Deprecated
+	public void doSteadyState() throws PrismException
+	{
+		exportSteadyStateProbabilities(null, ModelExportFormat.EXPLICIT, null);
+	}
+
+	/**
+	 * Compute steady-state probabilities for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log).
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @deprecated Use {@link #exportSteadyStateProbabilities(File, ModelExportFormat, File)}
+	 */
+	@Deprecated
+	public void doSteadyState(int exportType, File fileOut, File fileIn) throws PrismException
+	{
+		exportSteadyStateProbabilities(fileOut, convertExportType(exportType), fileIn);
+	}
+
+	/**
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to log.
+	 * For a discrete-time model, {@code time} will be cast to an integer.
+	 * @deprecated Use {@link #exportTransientProbabilities(double, File, ModelExportFormat)}
+	 */
+	@Deprecated
+	public void doTransient(double time) throws PrismException
+	{
+		exportTransientProbabilities(time, null, ModelExportFormat.EXPLICIT, null);
+	}
+
+	/**
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only).
+	 * Output probability distribution to a file (or, if {@code fileOut} is null, to log).
+	 * For a discrete-time model, {@code time} will be cast to an integer.
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @deprecated Use {@link #exportTransientProbabilities(double, File, ModelExportFormat, File)}
+	 */
+	@Deprecated
+	public void doTransient(double time, int exportType, File fileOut, File fileIn) throws PrismException
+	{
+		exportTransientProbabilities(time, fileOut, convertExportType(exportType), fileIn);
+	}
+
+	/**
+	 * Compute transient probabilities (forwards) for the current model (DTMCs/CTMCs only)
+	 * for a range of time points. Each distribution is computed incrementally.
+	 * Output probability distribution to a file (or, if file is null, to log).
+	 * Time points are specified using an UndefinedConstants with a single ranging variable
+	 * (of the appropriate type (int/double) and with arbitrary name).
+	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
+	 * Optionally (if non-null), read in the initial probability distribution from a file.
+	 * @deprecated Use {@link #exportTransientProbabilities(UndefinedConstants, File, ModelExportOptions, File)}.
+	 */
+	@Deprecated
+	public void doTransient(UndefinedConstants times, int exportType, File fileOut, File fileIn) throws PrismException
+	{
+		exportTransientProbabilities(times, fileOut, convertExportType(exportType), fileIn);
 	}
 
 	/**

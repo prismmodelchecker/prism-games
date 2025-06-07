@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,20 +44,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import common.iterable.Reducible;
 import csv.BasicReader;
 import csv.CsvFormatException;
 import csv.CsvReader;
+import explicit.DTMCSimple;
+import explicit.ModelExplicit;
+import explicit.NondetModel;
+import explicit.SuccessorsIterator;
 import param.BigRational;
 import parser.State;
 import parser.ast.DeclarationBool;
 import parser.ast.DeclarationInt;
-import parser.ast.DeclarationType;
 import parser.ast.Expression;
 import parser.ast.ExpressionIdent;
 import parser.type.Type;
 import parser.type.TypeBool;
 import parser.type.TypeInt;
+import prism.BasicModelInfo;
+import prism.BasicRewardInfo;
 import prism.Evaluator;
 import prism.ModelInfo;
 import prism.ModelType;
@@ -72,7 +75,7 @@ import static csv.BasicReader.LF;
 /**
  * Class to manage importing models from PRISM explicit files (.tra, .sta, etc.)
  */
-public class PrismExplicitImporter implements ExplicitModelImporter
+public class PrismExplicitImporter extends ExplicitModelImporter
 {
 	// What to import: files and type override
 	private File statesFile;
@@ -82,29 +85,34 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	private List<File> transRewardsFiles;
 	private ModelType typeOverride;
 
-	// Model info extracted from files and then stored in a ModelInfo object
-	private int numVars;
-	private List<String> varNames;
-	private List<Type> varTypes;
-	private int varMins[];
-	private int varMaxs[];
-	private int varRanges[];
-	private List<String> labelNames;
-	private ModelInfo modelInfo;
+	// Model info extracted from files and then stored in a BasicModelInfo object
+	private BasicModelInfo basicModelInfo;
 
 	// String stating the model type and how it was obtained
 	private String modelTypeString;
 
-	// Num states/transitions
-	private int numStates = 0;
-	private int numChoices = 0;
-	private int numTransitions = 0;
+	// Model statistics (num states/choices/transitions)
+	private class ModelStats
+	{
+		int numStates = 0;
+		int numChoices = 0;
+		int numTransitions = 0;
+	}
+	private ModelStats modelStats;
+
+	// Info about deadlocks
+	private class DeadlockInfo
+	{
+		BitSet deadlocks = new BitSet();
+		int numDeadlocks = 0;
+	}
+	private DeadlockInfo deadlockInfo;
 
 	// Mapping from label indices in file to (non-built-in) label indices (also: -1=init, -2=deadlock)
 	private List<Integer> labelMap;
 
-	// Reward info extracted from files and then stored in a RewardInfo object
-	private RewardInfo rewardInfo;
+	// Reward info extracted from files and then stored in a BasicRewardInfo object
+	private BasicRewardInfo basicRewardInfo;
 
 	// File(s) to read in rewards from
 	private List<PrismExplicitImporter.RewardFile> stateRewardsReaders = new ArrayList<>();
@@ -115,32 +123,101 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	// Regex for reward name
 	protected static final Pattern REWARD_NAME_PATTERN = Pattern.compile("# Reward structure (\"([_a-zA-Z0-9]*)\")$");
 
-
 	/**
 	 * Constructor
 	 * @param statesFile States file (may be {@code null})
 	 * @param transFile Transitions file
 	 * @param labelsFile Labels file (may be {@code null})
-	 * @param stateRewardsFiles State rewards files list (can be empty)
-	 * @param transRewardsFiles Transition rewards files list (can be empty)
+	 * @param stateRewardsFiles State rewards files list (can be null/empty)
+	 * @param transRewardsFiles Transition rewards files list (can be null/empty)
 	 * @param typeOverride Specified model type (null mean auto-detect it, or default to MDP if that cannot be done).
 	 */
 	public PrismExplicitImporter(File statesFile, File transFile, File labelsFile, List<File> stateRewardsFiles, List<File> transRewardsFiles, ModelType typeOverride) throws PrismException
 	{
-		this.statesFile = statesFile;
-		this.transFile = transFile;
-		this.labelsFile = labelsFile;
-		this.stateRewardsFiles = stateRewardsFiles == null ? new ArrayList<>() : stateRewardsFiles;
-		this.transRewardsFiles = transRewardsFiles == null ? new ArrayList<>() : transRewardsFiles;
+		setStatesFile(statesFile);
+		setTransFile(transFile);
+		setLabelsFile(labelsFile);
+		this.stateRewardsFiles = new ArrayList<>();
+		this.stateRewardsReaders = new ArrayList<>();
+		if (stateRewardsFiles != null) {
+			for (File stateRewardsFile : stateRewardsFiles) {
+				addStateRewardsFile(stateRewardsFile);
+			}
+		}
+		this.transRewardsFiles = new ArrayList<>();
+		this.transRewardsReaders = new ArrayList<>();
+		if (transRewardsFiles != null) {
+			for (File transRewardsFile : transRewardsFiles) {
+				addTransitionRewardsFile(transRewardsFile);
+			}
+		}
 		this.typeOverride = typeOverride;
-		this.stateRewardsReaders = new ArrayList<>(this.stateRewardsFiles.size());
-		for (File file : this.stateRewardsFiles) {
-			this.stateRewardsReaders.add(new PrismExplicitImporter.RewardFile(file));
-		}
-		this.transRewardsReaders = new ArrayList<>(this.transRewardsFiles.size());
-		for (File file : this.transRewardsFiles) {
-			this.transRewardsReaders.add(new PrismExplicitImporter.RewardFile(file));
-		}
+	}
+
+	/**
+	 * Constructor
+	 * @param transFile Transitions file
+	 * @param typeOverride Specified model type (null mean auto-detect it, or default to MDP if that cannot be done).
+	 */
+	public PrismExplicitImporter(File transFile, ModelType typeOverride) throws PrismException
+	{
+		this(null, transFile, null, null, null, typeOverride);
+	}
+
+	/**
+	 * Constructor
+	 * @param transFile Transitions file
+	 */
+	public PrismExplicitImporter(File transFile) throws PrismException
+	{
+		this(null, null);
+	}
+
+	/**
+	 * Set the states file.
+	 * @param statesFile States file (may be {@code null})
+	 */
+	public void setStatesFile(File statesFile)
+	{
+		this.statesFile = statesFile;
+	}
+
+	/**
+	 * Set the transitions file.
+	 * @param transFile Transitions file
+	 */
+	public void setTransFile(File transFile)
+	{
+		this.transFile = transFile;
+	}
+
+	/**
+	 * Set the labels file.
+	 * @param labelsFile Labels file (may be {@code null})
+	 */
+	public void setLabelsFile(File labelsFile)
+	{
+		this.labelsFile = labelsFile;
+	}
+
+	/**
+	 * Add a state rewards file.
+	 * @param stateRewardsFile State rewards file
+	 */
+	public void addStateRewardsFile(File stateRewardsFile) throws PrismException
+	{
+		stateRewardsFiles.add(stateRewardsFile);
+		stateRewardsReaders.add(new RewardFile(stateRewardsFile));
+	}
+
+	/**
+	 * Add a transition rewards file.
+	 * @param transitionRewardsFile Transition rewards file
+	 */
+	public void addTransitionRewardsFile(File transitionRewardsFile) throws PrismException
+	{
+		transRewardsFiles.add(transitionRewardsFile);
+		transRewardsReaders.add(new RewardFile(transitionRewardsFile));
 	}
 
 	/**
@@ -213,10 +290,10 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	public ModelInfo getModelInfo() throws PrismException
 	{
 		// Construct lazily, as needed
-		if (modelInfo == null) {
+		if (basicModelInfo == null) {
 			buildModelInfo();
 		}
-		return modelInfo;
+		return basicModelInfo;
 	}
 
 	@Override
@@ -224,10 +301,10 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	{
 		// Construct lazily, as needed
 	 	// (determined from either states file or transitions file)
-		if (modelInfo == null) {
-			buildModelInfo();
+		if (modelStats == null) {
+			buildModelStats();
 		}
-		return numStates;
+		return modelStats.numStates;
 	}
 
 	@Override
@@ -235,8 +312,13 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	{
 		// Construct lazily, as needed
 		// (determined from transitions file)
-		if (modelInfo == null) {
-			buildModelInfo();
+		if (modelStats == null) {
+			buildModelStats();
+		}
+		int numChoices = modelStats.numChoices;
+		// Add extras if deadlocks are being fixed
+		if (fixdl) {
+			numChoices += getNumDeadlockStates();
 		}
 		return numChoices;
 	}
@@ -246,10 +328,35 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	{
 		// Construct lazily, as needed
 		// (determined from transitions file)
-		if (modelInfo == null) {
-			buildModelInfo();
+		if (modelStats == null) {
+			buildModelStats();
+		}
+		int numTransitions = modelStats.numTransitions;
+		// Add extras if deadlocks are being fixed
+		if (fixdl) {
+			numTransitions += getNumDeadlockStates();
 		}
 		return numTransitions;
+	}
+
+	@Override
+	public BitSet getDeadlockStates() throws PrismException
+	{
+		// Do deadlock state detection lazily, as needed
+		if (deadlockInfo == null) {
+			findDeadlocks();
+		}
+		return deadlockInfo.deadlocks;
+	}
+
+	@Override
+	public int getNumDeadlockStates() throws PrismException
+	{
+		// Do deadlock state detection lazily, as needed
+		if (deadlockInfo == null) {
+			findDeadlocks();
+		}
+		return deadlockInfo.numDeadlocks;
 	}
 
 	@Override
@@ -262,45 +369,35 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	public RewardInfo getRewardInfo() throws PrismException
 	{
 		// Construct lazily, as needed
-		if (rewardInfo == null) {
+		if (basicRewardInfo == null) {
 			buildRewardInfo();
 		}
-		return rewardInfo;
+		return basicRewardInfo;
+	}
+
+	/**
+	 * Build/store model stats (from the transitions file).
+	 * Can then be accessed via {@link #getNumStates()}, {@link #getNumChoices()}, {@link #getNumTransitions()}.
+	 */
+	private void buildModelStats() throws PrismException
+	{
+		// Extract model stats from header of transitions file
+		extractModelStatsFromTransFile(transFile);
 	}
 
 	/**
 	 * Build/store model info from the states/transitions/labels files.
 	 * Can then be accessed via {@link #getModelInfo()}.
-	 * Also available: {@link #getNumStates()}, {@link #getNumChoices()}, {@link #getNumTransitions()}.
+	 * Also calls {@link #buildModelStats()} if needed.
+	 * Which makes available {@link #getNumStates()}, {@link #getNumChoices()}, {@link #getNumTransitions()}.
 	 */
 	private void buildModelInfo() throws PrismException
 	{
-		// Extract model stats from header of transitions file
-		extractModelStatsFromTransFile(transFile);
-
-		// Extract variable info from states, if available
-		if (statesFile != null) {
-			extractVarInfoFromStatesFile(statesFile);
-		}
-		// Otherwise store dummy variable info
-		else {
-			numVars = 1;
-			varNames = Collections.singletonList("x");
-			varTypes = Collections.singletonList(TypeInt.getInstance());
-			varMins = new int[] { 0 };
-			varMaxs = new int[] { numStates - 1 };
-			varRanges = new int[] { numStates - 1 };
+		// Build model stats, if not already done
+		if (modelStats == null) {
+			buildModelStats();
 		}
 
-		// Generate and store label names from the labels file, if available.
-		// This way, expressions can refer to the labels later on.
-		if (labelsFile != null) {
-			extractLabelNamesFromLabelsFile(labelsFile);
-		} else {
-			labelNames = new ArrayList<>();
-			labelMap = new ArrayList<>();
-		}
-		
 		// Set model type: if no preference stated, try to autodetect
 		ModelType modelType;
 		if (typeOverride == null) {
@@ -317,43 +414,25 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 			modelType = typeOverride;
 		}
 
-		// Create and return ModelInfo object with above info 
-		modelInfo = new ModelInfo()
-		{
-			@Override
-			public ModelType getModelType()
-			{
-				return modelType;
-			}
-			
-			@Override
-			public List<String> getVarNames()
-			{
-				return varNames;
-			}
-			
-			@Override
-			public List<Type> getVarTypes()
-			{
-				return varTypes;
-			}
-			
-			@Override
-			public DeclarationType getVarDeclarationType(int i) throws PrismException
-			{
-				if (varTypes.get(i) instanceof TypeInt) {
-					return new DeclarationInt(Expression.Int(varMins[i]), Expression.Int(varMaxs[i]));
-				} else {
-					return new DeclarationBool();
-				}
-			}
-			
-			@Override
-			public List<String> getLabelNames()
-			{
-				return labelNames;
-			}
-		};
+		// Store model info
+		basicModelInfo = new BasicModelInfo(modelType);
+
+		// Extract variable info from states, if available
+		if (statesFile != null) {
+			extractVarInfoFromStatesFile(statesFile);
+		}
+		// Otherwise store default variable info
+		else {
+			basicModelInfo.getVarList().addVar(defaultVariableName(), defaultVariableDeclarationType(), -1);
+		}
+
+		// Generate and store label names from the labels file, if available.
+		// This way, expressions can refer to the labels later on.
+		if (labelsFile != null) {
+			extractLabelNamesFromLabelsFile(labelsFile);
+		} else {
+			labelMap = new ArrayList<>();
+		}
 	}
 
 	/**
@@ -374,13 +453,12 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 			if (s.charAt(0) != '(' || s.charAt(s.length() - 1) != ')')
 				throw new PrismException("badly formatted state");
 			s = s.substring(1, s.length() - 1);
-			varNames = new ArrayList<String>(Arrays.asList(s.split(",")));
-			numVars = varNames.size();
-			// create arrays to store info about vars
-			varMins = new int[numVars];
-			varMaxs = new int[numVars];
-			varRanges = new int[numVars];
-			varTypes = new ArrayList<Type>();
+			List<String> varNames = new ArrayList<>(Arrays.asList(s.split(",")));
+			int numVars = varNames.size();
+			// create arrays to (temporarily) store info about vars
+			int[] varMins = new int[numVars];
+			int[] varMaxs = new int[numVars];
+			List<Type> varTypes = new ArrayList<>();
 			// read remaining lines
 			s = in.readLine();
 			lineNum++;
@@ -423,15 +501,20 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 				s = in.readLine();
 				lineNum++;
 			}
-			// compute variable ranges
+
+			// Add variables to the VarList
 			for (i = 0; i < numVars; i++) {
-				if (varTypes.get(i) instanceof TypeInt) {
-					varRanges[i] = varMaxs[i] - varMins[i];
-					// if range = 0, increment maximum - we don't allow zero-range variables
-					if (varRanges[i] == 0)
+				if (varTypes.get(i) instanceof TypeBool) {
+					basicModelInfo.getVarList().addVar(varNames.get(i), new DeclarationBool(), -1);
+				} else {
+					// Note: we do not yet allow 0-range variables
+					if (varMins[i] == varMaxs[i]) {
 						varMaxs[i]++;
+					}
+					basicModelInfo.getVarList().addVar(varNames.get(i), new DeclarationInt(Expression.Int(varMins[i]), Expression.Int(varMaxs[i])), -1);
 				}
 			}
+
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + statesFile + "\"");
 		} catch (NumberFormatException e) {
@@ -447,6 +530,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	private void extractModelStatsFromTransFile(File transFile) throws PrismException
 	{
 		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
+			modelStats = new ModelStats();
 			BasicReader reader = BasicReader.wrap(in).normalizeLineEndings();
 			CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
 			if (!csv.hasNextRecord()) {
@@ -454,17 +538,19 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 			}
 			String[] record = csv.nextRecord();
 			checkLineSize(record, 2, 3);
-			numStates = Integer.parseInt(record[0]);
+			modelStats.numStates = Integer.parseInt(record[0]);
 			if (record.length == 2) {
-				numChoices = numStates;
-				numTransitions = Integer.parseInt(record[1]);
+				modelStats.numChoices = modelStats.numStates;
+				modelStats.numTransitions = Integer.parseInt(record[1]);
 			} else {
-				numChoices = Integer.parseInt(record[1]);
-				numTransitions = Integer.parseInt(record[2]);
+				modelStats.numChoices = Integer.parseInt(record[1]);
+				modelStats.numTransitions = Integer.parseInt(record[2]);
 			}
 		} catch (IOException e) {
+			modelStats = null;
 			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
 		} catch (NumberFormatException | CsvFormatException e) {
+			modelStats = null;
 			throw new PrismException("Error detected at line 1 of transitions file \"" + transFile + "\"");
 		}
 	}
@@ -472,6 +558,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 
 	/**
 	 * Extract names of labels from the labels file.
+	 * These are stored in the label name list within basicModelInfo.
 	 * The "init" and "deadlock" labels are skipped, as they have special
 	 * meaning and are implicitly defined for all models.
 	 */
@@ -484,7 +571,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 			String labelsString = in.readLine();
 			Pattern label = Pattern.compile("(\\d+)=\"([^\"]+)\"\\s*");
 			Matcher matcher = label.matcher(labelsString);
-			labelNames = new ArrayList<>();
+			List<String> labelNames = basicModelInfo.getLabelNameList();
 			labelMap = new ArrayList<>();
 			while (matcher.find()) {
 				// Check indices are ascending/contiguous
@@ -597,29 +684,65 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 				if (d > 1) {
 					return ModelType.CTMC;
 				}
-				// All non-rates so far: guess MDP/DTMC
-				if (lines == max) {
-					return nondet ? ModelType.MDP : ModelType.DTMC;
-				}
 			}
-			return null;
+			// All non-rates seen: guess MDP/DTMC
+			return nondet ? ModelType.MDP : ModelType.DTMC;
 		} catch (NumberFormatException | CsvFormatException | IOException e) {
 			return null;
+		}
+	}
+
+	/**
+	 * Traverse the transitions file to detect any deadlock states
+	 * and then store the details in deadlockInfo.
+	 */
+	private void findDeadlocks() throws PrismException
+	{
+		// Record which states have transitions
+		BitSet statesWithTransitions = new BitSet();
+		int lineNum = 0;
+		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
+			lineNum += skipCommentAndFirstLine(in);
+			BasicReader reader = BasicReader.wrap(in).normalizeLineEndings();
+			CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
+			for (String[] record : csv) {
+				lineNum++;
+				if ("".equals(record[0])) {
+					// Skip blank lines
+					continue;
+				}
+				// Lines should be 3-5 long (LTS/MDP with/without actions)
+				checkLineSize(record, 3, 5);
+				// Extract/store source state
+				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
+				statesWithTransitions.set(s);
+			}
+		} catch (IOException e) {
+			throw new PrismException("File I/O error reading from \"" + transFile + "\": " + e.getMessage());
+		} catch (PrismException | NumberFormatException | CsvFormatException e) {
+			String expl = (e.getMessage() == null || e.getMessage().isEmpty()) ? "" : (" (" + e.getMessage() + ")");
+			throw new PrismException("Error detected" + expl + " at line " + lineNum + " of transitions file \"" + transFile + "\"");
+		}
+		// Store deadlock info
+		deadlockInfo = new DeadlockInfo();
+		if (statesWithTransitions.cardinality() != modelStats.numStates) {
+			for (int s = statesWithTransitions.nextClearBit(0); s < modelStats.numStates; s = statesWithTransitions.nextClearBit(s + 1)) {
+				deadlockInfo.deadlocks.set(s);
+				deadlockInfo.numDeadlocks++;
+			}
 		}
 	}
 
 	@Override
 	public void extractStates(IOUtils.StateDefnConsumer storeStateDefn) throws PrismException
 	{
-		int numVars = modelInfo.getNumVars();
 		// If there is no info, just assume that states comprise a single integer value
 		if (getStatesFile() == null) {
-			for (int s = 0; s < numStates; s++) {
-				storeStateDefn.accept(s, 0, s);
-			}
+			super.extractStates(storeStateDefn);
 			return;
 		}
 		// Otherwise extract from .sta file
+		int numVars = basicModelInfo.getNumVars();
 		int lineNum = 0;
 		try (BufferedReader in = new BufferedReader(new FileReader(statesFile))) {
 			lineNum += skipCommentAndFirstLine(in);
@@ -631,7 +754,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 					// Split into two parts
 					String[] ss = st.split(":");
 					// Determine which state this line describes
-					int s = checkStateIndex(Integer.parseInt(ss[0]), numStates);
+					int s = checkStateIndex(Integer.parseInt(ss[0]), modelStats.numStates);
 					// Now split up middle bit and extract var info
 					ss = ss[1].substring(ss[1].indexOf('(') + 1, ss[1].indexOf(')')).split(",");
 
@@ -663,11 +786,11 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	public int computeMaxNumChoices() throws PrismException
 	{
 		int lineNum = 0;
+		int maxNumChoices = 0;
 		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
 			lineNum += skipCommentAndFirstLine(in);
 			BasicReader reader = BasicReader.wrap(in).normalizeLineEndings();
 			CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
-			int maxNumChoices = 0;
 			for (String[] record : csv) {
 				lineNum++;
 				if ("".equals(record[0])) {
@@ -681,18 +804,27 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 					maxNumChoices = j + 1;
 				}
 			}
-			return maxNumChoices;
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + transFile + "\": " + e.getMessage());
 		} catch (PrismException | NumberFormatException | CsvFormatException e) {
 			String expl = (e.getMessage() == null || e.getMessage().isEmpty()) ? "" : (" (" + e.getMessage() + ")");
 			throw new PrismException("Error detected" + expl + " at line " + lineNum + " of transitions file \"" + transFile + "\"");
 		}
+		if (fixdl && getNumDeadlockStates() > 0) {
+			maxNumChoices = Math.max(maxNumChoices, 1);
+		}
+		return maxNumChoices;
 	}
 
 	@Override
 	public <Value> void extractMCTransitions(IOUtils.MCTransitionConsumer<Value> storeTransition, Evaluator<Value> eval) throws PrismException
 	{
+		BitSet deadlocks = new BitSet();
+		int nextDeadlock = -1;
+		if (fixdl) {
+			deadlocks = getDeadlockStates();
+			nextDeadlock = deadlocks.nextSetBit(0);
+		}
 		int lineNum = 0;
 		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
 			lineNum += skipCommentAndFirstLine(in);
@@ -705,11 +837,22 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 					continue;
 				}
 				checkLineSize(record, 3, 4);
-				int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
-				int s2 = checkStateIndex(Integer.parseInt(record[1]), numStates);
+				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
+				int s2 = checkStateIndex(Integer.parseInt(record[1]), modelStats.numStates);
 				Value v = checkValue(record[2], eval);
 				Object a = (record.length > 3) ? checkAction(record[3]) : null;
+				// Add self-loops for any deadlock states before s
+				while (nextDeadlock != -1 && nextDeadlock < s) {
+					storeTransition.accept(nextDeadlock, nextDeadlock, eval.one(), null);
+					nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
+				}
+				// Add transition
 				storeTransition.accept(s, s2, v, a);
+			}
+			// Add self-loops for any remaining deadlock states
+			while (nextDeadlock != -1) {
+				storeTransition.accept(nextDeadlock, nextDeadlock, eval.one(), null);
+				nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
 			}
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
@@ -722,6 +865,12 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	@Override
 	public <Value> void extractMDPTransitions(IOUtils.MDPTransitionConsumer<Value> storeTransition, Evaluator<Value> eval) throws PrismException
 	{
+		BitSet deadlocks = new BitSet();
+		int nextDeadlock = -1;
+		if (fixdl) {
+			deadlocks = getDeadlockStates();
+			nextDeadlock = deadlocks.nextSetBit(0);
+		}
 		int lineNum = 0;
 		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
 			lineNum += skipCommentAndFirstLine(in);
@@ -734,12 +883,23 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 					continue;
 				}
 				checkLineSize(record, 4, 5);
-				int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
+				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
 				int i = checkChoiceIndex(Integer.parseInt(record[1]));
-				int s2 = checkStateIndex(Integer.parseInt(record[2]), numStates);
+				int s2 = checkStateIndex(Integer.parseInt(record[2]), modelStats.numStates);
 				Value v = checkValue(record[3], eval);
 				Object a = (record.length > 4) ? checkAction(record[4]) : null;
+				// Add self-loops for any deadlock states before s
+				while (nextDeadlock != -1 && nextDeadlock < s) {
+					storeTransition.accept(nextDeadlock, 0, nextDeadlock, eval.one(), null);
+					nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
+				}
+				// Add transition
 				storeTransition.accept(s, i, s2, v, a);
+			}
+			// Add self-loops for any remaining deadlock states
+			while (nextDeadlock != -1) {
+				storeTransition.accept(nextDeadlock, 0, nextDeadlock, eval.one(), null);
+				nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
 			}
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
@@ -752,6 +912,12 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	@Override
 	public void extractLTSTransitions(IOUtils.LTSTransitionConsumer storeTransition) throws PrismException
 	{
+		BitSet deadlocks = new BitSet();
+		int nextDeadlock = -1;
+		if (fixdl) {
+			deadlocks = getDeadlockStates();
+			nextDeadlock = deadlocks.nextSetBit(0);
+		}
 		int lineNum = 0;
 		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
 			lineNum += skipCommentAndFirstLine(in);
@@ -764,11 +930,22 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 					continue;
 				}
 				checkLineSize(record, 3, 4);
-				int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
+				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
 				int i = checkChoiceIndex(Integer.parseInt(record[1]));
-				int s2 = checkStateIndex(Integer.parseInt(record[2]), numStates);
+				int s2 = checkStateIndex(Integer.parseInt(record[2]), modelStats.numStates);
 				Object a = (record.length > 3) ? checkAction(record[3]) : null;
+				// Add self-loops for any deadlock states before s
+				while (nextDeadlock != -1 && nextDeadlock < s) {
+					storeTransition.accept(nextDeadlock, 0, nextDeadlock, null);
+					nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
+				}
+				// Add transition
 				storeTransition.accept(s, i, s2, a);
+			}
+			// Add self-loops for any remaining deadlock states
+			while (nextDeadlock != -1) {
+				storeTransition.accept(nextDeadlock, 0, nextDeadlock, null);
+				nextDeadlock = deadlocks.nextSetBit(nextDeadlock + 1);
 			}
 		} catch (IOException e) {
 			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
@@ -779,7 +956,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	}
 
 	@Override
-	public void extractLabelsAndInitialStates(BiConsumer<Integer, Integer> storeLabel, Consumer<Integer> storeInit) throws PrismException
+	public void extractLabelsAndInitialStates(BiConsumer<Integer, Integer> storeLabel, Consumer<Integer> storeInit, Consumer<Integer> storeDeadlock) throws PrismException
 	{
 		// If there is no info, just assume that 0 is the initial state
 		if (getLabelsFile() == null) {
@@ -798,7 +975,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 				if (!st.isEmpty()) {
 					// Split line
 					String[] ss = st.split(":");
-					int s = checkStateIndex(Integer.parseInt(ss[0].trim()), numStates);
+					int s = checkStateIndex(Integer.parseInt(ss[0].trim()), modelStats.numStates);
 					ss = ss[1].trim().split(" ");
 					for (int j = 0; j < ss.length; j++) {
 						if (ss[j].isEmpty()) {
@@ -807,7 +984,11 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 						// Store label info
 						int i = checkLabelIndex(ss[j]);
 						int l = labelMap.get(i);
-						if (l == -1) {
+						if (l == -2) {
+							if (storeDeadlock != null) {
+								storeDeadlock.accept(s);
+							}
+						} else if (l == -1) {
 							storeInit.accept(s);
 						} else if (l > -1) {
 							storeLabel.accept(s, l);
@@ -879,7 +1060,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 				} else if (l  == -2) {
 					map.put("deadlock", bitsets[i]);
 				} else if (l > -1) {
-					map.put(labelNames.get(l), bitsets[i]);
+					map.put(basicModelInfo.getLabelNameList().get(l), bitsets[i]);
 				}
 			}
 			return map;
@@ -897,27 +1078,24 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	 */
 	private void buildRewardInfo() throws PrismException
 	{
-		rewardInfo = new RewardInfo()
-		{
-			@Override
-			public List<String> getRewardStructNames()
-			{
-				List<PrismExplicitImporter.RewardFile> rewardsReaders = stateRewardsReaders.size() >= transRewardsFiles.size() ? stateRewardsReaders : transRewardsReaders;
-				return Reducible.extend(rewardsReaders).map(f -> f.getName().orElse("")).collect(new ArrayList<>(rewardsReaders.size()));
+		basicRewardInfo = new BasicRewardInfo();
+		int numRewards = Math.max(stateRewardsReaders.size(), transRewardsReaders.size());
+		for (int r = 0; r < numRewards; r++) {
+			String stateRewardName = null;
+			String transRewardName = null;
+			if (r < stateRewardsReaders.size()) {
+				stateRewardName = stateRewardsReaders.get(r).getName().orElse("");
 			}
-
-			@Override
-			public int getNumRewardStructs()
-			{
-				return Math.max(stateRewardsFiles.size(), transRewardsFiles.size());
+			if (r < transRewardsReaders.size()) {
+				transRewardName = transRewardsReaders.get(r).getName().orElse("");
 			}
-
-			@Override
-			public boolean rewardStructHasTransitionRewards(int r)
-			{
-				return false;
+			if (transRewardName != null && stateRewardName != null && !transRewardName.equals(stateRewardName)) {
+				throw new PrismException("Reward structure names do not match for state/transition rewards");
 			}
-		};
+			basicRewardInfo.addReward(stateRewardName != null ? stateRewardName : transRewardName);
+			basicRewardInfo.setHasStateRewards(r, r < stateRewardsReaders.size());
+			basicRewardInfo.setHasTransitionRewards(r, r < transRewardsReaders.size());
+		}
 	}
 
 	@Override
@@ -925,7 +1103,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	{
 		if (rewardIndex < stateRewardsReaders.size()) {
 			RewardFile file = stateRewardsReaders.get(rewardIndex);
-			file.extractStateRewards(storeReward, eval, numStates);
+			file.extractStateRewards(storeReward, eval);
 		}
 	}
 
@@ -934,20 +1112,20 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 	{
 		if (rewardIndex < transRewardsReaders.size()) {
 			RewardFile file = transRewardsReaders.get(rewardIndex);
-			file.extractMCTransitionRewards(storeReward, eval, numStates);
+			file.extractMCTransitionRewards(storeReward, eval);
 		}
 	}
 
 	@Override
-	public <Value> void extractMDPTransitionRewards(int rewardIndex, IOUtils.TransitionStateRewardConsumer<Value> storeReward, Evaluator<Value> eval) throws PrismException
+	public <Value> void extractMDPTransitionRewards(int rewardIndex, IOUtils.TransitionRewardConsumer<Value> storeReward, Evaluator<Value> eval) throws PrismException
 	{
 		if (rewardIndex < transRewardsReaders.size()) {
 			RewardFile file = transRewardsReaders.get(rewardIndex);
-			file.extractMDPTransitionRewards(storeReward, eval, numStates);
+			file.extractMDPTransitionRewards(storeReward, eval);
 		}
 	}
 
-	public static class RewardFile
+	public class RewardFile
 	{
 		protected final File file;
 		protected final Optional<String> name;
@@ -967,11 +1145,10 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * Extract the state rewards from a .srew file.
 		 * The rewards are assumed to be of type double.
 		 * @param storeReward Function to be called for each reward
-		 * @param numStates Number of states in the associated model
 		 */
-		protected void extractStateRewards(BiConsumer<Integer, Double> storeReward, int numStates) throws PrismException
+		protected void extractStateRewards(BiConsumer<Integer, Double> storeReward) throws PrismException
 		{
-			extractStateRewards(storeReward, Evaluator.forDouble(), numStates);
+			extractStateRewards(storeReward, Evaluator.forDouble());
 		}
 
 		/**
@@ -979,9 +1156,8 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * The rewards are assumed to be of type Value.
 		 * @param storeReward Function to be called for each reward
 		 * @param eval Evaluator for Value objects
-		 * @param numStates Number of states in the associated model
 		 */
-		protected <Value> void extractStateRewards(BiConsumer<Integer, Value> storeReward, Evaluator<Value> eval, int numStates) throws PrismException
+		protected <Value> void extractStateRewards(BiConsumer<Integer, Value> storeReward, Evaluator<Value> eval) throws PrismException
 		{
 			int lineNum = 0;
 			try (BufferedReader in = new BufferedReader(new FileReader(file))) {
@@ -995,7 +1171,7 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 						continue;
 					}
 					checkLineSize(record, 2, 2);
-					int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
+					int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
 					Value v = checkValue(record[1], eval);
 					storeReward.accept(s, v);
 				}
@@ -1011,11 +1187,10 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * Extract the (Markov chain) transition rewards from a .trew file.
 		 * The rewards are assumed to be of type double.
 		 * @param storeReward Function to be called for each reward
-		 * @param numStates Number of states in the associated model
 		 */
-		protected void extractMCTransitionRewards(IOUtils.TransitionRewardConsumer<Double> storeReward, int numStates) throws PrismException
+		protected void extractMCTransitionRewards(IOUtils.TransitionRewardConsumer<Double> storeReward) throws PrismException
 		{
-			extractMCTransitionRewards(storeReward, Evaluator.forDouble(), numStates);
+			extractMCTransitionRewards(storeReward, Evaluator.forDouble());
 		}
 
 		/**
@@ -1023,10 +1198,17 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * The rewards are assumed to be of type Value.
 		 * @param storeReward Function to be called for each reward
 		 * @param eval Evaluator for Value objects
-		 * @param numStates Number of states in the associated model
 		 */
-		protected <Value> void extractMCTransitionRewards(IOUtils.TransitionRewardConsumer<Value> storeReward, Evaluator<Value> eval, int numStates) throws PrismException
+		protected <Value> void extractMCTransitionRewards(IOUtils.TransitionRewardConsumer<Value> storeReward, Evaluator<Value> eval) throws PrismException
 		{
+			// Check that we have access to a model if needed for transition indexing
+			// If not, we build one via this importer
+			if (transitionRewardIndexing == TransitionRewardIndexing.OFFSET && modelLookup == null) {
+				modelLookup = new DTMCSimple<>();
+				((ModelExplicit) modelLookup).setEvaluator(eval);
+				((ModelExplicit) modelLookup).buildFromExplicitImport(PrismExplicitImporter.this);
+			}
+
 			int lineNum = 0;
 			try (BufferedReader in = new BufferedReader(new FileReader(file))) {
 				lineNum += skipCommentAndFirstLine(in);
@@ -1039,10 +1221,32 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 						continue;
 					}
 					checkLineSize(record, 3, 3);
-					int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
-					int s2 = checkStateIndex(Integer.parseInt(record[1]), numStates);
+					int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
+					int s2 = checkStateIndex(Integer.parseInt(record[1]), modelStats.numStates);
 					Value v = checkValue(record[2], eval);
-					storeReward.accept(s, s2, v);
+
+					switch (transitionRewardIndexing) {
+						case STATE:
+							storeReward.accept(s, s2, v);
+							break;
+						case OFFSET:
+							// Need to look up transition offset from successor state
+							SuccessorsIterator it = modelLookup.getSuccessors(s);
+							int i = 0;
+							while (it.hasNext()) {
+								if (it.nextInt() == s2) {
+									storeReward.accept(s, i, v);
+									break;
+								}
+								i++;
+							}
+							if (i > modelLookup.getNumTransitions(s)) {
+								throw new PrismException("No matching transition for transition reward " + s + "->" + s2);
+							}
+							break;
+						default:
+							throw new PrismException("Unknown transition reward indexing " + transitionRewardIndexing);
+					}
 				}
 			} catch (IOException e) {
 				throw new PrismException("File I/O error reading from \"" + file + "\"");
@@ -1056,11 +1260,10 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * Extract the (Markov decision process) transition rewards from a .trew file.
 		 * The rewards are assumed to be of type double.
 		 * @param storeReward Function to be called for each reward
-		 * @param numStates Number of states in the associated model
 		 */
-		protected void extractMDPTransitionRewards(IOUtils.TransitionStateRewardConsumer<Double> storeReward, int numStates) throws PrismException
+		protected void extractMDPTransitionRewards(IOUtils.TransitionRewardConsumer<Double> storeReward) throws PrismException
 		{
-			extractMDPTransitionRewards(storeReward, Evaluator.forDouble(), numStates);
+			extractMDPTransitionRewards(storeReward, Evaluator.forDouble());
 		}
 
 		/**
@@ -1068,15 +1271,18 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		 * The rewards are assumed to be of type Value.
 		 * @param storeReward Function to be called for each reward
 		 * @param eval Evaluator for Value objects
-		 * @param numStates Number of states in the associated model
 		 */
-		protected <Value> void extractMDPTransitionRewards(IOUtils.TransitionStateRewardConsumer<Value> storeReward, Evaluator<Value> eval, int numStates) throws PrismException
+		protected <Value> void extractMDPTransitionRewards(IOUtils.TransitionRewardConsumer<Value> storeReward, Evaluator<Value> eval) throws PrismException
 		{
 			int lineNum = 0;
 			try (BufferedReader in = new BufferedReader(new FileReader(file))) {
 				lineNum += skipCommentAndFirstLine(in);
 				BasicReader reader = BasicReader.wrap(in).normalizeLineEndings();
 				CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
+				int count = 0;
+				int sLast = -1;
+				int iLast = -1;
+				Value vLast = null;
 				for (String[] record : csv) {
 					lineNum++;
 					if ("".equals(record[0])) {
@@ -1084,11 +1290,35 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 						continue;
 					}
 					checkLineSize(record, 4, 4);
-					int s = checkStateIndex(Integer.parseInt(record[0]), numStates);
+					int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
 					int i = checkChoiceIndex(Integer.parseInt(record[1]));
-					int s2 = checkStateIndex(Integer.parseInt(record[2]), numStates);
+					int s2 = checkStateIndex(Integer.parseInt(record[2]), modelStats.numStates);
 					Value v = checkValue(record[3], eval);
-					storeReward.accept(s, i, s2, v);
+					// Check that transition rewards for the same state/choice are the same
+					// (currently no support for state-choice-state rewards)
+					if (s == sLast && i == iLast) {
+						if (!eval.equals(vLast, v)) {
+							throw new PrismException("mismatching transition rewards " + vLast + " and " + v + " in choice " + i + " of state " + s);
+						}
+					}
+					// If possible, check that were rewards on all successors for each choice
+					// (for speed, we just check that the right number were present)
+					// For now, don't bother to check that the reward is the same for all s2
+					// for a given state s and index i (so the first one in the file will define it)
+					else {
+						if (modelLookup != null && modelLookup instanceof NondetModel && sLast != -1 && count != ((NondetModel<?>) modelLookup).getNumTransitions(sLast, iLast)) {
+							throw new PrismException("wrong number of transition rewards in choice " + iLast + " of state " + sLast);
+						}
+						sLast = s;
+						iLast = i;
+						vLast = v;
+						count = 0;
+					}
+					// Only store the reward for the first instance of state-choice (s,i)
+					if (count == 0) {
+						storeReward.accept(s, i, v);
+					}
+					count++;
 				}
 			} catch (IOException e) {
 				throw new PrismException("File I/O error reading from \"" + file + "\"");
@@ -1222,8 +1452,17 @@ public class PrismExplicitImporter implements ExplicitModelImporter
 		}
 	}
 
+	/**
+	 * Check that a (string) action label is legal and return it if so.
+	 * Otherwise, an explanatory exception is thrown.
+	 * A legal action label is either "" (unlabelled) or a legal PRISM identifier.
+	 * In the case of an empty ("") action, this returns null.
+	 */
 	protected static String checkAction(String a) throws PrismException
 	{
+		if (a == null || "".equals(a)) {
+			return null;
+		}
 		if (!Prism.isValidIdentifier(a)) {
 			throw new PrismException("invalid action name \"" + a + "\"");
 		}

@@ -44,9 +44,9 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 
+import io.ModelExportTask;
 import parser.Values;
 import parser.ast.ModulesFile;
-import symbolic.model.Model;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismException;
@@ -72,14 +72,6 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 	//Constants
 	public static final int PRISM_MODE = 1;
 	public static final int PEPA_MODE = 2;
-
-	// export entity types
-	public static final int TRANS_EXPORT = 1;
-	public static final int STATE_REWARDS_EXPORT = 2;
-	public static final int TRANS_REWARDS_EXPORT = 3;
-	public static final int STATES_EXPORT = 4;
-	public static final int LABELS_EXPORT = 5;
-	public static final int OBSERVATIONS_EXPORT = 6;
 
 	private GUIMultiModel theModel;
 	private GUIMultiModelTree tree;
@@ -128,10 +120,8 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 	private boolean exportAfterReceiveParseNotification = false;
 	private boolean computeSSAfterReceiveParseNotification = false;
 	private boolean computeTransientAfterReceiveParseNotification = false;
-	private int exportEntity = 0;
-	private int exportType = Prism.EXPORT_PLAIN;
-	private File exportFile = null;
-	private double transientTime;
+	private ModelExportTask exportTask;
+	private String transientTimeSpec;
 
 	// GUI
 	private JSplitPane splitter;
@@ -713,13 +703,11 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 
 	// Export model...
 
-	public void export(int entity, int type, File f)
+	public void export(ModelExportTask exportTask)
 	{
 		// set flags/store info
 		exportAfterReceiveParseNotification = true;
-		exportEntity = entity;
-		exportType = type;
-		exportFile = f;
+		this.exportTask = exportTask;
 		// do a parse if necessary
 		requestParse(false);
 	}
@@ -746,21 +734,19 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			return;
 		}
 		// if export is being done to log, switch view to log
-		if (exportFile == null)
+		if (exportTask.getFile() == null) {
 			theModel.logToFront();
-		new ExportBuiltModelThread(this, exportEntity, exportType, exportFile)
-		    .setExportModelLabels(true)
-		    .start();
+		}
+		new ExportBuiltModelThread(this, exportTask).start();
 	}
 
 	// Compute steady-state...
 
-	public void computeSteadyState(int type, File f)
+	public void computeSteadyState(ModelExportTask exportTask)
 	{
 		// set flags/store info
 		computeSSAfterReceiveParseNotification = true;
-		exportType = type;
-		exportFile = f;
+		this.exportTask = exportTask;
 		// do a parse if necessary
 		requestParse(false);
 	}
@@ -775,8 +761,9 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 		unC = new UndefinedConstants(parsedModel, null);
 		if (unC.getMFNumUndefined() > 0) {
 			int result = GUIConstantsPicker.defineConstantsWithDialog(theModel.getGUI(), unC, lastMFConstants, null);
-			if (result != GUIConstantsPicker.VALUES_DONE)
+			if (result != GUIConstantsPicker.VALUES_DONE) {
 				return;
+			}
 			lastMFConstants = unC.getMFConstantValues();
 		}
 		try {
@@ -787,19 +774,19 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			return;
 		}
 		// if the results are going to the log, switch view to there
-		if (exportFile == null)
+		if (exportTask.getFile() == null) {
 			theModel.logToFront();
-		new ComputeSteadyStateThread(this, exportType, exportFile).start();
+		}
+		new ComputeSteadyStateThread(this, exportTask).start();
 	}
 
 	// Compute transient probabilities...
 
-	public void computeTransient(double time, int type, File f)
+	public void computeTransient(String timeSpec, ModelExportTask exportTask)
 	{
 		computeTransientAfterReceiveParseNotification = true;
-		transientTime = time;
-		exportType = type;
-		exportFile = f;
+		transientTimeSpec = timeSpec;
+		this.exportTask = exportTask;
 		// do a parse if necessary
 		requestParse(false);
 	}
@@ -826,9 +813,10 @@ public class GUIMultiModelHandler extends JPanel implements PrismModelListener
 			return;
 		}
 		// if the results are going to the log, switch view to there
-		if (exportFile == null)
+		if (exportTask.getFile() == null) {
 			theModel.logToFront();
-		new ComputeTransientThread(this, transientTime, exportType, exportFile).start();
+		}
+		new ComputeTransientThread(this, transientTimeSpec, exportTask).start();
 	}
 
 	public void requestViewModel()

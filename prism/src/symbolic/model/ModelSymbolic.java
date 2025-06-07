@@ -42,6 +42,7 @@ import prism.PrismUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -415,13 +416,43 @@ public abstract class ModelSymbolic implements Model
 
 	/**
 	 * Find all deadlock states and store this information in the model.
-	 * If requested (if fix=true) and if needed (i.e. for DTMCs/CTMCs),
-	 * fix deadlocks by adding self-loops in these states.
+	 * If requested (if fix=true), fix deadlocks by adding self-loops in these states.
 	 * The set of deadlocks (before any possible fixing) can be obtained from {@link #getDeadlocks()}.
 	 */
 	public abstract void findDeadlocks(boolean fix);
 
+	/**
+	 * Mark additional states as deadlocks.
+	 *
+	 * <br>[ DEREFS: moreDeadlocks ]
+	 */
+	public void addDeadlocks(JDDNode moreDeadlocks)
+	{
+		if (deadlocks == null) {
+			deadlocks = moreDeadlocks;
+		} else {
+			deadlocks = JDD.Or(deadlocks, moreDeadlocks);
+		}
+	}
+
 	// Accessors (for prism.Model & symbolic.Model interface)
+
+	@Override
+	public List<Object> getActions()
+	{
+		// Over-approximate and assume that unlabelled actions could occur
+		ArrayList<Object> actions = new ArrayList<>();
+		actions.add(null);
+		actions.addAll(synchs);
+		return actions;
+	}
+
+	@Override
+	public List<Object> findActionsUsed()
+	{
+		// Not yet implemented
+		throw new UnsupportedOperationException();
+	}
 
 	@Override
 	public int getNumStates()
@@ -541,6 +572,12 @@ public abstract class ModelSymbolic implements Model
 	public int getNumRewardStructs()
 	{
 		return numRewardStructs;
+	}
+
+	@Override
+	public String getRewardStructName(int i)
+	{
+		return rewardStructNames[i];
 	}
 
 	@Override
