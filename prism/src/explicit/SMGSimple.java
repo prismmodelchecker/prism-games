@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import explicit.rewards.Rewards;
+import io.ExplicitModelImporter;
 import org.apache.commons.math3.fraction.BigFraction;
 
 import explicit.rewards.MDPRewards;
@@ -158,6 +159,13 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	public void setPlayer(int s, int p)
 	{
 		stateOwners.setPlayer(s, p);
+	}
+
+	@Override
+	public void buildFromExplicitImport(ExplicitModelImporter modelImporter) throws PrismException
+	{
+		super.buildFromExplicitImport(modelImporter);
+		modelImporter.extractStateOwners(this::setPlayer);
 	}
 
 	/**

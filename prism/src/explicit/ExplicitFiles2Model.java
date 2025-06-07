@@ -36,6 +36,7 @@ import io.ExplicitModelImporter;
 import parser.State;
 import prism.Evaluator;
 import prism.ModelInfo;
+import prism.PlayerInfoOwner;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismNotSupportedException;
@@ -120,13 +121,16 @@ public class ExplicitFiles2Model extends PrismComponent
 			IMDPSimple<Value> imdp = new IMDPSimple<>();
 			model = (ModelExplicit<Value>) imdp;
 			break;
+		case SMG:
+			SMGSimple<Value> smg = new SMGSimple<>();
+			model = smg;
+			break;
 		case LTS:
 			LTS<Value> lts = new LTSSimple<>();
 			model = (ModelExplicit<Value>) lts;
 			break;
 		case CTMDP:
 		case PTA:
-		case SMG:
 		case STPG:
 			throw new PrismNotSupportedException("Currently, importing " + modelInfo.getModelType() + " is not supported");
 		}
@@ -140,6 +144,9 @@ public class ExplicitFiles2Model extends PrismComponent
 			((ModelExplicit<Interval<Value>>) model).setEvaluator(eval.createIntervalEvaluator());
 		}
 		model.buildFromExplicitImport(modelImporter);
+		if (model.getModelType().multiplePlayers()) {
+			((PlayerInfoOwner) model).setPlayerNames(modelInfo.getPlayerNames());
+		}
 
 		if (model.getNumStates() == 0) {
 			throw new PrismNotSupportedException("Imported model has no states, not supported");

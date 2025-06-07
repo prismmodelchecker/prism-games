@@ -48,6 +48,8 @@ public class BasicModelInfo implements ModelInfo
 	private VarList varList;
 	/** Label names */
 	private List<String> labelNameList;
+	/** Player names */
+	private List<String> playerNameList;
 
 	// Constructors
 
@@ -59,6 +61,7 @@ public class BasicModelInfo implements ModelInfo
 		this.modelType = modelType;
 		varList = new VarList();
 		labelNameList = new ArrayList<>();
+		playerNameList = new ArrayList<>();
 	}
 
 	// Setters/getters for basic model info storage
@@ -88,6 +91,14 @@ public class BasicModelInfo implements ModelInfo
 	}
 
 	/**
+	 * Set the list used to store player names.
+	 */
+	public void setPlayerNameList(List<String> playerNameList)
+	{
+		this.playerNameList = playerNameList;
+	}
+
+	/**
 	 * Get the {@link VarList} used to store variable info.
 	 */
 	public VarList getVarList()
@@ -101,6 +112,14 @@ public class BasicModelInfo implements ModelInfo
 	public List<String> getLabelNameList()
 	{
 		return labelNameList;
+	}
+
+	/**
+	 * Get the list used to store player names.
+	 */
+	public List<String> getPlayerNameList()
+	{
+		return playerNameList;
 	}
 
 	// Methods to implement ModelInfo
@@ -137,5 +156,11 @@ public class BasicModelInfo implements ModelInfo
 	public List<String> getLabelNames()
 	{
 		return labelNameList;
+	}
+
+	@Override
+	public List<String> getPlayerNames()
+	{
+		return playerNameList;
 	}
 }

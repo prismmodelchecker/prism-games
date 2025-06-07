@@ -1,0 +1,5 @@
+-importmodel smg_example.all -exportmodel smg_example.all -ex
+#-importmodel smg_example.all -exportmodel smg_example.all -m
+
+-importmodel smg_example.sta,tra,lab -exportmodel smg_example.sta,tra,lab -ex
+#-importmodel smg_example.sta,tra,lab -exportmodel smg_example.sta,tra,lab -ex

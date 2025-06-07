@@ -169,6 +169,12 @@ public abstract class ExplicitModelImporter
 	}
 
 	/**
+	 * For turn-based game models, extract state owners.
+	 * @param storeStateOwner Function to be called s,p for each state s owned by player p
+	 */
+	public abstract void extractStateOwners(IOUtils.StateValueConsumer<Integer> storeStateOwner) throws PrismException;
+
+	/**
 	 * Compute the maximum number of choices (in a nondeterministic model).
 	 */
 	public abstract int computeMaxNumChoices() throws PrismException;

@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,12 +92,13 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 	// String stating the model type and how it was obtained
 	private String modelTypeString;
 
-	// Model statistics (num states/choices/transitions)
+	// Model statistics (num states/choices/transitions/players)
 	private class ModelStats
 	{
 		int numStates = 0;
 		int numChoices = 0;
 		int numTransitions = 0;
+		int numPlayers = 1;
 	}
 	private ModelStats modelStats;
 
@@ -417,6 +419,11 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 		// Store model info
 		basicModelInfo = new BasicModelInfo(modelType);
 
+		// Store player info if needed
+		if (modelType.multiplePlayers()) {
+			basicModelInfo.getPlayerNameList().addAll(Collections.nCopies(modelStats.numPlayers, ""));
+		}
+
 		// Extract variable info from states, if available
 		if (statesFile != null) {
 			extractVarInfoFromStatesFile(statesFile);
@@ -538,10 +545,17 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 			}
 			String[] record = csv.nextRecord();
 			checkLineSize(record, 2, 3);
-			modelStats.numStates = Integer.parseInt(record[0]);
+			if (record[0].contains(":")) {
+				String[] statesPlayers = record[0].split(":");
+				modelStats.numStates = Integer.parseInt(statesPlayers[0]);
+				modelStats.numPlayers = Integer.parseInt(statesPlayers[1]);
+			} else {
+				modelStats.numStates = Integer.parseInt(record[0]);
+			}
 			if (record.length == 2) {
 				modelStats.numChoices = modelStats.numStates;
 				modelStats.numTransitions = Integer.parseInt(record[1]);
+				modelStats.numPlayers = 0;
 			} else {
 				modelStats.numChoices = Integer.parseInt(record[1]);
 				modelStats.numTransitions = Integer.parseInt(record[2]);
@@ -618,6 +632,7 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 			CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
 			boolean nondet;
 			boolean nonprob;
+			boolean turnBased = false;
 			// Examine first line
 			// 3 numbers should indicate a nondeterministic model, e.g., MDP
 			// 2 numbers should indicate a probabilistic model, e.g., DTMC
@@ -629,6 +644,9 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 			String[] recordFirst = csv.nextRecord();
 			if (recordFirst.length == 3) {
 				nondet = true;
+				if (recordFirst[0].contains(":")) {
+					turnBased = true;
+				}
 			} else if (recordFirst.length == 2) {
 				nondet = false;
 			} else {
@@ -685,8 +703,8 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 					return ModelType.CTMC;
 				}
 			}
-			// All non-rates seen: guess MDP/DTMC
-			return nondet ? ModelType.MDP : ModelType.DTMC;
+			// All non-rates seen: guess MDP/DTMC/SMG
+			return nondet ? (turnBased ? ModelType.SMG : ModelType.MDP) : ModelType.DTMC;
 		} catch (NumberFormatException | CsvFormatException | IOException e) {
 			return null;
 		}
@@ -714,7 +732,7 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 				// Lines should be 3-5 long (LTS/MDP with/without actions)
 				checkLineSize(record, 3, 5);
 				// Extract/store source state
-				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
+				int s = checkStateIndex(Integer.parseInt(record[0].split(":")[0]), modelStats.numStates);
 				statesWithTransitions.set(s);
 			}
 		} catch (IOException e) {
@@ -779,6 +797,40 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 		} catch (PrismException | NumberFormatException e) {
 			String expl = (e.getMessage() == null || e.getMessage().isEmpty()) ? "" : (" (" + e.getMessage() + ")");
 			throw new PrismException("Error detected" + expl + " at line " + lineNum + " of states file \"" + statesFile + "\"");
+		}
+	}
+
+	@Override
+	public void extractStateOwners(IOUtils.StateValueConsumer<Integer> storeStateOwner) throws PrismException
+	{
+		// Travserse transitions file, just looking at source states
+		int lineNum = 0;
+		try (BufferedReader in = new BufferedReader(new FileReader(transFile))) {
+			lineNum += skipCommentAndFirstLine(in);
+			BasicReader reader = BasicReader.wrap(in).normalizeLineEndings();
+			CsvReader csv = new CsvReader(reader, false, false, false, ' ', LF);
+			for (String[] record : csv) {
+				lineNum++;
+				if ("".equals(record[0])) {
+					// Skip blank lines
+					continue;
+				}
+				// Lines should be 3-5 long (LTS/MDP with/without actions)
+				checkLineSize(record, 3, 5);
+				String[] statesPlayers = record[0].split(":");
+				if (statesPlayers.length != 2) {
+					throw new PrismException("state owner missing");
+				}
+				int s = checkStateIndex(Integer.parseInt(statesPlayers[0]), modelStats.numStates);
+				int p = checkPlayerIndex(Integer.parseInt(statesPlayers[1]), modelStats.numPlayers);
+				// Add state owner
+				storeStateOwner.accept(s, p);
+			}
+		} catch (IOException e) {
+			throw new PrismException("File I/O error reading from \"" + transFile + "\"");
+		} catch (PrismException | NumberFormatException | CsvFormatException e) {
+			String expl = (e.getMessage() == null || e.getMessage().isEmpty()) ? "" : (" (" + e.getMessage() + ")");
+			throw new PrismException("Error detected" + expl + " at line " + lineNum + " of transitions file \"" + transFile + "\"");
 		}
 	}
 
@@ -883,7 +935,12 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 					continue;
 				}
 				checkLineSize(record, 4, 5);
-				int s = checkStateIndex(Integer.parseInt(record[0]), modelStats.numStates);
+				String sStr = record[0];
+				// Ignore player info for turn-based game models
+				if (basicModelInfo.getModelType().multiplePlayers() && !basicModelInfo.getModelType().concurrent()) {
+					sStr = sStr.split(":")[0];
+				}
+				int s = checkStateIndex(Integer.parseInt(sStr), modelStats.numStates);
 				int i = checkChoiceIndex(Integer.parseInt(record[1]));
 				int s2 = checkStateIndex(Integer.parseInt(record[2]), modelStats.numStates);
 				Value v = checkValue(record[3], eval);
@@ -1401,6 +1458,17 @@ public class PrismExplicitImporter extends ExplicitModelImporter
 		if (record.length < min) {
 			throw new PrismException("too few entries");
 		}
+	}
+
+	protected static int checkPlayerIndex(int p, int numPlayers) throws PrismException
+	{
+		if (p < 0) {
+			throw new PrismException("player index " + p + " is invalid");
+		}
+		if (p > numPlayers) {
+			throw new PrismException("player index " + p + " exceeds number of players");
+		}
+		return p;
 	}
 
 	protected static int checkStateIndex(int s) throws PrismException
