@@ -17,7 +17,7 @@ module channel // used to compute joint probability distribution for transmissio
 
 	c : bool init false; // is there a collision?
 
-	[t1,w2] true -> q1 : (c'=false) + (1-q1) : (c'=true); // only user 1 transmits
+	[t1,w2] true -> [q1-0.01,q1+0.01] : (c'=false) + [1-(q1+0.01),1-(q1-0.01)] : (c'=true); // only user 1 transmits
 	[w1,t2] true -> q1 : (c'=false) + (1-q1) : (c'=true); // only user 2 transmits
 	[t1,t2] true -> q2 : (c'=false) + (1-q2) : (c'=true); // both users transmit
 	

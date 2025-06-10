@@ -181,6 +181,7 @@ public class ConstructModel extends PrismComponent
 		SMGSimple<Value> smg = null;
 		IDTMCSimple<Value> idtmc = null;
 		IMDPSimple<Value> imdp = null;
+		ICSGSimple<Value> icsg = null;
 		LTSSimple<Value> lts = null;
 		Distribution<Value> distr = null;
 		Distribution<Interval<Value>> distrUnc = null;
@@ -254,6 +255,10 @@ public class ConstructModel extends PrismComponent
 				break;
 			case IMDP:
 				modelSimple = imdp = new IMDPSimple<>();
+				break;
+			case ICSG:
+				modelSimple = icsg = new ICSGSimple<>();
+				icsg.setActions(modelGen.getActions());
 				break;
 			case LTS:
 				modelSimple = lts = new LTSSimple<>();
@@ -372,6 +377,7 @@ public class ConstructModel extends PrismComponent
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
 						case IMDP:
+						case ICSG:
 							distrUnc.add(dest, modelGen.getTransitionProbabilityInterval(i, j));
 							break;
 						case LTS:
@@ -417,6 +423,9 @@ public class ConstructModel extends PrismComponent
 					} else if (modelType == ModelType.CSG) {
 						// Action labels required for CSGs
 						csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
+					} else if (modelType == ModelType.ICSG) {
+						// Action labels required for ICSGs
+						ch = icsg.addActionLabelledChoice(src, distrUnc, modelGen.getTransitionIndexes(i));
 					}
 					else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
@@ -437,6 +446,8 @@ public class ConstructModel extends PrismComponent
 					idtmc.delimit(src);
 				} else if (modelType == ModelType.IMDP) {
 					imdp.delimit(src, ch);
+				} else if (modelType == ModelType.ICSG) {
+					icsg.delimit(src, ch);
 				}
 			}
 			// For partially observable models, add observation info to state
@@ -531,6 +542,9 @@ public class ConstructModel extends PrismComponent
 				break;
 			case IMDP:
 				model = sortStates ? new IMDPSimple<>(imdp, permut) : imdp;
+				break;
+			case ICSG:
+				model = sortStates ? new ICSGSimple<>(icsg, permut) : icsg;
 				break;
 			case LTS:
 				model = sortStates ? new LTSSimple<>(lts, permut) : lts;

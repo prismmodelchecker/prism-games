@@ -100,6 +100,58 @@ public enum ModelType
 		}
 	}
 	,
+	ICSG("interval concurrent stochastic game") {
+		@Override
+		public boolean multiplePlayers()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean concurrent()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean uncertain()
+		{
+			return true;
+		}
+
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
+	}
+	,
+	UCSG("interval concurrent stochastic game") {
+		@Override
+		public boolean multiplePlayers()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean concurrent()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean uncertain()
+		{
+			return true;
+		}
+
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
+	}
+	,
 	/*** ***/
 	DTMC("discrete-time Markov chain") {
 		@Override

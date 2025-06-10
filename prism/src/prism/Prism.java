@@ -2225,6 +2225,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			case LTS:
 			case POMDP:
 			case CSG:
+			case ICSG:
 			case SMG:
 			case STPG:
 			case CTMDP:
