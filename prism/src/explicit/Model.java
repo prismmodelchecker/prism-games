@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.IntPredicate;
 
+import common.IterableStateSet;
 import common.IteratorTools;
 import explicit.graphviz.Decorator;
 import io.DotExporter;
@@ -293,6 +294,85 @@ public interface Model<Value> extends prism.Model<Value>
 	}
 
 	/**
+	 * Perform a single step of precomputation algorithm Prob0 for a single state,
+	 * i.e., for the state {@code s} returns true iff there is a transition from
+	 * {@code s} to a state in {@code u}.
+	 * <br>
+	 * <i>Default implementation</i>: Iterates using {@code getSuccessors()} and performs the check.
+	 * @param s The state in question
+	 * @param u Set of states {@code u}
+	 * @return true iff there is a transition from s to a state in u
+	 */
+	public default boolean prob0step(int s, BitSet u)
+	{
+		for (SuccessorsIterator succ = getSuccessors(s); succ.hasNext(); ) {
+			int t = succ.nextInt();
+			if (u.get(t))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff there is a transition to a state in {@code u}.
+	 * <br>
+	 * <i>Default implementation</i>: Iterate over {@code subset} and use {@code prob0step(s,u)}
+	 * to determine result for {@code s}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param result Store results here
+	 */
+	public default void prob0step(BitSet subset, BitSet u, BitSet result)
+	{
+		for (PrimitiveIterator.OfInt it = new IterableStateSet(subset, getNumStates()).iterator(); it.hasNext();) {
+			int s = it.nextInt();
+			result.set(s, prob0step(s,u));
+		}
+	}
+
+	/**
+	 * Perform a single step of precomputation algorithm Prob1 for a single state,
+	 * i.e., for states s return true iff there is a transition to a state in
+	 * {@code v} and all transitions go to states in {@code u}.
+	 * @param s The state in question
+	 * @param u Set of states {@code u}
+	 * @param v Set of states {@code v}
+	 * @return true iff there is a transition from s to a state in v and all transitions go to u.
+	 */
+	public default boolean prob1step(int s, BitSet u, BitSet v)
+	{
+		boolean allTransitionsToU = true;
+		boolean hasTransitionToV = false;
+		for (SuccessorsIterator succ = getSuccessors(s); succ.hasNext(); ) {
+			int t = succ.nextInt();
+			if (!u.get(t)) {
+				allTransitionsToU = false;
+				// early abort, as overall result is false
+				break;
+			}
+			hasTransitionToV = hasTransitionToV || v.get(t);
+		}
+		return (allTransitionsToU && hasTransitionToV);
+	}
+
+	/**
+	 * Perform a single step of precomputation algorithm Prob1, i.e., for states i in {@code subset},
+	 * set bit i of {@code result} iff there is a transition to a state in {@code v} and all transitions go to states in {@code u}.
+	 * @param subset Only compute for these states
+	 * @param u Set of states {@code u}
+	 * @param v Set of states {@code v}
+	 * @param result Store results here
+	 */
+	public default void prob1step(BitSet subset, BitSet u, BitSet v, BitSet result)
+	{
+		for (PrimitiveIterator.OfInt it = new IterableStateSet(subset, getNumStates()).iterator(); it.hasNext();) {
+			int s = it.nextInt();
+			result.set(s, prob1step(s,u,v));
+		}
+	}
+
+	/**
 	 * Find all deadlock states and store this information in the model.
 	 * If requested (if fix=true) and if needed (i.e. for DTMCs/CTMCs),
 	 * fix deadlocks by adding self-loops in these states.
@@ -408,7 +488,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param exportOptions Options for export
 	 * @param decorators Any Dot decorators to add (ignored if null)
 	 */
-	default void exportToDotFile(PrismLog out, ModelExportOptions exportOptions, Iterable<explicit.graphviz.Decorator> decorators)
+	default void exportToDotFile(PrismLog out, ModelExportOptions exportOptions, Iterable<explicit.graphviz.Decorator> decorators) throws PrismException
 	{
 		new DotExporter<Value>(exportOptions).exportModel(this, out, decorators);
 	}
@@ -418,7 +498,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param out PrismLog to export to
 	 * @param exportOptions Options for export
 	 */
-	default void exportToDotFile(PrismLog out, ModelExportOptions exportOptions)
+	default void exportToDotFile(PrismLog out, ModelExportOptions exportOptions) throws PrismException
 	{
 		new DotExporter<Value>(exportOptions).exportModel(this, out, null);
 	}
@@ -427,7 +507,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * Export to a dot file.
 	 * @param out PrismLog to export to
 	 */
-	default void exportToDotFile(PrismLog out)
+	default void exportToDotFile(PrismLog out) throws PrismException
 	{
 		exportToDotFile(out, new ModelExportOptions());
 	}
@@ -437,7 +517,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param out PrismLog to export to
 	 * @param precision number of significant digits >= 1
 	 */
-	default void exportToDotFile(PrismLog out, int precision)
+	default void exportToDotFile(PrismLog out, int precision) throws PrismException
 	{
 		exportToDotFile(out, new ModelExportOptions().setModelPrecision(precision));
 	}
@@ -447,7 +527,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param out PrismLog to export to
 	 * @param mark States to highlight (ignored if null)
 	 */
-	default void exportToDotFile(PrismLog out, BitSet mark)
+	default void exportToDotFile(PrismLog out, BitSet mark) throws PrismException
 	{
 		Iterable<explicit.graphviz.Decorator> decorators = (mark == null) ? null : Collections.singleton(new explicit.graphviz.MarkStateSetDecorator(mark));
 		exportToDotFile(out, new ModelExportOptions(), decorators);
@@ -459,7 +539,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param mark States to highlight (ignored if null)
 	 * @param precision number of significant digits >= 1
 	 */
-	default void exportToDotFile(PrismLog out, BitSet mark, int precision)
+	default void exportToDotFile(PrismLog out, BitSet mark, int precision) throws PrismException
 	{
 		Iterable<explicit.graphviz.Decorator> decorators = (mark == null) ? null : Collections.singleton(new explicit.graphviz.MarkStateSetDecorator(mark));
 		exportToDotFile(out, new ModelExportOptions().setModelPrecision(precision), decorators);
@@ -471,7 +551,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param mark States to highlight (ignored if null)
 	 * @param showStates Show state info on nodes?
 	 */
-	default void exportToDotFile(PrismLog out, BitSet mark, boolean showStates)
+	default void exportToDotFile(PrismLog out, BitSet mark, boolean showStates) throws PrismException
 	{
 		Iterable<explicit.graphviz.Decorator> decorators = (mark == null) ? null : Collections.singleton(new explicit.graphviz.MarkStateSetDecorator(mark));
 		exportToDotFile(out, new ModelExportOptions().setShowStates(showStates), decorators);
@@ -484,7 +564,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param showStates Show state info on nodes?
 	 * @param precision number of significant digits >= 1
 	 */
-	default void exportToDotFile(PrismLog out, BitSet mark, boolean showStates, int precision)
+	default void exportToDotFile(PrismLog out, BitSet mark, boolean showStates, int precision) throws PrismException
 	{
 		Iterable<explicit.graphviz.Decorator> decorators = (mark == null) ? null : Collections.singleton(new explicit.graphviz.MarkStateSetDecorator(mark));
 		exportToDotFile(out, new ModelExportOptions().setShowStates(showStates).setModelPrecision(precision), decorators);
@@ -494,7 +574,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * Export to a dot file, decorating states and transitions with the provided decorators
 	 * @param out PrismLog to export to
 	 */
-	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators)
+	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators) throws PrismException
 	{
 		exportToDotFile(out, new ModelExportOptions(), decorators);
 	}
@@ -504,7 +584,7 @@ public interface Model<Value> extends prism.Model<Value>
 	 * @param out PrismLog to export to
 	 * @param precision number of significant digits >= 1
 	 */
-	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision)
+	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision) throws PrismException
 	{
 		exportToDotFile(out, new ModelExportOptions().setModelPrecision(precision), decorators);
 	}

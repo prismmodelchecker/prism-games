@@ -1,8 +1,8 @@
 //==============================================================================
 //
-//	Copyright (c) 2023-
+//	Copyright (c) 2025-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham)
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
 //
 //------------------------------------------------------------------------------
 //
@@ -26,20 +26,24 @@
 
 package explicit;
 
-import prism.PrismComponent;
+import common.Interval;
+import prism.Evaluator;
 import prism.PrismException;
 
-/**
- * Explicit-state model checker for interval Markov decision prcoesses (IMDPs).
- * Actually just an instance of UMDPModelChecker - kept for backwards compatability.
- */
-public class IMDPModelChecker extends UMDPModelChecker
+public interface IntervalModel<Value> extends Model<Value>
 {
 	/**
-	 * Create a new IMDPModelChecker, inherit basic state from parent (unless null).
+	 * Get an Evaluator for intervals of Value.
+	 * A default implementation tries to create one from the main iterator
+	 * (which itself by default exists for the (usual) case when Value is Double).
 	 */
-	public IMDPModelChecker(PrismComponent parent) throws PrismException
+	default Evaluator<Interval<Value>> getIntervalEvaluator() throws PrismException
 	{
-		super(parent);
+		return getEvaluator().createIntervalEvaluator();
 	}
+
+	/**
+	 * Get the underlying model over Interval<Value>.
+	 */
+	Model<Interval<Value>> getIntervalModel();
 }

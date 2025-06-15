@@ -58,13 +58,28 @@ public interface STPG<Value> extends MDP<Value>, TurnBasedGame
 	}
 
 	@Override
+	default void exportToDotFile(PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision) throws PrismException
+	{
+		// Copy any existing decorators
+		List<explicit.graphviz.Decorator> decoratorsNew = new ArrayList<>();
+		if (decorators != null) {
+			for (explicit.graphviz.Decorator decorator : decorators) {
+				decoratorsNew.add(decorator);
+			}
+		}
+		// And add a new one that draws states according to player owner
+		decoratorsNew.add(new StateOwnerDecorator(this::getPlayer));
+		MDP.super.exportToDotFile(out, decoratorsNew, precision);
+	}
+	
+	@Override
 	default void exportToPrismLanguage(final String filename, int precision) throws PrismException
 	{
 		throw new UnsupportedOperationException();
 	}
 	
 	// Accessors
-	
+
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some player 1 choices, for all/some player 2 choices,
