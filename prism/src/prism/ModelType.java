@@ -262,6 +262,31 @@ public enum ModelType
 		{
 			return true;
 		}
+	},
+	ICSG("interval Concurrent stochastic game") {
+//		@Override
+//		public boolean multiplePlayers()
+//		{
+//			return false;
+//		}
+
+		@Override
+		public boolean concurrent()
+		{
+			return true;
+		}
+
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return IDTMC;
+		}
+
+		@Override
+		public boolean uncertain()
+		{
+			return true;
+		}
 	};
 
 	private static final String PROBABILITY = "Probability";
