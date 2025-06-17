@@ -28,7 +28,7 @@ public class ICSGModelChecker extends CSGModelChecker {
      * Returns arg min/max_P { sum_j P(s,j)*vect[j] }
      */
     @Override
-    public Iterator<Map.Entry<Integer, Double>> getTransitionsIterator(CSG<?> csg, int s, int t, double val[], boolean min) {
+    public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(CSG<?> csg, int s, int t, double val[], boolean min) {
         // Collect transitions
         MinMax minMax = ((ICSG<Double>) csg).getUncType().toMinMax(min);
         List<Integer> indices = new ArrayList<>();
@@ -38,8 +38,8 @@ public class ICSGModelChecker extends CSGModelChecker {
         while (iter.hasNext()) {
             Map.Entry<Integer, Interval<Double>> e = iter.next();
             indices.add(e.getKey());
-            lowers.add(((Number) e.getValue().getLower()).doubleValue());
-            uppers.add(((Number) e.getValue().getUpper()).doubleValue());
+            lowers.add(e.getValue().getLower());
+            uppers.add(e.getValue().getUpper());
         }
         int size = indices.size();
 
@@ -76,6 +76,5 @@ public class ICSGModelChecker extends CSGModelChecker {
         }
         return dist.entrySet().iterator();
     }
-
 
 }
