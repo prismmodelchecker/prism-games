@@ -29,10 +29,8 @@ public class ICSGModelChecker extends CSGModelChecker {
      */
     @Override
     public Iterator<Map.Entry<Integer, Double>> getTransitionsIterator(CSG<?> csg, int s, int t, double val[], boolean min) {
-        // nature always minimises (minmin or maxmin)
-        MinMax minMax = min ? MinMax.min().setMinUnc(true) : MinMax.max().setMinUnc(true);
-        minMax.setMinMin(min ? true : false, min ? false : true);
         // Collect transitions
+        MinMax minMax = ((ICSG<Double>) csg).getUncType().toMinMax(min);
         List<Integer> indices = new ArrayList<>();
         List<Double> lowers = new ArrayList<>();
         List<Double> uppers = new ArrayList<>();
@@ -78,7 +76,6 @@ public class ICSGModelChecker extends CSGModelChecker {
         }
         return dist.entrySet().iterator();
     }
-
 
 
 }

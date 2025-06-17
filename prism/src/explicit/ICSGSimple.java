@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class ICSGSimple<Value> extends CSGSimple<Interval<Value>> implements ICSG<Value> {
+    protected UncType uncType = UncType.Adv; // Default uncertainty type
     // Constructors
 
     /**
@@ -15,6 +16,20 @@ public class ICSGSimple<Value> extends CSGSimple<Interval<Value>> implements ICS
     public ICSGSimple() {
         super();
         createDefaultEvaluator();
+    }
+
+    public ICSGSimple(UncType uncType) {
+        super();
+        createDefaultEvaluator();
+        this.uncType = uncType;
+    }
+
+    public UncType getUncType() {
+        return uncType;
+    }
+
+    public void setUncType(UncType uncType) {
+        this.uncType = uncType;
     }
 
 

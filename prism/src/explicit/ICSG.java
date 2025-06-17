@@ -19,6 +19,43 @@ public interface ICSG<Value> extends CSG<Interval<Value>> {
         return ModelType.ICSG;
     }
 
+    public enum UncType {
+        Adv("Adversarial"),
+        Ctrl("Controllable");
+
+        private final String fullName;
+
+        UncType(final String fullName) {
+            this.fullName = fullName;
+        }
+
+        /**
+         * Get the full name, in words, of this model type.
+         */
+        public String fullName()
+        {
+            return fullName;
+        }
+
+        /**
+         * Get the PRISM keyword for this model type.
+         */
+        public String keyword()
+        {
+            return this.name().toLowerCase();
+        }
+
+        public MinMax toMinMax(boolean min) {
+            return switch (this) {
+                case Adv -> MinMax.minMin(min, !min).setMinUnc(!min);
+                case Ctrl -> MinMax.minMin(min, !min).setMinUnc(min);
+            };
+        }
+    }
+
+    public UncType getUncType();
+    public void setUncType(UncType type);
+
     /**
      * Checks that transition probability interval lower bounds are positive
      * and throws an exception if any are not.
