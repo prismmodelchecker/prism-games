@@ -1767,7 +1767,7 @@ public class CSGModelChecker extends ProbModelChecker
 			rewards = new ArrayList<>();
 			rewards.add(0, r);
 		}
-		buildStepGame(csg, rewards, imap, val, s);
+		buildStepGame(csg, rewards, imap, val, s, min);
 		// Reverse map for coalition actions (i.e., store mapping from their integer indices,
 		// to the coalition actions, represented as BitSets storing the indices of their actions.
 		// If requested (for strategy synthesis), store a copy of the coalition actions for one coalition.
@@ -1802,6 +1802,17 @@ public class CSGModelChecker extends ProbModelChecker
 		return mgame;
 	}
 
+
+	protected Iterator<Map.Entry<Integer, Double>> getTransitionsIterator(CSG<?> csg, int s, int t, double val[], boolean min) {
+		return ((CSG<Double>) csg).getTransitionsIterator(s, t);
+	}
+
+	public void buildStepGame(CSG<Double> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException {
+		buildStepGame(csg, rewards, imap, val, s, true);
+	}
+
+
+
 	/**
 	 * Build info needed for the matrix game to solve a CSG state s.
 	 * A list of all coalition actions (comprising one action, incl. "idle",
@@ -1825,7 +1836,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param val Array (over states) of values to multiply by when computing matrix values
 	 * @param s Index of state to build matrix game for 
 	 */
-	public void buildStepGame(CSG<Double> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException
+	public void buildStepGame(CSG<Double> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s, boolean min) throws PrismException
 	{
 		BitSet jidx;
 		BitSet indexes = new BitSet();
@@ -1895,7 +1906,7 @@ public class CSGModelChecker extends ProbModelChecker
 			probabilities.put(jidx, new ArrayList<Distribution<Double>>());
 			v = 0.0;
 			if (val != null) {
-				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getTransitionsIterator(s, t); iter.hasNext();) {
+				for (Iterator<Map.Entry<Integer, Double>> iter = getTransitionsIterator(csg, s, t, val, min); iter.hasNext();) {
 					Map.Entry<Integer, Double> e = iter.next();
 					v += e.getValue() * val[e.getKey()];
 				}

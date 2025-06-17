@@ -45,7 +45,6 @@ public interface ICSG<Value> extends CSG<Interval<Value>> {
         }
     }
 
-
     /**
      * Do a single row of matrix-vector multiplication for a specific choice k
      * i.e. return min/max_P { sum_j P(s,k,j)*vect[j] }

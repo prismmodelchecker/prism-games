@@ -234,6 +234,9 @@ public class StateModelChecker extends PrismComponent
 		case IMDP:
 			mc = new IMDPModelChecker(parent);
 			break;
+//		case ICSG:
+//			mc = new ICSGModelChecker(parent);
+//			break;
 		case LTS:
 			mc = new NonProbModelChecker(parent);
 			break;
