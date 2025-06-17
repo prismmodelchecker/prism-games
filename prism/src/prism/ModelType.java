@@ -279,7 +279,7 @@ public enum ModelType
 		@Override
 		public ModelType removeNondeterminism()
 		{
-			return IDTMC;
+			return DTMC;
 		}
 
 		@Override
