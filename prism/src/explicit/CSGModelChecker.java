@@ -276,8 +276,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeReachProbs(CSG<?> csg, BitSet target, boolean min1, boolean min2, int bound, Coalition coalition,
-			boolean genAdv) throws PrismException
+	public ModelCheckerResult computeReachProbs(CSG<?> csg, BitSet target, boolean min1, boolean min2, int bound, Coalition coalition) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = null;
@@ -360,7 +359,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeUntilProbs(CSG<Double> csg, BitSet remain, BitSet target, int bound, boolean min1, boolean min2, Coalition coalition)
+	public ModelCheckerResult computeUntilProbs(CSG<?> csg, BitSet remain, BitSet target, int bound, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -1461,7 +1460,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Eventually b, while remaining in a
 	 */
-	public BitSet AF(CSG<Double> csg, BitSet a, BitSet b) throws PrismException
+	public BitSet AF(CSG<?> csg, BitSet a, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet x, y, sol1;

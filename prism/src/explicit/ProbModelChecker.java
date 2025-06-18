@@ -1137,6 +1137,9 @@ public class ProbModelChecker extends NonProbModelChecker
 			case IMDP:
 				res = ((IMDPModelChecker) this).computeBoundedUntilProbs((IMDP<Double>) model, remain, target, windowSize, minMax);
 				break;
+			case ICSG:
+				res = ((ICSGModelChecker) this).computeBoundedUntilProbs((ICSG<Double>) model, remain, target, windowSize, minMax);
+				break;
 			default:
 				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
@@ -1213,9 +1216,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case IMDP:
 			res = ((IMDPModelChecker) this).computeUntilProbs((IMDP<Double>) model, remain, target, minMax);
 			break;
-//		case ICSG:
-//			res = ((ICSGModelChecker) this).computeUntilProbs((ICSG<Double>) model, target, minMax.isMin1(), minMax.isMin2(), maxIters, );
-//			break;
+		case ICSG:
+			res = ((ICSGModelChecker) this).computeUntilProbs((ICSG<Double>) model, remain, target, minMax);
+			break;
 		default:
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}

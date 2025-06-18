@@ -1,5 +1,6 @@
 package explicit;
 
+import parser.ast.Coalition;
 import prism.PrismComponent;
 import prism.PrismException;
 import strat.CSGStrategy;
@@ -28,5 +29,27 @@ public class ICSGModelChecker extends CSGModelChecker {
         return new ICSGStrategy((ICSG<Double>) icsg, lstrat, no, yes, inf, type);
     }
 
+    public ModelCheckerResult computeReachProbs(ICSG<Double> icsg, BitSet target, MinMax minMax, int bound, Coalition coalition) throws PrismException {
+        icsg.checkLowerBoundsArePositive();
+        icsg.checkForDeadlocks(target);
+        return super.computeReachProbs(icsg, target, minMax.isMin1(), minMax.isMin2(), bound, coalition);
+    }
+
+    public ModelCheckerResult computeUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, int bound, MinMax minmax)
+            throws PrismException {
+        icsg.checkLowerBoundsArePositive();
+        icsg.checkForDeadlocks(target);
+        return super.computeUntilProbs(icsg, remain, target, bound, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
+    }
+
+    public ModelCheckerResult computeUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, MinMax minmax) throws PrismException {
+        return computeUntilProbs(icsg, remain, target, maxIters, minmax);
+    }
+
+    public ModelCheckerResult computeBoundedUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, int k, MinMax minmax)
+            throws PrismException
+    {
+        return computeUntilProbs(icsg, remain, target, k, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
+    }
 
 }
