@@ -62,6 +62,7 @@ import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.CSGStrategy.CSGStrategyType;
 import strat.CSGStrategy;
+import strat.Strategy;
 
 /**
  * Explicit-state model checker for concurrent stochastic games (CSGs).
@@ -191,7 +192,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
+			res.strat = getStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
 	}
 
@@ -529,9 +530,14 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
+			res.strat = getStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
+	}
+
+	protected Strategy<?> getStrategy(CSG<?> csg, List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type)
+	{
+		return new CSGStrategy((CSG<Double>) csg, lstrat, no, yes, inf, type);
 	}
 
 	/**
@@ -1058,7 +1064,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
+			res.strat = getStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -1766,7 +1772,7 @@ public class CSGModelChecker extends ProbModelChecker
 			rewards = new ArrayList<>();
 			rewards.add(0, r);
 		}
-		buildStepGame(csg, rewards, imap, val, s, min);
+		buildStepGame(csg, rewards, imap, val, s);
 		// Reverse map for coalition actions (i.e., store mapping from their integer indices,
 		// to the coalition actions, represented as BitSets storing the indices of their actions.
 		// If requested (for strategy synthesis), store a copy of the coalition actions for one coalition.
@@ -1802,16 +1808,8 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 
-	protected Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(CSG<?> csg, int s, int t, double val[], boolean min) {
-		return ((CSG<Double>) csg).getTransitionsIterator(s, t);
-	}
-
 	protected Distribution<Double> getDoubleChoice(CSG<?> csg, int s, int t) {
 		return ((CSG<Double>) csg).getChoice(s, t);
-	}
-
-	public void buildStepGame(CSG<?> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException {
-		buildStepGame(csg, rewards, imap, val, s, false);
 	}
 
 
@@ -1839,7 +1837,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param val Array (over states) of values to multiply by when computing matrix values
 	 * @param s Index of state to build matrix game for 
 	 */
-	public void buildStepGame(CSG<?> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s, boolean min) throws PrismException
+	public void buildStepGame(CSG<?> csg, List<CSGRewards<Double>> rewards, Map<BitSet, Integer> imap, double[] val, int s) throws PrismException
 	{
 		BitSet jidx;
 		BitSet indexes = new BitSet();
@@ -1909,7 +1907,7 @@ public class CSGModelChecker extends ProbModelChecker
 			probabilities.put(jidx, new ArrayList<Distribution<Double>>());
 			v = 0.0;
 			if (val != null) {
-				for (Iterator<Map.Entry<Integer, Double>> iter = getDoubleTransitionsIterator(csg, s, t, val, min); iter.hasNext();) {
+				for (Iterator<Map.Entry<Integer, Double>> iter = csg.getDoubleTransitionsIterator(s, t, val); iter.hasNext();) {
 					Map.Entry<Integer, Double> e = iter.next();
 					v += e.getValue() * val[e.getKey()];
 				}
@@ -1919,7 +1917,7 @@ public class CSGModelChecker extends ProbModelChecker
 			if (u != Double.NaN)
 				allEqual = allEqual && Double.compare(u, v) == 0;
 			utilities.get(jidx).add(0, v);
-			probabilities.get(jidx).add(0, csg.getChoice(s, t));
+			probabilities.get(jidx).add(0, csg.getDoubleChoice(s, t, val));
 			minEntry = (minEntry > v) ? v : minEntry;
 			u = v;
 		}

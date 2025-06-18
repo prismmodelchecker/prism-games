@@ -28,7 +28,9 @@
 package explicit;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import prism.ModelType;
 import prism.PlayerInfoOwner;
@@ -100,4 +102,21 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 	// Temp:
 
 	public Distribution<Value> getChoice(int s, int i);
+
+	public default Distribution<Double> getDoubleChoice(int s, int i, double val[]) {
+		return Distribution.ofDouble(getDoubleTransitionsIterator(s, i, val));
+	}
+
+	public default Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]) {
+		return ((CSG<Double>) this).getTransitionsIterator(s, i);
+	}
+
+	public default void forEachDoubleTransition(int s, int i, double[] val, TransitionConsumer<Double> c)
+	{
+		for (Iterator<Map.Entry<Integer, Double>> it = getDoubleTransitionsIterator(s, i, val); it.hasNext(); ) {
+			Map.Entry<Integer, Double> e = it.next();
+			c.accept(s, e.getKey(), e.getValue());
+		}
+	}
+
 }

@@ -1213,9 +1213,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case IMDP:
 			res = ((IMDPModelChecker) this).computeUntilProbs((IMDP<Double>) model, remain, target, minMax);
 			break;
-		case ICSG:
-			res = ((ICSGModelChecker) this).computeUntilProbs((ICSG<Double>) model, target, minMax.isMin1(), minMax.isMin2(), maxIters, );
-			break;
+//		case ICSG:
+//			res = ((ICSGModelChecker) this).computeUntilProbs((ICSG<Double>) model, target, minMax.isMin1(), minMax.isMin2(), maxIters, );
+//			break;
 		default:
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}

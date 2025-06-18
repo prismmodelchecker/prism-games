@@ -367,6 +367,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		return transIndexes.get(s);
 	}
 
+
 	public List<Object> getActionsForPlayer(int p)
 	{
 		List<Object> result = new ArrayList<>();

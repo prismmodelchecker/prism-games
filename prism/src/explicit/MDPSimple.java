@@ -495,6 +495,7 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 		return trans.get(s).get(i);
 	}
 
+
 	/**
 	 * Returns the index of the choice {@code distr} for state {@code s}, if it exists.
 	 * If none, -1 is returned. If there are multiple (i.e. allowDupes is true), the first is returned. 
