@@ -1,0 +1,5 @@
+// maximum probability of reaching s1
+// <<p1>> Pmax=? [ F s=1 ]
+
+const int k=2;
+<<p1>> Pmax=? [ F<=k (s=1)]

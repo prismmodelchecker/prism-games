@@ -10,7 +10,7 @@ import strat.Strategy;
 import java.util.*;
 
 public class ICSGModelChecker extends CSGModelChecker {
-    protected CSGModelChecker mcCSG = null;
+//    protected CSGModelChecker mcCSG = null;
 
     /**
      * Create a new IMDPModelChecker, inherit basic state from parent (unless null).
@@ -18,8 +18,8 @@ public class ICSGModelChecker extends CSGModelChecker {
     public ICSGModelChecker(PrismComponent parent) throws PrismException
     {
         super(parent);
-        mcCSG = new CSGModelChecker(this);
-        mcCSG.inheritSettings(this);
+//        mcCSG = new CSGModelChecker(this);
+//        mcCSG.inheritSettings(this);
     }
 
 

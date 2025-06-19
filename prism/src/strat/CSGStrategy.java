@@ -464,7 +464,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {						
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, prechoices[(p+1)%2].soln); iter.hasNext(); ) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, getPrechoicesSoln(p)); iter.hasNext(); ) {
 							Map.Entry<Integer, Double> e = iter.next();
 							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
@@ -562,7 +562,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 							if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
 								loop = true;
 						}
-						d.add(m, model.getDoubleChoice(s, t, prechoices[(p+1)%2].soln).get(u) * prods.get(tmp));
+						d.add(m, model.getDoubleChoice(s, t, getPrechoicesSoln(p)).get(u) * prods.get(tmp));
 					}
 				}
 			}
@@ -633,7 +633,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {
-						model.forEachDoubleTransition(s, t, prechoices[(p+1)%2].soln, (__, u, pr) -> {
+						model.forEachDoubleTransition(s, t, getPrechoicesSoln(p), (__, u, pr) -> {
 							int m;
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
@@ -783,7 +783,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 					tmp2.andNot(tmp1);
 					if (tmp2.isEmpty()) {
 						d = new Distribution();
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, prechoices[(p+1)%2].soln); iter.hasNext(); ) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, getPrechoicesSoln(p)); iter.hasNext(); ) {
 							Map.Entry<Integer, Double> e = iter.next();
 							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
@@ -812,6 +812,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				}
 			}
 		}
+	}
+
+	private double[] getPrechoicesSoln(int p) {
+		return prechoices == null ? null : prechoices[(p+1)%2].soln;
 	}
 
 	@Override
