@@ -36,8 +36,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import common.Interval;
 import explicit.CSG;
 import explicit.DTMC;
+import explicit.IDTMC;
 import explicit.MDP;
 import explicit.Model;
 import explicit.NondetModel;
@@ -149,7 +151,7 @@ public class ConstructRewards extends PrismComponent
 					}
 				}
 				// Markov chain models (rewards on transitions)
-				else {
+				else if (model instanceof DTMC) {
 					DTMC<Value> mcModel = (DTMC<Value>) model;
 					Iterator<Map.Entry<Integer, Pair<Value, Object>>> iter = mcModel.getTransitionsAndActionsIterator(s);
 					int i = 0;
@@ -168,6 +170,26 @@ public class ConstructRewards extends PrismComponent
 						}
 						i++;
 					}
+				} else if (model.getModelType() == ModelType.IDTMC) {
+					IDTMC<Value> mcModel = (IDTMC<Value>) model;
+					Iterator<Map.Entry<Integer, Pair<Interval<Value>, Object>>> iter = mcModel.getIntervalTransitionsAndActionsIterator(s);
+					int i = 0;
+					while (iter.hasNext()) {
+						Map.Entry<Integer, Pair<Interval<Value>, Object>> e = iter.next();
+						Value rew = getAndCheckStateActionReward(s, e.getValue().second, rewardGen, r, statesList);
+						if (rewardGen.getRewardEvaluator().isZero(rew)) {
+							i++;
+							continue;
+						}
+						if (expectedRewards) {
+							throw new PrismException("Can't construct expected rewards for IDTMCs");
+						} else {
+							rewards.addToTransitionReward(s, i, rew);
+						}
+						i++;
+					}
+				} else {
+					throw new PrismException("Cannot build rewards for " + model.getModelType() + "s");
 				}
 			}
 		}

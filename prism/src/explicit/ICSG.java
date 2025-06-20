@@ -1,23 +1,52 @@
+//==============================================================================
+//
+//	Copyright (c) 2025-
+//	Authors:
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
+//
+//------------------------------------------------------------------------------
+//
+//	This file is part of PRISM.
+//
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//==============================================================================
+
 package explicit;
 
 import common.Interval;
-import common.IterableStateSet;
-import explicit.rewards.MDPRewards;
 import parser.State;
 import prism.Evaluator;
 import prism.ModelType;
-import prism.PrismException;
+import prism.PlayerInfoOwner;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-public interface ICSG<Value> extends CSG<Interval<Value>> {
-    // Accessors (for Model) - default implementations
+public interface ICSG<Value> extends IMDP<Value>, PlayerInfoOwner
+{
+	// Accessors (for Model) - default implementations
 
-    @Override
-    public default ModelType getModelType()
-    {
-        return ModelType.ICSG;
-    }
+	@Override
+	public default ModelType getModelType()
+	{
+		return ModelType.ICSG;
+	}
 
     public enum UncType {
         Adv("Adversarial"),
@@ -50,10 +79,14 @@ public interface ICSG<Value> extends CSG<Interval<Value>> {
          * @return A MinMax object representing the uncertainty type.
          */
         public MinMax toMinMax() {
-            return switch (this) {
-                case Adv -> MinMax.minMin(false, true).setMinUnc(true);
-                case Ctrl -> MinMax.minMin(false, true).setMinUnc(false);
-            };
+			switch (this) {
+				case Adv:
+					return MinMax.minMin(false, true).setMinUnc(true);
+				case Ctrl:
+					return MinMax.minMin(false, true).setMinUnc(false);
+				default:
+					throw new IllegalArgumentException();
+			}
         }
 
         /**
@@ -62,95 +95,18 @@ public interface ICSG<Value> extends CSG<Interval<Value>> {
          * @return A MinMax object representing the uncertainty type.
          */
         public MinMax toMinMax(boolean min) {
-            return switch (this) {
-                case Adv -> MinMax.minMin(min, !min).setMinUnc(!min);
-                case Ctrl -> MinMax.minMin(min, !min).setMinUnc(min);
-            };
+			switch (this) {
+				case Adv:
+					return MinMax.minMin(min, !min).setMinUnc(!min);
+				case Ctrl:
+					return MinMax.minMin(min, !min).setMinUnc(min);
+				default:
+					throw new IllegalArgumentException();
+			}
         }
     }
 
     public UncType getUncType();
-
-    /**
-     * Checks that transition probability interval lower bounds are positive
-     * and throws an exception if any are not.
-     */
-    public default void checkLowerBoundsArePositive() throws PrismException
-    {
-        Evaluator<Interval<Value>> eval = getEvaluator();
-        int numStates = getNumStates();
-        for (int s = 0; s < numStates; s++) {
-            int numChoices = getNumChoices(s);
-            for (int j = 0; j < numChoices; j++) {
-                Iterator<Map.Entry<Integer, Interval<Value>>> iter = getTransitionsIterator(s, j);
-                while (iter.hasNext()) {
-                    Map.Entry<Integer, Interval<Value>> e = iter.next();
-                    // NB: we phrase the check as an operation on intervals, rather than
-                    // accessing the lower bound directly, to make use of the evaluator
-                    if (!eval.gt(e.getValue(), eval.zero())) {
-                        List<State> sl = getStatesList();
-                        String state = sl == null ? "" + s : sl.get(s).toString();
-                        throw new PrismException("Transition probability has lower bound of 0 in state " + state);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Returns arg min/max_P { sum_j P(s,j)*vect[j] }
-     */
-    @Override
-    public default Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int t, double val[]) {
-        {
-            // Collect transitions
-            MinMax minMax = this.getUncType().toMinMax();
-            List<Integer> indices = new ArrayList<>();
-            List<Double> lowers = new ArrayList<>();
-            List<Double> uppers = new ArrayList<>();
-            Iterator<Map.Entry<Integer, Interval<Double>>> iter = ((ICSG<Double>) this).getTransitionsIterator(s, t);
-            while (iter.hasNext()) {
-                Map.Entry<Integer, Interval<Double>> e = iter.next();
-                indices.add(e.getKey());
-                lowers.add(e.getValue().getLower());
-                uppers.add(e.getValue().getUpper());
-            }
-            int size = indices.size();
-
-            // Trivial case: singleton interval [1.0,1.0]
-            if (size == 1 && lowers.get(0) == 1.0 && uppers.get(0) == 1.0) {
-                Map<Integer, Double> singleton = new HashMap<>();
-                singleton.put(indices.get(0), 1.0);
-                return singleton.entrySet().iterator();
-            }
-
-            // Sort indices by vect values
-            List<Integer> order = new ArrayList<>();
-            for (int i = 0; i < size; i++) order.add(i);
-            if (minMax.isMaxUnc()) {
-                order.sort((o1, o2) -> -Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
-            } else {
-                order.sort((o1, o2) -> Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
-            }
-
-            // Build the extreme distribution
-            Map<Integer, Double> dist = new HashMap<>();
-            double totP = 1.0;
-            for (int i = 0; i < size; i++) {
-                dist.put(indices.get(i), lowers.get(i));
-                totP -= lowers.get(i);
-            }
-            for (int i = 0; i < size; i++) {
-                int j = order.get(i);
-                double delta = uppers.get(j) - lowers.get(j);
-                double add = Math.min(delta, totP);
-                dist.put(indices.get(j), dist.get(indices.get(j)) + add);
-                totP -= add;
-                if (totP <= 0) break;
-            }
-            return dist.entrySet().iterator();
-        }
-    }
 
 //    /**
 //     * Do a single row of matrix-vector multiplication for a specific choice k
@@ -183,4 +139,8 @@ public interface ICSG<Value> extends CSG<Interval<Value>> {
 //        d += mvMultUncSingle(s, k, vect, minMax);
 //        return d;
 //    }
+
+    @Override
+    CSG<Interval<Value>> getIntervalModel();
+
 }

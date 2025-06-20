@@ -258,6 +258,7 @@ public class ConstructModel extends PrismComponent
 				break;
 			case ICSG:
 				modelSimple = icsg = new ICSGSimple<>();
+				icsg.setActions(modelGen.getActions());
 				break;
 			case LTS:
 				modelSimple = lts = new LTSSimple<>();
@@ -277,10 +278,9 @@ public class ConstructModel extends PrismComponent
 				((PlayerInfoOwner) modelSimple).setPlayerNames(playerNames);
 			}
 			// Attach evaluator and variable info
-			if (!modelType.uncertain()) {
-				((ModelExplicit<Value>) modelSimple).setEvaluator(modelGen.getEvaluator());
-			} else {
-				((ModelExplicit<Interval<Value>>) modelSimple).setEvaluator(modelGen.getIntervalEvaluator());
+			((ModelExplicit<Value>) modelSimple).setEvaluator(modelGen.getEvaluator());
+			if (modelSimple instanceof IntervalModelExplicit) {
+				((IntervalModelExplicit<Value>) modelSimple).setIntervalEvaluator(modelGen.getIntervalEvaluator());
 			}
 	        ((ModelExplicit<Value>) modelSimple).setVarList(varList);
 		}
@@ -377,8 +377,6 @@ public class ConstructModel extends PrismComponent
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
 						case IMDP:
-							distrUnc.add(dest, modelGen.getTransitionProbabilityInterval(i, j));
-							break;
 						case ICSG:
 							distrUnc.add(dest, modelGen.getTransitionProbabilityInterval(i, j));
 							break;
@@ -427,8 +425,9 @@ public class ConstructModel extends PrismComponent
 						csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
 					} else if (modelType == ModelType.ICSG) {
 						// Action labels required for ICSGs
-						icsg.addActionLabelledChoice(src, distrUnc, modelGen.getTransitionIndexes(i));
-					} else if (modelType == ModelType.SMG) {
+						ch = icsg.addActionLabelledChoice(src, distrUnc, modelGen.getTransitionIndexes(i));
+					}
+					else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
 							smg.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
 						} else {
@@ -444,11 +443,11 @@ public class ConstructModel extends PrismComponent
 				}
 				// For interval models, we delimit the constructed distributions
 				if (modelType == ModelType.IDTMC) {
-					((IDTMCSimple<Value>) idtmc).delimit(src, modelGen.getEvaluator());
+					idtmc.delimit(src);
 				} else if (modelType == ModelType.IMDP) {
-					((IMDPSimple<Value>) imdp).delimit(src, ch, modelGen.getEvaluator());
+					imdp.delimit(src, ch);
 				} else if (modelType == ModelType.ICSG) {
-					((ICSGSimple<Value>) icsg).delimit(src, ch, modelGen.getEvaluator());
+					icsg.delimit(src, ch);
 				}
 			}
 			// For partially observable models, add observation info to state
@@ -539,13 +538,13 @@ public class ConstructModel extends PrismComponent
 				model = sortStates ? new SMGSimple<>(smg, permut) : smg;
 				break;
 			case IDTMC:
-				model = (ModelExplicit<Value>) (sortStates ? new IDTMCSimple<>(idtmc, permut) : idtmc);
+				model = sortStates ? new IDTMCSimple<>(idtmc, permut) : idtmc;
 				break;
 			case IMDP:
-				model = (ModelExplicit<Value>) (sortStates ? new IMDPSimple<>(imdp, permut) : imdp);
+				model = sortStates ? new IMDPSimple<>(imdp, permut) : imdp;
 				break;
 			case ICSG:
-				model = (ModelExplicit<Value>) (sortStates ? new ICSGSimple<>(icsg, permut) : icsg);
+				model = sortStates ? new ICSGSimple<>(icsg, permut) : icsg;
 				break;
 			case LTS:
 				model = sortStates ? new LTSSimple<>(lts, permut) : lts;
@@ -561,8 +560,6 @@ public class ConstructModel extends PrismComponent
 		// Add idle actions
 		if (modelType == ModelType.CSG) 
 			csg.addIdleIndexes();
-		else if (modelType == ModelType.ICSG)
-			icsg.addIdleIndexes();
 		
 		// Discard permutation
 		permut = null;

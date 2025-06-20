@@ -349,7 +349,7 @@ public interface ModelGenerator<Value> extends ModelInfo
 	 * An index of -1 indicates that a player idles.
 	 * @param i Index of the nondeterministic choice
 	 */
-	public default int[] getTransitionIndexes(int i) 
+	public default int[] getTransitionIndexes(int i) throws PrismException
 	{
 		// No implementation by default
 		return null;

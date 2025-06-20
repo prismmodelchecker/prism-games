@@ -32,14 +32,14 @@ public class ICSGModelChecker extends CSGModelChecker {
     public ModelCheckerResult computeReachProbs(ICSG<Double> icsg, BitSet target, MinMax minMax, int bound, Coalition coalition) throws PrismException {
         icsg.checkLowerBoundsArePositive();
         icsg.checkForDeadlocks(target);
-        return super.computeReachProbs(icsg, target, minMax.isMin1(), minMax.isMin2(), bound, coalition);
+        return super.computeReachProbs(icsg.getIntervalModel(), target, minMax.isMin1(), minMax.isMin2(), bound, coalition);
     }
 
     public ModelCheckerResult computeUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, int bound, MinMax minmax)
             throws PrismException {
         icsg.checkLowerBoundsArePositive();
         icsg.checkForDeadlocks(target);
-        return super.computeUntilProbs(icsg, remain, target, bound, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
+        return super.computeUntilProbs(icsg.getIntervalModel(), remain, target, bound, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
     }
 
     public ModelCheckerResult computeUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, MinMax minmax) throws PrismException {
@@ -49,7 +49,7 @@ public class ICSGModelChecker extends CSGModelChecker {
     public ModelCheckerResult computeBoundedUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, int k, MinMax minmax)
             throws PrismException
     {
-        return computeUntilProbs(icsg, remain, target, k, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
+        return computeUntilProbs(icsg.getIntervalModel(), remain, target, k, minmax.isMin1(), minmax.isMin2(), minmax.getCoalition());
     }
 
 }
