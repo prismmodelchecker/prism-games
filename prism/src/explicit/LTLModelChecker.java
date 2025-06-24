@@ -40,19 +40,7 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
-import acceptance.AcceptanceBuchi;
-import acceptance.AcceptanceGenRabin;
-import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceRabin;
-import acceptance.AcceptanceReach;
-import acceptance.AcceptanceStreett;
-import acceptance.AcceptanceType;
-import automata.DA;
-import automata.LTL2DA;
-import automata.LTL2WDBA;
-import common.IterableStateSet;
-import common.StopWatch;
-import jltl2ba.SimpleLTL;
+import common.Interval;
 import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
@@ -71,6 +59,19 @@ import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismNotSupportedException;
 import prism.PrismUtils;
+import acceptance.AcceptanceBuchi;
+import acceptance.AcceptanceGenRabin;
+import acceptance.AcceptanceOmega;
+import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceReach;
+import acceptance.AcceptanceStreett;
+import acceptance.AcceptanceType;
+import automata.DA;
+import automata.LTL2DA;
+import automata.LTL2WDBA;
+import jltl2ba.SimpleLTL;
+import common.IterableStateSet;
+import common.StopWatch;
 
 /**
  * LTL model checking functionality
@@ -583,19 +584,13 @@ public class LTLModelChecker extends PrismComponent
 
 		// Attach evaluator and variable info
 		((ModelExplicit<Value>) prodModel).setEvaluator(model.getEvaluator());
+		if (prodModel instanceof IntervalModelExplicit) {
+			((IntervalModelExplicit<Value>) prodModel).setIntervalEvaluator(((IntervalModel<Value>) model).getIntervalEvaluator());
+		}
 		((ModelExplicit<Value>) prodModel).setVarList(newVarList);
 
 		// Now do the actual product model construction
-		// This is a separate method so that we can alter the model type if needed,
-		// e.g. construct an IMDP<Value> product as one over an MDP<Interval<Value>>
-		switch (modelType) {
-		case IDTMC:
-			return (LTLProduct<M>) doConstructProductModel(ModelType.DTMC, prodModel, da, model, labelBS, statesOfInterest);
-		case IMDP:
-			return (LTLProduct<M>) doConstructProductModel(ModelType.MDP, prodModel, da, model, labelBS, statesOfInterest);
-		default:
-			return doConstructProductModel(modelType, prodModel, da, model, labelBS, statesOfInterest);
-		}
+		return doConstructProductModel(modelType, prodModel, da, model, labelBS, statesOfInterest);
 	}
 	
 	/**
@@ -705,7 +700,8 @@ public class LTLModelChecker extends PrismComponent
 			// Go through transitions from state s_1 in original model
 			int numChoices = (model instanceof NondetModel) ? ((NondetModel<Value>) model).getNumChoices(s_1) : 1;
 			for (int j = 0; j < numChoices; j++) {
-				Iterator<Map.Entry<Integer, Value>> iter;
+				Iterator<Map.Entry<Integer, Value>> iter = null;
+				Iterator<Map.Entry<Integer, Interval<Value>>> iterIntv = null;
 				switch (modelType) {
 				case DTMC:
 					iter = ((DTMC<Value>) model).getTransitionsIterator(s_1);
@@ -715,6 +711,12 @@ public class LTLModelChecker extends PrismComponent
 					break;
 				case POMDP:
 					iter = ((POMDP<Value>) model).getTransitionsIterator(s_1, j);
+					break;
+				case IDTMC:
+					iterIntv = ((IDTMC<Value>) model).getIntervalTransitionsIterator(s_1);
+					break;
+				case IMDP:
+					iterIntv = ((IMDP<Value>) model).getIntervalTransitionsIterator(s_1, j);
 					break;
 				case STPG:
 					iter = ((STPG<Value>) model).getTransitionsIterator(s_1, j);
@@ -729,29 +731,54 @@ public class LTLModelChecker extends PrismComponent
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
 				Distribution<Value> prodDistr = null;
+				Distribution<Interval<Value>> prodDistrIntv = null;
 				if (modelType.nondeterministic()) {
-					prodDistr = new Distribution<>(model.getEvaluator());
+					if (modelType != ModelType.IMDP) {
+						prodDistr = new Distribution<>(model.getEvaluator());
+					} else {
+						prodDistrIntv = new Distribution<>(((IMDP<Value>) model).getIntervalEvaluator());
+					}
 				}
 
-				while (iter.hasNext()) {
-					Map.Entry<Integer, Value> e = iter.next();
-					int s_2 = e.getKey();
-					Value prob = e.getValue();
-					int map_2 = newStateMap.apply(q_1, s_2);
+				if (!(model instanceof IntervalModel)) {
+					while (iter.hasNext()) {
+						Map.Entry<Integer, Value> e = iter.next();
+						int s_2 = e.getKey();
+						Value prob = e.getValue();
+						int map_2 = newStateMap.apply(q_1, s_2);
 
-					switch (modelType) {
-					case DTMC:
-						((DTMCSimple<Value>) prodModel).setProbability(map_1, map_2, prob);
-						break;
-					case MDP:
-					case POMDP:
-					case STPG:
-					case SMG:
-					case CSG:
-						prodDistr.set(map_2, prob);
-						break;
-					default:
-						throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
+						switch (modelType) {
+							case DTMC:
+								((DTMCSimple<Value>) prodModel).setProbability(map_1, map_2, prob);
+								break;
+							case MDP:
+							case POMDP:
+							case STPG:
+							case SMG:
+							case CSG:
+								prodDistr.set(map_2, prob);
+								break;
+							default:
+								throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
+						}
+					}
+				} else {
+					while (iterIntv.hasNext()) {
+						Map.Entry<Integer, Interval<Value>> e = iterIntv.next();
+						int s_2 = e.getKey();
+						Interval<Value> prob = e.getValue();
+						int map_2 = newStateMap.apply(q_1, s_2);
+
+						switch (modelType) {
+							case IDTMC:
+								((IDTMCSimple<Value>) prodModel).setProbability(map_1, map_2, prob);
+								break;
+							case IMDP:
+								prodDistrIntv.set(map_2, prob);
+								break;
+							default:
+								throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
+						}
 					}
 				}
 				switch (modelType) {
@@ -760,6 +787,9 @@ public class LTLModelChecker extends PrismComponent
 					break;
 				case POMDP:
 					((POMDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, ((POMDP<Value>) model).getAction(s_1, j));
+					break;
+				case IMDP:
+					((IMDPSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistrIntv, ((IMDP<Value>) model).getAction(s_1, j));
 					break;
 				case STPG:
 					((STPGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, ((STPG<Value>) model).getAction(s_1, j));

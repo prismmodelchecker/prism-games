@@ -43,7 +43,6 @@ import common.IterableStateSet;
 import explicit.rewards.STPGRewards;
 import explicit.rewards.STPGRewardsNestedSimple;
 import prism.PrismException;
-import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
 
@@ -374,36 +373,6 @@ public class STPGAbstrSimple<Value> extends ModelExplicit<Value> implements STPG
 		// TODO: Check for empty distributions sets too?
 	}
 
-	/*@Override
-	public void exportTransitionsToDotFile(int i, PrismLog out, Iterable<explicit.graphviz.Decorator> decorators, int precision)
-	{
-		// Custom dot format for game abstractions
-		// We ignore decorators for the moment
-		int j = -1;
-		for (DistributionSet<Value> distrs : trans.get(i)) {
-			j++;
-			String nij = "n" + i + "_" + j;
-			out.print(i + " -> " + nij + " [ arrowhead=none,label=\"" + j + "\" ];\n");
-			out.print(nij + " [ shape=circle,width=0.1,height=0.1,label=\"\" ];\n");
-			int k = -1;
-			for (Distribution<Value> distr : distrs) {
-				k++;
-				String nijk = "n" + i + "_" + j + "_" + k;
-				out.print(nij + " -> " + nijk + " [ arrowhead=none,label=\"" + k + "\" ];\n");
-				out.print(nijk + " [ shape=point,label=\"\" ];\n");
-				for (Map.Entry<Integer, Value> e : distr) {
-					out.print(nijk + " -> " + e.getKey() + " [ label=\"" + getEvaluator().toStringExport(e.getValue(), precision) + "\" ];\n");
-				}
-			}
-		}
-	}*/
-
-	@Override
-	public void exportToDotFileWithStrat(PrismLog out, BitSet mark, int strat[], int precision)
-	{
-		throw new RuntimeException("Not yet supported");
-	}
-	
 	@Override
 	public String infoString()
 	{

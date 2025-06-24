@@ -1,57 +1,49 @@
 //==============================================================================
-//	
-//	Copyright (c) 2002-
+//
+//	Copyright (c) 2025-
 //	Authors:
-//	* Dave Parker <d.a.parker@cs.bham.ac.uk> (University of Birmingham/Oxford)
-//	
+//	* Dave Parker <david.parker@cs.ox.ac.uk> (University of Oxford)
+//
 //------------------------------------------------------------------------------
-//	
+//
 //	This file is part of PRISM.
-//	
+//
 //	PRISM is free software; you can redistribute it and/or modify
 //	it under the terms of the GNU General Public License as published by
 //	the Free Software Foundation; either version 2 of the License, or
 //	(at your option) any later version.
-//	
+//
 //	PRISM is distributed in the hope that it will be useful,
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//	
+//
 //	You should have received a copy of the GNU General Public License
 //	along with PRISM; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//	
+//
 //==============================================================================
 
 package explicit;
 
-import prism.ModelType;
+import common.Interval;
+import prism.Evaluator;
 import prism.PrismException;
 
-/**
- * Interface for classes that provide (read) access to an explicit-state labelled transition system (LTS).
- */
-public interface LTS<Value> extends NondetModel<Value>
+public interface IntervalModel<Value> extends Model<Value>
 {
-	// Accessors (for Model) - default implementations
-	
-	@Override
-	default ModelType getModelType()
-	{
-		return ModelType.LTS;
-	}
-
-	@Override
-	default void exportToPrismLanguage(String filename, int precision) throws PrismException
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	// Accessors
-	
 	/**
-	 * Get the successor state for the {@code i}th choice/transition from state {@code s}.
+	 * Get an Evaluator for intervals of Value.
+	 * A default implementation tries to create one from the main iterator
+	 * (which itself by default exists for the (usual) case when Value is Double).
 	 */
-	public int getSuccessor(int s, int i);
+	default Evaluator<Interval<Value>> getIntervalEvaluator() throws PrismException
+	{
+		return getEvaluator().createIntervalEvaluator();
+	}
+
+	/**
+	 * Get the underlying model over Interval<Value>.
+	 */
+	Model<Interval<Value>> getIntervalModel();
 }

@@ -167,31 +167,31 @@ public class IterationMethodPower extends IterationMethod {
 	}
 
 	@Override
-	public IterationValIter forMvMultMinMaxUnc(IDTMC<Double> idtmc, MinMax minMax)
+	public IterationValIter forMvMultMinMaxUnc(UDTMC<Double> udtmc, MinMax minMax)
 	{
-		return new TwoVectorIteration(idtmc, null) {
+		return new TwoVectorIteration(udtmc, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				idtmc.mvMultUnc(soln, minMax, soln2, states.iterator());
+				udtmc.mvMultUnc(soln, minMax, soln2, states.iterator());
 			}
 		};
 	}
 
 	@Override
-	public IterationValIter forMvMultRewMinMaxUnc(IDTMC<Double> idtmc, MCRewards<Double> mcRewards, MinMax minMax)
+	public IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax)
 	{
-		return new TwoVectorIteration(idtmc, null) {
+		return new TwoVectorIteration(udtmc, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				idtmc.mvMultRewUnc(soln, mcRewards, minMax, soln2, states.iterator());
+				udtmc.mvMultRewUnc(soln, mcRewards, minMax, soln2, states.iterator());
 			}
 		};
 	}
 
 	@Override
-	public IterationValIter forMvMultMinMaxUnc(IMDP<Double> imdp, MinMax minMax, int[] strat)
+	public IterationValIter forMvMultMinMaxUnc(UMDP<Double> imdp, MinMax minMax, int[] strat)
 	{
 		return new TwoVectorIteration(imdp, null) {
 			@Override
@@ -203,7 +203,7 @@ public class IterationMethodPower extends IterationMethod {
 	}
 	
 	@Override
-	public IterationValIter forMvMultRewMinMaxUnc(IMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat)
+	public IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat)
 	{
 		return new TwoVectorIteration(imdp, null) {
 			@Override

@@ -64,7 +64,7 @@ public interface STPG<Value> extends MDP<Value>, TurnBasedGame
 	}
 	
 	// Accessors
-	
+
 	/**
 	 * Perform a single step of precomputation algorithm Prob0, i.e., for states i in {@code subset},
 	 * set bit i of {@code result} iff, for all/some player 1 choices, for all/some player 2 choices,
