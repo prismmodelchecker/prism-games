@@ -27,6 +27,7 @@
 package prism;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import parser.ast.Coalition;
@@ -75,7 +76,15 @@ public class PlayerInfo
 	}
 	
 	// Mutators
-	
+
+	/**
+	 * Set the number of players. Use this to create player info without names
+	 */
+	public void setNumPlayers(int numPlayers)
+	{
+		this.playerNames = new ArrayList<>(Collections.nCopies(numPlayers, ""));
+	}
+
 	/**
 	 * Add a player, specifying its name.
 	 * Names are optional and can be null or "" if undefined,

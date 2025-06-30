@@ -45,7 +45,15 @@ public interface PlayerInfoOwner
 	public PlayerInfo getPlayerInfo();
 	
 	// Default implementations of methods to modify player info
-	
+
+	/**
+	 * Set the number of players. Use this to create player info without names
+	 */
+	public default void setNumPlayers(int numPlayers)
+	{
+		getPlayerInfo().setNumPlayers(numPlayers);
+	}
+
 	/**
 	 * Add a player, specifying its name.
 	 * Names are optional and can be null or "" if undefined,
