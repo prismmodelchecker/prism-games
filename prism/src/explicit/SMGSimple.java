@@ -80,8 +80,6 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	public SMGSimple()
 	{
 		super();
-		stateOwners = new StateOwnersSimple();
-		playerInfo = new PlayerInfo();
 	}
 
 	/**
@@ -90,8 +88,6 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	public SMGSimple(int numStates)
 	{
 		super(numStates);
-		stateOwners = new StateOwnersSimple(numStates);
-		playerInfo = new PlayerInfo();
 	}
 
 	/**
@@ -117,6 +113,14 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 
 	// Mutators
+
+	@Override
+	public void initialise(int numStates)
+	{
+		super.initialise(numStates);
+		stateOwners = new StateOwnersSimple(numStates);
+		playerInfo = new PlayerInfo();
+	}
 
 	@Override
 	public void clearState(int s)
