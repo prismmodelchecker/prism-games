@@ -27,8 +27,11 @@
 
 package symbolic.model;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Vector;
 
+import io.ModelExportOptions;
 import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
@@ -38,6 +41,7 @@ import prism.ModelType;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
 import prism.PrismException;
+import prism.PrismNotSupportedException;
 
 /**
  * Class for symbolic (BDD-based) representation of an SMG.
@@ -78,6 +82,18 @@ public class GamesModel extends NondetModel implements PlayerInfoOwner
 		super.clear();
 		allDDPlayerVars.derefAll();
 		JDD.DerefArray(ddPlayerCubes, getNumPlayers());
+	}
+
+	@Override
+	public void exportToFile(int exportType, boolean explicit, File file, int precision) throws FileNotFoundException, PrismException
+	{
+		throw new PrismNotSupportedException("Symbolic engine does not support export of " + getModelType() + "s");
+	}
+
+	@Override
+	public void exportToFile(File file, ModelExportOptions exportOptions) throws FileNotFoundException, PrismException
+	{
+		throw new PrismNotSupportedException("Symbolic engine does not support export of " + getModelType() + "s");
 	}
 
 	// Accessors (for PlayerInfoOwner)

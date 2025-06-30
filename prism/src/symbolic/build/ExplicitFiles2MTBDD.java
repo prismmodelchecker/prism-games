@@ -133,6 +133,16 @@ public class ExplicitFiles2MTBDD
 		modelVariables = new ModelVariablesDD();
 		rewardInfo = importer.getRewardInfo();
 
+		// Check model type is supported
+		switch (modelType) {
+			case DTMC:
+			case CTMC:
+			case MDP:
+				break;
+			default:
+				throw new PrismNotSupportedException("Symbolic engine does not support import of " + modelType + "s");
+		}
+
 		// Tell importer we need state-indexed transition rewards
 		importer.setTransitionRewardIndexing(ExplicitModelImporter.TransitionRewardIndexing.STATE);
 
