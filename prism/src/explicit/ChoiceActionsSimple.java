@@ -26,6 +26,8 @@
 
 package explicit;
 
+import prism.JointAction;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -181,7 +183,21 @@ public class ChoiceActionsSimple
 						allActions.add(null);
 					}
 				} else {
-					allActions.addAll(list);
+					// Add all actions to the list,
+					// extracting them from joint actions if necessary
+					for (Object action : list) {
+						if (action instanceof JointAction) {
+							JointAction jointAction = (JointAction) action;
+							for (int p = 0; p < jointAction.size(); p++) {
+								Object pAction = jointAction.get(p);
+								if (pAction != JointAction.IDLE_ACTION) {
+									allActions.add(pAction);
+								}
+							}
+						} else {
+							allActions.add(action);
+						}
+					}
 					if (list.size() < counts.applyAsInt(s)) {
 						// Undersized list means there are unlabelled choices/transitions
 						allActions.add(null);

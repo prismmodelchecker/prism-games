@@ -239,8 +239,7 @@ public class ConstructModel extends PrismComponent
 				break;
 			case CSG:
 				modelSimple = csg = new CSGSimple<>();
-				csg.setActions(modelGen.getActions());
-				break;			
+				break;
 			case MDP:
 				modelSimple = mdp = new MDPSimple<>();
 				break;
@@ -474,7 +473,11 @@ public class ConstructModel extends PrismComponent
 		mainLog.print("Reachable states exploration" + (justReach ? "" : " and model construction"));
 		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
 		//mainLog.println(states);
-		
+
+		// Add idle actions
+		if (modelType == ModelType.CSG)
+			csg.addIdleIndexes();
+
 		// Find/fix deadlocks (if required)
 		if (!justReach && findDeadlocks) {
 			if (modelType != ModelType.CSG) {
@@ -564,10 +567,6 @@ public class ConstructModel extends PrismComponent
 			model.setConstantValues(new Values(modelGen.getConstantValues()));
 		}
 
-		// Add idle actions
-		if (modelType == ModelType.CSG) 
-			csg.addIdleIndexes();
-		
 		// Discard permutation
 		permut = null;
 

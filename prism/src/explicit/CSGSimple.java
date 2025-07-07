@@ -33,7 +33,6 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import prism.JointAction;
 import prism.PlayerInfo;
@@ -44,9 +43,6 @@ import prism.PlayerInfoOwner;
  */
 public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 {
-	/** List of all action labels */
-	protected List<Object> actions;
-	
 	/** List of player action indices for each state/choice,
 	 * stored as an array giving the (1-indexed) index for the action
 	 * performed by each player in this transition, and -1 indicates that the player idles. */
@@ -93,7 +89,6 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		}
 		indexes = csg.getIndexes();
 		playerInfo = new PlayerInfo(csg.playerInfo);
-		actions = csg.getActions();
 		idles = csg.getIdles();
 		/*
 		idle = actions.size() + 1;
@@ -152,7 +147,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 			if (jointAction.get(p) == JointAction.IDLE_ACTION) {
 				indexes[p] = -1;
 			} else {
-				int j = getActions().indexOf(jointAction.get(p));
+				int j = actionList.actionIndex(jointAction.get(p));
 				if (j == -1) {
 					throw new RuntimeException("CSG action labels must be valid JointAction objects");
 				}
@@ -178,7 +173,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	{
 		int numPlayers = getNumPlayers();
 		// Create joint action and store choice in underlying MDP
-		JointAction jointAction = new JointAction(indexes, actions);
+		JointAction jointAction = new JointAction(indexes, getActions());
 		int i = super.addActionLabelledChoice(s, distr, jointAction);
 		// Store indexing info
 		for (int p = 0; p < numPlayers; p++) {
@@ -204,14 +199,6 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		this.transIndexes.get(s).add(i, indexes);
 	}
 
-	/**
-	 * Set the list of all action labels
-	 */
-	public void setActions(List<Object> actions)
-	{
-		this.actions = new ArrayList<>(actions);
-	}
-
 	public void setIndexes(BitSet[] indexes)
 	{
 		this.indexes = indexes;
@@ -224,9 +211,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 	public void addIdleIndexes()
 	{
-		int max = actions.size() + 1;
+		int max = getActions().size() + 1;
 		for (int p = 0; p < idles.length; p++) {
-			actions.add(max - 1, "<" + p + ">");
+			actionList.addAction("<" + p + ">");
 			idles[p] = max++;
 		}
 	}
@@ -281,12 +268,6 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	// Accessors (for CSG)
 
 	@Override
-	public List<Object> getActions()
-	{
-		return actions;
-	}
-
-	@Override
 	public int[] getIndexes(int s, int i)
 	{
 		return transIndexes.get(s).get(i);
@@ -313,7 +294,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		int[] indexes = getIndexes(s, i);
 		String[] result = new String[indexes.length];
 		for (int a = 0; a < indexes.length; a++) {
-			result[a] = (indexes[a] > 0) ? actions.get(indexes[a] - 1).toString() : "<" + a + ">";
+			result[a] = (indexes[a] > 0) ? getActions().get(indexes[a] - 1).toString() : "<" + a + ">";
 		}
 		return result;
 	}
@@ -367,15 +348,6 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		return transIndexes.get(s);
 	}
 
-	public List<Object> getActionsForPlayer(int p)
-	{
-		List<Object> result = new ArrayList<>();
-		for (int i = indexes[p].nextSetBit(0); i >= 0; i = indexes[p].nextSetBit(i + 1)) {
-			result.add(actions.get(i));
-		}
-		return result;
-	}
-
 	public Set<String> getActionsForPlayer(int s, int p)
 	{
 		Set<String> result = new HashSet<String>();
@@ -427,7 +399,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 	public void printModelInfo()
 	{
-		System.out.println(actions);
+		System.out.println(getActions());
 		for (int s = 0; s < getNumStates(); s++) {
 			System.out.print("\n## state " + s + " : " + Arrays.toString(getNumActions(s)));
 			for (int p = 0; p < getNumPlayers(); p++) {

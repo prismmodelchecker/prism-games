@@ -577,7 +577,7 @@ public class LTLModelChecker extends PrismComponent
 
 		// Add more player information for CSGs
 		if (modelType == ModelType.CSG) {
-			((CSGSimple<Value>) prodModel).setActions(((CSG<Value>) model).getActions());
+			((ModelExplicit<Value>) prodModel).setActions(model.getActions());
 			((CSGSimple<Value>) prodModel).setIndexes(((CSG<Value>) model).getIndexes());
 			((CSGSimple<Value>) prodModel).setIdles(((CSG<Value>) model).getIdles());
 		}
