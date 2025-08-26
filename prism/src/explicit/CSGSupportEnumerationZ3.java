@@ -1,4 +1,5 @@
 //==============================================================================
+
 //
 //	Copyright (c) 2020-
 //	Authors:
@@ -12,11 +13,6 @@
 //	it under the terms of the GNU General Public License as published by
 //	the Free Software Foundation; either version 2 of the License, or
 //	(at your option) any later version.
-//
-//	PRISM is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//	GNU General Public License for more details.
 //
 //	You should have received a copy of the GNU General Public License
 //	along with PRISM; if not, write to the Free Software Foundation,
@@ -40,12 +36,12 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration
 	private HashMap<String, String> cfg;
 	private Context ctx;
 	private Solver s;
-
+	
 	private HashMap<Integer, HashMap<Integer, ArithExpr>> assertions;
 	private ArrayList<ArrayList<ArithExpr>> strategies;
 	private ArrayList<ArrayList<Integer>> indexes;
 	private ArrayList<ArithExpr> payoffs;
-
+	
 	private IntNum zero;
 	private IntNum one;
 
@@ -68,7 +64,6 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration
 		cfg.put("model", "true");
 		ctx = new Context(cfg);
 		s = ctx.mkSolver();
-
 		params = ctx.mkParams();
 		params.add("timeout", 20);
 		s.setParameters(params);
@@ -90,7 +85,7 @@ public class CSGSupportEnumerationZ3 implements CSGSupportEnumeration
 				s.add(ctx.mkGe(strategies.get(c).get(a), zero));
 				s.add(ctx.mkLe(strategies.get(c).get(a), one));
 			}
-		}
+		} 
 	}
 
 	public void computeConstraints(BitSet supp)
