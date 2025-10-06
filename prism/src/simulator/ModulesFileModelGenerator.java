@@ -618,18 +618,6 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 
 	@Override
-	public int getTransitionActionIndex(int i, int offset) throws PrismException
-	{
-		TransitionList<?> transitions = getTransitionList();
-		if (!modelType.concurrent()) {
-			int a = transitions.getTransitionModuleOrActionIndex(transitions.getTotalIndexOfTransition(i, offset));
-			return a < 0 ? -1 : a - 1;
-		} else {
-			throw new PrismException("Action index info not available");
-		}
-	}
-
-	@Override
 	public String getTransitionActionString(int i, int offset) throws PrismException
 	{
 		TransitionList<?> transitions = getTransitionList();
@@ -653,18 +641,6 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		} else {
 			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(index)).getActions();
 			return as;
-		}
-	}
-
-	@Override
-	public int getChoiceActionIndex(int index) throws PrismException
-	{
-		TransitionList<?> transitions = getTransitionList();
-		if (!modelType.concurrent()) {
-			int a = transitions.getChoiceModuleOrActionIndex(index);
-			return a < 0 ? -1 : a - 1;
-		} else {
-			throw new PrismException("Action index info not available");
 		}
 	}
 
