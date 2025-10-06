@@ -692,11 +692,11 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		String s = "[";
 		int n = as.length;
 		if (n > 0) {
-			s += as[0] == -1 ? "-" : getActions().get(as[0] - 1);
+			s += as[0] == -1 ? "-" : modulesFile.getSynchs().get(as[0] - 1);
 		}
 		for (int i = 1; i < n; i++) {
 			s += ",";
-			s += as[i] == -1 ? "-" : getActions().get(as[i] - 1);
+			s += as[i] == -1 ? "-" : modulesFile.getSynchs().get(as[i] - 1);
 		}
 		s += "]";
 		return s;
