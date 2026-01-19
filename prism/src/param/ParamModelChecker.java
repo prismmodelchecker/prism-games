@@ -57,8 +57,12 @@ package param;
 import java.util.BitSet;
 import java.util.List;
 
+import explicit.DTMC;
+import explicit.DTMCSimple;
+import explicit.ModelSimple;
 import explicit.rewards.ConstructRewards;
 import explicit.rewards.Rewards;
+import explicit.rewards.RewardsSimple;
 import param.Lumper.BisimType;
 import param.StateEliminator.EliminationOrder;
 import parser.EvaluateContext;
@@ -94,6 +98,7 @@ import parser.type.TypePathBool;
 import parser.type.TypePathDouble;
 import prism.Accuracy;
 import prism.Evaluator;
+import prism.ModelInfo;
 import prism.ModelType;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -109,9 +114,12 @@ import prism.RewardGenerator;
  */
 final public class ParamModelChecker extends PrismComponent
 {
-	// Model file (for reward structures, etc.)
-	private ModulesFile modulesFile = null;
+	// Model info (for reward structures, etc.)
+	private ModelInfo modelInfo = null;
 	private RewardGenerator<?> rewardGen = null;
+
+	// Cached version of the model passed in for model checking, before any conversion
+	private Model<?> modelOrig = null;
 
 	// Properties file (for labels, constants, etc.)
 	private PropertiesFile propertiesFile = null;
@@ -202,14 +210,14 @@ final public class ParamModelChecker extends PrismComponent
 	 * Set the attached model file (for e.g. reward structures when model checking)
 	 * and the attached properties file (for e.g. constants/labels when model checking)
 	 */
-	public void setModelCheckingInfo(ModulesFile modulesFile, PropertiesFile propertiesFile, RewardGenerator<?> rewardGen)
+	public void setModelCheckingInfo(ModelInfo modelInfo, PropertiesFile propertiesFile, RewardGenerator<?> rewardGen)
 	{
-		this.modulesFile = modulesFile;
+		this.modelInfo = modelInfo;
 		this.propertiesFile = propertiesFile;
 		this.rewardGen = rewardGen;
 		// Get combined constant values from model/properties
 		constantValues = new Values();
-		constantValues.addValues(modulesFile.getConstantValues());
+		constantValues.addValues(modelInfo.getConstantValues());
 		if (propertiesFile != null)
 			constantValues.addValues(propertiesFile.getConstantValues());
 	}
@@ -225,10 +233,19 @@ final public class ParamModelChecker extends PrismComponent
 	 * Model check an expression, process and return the result.
 	 * Information about states and model constants should be attached to the model.
 	 * For other required info (labels, reward structures, etc.),
-	 * use the method {@link #setModelCheckingInfo(ModulesFile, PropertiesFile, RewardGenerator)}.
+	 * use the method {@link #setModelCheckingInfo(ModelInfo, PropertiesFile, RewardGenerator)}.
 	 */
 	public Result check(Model<?> model, Expression expr) throws PrismException
 	{
+		// In "exact" mode, we first need to convert the rational probabilities to functions
+		// Also store the original model for later use
+		modelOrig = model;
+		if (mode == ParamMode.EXACT) {
+			FunctionFactory functionFactory = FunctionFactory.createDummy(getSettings());
+			Evaluator<Function> eval = Evaluator.forRationalFunction(functionFactory);
+			model = ModelSimple.copy((Model<BigRational>) model, functionFactory::fromBigRational, eval);
+		}
+
 		functionFactory = ((Evaluator.EvaluatorFunction) model.getEvaluator()).getFunctionFactory();
 		constraintChecker = new ConstraintChecker(numRandomPoints);
 		regionFactory = new BoxRegionFactory(functionFactory, constraintChecker, precision,
@@ -370,7 +387,7 @@ final public class ParamModelChecker extends PrismComponent
 	 * Model check an expression and return a vector result values over all states.
 	 * Information about states and model constants should be attached to the model.
 	 * For other required info (labels, reward structures, etc.),
-	 * use the method {@link #setModelCheckingInfo(ModulesFile, PropertiesFile, RewardGenerator)}.
+	 * use the method {@link #setModelCheckingInfo(ModelInfo, PropertiesFile, RewardGenerator)}.
 	 */
 	RegionValues checkExpression(Model<?> model, Expression expr, BitSet needStates) throws PrismException
 	{
@@ -1060,7 +1077,12 @@ final public class ParamModelChecker extends PrismComponent
 		// Build rewards
 		int r2 = expr.getRewardStructIndexByIndexObject(rewardGen, constantValues);
 		mainLog.println("Building reward structure...");
-		Rewards<?> rew = constructExpectedRewards(model, r2);
+		Rewards<?> rew = constructExpectedRewards(modelOrig, r2);
+
+		// In "exact" mode, we first need to convert the rational rewards to functions
+		if (mode == ParamMode.EXACT) {
+			rew = new RewardsSimple<>((Rewards<BigRational>) rew, model, functionFactory::fromBigRational, (Evaluator<Function>) model.getEvaluator());
+		}
 
 		// Compute rewards
 		rews = checkRewardFormula(model, rew, expr.getExpression(), min, needStates);

@@ -113,6 +113,10 @@ public class ExplicitFiles2Model extends PrismComponent
 			MDP<Value> mdp = isDbl ? (MDP<Value>) new MDPSparse() : new MDPSimple<>();
 			model = (ModelExplicit<Value>) mdp;
 			break;
+		case POMDP:
+			POMDP<Value> pomdp = new POMDPSimple<>();
+			model = (ModelExplicit<Value>) pomdp;
+			break;
 		case IDTMC:
 			IDTMCSimple<Value> idtmc = new IDTMCSimple<>();
 			model = (ModelExplicit<Value>) idtmc;
@@ -143,6 +147,10 @@ public class ExplicitFiles2Model extends PrismComponent
 		} else {
 			((ModelExplicit<Interval<Value>>) model).setEvaluator(eval.createIntervalEvaluator());
 		}
+		List<Object> actions = modelInfo.getActions();
+		if (actions != null) {
+			model.setActions(actions);
+		}
 		model.buildFromExplicitImport(modelImporter);
 		if (model.getModelType().multiplePlayers()) {
 			((PlayerInfoOwner) model).setPlayerNames(modelInfo.getPlayerNames());
@@ -162,6 +170,9 @@ public class ExplicitFiles2Model extends PrismComponent
 		}
 
 		loadStates(modelImporter, model);
+		if (model.getModelType().partiallyObservable()) {
+			loadObservationDefinitions(modelImporter, (POMDPSimple<Value>) model);
+		}
 
 		return model;
 	}
@@ -199,7 +210,28 @@ public class ExplicitFiles2Model extends PrismComponent
 		for (int i = 0; i < numStates; i++) {
 			statesList.add(new State(numVars));
 		}
-		modelImporter.extractStates((s, i, o) -> statesList.get(s).setValue(i, o));
+		modelImporter.extractStates((s, i, v) -> statesList.get(s).setValue(i, v));
 		model.setStatesList(statesList);
+	}
+
+	/**
+	 * Load the observation information, and store in model
+	 */
+	private void loadObservationDefinitions(ExplicitModelImporter modelImporter, POMDPSimple<?> model) throws PrismException
+	{
+		int numObservations = model.getNumObservations();
+		int numObservables = modelImporter.getModelInfo().getNumObservables();
+		List<State> observationsList = new ArrayList<>(numObservations);
+		for (int i = 0; i < numObservations; i++) {
+			observationsList.add(new State(numObservables));
+		}
+		modelImporter.extractObservationDefinitions((o, i, v) -> observationsList.get(o).setValue(i, v));
+		model.setObservationsList(observationsList);
+		List<State> statesList = model.getStatesList();
+		if (statesList != null) {
+			model.setUnobservationsList(new ArrayList<>(statesList));
+		} else {
+			throw new PrismException("Can't load observation definitions without a states list");
+		}
 	}
 }

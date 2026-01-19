@@ -62,7 +62,7 @@ public abstract class ModelExplicit<Value> implements Model<Value>, ActionListOw
 	/**
 	 * Action list
 	 */
-	protected ActionList actionList;
+	protected ActionList actionList = new ActionList(this::findActionsUsed);;
 	/**
 	 * Number of states
 	 */
@@ -170,7 +170,6 @@ public abstract class ModelExplicit<Value> implements Model<Value>, ActionListOw
 	 */
 	public void initialise(int numStates)
 	{
-		actionList = new ActionList(this::findActionsUsed);
 		this.numStates = numStates;
 		initialStates = new ArrayList<Integer>();
 		deadlocks = new TreeSet<Integer>();
@@ -178,6 +177,14 @@ public abstract class ModelExplicit<Value> implements Model<Value>, ActionListOw
 		constantValues = null;
 		varList = null;
 		labels = new TreeMap<String, BitSet>();
+	}
+
+	/**
+	 * Set the list of all action labels
+	 */
+	public void setActions(List<Object> actions)
+	{
+		actionList.setActions(actions);
 	}
 
 	/**

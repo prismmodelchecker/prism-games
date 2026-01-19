@@ -26,6 +26,7 @@
 
 package prism;
 
+import parser.EvaluateContext;
 import parser.VarList;
 import parser.ast.DeclarationType;
 import parser.type.Type;
@@ -42,10 +43,18 @@ import java.util.stream.IntStream;
  */
 public class BasicModelInfo implements ModelInfo
 {
+	/** Constants, optionally */
+	private EvaluateContext ecConstants;
 	/** Model type */
 	private ModelType modelType;
+	/** Action list (optional) */
+	private List<Object> actionList;
 	/** Variable list */
 	private VarList varList;
+	/** Observable name list */
+	private List<String> observableNameList;
+	/** Observable type list */
+	private List<Type> observableTypeList;
 	/** Label names */
 	private List<String> labelNameList;
 	/** Player names */
@@ -59,7 +68,11 @@ public class BasicModelInfo implements ModelInfo
 	public BasicModelInfo(ModelType modelType)
 	{
 		this.modelType = modelType;
+		ecConstants = EvaluateContext.create();
+		actionList = null;
 		varList = new VarList();
+		observableNameList = new ArrayList<>();
+		observableTypeList = new ArrayList<>();
 		labelNameList = new ArrayList<>();
 		playerNameList = new ArrayList<>();
 	}
@@ -75,11 +88,35 @@ public class BasicModelInfo implements ModelInfo
 	}
 
 	/**
+	 * Set the list used to store actions.
+	 */
+	public void setActionList(List<Object> actionList)
+	{
+		this.actionList = actionList;
+	}
+
+	/**
 	 * Set the {@link VarList} used to store variable info.
 	 */
 	public void setVarList(VarList varList)
 	{
 		this.varList = varList;
+	}
+
+	/**
+	 * Set the list used to store observable names.
+	 */
+	public void setObservableNameList(List<String> observableNameList)
+	{
+		this.observableNameList = observableNameList;
+	}
+
+	/**
+	 * Set the list used to store observable types.
+	 */
+	public void setObservableTypeList(List<Type> observableTypeList)
+	{
+		this.observableTypeList = observableTypeList;
 	}
 
 	/**
@@ -99,11 +136,35 @@ public class BasicModelInfo implements ModelInfo
 	}
 
 	/**
+	 * Get the list used to store actions (may be null).
+	 */
+	public List<Object> getActionList()
+	{
+		return actionList;
+	}
+
+	/**
 	 * Get the {@link VarList} used to store variable info.
 	 */
 	public VarList getVarList()
 	{
 		return varList;
+	}
+
+	/**
+	 * Get the list used to store observable names.
+	 */
+	public List<String> getObservableNameList()
+	{
+		return observableNameList;
+	}
+
+	/**
+	 * Get the list used to store observable types.
+	 */
+	public List<Type> getObservableTypeList()
+	{
+		return observableTypeList;
 	}
 
 	/**
@@ -131,25 +192,95 @@ public class BasicModelInfo implements ModelInfo
 	}
 
 	@Override
+	public void setSomeUndefinedConstants(EvaluateContext ecUndefined) throws PrismException
+	{
+		this.ecConstants = ecUndefined == null ? EvaluateContext.create() : EvaluateContext.create(ecUndefined);
+	}
+
+	@Override
+	public EvaluateContext getEvaluateContext()
+	{
+		return ecConstants;
+	}
+
+	@Override
+	public List<Object> getActions()
+	{
+		return actionList;
+	}
+
+	@Override
+	public int getNumVars()
+	{
+		// Override default implementation that calls (slow) getVarNames()
+		return varList.getNumVars();
+	}
+
+	@Override
 	public List<String> getVarNames()
 	{
-		return IntStream.range(0, varList.getNumVars())
+		int numVars = varList.getNumVars();
+		List<String> varNames = new ArrayList<>(numVars);
+		for (int i = 0; i < numVars; i++) {
+			varNames.add(varList.getName(i));
+		}
+		return varNames;
+		/*return IntStream.range(0, varList.getNumVars())
 				.mapToObj(varList::getName)
-				.collect(Collectors.toCollection(ArrayList::new));
+				.collect(Collectors.toCollection(ArrayList::new));*/
+	}
+
+	@Override
+	public int getVarIndex(String name)
+	{
+		// Override default implementation that calls (slow) getVarNames()
+		return varList.getIndex(name);
+	}
+
+	@Override
+	public String getVarName(int i)
+	{
+		// Override default implementation that calls (slow) getVarNames()
+		return varList.getName(i);
 	}
 
 	@Override
 	public List<Type> getVarTypes()
 	{
-		return IntStream.range(0, varList.getNumVars())
+		int numVars = varList.getNumVars();
+		List<Type> varTypes = new ArrayList<>(numVars);
+		for (int i = 0; i < numVars; i++) {
+			varTypes.add(varList.getType(i));
+		}
+		return varTypes;
+		/*return IntStream.range(0, varList.getNumVars())
 				.mapToObj(varList::getType)
-				.collect(Collectors.toCollection(ArrayList::new));
+				.collect(Collectors.toCollection(ArrayList::new));*/
+	}
+
+	@Override
+	public Type getVarType(int i) throws PrismException
+	{
+		// Override default implementation that calls (slow) getVarNames()
+		return varList.getType(i);
 	}
 
 	@Override
 	public DeclarationType getVarDeclarationType(int i)
 	{
 		return varList.getDeclarationType(i);
+	}
+
+	@Override
+	public List<String> getObservableNames()
+	{
+		return observableNameList;
+	}
+
+	@Override
+	public List<Type> getObservableTypes()
+	{
+		return  observableTypeList;
 	}
 
 	@Override

@@ -135,6 +135,20 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 
 	/**
 	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
+	 * This method assumes that {@link BigRational}s are used to represent probabilities exactly.
+	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<BigRational>}.
+	 * Throw an explanatory exception if the model generator cannot be created.
+	 * @param modulesFile The PRISM model
+	 * @param parent Parent, used e.g. for settings (can be null)
+	 */
+	public static ModulesFileModelGenerator<BigRational> createForRationals(ModulesFile modulesFile, PrismComponent parent) throws PrismException
+	{
+		Evaluator<BigRational> eval = Evaluator.forBigRational();
+		return new ModulesFileModelGenerator<>(modulesFile, eval, parent);
+	}
+
+	/**
+	 * Build a ModulesFileModelGenerator for a particular PRISM model, represented by a {@link ModulesFile} instance.
 	 * This method assumes that Functions are used to represent probabilities parametrically.
 	 * Use this method to guarantee getting a {@code ModulesFileModelGenerator<Function>}.
 	 * Throw an explanatory exception if the model generator cannot be created.
@@ -391,7 +405,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	{
 		return modulesFile.isVarObservable(i);
 	}
-	
+
 	@Override
 	public List<Object> getActions()
 	{
@@ -859,7 +873,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 	
 	@Override
-	public Value getStateReward(int r, State state) throws PrismException
+	public Value getStateReward(int r, State state, boolean allowNegative) throws PrismException
 	{
 		RewardStruct rewStr = modulesFile.getRewardStruct(r);
 		int n = rewStr.getNumItems();
@@ -878,12 +892,12 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 						if (!eval.isFinite(rew)) {
 							throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
 						}
-						// For now, disable negative reward check for CSGs
-						if (modelType != ModelType.CSG) {
-							if (!eval.geq(rew, eval.zero())) {
-								throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
-							}
-						}
+                        // For now, disable negative reward check for CSGs
+                        if (modelType != ModelType.CSG) {
+                            if (!allowNegative && !eval.geq(rew, eval.zero())) {
+                                throw new PrismLangException("Reward structure is negative (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
+                            }
+                        }
 					}
 					d = eval.add(d, rew);
 				}
@@ -893,7 +907,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 
 	@Override
-	public Value getStateActionReward(int r, State state, Object action) throws PrismException
+	public Value getStateActionReward(int r, State state, Object action, boolean allowNegative) throws PrismException
 	{
 		RewardStruct rewStr = modulesFile.getRewardStruct(r);
 		int n = rewStr.getNumItems();
@@ -915,7 +929,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 								if (!eval.isFinite(rew)) {
 									throw new PrismLangException("Reward structure is not finite at state " + state, rewStr.getReward(i));
 								}
-								if (!eval.geq(rew, eval.zero())) {
+								if (!allowNegative && !eval.geq(rew, eval.zero())) {
 									throw new PrismLangException("Reward structure is negative + (" + rew + ") at state " + state, originalModulesFile.getRewardStruct(r).getReward(i));
 								}
 							}

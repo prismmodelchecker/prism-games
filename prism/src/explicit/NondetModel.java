@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.PrimitiveIterator;
 import java.util.function.IntPredicate;
 
@@ -40,6 +41,7 @@ import common.IterableStateSet;
 import explicit.graphviz.Decoration;
 import explicit.graphviz.Decorator;
 import io.ModelExportOptions;
+import prism.ActionList;
 import prism.PrismException;
 import prism.PrismLog;
 import strat.MDStrategy;
@@ -107,6 +109,15 @@ public interface NondetModel<Value> extends Model<Value>
 	Object getAction(int s, int i);
 
 	/**
+	 * Get the string representation of the action label for choice {@code i} of state {@code s}.
+	 * The string is "" for an unlabelled choice.
+	 */
+	default String getActionString(int s, int i)
+	{
+		return ActionList.actionString(getAction(s, i));
+	}
+
+	/**
 	 * Get the index of the action label for choice {@code i} of state {@code s}.
 	 * Indices are into the list given by {@link #getActions()},
 	 * which includes null if there are unlabelled choices,
@@ -132,19 +143,15 @@ public interface NondetModel<Value> extends Model<Value>
 
 	/**
 	 * Get the index of the (first) choice in state {@code s} with action label {@code action}.
-	 * Action labels (which are {@link Object}s) are tested for equality using {@link Object#equals(Object)}.
+	 * Action labels (which are {@link Object}s) are tested for equality using
+	 * {@link Objects#equals(Object, Object)}, i.e., including null matching null.
 	 * Returns -1 if there is no matching action.
 	 */
 	default int getChoiceByAction(int s, Object action)
 	{
 		int numChoices = getNumChoices(s);
 		for (int i = 0; i < numChoices; i++) {
-			Object a = getAction(s, i);
-			if (a == null) {
-				if (action == null) {
-					return i;
-				}
-			} else if (a.equals(action)) {
+			if (Objects.equals(getAction(s, i), action)) {
 				return i;
 			}
 		}

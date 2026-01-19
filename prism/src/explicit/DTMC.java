@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.PrimitiveIterator;
 import java.util.PrimitiveIterator.OfInt;
 import java.util.TreeMap;
@@ -47,6 +48,7 @@ import common.iterable.FunctionalIterator;
 import common.iterable.PrimitiveIterable;
 import common.iterable.Reducible;
 import explicit.rewards.MCRewards;
+import prism.ActionList;
 import prism.ModelType;
 import prism.Pair;
 import prism.PrismException;
@@ -161,6 +163,47 @@ public interface DTMC<Value> extends Model<Value>
 				return actionIndex(iter.next());
 			}
 		};
+	}
+
+	/**
+	 * Get an iterator over the strings representing actions attached to transitions from state s.
+	 */
+	public default Iterator<String> getActionStringsIterator(int s)
+	{
+		// Default implementation looks up indices from getActionsIterator
+		return new Iterator<String>()
+		{
+			private final Iterator<Object> iter = getActionsIterator(s);
+
+			@Override
+			public boolean hasNext()
+			{
+				return iter.hasNext();
+			}
+
+			@Override
+			public String next()
+			{
+				return ActionList.actionString(iter.next());
+			}
+		};
+	}
+
+	/**
+	 * Get the index of the (first) transition in state {@code s} with action label {@code action}.
+	 * Action labels (which are {@link Object}s) are tested for equality using
+	 * {@link Objects#equals(Object, Object)}, i.e., including null matching null.
+	 * Returns -1 if there is no matching action.
+	 */
+	default int getTransitionByAction(int s, Object action)
+	{
+		Iterator<Object> iter = getActionsIterator(s);
+		for (int i = 0; iter.hasNext(); i++) {
+			if (Objects.equals(iter.next(), action)) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	/**

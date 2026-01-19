@@ -188,6 +188,12 @@ public class VarList
 			low = 0;
 			high = 1;
 		}
+		// Variable is an (unbounded) double
+		else if (declType instanceof DeclarationDoubleUnbounded) {
+			// Create dummy range info
+			low = 0;
+			high = 1;
+		}
 		else {
 			throw new PrismLangException("Unknown variable type \"" + declType + "\" in declaration", declType);
 		}
@@ -345,7 +351,7 @@ public class VarList
 			}
 			// Anything else
 			else {
-				throw new PrismLangException("Unknown type " + type + " for variable " + getName(i));
+				throw new PrismLangException("Unsupported type " + type + " for variable " + getName(i));
 			}
 		} catch (ClassCastException e) {
 			throw new PrismLangException("Value " + val + " is wrong type for variable " + getName(i));
@@ -382,7 +388,7 @@ public class VarList
 		}
 		// Anything else
 		else {
-			throw new PrismLangException("Unknown type " + type + " for variable " + getName(i));
+			throw new PrismLangException("Unsupported type " + type + " for variable " + getName(i));
 		}
 	}
 

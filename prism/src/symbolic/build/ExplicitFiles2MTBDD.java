@@ -45,6 +45,7 @@ import prism.Prism;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import prism.PrismSettings;
 import prism.ProgressDisplay;
 import prism.RewardInfo;
 import symbolic.model.Model;
@@ -219,8 +220,6 @@ public class ExplicitFiles2MTBDD
 		// construct labels and init state info
 		buildLabelsAndInitialStates();
 
-		Values constantValues = new Values(); // no constants
-
 		// create new Model object to be returned
 		// they need a module name list, so we fake that
 		int numModules = 1;
@@ -237,7 +236,7 @@ public class ExplicitFiles2MTBDD
 			model = new StochModel(trans, start, allDDRowVars, allDDColVars, modelVariables,
 					varList, varDDRowVars, varDDColVars);
 		}
-		model.setConstantValues(constantValues);
+		model.setConstantValues(modelInfo.getConstantValues());
 
 		// compute/set rewards
 		buildStateRewards();
@@ -296,6 +295,8 @@ public class ExplicitFiles2MTBDD
 
 		modelVariables = new ModelVariablesDD();
 
+		modelVariables.preallocateExtraActionVariables(prism.getSettings().getInteger(PrismSettings.PRISM_DD_EXTRA_ACTION_VARS));
+		
 		// create arrays/etc. first
 
 		// module variable (row/col) vars
@@ -476,7 +477,7 @@ public class ExplicitFiles2MTBDD
 			labelDeadlock = JDD.Or(labelDeadlock, encodeState(s));
 		});
 		if (start == null || start.equals(JDD.ZERO)) {
-			throw new PrismException("No initial states found in labels file");
+			throw new PrismException("No initial states found");
 		}
 		// Store label map
 		labelsDD = new LinkedHashMap<>();

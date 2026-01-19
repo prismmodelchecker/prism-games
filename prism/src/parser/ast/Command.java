@@ -199,7 +199,7 @@ public class Command extends ASTElement
 		// of action labels or a single empty action ("")  
 		return "".equals(getSynch());
 	}
-	
+
 	public Expression getGuard()
 	{
 		return guard;

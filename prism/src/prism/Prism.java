@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import common.iterable.Range;
 import dv.DoubleVector;
@@ -237,6 +238,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private static PrismParser thePrismParser = null;
 	private static boolean prismParserInUse = false;
 	private SimulatorEngine theSimulator = null;
+
+	/** Regexp for PRISM language identifiers */
+	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[_a-zA-Z][_a-zA-Z0-9]*");
 
 	//------------------------------------------------------------------------------
 	// Event listeners
@@ -1672,7 +1676,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 */
 	public static boolean isValidIdentifier(String s)
 	{
-		return s.matches("[_a-zA-Z][_a-zA-Z0-9]*") && !PrismParser.isKeyword(s);
+		if (s == null || s.isEmpty()) {
+			return false;
+		}
+		char first = s.charAt(0);
+		if (!(first == '_' || Character.isLetter(first))) {
+			return false;
+		}
+		if (!IDENTIFIER_PATTERN.matcher(s).matches()) {
+			return false;
+		}
+		return !PrismParser.isKeyword(s);
 	}
 
 	/**
@@ -1938,6 +1952,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (modelInfo instanceof ModulesFile) {
 			mainLog.println("Modules:     " + String.join(" ", ((ModulesFile) modelInfo).getModuleNames()));
 		}
+		if (modelInfo.getActions() != null) {
+			mainLog.println("Actions:     " + String.join(" ", modelInfo.getBracketedActionStrings()));
+		}
 		mainLog.println("Variables:   " + String.join(" ", modelInfo.getVarNames()));
 		if (modelInfo.getModelType().partiallyObservable()) {
 			mainLog.println("Observables: " + "\"" + String.join("\" \"", modelInfo.getObservableNames()) + "\"");
@@ -2038,10 +2055,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 						mfmg = ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), paramNames, paramLowerBounds, paramUpperBounds, this);
 					} else if (getCurrentEngine() == PrismEngine.EXACT) {
 						// Exact model checking uses rationals
-						mfmg = ModulesFileModelGenerator.createForRationalFunctions(getPRISMModel(), this);
+						mfmg = ModulesFileModelGenerator.createForRationals(getPRISMModel(), this);
 					} else {
 						// Anything else (explicit engine, simulation, etc.) uses doubles
-						mfmg = ModulesFileModelGenerator.create(getPRISMModel(), this);
+						mfmg = ModulesFileModelGenerator.createForDoubles(getPRISMModel(), this);
 					}
 					setModelGenerator(mfmg);
 					setRewardGenerator(mfmg);
@@ -2725,6 +2742,26 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Export multiple model export tasks, building the model first if needed.
+	 * @param modelExportTasks List of export tasks
+	 */
+	public void exportBuiltModelTasks(List<ModelExportTask> modelExportTasks) throws PrismException
+	{
+		// Build model, if necessary
+		// (allows us to more easily compute the time for all exports)
+		buildModelIfRequired();
+
+		// Then do export tasks
+		mainLog.println();
+		long timer = System.currentTimeMillis();
+		for (ModelExportTask exportTask : modelExportTasks) {
+			exportBuiltModelTask(exportTask);
+		}
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Time for exporting: " + timer / 1000.0 + " seconds.");
+	}
+
+	/**
 	 * Perform an export task for the current model, building it first if needed.
 	 * @param exportTask Export task
 	 */
@@ -2734,43 +2771,31 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (!exportTask.isApplicable(getModelInfo())) {
 			return;
 		}
-		boolean engineSwitch = false;
-		int lastEngine = -1;
-		try {
-			// NB: currently no engine auto-switch needed
-			// Build model, if necessary
-			buildModelIfRequired();
-			// Merge export options with PRISM settings and do export
-			mainLog.println("\n" + exportTask.getMessage());
-			ModelExportOptions exportOptions = newMergedModelExportOptions(exportTask.getExportOptions());
-			//long timer = System.currentTimeMillis();
-			switch (exportTask.getEntity()) {
-				case MODEL:
-					doExportBuiltModel(new ModelExportTask(exportTask, exportOptions));
-					break;
-				case STATE_REWARDS:
-					doExportBuiltModelStateRewards(exportTask.getFile(), exportOptions);
-					break;
-				case TRANSITION_REWARDS:
-					doExportBuiltModelTransRewards(exportTask.getFile(), exportOptions);
-					break;
-				case STATES:
-					doExportBuiltModelStates(exportTask.getFile(), exportOptions);
-					break;
-				case OBSERVATIONS:
-					doExportBuiltModelObservations(exportTask.getFile(), exportOptions);
-					break;
-				case LABELS:
-					doExportBuiltModelLabels(new ModelExportTask(exportTask, exportOptions));
-					break;
-			}
-			//timer = System.currentTimeMillis() - timer;
-			//mainLog.println("Time for model export: " + timer / 1000.0 + " seconds.");
-		} finally {
-			// Undo auto-switch (if any)
-			if (engineSwitch) {
-				setEngine(lastEngine);
-			}
+		// NB: currently no engine auto-switch needed
+		// Build model, if necessary
+		buildModelIfRequired();
+		// Merge export options with PRISM settings and do export
+		mainLog.println( exportTask.getMessage());
+		ModelExportOptions exportOptions = newMergedModelExportOptions(exportTask.getExportOptions());
+		switch (exportTask.getEntity()) {
+			case MODEL:
+				doExportBuiltModel(new ModelExportTask(exportTask, exportOptions));
+				break;
+			case STATE_REWARDS:
+				doExportBuiltModelStateRewards(exportTask.getFile(), exportOptions);
+				break;
+			case TRANSITION_REWARDS:
+				doExportBuiltModelTransRewards(exportTask.getFile(), exportOptions);
+				break;
+			case STATES:
+				doExportBuiltModelStates(exportTask.getFile(), exportOptions);
+				break;
+			case OBSERVATIONS:
+				doExportBuiltModelObservations(exportTask.getFile(), exportOptions);
+				break;
+			case LABELS:
+				doExportBuiltModelLabels(new ModelExportTask(exportTask, exportOptions));
+				break;
 		}
 	}
 
@@ -3390,11 +3415,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
 			} else if (getCurrentEngine() == PrismEngine.EXACT) {
 				ParamModelChecker mc = new ParamModelChecker(this, ParamMode.EXACT);
-				mc.setModelCheckingInfo(getPRISMModel(), propertiesFile, getRewardGenerator());
+				mc.setModelCheckingInfo(getModelInfo(), propertiesFile, getRewardGenerator());
 				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
 			} else if (getCurrentEngine() == PrismEngine.PARAM) {
 				ParamModelChecker mc = new ParamModelChecker(this, ParamMode.PARAMETRIC);
-				mc.setModelCheckingInfo(getPRISMModel(), propertiesFile, getRewardGenerator());
+				mc.setModelCheckingInfo(getModelInfo(), propertiesFile, getRewardGenerator());
 				res = mc.check(getBuiltModelExplicit(), prop.getExpression());
 			}
 			
@@ -4693,10 +4718,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			case Prism.EXPORT_DOT:
 				exportOptions.setFormat(ModelExportFormat.DOT);
 				exportOptions.setShowStates(false);
+				exportOptions.setShowObservations(false);
 				break;
 			case Prism.EXPORT_DOT_STATES:
 				exportOptions.setFormat(ModelExportFormat.DOT);
 				exportOptions.setShowStates(true);
+				exportOptions.setShowObservations(true);
 				break;
 			case Prism.EXPORT_ROWS:
 				exportOptions.setFormat(ModelExportFormat.EXPLICIT);

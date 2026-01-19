@@ -36,6 +36,7 @@ package parser;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -55,14 +56,15 @@ public class PrismParser
 	private static ModelInfo modelInfo;
 	
 	// List of keyword strings
-	private static ArrayList<String> keywordList = new ArrayList<String>();
+	private static ArrayList<String> keywordList = new ArrayList<>();
 	static {
 		keywordList.clear();
 		for (int i = PrismParserConstants.COMMENT+1; i < PrismParserConstants.NOT; i++) {
 			keywordList.add(PrismParserConstants.tokenImage[i].replaceAll("\"", ""));
 		}
 	}
-	
+	private static HashSet<String> keywordSet = new HashSet<>(keywordList);
+
 	//-----------------------------------------------------------------------------------
 	// Main method for testing purposes
 	//-----------------------------------------------------------------------------------
@@ -334,7 +336,7 @@ public class PrismParser
 	 */
 	public static boolean isKeyword(String s)
 	{
-		return keywordList.contains(s);
+		return keywordSet.contains(s);
 	}
 	
 	/**
@@ -1651,7 +1653,7 @@ Expression ExpressionLiteral(boolean prop, boolean pathprop) :
 
 // Expression: parentheses
 
-Expression ExpressionParenth(boolean prop, boolean pathprop) throws PrismLangException : 
+Expression ExpressionParenth(boolean prop, boolean pathprop) throws PrismLangException :
 {
 	Expression expr, ret;
 	Token begin = null;
@@ -1880,9 +1882,9 @@ void RewardIndex(ExpressionReward exprRew) throws PrismLangException :
 {
 	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
 	(<LBRACE> (
-	( 
+	(
 	 LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | <DISCOUNT><EQ>discount=Expression(false, false) | index = Expression(false, false)  )
-	) 
+	)
 	(<COMMA><DISCOUNT><EQ> discount=Expression(false,false))?
 	<RBRACE>)
 	// Optional second reward structure index (for ratio objectives)
@@ -1924,7 +1926,7 @@ Expression ExpressionRewardContents(boolean prop, boolean pathprop) throws Prism
 	| <I> <EQ> expr = Expression(false, false) { exprTemp = new ExpressionTemporal(ExpressionTemporal.R_I, null, null); exprTemp.setUpperBound(expr); ret = exprTemp; }
 	| <Fc> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_Fc, null, expr); }
 	| <F0> expr = Expression(prop, pathprop) { ret = new ExpressionTemporal(ExpressionTemporal.R_F0, null, expr); }
-	
+
 	// Path formula (including F "target")
 	| expr = Expression(prop, true) { ret = expr; }
 	)
@@ -1949,7 +1951,7 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) throws PrismLangE
 	{ if (!prop) throw generateParseException(); }
 	(
 	<MIN> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "min="; isBool = false; } )
-	|	
+	|
 	<MAX> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "max="; isBool = false; } )
 	)
 	(
@@ -1992,7 +1994,7 @@ ExpressionQuant ExpressionMultiNashProb(boolean prop, boolean pathprop) throws P
 		ret.setExpression(expr);
 		ret.setPosition(begin, getToken(0));
 		return ret;
-	}	
+	}
 }
 
 // (Property) expression: reward operator (n-player Nash)
@@ -2007,7 +2009,7 @@ ExpressionQuant ExpressionMultiNashReward(boolean prop, boolean pathprop) throws
 	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
 	// Various options for "R" keyword and attached symbols
-	(	  
+	(
 		begin = <R> MultiNashRewardIndexes(ret) <LBRACKET> expr = ExpressionRewardContents(prop, pathprop) <RBRACKET>
 	)
 	{
@@ -2025,8 +2027,8 @@ void MultiNashRewardIndexes(ExpressionMultiNashReward exprMultiNash) throws Pris
 }
 {
   	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
-	(<LBRACE> 
-	(LOOKAHEAD(<DQUOTE>) (<DQUOTE> index = Identifier() <DQUOTE>) | index = Expression(false, false)) 
+	(<LBRACE>
+	(LOOKAHEAD(<DQUOTE>) (<DQUOTE> index = Identifier() <DQUOTE>) | index = Expression(false, false))
 	<RBRACE>)
 	{
 		exprMultiNash.setRewardStructIndex(index);
@@ -2115,7 +2117,7 @@ List<Coalition> ExpressionStrategyCoalitionList() :
 {
 	( coalition = ExpressionStrategyCoalition() { coalitions.add(coalition); }
 	(<COLON> coalition = ExpressionStrategyCoalition() { coalitions.add(coalition);} )*	)
-	{ return coalitions; }	
+	{ return coalitions; }
 }
 
 // Coalition (player list) for a strategy (<<>> or [[]]) operator

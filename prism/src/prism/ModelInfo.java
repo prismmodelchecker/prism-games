@@ -30,6 +30,7 @@ package prism;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import parser.EvaluateContext;
 import parser.EvaluateContext.EvalMode;
@@ -115,6 +116,55 @@ public interface ModelInfo
 	{
 		// By default, assume there are no constants to define (and FP)
 		return EvaluateContext.create(new Values());
+	}
+
+	/**
+	 * Get a list of the action labels attached to choices/transitions.
+	 * This can be a superset of the action labels that are actually used in the model.
+	 * Action labels can be any Object, but will often be treated as a string,
+	 * so should at least have a meaningful toString() method implemented.
+	 * Absence of an action label is denoted by null,
+	 * and null is also included in this list if there are unlabelled choices/transitions.
+	 * <br><br>
+	 * This is optional - the default implementation just returns null,
+	 * which means that this info is not being provided by this class.
+	 * But it can help for more efficient mapping of actions to indices.
+	 */
+	public default List<Object> getActions()
+	{
+		// Default implementation just says that info is unavailable
+		return null;
+	}
+
+	/**
+	 * Get a list of the string representations of the action labels attached
+	 * to choices/transitions, i.e., {@link #getActions()} converted to strings.
+	 * This can be a superset of the action labels that are actually used in the model.
+	 * If there are unlabelled choices/transitions, the empty string "" is included in this list.
+	 * <br><br>
+	 * This is optional - the default implementation just returns null,
+	 * which means that this info is not being provided by this class.
+	 */
+	public default List<String> getActionStrings()
+	{
+		return getActions() == null ? null : getActions().stream()
+				.map(ActionList::actionString)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Get a list of the string representations of the action labels attached
+	 * to choices/transitions, like {@link #getActionStrings()}), but with
+	 * actions formatted as [a], for easier display of empty ("") actions.
+	 * <br><br>
+	 * This is optional - the default implementation just returns null,
+	 * which means that this info is not being provided by this class.
+	 */
+	public default List<String> getBracketedActionStrings()
+	{
+		return getActions() == null ? null : getActions().stream()
+				.map(a -> "[" + ActionList.actionString(a) + "]")
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -312,21 +362,6 @@ public interface ModelInfo
 			}
 		}
 		return list;
-	}
-	
-	/**
-	 * Get a list of possible actions that may label choices/transitions in the model.
-	 * This can be a superset of the ones that actually end up being used.
-	 * This is optional - the default implementation just returns null,
-	 * which means that this info is not being provided by this class.
-	 * But it can help for more efficient processing of actions (in conjunction with
-	 * implementation of {@link ModelGenerator#getChoiceActionIndex} etc. in ModelGenerator).
-	 * It is also required for concurrent games.
-	 */
-	public default List<Object> getActions()
-	{
-		// Default implementation just says that info is unavailable 
-		return null;
 	}
 	
 	/**
