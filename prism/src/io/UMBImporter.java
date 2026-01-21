@@ -50,6 +50,7 @@ import prism.RewardInfo;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -202,6 +203,10 @@ public class UMBImporter extends ExplicitModelImporter
 		// Create BasicModelInfo object
 		ModelType modelType = getModelTypeFromIndex(umbIndex);
 		basicModelInfo = new BasicModelInfo(modelType);
+		// Extract player names
+		if (modelType.multiplePlayers()) {
+			basicModelInfo.getPlayerNameList().addAll(umbIndex.getPlayerNames());
+		}
 		// Extract/initialise action list
 		ArrayList<Object> actionStrings = new ArrayList<>();
 		try {
@@ -292,6 +297,8 @@ public class UMBImporter extends ExplicitModelImporter
 				return ModelType.IMDP;
 			case IPOMDP:
 				return ModelType.IPOMDP;
+			case TSG:
+				return ModelType.SMG;
 			default:
 				throw new PrismException("Unsupported model type " + modelType + " in UMB file");
 		}
@@ -449,7 +456,17 @@ public class UMBImporter extends ExplicitModelImporter
 	@Override
 	public void extractStateOwners(IOUtils.StateValueConsumer<Integer> storeStateOwner) throws PrismException
 	{
-		// TODO
+		try {
+			// Extract players owning states from UMB
+			IntList stateOwners = new IntArrayList(numStates);
+			umbReader.extractStatePlayers(stateOwners::add);
+			// Store player info in model
+			for (int s = 0; s < numStates; s++) {
+				storeStateOwner.accept(s, stateOwners.getInt(s));
+			}
+		} catch (UMBException e) {
+			throw new PrismException("UMB import problem: " + e.getMessage());
+		}
 	}
 
 	@Override

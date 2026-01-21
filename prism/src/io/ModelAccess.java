@@ -37,6 +37,7 @@ import it.unimi.dsi.fastutil.ints.IntIterators;
 import param.BigRational;
 import prism.Evaluator;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -78,6 +79,13 @@ public interface ModelAccess<Value>
 	 * Get the number of players.
 	 */
 	int getNumPlayers();
+
+	/**
+	 * Get the names of players.
+	 * Returns a list of size {@link #getNumPlayers()}. Names that are undefined are "",
+	 * including the special case of a 1-player (non-game) model.
+	 */
+	List<String> getPlayerNames();
 
 	/**
 	 * Get the number of observations.
@@ -153,6 +161,12 @@ public interface ModelAccess<Value>
 	 * Get the exit rate for state {@code s} of a CTMC (returns null for other models).
 	 */
 	Value getExitRate(int s);
+
+	/**
+	 * Get the index (0-indexed) of the player that owns state {@code s}
+	 * for a turn-based game model (returns -1 for other models).
+	 */
+	int getStatePlayer(int s);
 
 	/**
 	 * Get the action label for choice {@code i} of state {@code s}.
@@ -240,6 +254,17 @@ public interface ModelAccess<Value>
 			}
 
 			@Override
+			public List<String> getPlayerNames()
+			{
+				int numPlayers = getNumPlayers();
+				if (model instanceof PlayerInfoOwner) {
+					return ((PlayerInfoOwner) model).getPlayerNames();
+				} else {
+					return Collections.nCopies(numPlayers, "");
+				}
+			}
+
+			@Override
 			public int getNumObservations()
 			{
 				if (getModelType().partiallyObservable()) {
@@ -294,6 +319,16 @@ public interface ModelAccess<Value>
 					return ((CTMC<Value>) model).getExitRate(s);
 				} else {
 					return null;
+				}
+			}
+
+			@Override
+			public int getStatePlayer(int s)
+			{
+				if (model instanceof TurnBasedGame) {
+					return ((TurnBasedGame) model).getPlayer(s);
+				} else {
+					return -1;
 				}
 			}
 
@@ -548,6 +583,22 @@ public interface ModelAccess<Value>
 	default Iterator<?> getExitRatesAsPrimitives()
 	{
 		return valuesToPrimitives(getExitRates());
+	}
+
+	/**
+	 * Get the indices (0-indexed) of the players owning each state
+	 * for a turn-based game model (returns -1s for other models).
+	 */
+	default PrimitiveIterator.OfInt getStatePlayers()
+	{
+		return new ModelAccessIterators.GetStateIntValues<>(this)
+		{
+			@Override
+			public int getIntValue()
+			{
+				return model.getStatePlayer(s);
+			}
+		};
 	}
 
 	/**

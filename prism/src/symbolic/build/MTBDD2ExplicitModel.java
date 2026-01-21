@@ -27,14 +27,7 @@
 package symbolic.build;
 
 import common.SafeCast;
-import explicit.CTMCSimple;
-import explicit.DTMC;
-import explicit.DTMCSimple;
-import explicit.Distribution;
-import explicit.MDP;
-import explicit.MDPSimple;
-import explicit.ModelExplicit;
-import explicit.SuccessorsIterator;
+import explicit.*;
 import explicit.rewards.Rewards;
 import explicit.rewards.Rewards2RewardGenerator;
 import explicit.rewards.RewardsExplicit;
@@ -44,12 +37,8 @@ import jdd.JDD;
 import jdd.JDDNode;
 import jdd.JDDVars;
 import odd.ODDNode;
-import prism.Evaluator;
-import prism.Pair;
-import prism.PrismComponent;
-import prism.PrismException;
-import prism.RewardGenerator;
-import prism.RewardInfo;
+import prism.*;
+import symbolic.model.GamesModel;
 import symbolic.model.NondetModel;
 import symbolic.model.ProbModel;
 import symbolic.states.StateListMTBDD;
@@ -85,6 +74,7 @@ public class MTBDD2ExplicitModel extends PrismComponent
 		DTMCSimple<Double> dtmcExpl;
 		CTMCSimple<Double> ctmcExpl;
 		MDPSimple<Double> mdpExpl;
+		SMGSimple<Double> smgExpl;
 		int numStates = modelSymb.getNumStates();
 		// Build new model and convert/add transitions
 		switch (modelSymb.getModelType()) {
@@ -103,8 +93,18 @@ public class MTBDD2ExplicitModel extends PrismComponent
 				modelExpl.setActions(modelSymb.getActions());
 				convertMDPTransitions((NondetModel) modelSymb, mdpExpl);
 				break;
+			case SMG:
+				modelExpl = smgExpl = new SMGSimple<>(numStates);
+				modelExpl.setActions(modelSymb.getActions());
+				convertMDPTransitions((NondetModel) modelSymb, smgExpl);
+				convertPlayerOwners((GamesModel) modelSymb, smgExpl);
+				break;
 			default:
 				throw new PrismException("Can't do symbolic-explicit conversion for " + modelSymb.getModelType() + "s");
+		}
+		// Add player names if applicable
+		if (modelExpl.getModelType().multiplePlayers()) {
+			((PlayerInfoOwner) modelExpl).setPlayerNames(((PlayerInfoOwner) modelSymb).getPlayerNames());
 		}
 		// Convert/add initial states
 		traverseStatesBDD(modelSymb.getStart(), modelSymb.getAllDDRowVars(), modelSymb.getODD(), modelExpl::addInitialState);
@@ -245,6 +245,27 @@ public class MTBDD2ExplicitModel extends PrismComponent
 			distrs.forEach((s, d) -> mdpExpl.addActionLabelledChoice(s, d, distrActions.get(s)));
 			JDD.Deref(dd);
 			JDD.Deref(ddActions);
+		}
+	}
+
+	/**
+	 * Convert player ownership info for a symbolically represented stochastic multiplayer game
+	 * @param smgSymb The symbolic SMG
+	 * @param smgExpl The explicit-state SMG to add to
+	 */
+	private void convertPlayerOwners(GamesModel smgSymb, SMGSimple<Double> smgExpl) throws PrismException
+	{
+		int numPlayers = smgSymb.getNumPlayers();
+		for (int p = 0; p < numPlayers; p++) {
+			// Find states for which player p has control
+			JDDNode pDD = JDD.And(smgSymb.getDdPlayerCube(p), smgSymb.getTrans().copy());
+			pDD = JDD.ThereExists(pDD, smgSymb.getAllDDColVars());
+			pDD = JDD.ThereExists(pDD, smgSymb.getAllDDNondetVars());
+			// Extract the states and set to player p
+			int finalP = p;
+			traverseStatesBDD(pDD, smgSymb.getAllDDRowVars(), smgSymb.getODD(), s -> {
+				smgExpl.setPlayer(s, finalP);
+			});
 		}
 	}
 

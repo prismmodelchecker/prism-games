@@ -50,6 +50,7 @@ import prism.PrismNotSupportedException;
 import prism.PrismUtils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -170,6 +171,11 @@ public class UMBExporter<Value> extends ModelExporter<Value>
 			// Add initial states info
 			umbWriter.addInitialStates(modelAccess.getInitialStates());
 
+			// For games, add state owners
+			if (modelType.multiplePlayers()) {
+				umbWriter.addStatePlayers(modelAccess.getStatePlayers());
+			}
+
 			// Add action labelling info
 			if (showActions) {
 				if (modelType.nondeterministic()) {
@@ -278,7 +284,12 @@ public class UMBExporter<Value> extends ModelExporter<Value>
 	{
 		ModelType modelType = model.getModelType();
 		umbIndex.setTime(modelType.continuousTime() ? UMBIndex.Time.STOCHASTIC : UMBIndex.Time.DISCRETE);
-		umbIndex.setNumPlayers(model.getNumPlayers());
+		int numPlayers = model.getNumPlayers();
+		if (modelType.multiplePlayers()) {
+			// We allow games with <2 players, UMB does not
+			numPlayers = Math.max(2, numPlayers);
+		}
+		umbIndex.setNumPlayers(numPlayers);
 		umbIndex.setNumObservations(model.getNumObservations());
 		if (model.getNumObservations() > 0) {
 			umbIndex.setObservationsApplyTo(UMBIndex.UMBEntity.STATES);
@@ -289,6 +300,20 @@ public class UMBExporter<Value> extends ModelExporter<Value>
 			if (!modelType.choicesSumToOne()) {
 				umbIndex.setExitRateType(UMBType.contNum(rational, modelType.intervals()));
 			}
+		}
+		// For games, add player names (defaulting to "_p" if undefined)
+		if (modelType.multiplePlayers()) {
+			List<String> playerNames = new ArrayList<>(model.getPlayerNames());
+			for (int p = 0; p < playerNames.size(); p++) {
+				if (playerNames.get(p).equals("")) {
+					playerNames.set(p, "_" + p);
+				}
+			}
+			// We allow games with <2 players, UMB does not
+			while (playerNames.size() < 2) {
+				playerNames.add("_" + playerNames.size());
+			}
+			umbIndex.setPlayerNames(playerNames);
 		}
 	}
 
