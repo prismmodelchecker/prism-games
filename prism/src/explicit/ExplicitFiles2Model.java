@@ -129,6 +129,10 @@ public class ExplicitFiles2Model extends PrismComponent
 			SMGSimple<Value> smg = new SMGSimple<>();
 			model = smg;
 			break;
+		case IPOMDP:
+			IPOMDPSimple<Value> ipomdp = new IPOMDPSimple<>();
+			model = (ModelExplicit<Value>) ipomdp;
+			break;
 		case LTS:
 			LTS<Value> lts = new LTSSimple<>();
 			model = (ModelExplicit<Value>) lts;
@@ -142,10 +146,8 @@ public class ExplicitFiles2Model extends PrismComponent
 			throw new PrismException("Could not import " + modelInfo.getModelType());
 		}
 		model.setEvaluator(eval);
-		if (!model.getModelType().uncertain()) {
-			model.setEvaluator(eval);
-		} else {
-			((ModelExplicit<Interval<Value>>) model).setEvaluator(eval.createIntervalEvaluator());
+		if (model instanceof IntervalModelExplicit) {
+			((IntervalModelExplicit<Value>) model).setIntervalEvaluator(eval.createIntervalEvaluator());
 		}
 		List<Object> actions = modelInfo.getActions();
 		if (actions != null) {
@@ -171,7 +173,7 @@ public class ExplicitFiles2Model extends PrismComponent
 
 		loadStates(modelImporter, model);
 		if (model.getModelType().partiallyObservable()) {
-			loadObservationDefinitions(modelImporter, (POMDPSimple<Value>) model);
+			loadObservationDefinitions(modelImporter, (PartiallyObservableModel<Value>) model);
 		}
 
 		return model;
@@ -217,7 +219,7 @@ public class ExplicitFiles2Model extends PrismComponent
 	/**
 	 * Load the observation information, and store in model
 	 */
-	private void loadObservationDefinitions(ExplicitModelImporter modelImporter, POMDPSimple<?> model) throws PrismException
+	private void loadObservationDefinitions(ExplicitModelImporter modelImporter, PartiallyObservableModel<?> model) throws PrismException
 	{
 		int numObservations = model.getNumObservations();
 		int numObservables = modelImporter.getModelInfo().getNumObservables();
