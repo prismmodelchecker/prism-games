@@ -2,6 +2,14 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.2.2 (first released 29/1/2026)
+-----------------------------------------------------------------------------
+
+* SMG export to/from .tra and UMB (unified Markov binary)
+* Merged latest changes from PRISM (up to v4.10)
+ - improvements to import/export functionality
+
+-----------------------------------------------------------------------------
 Version 3.2.1 (first released 11/1/2024)
 -----------------------------------------------------------------------------
 
