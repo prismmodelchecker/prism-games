@@ -134,6 +134,11 @@ public class ExplicitFiles2MTBDD
 		modelVariables = new ModelVariablesDD();
 		rewardInfo = importer.getRewardInfo();
 
+		// Check model is defined as doubles
+		if (importer.modelIsExact()) {
+			throw new PrismException("Cannot import an exact model unless in exact mode");
+		}
+
 		// Check model type is supported
 		switch (modelType) {
 			case DTMC:

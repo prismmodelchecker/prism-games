@@ -83,14 +83,16 @@ Version 1.0 (first released 18/10/2012)
 Below are the details of the changes in each new version of PRISM.
 
 -----------------------------------------------------------------------------
-Changes since last release (up to 097948f98)
+Version 4.10 (first released 29/1/2026)
 -----------------------------------------------------------------------------
 
 This file contains details of the changes in each new version of PRISM.
 
 * Import/export functionality
+  - import/export from/to UMB (Unified Markov Binary) format
   - import of POMDPs from explicit files (.tra, .obs, etc.)
   - optionally, export/import initial state info via .tra file
+    (currently only done for POMDPs))
 
 * Full LTL for interval MDPs/DTMCs.
 
@@ -99,11 +101,13 @@ This file contains details of the changes in each new version of PRISM.
   - interval POMDPs
   - exact interval models
 
+* Use JVM defaults for max heap size
+
 * Various bugfixes
 
 * Development and code-level changes
   - fix to allow cross-compiling Arm->Intel on macOS.
-  - ModelInfo stores actions, alignes with Model
+  - ModelInfo stores actions, aligns with Model
   - models stored using BigRational not Function in exact mode
 
 -----------------------------------------------------------------------------
