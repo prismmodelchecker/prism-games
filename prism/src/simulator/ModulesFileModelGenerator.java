@@ -610,7 +610,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		int index = transitions.getTotalIndexOfTransition(i, offset);
 		if (!modelType.concurrent()) {
 			int a = transitions.getTransitionModuleOrActionIndex(index);
-			return a < 0 ? null : getActions().get(a - 1);
+			return a < 0 ? null : modulesFile.getSynch(a - 1);
 		} else {
 			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(index)).getActions();
 			return as;
@@ -649,7 +649,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		TransitionList<?> transitions = getTransitionList();
 		if (!modelType.concurrent()) {
 			int a = transitions.getChoiceModuleOrActionIndex(index);
-			return a < 0 ? null : getActions().get(a - 1);
+			return a < 0 ? null : modulesFile.getSynch(a - 1);
 		} else {
 			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(index)).getActions();
 			return as;
