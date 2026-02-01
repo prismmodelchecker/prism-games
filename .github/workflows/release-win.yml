@@ -1,6 +1,10 @@
 name: Build/publish release binaries (Windows)
 
 on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 #   push:
 #     # Trigger on version tags: v4.10 etc.
 #     tags:
@@ -25,7 +29,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: prism-win64
+            artifact_name: prism-games-win64
     runs-on: ${{ matrix.os }}
 
     steps:
