@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: prism-win64
+            artifact_name: prism-games-win64
     runs-on: ${{ matrix.os }}
 
     steps:
