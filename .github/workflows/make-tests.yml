@@ -1,4 +1,4 @@
-name: make-tests
+name: Regression tests
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
 
+  build:
     strategy:
       matrix:
         java: [11, 21]
@@ -23,6 +23,7 @@ jobs:
         java-version: ${{ matrix.java }}
         distribution: temurin
     - name: make tests
+      shell: bash
       working-directory: ./prism
       run: |
         make
@@ -31,7 +32,6 @@ jobs:
         make tests
 
   build-win:
-
     strategy:
       matrix:
         java: [11, 21]
@@ -53,7 +53,6 @@ jobs:
           mingw64-x86_64-gcc-g++,
           binutils,
           dos2unix,
-          git,
           wget,
           unzip,
           python
