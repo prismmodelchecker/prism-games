@@ -117,6 +117,8 @@ public class CSGModelChecker extends ProbModelChecker
 	/** True if all matrix values are equal */
 	protected boolean allEqual;
 
+	/** Which solver to use for linear programming */
+	protected String lpSolver;
 
 	protected long timerVal;
 
@@ -131,6 +133,7 @@ public class CSGModelChecker extends ProbModelChecker
 		probabilities = new HashMap<BitSet, ArrayList<Distribution<Double>>>();
 		actions = new ArrayList<ArrayList<String>>();
 		strategies = new ArrayList<ArrayList<Integer>>();
+		lpSolver = getSettings().getString(PrismSettings.PRISM_CSG_LPSOLVER);
 	}
 
 	// Numerical computation functions
@@ -138,6 +141,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute next-state probabilities.
 	 * i.e. compute the probability of being in a state in {@code target} in the next step.
+	 * 
 	 * @param csg The CSG
 	 * @param target Target states
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
@@ -155,6 +159,7 @@ public class CSGModelChecker extends ProbModelChecker
 		double[] nsol = new double[csg.getNumStates()];
 		long timer;
 		int s, i;
+
 		if (genStrat) {
 			mmap = new HashMap<Integer, BitSet>();
 			kstrat = new ArrayList<Map<BitSet, Double>>();
@@ -191,6 +196,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
+
 		if (genStrat)
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
@@ -200,6 +206,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Compute bounded reachability/until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
 	 * within k steps, and while remaining in states in {@code remain}.
+	 * 
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -236,6 +243,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Compute until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
 	 * and while remaining in states in {@code remain}.
+	 * 
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -252,6 +260,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Compute bounded until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
 	 * within k steps, and while remaining in states in {@code remain}.
+	 * 
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -263,12 +272,19 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeBoundedUntilProbs(CSG<Double> csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
-		return computeUntilProbs(csg, remain, target, k, min1, min2, coalition);
+		ModelCheckerResult res;
+		Boolean tmp;
+		tmp = precomp;
+		precomp = false;
+		res = computeUntilProbs(csg, remain, target, k, min1, min2, coalition);
+		precomp = tmp;
+		return res;
 	}
 
 	/**
 	 * Compute (possibly bounded) reachability probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target}.
+	 * 
 	 * @param csg The CSG
 	 * @param target Target states
 	 * @param bound Bound
@@ -352,6 +368,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Compute (possibly bounded) reachability/until probabilities.
 	 * i.e. compute the min/max probability of reaching a state in {@code target},
 	 * and while remaining in states in {@code remain}.
+	 * 
 	 * @param csg The CSG
 	 * @param remain Remain in these states (optional: null means "all")
 	 * @param target Target states
@@ -368,6 +385,7 @@ public class CSGModelChecker extends ProbModelChecker
 		BitSet no, tmp, yes;
 		int n, numYes, numNo;
 		long timerProb0, timerProb1;
+
 		boolean bounded = (bound != maxIters);
 		
 		if (verbosity >= 1)
@@ -407,7 +425,6 @@ public class CSGModelChecker extends ProbModelChecker
 		// If <<C>>Pmin=? [phi1 U phi2], sets coalition to compute <<N\C>>Pmax>=1 [F phi2] to compute the set "yes", that is, the
 		// set of state from which N\C can force C to reach phi with probability 1 while remaining in phi1
 		
-		
 		buildCoalitions(csg, coalition, min1);
 		timerProb1 = System.currentTimeMillis();
 		if (!bounded && precomp && prob1) {
@@ -442,6 +459,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 	/**
 	 * Compute reachability probabilities using value iteration.
+	 * 
 	 * @param csg The CSG
 	 * @param no Probability 0 states
 	 * @param yes Probability 1 states
@@ -538,6 +556,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute instantaneous expected rewards,
 	 * i.e. compute the min/max expected reward of the states after {@code k} steps.
+	 * 
 	 * @param csg The CSG
 	 * @param csgRewards The rewards
 	 * @param coalition The coalition of players which define player 1
@@ -600,6 +619,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute expected cumulative rewards,
 	 * i.e. compute the min/max expected reward accumulated within {@code k} steps.
+	 * 
 	 * @param csg The CSG
 	 * @param csgRewards The rewards
 	 * @param coalition The coalition of players which define player 1
@@ -627,6 +647,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute expected total rewards,
 	 * i.e. compute the min/max expected reward accumulated.
+	 * 
 	 * @param csg The CSG
 	 * @param rewards The rewards
 	 * @param coalition The coalition of players which define player 1
@@ -710,13 +731,14 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute expected reachability rewards.
 	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
+	 * 
 	 * @param csg The CSG
+	 * @param coalition The coalition of players which define player 1
 	 * @param rewards The rewards
 	 * @param target Target states
-	 * @param unreachingSemantics How to handle paths not reaching target
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
-	 * @param coalition The coalition of players which define player 1
+	 * @param unreachingSemantics How to handle paths not reaching target
 	 */
 	public ModelCheckerResult computeReachRewards(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2,
 			Coalition coalition) throws PrismException
@@ -737,6 +759,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute expected reachability rewards (infinite if not reaching target).
 	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
+	 * 
 	 * @param csg The CSG
 	 * @param coalition The coalition of players which define player 1
 	 * @param rewards The rewards
@@ -867,6 +890,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Compute expected reachability rewards (cumnulated value if not reaching target).
 	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
+	 * 
 	 * @param csg The CSG
 	 * @param coalition The coalition of players which define player 1
 	 * @param rewards The rewards
@@ -959,6 +983,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 	/**
 	 * Compute expected reachability rewards using value iteration.
+	 * 
 	 * @param csg The CSG
 	 * @param rewards The rewards
 	 * @param target Target states
@@ -1065,7 +1090,8 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with two-player bounded probabilistic reachability formulae
+	 * Deals with two-player bounded probabilistic reachability formulae
+	 *
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
 	 * @param exprs The list of objectives
@@ -1087,7 +1113,8 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with two-player probabilistic reachability formulae
+	 * Deals with two-player probabilistic reachability formulae
+	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
 	 * @param targets The list of sets of target states
@@ -1107,7 +1134,8 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with two-player bounded reachability rewards
+	 * Deals with two-player bounded reachability rewards
+	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
 	 * @param rewards The list of reward structures
@@ -1128,7 +1156,8 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with two-player reachability rewards formulae
+	 * Deals with two-player reachability rewards formulae
+	 * 
 	 * @param csg The CSG
 	 * @param coalitions A list of two coalitions
 	 * @param rewards The list of reward structures
@@ -1148,7 +1177,94 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with computing mixed bounded and unbounded equilibria.
+	 * Deals with multi-player bounded probabilistic formulae
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param targets
+	 * @param remain
+	 * @param bounds
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiProbBoundedEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, 
+			int [] bounds, int eqType, int crit, boolean min) throws PrismException {
+		ModelCheckerResult res = new ModelCheckerResult();
+		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		res = csgeq.computeMultiBoundedEquilibria(csg, coalitions, null, null, null, null, bounds, eqType, crit, min);
+		return res;
+	}
+	
+	/**
+	 * Deal with multi-player bounded reward formulae
+	 * 
+	 * @param csg
+	 * @param coalitions
+	 * @param rewards
+	 * @param exprs
+	 * @param bounds
+	 * @param eqType
+	 * @param crit
+	 * @param min
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiRewBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, 
+			int[] bounds, int eqType, int crit, boolean min) throws PrismException {
+		ModelCheckerResult res = new ModelCheckerResult();
+		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		res = csgeq.computeMultiBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, eqType, crit, min);
+		return res;
+	}
+	
+	/**
+	 * Deal with multi-player probabilistic reachability formulae
+	 * 
+	 * @param csg The CSG
+	 * @param coalitions The list of coalitions
+	 * @param targets The list of sets of target states
+	 * @param remain The list of sets of states we need to remain in (in case of until)
+	 * @param min Whether we're minimising for the first coalition
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiProbReachEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, 
+			int eqType, int crit, boolean min)
+			throws PrismException
+	{
+		ModelCheckerResult res = new ModelCheckerResult();
+		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		res = csgeq.computeMultiReachEquilibria(csg, coalitions, null, targets, remain, eqType, crit, min);
+		return res;
+	}
+
+	/**
+	 * Deal with multi-player reachability rewards formulae
+	 * 
+	 * @param csg The CSG
+	 * @param coalitions The list of coalitions
+	 * @param rewards The list of reward structures
+	 * @param targets The list of sets of target states
+	 * @param min Whether we're minimising for the first coalition
+	 * @return
+	 * @throws PrismException
+	 */
+	public ModelCheckerResult computeMultiRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, 
+			int eqType, int crit, boolean min)
+			throws PrismException
+	{
+		ModelCheckerResult res = new ModelCheckerResult();
+		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
+		res = csgeq.computeMultiReachEquilibria(csg, coalitions, rewards, targets, null, eqType, crit, min);
+		return res;
+	}
+
+	/**
+	 * Deals with computing mixed bounded and unbounded equilibria.
+	 * 
 	 * @param csg The CSG
 	 * @param coalitions The list of coalitions
 	 * @param rewards The list of reward structures
@@ -1207,7 +1323,9 @@ public class CSGModelChecker extends ProbModelChecker
 		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH, AcceptanceType.BUCHI, AcceptanceType.STREETT,
 				AcceptanceType.GENERIC };
 
-		//csg.exportToDotFile(path + "/model.dot");
+		/*
+		csg.exportToDotFile(path + "/model.dot");
+		*/
 
 		if (rew) {
 			BitSet all = new BitSet();
@@ -1251,7 +1369,9 @@ public class CSGModelChecker extends ProbModelChecker
 		((ModelExplicit<Double>) product.productModel).clearInitialStates();
 		((ModelExplicit<Double>) product.productModel).addInitialState(product.getModelState(csg.getFirstInitialState()));
 
-		//product.productModel.exportToDotFile(path + "/product.dot");
+		/*
+		product.productModel.exportToDotFile(path + "/product.dot");
+		*/
 
 		/*
 		try {
@@ -1452,7 +1572,7 @@ public class CSGModelChecker extends ProbModelChecker
 		}
 		return y;
 	}
-
+	
 	/*
 	 * Eventually b, while remaining in a
 	 */
@@ -1679,6 +1799,8 @@ public class CSGModelChecker extends ProbModelChecker
 	 * Find the max size of the matrix game needed across any CSG state,
 	 * for the current coalition (as stored in coalitionIndexes).
 	 * Also compute/report the average number of actions for each coalition across all CSG states.
+	 * 
+	 * @param csg The CSG
 	 */
 	public void findMaxRowsCols(CSG<Double> csg)
 	{
@@ -1709,6 +1831,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 	/**
 	 * Build a matrix game with the transition distributions for state s. 
+	 * 
 	 * @param csg The CSG
 	 * @param s Index of state to build matrix game for 
 	 * @return
@@ -1917,7 +2040,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Solve a matrix game and return its value.
+	 * Solves a matrix game and return its value.
 	 * If requested, store an optimal strategy for the coalition being solved for.   
 	 * 
 	 * @param lp LpSolve instance to use for solving
@@ -2066,7 +2189,7 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deal with infinite cases in solving a matrix game.
+	 * Deals with infinite cases in solving a matrix game.
 	 * If all values in some row are +inf, return the index of that row (it's optimal).
 	 * Then remove any column containing a +inf and return -1. 
 	 */

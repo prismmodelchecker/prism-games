@@ -12,7 +12,7 @@
 //	it under the terms of the GNU General Public License as published by
 //	the Free Software Foundation; either version 2 of the License, or
 //	(at your option) any later version.
-//
+//	
 //	PRISM is distributed in the hope that it will be useful,
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -45,10 +45,11 @@ import com.microsoft.z3.Version;
 
 import prism.PrismException;
 
+
 public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 {
-	private String solverName = "Z3";
 
+	private String solverName = "Z3";
 	private RealExpr[] payvars;
 	private ArithExpr[] payoffs;
 	private RealExpr[] vars;
@@ -199,7 +200,8 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 				}
 				j++;
 				l = 0;
-			} else {
+			} 
+			else {
 				ylabels[i] = ctx.mkEq(vars[i], zero);
 			}
 		}
@@ -253,7 +255,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 			/*
 			if (st == 1)
 				System.out.println(xlabels[i]);
-			*/
+			 */
 			eq = ctx.mkAnd(eq, ctx.mkOr(xlabels[i], ylabels[i]));
 		}
 		for (i = 0; i < nrows; i++) {
@@ -329,8 +331,6 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		}
 		//System.out.println(eqs);
 		s.pop();
-		//YicesWrapper.garbage_collect();
-		//YicesWrapper.yices_exit();
 		neq = j;
 	}
 
@@ -340,6 +340,7 @@ public class CSGLabeledPolytopesZ3Stack implements CSGLabeledPolytopes
 		p2p = new double[neq];
 		Arrays.fill(p1p, 0.0);
 		Arrays.fill(p2p, 0.0);
+
 		for (int e = 0; e < neq; e++) {
 			for (int i = 0; i < nrows; i++) {
 				for (int j = 0; j < ncols; j++) {
