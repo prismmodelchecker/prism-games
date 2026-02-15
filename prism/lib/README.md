@@ -14,6 +14,7 @@ This folder contains the following libraries:
 +--- org.jfree:jcommon:1.0.17
 +--- it.unimi.dsi:fastutil:8.5.15
 +--- org.apache.commons:commons-compress:1.24.0
++--- org.apache.commons:commons-math3:3.3
 +--- org.tukaani:xz:1.10
 +--- com.google.code.gson:gson:2.11.0
 |    \--- com.google.errorprone:error_prone_annotations:2.27.0
