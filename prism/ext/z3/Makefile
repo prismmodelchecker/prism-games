@@ -7,7 +7,7 @@
 
 default: all
 
-all: checks libfiles
+all: checks libfiles rpath
 
 # Files to copy
 NATIVE_LIBS =
@@ -51,6 +51,27 @@ libfiles: $(NATIVE_LIBS_COPY) $(COMMON_LIBS_COPY)
 	    cp -R $< $@; \
 	  fi \
 	fi
+
+rpath:
+	@if [ $(OSTYPE) = "darwin" ]; then \
+	  install_name_tool -id "@rpath/libz3.dylib" ../../$(PRISM_LIB_DIR)/libz3.dylib; \
+	  install_name_tool -id "@rpath/libz3java.dylib" ../../$(PRISM_LIB_DIR)/libz3java.dylib; \
+	  install_name_tool -add_rpath "@loader_path/." ../../$(PRISM_LIB_DIR)/libz3java.dylib; \
+	  install_name_tool -change "libz3.dylib" "@rpath/libz3.dylib" ../../$(PRISM_LIB_DIR)/libz3java.dylib; \
+	  codesign --force --deep --sign - ../../$(PRISM_LIB_DIR)/libz3*.dylib; \
+	fi; \
+	if [ $(OSTYPE) = "linux" ]; then \
+	  patchelf --set-soname "libz3.so" ../../$(PRISM_LIB_DIR)/libz3.so; \
+	  patchelf --set-soname "libz3java.so" ../../$(PRISM_LIB_DIR)/libz3java.so; \
+	  patchelf --set-rpath '$$ORIGIN' ../../$(PRISM_LIB_DIR)/libz3java.so; \
+	  patchelf --replace-needed "libz3.so" "libz3.so" ../../$(PRISM_LIB_DIR)/libz3java.so; \
+	fi
+# 	@if [ $(OSTYPE) = "darwin" ]; then \
+# 	  otool -L ../../$(PRISM_LIB_DIR)/libz3*dylib; \
+# 	fi; \
+# 	if [ $(OSTYPE) = "linux" ]; then \
+# 	  readelf -d ../../$(PRISM_LIB_DIR)/libz3*so; \
+# 	fi
 
 clean: checks
 	# Remove installed files if present
