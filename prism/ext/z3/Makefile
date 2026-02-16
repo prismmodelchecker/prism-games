@@ -63,9 +63,15 @@ rpath:
 	if [ $(OSTYPE) = "linux" ]; then \
 	  patchelf --set-soname "libz3.so" ../../$(PRISM_LIB_DIR)/libz3.so; \
 	  patchelf --set-soname "libz3java.so" ../../$(PRISM_LIB_DIR)/libz3java.so; \
-	  patchelf --set-rpath '$ORIGIN' ../../$(PRISM_LIB_DIR)/libz3java.so; \
+	  patchelf --set-rpath '$$ORIGIN' ../../$(PRISM_LIB_DIR)/libz3java.so; \
 	  patchelf --replace-needed "libz3.so" "libz3.so" ../../$(PRISM_LIB_DIR)/libz3java.so; \
 	fi
+# 	@if [ $(OSTYPE) = "darwin" ]; then \
+# 	  otool -L ../../$(PRISM_LIB_DIR)/libz3*dylib; \
+# 	fi; \
+# 	if [ $(OSTYPE) = "linux" ]; then \
+# 	  readelf -d ../../$(PRISM_LIB_DIR)/libz3*so; \
+# 	fi
 
 clean: checks
 	# Remove installed files if present

@@ -62,9 +62,15 @@ rpath:
 	if [ $(OSTYPE) = "linux" ]; then \
 	  patchelf --set-soname "libyices.so.2.6"  ../../$(PRISM_LIB_DIR)/libyices.so.2.6; \
 	  patchelf --set-soname "libyices2java.so"  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
-	  patchelf --set-rpath '$ORIGIN'  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
+	  patchelf --set-rpath '$$ORIGIN'  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
 	  patchelf --replace-needed "libyices.so.2.6" "libyices.so.2.6"  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
 	fi
+# 	@if [ $(OSTYPE) = "darwin" ]; then \
+# 	  otool -L ../../$(PRISM_LIB_DIR)/libyices*dylib; \
+# 	fi; \
+# 	if [ $(OSTYPE) = "linux" ]; then \
+# 	  readelf -d ../../$(PRISM_LIB_DIR)/libyices*so; \
+# 	fi
 
 clean: checks
 	# Remove installed files if present

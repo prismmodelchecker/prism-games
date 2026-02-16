@@ -63,9 +63,15 @@ rpath:
 	if [ $(OSTYPE) = "linux" ]; then \
 	  patchelf --set-soname "libppl.so.15" ../../$(PRISM_LIB_DIR)/libppl.so.15; \
 	  patchelf --set-soname "libppl_java.so" ../../$(PRISM_LIB_DIR)/libppl_java.so; \
-	  patchelf --set-rpath '$ORIGIN' ../../$(PRISM_LIB_DIR)/libppl_java.so; \
+	  patchelf --set-rpath '$$ORIGIN' ../../$(PRISM_LIB_DIR)/libppl_java.so; \
 	  patchelf --replace-needed "libppl.so.15" "libppl.15.so" ../../$(PRISM_LIB_DIR)/libppl_java.so; \
 	fi
+# 	@if [ $(OSTYPE) = "darwin" ]; then \
+# 	  otool -L ../../$(PRISM_LIB_DIR)/libppl*dylib; \
+# 	fi; \
+# 	if [ $(OSTYPE) = "linux" ]; then \
+# 	  readelf -d ../../$(PRISM_LIB_DIR)/libppl*so; \
+# 	fi
 
 clean: checks
 	# Remove installed files if present
