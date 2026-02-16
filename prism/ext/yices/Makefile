@@ -7,7 +7,7 @@
 
 default: all
 
-all: checks libfiles
+all: checks libfiles rpath
 
 # Files to copy
 NATIVE_LIBS =
@@ -51,6 +51,26 @@ libfiles: $(NATIVE_LIBS_COPY) $(COMMON_LIBS_COPY)
 	    cp -R $< $@; \
 	  fi \
 	fi
+
+rpath:
+	@if [ $(OSTYPE) = "darwin" ]; then \
+	  install_name_tool -id "@rpath/libyices.2.dylib" ../../$(PRISM_LIB_DIR)/libyices.2.dylib; \
+	  install_name_tool -id "@rpath/libyices2java.dylib" ../../$(PRISM_LIB_DIR)/libyices2java.dylib; \
+	  install_name_tool -add_rpath "@loader_path/." ../../$(PRISM_LIB_DIR)/libyices2java.dylib; \
+	  install_name_tool -change "/usr/local/lib/libyices.2.dylib" "@rpath/libyices.2.dylib" ../../$(PRISM_LIB_DIR)/libyices2java.dylib; \
+	fi; \
+	if [ $(OSTYPE) = "linux" ]; then \
+	  patchelf --set-soname "libyices.so.2.6"  ../../$(PRISM_LIB_DIR)/libyices.so.2.6; \
+	  patchelf --set-soname "libyices2java.so"  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
+	  patchelf --set-rpath '$$ORIGIN'  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
+	  patchelf --replace-needed "libyices.so.2.6" "libyices.so.2.6"  ../../$(PRISM_LIB_DIR)/libyices2java.so; \
+	fi
+# 	@if [ $(OSTYPE) = "darwin" ]; then \
+# 	  otool -L ../../$(PRISM_LIB_DIR)/libyices*dylib; \
+# 	fi; \
+# 	if [ $(OSTYPE) = "linux" ]; then \
+# 	  readelf -d ../../$(PRISM_LIB_DIR)/libyices*so; \
+# 	fi
 
 clean: checks
 	# Remove installed files if present
