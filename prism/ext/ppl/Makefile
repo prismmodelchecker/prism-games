@@ -7,7 +7,7 @@
 
 default: all
 
-all: checks libfiles
+all: checks libfiles rpath
 
 # Files to copy
 NATIVE_LIBS =
@@ -50,6 +50,21 @@ libfiles: $(NATIVE_LIBS_COPY) $(COMMON_LIBS_COPY)
 	  else \
 	    cp -R $< $@; \
 	  fi \
+	fi
+
+rpath:
+	@if [ $(OSTYPE) = "darwin" ]; then \
+	  install_name_tool -id "@rpath/libppl.15.dylib" ../../$(PRISM_LIB_DIR)/libppl.15.dylib; \
+	  install_name_tool -id "@rpath/libppl_java.dylib" ../../$(PRISM_LIB_DIR)/libppl_java.dylib; \
+	  install_name_tool -add_rpath "@loader_path/." ../../$(PRISM_LIB_DIR)/libppl_java.dylib; \
+	  install_name_tool -change "/Users/dxp/tools/tmp/lib/libppl.15.dylib" "@rpath/libppl.15.dylib" ../../$(PRISM_LIB_DIR)/libppl_java.dylib; \
+	  codesign --force --deep --sign - ../../$(PRISM_LIB_DIR)/libppl*.dylib; \
+	fi; \
+	if [ $(OSTYPE) = "linux" ]; then \
+	  patchelf --set-soname "libppl.so.15" ../../$(PRISM_LIB_DIR)/libppl.so.15; \
+	  patchelf --set-soname "libppl_java.so" ../../$(PRISM_LIB_DIR)/libppl_java.so; \
+	  patchelf --set-rpath '$ORIGIN' ../../$(PRISM_LIB_DIR)/libppl_java.so; \
+	  patchelf --replace-needed "libppl.so.15" "libppl.15.so" ../../$(PRISM_LIB_DIR)/libppl_java.so; \
 	fi
 
 clean: checks
