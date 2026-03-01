@@ -26,87 +26,88 @@
 
 package prism;
 
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+
 /**
- * PrismLog object that writes all output to a file. 
+ * A {@link PrismLog} that will write to a file (or stdout).
  */
-public class PrismFileLog extends PrismLog
+public class PrismFileLog extends PrismPrintStreamLog
 {
 	/** Filename (or "stdout") */
 	protected String filename;
-	/** Native file pointer, cast to a long */
-	protected long fp;
 	/** Are we writing to stdout? */
 	protected boolean stdout;
-	
-	/**
-	 * Pointless constructor. Don't call this.
-	 */
-	public PrismFileLog()
-	{
-		filename = "";
-		fp = 0;
-	}
 
 	/**
-	 * Create a PRISM log which will write to {@code filename}, overwriting any previous contents.
-	 * @param filename Filename of log file
-	 */
-	public PrismFileLog(String filename)
-	{
-		open(filename);
-	}
-
-	/**
-	 * Create a PRISM log which will write to {@code filename}, appending to an existing file if requested.
-	 * @param filename Filename of log file
-	 * @param append Append to the existing file?
-	 */
-	public PrismFileLog(String filename, boolean append)
-	{
-		open(filename, append);
-	}
-
-	/**
-	 * Create a PRISM log which will write to {@code filename}, overwriting any previous contents.
+	 * Create a {@link PrismLog} which will write to {@code filename}, overwriting any previous contents.
+	 * If {@code filename} is "stdout", then output will be written to standard output.
 	 * Throw a PRISM exception if there is a problem opening the file for writing.
 	 * @param filename Filename of log file
 	 */
-	public static PrismFileLog create(String filename) throws PrismException
+	public PrismFileLog(String filename) throws PrismException
 	{
-		return create(filename, false);
+		this(filename, false);
 	}
-	
+
 	/**
-	 * Create a PRISM log which will write to {@code filename}, appending to an existing file if requested.
+	 * Create a {@link PrismLog} which will write to {@code filename}, appending to an existing file if requested.
+	 * If {@code filename} is "stdout", then output will be written to standard output.
 	 * Throw a PRISM exception if there is a problem opening the file for writing.
 	 * @param filename Filename of log file
 	 * @param append Append to the existing file?
 	 */
-	public static PrismFileLog create(String filename, boolean append) throws PrismException
+	public PrismFileLog(String filename, boolean append) throws PrismException
 	{
-		PrismFileLog log = new PrismFileLog(filename, append);
-		if (!log.ready()) {
-			throw new PrismException("Could not open file \"" + filename + "\" for output");
-		}
-		return log;
+		this(filename, append, true);
 	}
-	
-	public void open(String filename)
+
+	/**
+	 * Create a {@link PrismLog} which will write to {@code filename}, appending to an existing file if requested.
+	 * If {@code filename} is "stdout", then output will be written to standard output.
+	 * Throw a PRISM exception if there is a problem opening the file for writing.
+	 * @param filename Filename of log file
+	 * @param append Append to the existing file?
+	 * @param nativeCode Use native code to write to the file?
+	 */
+	public PrismFileLog(String filename, boolean append, boolean nativeCode) throws PrismException
 	{
-		open (filename, false);
+		createLogStream(filename, append, nativeCode);
 	}
-	
-	public void open(String filename, boolean append)
+
+	/**
+	 * Set up the PrintStream that will be used to write to the log
+	 * @param filename Filename of log file
+	 * @param append Append to the existing file?
+	 * @param nativeCode Use native code to write to the file?
+	 */
+	private void createLogStream(String filename, boolean append, boolean nativeCode) throws PrismException
 	{
 		this.filename = filename;
-		if (filename.equals("stdout")) {
-			fp = PrismNative.PN_GetStdout();
-			stdout = true;
+		this.stdout = "stdout".equals(filename);
+		try {
+			if (nativeCode) {
+				setPrintStream(new PrismFileLogNative(filename, append));
+			} else {
+				if (stdout) {
+					setPrintStream(System.out);
+				} else {
+					setPrintStream(new PrintStream(new BufferedOutputStream(new FileOutputStream(filename, append))));
+				}
+			}
+		} catch (FileNotFoundException e) {
+			throw new PrismException("Could not open file \"" + filename + "\" for output");
 		}
-		else {
-			fp = append ? PrismNative.PN_OpenFileAppend(filename) : PrismNative.PN_OpenFile(filename);
-			stdout = false;
-		}
+	}
+
+	/**
+	 * Get the filename (or "stdout" if writing to standard output)
+	 **/
+	public String getFileName()
+	{
+		return stdout ? "stdout" : filename;
 	}
 
 	// Methods for PrismLog
@@ -114,112 +115,58 @@ public class PrismFileLog extends PrismLog
 	@Override
 	public boolean ready()
 	{
-		return (fp != 0);
+		if (logStream == null) {
+			return false;
+		}
+		if (logStream instanceof PrismFileLogNative) {
+			return ((PrismFileLogNative) logStream).ready();
+		} else {
+			return !logStream.checkError();
+		}
 	}
 
 	@Override
 	public long getFilePointer()
 	{
-		return fp;
-	}
-
-	/** Get the filename (or "stdout" if writing to standard output) */
-	public String getFileName()
-	{
-		return stdout ? "stdout" : filename;
-	}
-
-	@Override
-	public void flush()
-	{
-		if (fp == 0) {
-			throw new IllegalStateException("Trying to flush an invalid file handle (already closed?)");
+		if (logStream instanceof PrismFileLogNative) {
+			return ((PrismFileLogNative) logStream).getFilePointer();
+		} else {
+			return -1;
 		}
-		PrismNative.PN_FlushFile(fp);
 	}
 
-	@Override
-	public void close()
-	{
-		if (fp == 0) {
-			// already closed, ignore (as specified by Closable contract)
-			return;
-		}
+	// Static methods for creating logs
 
-		if (stdout) {
-			// we never close stdout
-			return;
-		}
-
-		PrismNative.PN_CloseFile(fp);
-		// set fp to zero to indicate that the file handle is not valid anymore
-		fp = 0;
-	}
-	
-	@Override
-	public void print(boolean b)
+	/**
+	 /**
+	 * Create a {@link PrismLog} which will write to {@code filename}, overwriting any previous contents.
+	 * If {@code filename} is "stdout", then output will be written to standard output.
+	 * Throw a PRISM exception if there is a problem opening the file for writing.
+	 * @param filename Filename of log file
+	 */
+	public static PrismFileLog create(String filename) throws PrismException
 	{
-		printToLog("" + b);
-	}
-
-	@Override
-	public void print(char c)
-	{
-		printToLog("" + c);
-	}
-
-	@Override
-	public void print(double d)
-	{
-		printToLog("" + d);
-	}
-
-	@Override
-	public void print(float f)
-	{
-		printToLog("" + f);
-	}
-
-	@Override
-	public void print(int i)
-	{
-		printToLog("" + i);
-	}
-
-	@Override
-	public void print(long l)
-	{
-		printToLog("" + l);
-	}
-
-	@Override
-	public void print(Object obj)
-	{
-		printToLog("" + obj);
-	}
-
-	@Override
-	public void print(String s)
-	{
-		printToLog(s);
-	}
-
-	@Override
-	public void println()
-	{
-		printToLog("\n");
+		return new PrismFileLog(filename);
 	}
 
 	/**
-	 * Do the actual write (via native code).
+	 * Create a {@link PrismLog} which will write to {@code filename}, appending to an existing file if requested.
+	 * If {@code filename} is "stdout", then output will be written to standard output.
+	 * Throw a PRISM exception if there is a problem opening the file for writing.
+	 * @param filename Filename of log file
+	 * @param append Append to the existing file?
 	 */
-	private void printToLog(String s)
+	public static PrismFileLog create(String filename, boolean append) throws PrismException
 	{
-		if (fp == 0) {
-			throw new IllegalStateException("Trying to write to an invalid file handle (already closed?)");
-		}
+		return new PrismFileLog(filename, append);
+	}
 
-		PrismNative.PN_PrintToFile(fp, s);
+	/**
+	 * Create a {@link PrismLog} which will write to standard output.
+	 */
+	public static PrismFileLog createStdout() throws PrismException
+	{
+		return create("stdout");
 	}
 }
 
