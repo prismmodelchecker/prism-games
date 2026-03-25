@@ -101,7 +101,12 @@ public class UMBReader
 	 */
 	public void extractStateChoiceOffsets(LongConsumer longConsumer) throws UMBException
 	{
-		extractLongArray(UMBFormat.STATE_CHOICE_OFFSETS_FILE, umbIndex.getNumStates() + 1, longConsumer);
+		if (!fileExists(UMBFormat.STATE_CHOICE_OFFSETS_FILE)) {
+			// Indices default to identities if requested when absent
+			extractDefaultLongArray(umbIndex.getNumStates() + 1, UMBFormat.BinFileDefaultValue.IDENTITY, longConsumer);
+		} else {
+			extractLongArray(UMBFormat.STATE_CHOICE_OFFSETS_FILE, umbIndex.getNumStates() + 1, longConsumer);
+		}
 	}
 
 	/**
@@ -109,7 +114,12 @@ public class UMBReader
 	 */
 	public void extractStatePlayers(IntConsumer intConsumer) throws UMBException
 	{
-		extractIntArray(UMBFormat.STATE_PLAYERS, umbIndex.getNumStates(), intConsumer);
+		if (!fileExists(UMBFormat.STATE_PLAYERS)) {
+			// Players default to 0 if requested when absent
+			extractDefaultIntArray(umbIndex.getNumStates(), UMBFormat.BinFileDefaultValue.ZERO, intConsumer);
+		} else {
+			extractIntArray(UMBFormat.STATE_PLAYERS, umbIndex.getNumStates(), intConsumer);
+		}
 	}
 
 	/**
@@ -117,7 +127,11 @@ public class UMBReader
 	 */
 	public void extractInitialStates(LongConsumer longConsumer) throws UMBException
 	{
-		extractBooleanArraySparse(UMBFormat.INITIAL_STATES_FILE, umbIndex.getNumStates(), longConsumer);
+		if (!fileExists(UMBFormat.INITIAL_STATES_FILE)) {
+			// Default to no initial states if requested when absent
+		} else {
+			extractBooleanArraySparse(UMBFormat.INITIAL_STATES_FILE, umbIndex.getNumStates(), longConsumer);
+		}
 	}
 
 	/**
@@ -125,7 +139,11 @@ public class UMBReader
 	 */
 	public void extractMarkovianStates(LongConsumer longConsumer) throws UMBException
 	{
-		extractBooleanArraySparse(UMBFormat.MARKOVIAN_STATES_FILE, umbIndex.getNumStates(), longConsumer);
+		if (!fileExists(UMBFormat.MARKOVIAN_STATES_FILE)) {
+			// Default to no Markovian states if requested when absent
+		} else {
+			extractBooleanArraySparse(UMBFormat.MARKOVIAN_STATES_FILE, umbIndex.getNumStates(), longConsumer);
+		}
 	}
 
 	/**
@@ -142,7 +160,12 @@ public class UMBReader
 	 */
 	public void extractChoiceBranchOffsets(LongConsumer longConsumer) throws UMBException
 	{
-		extractLongArray(UMBFormat.CHOICE_BRANCH_OFFSETS_FILE, umbIndex.getNumChoices() + 1, longConsumer);
+		if (!fileExists(UMBFormat.CHOICE_BRANCH_OFFSETS_FILE)) {
+			// Indices default to identities if requested when absent
+			extractDefaultLongArray(umbIndex.getNumChoices() + 1, UMBFormat.BinFileDefaultValue.IDENTITY, longConsumer);
+		} else {
+			extractLongArray(UMBFormat.CHOICE_BRANCH_OFFSETS_FILE, umbIndex.getNumChoices() + 1, longConsumer);
+		}
 	}
 
 	/**
@@ -161,7 +184,12 @@ public class UMBReader
 	 */
 	public void extractBranchProbabilities(Consumer<?> consumer) throws UMBException
 	{
-		extractContinuousNumericArray(UMBFormat.BRANCH_PROBABILITIES_FILE, umbIndex.getBranchProbabilityType(), umbIndex.getNumBranches(), consumer);
+		if (!fileExists(UMBFormat.BRANCH_PROBABILITIES_FILE)) {
+			// Branch probabilities default to 1 if requested when absent
+			extractDefaultContinuousNumericArray(umbIndex.getBranchProbabilityType(), umbIndex.getNumBranches(), UMBFormat.BinFileDefaultValue.ONE, consumer);
+		} else {
+			extractContinuousNumericArray(UMBFormat.BRANCH_PROBABILITIES_FILE, umbIndex.getBranchProbabilityType(), umbIndex.getNumBranches(), consumer);
+		}
 	}
 
 	/**
@@ -475,6 +503,7 @@ public class UMBReader
 
 	/**
 	 * Compute the range of a (signed or unsigned) integer variable, from the values stored for it in a list of valuations.
+	 * This assumes that the min/max values needs at most 32 bits, so that they can be stored in an {@code int}.
 	 * @param entity The entity to which the valuations apply
 	 * @param bitPacking The bit-packing for the valuations
 	 * @param i Index of the variable (in the bit-packing)
@@ -496,7 +525,40 @@ public class UMBReader
 							throw new UMBException("Cannot compute the integer range of a " + bitPacking.getVariable(i).getType().type);
 					}
 				} catch (UMBException e) {
-					throw new RuntimeException(e.getMessage());
+					throw new RuntimeException(e);
+				}
+			});
+		} catch (UMBException | RuntimeException e) {
+			throw new UMBException("UMB import problem: " + e.getMessage());
+		}
+		return varRange;
+	}
+
+	/**
+	 * Compute the range of a (signed or unsigned) integer variable, from the values stored for it in a list of valuations.
+	 * This assumes that the min/max values needs at most 64 bits, so that they can be stored in a {@code long}.
+	 * @param entity The entity to which the valuations apply
+	 * @param bitPacking The bit-packing for the valuations
+	 * @param i Index of the variable (in the bit-packing)
+	 */
+	public UMBReader.LongRange getValuationLongRange(UMBIndex.UMBEntity entity, UMBBitPacking bitPacking, int i) throws UMBException
+	{
+		UMBReader.LongRangeComputer varRange = new UMBReader.LongRangeComputer();
+		try {
+			extractValuations(entity, bitString -> {
+				try {
+					switch (bitPacking.getVariable(i).getType().type) {
+						case INT:
+							varRange.accept(bitPacking.getLongVariableValue(bitString, i));
+							break;
+						case UINT:
+							varRange.accept(bitPacking.getULongVariableValue(bitString, i));
+							break;
+						default:
+							throw new UMBException("Cannot compute the integer range of a " + bitPacking.getVariable(i).getType().type);
+					}
+				} catch (UMBException e) {
+					throw new RuntimeException(e);
 				}
 			});
 		} catch (UMBException | RuntimeException e) {
@@ -791,6 +853,108 @@ public class UMBReader
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
 		} finally {
 			umbIn.close();
+		}
+	}
+
+	/**
+	 * Simulate extraction of a missing int array by filling the consumer with a default value.
+	 */
+	private void extractDefaultIntArray(long size, UMBFormat.BinFileDefaultValue value, IntConsumer intConsumer) throws UMBException
+	{
+		switch (value) {
+			case IDENTITY:
+				for (long i = 0; i < size; i++) {
+					intConsumer.accept((int) i);
+				}
+				break;
+			case ZERO:
+				for (long i = 0; i < size; i++) {
+					intConsumer.accept(0);
+				}
+				break;
+			case ONE:
+				for (long i = 0; i < size; i++) {
+					intConsumer.accept(1);
+				}
+				break;
+			default:
+				throw new UMBException("Unsupported default value " + value);
+		}
+	}
+
+	/**
+	 * Simulate extraction of a missing long array by filling the consumer with a default value.
+	 */
+	private void extractDefaultLongArray(long size, UMBFormat.BinFileDefaultValue value, LongConsumer longConsumer) throws UMBException
+	{
+		switch (value) {
+			case IDENTITY:
+				for (long i = 0; i < size; i++) {
+					longConsumer.accept(i);
+				}
+				break;
+			case ZERO:
+				for (long i = 0; i < size; i++) {
+					longConsumer.accept(0L);
+				}
+				break;
+			case ONE:
+				for (long i = 0; i < size; i++) {
+					longConsumer.accept(1L);
+				}
+				break;
+			default:
+				throw new UMBException("Unsupported default value " + value);
+		}
+	}
+
+	/**
+	 * Simulate extraction of a missing continuous numeric array by filling the consumer with a default value.
+	 */
+	private void extractDefaultContinuousNumericArray(UMBType type, long size, UMBFormat.BinFileDefaultValue value, Consumer<?> consumer) throws UMBException
+	{
+		long sizeNew = type.type.isInterval() ? size * 2 : size;
+		if (type.type.isDouble()) {
+			DoubleConsumer doubleConsumer = (DoubleConsumer) consumer;
+			double doubleValue;
+			switch (value) {
+				case ZERO:
+					doubleValue = 0.0;
+					break;
+				case ONE:
+					doubleValue = 1.0;
+					break;
+				default:
+					throw new UMBException("Unsupported default value " + value);
+			}
+			for (long i = 0; i < sizeNew; i++) {
+				doubleConsumer.accept(doubleValue);
+			}
+		} else if (type.type.isRational()) {
+			if (!type.isDefaultSize()) {
+				throw new UMBException("Non-default sized rationals are not yet supported");
+			}
+			LongConsumer longConsumer = (it.unimi.dsi.fastutil.longs.LongConsumer) consumer;
+			long longValue1;
+			long longValue2;
+			switch (value) {
+				case ZERO:
+					longValue1 = 0L;
+					longValue2 = 1L;
+					break;
+				case ONE:
+					longValue1 = 1L;
+					longValue2 = 1L;
+					break;
+				default:
+					throw new UMBException("Unsupported default value " + value);
+			}
+			for (long i = 0; i < sizeNew; i++) {
+				longConsumer.accept(longValue1);
+				longConsumer.accept(longValue2);
+			}
+		} else {
+			throw new UMBException("Unsupported continuous numeric type " + type);
 		}
 	}
 
@@ -1121,6 +1285,25 @@ public class UMBReader
 	}
 
 	/**
+	 * Class to represent the minimum/maximum value of a set of longs.
+	 */
+	public static class LongRange
+	{
+		long min = Long.MAX_VALUE;
+		long max = Long.MIN_VALUE;
+
+		public long getMin()
+		{
+			return min;
+		}
+
+		public long getMax()
+		{
+			return max;
+		}
+	}
+
+	/**
 	 * Class to compute the minimum/maximum value of a sequence of ints, provided via a consumer.
 	 */
 	public static class IntRangeComputer extends IntRange implements IntConsumer
@@ -1129,6 +1312,18 @@ public class UMBReader
 		public void accept(int i)
 		{
 			min = Integer.min(min, i); max = Integer.max(max, i);
+		}
+	}
+
+	/**
+	 * Class to compute the minimum/maximum value of a sequence of longs, provided via a consumer.
+	 */
+	public static class LongRangeComputer extends LongRange implements LongConsumer
+	{
+		@Override
+		public void accept(long i)
+		{
+			min = Long.min(min, i); max = Long.max(max, i);
 		}
 	}
 

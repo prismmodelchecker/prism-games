@@ -63,11 +63,10 @@ public class BasicModelInfo implements ModelInfo
 	// Constructors
 
 	/**
-	 * Construct a {@link BasicModelInfo} with the specified model type.
+	 * Construct a blank {@link BasicModelInfo}.
 	 */
-	public BasicModelInfo(ModelType modelType)
+	public BasicModelInfo()
 	{
-		this.modelType = modelType;
 		ecConstants = EvaluateContext.create();
 		actionList = null;
 		varList = new VarList();
@@ -75,6 +74,15 @@ public class BasicModelInfo implements ModelInfo
 		observableTypeList = new ArrayList<>();
 		labelNameList = new ArrayList<>();
 		playerNameList = new ArrayList<>();
+	}
+
+	/**
+	 * Construct a {@link BasicModelInfo} with the specified model type.
+	 */
+	public BasicModelInfo(ModelType modelType)
+	{
+		this();
+		setModelType(modelType);
 	}
 
 	// Setters/getters for basic model info storage
