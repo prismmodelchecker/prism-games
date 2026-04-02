@@ -34,13 +34,41 @@ import parser.ast.Coalition;
  */
 public class MinMax
 {
+	/** How players are quantified over? **/
+	protected int numPlayers;
+	/** Is quantification over (epistemic) uncertainty included? */
+	protected boolean unc;
+
+	/**
+	 * Create a blank MinMax object
+	 */
+	public MinMax()
+	{
+	}
+
+	/**
+	 * Copy constructor
+	 */
+	public MinMax(MinMax other)
+	{
+		this.numPlayers = other.numPlayers;
+		this.unc = other.unc;
+		this.min = other.min;
+		this.min1 = other.min1;
+		this.min2 = other.min2;
+		this.minUnc = other.minUnc;
+	}
+
 	// Info about quantification over a single class of strategies/adversaries
-	
+
+	/** Min (true) or max (false) over strategies? */
 	protected boolean min;
 	
-	public void setMin(boolean min)
+	public MinMax setMin(boolean min)
 	{
+		numPlayers = 1;
 		this.min = min;
+		return this;
 	}
 	
 	public boolean isMin()
@@ -54,23 +82,27 @@ public class MinMax
 	}
 	
 	// Info about quantification over a two classes of strategies (e.g. for 2-player games)
-	
+
+	/** Min (true) or max (false) over strategies for player 1? */
 	protected boolean min1;
+	/** Min (true) or max (false) over strategies for player 2? */
 	protected boolean min2;
 	protected double bound;
 	protected Coalition coalition;
-	
-	public void setMinMin(boolean min1, boolean min2)
+
+	public MinMax setMinMin(boolean min1, boolean min2)
 	{
+		numPlayers = 2;
 		this.min1 = min1;
 		this.min2 = min2;
+		return this;
 	}
 	
 	public void setBound(double bound)
 	{
 		this.bound = bound;
 	}
-	
+
 	public void setCoalition(Coalition coalition)
 	{
 		this.coalition = coalition;
@@ -97,11 +129,13 @@ public class MinMax
 	}
 
 	// Additional info about quantification over uncertainty
-	
+
+	/** Min (true) or max (false) over epistemic uncertainty? */
 	protected boolean minUnc;
 	
 	public MinMax setMinUnc(boolean minUnc)
 	{
+		unc = true;
 		this.minUnc = minUnc;
 		return this;
 	}
@@ -121,11 +155,16 @@ public class MinMax
 	public MinMax negate()
 	{
 		MinMax neg = new MinMax();
-		neg.setMin(!isMin());
-		neg.setMinMin(!isMin1(), !isMin2());
-		neg.setBound(bound == -1 ? -1 : 1.0 - bound);
-		neg.setCoalition(coalition);
-		neg.setMinUnc(!isMinUnc());
+		if (numPlayers == 1) {
+			neg.setMin(!isMin());
+		} else if (numPlayers == 2) {
+			neg.setMinMin(!isMin1(), !isMin2());
+            neg.setBound(bound == -1 ? -1 : 1.0 - bound);
+            neg.setCoalition(coalition);
+		}
+		if (unc) {
+			neg.setMinUnc(!isMinUnc());
+		}
 		return neg;
 	}
 	
@@ -138,18 +177,30 @@ public class MinMax
 	
 	public static MinMax min()
 	{
-		MinMax minMax = new MinMax();
-		minMax.setMin(true);
-		return minMax;
+		return new MinMax().setMin(true);
 	}
 	
 	public static MinMax max()
 	{
-		MinMax minMax = new MinMax();
-		minMax.setMin(false);
-		return minMax;
+		return new MinMax().setMin(false);
 	}
-	
+
+	@Override
+	public String toString()
+	{
+		String s = "";
+		if (numPlayers == 1) {
+			s += min ? "min" : "max";
+		} else if (numPlayers == 2) {
+			s += min1 ? "min" : "max";
+			s += min2 ? "min" : "max";
+		}
+		if (unc) {
+			s += minUnc ? "min" : "max";
+		}
+		return s;
+	}
+
 	public static MinMax minMin(boolean min1, boolean min2)
 	{
 		MinMax minMax = new MinMax();
