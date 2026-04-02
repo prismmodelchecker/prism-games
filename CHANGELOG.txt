@@ -2,6 +2,13 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.2.3 (first released 2/4/2026)
+-----------------------------------------------------------------------------
+
+* Merged latest changes from PRISM (up to v4.10.1)
+ - simplified/improved Makefile, build process and shared libraries
+
+-----------------------------------------------------------------------------
 Version 3.2.2 (first released 29/1/2026)
 -----------------------------------------------------------------------------
 
