@@ -70,6 +70,7 @@ jobs:
       shell: bash
       working-directory: ./prism
       run: |
+        brew install patchelf
         make release
     - name: Upload artifact
       uses: actions/upload-artifact@v4
