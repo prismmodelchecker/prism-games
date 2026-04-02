@@ -6,7 +6,7 @@ Version 3.2.3 (first released 2/4/2026)
 -----------------------------------------------------------------------------
 
 * Merged latest changes from PRISM (up to v4.10.1)
- - simplified/improved Makefile, build process and shared libraries
+  - simplified/improved Makefile, build process and shared libraries
 
 -----------------------------------------------------------------------------
 Version 3.2.2 (first released 29/1/2026)
@@ -14,7 +14,7 @@ Version 3.2.2 (first released 29/1/2026)
 
 * SMG export to/from .tra and UMB (unified Markov binary)
 * Merged latest changes from PRISM (up to v4.10)
- - improvements to import/export functionality
+  - improvements to import/export functionality
 
 -----------------------------------------------------------------------------
 Version 3.2.1 (first released 11/1/2024)
