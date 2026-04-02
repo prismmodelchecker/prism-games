@@ -12,7 +12,7 @@ fi
 
 # Install dependencies: make/gcc/Java/git
 sudo apt-get -y update
-sudo apt -y install make gcc g++ default-jdk git
+sudo apt -y install make gcc g++ default-jdk patchelf
 
 # Install Python (only needed for testing (prism-auto) currently)
 sudo apt -y install python3

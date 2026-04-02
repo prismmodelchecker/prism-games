@@ -9,6 +9,7 @@ set -x # Print commands as they are executed
 # Install dependencies: make/gcc/Java/git
 sudo yum -y update
 sudo yum -y install make gcc gcc-c++ java-11-amazon-corretto-devel git
+sudo yum -y install epel-release && sudo yum -y install patchelf
 
 # Install Python (only needed for testing (prism-auto) currently)
 sudo yum -y install python
