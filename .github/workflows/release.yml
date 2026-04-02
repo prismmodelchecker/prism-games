@@ -66,11 +66,17 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - name: Install patchelf if needed
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+        fi
     - name: Build
       shell: bash
       working-directory: ./prism
       run: |
-        brew install patchelf
         make release
     - name: Upload artifact
       uses: actions/upload-artifact@v4
