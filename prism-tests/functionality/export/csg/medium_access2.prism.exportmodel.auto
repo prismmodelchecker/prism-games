@@ -1,0 +1,11 @@
+# Export all model info
+
+-exportmodel medium_access2.prism.all -ex
+
+# Export model info separately
+
+-exportmodel medium_access2.prism.tra -ex
+# -exportmodel medium_access2.prism.sta -ex
+# -exportmodel medium_access2.prism.lab -ex
+# -exportmodel medium_access2.prism.srew -ex
+# -exportmodel medium_access2.prism.trew -ex

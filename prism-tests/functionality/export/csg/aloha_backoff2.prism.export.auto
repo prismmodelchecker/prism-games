@@ -1,0 +1,11 @@
+# Export all model info
+
+-exportmodel aloha_backoff2.prism.all -ex
+
+# Export model info separately
+
+-exportmodel aloha_backoff2.prism.tra -ex
+# -exportmodel aloha_backoff2.prism.sta -ex
+# -exportmodel aloha_backoff2.prism.lab -ex
+# -exportmodel aloha_backoff2.prism.srew -ex
+# -exportmodel aloha_backoff2.prism.trew -ex
