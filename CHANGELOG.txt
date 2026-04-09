@@ -2,6 +2,12 @@ The top of this file details the changes in new public versions of PRISM-games.
 The CHANGELOG for PRISM itself, on which this is based, is appended below.
 
 -----------------------------------------------------------------------------
+Version 3.2.4 (first released 10/4/2026)
+-----------------------------------------------------------------------------
+
+* Bug fixes (CSGs)
+
+-----------------------------------------------------------------------------
 Version 3.2.3 (first released 2/4/2026)
 -----------------------------------------------------------------------------
 
