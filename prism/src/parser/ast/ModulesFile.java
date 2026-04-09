@@ -1042,18 +1042,18 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 
 		// Check "system...endsystem" constructs
 		checkSystemDefns();
-		
+
+		// Determine actual model type
+		// (checks/processing below this point can assume that modelType
+		//  is non-null; methods before this point cannot)
+		finaliseModelType();
+
 		// Get synchronising action names
 		// (NB: Do this *after* checking for cycles in system defns above)
 		getSynchAndActionNames();
 		// Then identify/check any references to action names
 		findAllActions(synchs);
 
-		// Determine actual model type
-		// (checks/processing below this point can assume that modelType
-		//  is non-null; methods before this point cannot)
-		finaliseModelType();
-		
 		// Check player info
 		checkPlayerDefns();
 		// Various semantic checks
@@ -1203,8 +1203,9 @@ public class ModulesFile extends ASTElement implements ModelInfo, RewardGenerato
 
 		// Put all synchronising actions in the action list
 		// If there are unlabelled commands, add null too
+		// (except for concurrent games)
 		actions = new ArrayList<>();
-		if (unlabelled) {
+		if (unlabelled && !modelType.concurrent()) {
 			actions.add(null);
 		}
 		actions.addAll(synchs);
