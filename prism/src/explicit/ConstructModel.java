@@ -474,9 +474,10 @@ public class ConstructModel extends PrismComponent
 		mainLog.println(" done in " + ((System.currentTimeMillis() - timer) / 1000.0) + " secs.");
 		//mainLog.println(states);
 
-		// Add idle actions
-		if (modelType == ModelType.CSG)
+		// Add idle actions (concurrent games)
+		if (!justReach && modelType == ModelType.CSG) {
 			csg.addIdleIndexes();
+		}
 
 		// Find/fix deadlocks (if required)
 		if (!justReach && findDeadlocks) {
