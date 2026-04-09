@@ -612,7 +612,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			int a = transitions.getTransitionModuleOrActionIndex(index);
 			return a < 0 ? null : modulesFile.getSynch(a - 1);
 		} else {
-			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(index)).getActions();
+			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(i)).getActions();
 			return as;
 		}
 	}
