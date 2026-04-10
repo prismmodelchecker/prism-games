@@ -17,14 +17,8 @@ if [ -f "$PRISM_SRC_DIR"/prism/Version.java ]; then
 
 		VERSION_SUFFIX=`grep versionExtensionSuffixString "$PRISM_SRC_DIR"/prism/Version.java | sed -E 's/[^"]+"([^"]*)"[^"]+/\1/'`
 		if [ "$VERSION_SUFFIX" != "" ]; then
-			/bin/echo -n ".$VERSION_SUFFIX"
+			/bin/echo -n "-$VERSION_SUFFIX"
 	
-			if [ -f "$PRISM_SRC_DIR"/prism/Revision.java ]; then
-				REVISION_SVN=`grep svnRevision "$PRISM_SRC_DIR"/prism/Revision.java | sed -E 's/[^"]+"([^"]*)"[^"]+/\1/'`
-				if [ "$REVISION_SVN" != "" ]; then
-					/bin/echo -n ".r$REVISION_SVN"
-				fi
-			fi
 		fi
 		/bin/echo
 	else
