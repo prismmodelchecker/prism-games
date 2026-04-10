@@ -6,8 +6,8 @@
 NEW_VERSION=$1
 NEW_SUFFIX=$2
 FILE="src/prism/Version.java"
-VERSION_STRING="versionString"
-SUFFIX_STRING="versionSuffixString"
+VERSION_STRING="versionExtensionString"
+SUFFIX_STRING="versionExtensionSuffixString"
 
 echo "Current version info:"
 grep "$VERSION_STRING" "$FILE"

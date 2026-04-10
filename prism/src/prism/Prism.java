@@ -855,7 +855,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		String v = versionExtension;
 		// Append version suffix (e.g. "dev", "beta") if non-empty
 		if (versionExtensionSuffix.length() > 0) {
-			v += "." + versionExtensionSuffix;
+			v += "-" + versionExtensionSuffix;
 		}
 		return v;
 	}
