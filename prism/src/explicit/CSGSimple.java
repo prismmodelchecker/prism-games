@@ -130,6 +130,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	 * Behaves the same as {@link MDPSimple#addActionLabelledChoice(int, Distribution, Object)},
 	 * but the action must be a {@link JointAction}, from which indexing info is generated
 	 * (it can then be accessed via {@link #getIndexes(int, int)}).
+	 * Any player actions not already in the list of actions (see {@link #getActions()}) are added to it.
 	 */
 	@Override
 	public int addActionLabelledChoice(int s, Distribution<Value> distr, Object action)
@@ -147,13 +148,8 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 			if (jointAction.get(p) == JointAction.IDLE_ACTION) {
 				indexes[p] = -1;
 			} else {
-				int j = actionList.actionIndex(jointAction.get(p));
-				if (j == -1) {
-					throw new RuntimeException("CSG action labels must be valid JointAction objects");
-				}
-				indexes[p] = j + 1;
+				indexes[p] = actionList.addAction(jointAction.get(p)) + 1;
 				this.indexes[p].set(indexes[p]);
-
 			}
 		}
 		transIndexes.get(s).add(i, indexes);
