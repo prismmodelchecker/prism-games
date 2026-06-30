@@ -859,8 +859,11 @@ public class LTLModelChecker extends PrismComponent
 		// Compute bottom strongly connected components (BSCCs)
 		SCCConsumerStore sccStore = new SCCConsumerStore();
 		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, model, sccStore);
+		StopWatch sccTimer = new StopWatch(getLog());
+		sccTimer.start("BSCC computation");
 		sccComputer.computeSCCs();
 		List<BitSet> bsccs = sccStore.getBSCCs();
+		sccTimer.stop("found " + bsccs.size() + " BSCCs");
 
 		BitSet result = new BitSet();
 
@@ -910,8 +913,11 @@ public class LTLModelChecker extends PrismComponent
 
 		// Compute accepting maximum end components (MECs)
 		ECComputer ecComputer = ECComputer.createECComputer(this, model);
+		StopWatch mecTimer = new StopWatch(getLog());
+		mecTimer.start("MEC computation");
 		ecComputer.computeMECStates();
 		List<BitSet> mecs = ecComputer.getMECStates();
+		mecTimer.stop("found " + mecs.size() + " MECs");
 		// Union of accepting MEC states
 		for (BitSet mec : mecs) {
 			if (mec.intersects(acceptance.getAcceptingStates())) {
@@ -947,8 +953,11 @@ public class LTLModelChecker extends PrismComponent
 				continue;
 			// Compute accepting maximum end components (MECs) in !L_i
 			ECComputer ecComputer = ECComputer.createECComputer(this, model);
+			StopWatch mecTimer = new StopWatch(getLog());
+			mecTimer.start("MEC computation (Rabin pair " + (i + 1) + "/" + acceptance.size() + ")");
 			ecComputer.computeMECStates(statesLi_not, acceptance.get(i).getK());
 			List<BitSet> mecs = ecComputer.getMECStates();
+			mecTimer.stop("found " + mecs.size() + " MECs");
 			// Union MEC states
 			for (BitSet mec : mecs) {
 				allAcceptingStates.or(mec);
@@ -976,8 +985,12 @@ public class LTLModelChecker extends PrismComponent
 
 		Stack<ECandPairs> todo = new Stack<ECandPairs>();
 		ECComputer ecComputer = ECComputer.createECComputer(this, model);
+		StopWatch mecTimer = new StopWatch(getLog());
+		mecTimer.start("MEC computation");
 		ecComputer.computeMECStates();
-		for (BitSet mecs : ecComputer.getMECStates()) {
+		List<BitSet> initialMecs = ecComputer.getMECStates();
+		mecTimer.stop("found " + initialMecs.size() + " MECs");
+		for (BitSet mecs : initialMecs) {
 			ECandPairs ecp = new ECandPairs();
 			ecp.MEC = mecs;
 			ecp.activePairs = allPairs;
@@ -1051,8 +1064,11 @@ public class LTLModelChecker extends PrismComponent
 				continue;
 			// Compute maximum end components (MECs) in !L_i
 			ECComputer ecComputer = ECComputer.createECComputer(this, model);
+			StopWatch mecTimer = new StopWatch(getLog());
+			mecTimer.start("MEC computation (GenRabin pair " + (i + 1) + "/" + acceptance.size() + ")");
 			ecComputer.computeMECStates(statesLi_not);
 			List<BitSet> mecs = ecComputer.getMECStates();
+			mecTimer.stop("found " + mecs.size() + " MECs");
 			// Check which MECs contain a state from each K_i_j
 			int n = acceptance.get(i).getNumK();
 			for (BitSet mec : mecs) {

@@ -353,10 +353,13 @@ public class ProbModelChecker extends NonProbModelChecker
 			// Compute bottom strongly connected components (BSCCs)
 			if (bsccComp) {
 				SCCComputer sccComputer = prism.getSCCComputer(model);
+				StopWatch sccTimer = new StopWatch(mainLog);
+				sccTimer.start("BSCC computation");
 				sccComputer.computeBSCCs();
 				bsccs = sccComputer.getBSCCs();
 				notInBSCCs = sccComputer.getNotInBSCCs();
 				numBSCCs = bsccs.size();
+				sccTimer.stop("found " + numBSCCs + " BSCCs");
 			}
 			// Unless we've been told to skip it
 			else {
@@ -1118,10 +1121,13 @@ public class ProbModelChecker extends NonProbModelChecker
 		// compute bottom strongly connected components (bsccs)
 		if (bsccComp) {
 			SCCComputer sccComputer = prism.getSCCComputer(model);
+			StopWatch sccTimer = new StopWatch(mainLog);
+			sccTimer.start("BSCC computation");
 			sccComputer.computeBSCCs();
 			vectBSCCs = sccComputer.getBSCCs();
 			notInBSCCs = sccComputer.getNotInBSCCs();
 			numBSCCs = vectBSCCs.size();
+			sccTimer.stop("found " + numBSCCs + " BSCCs");
 		}
 		// unless we've been told to skip it
 		else {
@@ -1788,10 +1794,13 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Compute bottom strongly connected components (BSCCs)
 		SCCComputer sccComputer = prism.getSCCComputer(model);
+		StopWatch sccTimer = new StopWatch(mainLog);
+		sccTimer.start("BSCC computation");
 		sccComputer.computeBSCCs();
 		bsccs = sccComputer.getBSCCs();
 		notInBSCCs = sccComputer.getNotInBSCCs();
 		numBSCCs = bsccs.size();
+		sccTimer.stop("found " + numBSCCs + " BSCCs");
 
 		// Find BSCCs with non-zero reward
 		JDD.Ref(sr);
@@ -2472,10 +2481,13 @@ public class ProbModelChecker extends NonProbModelChecker
 			// Compute bottom strongly connected components (BSCCs)
 			if (bsccComp) {
 				SCCComputer sccComputer = prism.getSCCComputer(model);
+				StopWatch sccTimer = new StopWatch(mainLog);
+				sccTimer.start("BSCC computation");
 				sccComputer.computeBSCCs();
 				bsccs = sccComputer.getBSCCs();
 				notInBSCCs = sccComputer.getNotInBSCCs();
 				numBSCCs = bsccs.size();
+				sccTimer.stop("found " + numBSCCs + " BSCCs");
 			}
 			// Unless we've been told to skip it
 			else {
