@@ -47,6 +47,7 @@ import io.MatlabExporter;
 import io.ModelExportFormat;
 import io.ModelExportOptions;
 import io.ModelExportTask;
+import io.ModelExportZipper;
 import io.ModelExporter;
 import io.PrismExplicitExporter;
 import io.PrismExplicitImporter;
@@ -1599,25 +1600,38 @@ public class StateModelChecker extends PrismComponent
 		if (exportOptions.getFormat().isBinary() && !exportOptions.getBinaryAsText() && file == null) {
 			throw new PrismNotSupportedException("Export " + exportOptions.getFormat().description() + " must be to a file");
 		}
-		// If needed, add label/reward info
-		if (exportOptions.getFormat() == ModelExportFormat.DRN || exportOptions.getFormat() == ModelExportFormat.UMB) {
-			// Get rewards/labels
+		// Disallow zipped export to stdout (other than for UMB, which is zipped separately)
+		if (exportOptions.getZipped() && exportOptions.getFormat() != ModelExportFormat.UMB && file == null) {
+			throw new PrismNotSupportedException("Cannot zip export to standard output");
+		}
+		// Add rewards to exporter if requested
+		if (exportOptions.getShowRewards()) {
 			List<Rewards<Value>> rewards = new ArrayList<>();
 			for (int r = 0; r < rewardGen.getNumRewardStructs(); r++) {
 				rewards.add(constructRewards(model, r, true));
 			}
+			exporter.addRewards(rewards, rewardGen.getRewardStructNames());
+			exporter.setRewardEvaluator((Evaluator<Value>) rewardGen.getRewardEvaluator());
+		}
+		// Add labels to exporter if requested
+		if (exportOptions.getShowLabels()) {
 			List<String> labelNames = new ArrayList<>();
 			if (exportTask.initLabelIncluded()) {
 				labelNames.add("init");
 			}
-			if (exportTask.deadlockLabelIncluded() && model.getNumDeadlockStates() > 0) {
+			if (exportTask.deadlockLabelIncluded()) {
 				labelNames.add("deadlock");
 			}
 			labelNames.addAll(modelInfo.getLabelNames());
+			// If labels from a properties file were requested (and one is attached), add those too
+			if (exportTask.extraLabelsUsed() && propertiesFile != null) {
+				for (String name : propertiesFile.getCombinedLabelList().getLabelNames()) {
+					if (!labelNames.contains(name)) {
+						labelNames.add(name);
+					}
+				}
+			}
 			List<BitSet> labelStates = checkLabels(model, labelNames);
-			// Add to exporter
-			exporter.addRewards(rewards, rewardGen.getRewardStructNames());
-			exporter.setRewardEvaluator((Evaluator<Value>) rewardGen.getRewardEvaluator());
 			exporter.addLabels(labelStates, labelNames);
 		}
 		// Export to file/log
@@ -1628,6 +1642,8 @@ public class StateModelChecker extends PrismComponent
 				exporter.exportModel(model, out);
 			}
 		}
+		// Zip the exported file, if requested
+		ModelExportZipper.zipIfRequested(exportTask);
 	}
 
 	/**
@@ -1653,11 +1669,14 @@ public class StateModelChecker extends PrismComponent
 			throw new PrismNotSupportedException("Exporting state rewards in the requested format is currently not supported by the explicit engine");
 		}
 
+		// Construct rewards before opening the output file:
+		// the rewards may be read lazily from an import file which could be the same as the export target.
+		Rewards<Value> modelRewards = constructRewards(model, r, true);
 		try (PrismLog out = getPrismLogForFile(file)) {
-			Rewards<Value> modelRewards = constructRewards(model, r, true);
 			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
 			exporter.exportStateRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1673,11 +1692,14 @@ public class StateModelChecker extends PrismComponent
 			throw new PrismNotSupportedException("Exporting transition rewards in the requested format is currently not supported by the explicit engine");
 		}
 
+		// Construct rewards before opening the output file:
+		// the rewards may be read lazily from an import file which could be the same as the export target.
+		Rewards<Value> modelRewards = constructRewards(model, r, true);
 		try (PrismLog out = getPrismLogForFile(file)) {
-			Rewards<Value> modelRewards = constructRewards(model, r, true);
 			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
 			exporter.exportTransRewards(model, modelRewards, rewardGen.getRewardStructName(r), out);
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1698,6 +1720,7 @@ public class StateModelChecker extends PrismComponent
 					break;
 			}
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1718,6 +1741,7 @@ public class StateModelChecker extends PrismComponent
 					break;
 			}
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1782,6 +1806,7 @@ public class StateModelChecker extends PrismComponent
 					break;
 			}
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**

@@ -227,12 +227,19 @@ public class PrismCL implements PrismModelListener
 		private ModelExportTask.ModelExportEntity entity;
 		private ModelExportFormat format;
 		private File file;
+		private boolean combined;
 
 		public ModelImportSource(ModelExportTask.ModelExportEntity entity, ModelExportFormat format, File file)
+		{
+			this(entity, format, file, false);
+		}
+
+		public ModelImportSource(ModelExportTask.ModelExportEntity entity, ModelExportFormat format, File file, boolean combined)
 		{
 			this.entity = entity;
 			this.format = format;
 			this.file = file;
+			this.combined = combined;
 		}
 	}
 
@@ -752,11 +759,19 @@ public class PrismCL implements PrismModelListener
 				if (!modelImportSources.stream().allMatch(s -> s.format == ModelExportFormat.EXPLICIT)) {
 					throw new PrismException("Mixed formats for model import");
 				}
-				PrismExplicitImporter importer = new PrismExplicitImporter(modelSource.file, typeOverride);
+				PrismExplicitImporter importer = new PrismExplicitImporter(typeOverride);
 				for (ModelImportSource modelImportSource : modelImportSources) {
 					switch (modelImportSource.entity) {
 						case MODEL:
-							// Skip; already handled
+							if (modelSource.combined) {
+								// Combined "explicit" model file: self-contained, so no other sources allowed
+								if (modelImportSources.size() > 1) {
+									throw new PrismException("Conflicting files provided for model import");
+								}
+								importer.addCombinedFile(modelSource.file);
+							} else {
+								importer.setTransFile(modelSource.file);
+							}
 							break;
 						case STATES:
 							if (importer.getStatesFile() != null) {
@@ -1232,7 +1247,7 @@ public class PrismCL implements PrismModelListener
 				log.println("Import the model directly from one or more file(s).");
 				log.println("Use a list of file extensions to indicate which files should be read, e.g.:");
 				log.println("\n -importmodel in.tra,sta\n");
-				log.println("Possible extensions are: .tra, .sta, .obs, .lab, .srew, .trew, .umb");
+				log.println("Possible extensions are: .tra, .sta, .obs, .lab, .srew, .trew, .pexp, .umb");
 				log.println("Use extension .all to import all explicit files (.tra/sta/obs/lab/srew/trew), e.g.:");
 				log.println("\n -importmodel in.all\n");
 				log.println("If provided, <options> is a comma-separated list of options taken from:");
@@ -1330,10 +1345,10 @@ public class PrismCL implements PrismModelListener
 				.flag("rows",       "export matrices with one row/distribution on each line",       () -> { pendingExportOptions.setExplicitRows(true); exportType = Prism.EXPORT_ROWS; })
 				.flag("proplabels", "also export labels from a properties file into the same file, too", () -> {
 					for (ModelExportTask t : pendingExportTasks)
-						if (t.getEntity() == ModelExportTask.ModelExportEntity.LABELS)
+						if (t.getEntity() == ModelExportTask.ModelExportEntity.LABELS || t.getEntity() == ModelExportTask.ModelExportEntity.MODEL)
 							t.setLabelExportSet(ModelExportTask.LabelExportSet.ALL);
 				})
-				.bool("headers",    "include headers in explicit (reward) files",                   v -> pendingExportOptions.setPrintHeaders(v)),
+				.bool("headers",    "include headers in explicit model files",                   v -> pendingExportOptions.setPrintHeaders(v)),
 			this::processExportModelSwitch);
 		registry.addSwitch("exportmodel", exportModelSwitch,
 			"<files[:<options>]>", "Export the built model to file(s)",
@@ -1364,17 +1379,33 @@ public class PrismCL implements PrismModelListener
 		OptionParser exportRewardsOptionsParser = exportTaskOptionsParser();
 		registry.addSwitch("exportrewards", (sw, a) -> {
 			String[] file1 = StringPlusOptionsSwitch.splitFilesAndOptions(a.next(sw));
+			String[] zip1 = detectAndStripZipExtension(file1[0]);
+			if (zip1 != null) {
+				file1[0] = zip1[0];
+			}
 			pendingExportOptions = new ModelExportOptions();
 			exportRewardsOptionsParser.parse(file1[1], sw);
 			ModelExportTask stateRewardsTask = new ModelExportTask(ModelExportTask.ModelExportEntity.STATE_REWARDS, file1[0]);
 			stateRewardsTask.getExportOptions().apply(pendingExportOptions);
+			if (zip1 != null) {
+				stateRewardsTask.getExportOptions().setZipped(true).setCompressionFormat(ModelExportOptions.CompressionFormat.fromExtension(zip1[1]).get());
+				stateRewardsTask.setZipFileExtension(zip1[1]);
+			}
 			modelExportTasks.add(stateRewardsTask);
 
 			String[] file2 = StringPlusOptionsSwitch.splitFilesAndOptions(a.next(sw));
+			String[] zip2 = detectAndStripZipExtension(file2[0]);
+			if (zip2 != null) {
+				file2[0] = zip2[0];
+			}
 			pendingExportOptions = new ModelExportOptions();
 			exportRewardsOptionsParser.parse(file2[1], sw);
 			ModelExportTask transRewardsTask = new ModelExportTask(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, file2[0]);
 			transRewardsTask.getExportOptions().apply(pendingExportOptions);
+			if (zip2 != null) {
+				transRewardsTask.getExportOptions().setZipped(true).setCompressionFormat(ModelExportOptions.CompressionFormat.fromExtension(zip2[1]).get());
+				transRewardsTask.setZipFileExtension(zip2[1]);
+			}
 			modelExportTasks.add(transRewardsTask);
 		}, "<file1[:<options>]> <file2[:<options>]>", "Export state/transition rewards to files 1/2",
 			log -> {
@@ -1579,7 +1610,10 @@ public class PrismCL implements PrismModelListener
 		} else {
 			if (filenameArgs.size() > 0) {
 				modelFilename = filenameArgs.get(0);
-				if (modelFilename.endsWith(".all")) {
+				// Also recognise .all/.pexp with a zip extension appended (e.g. ".all.gz")
+				String[] zip = detectAndStripZipExtension(modelFilename);
+				String checkFilename = (zip != null) ? zip[0] : modelFilename;
+                if (checkFilename.endsWith(".all") || checkFilename.endsWith(".pexp")) {
 					importModelSwitch.handleFilesOnly("importmodel", modelFilename);
 				}
 			}
@@ -1597,6 +1631,15 @@ public class PrismCL implements PrismModelListener
 	 */
 	private void processImportModelSwitch(String filesString, StringPlusOptionsSwitch.ParseCallback parse) throws PrismException
 	{
+		// Detect/strip a trailing zip extension (e.g. "in.tra.gz" -> "in.tra" + zip suffix "gz"),
+		// so that the real extension/format below is determined correctly; the (unmodified) files
+		// on disk are then located by re-appending the zip suffix to each constructed filename
+		// (unlike on export, we don't rename anything - the file already exists as named)
+		String[] zip = detectAndStripZipExtension(filesString);
+		String zipSuffix = (zip != null) ? ("." + zip[1]) : "";
+		if (zip != null) {
+			filesString = zip[0];
+		}
 		// Split files into basename/extensions
 		int i = filesString.lastIndexOf('.');
 		String basename = i == -1 ? filesString : filesString.substring(0, i);
@@ -1608,33 +1651,37 @@ public class PrismCL implements PrismModelListener
 			// Items to import
 			if (ext.equals("all")) {
 				modelFilename = basename + ".tra";
-				addModelImport(ModelExportTask.ModelExportEntity.MODEL,basename + ".tra", false);
-				addModelImport(ModelExportTask.ModelExportEntity.STATES,basename + ".sta", false);
-				addModelImport(ModelExportTask.ModelExportEntity.OBSERVATIONS,basename + ".obs", false);
-				addModelImport(ModelExportTask.ModelExportEntity.LABELS,basename + ".lab", false);
-				addStateRewardImports(basename, false);
-				addTransitionRewardImports(basename, false);
+				addModelImport(ModelExportTask.ModelExportEntity.MODEL,basename + ".tra" + zipSuffix, false);
+				addModelImport(ModelExportTask.ModelExportEntity.STATES,basename + ".sta" + zipSuffix, false);
+				addModelImport(ModelExportTask.ModelExportEntity.OBSERVATIONS,basename + ".obs" + zipSuffix, false);
+				addModelImport(ModelExportTask.ModelExportEntity.LABELS,basename + ".lab" + zipSuffix, false);
+				addStateRewardImports(basename, false, zipSuffix);
+				addTransitionRewardImports(basename, false, zipSuffix);
 			} else if (ext.equals("tra")) {
 				modelFilename = basename + ".tra";
-				addModelImport(ModelExportTask.ModelExportEntity.MODEL,basename + ".tra", true);
+				addModelImport(ModelExportTask.ModelExportEntity.MODEL,basename + ".tra" + zipSuffix, true);
 			} else if (ext.equals("sta")) {
-				addModelImport(ModelExportTask.ModelExportEntity.STATES,basename + ".sta", true);
+				addModelImport(ModelExportTask.ModelExportEntity.STATES,basename + ".sta" + zipSuffix, true);
 			} else if (ext.equals("obs")) {
-				addModelImport(ModelExportTask.ModelExportEntity.OBSERVATIONS,basename + ".obs", true);
+				addModelImport(ModelExportTask.ModelExportEntity.OBSERVATIONS,basename + ".obs" + zipSuffix, true);
 			} else if (ext.equals("lab")) {
-				addModelImport(ModelExportTask.ModelExportEntity.LABELS,basename + ".lab", true);
+				addModelImport(ModelExportTask.ModelExportEntity.LABELS,basename + ".lab" + zipSuffix, true);
 			} else if (ext.equals("srew")) {
-				addStateRewardImports(basename, true);
+				addStateRewardImports(basename, true, zipSuffix);
 			} else if (ext.equals("trew")) {
-				addTransitionRewardImports(basename, true);
+				addTransitionRewardImports(basename, true, zipSuffix);
 			} else if (ext.equals("umb")) {
 				modelFilename = basename + ".umb";;
-				modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.MODEL, ModelExportFormat.UMB, new File(basename + ".umb")));
+				modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.MODEL, ModelExportFormat.UMB, new File(basename + ".umb" + zipSuffix)));
+			} else if (ext.equals("pexp")) {
+				modelFilename = basename + ".pexp";
+				addModelImport(ModelExportTask.ModelExportEntity.MODEL, modelFilename + zipSuffix, true, true);
 			}
-			// For any other extension (including none/unknown), default to explicit (.tra)
+			// For any other extension (including none/unknown), default to "combined" explicit
+			// (of which just .tra can be considered a special case)
 			else {
 				modelFilename = basename + (ext.isEmpty() ? "" : "." + ext);
-				addModelImport(ModelExportTask.ModelExportEntity.MODEL,modelFilename, true);
+				addModelImport(ModelExportTask.ModelExportEntity.MODEL,modelFilename + zipSuffix, true, true);
 			}
 		}
 		// Process options
@@ -1642,15 +1689,27 @@ public class PrismCL implements PrismModelListener
 	}
 
 	/**
-	 * Add a model import file to {@code modelImportSources}.
+	 * Add an "explicit" format model import file to {@code modelImportSources}.
 	 * @param entity Model entity
 	 * @param filename Model import filename
 	 * @param assumeExists If true, we add the file even if it does not exist
 	 */
 	private void addModelImport(ModelExportTask.ModelExportEntity entity, String filename, boolean assumeExists)
 	{
+		addModelImport(entity, filename, assumeExists, false);
+	}
+
+	/**
+	 * Add an "explicit" format model import file to {@code modelImportSources}.
+	 * @param entity Model entity
+	 * @param filename Model import filename
+	 * @param assumeExists If true, we add the file even if it does not exist
+	 * @param combined If true, this is a combined (.pexp) file with multiple sections
+	 */
+	private void addModelImport(ModelExportTask.ModelExportEntity entity, String filename, boolean assumeExists, boolean combined)
+	{
 		if (assumeExists || new File(filename).exists()) {
-			modelImportSources.add(new ModelImportSource(entity, ModelExportFormat.EXPLICIT, new File(filename)));
+			modelImportSources.add(new ModelImportSource(entity, ModelExportFormat.EXPLICIT, new File(filename), combined));
 		}
 	}
 
@@ -1662,18 +1721,19 @@ public class PrismCL implements PrismModelListener
 	 * 
 	 * If {@code assumeExists} is true, then we add basename.srew regardless,
 	 * typically because the user has told us it should be there.
+	 * @param zipSuffix Zip extension (e.g. ".gz"), if any, to append to each filename looked for/added
 	 */
-	private void addStateRewardImports(String basename, boolean assumeExists)
+	private void addStateRewardImports(String basename, boolean assumeExists, String zipSuffix)
 	{
 		boolean found = false;
-		if (new File(basename + ".srew").exists()) {
-			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".srew")));
+		if (new File(basename + ".srew" + zipSuffix).exists()) {
+			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".srew" + zipSuffix)));
 			found = true;
 		} else {
 			int index = 1;
 			while (true) {
-				if (new File(basename + String.valueOf(index) + ".srew").exists()) {
-					modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + String.valueOf(index) + ".srew")));
+				if (new File(basename + String.valueOf(index) + ".srew" + zipSuffix).exists()) {
+					modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + String.valueOf(index) + ".srew" + zipSuffix)));
 					found = true;
 					index++;
 				} else {
@@ -1682,7 +1742,7 @@ public class PrismCL implements PrismModelListener
 			}
 		}
 		if (assumeExists && !found) {
-			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".srew")));
+			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.STATE_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".srew" + zipSuffix)));
 		}
 	}
 
@@ -1694,18 +1754,19 @@ public class PrismCL implements PrismModelListener
 	 *
 	 * If {@code assumeExists} is true, then we add basename.srew regardless,
 	 * typically because the user has told us it should be there.
+	 * @param zipSuffix Zip extension (e.g. ".gz"), if any, to append to each filename looked for/added
 	 */
-	private void addTransitionRewardImports(String basename, boolean assumeExists)
+	private void addTransitionRewardImports(String basename, boolean assumeExists, String zipSuffix)
 	{
 		boolean found = false;
-		if (new File(basename + ".trew").exists()) {
-			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".trew")));
+		if (new File(basename + ".trew" + zipSuffix).exists()) {
+			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".trew" + zipSuffix)));
 			found = true;
 		} else {
 			int index = 1;
 			while (true) {
-				if (new File(basename + String.valueOf(index) + ".trew").exists()) {
-					modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + String.valueOf(index) + ".trew")));
+				if (new File(basename + String.valueOf(index) + ".trew" + zipSuffix).exists()) {
+					modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + String.valueOf(index) + ".trew" + zipSuffix)));
 					found = true;
 					index++;
 				} else {
@@ -1714,7 +1775,7 @@ public class PrismCL implements PrismModelListener
 			}
 		}
 		if (assumeExists && !found) {
-			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".trew")));
+			modelImportSources.add(new ModelImportSource(ModelExportTask.ModelExportEntity.TRANSITION_REWARDS, ModelExportFormat.EXPLICIT, new File(basename + ".trew" + zipSuffix)));
 		}
 	}
 
@@ -1730,7 +1791,8 @@ public class PrismCL implements PrismModelListener
 		return new OptionParser()
 			.integer("precision", "<n>", n -> RANGE_EXPORT_DOUBLE_PRECISION.contains(n),
 				"use <n> significant figures for floating point values (in text)",
-				n -> pendingExportOptions.setModelPrecision(n));
+				n -> pendingExportOptions.setModelPrecision(n))
+			.bool("headers", "include headers in explicit model files", v -> pendingExportOptions.setPrintHeaders(v));
 	}
 
 	/**
@@ -1755,10 +1817,27 @@ public class PrismCL implements PrismModelListener
 		OptionParser parser = exportTaskOptionsParser();
 		extraOptions.accept(parser);
 		return new StringPlusOptionsSwitch(parser, (file, parse) -> {
+			// Detect/strip a trailing zip extension (e.g. "out.tra.gz" -> "out.tra" + zip=gz)
+			String[] zip = detectAndStripZipExtension(file);
+			if (zip != null) {
+				file = zip[0];
+			}
 			pendingExportOptions = new ModelExportOptions();
+			if (entity == ModelExportTask.ModelExportEntity.MODEL) {
+				// Just the transition matrix, not the other parts of the model
+				// (cf. the ".tra" case in ModelExportTask.fromFilename, used by -exportmodel)
+				pendingExportOptions.setTransitionsOnly();
+			}
+			// Default to zipping if detected from the filename (an explicit "zip" option below can still override this)
+			if (zip != null) {
+				pendingExportOptions.setZipped(true).setCompressionFormat(ModelExportOptions.CompressionFormat.fromExtension(zip[1]).get());
+			}
 			parse.run();
 			ModelExportTask task = new ModelExportTask(entity, file);
 			task.getExportOptions().apply(pendingExportOptions);
+			if (zip != null) {
+				task.setZipFileExtension(zip[1]);
+			}
 			postProcess.accept(task);
 			modelExportTasks.add(task);
 		});
@@ -1772,6 +1851,12 @@ public class PrismCL implements PrismModelListener
 	 */
 	private void processExportModelSwitch(String filesString, StringPlusOptionsSwitch.ParseCallback parse) throws PrismException
 	{
+		// Detect/strip a trailing zip extension (e.g. "out.tra.gz" -> "out.tra" + zip=gz),
+		// to be applied below to all export tasks generated from the (remaining) extension(s)
+		String[] zip = detectAndStripZipExtension(filesString);
+		if (zip != null) {
+			filesString = zip[0];
+		}
 		// Split files into basename/extensions
 		int i = filesString.lastIndexOf('.');
 		String basename = i == -1 ? filesString : filesString.substring(0, i);
@@ -1799,14 +1884,38 @@ public class PrismCL implements PrismModelListener
 		}
 		// Process options
 		pendingExportOptions = new ModelExportOptions();
+		// Default to zipping if detected from the filename (an explicit "zip" option below can still override this)
+		if (zip != null) {
+			pendingExportOptions.setZipped(true).setCompressionFormat(ModelExportOptions.CompressionFormat.fromExtension(zip[1]).get());
+		}
 		pendingExportTasks = newModelExportTasks;
 		parse.run();
 		// Apply options from this switch to each export task
 		for (ModelExportTask exportTask : newModelExportTasks) {
 			exportTask.getExportOptions().apply(pendingExportOptions);
+			if (zip != null) {
+				exportTask.setZipFileExtension(zip[1]);
+			}
 		}
 		// Add export tasks to the main list
 		modelExportTasks.addAll(newModelExportTasks);
+	}
+
+	/**
+	 * If {@code filesString} ends with a recognised compression extension (e.g. ".gz", ".gzip", ".xz"),
+	 * split it off and return a 2-element array {@code [remainder, zipExtension]}; otherwise return {@code null}.
+	 */
+	private static String[] detectAndStripZipExtension(String filesString)
+	{
+		int dot = filesString.lastIndexOf('.');
+		if (dot == -1) {
+			return null;
+		}
+		String ext = filesString.substring(dot + 1);
+		if (ModelExportOptions.CompressionFormat.fromExtension(ext).isEmpty()) {
+			return null;
+		}
+		return new String[] { filesString.substring(0, dot), ext };
 	}
 
 	/**

@@ -29,11 +29,9 @@ package io;
 import common.IteratorTools;
 import explicit.DTMC;
 import explicit.IDTMC;
-import explicit.IntervalModel;
 import explicit.Model;
 import explicit.NondetModel;
 import explicit.PartiallyObservableModel;
-import explicit.SuccessorsIterator;
 import explicit.TurnBasedGame;
 import explicit.rewards.Rewards;
 import parser.State;
@@ -66,7 +64,36 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 	@Override
 	public void exportModel(Model<Value> model, PrismLog out) throws PrismException
 	{
+		if (!modelExportOptions.includesModelAnnotations()) {
+			exportTransitions(model, out);
+			return;
+		}
+		// Combined mode (.pexp): headers are mandatory for section identification
+		if (!modelExportOptions.getPrintHeaders()) {
+			throw new PrismException("Headers cannot be disabled for combined explicit export");
+		}
 		exportTransitions(model, out);
+		if (modelExportOptions.getShowStates() && modelInfo != null && model.getStatesList() != null) {
+			out.println();
+			exportStates(model, modelInfo.createVarList(), out);
+		}
+		if (modelExportOptions.getShowObservations() && modelInfo != null
+				&& modelInfo.getModelType().partiallyObservable()) {
+			out.println();
+			exportObservations((PartiallyObservableModel<Value>) model, modelInfo, out);
+		}
+		if (modelExportOptions.getShowLabels() && getNumLabels() > 0) {
+			out.println();
+			exportLabels(model, getLabelNames(), getLabels(), out);
+		}
+		if (modelExportOptions.getShowRewards()) {
+			for (int r = 0; r < getNumRewards(); r++) {
+				out.println();
+				exportStateRewards(model, getReward(r), getRewardName(r), out);
+				out.println();
+				exportTransRewards(model, getReward(r), getRewardName(r), out);
+			}
+		}
 	}
 
 	/**
@@ -82,7 +109,10 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		// Currently, we only include initial state info here for POMDPs
 		boolean showInit = modelType.partiallyObservable();
 
-		// Output .tra file file header
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			out.println("# Transitions (" + modelType + ")");
+		}
 		int numStates = model.getNumStates();
 		out.print(numStates);
 		if (modelType.multiplePlayers()) {
@@ -161,8 +191,11 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		// Get model info and exportOptions
 		setEvaluator(model.getEvaluator());
 		Evaluator<Value> evalRewards = rewards.getEvaluator();
-		boolean noexportheaders = !getModelExportOptions().getPrintHeaders();
 		int numStates = model.getNumStates();
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			printStateRewardsHeader(out, rewardStructName);
+		}
 		// Count non-zero rewards
 		int nonZeroRews = 0;
 		for (int s = 0; s < numStates; s++) {
@@ -172,7 +205,6 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 			}
 		}
 		// Output non-zero rewards
-		printStateRewardsHeader(out, rewardStructName, noexportheaders);
 		out.println(numStates + " " + nonZeroRews);
 		for (int s = 0; s < numStates; s++) {
 			Value d = rewards.getStateReward(s);
@@ -193,13 +225,9 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 	 *
 	 * @param out Where to export
 	 * @param rewardStructName The name of the reward structure
-	 * @param noexportheaders Disable export of the header?
 	 */
-	public void printStateRewardsHeader(PrismLog out, String rewardStructName, boolean noexportheaders)
+	public void printStateRewardsHeader(PrismLog out, String rewardStructName)
 	{
-		if (noexportheaders) {
-			return;
-		}
 		out.print("# Reward structure");
 		if (!"".equals(rewardStructName)) {
 			out.print(" \"" + rewardStructName + "\"");
@@ -219,14 +247,17 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		// Get model info and exportOptions
 		setEvaluator(model.getEvaluator());
 		Evaluator<Value> evalRewards = rewards.getEvaluator();
-		boolean noexportheaders = !getModelExportOptions().getPrintHeaders();
 		boolean nondet = model.getModelType().nondeterministic();
 		int numStates = model.getNumStates();
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			printTransRewardsHeader(out, rewardStructName);
+		}
 		// Count non-zero rewards
 		int nonZeroRews = 0;
 		for (int s = 0; s < numStates; s++) {
 			if (nondet) {
-				int numChoices = ((NondetModel<Value>) model).getNumChoices();
+				int numChoices = ((NondetModel<Value>) model).getNumChoices(s);
 				for (int j = 0; j < numChoices; j++) {
 					Value d = rewards.getTransitionReward(s, j);
 					if (!evalRewards.isZero(d)) {
@@ -239,7 +270,6 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 			}
 		}
 		// Output non-zero rewards
-		printTransRewardsHeader(out, rewardStructName, noexportheaders);
 		out.print(numStates);
 		if (nondet) {
 			out.print(" " + ((NondetModel<Value>) model).getNumChoices());
@@ -247,7 +277,7 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		out.println(" " + nonZeroRews);
 		for (int s = 0; s < numStates; s++) {
 			if (nondet) {
-				int numChoices = ((NondetModel<Value>) model).getNumChoices();
+				int numChoices = ((NondetModel<Value>) model).getNumChoices(s);
 				for (int j = 0; j < numChoices; j++) {
 					Value d = rewards.getTransitionReward(s, j);
 					if (!evalRewards.isZero(d)) {
@@ -280,13 +310,9 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 	 *
 	 * @param out Where to export
 	 * @param rewardStructName The name of the reward structure
-	 * @param noexportheaders Disable export of the header?
 	 */
-	public void printTransRewardsHeader(PrismLog out, String rewardStructName, boolean noexportheaders)
+	public void printTransRewardsHeader(PrismLog out, String rewardStructName)
 	{
-		if (noexportheaders) {
-			return;
-		}
 		out.print("# Reward structure");
 		if (!"".equals(rewardStructName)) {
 			out.print(" \"" + rewardStructName + "\"");
@@ -306,6 +332,10 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		if (statesList == null)
 			return;
 
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			out.println("# States");
+		}
 		// Print header: list of model vars
 		out.print("(");
 		int numVars = varList.getNumVars();
@@ -333,6 +363,10 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 	{
 		List<State> observationsList =  model.getObservationsList();
 
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			out.println("# Observations");
+		}
 		// Print header: list of observables
 		out.print("(");
 		int numObservables = modelInfo.getNumObservables();
@@ -363,6 +397,10 @@ public class PrismExplicitExporter<Value> extends ModelExporter<Value>
 		setEvaluator(model.getEvaluator());
 		int numStates = model.getNumStates();
 
+		// Print header
+		if (modelExportOptions.getPrintHeaders()) {
+			out.println("# Labels");
+		}
 		// Print list of labels
 		int numLabels = labelNames.size();
 		for (int s = 0; s < numLabels; s++) {

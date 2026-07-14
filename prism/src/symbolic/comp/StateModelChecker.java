@@ -28,6 +28,7 @@ package symbolic.comp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,7 @@ import java.util.Vector;
 import io.ModelExportFormat;
 import io.ModelExportOptions;
 import io.ModelExportTask;
+import io.ModelExportZipper;
 import mtbdd.PrismMTBDD;
 import dv.DoubleVector;
 import jdd.*;
@@ -1707,6 +1709,13 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		if (exportOptions.getFormat() == ModelExportFormat.DRN || exportOptions.getFormat() == ModelExportFormat.UMB) {
 			throw new PrismException("Export " + exportOptions.getFormat().description() + " not yet supported by the symbolic engine");
 		}
+		if (exportOptions.getFormat() == ModelExportFormat.EXPLICIT && exportOptions.includesModelAnnotations()
+				&& !exportOptions.getPrintHeaders()) {
+			throw new PrismException("Headers cannot be disabled for combined explicit export");
+		}
+		if (exportOptions.getZipped() && file == null) {
+			throw new PrismNotSupportedException("Cannot zip export to standard output");
+		}
 
 		try {
 			model.exportToFile(file, exportOptions);
@@ -1714,14 +1723,54 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
 		}
 
-		// For export to Dot with states, need to insert states info into file
+		// Append extra sections after the main export
 		if (exportOptions.getFormat() == ModelExportFormat.DOT) {
+			// For DOT with states, append state labels and close the graph
 			try (PrismLog out = getPrismLogForFile(file, true)) {
 				model.getReachableStates().printDot(out);
-				// Print footer
 				out.println("}");
 			}
+		} else if (exportOptions.getFormat() == ModelExportFormat.EXPLICIT && exportOptions.includesModelAnnotations()) {
+			// For multi-entity EXPLICIT (.pexp), append states, labels and rewards
+			ModelExportOptions appendOptions = exportOptions.clone();
+			appendOptions.setAppendToFile(true);
+			if (exportOptions.getShowStates()) {
+				try (PrismLog sep = getPrismLogForFile(file, true)) { sep.println(); }
+				exportStates(file, appendOptions);
+			}
+			if (exportOptions.getShowLabels()) {
+				// Note: "explicit" format always includes init/deadlock
+				List<String> labelNames = new ArrayList<>();
+				labelNames.add("init");
+				labelNames.add("deadlock");
+				labelNames.addAll(prism.getModelInfo().getLabelNames());
+				// If labels from a properties file were requested, add those too
+				if (exportTask.extraLabelsUsed()) {
+					for (String name : propertiesFile.getCombinedLabelList().getLabelNames()) {
+						if (!labelNames.contains(name)) {
+							labelNames.add(name);
+						}
+					}
+				}
+				try (PrismLog sep = getPrismLogForFile(file, true)) { sep.println(); }
+				exportLabels(labelNames, file, appendOptions);
+			}
+			if (exportOptions.getShowRewards()) {
+				for (int r = 0; r < model.getNumRewardStructs(); r++) {
+					try {
+						try (PrismLog sep = getPrismLogForFile(file, true)) { sep.println(); }
+						model.exportStateRewardsToFile(r, file, appendOptions);
+						try (PrismLog sep = getPrismLogForFile(file, true)) { sep.println(); }
+						model.exportTransRewardsToFile(r, file, appendOptions);
+					} catch (FileNotFoundException e) {
+						throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
+					}
+				}
+			}
 		}
+
+		// Zip the exported file, if requested
+		ModelExportZipper.zipIfRequested(exportTask);
 	}
 
 	/**
@@ -1747,6 +1796,7 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		} catch (FileNotFoundException e) {
 			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1762,6 +1812,7 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		} catch (FileNotFoundException e) {
 			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1771,9 +1822,10 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 	 */
 	public void exportStates(File file, ModelExportOptions exportOptions) throws PrismException
 	{
-		try (PrismLog out = getPrismLogForFile(file)) {
-			model.exportStates(Prism.convertExportType(exportOptions), out);
+		try (PrismLog out = getPrismLogForFile(file, exportOptions.getAppendToFile())) {
+			model.exportStates(out, exportOptions);
 		}
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
@@ -1795,7 +1847,7 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		String matlabVarName = "l";
 		String labelNamesArr[] = labelNames.toArray(new String[labelNames.size()]);
 		try {
-			PrismMTBDD.ExportLabels(labels, labelNamesArr, matlabVarName, allDDRowVars, odd, Prism.convertExportType(exportOptions), (file != null) ? file.getPath() : null);
+			PrismMTBDD.ExportLabels(labels, labelNamesArr, matlabVarName, allDDRowVars, odd, Prism.convertExportType(exportOptions), (file != null) ? file.getPath() : null, exportOptions.getAppendToFile(), exportOptions.getPrintHeaders() ? "# Labels\n" : null);
 		} catch (FileNotFoundException e) {
 			throw new PrismException("Could not open file \"" + file.getName() + "\" for output");
 		}
@@ -1804,6 +1856,8 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		for (int i = 0; i < numLabels; i++) {
 			JDD.Deref(labels[i]);
 		}
+
+		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
 
 	/**
