@@ -834,11 +834,13 @@ public class LTLModelChecker extends PrismComponent
 		// generate acceptance for the product model by lifting
 		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
 
-		// lift the labels
+		// lift any labels
 		for (String label : model.getLabels()) {
 			BitSet liftedLabel = product.liftFromModel(model.getLabelStates(label));
 			prodModel.addLabel(label, liftedLabel);
 		}
+		// lift any rewards
+		((ModelSimple<Value>) prodModel).copyRewardsMapped(model, rews -> rews.liftFromModel(product));
 
 		return product;
 	}

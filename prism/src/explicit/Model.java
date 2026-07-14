@@ -39,9 +39,8 @@ import java.util.function.IntPredicate;
 
 import common.IterableStateSet;
 import common.IteratorTools;
-import io.DotExporter;
-import io.ModelExportOptions;
-import io.PrismExplicitExporter;
+import explicit.rewards.Rewards;
+import io.*;
 import parser.State;
 import parser.Values;
 import parser.VarList;
@@ -153,7 +152,43 @@ public interface Model<Value> extends prism.Model<Value>
 		}
 		return labels;
 	}
-	
+
+	/**
+	 * Get an attached reward structure, by its (optional) name.
+	 * Returns null if it does not exist.
+	 */
+	Rewards<Value> getRewardsByName(String name);
+
+	/**
+	 * Get an attached reward structure, by its (optional) position.
+	 * By convention, positions are assumed to be indexed from 0.
+	 * Returns null if it does not exist.
+	 */
+	Rewards<Value> getRewardsByPosition(int r);
+
+	/**
+	 * Get the number of reward structures that are attached to the model.
+	 */
+	int getNumRewards();
+
+	/**
+	 * Get the {@code i}th stored reward structure.
+	 */
+	Rewards<Value> getRewards(int i);
+
+	/**
+	 * Get the name of the {@code i}th stored reward structure.
+	 * This is optionally stored and "" if absent.
+	 */
+	String getRewardName(int i);
+
+	/**
+	 * Get the position of the {@code i}th stored reward structure.
+	 * This is optionally stored, and refers to the order within its original source,
+	 * e.g., a properties file. By convention, positions are 0-indexed. Null if absent.
+	 */
+	Integer getRewardPosition(int i);
+
 	@Override
 	default int getNumTransitions()
 	{
@@ -388,6 +423,31 @@ public interface Model<Value> extends prism.Model<Value>
 	 * States in 'except' (If non-null) are excluded from the check.
 	 */
 	void checkForDeadlocks(BitSet except) throws PrismException;
+
+	/**
+	 * Export to the specified model format.
+	 */
+	default void export(PrismLog out, ModelExportFormat exportFormat) throws PrismException
+	{
+		export(out, new ModelExportOptions(exportFormat));
+	}
+
+	/**
+	 * Export using the specified export options.
+	 */
+	default void export(PrismLog out, ModelExportOptions exportOptions) throws PrismException
+	{
+		// Create a model checker with {@code out} as the log and export to that
+		StateModelChecker mcExport = StateModelChecker.createModelChecker(getModelType());
+		mcExport.setLog(out);
+		// If {@code out} is backed by a real file (as opposed to stdout/the main log),
+		// pass that file through too, since some (e.g. binary) export formats need it
+		File file = null;
+		if (out instanceof PrismFileLog && !((PrismFileLog) out).isStdout()) {
+			file = new File(((PrismFileLog) out).getFileName());
+		}
+		mcExport.exportModel(this, ModelExportTask.fromOptions(file, exportOptions));
+	}
 
 	// Export methods (explicit files)
 
