@@ -76,7 +76,18 @@ public interface RewardGenerator<Value> extends RewardInfo
 		// By default, rewards are queried via State objects (only)
 		return lookup == RewardLookup.BY_STATE;
 	}
-	
+
+	/**
+	 * Check which mechanisms for looking up rewards are supported for reward structure {@code r}
+	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
+	 * A default implementation is provided for classes for which lookup support does not vary by
+	 * reward structure, delegating to {@link #isRewardLookupSupported(RewardLookup)}.
+	 */
+	public default boolean isRewardLookupSupported(RewardLookup lookup, int r)
+	{
+		return isRewardLookupSupported(lookup);
+	}
+
 	/**
 	 * Get the state reward of the {@code r}th reward structure for state {@code state}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).

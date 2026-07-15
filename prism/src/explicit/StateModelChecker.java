@@ -55,32 +55,14 @@ import parser.EvaluateContext.EvalMode;
 import parser.State;
 import parser.Values;
 import parser.VarList;
-import parser.ast.Declaration;
-import parser.ast.DeclarationIntUnbounded;
-import parser.ast.Expression;
-import parser.ast.ExpressionBinaryOp;
-import parser.ast.ExpressionConstant;
-import parser.ast.ExpressionFilter;
+import parser.ast.*;
 import parser.ast.ExpressionFilter.FilterOperator;
-import parser.ast.ExpressionFormula;
-import parser.ast.ExpressionFunc;
-import parser.ast.ExpressionITE;
-import parser.ast.ExpressionIdent;
-import parser.ast.ExpressionLabel;
-import parser.ast.ExpressionLiteral;
-import parser.ast.ExpressionObs;
-import parser.ast.ExpressionProp;
-import parser.ast.ExpressionUnaryOp;
-import parser.ast.ExpressionVar;
-import parser.ast.LabelList;
-import parser.ast.ModulesFile;
-import parser.ast.PropertiesFile;
-import parser.ast.Property;
 import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.visitor.ASTTraverseModify;
 import parser.visitor.ReplaceLabels;
 import prism.*;
+import prism.Filter;
 
 /**
  * Super class for explicit-state model checkers.
@@ -1478,117 +1460,368 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Construct rewards for the reward structure with index r of the reward generator and a model.
-	 * Ensures non-negative rewards.
+	 * Get a {@link RewardGenerator} object for the provided model,
+	 * containing info about rewards and access to them.
+	 * This potentially combines rewards provided by both the (stored) {@link #rewardGen}
+	 * and rewards attached directly to the model. If a reward (specified by name/position)
+	 * is available from both sources, the directly attached one is given preference.
+	 * The full list of rewards available includes those from {@link #rewardGen},
+	 * if present, and then any additional attached ones, if any.
+	 */
+	@SuppressWarnings("unchecked")
+	protected <Value> RewardGenerator<Value> getRewardGenerator(Model<Value> model) throws PrismException
+	{
+		return new CombinedRewardGenerator<>(model, (RewardGenerator<Value>) rewardGen);
+	}
+
+	/**
+	 * A {@link RewardGenerator} as required for {@link #getRewardGenerator(Model)}.
+	 */
+	protected static class CombinedRewardGenerator<Value> implements RewardGenerator<Value>
+	{
+		private final Model<Value> model;
+		private final RewardGenerator<Value> rewardGen;
+
+		public CombinedRewardGenerator(Model<Value> model, RewardGenerator<Value> rewardGen)
+		{
+			this.model = model;
+			this.rewardGen = rewardGen;
+		}
+
+		// Methods to implement RewardInfo
+
+		@Override
+		public List<String> getRewardStructNames()
+		{
+			List<String> names = new ArrayList<>();
+			if (rewardGen != null) {
+				names.addAll(rewardGen.getRewardStructNames());
+				for (int i : getExtraModelRewardIndices()) {
+					names.add(model.getRewardName(i));
+				}
+			} else {
+				int numRewards = model.getNumRewards();
+				for (int i = 0; i < numRewards; i++) {
+					names.add(model.getRewardName(i));
+				}
+			}
+			return names;
+		}
+
+		@Override
+		public boolean rewardStructHasStateRewards(int r)
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				return attached.hasStateRewards();
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.rewardStructHasStateRewards(r);
+			}
+			return true;
+		}
+
+		@Override
+		public boolean rewardStructHasTransitionRewards(int r)
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				return attached.hasTransitionRewards();
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.rewardStructHasTransitionRewards(r);
+			}
+			return true;
+		}
+
+		// Methods to implement RewardGenerator
+
+		@Override
+		public Evaluator<Value> getRewardEvaluator()
+		{
+			return rewardGen != null ? rewardGen.getRewardEvaluator() : model.getEvaluator();
+		}
+
+		@Override
+		public boolean isRewardLookupSupported(RewardLookup lookup)
+		{
+			int numRewards = getNumRewardStructs();
+			for (int r = 0; r < numRewards; r++) {
+				if (isRewardLookupSupported(lookup, r)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public boolean isRewardLookupSupported(RewardLookup lookup, int r)
+		{
+			if (getModelAttachedRewards(r) != null) {
+				switch (lookup) {
+				case BY_REWARD_OBJECT:
+				case BY_STATE_INDEX:
+					return true;
+				case BY_STATE:
+					return model.getStatesList() != null;
+				default:
+					return false;
+				}
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.isRewardLookupSupported(lookup, r);
+			}
+			return false;
+		}
+
+		@Override
+		public Value getStateReward(int r, State state, boolean allowNegative) throws PrismException
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				return getStateReward(r, lookUpStateIndex(state), allowNegative);
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.getStateReward(r, state, allowNegative);
+			}
+			throw new PrismException("Invalid reward index " + r);
+		}
+
+		@Override
+		public Value getStateReward(int r, int s, boolean allowNegative) throws PrismException
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				Value rew = attached.getStateReward(s);
+				checkNonNegative(rew, allowNegative, s);
+				return rew;
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.getStateReward(r, s, allowNegative);
+			}
+			throw new PrismException("Invalid reward index " + r);
+		}
+
+		@Override
+		public Value getStateActionReward(int r, State state, Object action, boolean allowNegative) throws PrismException
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				return getStateActionReward(r, lookUpStateIndex(state), action, allowNegative);
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.getStateActionReward(r, state, action, allowNegative);
+			}
+			throw new PrismException("Invalid reward index " + r);
+		}
+
+		@Override
+		@SuppressWarnings("unchecked")
+		public Value getStateActionReward(int r, int s, Object action, boolean allowNegative) throws PrismException
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				int i;
+				if (model instanceof NondetModel) {
+					i = ((NondetModel<Value>) model).getChoiceByAction(s, action);
+				} else if (model instanceof DTMC) {
+					i = ((DTMC<Value>) model).getTransitionByAction(s, action);
+				} else if (model instanceof IDTMC) {
+					i = ((IDTMC<Value>) model).getIntervalModel().getTransitionByAction(s, action);
+				} else {
+					throw new PrismException("State-action reward lookup not supported for model type " + model.getModelType() + "s");
+				}
+				Value rew = attached.getTransitionReward(s, i);
+				checkNonNegative(rew, allowNegative, s);
+				return rew;
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.getStateActionReward(r, s, action, allowNegative);
+			}
+			throw new PrismException("Invalid reward index " + r);
+		}
+
+		@Override
+		public Rewards<Value> getRewardObject(int r) throws PrismException
+		{
+			Rewards<Value> attached = getModelAttachedRewards(r);
+			if (attached != null) {
+				return attached;
+			}
+			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
+				return rewardGen.getRewardObject(r);
+			}
+			throw new PrismException("Invalid reward index " + r);
+		}
+
+		@Override
+		public Model<Value> getRewardObjectModel()
+		{
+			return model;
+		}
+
+		/**
+		 * Look up the (0-based) list indices, within {@link Model#getRewards(int)}, of the
+		 * reward structures attached to {@link #model} that are not claimed by (i.e., do not
+		 * match the position or name of) any of the underlying {@link #rewardGen}'s own reward
+		 * structures. These are appended, in list order, after the underlying generator's own
+		 * reward structures, whether they are named or not (an unnamed one contributes "" to
+		 * {@link #getRewardStructNames()}, as for any other unnamed reward structure).
+		 * Only valid to call if {@link #rewardGen} is not {@code null}.
+		 */
+		private List<Integer> getExtraModelRewardIndices()
+		{
+			List<Integer> extra = new ArrayList<>();
+			int numRewards = model.getNumRewards();
+			for (int i = 0; i < numRewards; i++) {
+				Integer position = model.getRewardPosition(i);
+				String name = model.getRewardName(i);
+				boolean claimedByPosition = position != null && position >= 0 && position < rewardGen.getNumRewardStructs();
+				boolean claimedByName = name != null && !name.isEmpty() && rewardGen.getRewardStructIndex(name) != -1;
+				if (!claimedByPosition && !claimedByName) {
+					extra.add(i);
+				}
+			}
+			return extra;
+		}
+
+		/**
+		 * Look up the reward structure attached directly to {@link #model} that corresponds
+		 * to reward structure index {@code r} of this combined generator, if any (else
+		 * {@code null}). If there is an underlying {@link #rewardGen}, and {@code r} refers
+		 * to one of its reward structures, the model's attached rewards are checked for a
+		 * matching position or name (an error if they refer to different reward structures);
+		 * for indices beyond the underlying generator's own, the corresponding extra (see
+		 * {@link #getExtraModelRewardIndices()}) model-attached reward structure is used. If
+		 * there is no underlying generator, the model's attached rewards are used directly, by
+		 * (0-based) list position.
+		 */
+		private Rewards<Value> getModelAttachedRewards(int r)
+		{
+			if (rewardGen == null) {
+				return r >= 0 && r < model.getNumRewards() ? model.getRewards(r) : null;
+			}
+			int numFromGen = rewardGen.getNumRewardStructs();
+			if (r < numFromGen) {
+				Rewards<Value> byPosition = model.getRewardsByPosition(r);
+				Rewards<Value> byName = model.getRewardsByName(rewardGen.getRewardStructName(r));
+				if (byPosition != null && byName != null && byPosition != byName) {
+					throw new IllegalArgumentException("Reward structure at position " + r + " and name \"" + rewardGen.getRewardStructName(r) + "\" refer to different reward structures attached to the model");
+				}
+				return byPosition != null ? byPosition : byName;
+			}
+			List<Integer> extra = getExtraModelRewardIndices();
+			int j = r - numFromGen;
+			return j >= 0 && j < extra.size() ? model.getRewards(extra.get(j)) : null;
+		}
+
+		/**
+		 * Look up the index of a state by its {@link State} object, for use by the
+		 * {@code State}-based reward lookup methods. Throws a {@link PrismException} if
+		 * the model has no states list, or the state is not found in it.
+		 */
+		private int lookUpStateIndex(State state) throws PrismException
+		{
+			List<State> statesList = model.getStatesList();
+			if (statesList == null) {
+				throw new PrismException("Reward lookup by State not possible since state list is missing");
+			}
+			int s = statesList.indexOf(state);
+			if (s == -1) {
+				throw new PrismException("Unknown state " + state);
+			}
+			return s;
+		}
+
+		/**
+		 * Check that a reward value looked up from a model-attached {@link Rewards} object is
+		 * non-negative, unless {@code allowNegative} is true. Throws a {@link PrismException} if not.
+		 */
+		private void checkNonNegative(Value rew, boolean allowNegative, int s) throws PrismException
+		{
+			if (!allowNegative && !getRewardEvaluator().geq(rew, getRewardEvaluator().zero())) {
+				throw new PrismException("Reward is negative (" + rew + ") at state " + s);
+			}
+		}
+	}
+
+	/**
+	 * Construct rewards for the reward structure with index {@code r}.
+	 * This is the (0-indexed) index within the list of available rewards for the model
+	 * which may include a combination of those that can be obtained/constructed from the
+	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
 	 * <br>
-	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 * Ensures non-negative rewards.
 	 */
 	protected <Value> Rewards<Value> constructRewards(Model<Value> model, int r) throws PrismException
 	{
-		return constructRewards(model, r, false);
+		return constructRewards(model, r, false, false);
 	}
 
 	/**
-	 * Construct rewards for the reward structure with index r of the reward generator and a model.
+	 * Construct rewards for the reward structure with index {@code r}.
+	 * This is the (0-indexed) index within the list of available rewards for the model
+	 * which may include a combination of those that can be obtained/constructed from the
+	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
 	 * <br>
-	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative, i.e., weights.
-	 * <br>
-	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative;
+	 * otherwise, rewards are checked to ensure that they are non-negative, whether
+	 * freshly constructed or attached directly to the model.
 	 */
-	@SuppressWarnings("unchecked")
 	protected <Value> Rewards<Value> constructRewards(Model<Value> model, int r, boolean allowNegativeRewards) throws PrismException
 	{
-		ConstructRewards constructRewards = new ConstructRewards(this);
-		if (allowNegativeRewards)
-			constructRewards.allowNegativeRewards();
-		return constructRewards.buildRewardStructure(model, (RewardGenerator<Value>) rewardGen, r);
+		return constructRewards(model, r, allowNegativeRewards, false);
 	}
 
 	/**
-	 * Construct expected rewards for the reward structure with index r of the reward generator and a model,
-	 * i.e., using probability-weighted sum for any rewards attached to transitions,
-	 * assigning them to states/choices.
-	 * Ensures non-negative rewards.
+	 * Construct rewards for the reward structure with index {@code r}.
+	 * This is the (0-indexed) index within the list of available rewards for the model
+	 * which may include a combination of those that can be obtained/constructed from the
+	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
 	 * <br>
-	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
+	 * Ensures non-negative rewards.
 	 */
 	protected <Value> Rewards<Value> constructExpectedRewards(Model<Value> model, int r) throws PrismException
 	{
-		if (model.getModelType() == ModelType.IDTMC && rewardGen.rewardStructHasTransitionRewards(r)) {
+		return constructRewards(model, r, false, true);
+	}
+
+	/**
+	 * Construct rewards for the reward structure with index {@code r}.
+	 * This is the (0-indexed) index within the list of available rewards for the model
+	 * which may include a combination of those that can be obtained/constructed from the
+	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
+	 * <br>
+	 * If {@code allowNegativeRewards} is true, the rewards may be positive and negative;
+	 * otherwise, rewards are checked to ensure that they are non-negative, whether
+	 * freshly constructed or attached directly to the model.
+	 * <br>
+	 * If {@code expected} is true, expected rewards are constructed, i.e., using
+	 * probability-weighted sums for any rewards attached to transitions.
+	 */
+	protected <Value> Rewards<Value> constructRewards(Model<Value> model, int r, boolean allowNegativeRewards, boolean expected) throws PrismException
+	{
+		RewardGenerator<Value> combinedRewardGen = getRewardGenerator(model);
+		if (expected && model.getModelType() == ModelType.IDTMC && combinedRewardGen.rewardStructHasTransitionRewards(r)) {
 			throw new PrismNotSupportedException("Transition rewards not supported for " + model.getModelType() + "s");
-
 		}
-		ConstructRewards constructRewards = new ConstructRewards(this);
-		constructRewards.setExpectedRewards(true);
-		return constructRewards.buildRewardStructure(model, (RewardGenerator<Value>) rewardGen, r);
+		ConstructRewards constructRewards = new ConstructRewards(this).setAllowNegativeRewards(allowNegativeRewards).setExpectedRewards(expected);
+		return constructRewards.buildRewardStructure(model, combinedRewardGen, r);
 	}
 
 	/**
-	 * Get the {@code r}th reward structure for a model. If the (stored) reward generator is
-	 * present, {@code r} is the (0-indexed) position within that list of rewards. But, if
-	 * rewards matching that reward structure's name or position are attached directly to
-	 * {@code model}, those are given preference over extracting one from the reward generator.
-	 * <br>
-	 * If there is no reward generator, the {@code r}th reward structure attached to the
-	 * model, if present, is returned (irrespective of any position/name info stored).
-	 * <br>
-	 * If {@code allowNegativeRewards} is false, rewards constructed from the reward generator
-	 * are checked to ensure that they are non-negative.
-	 */
-	protected <Value> Rewards<Value> getRewards(Model<Value> model, int r, boolean allowNegativeRewards) throws PrismException
-	{
-		if (rewardGen != null) {
-			Rewards<Value> byPosition = model.getRewardsByPosition(r);
-			Rewards<Value> byName = model.getRewardsByName(rewardGen.getRewardStructName(r));
-			if (byPosition != null && byName != null && byPosition != byName) {
-				throw new PrismException("Reward structure at position " + r + " and name \"" + rewardGen.getRewardStructName(r) + "\" refer to different reward structures attached to the model");
-			}
-			Rewards<Value> rews = byPosition != null ? byPosition : byName;
-			return rews != null ? rews : constructRewards(model, r, allowNegativeRewards);
-		}
-		return model.getRewards(r);
-	}
-
-	/**
-	 * Get the name of the reward structure with index r for a model (see {@link #getRewards}
-	 * for what r denotes). Names come from the stored reward generator, if present; if not,
-	 * from the model's own attached reward structures.
-	 */
-	protected String getRewardStructName(Model<?> model, int r)
-	{
-		return rewardGen != null ? rewardGen.getRewardStructName(r) : model.getRewardName(r);
-	}
-
-	/**
-	 * Get values and names for all the reward structures relevant/available for a model.
-	 * If a RewardGenerator is available, these rewards are added to the list.
-	 * If any additional, named rewards are attached to the model, these are also added.
-	 * If no RewardGenerator is present, any rewards attached to the models are used,
-	 * with their names if present, but with any positional info ignored.
+	 * Get values and names for all the reward structures relevant/available for a model,
+	 * which may include a combination of those that can be obtained/constructed from the
+	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
 	 */
 	protected <Value> Pair<List<Rewards<Value>>, List<String>> getAllRewards(Model<Value> model) throws PrismException
 	{
-		List<Rewards<Value>> rewards = new ArrayList<>();
-		List<String> rewardNames = new ArrayList<>();
-		if (rewardGen != null) {
-			int numFromGen = rewardGen.getNumRewardStructs();
-			for (int r = 0; r < numFromGen; r++) {
-				rewardNames.add(rewardGen.getRewardStructName(r));
-				rewards.add(getRewards(model, r, true));
-			}
-			for (int i = 0; i < model.getNumRewards(); i++) {
-				String name = model.getRewardName(i);
-				if (name != null && !name.isEmpty() && !rewardNames.contains(name)) {
-					rewardNames.add(name);
-					rewards.add(model.getRewards(i));
-				}
-			}
-		} else {
-			int numRewards = model.getNumRewards();
-			for (int i = 0; i < numRewards; i++) {
-				rewardNames.add(model.getRewardName(i));
-				rewards.add(model.getRewards(i));
-			}
+		RewardGenerator<Value> combinedRewardGen = getRewardGenerator(model);
+		List<String> rewardNames = new ArrayList<>(combinedRewardGen.getRewardStructNames());
+		List<Rewards<Value>> rewards = new ArrayList<>(rewardNames.size());
+		ConstructRewards constructRewards = new ConstructRewards(this).allowNegativeRewards();
+		for (int r = 0; r < rewardNames.size(); r++) {
+			rewards.add(constructRewards.buildRewardStructure(model, combinedRewardGen, r));
 		}
 		return new Pair<>(rewards, rewardNames);
 	}
@@ -1663,7 +1896,7 @@ public class StateModelChecker extends PrismComponent
 		// Add rewards to exporter if requested
 		if (exportOptions.getShowRewards()) {
 			Pair<List<Rewards<Value>>, List<String>> allRewards = getAllRewards(model);
-			exporter.setRewardEvaluator(rewardGen != null ? (Evaluator<Value>) rewardGen.getRewardEvaluator() : model.getEvaluator());
+			exporter.setRewardEvaluator(getRewardGenerator(model).getRewardEvaluator());
 			exporter.addRewards(allRewards.first, allRewards.second);
 		}
 		// Add labels to exporter if requested
@@ -1724,10 +1957,11 @@ public class StateModelChecker extends PrismComponent
 
 		// Construct rewards before opening the output file:
 		// the rewards may be read lazily from an import file which could be the same as the export target.
-		Rewards<Value> modelRewards = getRewards(model, r, true);
+		String rewardStructName = getRewardGenerator(model).getRewardStructName(r);
+		Rewards<Value> modelRewards = constructRewards(model, r, true);
 		try (PrismLog out = getPrismLogForFile(file)) {
 			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
-			exporter.exportStateRewards(model, modelRewards, getRewardStructName(model, r), out);
+			exporter.exportStateRewards(model, modelRewards, rewardStructName, out);
 		}
 		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
@@ -1747,10 +1981,11 @@ public class StateModelChecker extends PrismComponent
 
 		// Construct rewards before opening the output file:
 		// the rewards may be read lazily from an import file which could be the same as the export target.
-		Rewards<Value> modelRewards = getRewards(model, r, true);
+		String rewardStructName = getRewardGenerator(model).getRewardStructName(r);
+		Rewards<Value> modelRewards = constructRewards(model, r, true);
 		try (PrismLog out = getPrismLogForFile(file)) {
 			PrismExplicitExporter<Value> exporter = new PrismExplicitExporter<>(exportOptions);
-			exporter.exportTransRewards(model, modelRewards, getRewardStructName(model, r), out);
+			exporter.exportTransRewards(model, modelRewards, rewardStructName, out);
 		}
 		ModelExportZipper.zipIfRequested(file, exportOptions);
 	}
