@@ -471,29 +471,6 @@ public class StateModelChecker extends PrismComponent
 		}
 	}
 
-	/**
-	 * Return the set of label names that are defined
-	 * either by the model (from the model info or modules file)
-	 * or properties file (if attached to the model checker).
-	 */
-	public Set<String> getDefinedLabelNames()
-	{
-		TreeSet<String> definedLabelNames = new TreeSet<String>();
-
-		// labels from the label list
-		LabelList labelList = getLabelList();
-		if (labelList != null) {
-			definedLabelNames.addAll(labelList.getLabelNames());
-		}
-
-		// labels from the model info
-		if (modelInfo != null) {
-			definedLabelNames.addAll(modelInfo.getLabelNames());
-		}
-
-		return definedLabelNames;
-	}
-
 	// Other setters/getters
 
 	/**
@@ -907,6 +884,9 @@ public class StateModelChecker extends PrismComponent
 	protected StateValues checkExpressionObs(Model<?> model, ExpressionObs expr, BitSet statesOfInterest) throws PrismException
 	{
 		PartiallyObservableModel<?> poModel = (PartiallyObservableModel<?>) model;
+		if (modelInfo == null) {
+			throw new PrismException("No information about observable names is available");
+		}
 		int iObservable = modelInfo.getObservableIndex(expr.getName());
 		return StateValues.create(expr.getType(), i -> poModel.getObservationAsState(i).varValues[iObservable], model);
 	}
@@ -1296,7 +1276,7 @@ public class StateModelChecker extends PrismComponent
 			String currentLabel = "L"+i;
 			// Attach satisfaction set for Li to the model, record necessary
 			// label renaming
-			String newLabel = model.addUniqueLabel("phi", labelBS.get(i), getDefinedLabelNames());
+			String newLabel = model.addUniqueLabel("phi", labelBS.get(i), getDefinedLabelNames(model));
 			labelReplacements.put(currentLabel, newLabel);
 		}
 		// rename the labels
@@ -1441,6 +1421,24 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
+	 * Get the {@link VarList} object for the provided model,
+	 * containing info about variables. If one is attached to
+	 * the model, this takes priority. If not, get one from
+	 * an attached {@link ModelInfo}. Failing that, an
+	 * exception is thrown.
+	 */
+	protected <Value> VarList getVarList(Model<Value> model) throws PrismException
+	{
+		if (model.getVarList() != null) {
+			return model.getVarList();
+		}
+		if (modelInfo != null) {
+			return modelInfo.createVarList();
+		}
+		throw new PrismException("No variable information available for model");
+	}
+
+	/**
 	 * Get a {@link ModelInfo} object for the provided model,
 	 * containing info about model type, variables and labels.
 	 * If this is already stored locally in {@link #modelInfo}, use that.
@@ -1457,6 +1455,40 @@ public class StateModelChecker extends PrismComponent
 		}
 		model.getLabels().forEach(label -> modelInfo.getLabelNameList().add(label));
 		return modelInfo;
+	}
+
+	/**
+	 * Get the names of all the labels relevant/available for a model: those from the
+	 * stored model info, if present, plus any additional labels attached directly
+	 * to the model that are not already included.
+	 */
+	protected List<String> getAllLabelNames(Model<?> model) throws PrismException
+	{
+		List<String> labelNames = new ArrayList<>();
+		if (modelInfo != null) {
+			labelNames.addAll(modelInfo.getLabelNames());
+		}
+		for (String name : model.getLabels()) {
+			if (!labelNames.contains(name)) {
+				labelNames.add(name);
+			}
+		}
+		return labelNames;
+	}
+
+	/**
+	 * Return the set of label names that are defined either for a model
+	 * (stored either in the model info or directly attached) or in the
+	 * properties file (if attached to the model checker).
+	 */
+	public Set<String> getDefinedLabelNames(Model<?> model) throws PrismException
+	{
+		TreeSet<String> definedLabelNames = new TreeSet<>(getAllLabelNames(model));
+		LabelList labelList = getLabelList();
+		if (labelList != null) {
+			definedLabelNames.addAll(labelList.getLabelNames());
+		}
+		return definedLabelNames;
 	}
 
 	/**
@@ -1827,22 +1859,6 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Get the names of all the labels relevant/available for a model: those from the
-	 * (always present) stored model info, plus any additional labels attached directly
-	 * to the model that are not already included.
-	 */
-	protected List<String> getAllLabelNames(Model<?> model) throws PrismException
-	{
-		List<String> labelNames = new ArrayList<>(getModelInfo(model).getLabelNames());
-		for (String name : model.getLabels()) {
-			if (!labelNames.contains(name)) {
-				labelNames.add(name);
-			}
-		}
-		return labelNames;
-	}
-
-	/**
 	 * Load all labels from a PRISM labels (.lab) file and store them in BitSet objects.
 	 * Return a map from label name Strings to BitSets.
 	 * This is for all labels in the file, including "init", "deadlock".
@@ -1998,13 +2014,14 @@ public class StateModelChecker extends PrismComponent
 	 */
 	public <Value> void exportStates(Model<Value> model, File file, ModelExportOptions exportOptions) throws PrismException
 	{
+		VarList varList = getVarList(model);
 		try (PrismLog out = getPrismLogForFile(file)) {
 			switch (exportOptions.getFormat()) {
 				case EXPLICIT:
-					new PrismExplicitExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+					new PrismExplicitExporter<Value>(exportOptions).exportStates(model, varList, out);
 					break;
 				case MATLAB:
-					new MatlabExporter<Value>(exportOptions).exportStates(model, modelInfo.createVarList(), out);
+					new MatlabExporter<Value>(exportOptions).exportStates(model, varList, out);
 					break;
 			}
 		}
@@ -2019,6 +2036,9 @@ public class StateModelChecker extends PrismComponent
 	 */
 	public <Value> void exportObservations(Model<Value> model, File file, ModelExportOptions exportOptions) throws PrismException
 	{
+		if (modelInfo == null) {
+			throw new PrismException("No information about observable names is available");
+		}
 		try (PrismLog out = getPrismLogForFile(file)) {
 			switch (exportOptions.getFormat()) {
 				case EXPLICIT:
@@ -2110,7 +2130,7 @@ public class StateModelChecker extends PrismComponent
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modelInfo.createVarList().clone();
+			VarList newVarList = (VarList) getVarList(product.getOriginalModel()).clone();
 			String daVar = "_da";
 			while (newVarList.exists(daVar)) {
 				daVar = "_" + daVar;

@@ -155,6 +155,12 @@ public class LTLModelChecker extends PrismComponent
 	 * is also returned. As an optimisation, expressions that results in true/false for all states are converted to an
 	 * actual true/false, and duplicate results (or their negations) reuse the same label. BitSets giving the states which
 	 * satisfy each label are put into the vector labelBS, which should be empty when this function is called.
+	 * <br>
+	 * The L0, L1, ... names are canonical atomic proposition names required by the deterministic
+	 * automaton construction (see {@link automata.DA#checkForCanonicalAPs}) and are purely local/ephemeral:
+	 * this method never attaches them to {@code model} (unlike, e.g., {@link StateModelChecker#handleMaximalStateFormulas}),
+	 * so they cannot collide with the model's own labels, and each call restarts numbering from L0 regardless
+	 * of what labels the model may already have.
 	 */
 	public Expression checkMaximalStateFormulas(StateModelChecker mc, Model<?> model, Expression expr, Vector<BitSet> labelBS) throws PrismException
 	{
