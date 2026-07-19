@@ -75,10 +75,18 @@ public class ConstructRewards extends PrismComponent
 	/** Allow negative rewards, i.e., weights. Defaults to false. */
 	protected boolean allowNegative = false;
 
-	/** Set flag that negative rewards are allowed, i.e., weights */
-	public void allowNegativeRewards()
+	/** Set flag that negative rewards are allowed. */
+	public ConstructRewards allowNegativeRewards()
 	{
-		allowNegative = true;
+		setAllowNegativeRewards(true);
+		return this;
+	}
+
+	/** Set whether negative rewards are allowed. */
+	public ConstructRewards setAllowNegativeRewards(boolean allowNegative)
+	{
+		this.allowNegative = allowNegative;
+		return this;
 	}
 
 	/**
@@ -91,9 +99,10 @@ public class ConstructRewards extends PrismComponent
 	 * Specify whether to construct expected reward, i.e., using probability-weighted sum for any rewards
 	 * attached to transitions, assigning them to states/choices. Defaults to false.
 	 */
-	public void setExpectedRewards(boolean expectedRewards)
+	public ConstructRewards setExpectedRewards(boolean expectedRewards)
 	{
 		this.expectedRewards = expectedRewards;
+		return this;
 	}
 
 	/**
@@ -110,7 +119,7 @@ public class ConstructRewards extends PrismComponent
 		}
 
 		// If the RewardGenerator already has the rewards built, use this (after checking)
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_REWARD_OBJECT)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_REWARD_OBJECT)) {
 			Rewards<Value> rewardsObj = rewardGen.getRewardObject(r);
 			rewardsObj = getExpectedRewards(rewardsObj, rewardGen.getRewardObjectModel(), rewardGen.getRewardEvaluator(), expectedRewards, allowNegative);
 			return rewardsObj;
@@ -246,11 +255,11 @@ public class ConstructRewards extends PrismComponent
 		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
 		Value rew = eval.zero();
 		Object stateIndex = null;
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
 			stateIndex = state;
 			rew = rewardGen.getStateReward(r, state, allowNegative);
-		} else if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE_INDEX)) {
+		} else if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			stateIndex = s;
 			rew = rewardGen.getStateReward(r, s, allowNegative);
 		} else {
@@ -273,11 +282,11 @@ public class ConstructRewards extends PrismComponent
 		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
 		Value rew = eval.zero();
 		Object stateIndex = null;
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
 			stateIndex = state;
 			rew = rewardGen.getStateActionReward(r, state, action, allowNegative);
-		} else if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE_INDEX)) {
+		} else if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			stateIndex = s;
 			rew = rewardGen.getStateActionReward(r, s, action, allowNegative);
 		} else {

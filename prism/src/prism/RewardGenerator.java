@@ -43,7 +43,7 @@ import parser.ast.RewardStruct;
  * Implementations of {@link RewardGenerator} can allow rewards to be queried in one or more ways:
  * by {@link State} object; by (integer) state index; syntactically by providing a {@link RewardStruct};
  * or by directly providing a (explicit engine) {@link Rewards} object.
- * The method {@link RewardGenerator#isRewardLookupSupported(RewardLookup)} should return true or false accordingly.
+ * The method {@link RewardGenerator#isRewardLookupSupported(int, RewardLookup)} should return true or false accordingly.
  * <br><br>
  * Default implementations of all methods are provided which assume that rewards are
  * looked up by {@link State} object and there are no rewards defined (zero reward structures).
@@ -70,17 +70,30 @@ public interface RewardGenerator<Value> extends RewardInfo
 	
 	/**
 	 * Check which mechanisms for looking up rewards are supported.
+	 * This might differ between reward structures, so it's better to call
+	 * {@link #isRewardLookupSupported(int, RewardLookup)}.
 	 */
 	public default boolean isRewardLookupSupported(RewardLookup lookup)
 	{
 		// By default, rewards are queried via State objects (only)
 		return lookup == RewardLookup.BY_STATE;
 	}
-	
+
+	/**
+	 * Check which mechanisms for looking up rewards are supported for reward structure {@code r}
+	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
+	 * A default implementation is provided for classes for which lookup support does not vary by
+	 * reward structure, delegating to {@link #isRewardLookupSupported(RewardLookup)}.
+	 */
+	public default boolean isRewardLookupSupported(int r, RewardLookup lookup)
+	{
+		return isRewardLookupSupported(lookup);
+	}
+
 	/**
 	 * Get the state reward of the {@code r}th reward structure for state {@code state}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
 	 * If a reward structure has no state rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasStateRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support state rewards.
@@ -95,7 +108,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state reward of the {@code r}th reward structure for state {@code state}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
 	 * If a reward structure has no state rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasStateRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support state rewards.
@@ -106,7 +119,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default Value getStateReward(int r, State state, boolean allowNegative) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_STATE)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			throw new PrismException("Reward lookup by State not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -119,7 +132,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state-action reward of the {@code r}th reward structure for state {@code state} and action {@code action}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support transition rewards rewards.
@@ -135,7 +148,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state-action reward of the {@code r}th reward structure for state {@code state} and action {@code action}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE)}.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support transition rewards.
@@ -147,7 +160,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default Value getStateActionReward(int r, State state, Object action, boolean allowNegative) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_STATE)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			throw new PrismException("Reward lookup by State not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -160,7 +173,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state reward of the {@code r}th reward structure for state {@code s}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
 	 * If a reward structure has no state rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasStateRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support state rewards.
@@ -175,7 +188,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state reward of the {@code r}th reward structure for state {@code s}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
 	 * If a reward structure has no state rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasStateRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support state rewards.
@@ -186,7 +199,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default Value getStateReward(int r, int s, boolean allowNegative) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_STATE_INDEX)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			throw new PrismException("Reward lookup by state index not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -199,7 +212,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state-action reward of the {@code r}th reward structure for state {@code s} and action {@code action}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support transition rewards.
@@ -215,7 +228,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get the state-action reward of the {@code r}th reward structure for state {@code s} and action {@code action}
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_STATE_INDEX)}.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
 	 * and/or allow use of algorithms/implementations that do not support transition rewards.
@@ -227,7 +240,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default Value getStateActionReward(int r, int s, Object action, boolean allowNegative) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_STATE_INDEX)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			throw new PrismException("Reward lookup by state index not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -240,7 +253,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get a {@link RewardStruct} object representing the {@code r}th reward structure
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_STRUCT)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_STRUCT)}.
 	 * Throws an exception if {@code r} is out of range or the information is not available.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
@@ -249,7 +262,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default RewardStruct getRewardStruct(int r) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_REWARD_STRUCT)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_REWARD_STRUCT)) {
 			throw new PrismException("Reward lookup by reward struct not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -262,7 +275,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	/**
 	 * Get a {@link Rewards} object representing the {@code r}th reward structure
 	 * ({@code r} is indexed from 0, not from 1 like at the user (property language) level).
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_OBJECT)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_OBJECT)}.
 	 * Throws an exception if {@code r} is out of range or the information is not available.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency
@@ -271,7 +284,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 	public default Rewards<Value> getRewardObject(int r) throws PrismException
 	{
 		// Default implementation: error if not supported, or bad index
-		if (!isRewardLookupSupported(RewardLookup.BY_REWARD_OBJECT)) {
+		if (!isRewardLookupSupported(r, RewardLookup.BY_REWARD_OBJECT)) {
 			throw new PrismException("Reward lookup by reward object not supported");
 		}
 		if (r < 0 || r >= getNumRewardStructs()) {
@@ -283,7 +296,7 @@ public interface RewardGenerator<Value> extends RewardInfo
 
 	/**
 	 * Get the {@link Model} corresponding to the {@link Rewards} objects when rewards are provided in this way.
-	 * Only available if {@link #isRewardLookupSupported(RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_OBJECT)}.
+	 * Only available if {@link #isRewardLookupSupported(int, RewardLookup)} returns true for {@code RewardLookup.BY_REWARD_OBJECT)}.
 	 * Throws an exception if the information is not available.
 	 * If a reward structure has no transition rewards, you can indicate this by implementing
 	 * the method {@link #rewardStructHasTransitionRewards(int)}, which may improve efficiency

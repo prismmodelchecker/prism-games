@@ -331,6 +331,14 @@ public abstract class ModelExplicit<Value> implements Model<Value>, ActionListOw
 	}
 
 	/**
+	 * Remove all attached labels.
+	 */
+	public void clearLabels()
+	{
+		labels.clear();
+	}
+
+	/**
 	 * Attach a reward structure with optional name and position.
 	 * If a reward structure already exists with the same (non-empty) name or the same
 	 * (non-null) position, it is overwritten. If both name and position are provided,
@@ -409,6 +417,14 @@ public abstract class ModelExplicit<Value> implements Model<Value>, ActionListOw
 		for (int i = 0; i < numRewards; i++) {
 			addRewards(model.getRewardName(i), model.getRewardPosition(i), map.apply(model.getRewards(i)));
 		}
+	}
+
+	/**
+	 * Remove all attached reward structures.
+	 */
+	public void clearRewards()
+	{
+		rewards.clear();
 	}
 
 	// Accessors (for Model interface)

@@ -1294,51 +1294,11 @@ public class ProbModelChecker extends NonProbModelChecker
 		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll, coalition);
 
-		// First look at rewards attached directly to model:
-		// resolve by name, or by position (reward structure indices are 1-based at this point,
-		// i.e. as written by the user, so convert to a 0-based position), or, if neither is
-		// specified, the one at position 0.
-		Object rsi = expr.getRewardStructIndex();
-		Rewards<?> rewards;
-		if (rsi instanceof String) {
-			rewards = model.getRewardsByName((String) rsi);
-		} else if (rsi instanceof Expression) {
-			int i = ((Expression) rsi).evaluateInt(constantValues);
-			rewards = model.getRewardsByPosition(i - 1);
-			// If the model has attached rewards but none carries positional metadata
-			// matching i, and there is no reward generator to fall back on, just use
-			// the i-th attached reward (list order), as is done below for position 0
-			if (rewards == null && i >= 1 && i <= model.getNumRewards() && (rewardGen == null || rewardGen.getNumRewardStructs() == 0)) {
-				rewards = model.getRewards(i - 1);
-			}
-		} else {
-			rewards = model.getRewardsByPosition(0);
-			// If neither the model nor the reward generator can provide a reward structure
-			// at position 0, but the model has some attached rewards, just use the first one
-			if (rewards == null && model.getNumRewards() > 0 && (rewardGen == null || rewardGen.getNumRewardStructs() == 0)) {
-				rewards = model.getRewards(0);
-			}
-		}
-		if (rewards != null) {
-			// Rewards resolved directly from the model (rather than freshly built below) may
-			// still carry raw transition rewards that solution methods can't consume directly
-			// (e.g., imported/attached Markov chain transition rewards) - convert to expected
-			// state rewards where needed (skipped for instantaneous-reward properties, which
-			// don't use transition rewards and mustn't have them folded into the state reward).
-			// The conversion (and the legality checks it also performs) is cached, since this
-			// is invoked repeatedly for the same underlying rewards object, e.g., once per
-			// property checked against the same model.
-			if (!Expression.usesInstantaneousReward(expr.getExpression())) {
-				Model rawModel = model;
-				rewards = ConstructRewards.getExpectedRewards((Rewards) rewards, rawModel, rawModel.getEvaluator(), true, false);
-			}
-		}
-		// Failing that, build rewards via reward generator
-		if (rewards == null) {
-			int r = expr.getRewardStructIndexByIndexObject(rewardGen, constantValues);
-			mainLog.println("Building reward structure...");
-			rewards = Expression.usesInstantaneousReward(expr.getExpression()) ? constructRewards(model, r) : constructExpectedRewards(model, r);
-		}
+		// Build rewards for the index specified in the R operator
+		int r = expr.getRewardStructIndexByIndexObject(getRewardGenerator(model), constantValues);
+		mainLog.println("Building reward structure...");
+		boolean expected = !Expression.usesInstantaneousReward(expr.getExpression());
+		Rewards<?> rewards = constructRewards(model, r, model.getModelType() == ModelType.CSG, expected);
 
 		// Compute rewards
 		StateValues rews = checkRewardFormula(model, rewards, expr.getExpression(), minMax, statesOfInterest);
