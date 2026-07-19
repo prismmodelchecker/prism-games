@@ -108,7 +108,7 @@ public class ConstructRewards extends PrismComponent
 	public <Value> Rewards<Value> buildRewardStructure(Model<Value> model, RewardGenerator<Value> rewardGen, int r) throws PrismException
 	{
 		// If the RewardGenerator already has the rewards built, use this (after checking)
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_REWARD_OBJECT, r)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_REWARD_OBJECT)) {
 			Rewards<Value> rewardsObj = rewardGen.getRewardObject(r);
 			rewardsObj = getExpectedRewards(rewardsObj, rewardGen.getRewardObjectModel(), rewardGen.getRewardEvaluator(), expectedRewards, allowNegative);
 			return rewardsObj;
@@ -209,11 +209,11 @@ public class ConstructRewards extends PrismComponent
 		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
 		Value rew = eval.zero();
 		Object stateIndex = null;
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE, r)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
 			stateIndex = state;
 			rew = rewardGen.getStateReward(r, state, allowNegative);
-		} else if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE_INDEX, r)) {
+		} else if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			stateIndex = s;
 			rew = rewardGen.getStateReward(r, s, allowNegative);
 		} else {
@@ -236,11 +236,11 @@ public class ConstructRewards extends PrismComponent
 		Evaluator<Value> eval = rewardGen.getRewardEvaluator();
 		Value rew = eval.zero();
 		Object stateIndex = null;
-		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE, r)) {
+		if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE)) {
 			State state = statesList.get(s);
 			stateIndex = state;
 			rew = rewardGen.getStateActionReward(r, state, action, allowNegative);
-		} else if (rewardGen.isRewardLookupSupported(RewardLookup.BY_STATE_INDEX, r)) {
+		} else if (rewardGen.isRewardLookupSupported(r, RewardLookup.BY_STATE_INDEX)) {
 			stateIndex = s;
 			rew = rewardGen.getStateActionReward(r, s, action, allowNegative);
 		} else {

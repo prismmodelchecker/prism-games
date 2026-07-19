@@ -1579,7 +1579,7 @@ public class StateModelChecker extends PrismComponent
 		{
 			int numRewards = getNumRewardStructs();
 			for (int r = 0; r < numRewards; r++) {
-				if (isRewardLookupSupported(lookup, r)) {
+				if (isRewardLookupSupported(r, lookup)) {
 					return true;
 				}
 			}
@@ -1587,7 +1587,7 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		@Override
-		public boolean isRewardLookupSupported(RewardLookup lookup, int r)
+		public boolean isRewardLookupSupported(int r, RewardLookup lookup)
 		{
 			if (getModelAttachedRewards(r) != null) {
 				switch (lookup) {
@@ -1601,7 +1601,7 @@ public class StateModelChecker extends PrismComponent
 				}
 			}
 			if (rewardGen != null && r < rewardGen.getNumRewardStructs()) {
-				return rewardGen.isRewardLookupSupported(lookup, r);
+				return rewardGen.isRewardLookupSupported(r, lookup);
 			}
 			return false;
 		}
