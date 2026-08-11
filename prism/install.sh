@@ -49,5 +49,6 @@ if [ ! "$1" = "silent" ] && [ "$(uname -s)" = "Darwin" ]; then
     echo "\nOn macOS, you may want to run the following command now,"
     echo "which avoids manually approving the integrity of the binary files:"
     echo "\nxattr -d com.apple.quarantine lib/*lib"
+    echo "\n(if some library files were not quarantined, this will report a harmless \"No such xattr\" error)"
     echo
 fi
