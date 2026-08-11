@@ -80,7 +80,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	private JTextField fileTextField;
 	private JMenu modelMenu, newMenu, viewMenu, exportMenu, computeMenu, computeExportMenu;
 	private JMenu exportSSMenu, exportTrMenu;
-	private AbstractAction viewStates, viewTrans, viewObs, viewStateRewards, viewTransRewards, viewLabels, viewPrismCode;
+	private AbstractAction viewWholeModel, viewStates, viewTrans, viewObs, viewStateRewards, viewTransRewards, viewLabels, viewPrismCode;
 	private AbstractAction computeSS, computeTr, newPRISMModel;
 	private AbstractAction newPEPAModel, loadModel, reloadModel, saveModel, saveAsModel, parseModel, buildModel;
 	private AbstractAction exportStatesPlain, exportStatesMatlab,
@@ -182,6 +182,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		saveAsModel.setEnabled(!computing);
 		parseModel.setEnabled(!computing);
 		buildModel.setEnabled(!computing);
+		viewWholeModel.setEnabled(!computing);
 		viewStates.setEnabled(!computing);
 		viewTrans.setEnabled(!computing);
 		viewObs.setEnabled(!computing);
@@ -426,10 +427,15 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 
 	protected void a_viewBuild(ModelExportEntity exportEntity, ModelExportFormat exportFormat)
 	{
-		// Reset warnings counter 
+		a_viewBuild(exportEntity, new ModelExportOptions(exportFormat));
+	}
+
+	protected void a_viewBuild(ModelExportEntity exportEntity, ModelExportOptions exportOptions)
+	{
+		// Reset warnings counter
 		getPrism().getMainLog().resetNumberOfWarnings();
 		// Do view...
-		handler.export(new ModelExportTask(exportEntity, (File) null, new ModelExportOptions(exportFormat)));
+		handler.export(new ModelExportTask(exportEntity, (File) null, exportOptions));
 	}
 
 	// 	protected void a_viewStates()
@@ -909,6 +915,18 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportTrMatlab.putValue(Action.NAME, "Matlab file");
 		exportTrMatlab.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileMatlab.png"));
 
+		viewWholeModel = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_viewBuild(ModelExportEntity.MODEL, ModelExportFormat.EXPLICIT);
+			}
+		};
+		viewWholeModel.putValue(Action.LONG_DESCRIPTION, "Print the whole model to the log");
+		viewWholeModel.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_W));
+		viewWholeModel.putValue(Action.NAME, "Whole model");
+		viewWholeModel.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
+
 		viewStates = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -925,7 +943,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				a_viewBuild(ModelExportEntity.MODEL, ModelExportFormat.EXPLICIT);
+				a_viewBuild(ModelExportEntity.MODEL, new ModelExportOptions(ModelExportFormat.EXPLICIT).setTransitionsOnly());
 			}
 		};
 		viewTrans.putValue(Action.LONG_DESCRIPTION, "Print the transition matrix to the log");
@@ -941,7 +959,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 			}
 		};
 		viewObs.putValue(Action.LONG_DESCRIPTION, "Print the observations to the log");
-		viewObs.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_S));
+		viewObs.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_O));
 		viewObs.putValue(Action.NAME, "Observations");
 		viewObs.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStates.png"));
 
@@ -989,7 +1007,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 			}
 		};
 		viewPrismCode.putValue(Action.LONG_DESCRIPTION, "This shows the parsed model in a text editor.");
-		viewPrismCode.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_V));
+		viewPrismCode.putValue(Action.MNEMONIC_KEY, Integer.valueOf(KeyEvent.VK_P));
 		viewPrismCode.putValue(Action.NAME, "Parsed PRISM model");
 		viewPrismCode.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFilePrism.png"));
 	}
@@ -1092,14 +1110,14 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		JMenu exportPlainMenu = new JMenu("Plain text");
 		exportPlainMenu.setMnemonic('P');
 		exportPlainMenu.setIcon(GUIPrism.getIconFromImage("smallFileText.png"));
+		exportPlainMenu.add(exportWholeModelPlain);
+		exportPlainMenu.add(new JSeparator());
 		exportPlainMenu.add(exportTransPlain);
+		exportPlainMenu.add(exportStatesPlain);
+		exportPlainMenu.add(exportLabelsPlain);
 		exportPlainMenu.add(exportStateRewardsPlain);
 		exportPlainMenu.add(exportTransRewardsPlain);
-		exportPlainMenu.add(exportLabelsPlain);
-		exportPlainMenu.add(exportStatesPlain);
 		exportPlainMenu.add(exportObsPlain);
-		exportPlainMenu.add(new JSeparator());
-		exportPlainMenu.add(exportWholeModelPlain);
 		exportMenu.add(exportPlainMenu);
 		exportMenu.add(exportTransDot);
 		exportMenu.add(exportTransUMB);
@@ -1107,10 +1125,10 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		exportMatlabMenu.setMnemonic('M');
 		exportMatlabMenu.setIcon(GUIPrism.getIconFromImage("smallFileMatlab.png"));
 		exportMatlabMenu.add(exportTransMatlab);
+		exportMatlabMenu.add(exportStatesMatlab);
+		exportMatlabMenu.add(exportLabelsMatlab);
 		exportMatlabMenu.add(exportStateRewardsMatlab);
 		exportMatlabMenu.add(exportTransRewardsMatlab);
-		exportMatlabMenu.add(exportLabelsMatlab);
-		exportMatlabMenu.add(exportStatesMatlab);
 		exportMatlabMenu.add(exportObsMatlab);
 		exportMenu.add(exportMatlabMenu);
 		return exportMenu;
@@ -1121,12 +1139,15 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 		JMenu viewMenu = new JMenu("View");
 		viewMenu.setMnemonic('V');
 		viewMenu.setIcon(GUIPrism.getIconFromImage("smallView.png"));
-		viewMenu.add(viewStates);
+		viewMenu.add(viewWholeModel);
+		viewMenu.add(new JSeparator());
 		viewMenu.add(viewTrans);
-		viewMenu.add(viewObs);
+		viewMenu.add(viewStates);
+		viewMenu.add(viewLabels);
 		viewMenu.add(viewStateRewards);
 		viewMenu.add(viewTransRewards);
-		viewMenu.add(viewLabels);
+		viewMenu.add(viewObs);
+		viewMenu.add(new JSeparator());
 		viewMenu.add(viewPrismCode);
 		return viewMenu;
 	}
