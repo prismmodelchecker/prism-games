@@ -68,8 +68,7 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 	@Override
 	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
 	{
-		ConstructInducedModel cim = new ConstructInducedModel();
-		cim.setMode(options.getMode()).setReachOnly(options.getReachOnly());
+		ConstructInducedModel cim = new ConstructInducedModel(options);
 		Model<Value> inducedModel = cim.constructInducedModel(model, this);
 		return inducedModel;
 	}
@@ -100,20 +99,6 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 				out.println((showStates ? states.get(s) : s) + "=" + probs);
 			}
 		}
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
-	{
-		Model<Value> inducedModel = constructInducedModel(options);
-		inducedModel.exportToPrismExplicitTra(out, options.getModelPrecision());
-	}
-
-	@Override
-	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
-	{
-		Model<Value> inducedModel = constructInducedModel(options);
-		inducedModel.exportToDotFile(out, null, options.getShowStates(), options.getModelPrecision());
 	}
 
 	@Override

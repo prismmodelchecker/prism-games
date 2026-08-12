@@ -1880,7 +1880,7 @@ public class StateModelChecker extends PrismComponent
 	 * which may include a combination of those that can be obtained/constructed from the
 	 * reward generator or are already attached to the model (see {@link #getRewardGenerator(Model)}).
 	 */
-	protected <Value> Pair<List<Rewards<Value>>, List<String>> getAllRewards(Model<Value> model) throws PrismException
+	public <Value> Pair<List<Rewards<Value>>, List<String>> getAllRewards(Model<Value> model) throws PrismException
 	{
 		RewardGenerator<Value> combinedRewardGen = getRewardGenerator(model);
 		List<String> rewardNames = new ArrayList<>(combinedRewardGen.getRewardStructNames());
@@ -1890,6 +1890,30 @@ public class StateModelChecker extends PrismComponent
 			rewards.add(constructRewards.buildRewardStructure(model, combinedRewardGen, r));
 		}
 		return new Pair<>(rewards, rewardNames);
+	}
+
+	/**
+	 * Attach reward structures (from the currently stored reward generator, if any; see
+	 * {@link #setModelCheckingInfo}) directly to a model, if not already present, e.g. so
+	 * that they are available when constructing/exporting a model induced by a strategy
+	 * (see {@link ConstructInducedModel}) or lifted onto a product model built during model
+	 * checking (e.g. an LTL automaton product; see {@link LTLModelChecker}).
+	 * Does nothing if the model is not mutable ({@link ModelExplicit}), if rewards are
+	 * already attached, or if no reward generator is available.
+	 * @param model The model
+	 */
+	public <Value> void attachRewards(Model<Value> model) throws PrismException
+	{
+		if (!(model instanceof ModelExplicit) || model.getNumRewards() > 0 || rewardGen == null) {
+			return;
+		}
+		Pair<List<Rewards<Value>>, List<String>> allRewards = getAllRewards(model);
+		ModelExplicit<Value> modelExplicit = (ModelExplicit<Value>) model;
+		List<Rewards<Value>> rewardsList = allRewards.first;
+		List<String> rewardNames = allRewards.second;
+		for (int r = 0; r < rewardsList.size(); r++) {
+			modelExplicit.addRewards(rewardNames.get(r), rewardsList.get(r));
+		}
 	}
 
 	/**

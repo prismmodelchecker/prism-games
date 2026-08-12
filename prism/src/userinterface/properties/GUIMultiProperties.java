@@ -161,10 +161,12 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	// GUI
 	private FileFilter propsFilter;
 	private Map<String,FileFilter> traFilters;
+	private Map<String,FileFilter> pexpFilters;
 	private Map<String,FileFilter> labFilters;
 	private FileFilter textFilter;
 	private FileFilter csvFilter;
 	private FileFilter dotFilter;
+	private FileFilter umbFilter;
 	
 	private FileFilter matlabFilter;
 	private JMenu propMenu, stratMenu;
@@ -175,7 +177,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private JScrollPane expScroller;
 	private JTextField fileTextField;
 	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, computePareto, newProperty, editProperty;
-	private Action generateStrategy, exportStrategyActions, exportStrategyActionsStates, exportStrategyInducedRestrict, exportStrategyInducedReduce, exportStrategyInducedDot;
+	private Action generateStrategy, exportStrategyActions, exportStrategyActionsStates, exportStrategyInducedDot;
+	private Action exportStrategyInducedRestrictTra, exportStrategyInducedRestrictPexp, exportStrategyInducedRestrictUMB;
+	private Action exportStrategyInducedReduceTra, exportStrategyInducedReducePexp, exportStrategyInducedReduceUMB;
 	private Action viewStrategyActions, viewStrategyActionsStates, viewStrategyInducedRestrict, viewStrategyInducedReduce, simulateStrategy;
 	private Action newConstant, removeConstant, newLabel, removeLabel;
 	private Action newExperiment, deleteExperiment, stopExperiment, parametric;
@@ -697,8 +701,12 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		//exportStrategyMenu.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
 		exportStrategyActions.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
 		exportStrategyActionsStates.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
-		exportStrategyInducedRestrict.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
-		exportStrategyInducedReduce.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedRestrictTra.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedRestrictPexp.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedRestrictUMB.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedReduceTra.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedReducePexp.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
+		exportStrategyInducedReduceUMB.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
 		exportStrategyInducedDot.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
 		viewStrategyActions.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
 		viewStrategyActionsStates.setEnabled(!computing && parsedModel != null && getGUI().getPrism().getStrategy() != null);
@@ -1282,7 +1290,18 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			res = showSaveFileDialog(textFilter);
 			break;
 		case INDUCED_MODEL:
-			res = showSaveFileDialog(traFilters.values(), traFilters.get("tra"));
+			switch (exportOptions.getInducedModelExportOptions().getFormat()) {
+			case UMB:
+				res = showSaveFileDialog(umbFilter);
+				break;
+			default:
+				if (exportOptions.getInducedModelExportOptions().includesModelAnnotations()) {
+					res = showSaveFileDialog(pexpFilters.values(), pexpFilters.get("pexp"));
+				} else {
+					res = showSaveFileDialog(traFilters.values(), traFilters.get("tra"));
+				}
+				break;
+			}
 			break;
 		case DOT_FILE:
 			res = showSaveFileDialog(dotFilter);
@@ -2027,6 +2046,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		traFilters = new HashMap<String,FileFilter>();
 		traFilters.put("tra", new FileNameExtensionFilter("Transition matrix files (*.tra)", "tra"));
 		traFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
+		pexpFilters = new HashMap<String,FileFilter>();
+		pexpFilters.put("pexp", new FileNameExtensionFilter("Combined explicit model files (*.pexp)", "pexp"));
+		pexpFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
 		labFilters = new HashMap<String,FileFilter>();
 		labFilters.put("lab", new FileNameExtensionFilter("Label files (*.lab)", "lab"));
 		labFilters.put("txt", new FileNameExtensionFilter("Plain text files (*.txt)", "txt"));
@@ -2034,6 +2056,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		csvFilter =  new FileNameExtensionFilter("Comma-separated values (*.csv)", "csv");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
 		dotFilter = new FileNameExtensionFilter("Dot files (*.dot)", "dot");
+		umbFilter = new FileNameExtensionFilter("UMB files (*.umb)", "umb");
 	}
 
 	private JMenu createStrategyExportMenu()
@@ -2043,8 +2066,20 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		exportStrategyMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
 		exportStrategyMenu.add(exportStrategyActionsStates);
 		exportStrategyMenu.add(exportStrategyActions);
-		exportStrategyMenu.add(exportStrategyInducedRestrict);
-		exportStrategyMenu.add(exportStrategyInducedReduce);
+		JMenu exportStrategyInducedRestrictMenu = new JMenu("Induced model (restricted)");
+		exportStrategyInducedRestrictMenu.setMnemonic('M');
+		exportStrategyInducedRestrictMenu.setIcon(GUIPrism.getIconFromImage("smallMatrix.png"));
+		exportStrategyInducedRestrictMenu.add(exportStrategyInducedRestrictTra);
+		exportStrategyInducedRestrictMenu.add(exportStrategyInducedRestrictPexp);
+		exportStrategyInducedRestrictMenu.add(exportStrategyInducedRestrictUMB);
+		exportStrategyMenu.add(exportStrategyInducedRestrictMenu);
+		JMenu exportStrategyInducedReduceMenu = new JMenu("Induced model (reduced)");
+		exportStrategyInducedReduceMenu.setMnemonic('R');
+		exportStrategyInducedReduceMenu.setIcon(GUIPrism.getIconFromImage("smallMatrix.png"));
+		exportStrategyInducedReduceMenu.add(exportStrategyInducedReduceTra);
+		exportStrategyInducedReduceMenu.add(exportStrategyInducedReducePexp);
+		exportStrategyInducedReduceMenu.add(exportStrategyInducedReduceUMB);
+		exportStrategyMenu.add(exportStrategyInducedReduceMenu);
 		exportStrategyMenu.add(exportStrategyInducedDot);
 		return exportStrategyMenu;
 	}
@@ -2328,29 +2363,83 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		exportStrategyActionsStates.putValue(Action.NAME, "Action list (with states)");
 		exportStrategyActionsStates.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallStates.png"));
 
-		exportStrategyInducedRestrict = new AbstractAction()
+		exportStrategyInducedRestrictTra = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.RESTRICT));
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.RESTRICT)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.EXPLICIT).setTransitionsOnly()));
 			}
 		};
-		exportStrategyInducedRestrict.putValue(Action.LONG_DESCRIPTION, "Export the (restricted) model induced by the current strategy to a transitions file");
-		exportStrategyInducedRestrict.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_M);
-		exportStrategyInducedRestrict.putValue(Action.NAME, "Induced model (restricted)");
-		exportStrategyInducedRestrict.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
+		exportStrategyInducedRestrictTra.putValue(Action.LONG_DESCRIPTION, "Export the (restricted) model induced by the current strategy to a transition matrix file");
+		exportStrategyInducedRestrictTra.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_T);
+		exportStrategyInducedRestrictTra.putValue(Action.NAME, "Transition matrix");
+		exportStrategyInducedRestrictTra.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
 
-		exportStrategyInducedReduce = new AbstractAction()
+		exportStrategyInducedRestrictPexp = new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.REDUCE));
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.RESTRICT)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.EXPLICIT)));
 			}
 		};
-		exportStrategyInducedReduce.putValue(Action.LONG_DESCRIPTION, "Export the (reduced) model induced by the current strategy to a transitions file");
-		exportStrategyInducedReduce.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_R);
-		exportStrategyInducedReduce.putValue(Action.NAME, "Induced model (reduced)");
-		exportStrategyInducedReduce.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
+		exportStrategyInducedRestrictPexp.putValue(Action.LONG_DESCRIPTION, "Export the (restricted) model induced by the current strategy to a combined explicit model file");
+		exportStrategyInducedRestrictPexp.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_W);
+		exportStrategyInducedRestrictPexp.putValue(Action.NAME, "Whole model");
+		exportStrategyInducedRestrictPexp.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
+
+		exportStrategyInducedRestrictUMB = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.RESTRICT)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.UMB)));
+			}
+		};
+		exportStrategyInducedRestrictUMB.putValue(Action.LONG_DESCRIPTION, "Export the (restricted) model induced by the current strategy to a UMB file");
+		exportStrategyInducedRestrictUMB.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_U);
+		exportStrategyInducedRestrictUMB.putValue(Action.NAME, "UMB");
+		exportStrategyInducedRestrictUMB.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
+
+		exportStrategyInducedReduceTra = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.REDUCE)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.EXPLICIT).setTransitionsOnly()));
+			}
+		};
+		exportStrategyInducedReduceTra.putValue(Action.LONG_DESCRIPTION, "Export the (reduced) model induced by the current strategy to a transition matrix file");
+		exportStrategyInducedReduceTra.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_T);
+		exportStrategyInducedReduceTra.putValue(Action.NAME, "Transition matrix");
+		exportStrategyInducedReduceTra.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
+
+		exportStrategyInducedReducePexp = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.REDUCE)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.EXPLICIT)));
+			}
+		};
+		exportStrategyInducedReducePexp.putValue(Action.LONG_DESCRIPTION, "Export the (reduced) model induced by the current strategy to a combined explicit model file");
+		exportStrategyInducedReducePexp.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_W);
+		exportStrategyInducedReducePexp.putValue(Action.NAME, "Whole model");
+		exportStrategyInducedReducePexp.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileText.png"));
+
+		exportStrategyInducedReduceUMB = new AbstractAction()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				a_exportStrategy(new StrategyExportOptions(StrategyExportType.INDUCED_MODEL).setMode(StrategyExportOptions.InducedModelMode.REDUCE)
+						.setInducedModelExportOptions(new ModelExportOptions(ModelExportFormat.UMB)));
+			}
+		};
+		exportStrategyInducedReduceUMB.putValue(Action.LONG_DESCRIPTION, "Export the (reduced) model induced by the current strategy to a UMB file");
+		exportStrategyInducedReduceUMB.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_U);
+		exportStrategyInducedReduceUMB.putValue(Action.NAME, "UMB");
+		exportStrategyInducedReduceUMB.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallMatrix.png"));
 
 		exportStrategyInducedDot = new AbstractAction()
 		{

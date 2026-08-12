@@ -26,7 +26,7 @@
 
 package strat;
 
-import static prism.PrismSettings.DEFAULT_EXPORT_MODEL_PRECISION;
+import io.ModelExportOptions;
 
 import java.util.Optional;
 
@@ -103,9 +103,9 @@ public class StrategyExportOptions implements Cloneable
 	private Optional<Boolean> mergeObs = Optional.empty();
 
 	/**
-	 * Precision to export probabilities/etc. (number of significant decimal places)
+	 * For induced model export, the model export options.
 	 */
-	private Optional<Integer> modelPrecision = Optional.empty();
+	private Optional<ModelExportOptions> inducedModelExportOptions = Optional.empty();
 
 	// Constructors
 
@@ -175,11 +175,11 @@ public class StrategyExportOptions implements Cloneable
 	}
 
 	/**
-	 * Set precision to export probabilities/etc. (number of significant decimal places).
+	 * Set the model export options specifying details for induced model export.
 	 */
-	public StrategyExportOptions setModelPrecision(int modelPrecision)
+	public StrategyExportOptions setInducedModelExportOptions(ModelExportOptions inducedModelExportOptions)
 	{
-		this.modelPrecision = Optional.of(modelPrecision);
+		this.inducedModelExportOptions = Optional.of(inducedModelExportOptions);
 		return this;
 	}
 
@@ -206,7 +206,7 @@ public class StrategyExportOptions implements Cloneable
 	 */
 	public boolean getReachOnly()
 	{
-		return reachOnly.orElse(!getType().equals(StrategyExportType.INDUCED_MODEL));
+		return reachOnly.orElse(true);
 	}
 
 	/**
@@ -230,7 +230,15 @@ public class StrategyExportOptions implements Cloneable
 	 */
 	public int getModelPrecision()
 	{
-		return modelPrecision.orElse(DEFAULT_EXPORT_MODEL_PRECISION);
+		return getInducedModelExportOptions().getModelPrecision();
+	}
+
+	/**
+	 * Get the model export options for induced model export.
+	 */
+	public ModelExportOptions getInducedModelExportOptions()
+	{
+		return inducedModelExportOptions.orElse(new ModelExportOptions());
 	}
 
 	/**

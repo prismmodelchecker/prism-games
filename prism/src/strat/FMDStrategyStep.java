@@ -130,8 +130,7 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 	@Override
 	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
 	{
-		ConstructStrategyProduct csp = new ConstructStrategyProduct();
-		csp.setMode(options.getMode());
+		ConstructStrategyProduct csp = new ConstructStrategyProduct(options);
 		Model<Value> prodModel = csp.constructProductModel(model, this);
 		return prodModel;
 	}
@@ -160,20 +159,6 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 				}
 			}
 		}
-	}
-
-	@Override
-	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
-	{
-		Model<Value> prodModel = constructInducedModel(options);
-		prodModel.exportToPrismExplicitTra(out, options.getModelPrecision());
-	}
-
-	@Override
-	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
-	{
-		Model<Value> prodModel = constructInducedModel(options);
-		prodModel.exportToDotFile(out, null, options.getShowStates(), options.getModelPrecision());
 	}
 
 	@Override

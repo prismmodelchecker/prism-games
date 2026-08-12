@@ -26,8 +26,12 @@
 
 package strat;
 
+import explicit.Model;
 import explicit.NondetModel;
+import io.ModelExportFormat;
 import prism.Evaluator;
+import prism.PrismException;
+import prism.PrismLog;
 
 /**
  * Base class for implementations of Strategy associated with an explicit engine model.
@@ -57,5 +61,28 @@ public abstract class StrategyExplicit<Value> extends StrategyWithStates<Value>
 	public Evaluator<Value> getEvaluator()
 	{
 		return model.getEvaluator();
+	}
+
+	@Override
+	public abstract Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException;
+
+	@Override
+	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		constructInducedModel(options).export(out, options.getInducedModelExportOptions());
+	}
+
+	@Override
+	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
+	{
+		// Usually, this has been set up so we can treat it an induced model export
+		// in Dot format; if so, just delegate to the induced model export method
+		if (options.getInducedModelExportOptions() != null && options.getInducedModelExportOptions().getFormat() == ModelExportFormat.DOT) {
+			exportInducedModel(out, options);
+		}
+		// Otherwise call Dot export directly, passing a few options
+		else {
+			constructInducedModel(options).exportToDotFile(out, null, options.getShowStates(), options.getModelPrecision());
+		}
 	}
 }
