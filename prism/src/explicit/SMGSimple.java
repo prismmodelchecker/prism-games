@@ -340,17 +340,17 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, 1.0);
 			}
 		}
 	}
@@ -378,18 +378,18 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 		if (subset == null) {
 			for (s = 0; s < numStates; s++) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
 			}
 		} else if (complement) {
 			for (s = subset.nextClearBit(0); s < numStates; s = subset.nextClearBit(s + 1)) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
 			}
 		} else {
 			for (s = subset.nextSetBit(0); s >= 0; s = subset.nextSetBit(s + 1)) {
 				min = (getPlayer(s) == 0) ? min1 : min2;
 				//System.out.printf("s: %s, min1: %s, min2: %s, min: %s, player: %d\n", s, min1, min2, min, getPlayer(s));
-				result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
+				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
 			}
 		}
 	}
@@ -404,7 +404,7 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	 * @param adv Storage for adversary choice indices (ignored if null)
 	 * @param disc Discount factor
 	 */
-	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards<Double> mdpRewards, boolean min, int adv[], double disc)
+	private double smgMvMultRewMinMaxSingle(int s, double vect[], MDPRewards<Double> mdpRewards, boolean min, int adv[], double disc)
 	{
 		int advCh = -1;
 		double d, minmax;

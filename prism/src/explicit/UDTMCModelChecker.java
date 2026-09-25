@@ -27,6 +27,7 @@
 package explicit;
 
 import java.util.BitSet;
+import java.util.List;
 import java.util.PrimitiveIterator;
 
 import acceptance.AcceptanceReach;
@@ -415,6 +416,244 @@ public class UDTMCModelChecker extends ProbModelChecker
 		return res;
 	}
 	
+	/**
+	 * Compute total expected rewards, i.e., R=?[ C ].
+	 * <br>
+	 * Note: this assumes {@code udtmcRewards} has no transition rewards - only state
+	 * rewards are read (transition rewards are not yet supported for uncertain models).
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 */
+	public ModelCheckerResult computeTotalRewards(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax) throws PrismException
+	{
+		return computeTotalRewards(udtmc, udtmcRewards, minMax, 1.0);
+	}
+
+	/**
+	 * Compute total expected rewards, i.e., R=?[ C ].
+	 * <br>
+	 * Note: this assumes {@code udtmcRewards} has no transition rewards - only state
+	 * rewards are read (transition rewards are not yet supported for uncertain models).
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeTotalRewards(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax, double disc) throws PrismException
+	{
+		if (disc < 1.0) {
+			// Discounting guarantees finite values everywhere, regardless of
+			// (bottom) strongly connected component structure, so we can go
+			// directly to (discounted) value iteration.
+			return computeTotalRewardsDiscounted(udtmc, udtmcRewards, minMax, disc);
+		} else if (minMax.isMinUnc()) {
+			return computeTotalRewardsMin(udtmc, udtmcRewards, minMax);
+		} else {
+			return computeTotalRewardsMax(udtmc, udtmcRewards, minMax);
+		}
+	}
+
+	/**
+	 * Compute total expected rewards, using max uncertainty (isMaxUnc()).
+	 * <br>
+	 * Since the transition graph is fixed regardless of how the interval
+	 * uncertainty is resolved (interval lower bounds are required to be
+	 * positive - see {@link UDTMC#checkLowerBoundsArePositive}), this reduces
+	 * to identifying bottom strongly connected components (BSCCs) containing
+	 * a positive reward, exactly as for (non-uncertain) DTMCs: any state that
+	 * can reach such a BSCC with positive probability has infinite value,
+	 * since a resolution can be chosen (favouring reaching, then staying
+	 * within, that BSCC) that revisits the positive reward infinitely often.
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 */
+	public ModelCheckerResult computeTotalRewardsMax(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax) throws PrismException
+	{
+		ModelCheckerResult res;
+		long timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total reward computation (max)...");
+
+		int n = udtmc.getNumStates();
+
+		// Compute bottom strongly connected components (BSCCs)
+		SCCConsumerStore sccStore = new SCCConsumerStore();
+		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, udtmc, sccStore);
+		sccComputer.computeSCCs();
+		List<BitSet> bsccs = sccStore.getBSCCs();
+
+		// Find BSCCs with non-zero reward
+		BitSet bsccsNonZero = new BitSet();
+		for (BitSet bscc : bsccs) {
+			for (int i = bscc.nextSetBit(0); i >= 0; i = bscc.nextSetBit(i + 1)) {
+				if (udtmcRewards.getStateReward(i) > 0) {
+					bsccsNonZero.or(bscc);
+					break;
+				}
+			}
+		}
+		mainLog.print("States in non-zero reward BSCCs: " + bsccsNonZero.cardinality() + "\n");
+
+		// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0).
+		// This is purely structural (independent of how uncertainty is resolved).
+		BitSet inf = mcDTMC.prob0(udtmc, null, bsccsNonZero);
+		inf.flip(0, n);
+		mainLog.println("inf=" + inf.cardinality() + ", maybe=" + (n - inf.cardinality()));
+
+		res = computeTotalRewardsNumeric(udtmc, udtmcRewards, minMax, inf, 1.0);
+
+		// Finished total reward computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Total reward computation took " + timer / 1000.0 + " seconds.");
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
+
+	/**
+	 * Compute discounted total expected rewards.
+	 * Discounting guarantees finite values everywhere, regardless of
+	 * (bottom) strongly connected component structure, so no precomputation is needed.
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 * @param disc Discount factor applied to future rewards
+	 */
+	protected ModelCheckerResult computeTotalRewardsDiscounted(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax, double disc) throws PrismException
+	{
+		ModelCheckerResult res;
+		long timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total reward computation (discount=" + disc + ")...");
+
+		res = computeTotalRewardsNumeric(udtmc, udtmcRewards, minMax, new BitSet(), disc);
+
+		// Finished total reward computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Total reward computation took " + timer / 1000.0 + " seconds.");
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
+
+	/**
+	 * Numerical part of a total expected reward computation, once states
+	 * with infinite value {@code inf} are known, using value iteration or Gauss-Seidel.
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 * @param inf States with infinite value
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	protected ModelCheckerResult computeTotalRewardsNumeric(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax, BitSet inf, double disc) throws PrismException
+	{
+		ModelCheckerResult res;
+		int n = udtmc.getNumStates();
+
+		// Start value iteration
+		// (separate timer: the overall one reported by the caller also covers any precomputation)
+		long timerValIter = System.currentTimeMillis();
+		String sMinMax = minMax.isMinUnc() ? "min" : "max";
+		if (disc < 1.0) {
+			sMinMax += ", discount=" + disc;
+		}
+		mainLog.println("Starting value iteration (" + sMinMax + ")...");
+
+		double[] init = new double[n];
+		for (int i = 0; i < n; i++)
+			init[i] = inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+
+		BitSet unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(inf);
+
+		if (inf.cardinality() < n) {
+			IMDPSolnMethod imdpSolnMethod = this.imdpSolnMethod;
+			switch (imdpSolnMethod) {
+			case VALUE_ITERATION:
+			case GAUSS_SEIDEL:
+				break; // supported
+			default:
+				imdpSolnMethod = IMDPSolnMethod.GAUSS_SEIDEL;
+				mainLog.printWarning("Switching to solution method \"" + imdpSolnMethod.fullName() + "\"");
+			}
+			IterationMethod iterationMethod;
+			switch (imdpSolnMethod) {
+			case VALUE_ITERATION:
+				iterationMethod = new IterationMethodPower(termCrit == TermCrit.ABSOLUTE, termCritParam);
+				break;
+			case GAUSS_SEIDEL:
+				iterationMethod = new IterationMethodGS(termCrit == TermCrit.ABSOLUTE, termCritParam, false);
+				break;
+			default:
+				throw new PrismException("Unknown solution method " + imdpSolnMethod.fullName());
+			}
+			IterationMethod.IterationValIter iterationReachRewards = iterationMethod.forMvMultRewMinMaxUnc(udtmc, udtmcRewards, minMax, disc);
+			iterationReachRewards.init(init);
+			IntSet unknownStates = IntSet.asIntSet(unknown);
+			String description = sMinMax + ", with " + iterationMethod.getDescriptionShort();
+			res = iterationMethod.doValueIteration(this, description, iterationReachRewards, unknownStates, timerValIter, null);
+		} else {
+			res = new ModelCheckerResult();
+			res.soln = Utils.bitsetToDoubleArray(inf, n, Double.POSITIVE_INFINITY);
+			res.accuracy = AccuracyFactory.doublesFromQualitative();
+		}
+		return res;
+	}
+
+	/**
+	 * Compute total expected rewards, using min uncertainty (isMinUnc()).
+	 * <br>
+	 * Reduced to an expected reachability reward computation, with target Z =
+	 * the maximal set of states from which a resolution of the uncertainty
+	 * exists that keeps the process within Z forever (a "safe" region),
+	 * without ever seeing another reward. Reaching Z is then equivalent to
+	 * having value 0 from then on, so R[C] = R[F Z]; this also gives correct
+	 * handling of states with infinite value "for free", via the existing
+	 * Prob1-based precomputation already used by {@link #computeReachRewards}.
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 * @param minMax Min/max uncertainty (via isMinUnc/isMaxUnc)
+	 */
+	public ModelCheckerResult computeTotalRewardsMin(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards, MinMax minMax) throws PrismException
+	{
+		mainLog.println("\nStarting total reward computation (min)...");
+		BitSet z = computeZeroRewardSafeStates(udtmc, udtmcRewards);
+		mainLog.println("States in zero-reward safe region: " + z.cardinality());
+		return computeReachRewards(udtmc, udtmcRewards, z, minMax);
+	}
+
+	/**
+	 * Compute the maximal set of states from which a resolution of the
+	 * interval uncertainty exists that keeps the process within the set
+	 * forever, without ever seeing a positive reward. Used to reduce
+	 * (min-uncertainty) total reward to a reachability reward computation.
+	 * @param udtmc The UDTMC
+	 * @param udtmcRewards The rewards
+	 */
+	protected BitSet computeZeroRewardSafeStates(UDTMC<Double> udtmc, MCRewards<Double> udtmcRewards)
+	{
+		int n = udtmc.getNumStates();
+		BitSet z = new BitSet(n);
+		for (int s = 0; s < n; s++) {
+			if (udtmcRewards.getStateReward(s) == 0) {
+				z.set(s);
+			}
+		}
+		boolean done = false;
+		while (!done) {
+			BitSet zNext = new BitSet(n);
+			for (int s = z.nextSetBit(0); s >= 0; s = z.nextSetBit(s + 1)) {
+				if (udtmc.allSuccessorsInSet(s, z)) {
+					zNext.set(s);
+				}
+			}
+			done = zNext.equals(z);
+			z = zNext;
+		}
+		return z;
+	}
+
 	/**
 	 * Compute expected reachability rewards.
 	 * @param udtmc The UDTMC

@@ -350,21 +350,26 @@ public class NondetModelChecker extends NonProbModelChecker
 		// Get rewards
 		Object rs = expr.getRewardStructIndex();
 		JDDNode stateRewards = getStateRewardsByIndexObject(rs, model, constantValues);
-		checkNegativeRewards(stateRewards, "State");
 		JDDNode transRewards = getTransitionRewardsByIndexObject(rs, model, constantValues);
-		checkNegativeRewards(transRewards, "Transition");
+		// Instantaneous-reward properties (e.g. R=?[I=k]) look up a single state's reward
+		// rather than cumulating rewards, so negative rewards are not an issue there
+		if (!Expression.usesInstantaneousReward(expr.getExpression())) {
+			checkNegativeRewards(stateRewards, "State");
+			checkNegativeRewards(transRewards, "Transition");
+		}
 
 		// Compute rewards
 		StateValues rewards = null;
 		Expression expr2 = expr.getExpression();
+		double disc = getRewardDiscount(expr2);
 		if (expr2.getType() instanceof TypePathDouble) {
 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr2;
 			switch (exprTemp.getOperator()) {
 			case ExpressionTemporal.R_C:
 				if (exprTemp.hasBounds()) {
-					rewards = checkRewardCumul(exprTemp, stateRewards, transRewards, minMax.isMin(), statesOfInterest);
+					rewards = checkRewardCumul(exprTemp, stateRewards, transRewards, minMax.isMin(), statesOfInterest, disc);
 				} else {
-					rewards = checkRewardTotal(exprTemp, stateRewards, transRewards, minMax.isMin(), statesOfInterest);
+					rewards = checkRewardTotal(exprTemp, stateRewards, transRewards, minMax.isMin(), statesOfInterest, disc);
 				}
 				break;
 			case ExpressionTemporal.R_I:
@@ -372,7 +377,7 @@ public class NondetModelChecker extends NonProbModelChecker
 				break;
 			}
 		} else if (expr2.getType() instanceof TypePathBool || expr2.getType() instanceof TypeBool) {
-			rewards = checkRewardPathFormula(expr2, stateRewards, transRewards, minMax.isMin(), statesOfInterest);
+			rewards = checkRewardPathFormula(expr2, stateRewards, transRewards, minMax.isMin(), statesOfInterest, disc);
 		}
 
 		if (rewards == null)
@@ -1379,7 +1384,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	 * The result will have valid results at least for the states of interest (use model.getReach().copy() for all reachable states)
 	 * <br>[ REFS: <i>result</i>, DEREFS: statesOfInterest ]
 	 */
-	protected StateValues checkRewardCumul(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest) throws PrismException
+	protected StateValues checkRewardCumul(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest, double disc) throws PrismException
 	{
 		int time; // time
 		StateValues rewards = null;
@@ -1403,10 +1408,20 @@ public class NondetModelChecker extends NonProbModelChecker
 			rewards = new StateValuesMTBDD(JDD.Constant(0), model, AccuracyFactory.doublesFromQualitative());
 		} else {
 			// compute rewards
-			try {
+			if (disc == 0.0) {
+				// Nothing beyond the first step counts, so this is just the immediate reward
+				rewards = computeImmediateRewards(stateRewards, transRewards, min, null);
+			} else if (disc < 1.0) {
+				JDDNode trDisc = discountTrans(trans, disc);
+				JDDNode trrDisc = discountTransRewards(transRewards, disc);
+				try {
+					rewards = computeCumulRewards(trDisc, stateRewards, trrDisc, time, min);
+				} finally {
+					JDD.Deref(trDisc);
+					JDD.Deref(trrDisc);
+				}
+			} else {
 				rewards = computeCumulRewards(trans, stateRewards, transRewards, time, min);
-			} catch (PrismException e) {
-				throw e;
 			}
 		}
 
@@ -1418,12 +1433,63 @@ public class NondetModelChecker extends NonProbModelChecker
 	 * The result will have valid results at least for the states of interest (use model.getReach().copy() for all reachable states)
 	 * <br>[ REFS: <i>result</i>, DEREFS: statesOfInterest ]
 	 */
-	protected StateValues checkRewardTotal(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest) throws PrismException
+	protected StateValues checkRewardTotal(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest, double disc) throws PrismException
 	{
 		// currently, ignore statesOfInterest
 		JDD.Deref(statesOfInterest);
+		if (disc == 0.0) {
+			// Nothing beyond the first step counts, so this is just the immediate reward
+			return computeImmediateRewards(stateRewards, transRewards, min, null);
+		}
+		if (disc < 1.0) {
+			// Discounting makes every value finite regardless of end-component structure, so
+			// the usual end-component analysis is skipped: this is just an (undiscounted)
+			// expected reachability reward computation with an empty target set, run on the
+			// discounted matrix.
+			JDDNode trDisc = discountTrans(trans, disc);
+			JDDNode trrDisc = discountTransRewards(transRewards, disc);
+			JDDNode noTarget = JDD.Constant(0);
+			try {
+				return computeReachRewards(trDisc, transActions, trans01, stateRewards, trrDisc, noTarget, min, true);
+			} finally {
+				JDD.Deref(trDisc);
+				JDD.Deref(trrDisc);
+				JDD.Deref(noTarget);
+			}
+		}
 		StateValues rewards = computeTotalRewards(trans, trans01, transActions, stateRewards, transRewards, min);
 		return rewards;
+	}
+
+	/**
+	 * Compute rewards for the degenerate discount factor 0, where no future value contributes
+	 * at all and the answer is just the immediate expected reward. Computed as a single step of
+	 * cumulative reward on the undiscounted model.
+	 * <br>
+	 * If {@code target} is non-null (a reachability reward computation), target states
+	 * contribute nothing, so their rewards are zeroed out first.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>none</i> ]
+	 */
+	protected StateValues computeImmediateRewards(JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode target) throws PrismException
+	{
+		JDDNode sr = stateRewards, trr = transRewards;
+		if (target != null) {
+			JDD.Ref(target);
+			JDDNode notTarget = JDD.Not(target);
+			JDD.Ref(sr);
+			JDD.Ref(notTarget);
+			sr = JDD.Apply(JDD.TIMES, sr, notTarget);
+			JDD.Ref(trr);
+			trr = JDD.Apply(JDD.TIMES, trr, notTarget);
+		}
+		try {
+			return computeCumulRewards(trans, sr, trr, 1, min);
+		} finally {
+			if (target != null) {
+				JDD.Deref(sr);
+				JDD.Deref(trr);
+			}
+		}
 	}
 
 	/**
@@ -1456,12 +1522,16 @@ public class NondetModelChecker extends NonProbModelChecker
 	 * The result will have valid results at least for the states of interest (use model.getReach().copy() for all reachable states)
 	 * <br>[ REFS: <i>result</i>, DEREFS: statesOfInterest ]
 	 */
-	protected StateValues checkRewardPathFormula(Expression expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest) throws PrismException
+	protected StateValues checkRewardPathFormula(Expression expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest, double disc) throws PrismException
 	{
 		if (Expression.isReach(expr)) {
-			return checkRewardReach((ExpressionTemporal) expr, stateRewards, transRewards, min, statesOfInterest);
+			return checkRewardReach((ExpressionTemporal) expr, stateRewards, transRewards, min, statesOfInterest, disc);
 		}
 		else if (Expression.isCoSafeLTLSyntactic(expr, true)) {
+			if (disc < 1.0) {
+				JDD.Deref(statesOfInterest);
+				throw new PrismNotSupportedException("Discounting is not currently supported for co-safe LTL reward properties");
+			}
 			return checkRewardCoSafeLTL(expr, stateRewards, transRewards, min, statesOfInterest);
 		}
 		JDD.Deref(statesOfInterest);
@@ -1473,7 +1543,7 @@ public class NondetModelChecker extends NonProbModelChecker
 	 * The result will have valid results at least for the states of interest (use model.getReach().copy() for all reachable states)
 	 * <br>[ REFS: <i>result</i>, DEREFS: statesOfInterest ]
 	 */
-	protected StateValues checkRewardReach(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest) throws PrismException
+	protected StateValues checkRewardReach(ExpressionTemporal expr, JDDNode stateRewards, JDDNode transRewards, boolean min, JDDNode statesOfInterest, double disc) throws PrismException
 	{
 		JDDNode b;
 		StateValues rewards = null;
@@ -1501,7 +1571,22 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// compute rewards
 		try {
-			rewards = computeReachRewards(trans, transActions, trans01, stateRewards, transRewards, b, min);
+			if (disc == 0.0) {
+				// Nothing beyond the first step counts, so this is just the immediate reward
+				// (and zero at the target itself)
+				rewards = computeImmediateRewards(stateRewards, transRewards, min, b);
+			} else if (disc < 1.0) {
+				JDDNode trDisc = discountTrans(trans, disc);
+				JDDNode trrDisc = discountTransRewards(transRewards, disc);
+				try {
+					rewards = computeReachRewards(trDisc, transActions, trans01, stateRewards, trrDisc, b, min, true);
+				} finally {
+					JDD.Deref(trDisc);
+					JDD.Deref(trrDisc);
+				}
+			} else {
+				rewards = computeReachRewards(trans, transActions, trans01, stateRewards, transRewards, b, min);
+			}
 		} catch (PrismException e) {
 			JDD.Deref(b);
 			throw e;
@@ -2234,6 +2319,7 @@ public class NondetModelChecker extends NonProbModelChecker
 
 	protected StateValues computeCumulRewards(JDDNode tr, JDDNode sr, JDDNode trr, int time, boolean min) throws PrismException
 	{
+		JDDNode rewardsMTBDD;
 		DoubleVector rewardsDV;
 		StateValues rewards = null;
 		// Local copy of setting
@@ -2241,22 +2327,21 @@ public class NondetModelChecker extends NonProbModelChecker
 
 		// compute rewards
 		mainLog.println("\nComputing rewards...");
-		// switch engine, if necessary
-		if (engine == Prism.HYBRID) {
-			mainLog.println("Switching engine since hybrid engine does yet support this computation...");
-			engine = Prism.SPARSE;
-		}
 		mainLog.println("Engine: " + Prism.getEngineString(engine));
 		try {
 			switch (engine) {
 			case Prism.MTBDD:
-				throw new PrismNotSupportedException("MTBDD engine does not yet support this type of property (use the sparse engine instead)");
+				rewardsMTBDD = PrismMTBDD.NondetCumulReward(tr, sr, trr, odd, nondetMask, allDDRowVars, allDDColVars, allDDNondetVars, time, min);
+				rewards = new StateValuesMTBDD(rewardsMTBDD, model);
+				break;
 			case Prism.SPARSE:
 				rewardsDV = PrismSparse.NondetCumulReward(tr, sr, trr, odd, allDDRowVars, allDDColVars, allDDNondetVars, time, min);
 				rewards = new StateValuesDV(rewardsDV, model);
 				break;
 			case Prism.HYBRID:
-				throw new PrismNotSupportedException("Hybrid engine does not yet support this type of property (use the sparse engine instead)");
+				rewardsDV = PrismHybrid.NondetCumulReward(tr, sr, trr, odd, allDDRowVars, allDDColVars, allDDNondetVars, time, min);
+				rewards = new StateValuesDV(rewardsDV, model);
+				break;
 			default:
 				throw new PrismException("Unknown engine");
 			}
@@ -2274,11 +2359,94 @@ public class NondetModelChecker extends NonProbModelChecker
 	protected StateValues computeTotalRewards(JDDNode tr, JDDNode tr01, JDDNode tra, JDDNode sr, JDDNode trr, boolean min) throws PrismException
 	{
 		if (min) {
-			throw new PrismNotSupportedException("Expected minimum total reward (C) is not yet supported for MDPs.");
+			return computeTotalRewardsMin(tr, tr01, tra, sr, trr);
 		} else {
 			// max. We don't know if there are positive ECs, so we can't skip precomputation
 			return computeTotalRewardsMax(tr, tr01, tra, sr, trr, false);
 		}
+	}
+
+	/**
+	 * Compute minimal total expected rewards.
+	 * <br>
+	 * Reduced to an expected reachability reward computation, with target Z =
+	 * the union of "zero-reward" maximal end components, i.e. end components
+	 * from which a strategy exists to remain forever while accumulating no
+	 * further reward. A minimising strategy always prefers entering such an
+	 * end component (0 reward from then on) over continuing to pay reward, so
+	 * Rmin[C] = Rmin[F Z]. This also gives correct handling of states with
+	 * infinite value "for free", via the existing Prob1-based precomputation
+	 * already used by {@link #computeReachRewards}.
+	 */
+	protected StateValues computeTotalRewardsMin(JDDNode tr, JDDNode tr01, JDDNode tra, JDDNode sr, JDDNode trr) throws PrismException
+	{
+		mainLog.println("\nStarting total expected reward (min)...");
+		long timer = System.currentTimeMillis();
+
+		JDDNode z = computeZeroRewardMECStates(tr, tr01, sr, trr);
+		mainLog.println("States in zero-reward MECs: " + JDD.GetNumMintermsString(z, allDDRowVars.n()));
+
+		StateValues rewards;
+		try {
+			// TODO: this recomputes the zero-reward MECs. computeReachRewards runs its own
+			// zero-reward MEC computation for the min case (to build the quotient model), over
+			// the "maybe" states, i.e. everything outside the target. Here the target is Z,
+			// which already contains every zero-reward MEC, so that second computation is
+			// guaranteed to find nothing - it is wasted work, not a correctness problem.
+			// Worth adding a way to tell computeReachRewards to skip it.
+			rewards = computeReachRewards(tr, tra, tr01, sr, trr, z, true);
+		} finally {
+			JDD.Deref(z);
+		}
+
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Time for total reward computation: " + timer / 1000.0 + " seconds.");
+
+		return rewards;
+	}
+
+	/**
+	 * Compute the union of states in maximal end components (MECs) where all
+	 * rewards (state and transition) are zero, i.e., states from which a
+	 * strategy exists to remain forever without accumulating any further
+	 * reward. Used to reduce Rmin[C] (total reward) to Rmin[F Z].
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>none</i> ]
+	 */
+	protected JDDNode computeZeroRewardMECStates(JDDNode tr, JDDNode tr01, JDDNode sr, JDDNode trr) throws PrismException
+	{
+		// States with zero state reward
+		JDD.Ref(reach);
+		JDD.Ref(sr);
+		JDDNode zeroRewReach = JDD.And(reach, JDD.Apply(JDD.EQUALS, sr, JDD.Constant(0)));
+		// (state,choice) pairs with zero transition reward
+		JDD.Ref(trr);
+		JDDNode zeroTrr = JDD.Apply(JDD.EQUALS, trr, JDD.Constant(0));
+		// Restrict the transition relation (and its probabilities) to those zero-reward choices
+		JDD.Ref(tr);
+		JDD.Ref(zeroTrr);
+		JDDNode zeroRewTrans = JDD.Apply(JDD.TIMES, tr, zeroTrr);
+		JDD.Ref(tr01);
+		JDDNode zeroRewTrans01 = JDD.And(tr01, zeroTrr);
+
+		ECComputer ecComp = new ECComputerDefault(prism, zeroRewReach, zeroRewTrans, zeroRewTrans01,
+		                                          model.getAllDDRowVars(),
+		                                          model.getAllDDColVars(),
+		                                          model.getAllDDNondetVars());
+		StopWatch mecTimer = new StopWatch(mainLog);
+		mecTimer.start("zero-reward MEC computation");
+		ecComp.computeMECStates();
+		mecTimer.stop("found " + ecComp.getMECStates().size() + " zero-reward MECs");
+
+		JDDNode z = JDD.Constant(0);
+		for (JDDNode mec : ecComp.getMECStates()) {
+			z = JDD.Or(z, mec);
+		}
+
+		JDD.Deref(zeroRewReach);
+		JDD.Deref(zeroRewTrans);
+		JDD.Deref(zeroRewTrans01);
+
+		return z;
 	}
 
 	protected StateValues computeTotalRewardsMax(JDDNode tr, JDDNode tr01, JDDNode tra, JDDNode sr, JDDNode trr, boolean noPositiveECs) throws PrismException
@@ -2373,11 +2541,6 @@ public class NondetModelChecker extends NonProbModelChecker
 		else {
 			// compute the rewards
 			mainLog.println("\nComputing remaining total rewards...");
-			// switch engine, if necessary
-			if (engine == Prism.HYBRID) {
-				mainLog.println("Switching engine since hybrid engine does yet support this computation...");
-				engine = Prism.SPARSE;
-			}
 			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
@@ -2400,7 +2563,14 @@ public class NondetModelChecker extends NonProbModelChecker
 					rewards = new StateValuesDV(rewardsDV, model);
 					break;
 				case Prism.HYBRID:
-					throw new PrismNotSupportedException("Hybrid engine does not yet support this type of property (use sparse or MTBDD engine instead)");
+					rewardsDV = PrismHybrid.NondetReachReward(tr, sr, trr, odd,
+					                                          allDDRowVars, allDDColVars, allDDNondetVars,
+					                                          JDD.ZERO,  // goal = empty set
+					                                          inf,
+					                                          maybe,
+					                                          false);  // max
+					rewards = new StateValuesDV(rewardsDV, model);
+					break;
 				default:
 					throw new PrismException("Unknown engine");
 				}
@@ -2438,11 +2608,6 @@ public class NondetModelChecker extends NonProbModelChecker
 		else {
 			// compute the rewards
 			mainLog.println("\nComputing rewards...");
-			// switch engine, if necessary
-			if (engine == Prism.HYBRID) {
-				mainLog.println("Switching engine since hybrid engine does yet support this computation...");
-				engine = Prism.SPARSE;
-			}
 			mainLog.println("Engine: " + Prism.getEngineString(engine));
 			try {
 				switch (engine) {
@@ -2455,7 +2620,9 @@ public class NondetModelChecker extends NonProbModelChecker
 					rewards = new StateValuesDV(rewardsDV, model);
 					break;
 				case Prism.HYBRID:
-					throw new PrismException("Hybrid engine does not yet support this type of property (use sparse or MTBDD engine instead)");
+					rewardsDV = PrismHybrid.NondetInstReward(tr, sr, odd, allDDRowVars, allDDColVars, allDDNondetVars, time, min);
+					rewards = new StateValuesDV(rewardsDV, model);
+					break;
 				default:
 					throw new PrismException("Unknown engine");
 				}
@@ -2473,14 +2640,29 @@ public class NondetModelChecker extends NonProbModelChecker
 
 	protected StateValues computeReachRewards(JDDNode tr, JDDNode tra, JDDNode tr01, JDDNode sr, JDDNode trr, JDDNode b, boolean min) throws PrismException
 	{
+		return computeReachRewards(tr, tra, tr01, sr, trr, b, min, false);
+	}
+
+	/**
+	 * Compute expected reachability rewards.
+	 * <br>
+	 * If {@code discounted}, {@code tr}/{@code trr} are expected to have been scaled by
+	 * {@link #discountTrans}/{@link #discountTransRewards} already, and the Prob0/Prob1
+	 * precomputation is skipped: discounting bounds every value by {@code r_max/(1-disc)}, so
+	 * no state has infinite value and there is nothing for that precomputation to find.
+	 * Skipping it is also necessary, not just an optimisation - it reasons about the
+	 * undiscounted reachability structure (via the unscaled {@code tr01}) and would wrongly
+	 * report states as infinite.
+	 * <br>[ REFS: <i>result</i>, DEREFS: <i>none</i> ]
+	 */
+	protected StateValues computeReachRewards(JDDNode tr, JDDNode tra, JDDNode tr01, JDDNode sr, JDDNode trr, JDDNode b, boolean min, boolean discounted) throws PrismException
+	{
 		JDDNode inf, maybe, prob1, no;
 		JDDNode rewardsMTBDD;
 		DoubleVector rewardsDV;
 		StateValues rewards = null;
 		// Local copy of setting
 		int engine = this.engine;
-
-		List<JDDNode> zeroCostEndComponents = null;
 
 		if (doIntervalIteration && min) {
 			throw new PrismNotSupportedException("Currently, Rmin is not supported with interval iteration and the symbolic engines");
@@ -2499,7 +2681,14 @@ public class NondetModelChecker extends NonProbModelChecker
 		}
 
 		// compute states which can't reach goal with probability 1
-		if (b.equals(JDD.ZERO)) {
+		if (discounted) {
+			// Discounting: all values finite, so no "inf" states; everything outside the
+			// target is solved numerically
+			inf = JDD.Constant(0);
+			JDD.Ref(reach);
+			JDD.Ref(b);
+			maybe = JDD.And(reach, JDD.Not(b));
+		} else if (b.equals(JDD.ZERO)) {
 			JDD.Ref(reach);
 			inf = reach;
 			maybe = JDD.Constant(0);
@@ -2517,35 +2706,6 @@ public class NondetModelChecker extends NonProbModelChecker
 				JDD.Ref(reach);
 				inf = JDD.And(reach, JDD.Not(prob1));
 			} else {
-
-				if (prism.getCheckZeroLoops()) {
-					// find states transitions that have no cost
-					JDD.Ref(sr);
-					JDD.Ref(reach);
-					JDDNode zeroReach = JDD.And(reach, JDD.Apply(JDD.EQUALS, sr, JDD.Constant(0)));
-					JDD.Ref(b);
-					zeroReach = JDD.And(zeroReach, JDD.Not(b));
-					JDD.Ref(trr);
-					JDDNode zeroTrr = JDD.Apply(JDD.EQUALS, trr, JDD.Constant(0));
-					JDD.Ref(trans);
-					JDD.Ref(zeroTrr);
-					JDDNode zeroTrans = JDD.And(trans, zeroTrr);
-					JDD.Ref(trans01);
-					JDDNode zeroTrans01 = JDD.And(trans01, zeroTrr);
-
-					ECComputer ecComp = new ECComputerDefault(prism, zeroReach, zeroTrans, zeroTrans01, model.getAllDDRowVars(), model.getAllDDColVars(),
-							model.getAllDDNondetVars());
-					StopWatch mecTimer = new StopWatch(mainLog);
-					mecTimer.start("zero-cost MEC computation");
-					ecComp.computeMECStates();
-					zeroCostEndComponents = ecComp.getMECStates();
-					mecTimer.stop("found " + zeroCostEndComponents.size() + " zero-cost MECs");
-
-					JDD.Deref(zeroReach);
-					JDD.Deref(zeroTrans);
-					JDD.Deref(zeroTrans01);
-				}
-
 				// compute states for which all adversaries don't reach goal with probability 1
 				no = PrismMTBDD.Prob0A(tr01, reach, allDDRowVars, allDDColVars, allDDNondetVars, reach, b);
 				prob1 = PrismMTBDD.Prob1E(tr01, reach, allDDRowVars, allDDColVars, allDDNondetVars, reach, b, no);
@@ -2557,16 +2717,6 @@ public class NondetModelChecker extends NonProbModelChecker
 			JDD.Ref(inf);
 			JDD.Ref(b);
 			maybe = JDD.And(reach, JDD.Not(JDD.Or(inf, b)));
-		}
-
-		if (prism.getCheckZeroLoops()) {
-			// need to deal with zero loops yet
-			if (min && zeroCostEndComponents != null && zeroCostEndComponents.size() > 0) {
-				mainLog.printWarning("PRISM detected your model contains " + zeroCostEndComponents.size() + " zero-reward "
-						+ ((zeroCostEndComponents.size() == 1) ? "loop." : "loops.\n") + "Your minimum rewards may be too low...");
-			}
-		} else if (min) {
-			mainLog.printWarning("PRISM hasn't checked for zero-reward loops.\n" + "Your minimum rewards may be too low...");
 		}
 
 		// print out yes/no/maybe
@@ -2608,10 +2758,62 @@ public class NondetModelChecker extends NonProbModelChecker
 				lower = JDD.ITE(maybe.copy(), JDD.Constant(lowerBound), JDD.Constant(0));
 			}
 
+			// For min, naive value iteration can converge to a spurious "stuck at
+			// zero reward forever" fixed point whenever a zero-reward end component
+			// sits on the path to the target (looping forever trivially satisfies
+			// V = min(V, cost), even though looping never actually reaches the
+			// target). Avoid this by collapsing each such EC (restricted to the
+			// "maybe" region) to a single representative state before solving -
+			// the symbolic analogue of the explicit engine's ZeroRewardECQuotient.
+			// (doIntervalIteration && min already throws earlier, so lower/upper
+			// are never set together with a quotient here.)
+			MDPQuotient zeroRewQuotient = null;
+			NondetModel zeroRewModel = null;
+			JDDNode srQ = null, trrQ = null, bQ = null, infQ = null, maybeQ = null;
+			// Discounting already makes the minimum well defined - a zero-reward end component
+			// is not an absorbing "free" option once future reward is discounted - so the
+			// quotient construction is skipped (it also reasons about the undiscounted model)
+			if (min && !discounted) {
+				JDD.Ref(maybe);
+				JDD.Ref(sr);
+				JDDNode zeroRewStates = JDD.And(maybe, JDD.Apply(JDD.EQUALS, sr, JDD.Constant(0)));
+				JDD.Ref(trr);
+				JDDNode zeroTrr = JDD.Apply(JDD.EQUALS, trr, JDD.Constant(0));
+				JDD.Ref(tr);
+				JDD.Ref(zeroTrr);
+				JDDNode zeroRewTrans = JDD.Apply(JDD.TIMES, tr, zeroTrr);
+				JDD.Ref(tr01);
+				JDDNode zeroRewTrans01 = JDD.And(tr01, zeroTrr);
+
+				ECComputer ecComp = new ECComputerDefault(prism, zeroRewStates, zeroRewTrans, zeroRewTrans01,
+				                                          model.getAllDDRowVars(), model.getAllDDColVars(), model.getAllDDNondetVars());
+				StopWatch mecTimer = new StopWatch(mainLog);
+				mecTimer.start("zero-reward MEC computation");
+				ecComp.computeMECStates();
+				mecTimer.stop("found " + ecComp.getMECStates().size() + " zero-reward MECs");
+
+				if (!ecComp.getMECStates().isEmpty()) {
+					mainLog.println("Building zero-reward end component quotient model...");
+					zeroRewQuotient = MDPQuotient.transform(this, model, ecComp.getMECStates(), model.getReach().copy());
+					zeroRewModel = zeroRewQuotient.getTransformedModel();
+					mainLog.println("Quotient MDP:");
+					zeroRewModel.printTransInfo(mainLog);
+
+					srQ = zeroRewQuotient.getTransformedStateReward(sr);
+					trrQ = zeroRewQuotient.getTransformedTransReward(trr);
+					bQ = zeroRewQuotient.mapStateSetToQuotient(b.copy());
+					infQ = zeroRewQuotient.mapStateSetToQuotient(inf.copy());
+					maybeQ = zeroRewQuotient.mapStateSetToQuotient(maybe.copy());
+				}
+				JDD.Deref(zeroRewStates);
+				JDD.Deref(zeroRewTrans);
+				JDD.Deref(zeroRewTrans01);
+			}
+
 			// compute the rewards
 			mainLog.println("\nComputing remaining rewards...");
-			// switch engine, if necessary
-			if (engine == Prism.HYBRID) {
+			// switch engine, if necessary (interval iteration is not implemented natively for hybrid)
+			if (engine == Prism.HYBRID && doIntervalIteration) {
 				mainLog.println("Switching engine since hybrid engine does yet support this computation...");
 				engine = Prism.SPARSE;
 			}
@@ -2621,28 +2823,44 @@ public class NondetModelChecker extends NonProbModelChecker
 				case Prism.MTBDD:
 					if (doIntervalIteration) {
 						rewardsMTBDD = PrismMTBDD.NondetReachRewardInterval(tr, sr, trr, odd, nondetMask, allDDRowVars, allDDColVars, allDDNondetVars, b, inf, maybe, lower, upper, min, prism.getIntervalIterationFlags());
+						rewards = new StateValuesMTBDD(rewardsMTBDD, model);
+					} else if (zeroRewQuotient != null) {
+						rewardsMTBDD = PrismMTBDD.NondetReachReward(zeroRewModel.getTrans(), srQ, trrQ, zeroRewModel.getODD(), zeroRewModel.getNondetMask(),
+						                                            zeroRewModel.getAllDDRowVars(), zeroRewModel.getAllDDColVars(), zeroRewModel.getAllDDNondetVars(),
+						                                            bQ, infQ, maybeQ, min);
+						rewards = new StateValuesMTBDD(rewardsMTBDD, zeroRewModel);
 					} else {
 						rewardsMTBDD = PrismMTBDD.NondetReachReward(tr, sr, trr, odd, nondetMask, allDDRowVars, allDDColVars, allDDNondetVars, b, inf, maybe, min);
+						rewards = new StateValuesMTBDD(rewardsMTBDD, model);
 					}
-					rewards = new StateValuesMTBDD(rewardsMTBDD, model);
 					break;
 				case Prism.SPARSE:
 					if (doIntervalIteration) {
 						rewardsDV = PrismSparse.NondetReachRewardInterval(tr, tra, model.getSynchs(), sr, trr, odd, allDDRowVars, allDDColVars, allDDNondetVars, b, inf,
 								maybe, lower, upper, min, prism.getIntervalIterationFlags());
+						rewards = new StateValuesDV(rewardsDV, model);
+					} else if (zeroRewQuotient != null) {
+						rewardsDV = PrismSparse.NondetReachReward(zeroRewModel.getTrans(), zeroRewModel.getTransActions(), zeroRewModel.getSynchs(), srQ, trrQ, zeroRewModel.getODD(),
+						                                          zeroRewModel.getAllDDRowVars(), zeroRewModel.getAllDDColVars(), zeroRewModel.getAllDDNondetVars(),
+						                                          bQ, infQ, maybeQ, min);
+						rewards = new StateValuesDV(rewardsDV, zeroRewModel);
 					} else {
 						rewardsDV = PrismSparse.NondetReachReward(tr, tra, model.getSynchs(), sr, trr, odd, allDDRowVars, allDDColVars, allDDNondetVars, b, inf,
 								maybe, min);
+						rewards = new StateValuesDV(rewardsDV, model);
 					}
-					rewards = new StateValuesDV(rewardsDV, model);
 					break;
 				case Prism.HYBRID:
-					throw new PrismException("Hybrid engine does not yet support this type of property (use sparse or MTBDD engine instead)");
-					// rewardsDV = PrismHybrid.NondetReachReward(tr, sr, trr,
-					// odd, allDDRowVars, allDDColVars, allDDNondetVars, b, inf,
-					// maybe, min);
-					// rewards = new StateValuesDV(rewardsDV, model);
-					// break;
+					if (zeroRewQuotient != null) {
+						rewardsDV = PrismHybrid.NondetReachReward(zeroRewModel.getTrans(), srQ, trrQ, zeroRewModel.getODD(),
+						                                          zeroRewModel.getAllDDRowVars(), zeroRewModel.getAllDDColVars(), zeroRewModel.getAllDDNondetVars(),
+						                                          bQ, infQ, maybeQ, min);
+						rewards = new StateValuesDV(rewardsDV, zeroRewModel);
+					} else {
+						rewardsDV = PrismHybrid.NondetReachReward(tr, sr, trr, odd, allDDRowVars, allDDColVars, allDDNondetVars, b, inf, maybe, min);
+						rewards = new StateValuesDV(rewardsDV, model);
+					}
+					break;
 				default:
 					throw new PrismException("Unknown engine");
 				}
@@ -2652,18 +2870,26 @@ public class NondetModelChecker extends NonProbModelChecker
 				} else {
 					rewards.setAccuracy(AccuracyFactory.valueIteration(PrismNative.getTermCritParam(), PrismNative.getLastErrorBound(), PrismNative.getTermCrit() == Prism.ABSOLUTE));
 				}
+				if (zeroRewQuotient != null) {
+					// project back to the original (non-quotiented) model
+					rewards = zeroRewQuotient.projectToOriginalModel(rewards);
+				}
 			} catch (PrismException e) {
 				JDD.Deref(inf);
 				JDD.Deref(maybe);
 				if (lower != null) JDD.Deref(lower);
 				if (upper != null) JDD.Deref(upper);
+				if (zeroRewQuotient != null) {
+					zeroRewQuotient.clear();
+					JDD.Deref(srQ, trrQ, bQ, infQ, maybeQ);
+				}
 				throw e;
 			}
+			if (zeroRewQuotient != null) {
+				zeroRewQuotient.clear();
+				JDD.Deref(srQ, trrQ, bQ, infQ, maybeQ);
+			}
 		}
-
-		if (zeroCostEndComponents != null)
-			for (JDDNode zcec : zeroCostEndComponents)
-				JDD.Deref(zcec);
 
 		if (doIntervalIteration) {
 			double max_v = rewards.maxFiniteOverBDD(maybe);

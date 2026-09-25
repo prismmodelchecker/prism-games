@@ -341,7 +341,16 @@ public abstract class IterationMethod {
 	public abstract IterationIntervalIter forMvMultInterval(DTMC<Double> dtmc, boolean fromBelow, boolean enforceMonotonicity, boolean checkMonotonicity) throws PrismException;
 
 	/** Obtain an Iteration object using mvMultRew (matrix-vector multiplication with rewards) in a DTMC */
-	public abstract IterationValIter forMvMultRew(DTMC<Double> dtmc, MCRewards<Double> rew) throws PrismException;
+	public IterationValIter forMvMultRew(DTMC<Double> dtmc, MCRewards<Double> rew) throws PrismException
+	{
+		return forMvMultRew(dtmc, rew, 1.0);
+	}
+
+	/**
+	 * Obtain an Iteration object using mvMultRew (matrix-vector multiplication with rewards) in a DTMC
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public abstract IterationValIter forMvMultRew(DTMC<Double> dtmc, MCRewards<Double> rew, double disc) throws PrismException;
 
 	/**
 	 * Obtain an Iteration object (for interval iteration) using mvMultRew
@@ -383,7 +392,21 @@ public abstract class IterationMethod {
 	 * @param min do min?
 	 * @param strat optional, storage for strategy, ignored if null
 	 */
-	public abstract IterationValIter forMvMultRewMinMax(MDP<Double> mdp, MDPRewards<Double> rewards, boolean min, int[] strat) throws PrismException;
+	public IterationValIter forMvMultRewMinMax(MDP<Double> mdp, MDPRewards<Double> rewards, boolean min, int[] strat) throws PrismException
+	{
+		return forMvMultRewMinMax(mdp, rewards, min, strat, 1.0);
+	}
+
+	/**
+	 * Obtain an Iteration object using mvMultRewMinMax (matrix-vector multiplication with rewards, followed by min/max)
+	 * in an MDP.
+	 * @param mdp the MDP
+	 * @param rewards the reward structure
+	 * @param min do min?
+	 * @param strat optional, storage for strategy, ignored if null
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public abstract IterationValIter forMvMultRewMinMax(MDP<Double> mdp, MDPRewards<Double> rewards, boolean min, int[] strat, double disc) throws PrismException;
 
 	/**
 	 * Obtain an Iteration object using mvMultRewMinMax (matrix-vector multiplication with rewards, followed by min/max)
@@ -415,7 +438,20 @@ public abstract class IterationMethod {
 	 * @param mcRewards the reward structure
 	 * @param minMax min/max info
 	 */
-	public abstract IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax) throws PrismException;
+	public IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax) throws PrismException
+	{
+		return forMvMultRewMinMaxUnc(udtmc, mcRewards, minMax, 1.0);
+	}
+
+	/**
+	 * Obtain an Iteration object using mvMultRewUnc (matrix-vector multiplication with rewards, followed by min/max)
+	 * in an UDTMC.
+	 * @param udtmc the UDTMC
+	 * @param mcRewards the reward structure
+	 * @param minMax min/max info
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public abstract IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax, double disc) throws PrismException;
 	
 	/**
 	 * Obtain an Iteration object using mvMultUnc (matrix-vector multiplication, followed by min/max)
@@ -434,7 +470,21 @@ public abstract class IterationMethod {
 	 * @param minMax min/max info
 	 * @param strat optional, storage for strategy, ignored if null
 	 */
-	public abstract IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat) throws PrismException;
+	public IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat) throws PrismException
+	{
+		return forMvMultRewMinMaxUnc(imdp, mdpRewards, minMax, strat, 1.0);
+	}
+
+	/**
+	 * Obtain an Iteration object using mvMultRewUnc (matrix-vector multiplication with rewards, followed by min/max)
+	 * in an IMDP.
+	 * @param imdp the IMDP
+	 * @param mdpRewards the reward structure
+	 * @param minMax min/max info
+	 * @param strat optional, storage for strategy, ignored if null
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public abstract IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat, double disc) throws PrismException;
 	
 	// ------------ Abstract generic methods ----------------------------
 

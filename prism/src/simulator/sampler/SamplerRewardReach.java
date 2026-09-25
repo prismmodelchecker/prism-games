@@ -36,6 +36,9 @@ public class SamplerRewardReach extends SamplerDouble
 {
 	private Expression target;
 	private int rewardStructIndex;
+	private double disc;
+	private double discRewardSum;
+	private double discFactor;
 
 	/**
 	 * Construct a sampler for a reachability reward property.
@@ -51,9 +54,18 @@ public class SamplerRewardReach extends SamplerDouble
 			throw new PrismException("Error creating Sampler");
 		target = expr.getOperand2();
 		this.rewardStructIndex = rewardStructIndex;
+		disc = getRewardDiscount(expr);
 		// Initialise sampler info
 		reset();
 		resetStats();
+	}
+
+	@Override
+	public void reset()
+	{
+		super.reset();
+		discRewardSum = 0.0;
+		discFactor = 1.0;
 	}
 
 	@Override
@@ -62,11 +74,39 @@ public class SamplerRewardReach extends SamplerDouble
 		// If the answer is already known we should do nothing
 		if (valueKnown)
 			return true;
+		// Check that the latest rewards are non-negative
+		checkPreviousStepRewardsNonNegative(path, rewardStructIndex);
+		// Reward for step t (state s_t, plus transition s_t->s_t+1) is weighted by disc^t
+		if (disc != 1.0 && path.size() > 0) {
+			discRewardSum += discFactor * (path.getPreviousStateReward(rewardStructIndex) + path.getPreviousTransitionReward(rewardStructIndex));
+			discFactor *= disc;
+		}
 		if (path.evaluateBooleanInCurrentState(target)) {
 			valueKnown = true;
-			value = path.getTotalCumulativeReward(rewardStructIndex);
+			value = disc != 1.0 ? discRewardSum : path.getTotalCumulativeReward(rewardStructIndex);
 		}
-		
+		// With discounting, the value is finite even if the target is never reached,
+		// and nothing more is added once the discount factor has become 0
+		else if (disc != 1.0 && discFactor == 0.0) {
+			valueKnown = true;
+			value = discRewardSum;
+		}
+		// Or, if we are now at a deadlock/self-loop, the target will never be reached
+		else if (modelGen != null && (modelGen.isDeadlock() || path.isLooping())) {
+			valueKnown = true;
+			// Undiscounted, the reward to reach the target is then infinite (as for the other engines)
+			if (disc == 1.0) {
+				value = Double.POSITIVE_INFINITY;
+			}
+			// With discounting, the remaining reward is known exactly: the same reward r
+			// every step from now on (for a deadlock, a self-loop with no transition reward)
+			else {
+				double r = modelGen.isDeadlock() ? path.getCurrentStateReward(rewardStructIndex)
+						: path.getPreviousStateReward(rewardStructIndex) + path.getPreviousTransitionReward(rewardStructIndex);
+				value = discRewardSum + discFactor * r / (1.0 - disc);
+			}
+		}
+
 		return valueKnown;
 	}
 }

@@ -75,13 +75,13 @@ public class IterationMethodPower extends IterationMethod {
 	}
 
 	@Override
-	public IterationValIter forMvMultRew(DTMC<Double> dtmc, MCRewards<Double> rew)
+	public IterationValIter forMvMultRew(DTMC<Double> dtmc, MCRewards<Double> rew, double disc)
 	{
 		return new TwoVectorIteration(dtmc, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				dtmc.mvMultRew(soln, rew, soln2, states.iterator());
+				dtmc.mvMultRew(soln, rew, soln2, states.iterator(), disc);
 			}
 		};
 	}
@@ -138,13 +138,13 @@ public class IterationMethodPower extends IterationMethod {
 	}
 
 	@Override
-	public IterationValIter forMvMultRewMinMax(MDP<Double> mdp, MDPRewards<Double> rewards, boolean min, int[] strat) throws PrismException
+	public IterationValIter forMvMultRewMinMax(MDP<Double> mdp, MDPRewards<Double> rewards, boolean min, int[] strat, double disc) throws PrismException
 	{
 		return new TwoVectorIteration(mdp, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				mdp.mvMultRewMinMax(soln, rewards, min, soln2, states.iterator(), strat);
+				mdp.mvMultRewMinMax(soln, rewards, min, soln2, states.iterator(), strat, disc);
 			}
 		};
 	}
@@ -179,13 +179,13 @@ public class IterationMethodPower extends IterationMethod {
 	}
 
 	@Override
-	public IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax)
+	public IterationValIter forMvMultRewMinMaxUnc(UDTMC<Double> udtmc, MCRewards<Double> mcRewards, MinMax minMax, double disc)
 	{
 		return new TwoVectorIteration(udtmc, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				udtmc.mvMultRewUnc(soln, mcRewards, minMax, soln2, states.iterator());
+				udtmc.mvMultRewUnc(soln, mcRewards, minMax, soln2, states.iterator(), disc);
 			}
 		};
 	}
@@ -203,13 +203,13 @@ public class IterationMethodPower extends IterationMethod {
 	}
 	
 	@Override
-	public IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat)
+	public IterationValIter forMvMultRewMinMaxUnc(UMDP<Double> imdp, MDPRewards<Double> mdpRewards, MinMax minMax, int[] strat, double disc)
 	{
 		return new TwoVectorIteration(imdp, null) {
 			@Override
 			public void doIterate(IntSet states)
 			{
-				imdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, states.iterator(), strat);
+				imdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, states.iterator(), strat, disc);
 			}
 		};
 	}

@@ -918,7 +918,7 @@ public class SimulatorEngine extends PrismComponent
 		int numRewardStructs = rewardGen.getNumRewardStructs();
 		for (int r = 0; r < numRewardStructs; r++) {
 			if (rewardGen.rewardStructHasStateRewards(r)) {
-				stateRewards[r] = rewardGen.getStateReward(r, state);
+				stateRewards[r] = rewardGen.getStateReward(r, state, true);
 			} else {
 				stateRewards[r] = 0.0;
 			}
@@ -933,7 +933,7 @@ public class SimulatorEngine extends PrismComponent
 		int numRewardStructs = rewardGen.getNumRewardStructs();
 		for (int r = 0; r < numRewardStructs; r++) {
 			if (rewardGen.rewardStructHasTransitionRewards(r)) {
-				transitionRewards[r] = rewardGen.getStateActionReward(r, state, action);
+				transitionRewards[r] = rewardGen.getStateActionReward(r, state, action, true);
 			} else {
 				transitionRewards[r] = 0.0;
 			}

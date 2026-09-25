@@ -523,6 +523,289 @@ public class UMDPModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Compute total expected rewards, i.e., R=?[ C ].
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 */
+	public ModelCheckerResult computeTotalRewards(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax) throws PrismException
+	{
+		return computeTotalRewards(umdp, umdpRewards, minMax, 1.0);
+	}
+
+	/**
+	 * Compute total expected rewards, i.e., R=?[ C ].
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeTotalRewards(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax, double disc) throws PrismException
+	{
+		if (disc < 1.0) {
+			// Discounting guarantees finite values everywhere, regardless of
+			// end-component structure, so we can go directly to (discounted)
+			// value iteration.
+			return computeTotalRewardsDiscounted(umdp, umdpRewards, minMax, disc);
+		} else if (minMax.isMin()) {
+			return computeTotalRewardsMin(umdp, umdpRewards, minMax);
+		} else {
+			return computeTotalRewardsMax(umdp, umdpRewards, minMax);
+		}
+	}
+
+	/**
+	 * Compute total expected rewards, using max strategy choices (isMax()).
+	 * <br>
+	 * Since interval lower bounds are required to be positive (see
+	 * {@link UMDP#checkLowerBoundsArePositive}), the set of possible
+	 * successors of a choice is fixed regardless of how uncertainty is
+	 * resolved, so end components (and which of them contain a positive
+	 * reward) can be identified exactly as for (non-uncertain) MDPs: any
+	 * state that can reach such an end component with positive probability
+	 * has infinite value, since a strategy can be chosen (favouring
+	 * reaching, then cycling within, that end component) that revisits the
+	 * positive reward infinitely often.
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 */
+	public ModelCheckerResult computeTotalRewardsMax(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax) throws PrismException
+	{
+		ModelCheckerResult res;
+		int strat[] = null;
+		long timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total reward computation (max)...");
+
+		int n = umdp.getNumStates();
+
+		if (genStrat) {
+			strat = new int[n];
+			for (int i = 0; i < n; i++) {
+				strat[i] = -1;
+			}
+		}
+
+		// Find end components containing a positive reward
+		ECComputer ecs = ECComputer.createECComputer(this, umdp);
+		BitSet positiveECs = new BitSet();
+		ecs.computeMECStatesStreaming(ec -> {
+			boolean positiveEC = false;
+			for (int state : new IterableStateSet(ec, n)) {
+				if (umdpRewards.getStateReward(state) > 0) {
+					positiveEC = true;
+					break;
+				}
+				for (int choice = 0, numChoices = umdp.getNumChoices(state); choice < numChoices; choice++) {
+					if (umdpRewards.getTransitionReward(state, choice) > 0 && umdp.allSuccessorsInSet(state, choice, ec)) {
+						positiveEC = true;
+						break;
+					}
+				}
+			}
+			if (positiveEC) {
+				positiveECs.or(ec);
+			}
+		});
+		mainLog.print("States in positive end components: " + positiveECs.cardinality() + "\n");
+
+		// Find states with infinite reward (those reach a positive end component with prob > 0).
+		// This is purely structural (independent of how uncertainty is resolved).
+		BitSet inf = mcMDP.prob0(umdp, null, positiveECs, false, strat);
+		inf.flip(0, n);
+		mainLog.println("inf=" + inf.cardinality() + ", maybe=" + (n - inf.cardinality()));
+
+		if (genStrat) {
+			for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
+				int numChoices = umdp.getNumChoices(i);
+				for (int k = 0; k < numChoices; k++) {
+					if (umdp.someSuccessorsInSet(i, k, inf)) {
+						strat[i] = k;
+						break;
+					}
+				}
+			}
+		}
+
+		res = computeTotalRewardsNumeric(umdp, umdpRewards, minMax, inf, strat, 1.0);
+
+		if (genStrat) {
+			res.strat = new MDStrategyArray<>(umdp, strat);
+		}
+
+		// Finished total reward computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Total reward computation took " + timer / 1000.0 + " seconds.");
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
+
+	/**
+	 * Compute discounted total expected rewards.
+	 * Discounting guarantees finite values everywhere, regardless of
+	 * end-component structure, so no precomputation is needed.
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 * @param disc Discount factor applied to future rewards
+	 */
+	protected ModelCheckerResult computeTotalRewardsDiscounted(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax, double disc) throws PrismException
+	{
+		ModelCheckerResult res;
+		int strat[] = null;
+		long timer = System.currentTimeMillis();
+		mainLog.println("\nStarting total reward computation (discount=" + disc + ")...");
+
+		int n = umdp.getNumStates();
+		if (genStrat) {
+			strat = new int[n];
+			for (int i = 0; i < n; i++) {
+				strat[i] = -1;
+			}
+		}
+
+		res = computeTotalRewardsNumeric(umdp, umdpRewards, minMax, new BitSet(), strat, disc);
+
+		if (genStrat) {
+			res.strat = new MDStrategyArray<>(umdp, strat);
+		}
+
+		// Finished total reward computation
+		timer = System.currentTimeMillis() - timer;
+		mainLog.println("Total reward computation took " + timer / 1000.0 + " seconds.");
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
+
+	/**
+	 * Numerical part of a total expected reward computation, once states
+	 * with infinite value {@code inf} are known, using value iteration or Gauss-Seidel.
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 * @param inf States with infinite value
+	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	protected ModelCheckerResult computeTotalRewardsNumeric(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax, BitSet inf, int strat[], double disc) throws PrismException
+	{
+		ModelCheckerResult res;
+		int n = umdp.getNumStates();
+
+		// Start value iteration
+		// (separate timer: the overall one reported by the caller also covers any precomputation)
+		long timerValIter = System.currentTimeMillis();
+		String sMinMax = minMax.isMin() ? "min" : "max";
+		sMinMax += minMax.isMinUnc() ? "min" : "max";
+		if (disc < 1.0) {
+			sMinMax += ", discount=" + disc;
+		}
+		mainLog.println("Starting value iteration (" + sMinMax + ")...");
+
+		double[] init = new double[n];
+		for (int i = 0; i < n; i++)
+			init[i] = inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+
+		BitSet unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(inf);
+
+		if (inf.cardinality() < n) {
+			IMDPSolnMethod imdpSolnMethod = this.imdpSolnMethod;
+			switch (imdpSolnMethod) {
+			case VALUE_ITERATION:
+			case GAUSS_SEIDEL:
+				break; // supported
+			default:
+				imdpSolnMethod = IMDPSolnMethod.GAUSS_SEIDEL;
+				mainLog.printWarning("Switching to solution method \"" + imdpSolnMethod.fullName() + "\"");
+			}
+			IterationMethod iterationMethod;
+			switch (imdpSolnMethod) {
+			case VALUE_ITERATION:
+				iterationMethod = new IterationMethodPower(termCrit == TermCrit.ABSOLUTE, termCritParam);
+				break;
+			case GAUSS_SEIDEL:
+				iterationMethod = new IterationMethodGS(termCrit == TermCrit.ABSOLUTE, termCritParam, false);
+				break;
+			default:
+				throw new PrismException("Unknown solution method " + imdpSolnMethod.fullName());
+			}
+			IterationMethod.IterationValIter iterationReachRewards = iterationMethod.forMvMultRewMinMaxUnc(umdp, umdpRewards, minMax, strat, disc);
+			iterationReachRewards.init(init);
+			IntSet unknownStates = IntSet.asIntSet(unknown);
+			String description = sMinMax + ", with " + iterationMethod.getDescriptionShort();
+			res = iterationMethod.doValueIteration(this, description, iterationReachRewards, unknownStates, timerValIter, null);
+		} else {
+			res = new ModelCheckerResult();
+			res.soln = Utils.bitsetToDoubleArray(inf, n, Double.POSITIVE_INFINITY);
+			res.accuracy = AccuracyFactory.doublesFromQualitative();
+		}
+		return res;
+	}
+
+	/**
+	 * Compute total expected rewards, using min strategy choices (isMin()).
+	 * <br>
+	 * Reduced to an expected reachability reward computation, with target Z =
+	 * the union of "zero-reward" states from which the minimiser can choose
+	 * actions that keep the process within Z forever, without ever seeing
+	 * another reward. Reaching Z is then equivalent to having value 0 from
+	 * then on, so R[C] = R[F Z]; this also gives correct handling of states
+	 * with infinite value "for free", via the existing Prob1-based
+	 * precomputation already used by {@link #computeReachRewards}.
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 * @param minMax Min/max info (strategy and uncertainty)
+	 */
+	public ModelCheckerResult computeTotalRewardsMin(UMDP<Double> umdp, MDPRewards<Double> umdpRewards, MinMax minMax) throws PrismException
+	{
+		mainLog.println("\nStarting total reward computation (min)...");
+		BitSet z = computeZeroRewardSafeStates(umdp, umdpRewards);
+		mainLog.println("States in zero-reward safe region: " + z.cardinality());
+		return computeReachRewards(umdp, umdpRewards, z, minMax);
+	}
+
+	/**
+	 * Compute the maximal set of states from which the minimiser can choose
+	 * (zero-reward) actions that keep the process within the set forever,
+	 * without ever seeing a positive reward. As with the end component
+	 * computation for the max case, this is purely structural, independent
+	 * of how uncertainty is resolved (interval lower bounds are required to
+	 * be positive). Used to reduce (min-strategy) total reward to a
+	 * reachability reward computation.
+	 * @param umdp The UMDP
+	 * @param umdpRewards The rewards
+	 */
+	protected BitSet computeZeroRewardSafeStates(UMDP<Double> umdp, MDPRewards<Double> umdpRewards)
+	{
+		int n = umdp.getNumStates();
+		BitSet z = new BitSet(n);
+		for (int s = 0; s < n; s++) {
+			if (umdpRewards.getStateReward(s) == 0) {
+				z.set(s);
+			}
+		}
+		boolean done = false;
+		while (!done) {
+			BitSet zNext = new BitSet(n);
+			for (int s = z.nextSetBit(0); s >= 0; s = z.nextSetBit(s + 1)) {
+				for (int choice = 0, numChoices = umdp.getNumChoices(s); choice < numChoices; choice++) {
+					if (umdpRewards.getTransitionReward(s, choice) == 0 && umdp.allSuccessorsInSet(s, choice, z)) {
+						zNext.set(s);
+						break;
+					}
+				}
+			}
+			done = zNext.equals(z);
+			z = zNext;
+		}
+		return z;
+	}
+
+	/**
 	 * Compute expected reachability rewards.
 	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
 	 * @param umdp The UMDP
@@ -594,7 +877,7 @@ public class UMDPModelChecker extends ProbModelChecker
 					for (int k = 0; k < numChoices; k++) {
 						if (umdp.someSuccessorsInSet(i, k, inf)) {
 							strat[i] = k;
-							continue;
+							break;
 						}
 					}
 				}

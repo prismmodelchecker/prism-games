@@ -1,0 +1,21 @@
+// Undiscounted properties (and the Fc/F0 variants) still work
+
+// RESULT: 3.25
+<<p1>> R{"r"}max=? [ C<=5 ];
+
+// RESULT: 10/3
+<<p1>> R{"r"}max=? [ Fc s>=2 ];
+
+// Discounting not supported for games
+
+// RESULT: Error:Discounting
+<<p1>> R{"r"}max=? [ C{discount=0.9} ];
+
+// RESULT: Error:Discounting
+<<p1>> R{"r"}max=? [ C{discount=0.9}<=5 ];
+
+// RESULT: Error:Discounting
+<<p1>> R{"r"}max=? [ F{discount=0.9} s>=2 ];
+
+// RESULT: Error:Discounting
+<<p1>> (R{"r"}>=1 [ C{discount=0.9} ] & P>=0.5 [ F s=3 ]);

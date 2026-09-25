@@ -32,6 +32,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.EnumSet;
 import java.util.List;
 
 import explicit.rewards.CSGRewards;
@@ -60,6 +61,7 @@ import parser.type.TypeBool;
 import parser.type.TypeDouble;
 import parser.type.TypePathBool;
 import parser.type.TypePathDouble;
+import parser.visitor.ASTTraverse;
 import prism.AccuracyFactory;
 import prism.Evaluator;
 import prism.IntegerBound;
@@ -70,6 +72,7 @@ import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.RewardGenerator;
 
@@ -656,6 +659,8 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		Expression exprSub = exprs.get(0);
+		// Discounting is not supported by the game-specific (e.g. multi-objective, equilibria) routes below
+		checkNoTemporalDiscountForGames(model, exprSub);
 		// Pass onto relevant method:
 		// P operator
 		if (exprSub instanceof ExpressionProb) {
@@ -1274,6 +1279,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (e.getType() instanceof TypePathDouble) {
 			ExpressionTemporal eTemp = (ExpressionTemporal) e;
 			if (model.getModelType() == ModelType.SMG) {
+				checkNoTemporalDiscountForGames(model, eTemp);
 				switch (eTemp.getOperator()) {
 				case ExpressionTemporal.R_S: // average rewards
 					return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
@@ -1297,8 +1303,11 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Build rewards for the index specified in the R operator
 		int r = expr.getRewardStructIndexByIndexObject(getRewardGenerator(model), constantValues);
 		mainLog.println("Building reward structure...");
-		boolean expected = !Expression.usesInstantaneousReward(expr.getExpression());
-		Rewards<?> rewards = constructRewards(model, r, model.getModelType() == ModelType.CSG, expected);
+		// Instantaneous-reward properties (e.g. R=?[I=k]) look up a single state's reward
+		// rather than cumulating rewards, so negative rewards are not an issue there
+		// (negative rewards are also allowed for CSGs)
+		boolean instantaneous = Expression.usesInstantaneousReward(expr.getExpression());
+		Rewards<?> rewards = constructRewards(model, r, instantaneous || model.getModelType() == ModelType.CSG, !instantaneous);
 
 		// Compute rewards
 		StateValues rews = checkRewardFormula(model, rewards, expr.getExpression(), minMax, statesOfInterest);
@@ -1314,6 +1323,74 @@ public class ProbModelChecker extends NonProbModelChecker
 			rews.applyPredicate(v -> opInfo.apply((double) v, rews.getAccuracy()));
 		}
 		return rews;
+	}
+
+	/**
+	 * Model types for which discounting is implemented for total ({@code C}) reward properties.
+	 */
+	private static final EnumSet<ModelType> DISCOUNT_MODEL_TYPES_TOTAL =
+			EnumSet.of(ModelType.DTMC, ModelType.MDP, ModelType.IDTMC, ModelType.UDTMC, ModelType.IMDP, ModelType.UMDP);
+
+	/**
+	 * Model types for which discounting is implemented for cumulative ({@code C<=k}) and
+	 * reachability ({@code F}) reward properties. Narrower than
+	 * {@link #DISCOUNT_MODEL_TYPES_TOTAL}: the uncertain model types only have discounting
+	 * for total reward.
+	 */
+	private static final EnumSet<ModelType> DISCOUNT_MODEL_TYPES_OTHER =
+			EnumSet.of(ModelType.DTMC, ModelType.MDP);
+
+	/**
+	 * Check that no temporal operator within {@code expr} has a {discount=...} option attached,
+	 * if {@code model} is a game. Discounting of this kind is not supported by the game-specific
+	 * model checking routes (e.g. multi-objective or equilibria), which would otherwise silently ignore it.
+	 */
+	private void checkNoTemporalDiscountForGames(Model<?> model, Expression expr) throws PrismException
+	{
+		if (!model.getModelType().multiplePlayers()) {
+			return;
+		}
+		try {
+			expr.accept(new ASTTraverse()
+			{
+				public void visitPre(ExpressionTemporal e) throws PrismLangException
+				{
+					if (e.hasDiscount()) {
+						throw new PrismLangException("Discounting is not currently supported for the " + e.getOperatorSymbol() + " reward operator for " + model.getModelType() + "s");
+					}
+				}
+			});
+		} catch (PrismLangException e) {
+			throw new PrismNotSupportedException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Extract the discount factor to apply for a (discounted) reward computation, e.g. from a
+	 * {discount=...} option attached to a C or F temporal operator. Returns 1.0 (no discounting)
+	 * if none was specified. Throws an exception if discounting is requested for a model type
+	 * that does not support it, or if the discount factor is out of range.
+	 * @param model The model
+	 * @param expr The temporal operator inside the R operator
+	 * @param supported Model types for which the calling reward computation implements discounting
+	 */
+	private double getRewardDiscount(Model<?> model, ExpressionTemporal expr, EnumSet<ModelType> supported) throws PrismException
+	{
+		if (expr.getDiscount() == null) {
+			return 1.0;
+		}
+		// Which model types support discounting differs per reward operator, so the caller
+		// passes in the set it actually implements: a type missing here would otherwise have
+		// its discount factor silently dropped rather than reported as unsupported
+		if (!supported.contains(model.getModelType())) {
+			throw new PrismNotSupportedException("Discounting is not currently supported for the " + expr.getOperatorSymbol()
+					+ " reward operator for " + model.getModelType() + "s");
+		}
+		double disc = expr.getDiscount().evaluateDouble(constantValues);
+		if (Double.isNaN(disc) || disc < 0.0 || disc > 1.0) {
+			throw new PrismException("Discount factor " + disc + " is out of range, should be in [0,1]");
+		}
+		return disc;
 	}
 
 	/**
@@ -1425,6 +1502,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 		}
 
+		// Extract the discount factor before the trivial case below, so that an unsupported
+		// model type or an out-of-range factor is still reported for e.g. "C{discount=2}<=0"
+		double disc = getRewardDiscount(model, expr, DISCOUNT_MODEL_TYPES_OTHER);
+
 		// Compute/return the rewards
 		// A trivial case: "C<=0" (prob is 1 in target states, 0 otherwise)
 		if (timeInt == 0 || timeDouble == 0) {
@@ -1436,13 +1517,13 @@ public class ProbModelChecker extends NonProbModelChecker
 		ModelCheckerResult res = null;
 		switch (model.getModelType()) {
 		case DTMC:
-			res = ((DTMCModelChecker) this).computeCumulativeRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards, timeInt);
+			res = ((DTMCModelChecker) this).computeCumulativeRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards, timeInt, disc);
 			break;
 		case CTMC:
 			res = ((CTMCModelChecker) this).computeCumulativeRewards((CTMC<Double>) model, (MCRewards<Double>) modelRewards, timeDouble);
 			break;
 		case MDP:
-			res = ((MDPModelChecker) this).computeCumulativeRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, timeInt, minMax.isMin());
+			res = ((MDPModelChecker) this).computeCumulativeRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, timeInt, minMax.isMin(), disc);
 			break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeCumulativeRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2());
@@ -1473,16 +1554,25 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		// Compute/return the rewards
+		double disc = getRewardDiscount(model, expr, DISCOUNT_MODEL_TYPES_TOTAL);
 		ModelCheckerResult res = null;
 		switch (model.getModelType()) {
 		case DTMC:
-			res = ((DTMCModelChecker) this).computeTotalRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards);
+			res = ((DTMCModelChecker) this).computeTotalRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards, disc);
 			break;
 		case CTMC:
 			res = ((CTMCModelChecker) this).computeTotalRewards((CTMC<Double>) model, (MCRewards<Double>) modelRewards);
 			break;
 		case MDP:
-			res = ((MDPModelChecker) this).computeTotalRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, minMax.isMin());
+			res = ((MDPModelChecker) this).computeTotalRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, minMax.isMin(), disc);
+			break;
+		case IDTMC:
+		case UDTMC:
+			res = ((UDTMCModelChecker) this).computeTotalRewards((UDTMC<Double>) model, (MCRewards<Double>) modelRewards, minMax, disc);
+			break;
+		case IMDP:
+		case UMDP:
+			res = ((UMDPModelChecker) this).computeTotalRewards((UMDP<Double>) model, (MDPRewards<Double>) modelRewards, minMax, disc);
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeTotalRewards((CSG<Double>) model, (CSGRewards<Double>) modelRewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
@@ -1526,6 +1616,11 @@ public class ProbModelChecker extends NonProbModelChecker
 			return checkRewardReach(model, modelRewards, (ExpressionTemporal) expr, minMax, statesOfInterest);
 		}
 		else if (Expression.isCoSafeLTLSyntactic(expr, true)) {
+			// A discount factor can only be attached to the outermost F (see the grammar), i.e. to
+			// this expression; reject it rather than silently computing the undiscounted value
+			if (expr instanceof ExpressionTemporal && ((ExpressionTemporal) expr).hasDiscount()) {
+				throw new PrismNotSupportedException("Discounting is not currently supported for co-safe LTL reward properties");
+			}
 			return checkRewardCoSafeLTL(model, modelRewards, expr, minMax, statesOfInterest);
 		}
 		throw new PrismException("R operator contains a path formula that is not syntactically co-safe: " + expr);
@@ -1553,16 +1648,17 @@ public class ProbModelChecker extends NonProbModelChecker
 		BitSet target = checkExpression(model, expr.getOperand2(), null).getBitSet();
 
 		// Compute/return the rewards
+		double disc = getRewardDiscount(model, expr, DISCOUNT_MODEL_TYPES_OTHER);
 		ModelCheckerResult res = null;
 		switch (model.getModelType()) {
 		case DTMC:
-			res = ((DTMCModelChecker) this).computeReachRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards, target);
+			res = ((DTMCModelChecker) this).computeReachRewards((DTMC<Double>) model, (MCRewards<Double>) modelRewards, target, disc);
 			break;
 		case CTMC:
 			res = ((CTMCModelChecker) this).computeReachRewards((CTMC<Double>) model, (MCRewards<Double>) modelRewards, target);
 			break;
 		case MDP:
-			res = ((MDPModelChecker) this).computeReachRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin());
+			res = ((MDPModelChecker) this).computeReachRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin(), disc);
 			break;
 		case POMDP:
 			res = ((POMDPModelChecker) this).computeReachRewards((POMDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin(), statesOfInterest);

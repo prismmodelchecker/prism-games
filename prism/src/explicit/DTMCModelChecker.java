@@ -237,8 +237,26 @@ public class DTMCModelChecker extends ProbModelChecker
 		
 		return res;
 	}
-	
+
+	/**
+	 * Compute expected cumulative (step-bounded) rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 * @param t Time bound
+	 */
 	public ModelCheckerResult computeCumulativeRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, double t) throws PrismException
+	{
+		return computeCumulativeRewards(dtmc, mcRewards, t, 1.0);
+	}
+
+	/**
+	 * Compute expected cumulative (step-bounded) rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 * @param t Time bound
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeCumulativeRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, double t, double disc) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		int i, n, iters;
@@ -251,7 +269,7 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start backwards transient computation
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting backwards cumulative rewards computation...");
+		mainLog.println("\nStarting backwards cumulative rewards computation" + (disc < 1.0 ? " (discount=" + disc + ")" : "") + "...");
 
 		// Create solution vector(s)
 		soln = new double[n];
@@ -259,10 +277,10 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start iterations
 		for (iters = 0; iters < right; iters++) {
-			// Matrix-vector multiply plus adding rewards
+			// Matrix-vector multiply plus adding (discounted) rewards
 			dtmc.mvMult(soln, soln2, null, false);
 			for (i = 0; i < n; i++) {
-				soln2[i] += mcRewards.getStateReward(i);
+				soln2[i] = disc * soln2[i] + mcRewards.getStateReward(i);
 			}
 			// Swap vectors for next iter
 			tmpsoln = soln;
@@ -286,19 +304,43 @@ public class DTMCModelChecker extends ProbModelChecker
 		return res;
 	}
 
+	/**
+	 * Compute expected total rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 */
 	public ModelCheckerResult computeTotalRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards) throws PrismException
+	{
+		return computeTotalRewards(dtmc, mcRewards, 1.0);
+	}
+
+	/**
+	 * Compute expected total rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeTotalRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, double disc) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		int n, numBSCCs = 0;
 		long timer;
+		// Local copy of setting
+		LinEqMethod linEqMethod = this.linEqMethod;
 
 		if (getDoIntervalIteration()) {
 			throw new PrismNotSupportedException("Interval iteration for total rewards is currently not supported");
 		}
 
 		// Switch to a supported method, if necessary
-		if (!(linEqMethod == LinEqMethod.POWER)) {
-			linEqMethod = LinEqMethod.POWER;
+		switch (linEqMethod) {
+		case POWER:
+		case GAUSS_SEIDEL:
+		case BACKWARDS_GAUSS_SEIDEL:
+		case JACOBI:
+			break; // supported
+		default:
+			linEqMethod = LinEqMethod.GAUSS_SEIDEL;
 			mainLog.printWarning("Switching to linear equation solution method \"" + linEqMethod.fullName() + "\"");
 		}
 
@@ -309,52 +351,70 @@ public class DTMCModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis();
 		mainLog.println("\nStarting total reward computation...");
 
-		// Compute bottom strongly connected components (BSCCs)
-		SCCConsumerStore sccStore = new SCCConsumerStore();
-		SCCComputer sccComputer = SCCComputer.createSCCComputer(this, dtmc, sccStore);
-		StopWatch sccTimer = new StopWatch(getLog());
-		sccTimer.start("BSCC computation");
-		sccComputer.computeSCCs();
-		List<BitSet> bsccs = sccStore.getBSCCs();
-		numBSCCs = bsccs.size();
-		sccTimer.stop("found " + numBSCCs + " BSCCs");
+		// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0).
+		// Not needed if discounting: rewards through any cycle are discounted, so all values are finite anyway.
+		BitSet inf;
+		if (disc < 1.0) {
+			inf = new BitSet();
+		} else {
+			// Compute bottom strongly connected components (BSCCs)
+			SCCConsumerStore sccStore = new SCCConsumerStore();
+			SCCComputer sccComputer = SCCComputer.createSCCComputer(this, dtmc, sccStore);
+			StopWatch sccTimer = new StopWatch(getLog());
+			sccTimer.start("BSCC computation");
+			sccComputer.computeSCCs();
+			List<BitSet> bsccs = sccStore.getBSCCs();
+			numBSCCs = bsccs.size();
+			sccTimer.stop("found " + numBSCCs + " BSCCs");
 
-		// Find BSCCs with non-zero reward
-		BitSet bsccsNonZero = new BitSet();
-		for (int b = 0; b < numBSCCs; b++) {
-			BitSet bscc = bsccs.get(b);
-			for (int i = bscc.nextSetBit(0); i >= 0; i = bscc.nextSetBit(i + 1)) {
-				if (mcRewards.getStateReward(i) > 0) {
-					bsccsNonZero.or(bscc);
-					break;
+			// Find BSCCs with non-zero reward
+			BitSet bsccsNonZero = new BitSet();
+			for (int b = 0; b < numBSCCs; b++) {
+				BitSet bscc = bsccs.get(b);
+				for (int i = bscc.nextSetBit(0); i >= 0; i = bscc.nextSetBit(i + 1)) {
+					if (mcRewards.getStateReward(i) > 0) {
+						bsccsNonZero.or(bscc);
+						break;
+					}
 				}
 			}
-		}
-		mainLog.print("States in non-zero reward BSCCs: " + bsccsNonZero.cardinality() + "\n");
+			mainLog.print("States in non-zero reward BSCCs: " + bsccsNonZero.cardinality() + "\n");
 
-		// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0)
-		BitSet inf;
-		if (preRel) {
-			// prob0 using predecessor relation
-			PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
-			inf = prob0(dtmc, null, bsccsNonZero, pre);
-		} else {
-			// prob0 using fixed point algorithm
-			inf = prob0(dtmc, null, bsccsNonZero);
+			// Find states with infinite reward (those reach a non-zero reward BSCC with prob > 0)
+			if (preRel) {
+				// prob0 using predecessor relation
+				PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
+				inf = prob0(dtmc, null, bsccsNonZero, pre);
+			} else {
+				// prob0 using fixed point algorithm
+				inf = prob0(dtmc, null, bsccsNonZero);
+			}
+			inf.flip(0, n);
 		}
-		inf.flip(0, n);
 		int numInf = inf.cardinality();
 		mainLog.println("inf=" + numInf + ", maybe=" + (n - numInf));
-		
+
 		// Compute rewards
 		// (do this using the functions for "reward reachability" properties but with no targets)
+		boolean termCritAbsolute = termCrit == TermCrit.ABSOLUTE;
+		IterationMethod iterationMethod;
 		switch (linEqMethod) {
 		case POWER:
-			res = computeReachRewardsValIter(dtmc, mcRewards, new BitSet(), inf, null, null);
+			iterationMethod = new IterationMethodPower(termCritAbsolute, termCritParam);
 			break;
+		case JACOBI:
+			iterationMethod = new IterationMethodJacobi(termCritAbsolute, termCritParam);
+			break;
+		case GAUSS_SEIDEL:
+		case BACKWARDS_GAUSS_SEIDEL: {
+			boolean backwards = linEqMethod == LinEqMethod.BACKWARDS_GAUSS_SEIDEL;
+			iterationMethod = new IterationMethodGS(termCritAbsolute, termCritParam, backwards);
+			break;
+		}
 		default:
 			throw new PrismException("Unknown linear equation solution method " + linEqMethod.fullName());
 		}
+		res = doValueIterationReachRewards(dtmc, mcRewards, new BitSet(), inf, null, null, iterationMethod, getDoTopologicalValueIteration(), disc);
 
 		// Finished total reward computation
 		timer = System.currentTimeMillis() - timer;
@@ -1678,7 +1738,19 @@ public class DTMCModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, BitSet target) throws PrismException
 	{
-		return computeReachRewards(dtmc, mcRewards, target, null, null);
+		return computeReachRewards(dtmc, mcRewards, target, null, null, 1.0);
+	}
+
+	/**
+	 * Compute expected reachability rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 * @param target Target states
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeReachRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, BitSet target, double disc) throws PrismException
+	{
+		return computeReachRewards(dtmc, mcRewards, target, null, null, disc);
 	}
 
 	/**
@@ -1688,9 +1760,24 @@ public class DTMCModelChecker extends ProbModelChecker
 	 * @param target Target states
 	 * @param init Optionally, an initial solution vector (may be overwritten)
 	 * @param known Optionally, a set of states for which the exact answer is known
-	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 */
 	public ModelCheckerResult computeReachRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, BitSet target, double init[], BitSet known) throws PrismException
+	{
+		return computeReachRewards(dtmc, mcRewards, target, init, known, 1.0);
+	}
+
+	/**
+	 * Compute expected reachability rewards.
+	 * @param dtmc The DTMC
+	 * @param mcRewards The rewards
+	 * @param target Target states
+	 * @param init Optionally, an initial solution vector (may be overwritten)
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 */
+	public ModelCheckerResult computeReachRewards(DTMC<Double> dtmc, MCRewards<Double> mcRewards, BitSet target, double init[], BitSet known, double disc) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		BitSet inf;
@@ -1710,6 +1797,10 @@ public class DTMCModelChecker extends ProbModelChecker
 		default:
 			linEqMethod = LinEqMethod.GAUSS_SEIDEL;
 			mainLog.printWarning("Switching to linear equation solution method \"" + linEqMethod.fullName() + "\"");
+		}
+
+		if (disc < 1.0 && doIntervalIteration) {
+			throw new PrismNotSupportedException("Interval iteration for discounted reachability rewards is currently not supported");
 		}
 
 		// Start expected reachability
@@ -1734,17 +1825,24 @@ public class DTMCModelChecker extends ProbModelChecker
 		}
 
 		// Precomputation (not optional)
-		timerProb1 = System.currentTimeMillis();
-		if (preRel) {
-			// prob1 via predecessor relation
-			PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
-			inf = prob1(dtmc, null, target, pre);
+		// Skipped if discounting: rewards accumulated along any (even non-target-reaching)
+		// path are discounted, so all values are finite anyway.
+		if (disc < 1.0) {
+			inf = new BitSet();
+			timerProb1 = 0;
 		} else {
-			// prob1 via fixed-point algorithm
-			inf = prob1(dtmc, null, target);
+			timerProb1 = System.currentTimeMillis();
+			if (preRel) {
+				// prob1 via predecessor relation
+				PredecessorRelation pre = dtmc.getPredecessorRelation(this, true);
+				inf = prob1(dtmc, null, target, pre);
+			} else {
+				// prob1 via fixed-point algorithm
+				inf = prob1(dtmc, null, target);
+			}
+			inf.flip(0, n);
+			timerProb1 = System.currentTimeMillis() - timerProb1;
 		}
-		inf.flip(0, n);
-		timerProb1 = System.currentTimeMillis() - timerProb1;
 
 		// Print results of precomputation
 		numTarget = target.cardinality();
@@ -1774,7 +1872,7 @@ public class DTMCModelChecker extends ProbModelChecker
 			if (doIntervalIteration) {
 				res = doIntervalIterationReachRewards(dtmc, mcRewards, target, inf, init, known, iterationMethod, getDoTopologicalValueIteration());
 			} else {
-				res = doValueIterationReachRewards(dtmc, mcRewards, target, inf, init, known, iterationMethod, getDoTopologicalValueIteration());
+				res = doValueIterationReachRewards(dtmc, mcRewards, target, inf, init, known, iterationMethod, getDoTopologicalValueIteration(), disc);
 			}
 		} else {
 			res = new ModelCheckerResult();
@@ -1911,8 +2009,9 @@ public class DTMCModelChecker extends ProbModelChecker
 	 * @param known Optionally, a set of states for which the exact answer is known
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
 	 * @param topological do topological value iteration?
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
 	 */
-	protected ModelCheckerResult doValueIterationReachRewards(DTMC<Double> dtmc, final MCRewards<Double> mcRewards, BitSet target, BitSet inf, double init[], BitSet known, IterationMethod iterationMethod, boolean topological) throws PrismException
+	protected ModelCheckerResult doValueIterationReachRewards(DTMC<Double> dtmc, final MCRewards<Double> mcRewards, BitSet target, BitSet inf, double init[], BitSet known, IterationMethod iterationMethod, boolean topological, double disc) throws PrismException
 	{
 		BitSet unknown;
 		int i, n;
@@ -1920,7 +2019,7 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
-		String description = (topological ? "topological, " : "" ) + "with " + iterationMethod.getDescriptionShort();
+		String description = (topological ? "topological, " : "" ) + "with " + iterationMethod.getDescriptionShort() + (disc < 1.0 ? ", discount=" + disc : "");
 		mainLog.println("Starting value iteration (" + description + ") ...");
 
 		ExportIterations iterationsExport = null;
@@ -1960,7 +2059,7 @@ public class DTMCModelChecker extends ProbModelChecker
 			iterationsExport.exportVector(init, 0);
 
 		IntSet unknownStates = IntSet.asIntSet(unknown);
-		IterationMethod.IterationValIter forMvMultRew = iterationMethod.forMvMultRew(dtmc, mcRewards);
+		IterationMethod.IterationValIter forMvMultRew = iterationMethod.forMvMultRew(dtmc, mcRewards, disc);
 		forMvMultRew.init(init);
 
 		if (topological) {
@@ -1971,7 +2070,7 @@ public class DTMCModelChecker extends ProbModelChecker
 			sccComputer.computeSCCs(false, unknown::get);
 
 			IterationMethod.SingletonSCCSolver singletonSCCSolver = (int s, double[] soln) -> {
-				soln[s] = dtmc.mvMultRewJacSingle(s, soln, mcRewards);
+				soln[s] = dtmc.mvMultRewJacSingle(s, soln, mcRewards, disc);
 			};
 
 			return iterationMethod.doTopologicalValueIteration(this, description, sccs, forMvMultRew, singletonSCCSolver, timer, iterationsExport);
