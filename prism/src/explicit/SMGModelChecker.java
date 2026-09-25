@@ -2325,9 +2325,26 @@ public class SMGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachRewards(SMG<Double> smg, Rewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
+		return computeReachRewards(smg, rewards, target, unreachingSemantics, min1, min2, coalition, 1.0);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected reachability rewards.
+	 * See {@link STPGModelChecker#computeReachRewards(STPG, STPGRewards, BitSet, boolean, boolean, double[], BitSet, int, double)}.
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param unreachingSemantics Determines how to treat runs that don't reach the target
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeReachRewards(SMG<Double> smg, Rewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2, Coalition coalition, double disc) throws PrismException
+	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = createSTPGModelChecker().computeReachRewards(smg, (STPGRewards<Double>) rewards, target, min1, min2, null, null, unreachingSemantics);
+		ModelCheckerResult res = createSTPGModelChecker().computeReachRewards(smg, (STPGRewards<Double>) rewards, target, min1, min2, null, null, unreachingSemantics, disc);
 		smg.setCoalition(null);
 		return res;
 	}
@@ -2363,9 +2380,45 @@ public class SMGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeCumulativeRewards(SMG<Double> smg, Rewards<Double> rewards, int k, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
+		return computeCumulativeRewards(smg, rewards, k, min1, min2, coalition, 1.0);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected cumulative (step-bounded) rewards.
+	 * i.e. compute the min/max reward accumulated within {@code k} steps.
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeCumulativeRewards(SMG<Double> smg, Rewards<Double> rewards, int k, boolean min1, boolean min2, Coalition coalition, double disc) throws PrismException
+	{
 		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
 		smg.setCoalition(coalition);
-		ModelCheckerResult res = createSTPGModelChecker().computeCumulativeRewards(smg, (STPGRewards<Double>) rewards, k, min1, min2);
+		ModelCheckerResult res = createSTPGModelChecker().computeCumulativeRewards(smg, (STPGRewards<Double>) rewards, k, min1, min2, disc);
+		smg.setCoalition(null);
+		return res;
+	}
+
+	/**
+	 * Compute expected discounted total rewards.
+	 * i.e. compute the min/max expected discounted reward accumulated over an infinite horizon.
+	 * (Undiscounted total rewards for SMGs are handled via multi-objective model checking.)
+	 * @param smg The SMG
+	 * @param rewards The rewards
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param coalition The coalition of players which define player 1
+	 * @param disc Discount factor for future rewards (must be less than 1)
+	 */
+	public ModelCheckerResult computeTotalRewards(SMG<Double> smg, Rewards<Double> rewards, boolean min1, boolean min2, Coalition coalition, double disc) throws PrismException
+	{
+		// Temporarily make SMG into an STPG by setting coalition and do computation on STPG
+		smg.setCoalition(coalition);
+		ModelCheckerResult res = createSTPGModelChecker().computeTotalRewards(smg, (STPGRewards<Double>) rewards, min1, min2, disc);
 		smg.setCoalition(null);
 		return res;
 	}

@@ -946,6 +946,36 @@ public class STPGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewards(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known,
 			int unreachingSemantics) throws PrismException
 	{
+		return computeReachRewards(stpg, rewards, target, min1, min2, init, known, unreachingSemantics, 1.0);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected reachability rewards.
+	 * i.e. compute the min/max reward accumulated to reach a state in {@code target}.
+	 * If discounting is used ({@code disc < 1}), rewards accumulated along paths
+	 * that never reach the target are also counted (discounted), so values are always finite
+	 * and {@code unreachingSemantics} must be {@link #R_INFINITY} or {@link #R_CUMULATIVE}.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten)
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param unreachingSemantics Determines how to treat runs that don't reach the target.
+	 * One of {@link #R_INFINITY}, {@link #R_CUMULATIVE} and {@link #R_ZERO}.
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeReachRewards(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known,
+			int unreachingSemantics, double disc) throws PrismException
+	{
+		if (disc < 1.0) {
+			if (unreachingSemantics == R_ZERO) {
+				throw new PrismNotSupportedException("Discounting is not supported for reachability rewards where non-reaching runs get zero reward");
+			}
+			return computeReachRewardsDiscounted(stpg, rewards, target, min1, min2, init, known, disc);
+		}
 		switch (unreachingSemantics) {
 		case R_INFINITY:
 			return computeReachRewardsInfinity(stpg, rewards, target, min1, min2, init, known);
@@ -973,6 +1003,25 @@ public class STPGModelChecker extends ProbModelChecker
 	protected ModelCheckerResult computeReachRewardsValIter(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
 			double init[], BitSet known) throws PrismException
 	{
+		return computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known, 1.0);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected reachability rewards using value iteration.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param inf States for which reward is infinite
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	protected ModelCheckerResult computeReachRewardsValIter(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
+			double init[], BitSet known, double disc) throws PrismException
+	{
 		ModelCheckerResult res;
 		BitSet unknown, notInf;
 		int i, n, iters;
@@ -983,7 +1032,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + (disc < 1.0 ? ", discount=" + disc : "") + ")...");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -1044,7 +1093,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, strat, useDiscounting ? discountFactor : 1.0);
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, strat, disc);
 
 			// Check termination
 			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
@@ -1229,6 +1278,58 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Computes discounted reachability rewards, i.e., the min/max expected discounted
+	 * reward accumulated until reaching {@code target}. Rewards along runs that never
+	 * reach the target are also accumulated (discounted), so all values are finite.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (may be overwritten)
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * @param disc Discount factor for future rewards (must be less than 1)
+	 */
+	public ModelCheckerResult computeReachRewardsDiscounted(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, boolean min1, boolean min2, double init[], BitSet known, double disc)
+			throws PrismException
+	{
+		ModelCheckerResult res = null;
+		long timer;
+
+		// Start expected reachability
+		timer = System.currentTimeMillis();
+		if (verbosity >= 1)
+			mainLog.println("\nStarting expected discounted reachability...");
+
+		// Check for deadlocks in non-target state
+		stpg.checkForDeadlocks(target);
+
+		// No precomputation needed: values are finite everywhere due to discounting
+		if (verbosity >= 1)
+			mainLog.println("target=" + target.cardinality() + ", inf=0, rest=" + (stpg.getNumStates() - target.cardinality()));
+
+		switch (stpgSolnMethod) {
+		case VALUE_ITERATION:
+		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
+			res = computeReachRewardsValIter(stpg, rewards, target, new BitSet(), min1, min2, init, known, disc);
+			break;
+		default:
+			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
+		}
+
+		// Finished expected reachability
+		timer = System.currentTimeMillis() - timer;
+		if (verbosity >= 1)
+			mainLog.println("Expected discounted reachability took " + timer / 1000.0 + " seconds.");
+
+		// Update time taken
+		res.timeTaken = timer / 1000.0;
+		res.timePre = 0.0;
+
+		return res;
+	}
+
+	/**
 	 * Computes the reachability reward under the semantics where nonreaching
 	 * runs get their total cumulative reward (i.e. anything between 0 and
 	 * infinity).
@@ -1275,35 +1376,32 @@ public class STPGModelChecker extends ProbModelChecker
 		// identify infinite values
 		BitSet aRew = new BitSet();
 
-		if (!useDiscounting) {
+		for (i = 0; i < n; i++) {
+			// skipping target states
+			if (target.get(i))
+				continue;
 
-			for (i = 0; i < n; i++) {
-				// skipping target states
-				if (target.get(i))
-					continue;
+			// check for state reward
+			if (rewards.getStateReward(i) > 0.0)
+				aRew.set(i);
 
-				// check for state reward
-				if (rewards.getStateReward(i) > 0.0)
+			// check for transition rewards
+			int nonZeroRewards = 0;
+			int inftyRewards = 0;
+			double trp;
+			for (int k = 0; k < stpg.getNumChoices(i); k++) {
+				trp = rewards.getTransitionReward(i, k);
+				// ignoring infinite rewards as these transitions will neven be
+				// taken
+				if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
+					nonZeroRewards++;
 					aRew.set(i);
-
-				// check for transition rewards
-				int nonZeroRewards = 0;
-				int inftyRewards = 0;
-				double trp;
-				for (int k = 0; k < stpg.getNumChoices(i); k++) {
-					trp = rewards.getTransitionReward(i, k);
-					// ignoring infinite rewards as these transitions will neven be
-					// taken
-					if (trp > 0.0 && trp != Double.POSITIVE_INFINITY && trp != Double.NEGATIVE_INFINITY) {
-						nonZeroRewards++;
-						aRew.set(i);
-					} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
-						inftyRewards++;
-				}
-
-				if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
-					throw new PrismException("If transition reward is nonzero, all transitions going from the state must be.");
+				} else if (trp == Double.POSITIVE_INFINITY || trp == Double.NEGATIVE_INFINITY)
+					inftyRewards++;
 			}
+
+			if (nonZeroRewards != 0 && nonZeroRewards != stpg.getNumChoices(i) - inftyRewards)
+				throw new PrismException("If transition reward is nonzero, all transitions going from the state must be.");
 		}
 		BitSet b1 = aRew;
 		BitSet b2 = new BitSet();
@@ -1978,6 +2076,25 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Compute expected discounted total rewards.
+	 * i.e. compute the min/max expected discounted reward accumulated over an infinite horizon.
+	 * Only the discounted case is currently supported.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param disc Discount factor for future rewards (must be less than 1)
+	 */
+	public ModelCheckerResult computeTotalRewards(STPG<Double> stpg, STPGRewards<Double> rewards, boolean min1, boolean min2, double disc) throws PrismException
+	{
+		if (disc >= 1.0) {
+			throw new PrismNotSupportedException("Undiscounted total rewards are not supported for STPGs");
+		}
+		// Discounted total reward is discounted reachability reward for an empty target
+		return computeReachRewardsDiscounted(stpg, rewards, new BitSet(), min1, min2, null, null, disc);
+	}
+
+	/**
 	 * Compute expected cumulative (step-bounded) rewards.
 	 * i.e. compute the min/max reward accumulated within {@code k} steps.
 	 * @param stpg The STPG
@@ -1988,6 +2105,21 @@ public class STPGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeCumulativeRewards(STPG<Double> stpg, STPGRewards<Double> rewards, int k, boolean min1, boolean min2) throws PrismException
 	{
+		return computeCumulativeRewards(stpg, rewards, k, min1, min2, 1.0);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected cumulative (step-bounded) rewards.
+	 * i.e. compute the min/max reward accumulated within {@code k} steps.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param k Time step
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	public ModelCheckerResult computeCumulativeRewards(STPG<Double> stpg, STPGRewards<Double> rewards, int k, boolean min1, boolean min2, double disc) throws PrismException
+	{
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		long timer;
@@ -1995,7 +2127,8 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Start expected cumulative reward
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+		String discDescription = disc < 1.0 ? ", discount=" + disc : "";
+		mainLog.println("\nStarting expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + discDescription + ")");
 
 		// Store num states
 		n = stpg.getNumStates();
@@ -2011,7 +2144,7 @@ public class STPGModelChecker extends ProbModelChecker
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, null, false, null);
+			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, null, false, null, disc);
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -2020,7 +2153,7 @@ public class STPGModelChecker extends ProbModelChecker
 
 		// Finished value iteration
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
+		mainLog.print("Expected cumulative reward (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + discDescription + ")");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		// Return results

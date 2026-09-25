@@ -438,7 +438,6 @@ TOKEN :
 |	< CTMC:				"ctmc" >
 |	< CTMDP:			"ctmdp" >
 |	< C:				"C" >
-|	< DISCOUNT:			"disc" >
 |	< DOUBLE:			"double" >
 |	< DTMC:				"dtmc" >
 |	< E:				"E" >
@@ -1877,25 +1876,16 @@ void RewardIndex(ExpressionReward exprRew) throws PrismLangException :
 {
 	Object index = null;
 	Object indexDiv = null;
-	Object discount = null;
 }
 {
 	// Lookahead here is to ensure that "id" is not misdetected as an ExpressionLabel
-	(<LBRACE> (
-	(
-	 LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | <DISCOUNT><EQ>discount=Expression(false, false) | index = Expression(false, false)  )
-	)
-	(<COMMA><DISCOUNT><EQ> discount=Expression(false,false))?
-	<RBRACE>)
+	( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> index = Identifier() <DQUOTE> ) | index = Expression(false, false) ) <RBRACE> )
 	// Optional second reward structure index (for ratio objectives)
 	( <DIVIDE> ( <LBRACE> ( LOOKAHEAD(<DQUOTE>) ( <DQUOTE> indexDiv = Identifier() <DQUOTE> ) | indexDiv = Expression(false, false) ) <RBRACE> ))?
 	{
 		exprRew.setRewardStructIndex(index);
 		if (indexDiv != null) {
 			exprRew.setRewardStructIndexDiv(indexDiv);
-		}
-		if (discount != null) {
-			exprRew.setDiscount(discount);
 		}
 	}
 }

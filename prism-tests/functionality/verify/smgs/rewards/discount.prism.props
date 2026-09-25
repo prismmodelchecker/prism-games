@@ -1,0 +1,51 @@
+// Full coalition (should match the equivalent MDP)
+
+// RESULT: 16.13483742605169
+<<p1,p2>> R{"r"}max=? [ F{discount=0.9} s=4 ];
+
+// RESULT: 4.998572855581002
+<<p1,p2>> R{"r"}min=? [ F{discount=0.9} s=4 ];
+
+// RESULT: 8.572958221115
+<<p1,p2>> R{"r"}max=? [ C{discount=0.9}<=7 ];
+
+// RESULT: 4.73129115625
+<<p1,p2>> R{"r"}min=? [ C{discount=0.9}<=7 ];
+
+// RESULT: 16.13483742605169
+<<p1,p2>> R{"r"}max=? [ C{discount=0.9} ];
+
+// RESULT: 4.998572855581002
+<<p1,p2>> R{"r"}min=? [ C{discount=0.9} ];
+
+// Games
+
+// RESULT: 16.13483742605169
+<<p1>> R{"r"}max=? [ F{discount=0.9} s=4 ];
+
+// RESULT: 16.13483742605169
+<<p1>> R{"r"}max=? [ C{discount=0.9} ];
+
+// RESULT: 5.26273215625
+<<p1>> R{"r"}min=? [ C{discount=0.9}<=7 ];
+
+// Discount factor 1 is the same as no discounting
+
+// RESULT: 11.379809
+<<p1>> R{"r"}max=? [ C{discount=1}<=7 ];
+
+// RESULT: 11.379809
+<<p1>> R{"r"}max=? [ C<=7 ];
+
+// Discount factor 0: just the first step's reward
+
+// RESULT: 2.0
+<<p1>> R{"r"}max=? [ C{discount=0} ];
+
+// Errors
+
+// RESULT: Error:range
+<<p1>> R{"r"}max=? [ C{discount=1.5} ];
+
+// RESULT: Error:multi-objective
+<<p1>> (R{"r"}>=1 [ C{discount=0.9} ] & P>=0.5 [ F s=4 ]);

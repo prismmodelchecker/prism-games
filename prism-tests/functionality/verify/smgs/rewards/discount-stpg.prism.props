@@ -1,0 +1,8 @@
+// RESULT: 16.13483742605169
+R{"r"}maxmax=? [ F{discount=0.9} s=4 ];
+
+// RESULT: 4.998572855581002
+R{"r"}minmin=? [ C{discount=0.9} ];
+
+// RESULT: 8.572958221115
+R{"r"}maxmax=? [ C{discount=0.9}<=7 ];

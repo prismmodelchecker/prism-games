@@ -1,0 +1,16 @@
+// STPG for testing discounted reward properties (same as smgs/rewards/discount.prism)
+
+stpg
+player p1 [a1], [b1], [c], [d], [e] endplayer
+player p2 [a2], [b2] endplayer
+module m
+ s : [0..4] init 0;
+ [a1] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+ [b1] s=0 -> 0.3:(s'=0) + 0.7:(s'=3);
+ [a2] s=1 -> 0.5:(s'=0) + 0.5:(s'=4);
+ [b2] s=1 -> (s'=1);
+ [c] s=2 -> 0.5:(s'=2) + 0.5:(s'=4);
+ [d] s=3 -> (s'=0);
+ [e] s=4 -> (s'=4);
+endmodule
+rewards "r" [a1] true : 1; [b1] true : 2; [a2] true : 3; [b2] true : 1; s=2 : 2; [d] true : 1; endrewards

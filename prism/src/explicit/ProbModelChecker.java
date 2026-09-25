@@ -115,9 +115,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	// Is non-convergence of an iterative method an error?
 	protected boolean errorOnNonConverge = true;
 
-	protected boolean useDiscounting = false;
-	protected double discountFactor = 1.0;
-
 	// Delay between occasional updates for slow processes, e.g. numerical solution (milliseconds)
 	public static final int UPDATE_DELAY = 5000;
 
@@ -659,8 +656,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		Expression exprSub = exprs.get(0);
-		// Discounting is not supported by the game-specific (e.g. multi-objective, equilibria) routes below
-		checkNoTemporalDiscountForGames(model, exprSub);
 		// Pass onto relevant method:
 		// P operator
 		if (exprSub instanceof ExpressionProb) {
@@ -668,18 +663,18 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		// R operator
 		else if (exprSub instanceof ExpressionReward) {
-			if (((ExpressionReward) exprSub).getDiscount() != null) {
-				useDiscounting = true;
-				discountFactor = ((Expression) ((ExpressionReward) exprSub).getDiscount()).evaluateDouble();
-			}
 			return checkExpressionReward(model, (ExpressionReward) exprSub, forAll, coalition, statesOfInterest);
 		}
 		// Equilibria
 		else if (exprSub instanceof ExpressionMultiNash) {
+			// Discounting is not supported for equilibria
+			checkNoTemporalDiscountForGames(model, exprSub);
 			return checkExpressionMultiNash(model, (ExpressionMultiNash) exprSub, expr.getCoalitions(), expr.getEquilibriumType(), expr.getEquilibriumCriterion());
 		}
 		// Anything else is treated as multi-objective
 		else {
+			// Discounting is not supported for multi-objective queries
+			checkNoTemporalDiscountForGames(model, exprSub);
 			return checkExpressionMultiObjective(model, expr, forAll, coalition);
 		}
 	}
@@ -888,6 +883,8 @@ public class ProbModelChecker extends NonProbModelChecker
 			if (e.getType() instanceof TypePathDouble) {
 				ExpressionTemporal eTemp = (ExpressionTemporal) e;
 				if (model.getModelType() == ModelType.SMG) {
+					// Discounting is not supported for the multi-objective route below
+					checkNoTemporalDiscountForGames(model, eTemp);
 					switch (eTemp.getOperator()) {
 					case ExpressionTemporal.R_S: // average rewards
 						return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
@@ -1279,13 +1276,13 @@ public class ProbModelChecker extends NonProbModelChecker
 		if (e.getType() instanceof TypePathDouble) {
 			ExpressionTemporal eTemp = (ExpressionTemporal) e;
 			if (model.getModelType() == ModelType.SMG) {
-				checkNoTemporalDiscountForGames(model, eTemp);
 				switch (eTemp.getOperator()) {
 				case ExpressionTemporal.R_S: // average rewards
 					return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
 							BooleanUtils.convertToCNFLists(expr), coalition);
 				case ExpressionTemporal.R_C: // total or ratio rewards
-					if (!eTemp.hasBounds()) {
+					// (discounted total rewards are handled separately, below)
+					if (!eTemp.hasBounds() && !(eTemp.hasDiscount() && eTemp.getDiscount().evaluateDouble(constantValues) != 1.0)) {
 						return ((SMGModelChecker) this).checkExpressionMultiObjective(model,
 								BooleanUtils.convertToCNFLists(expr), coalition);
 					}
@@ -1329,7 +1326,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	 * Model types for which discounting is implemented for total ({@code C}) reward properties.
 	 */
 	private static final EnumSet<ModelType> DISCOUNT_MODEL_TYPES_TOTAL =
-			EnumSet.of(ModelType.DTMC, ModelType.MDP, ModelType.IDTMC, ModelType.UDTMC, ModelType.IMDP, ModelType.UMDP);
+			EnumSet.of(ModelType.DTMC, ModelType.MDP, ModelType.IDTMC, ModelType.UDTMC, ModelType.IMDP, ModelType.UMDP, ModelType.STPG, ModelType.SMG);
 
 	/**
 	 * Model types for which discounting is implemented for cumulative ({@code C<=k}) and
@@ -1338,7 +1335,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	 * for total reward.
 	 */
 	private static final EnumSet<ModelType> DISCOUNT_MODEL_TYPES_OTHER =
-			EnumSet.of(ModelType.DTMC, ModelType.MDP);
+			EnumSet.of(ModelType.DTMC, ModelType.MDP, ModelType.STPG, ModelType.SMG);
 
 	/**
 	 * Check that no temporal operator within {@code expr} has a {discount=...} option attached,
@@ -1356,7 +1353,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				public void visitPre(ExpressionTemporal e) throws PrismLangException
 				{
 					if (e.hasDiscount()) {
-						throw new PrismLangException("Discounting is not currently supported for the " + e.getOperatorSymbol() + " reward operator for " + model.getModelType() + "s");
+						throw new PrismLangException("Discounting is not currently supported for multi-objective or equilibria properties for " + model.getModelType() + "s");
 					}
 				}
 			});
@@ -1526,10 +1523,10 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((MDPModelChecker) this).computeCumulativeRewards((MDP<Double>) model, (MDPRewards<Double>) modelRewards, timeInt, minMax.isMin(), disc);
 			break;
 		case STPG:
-			res = ((STPGModelChecker) this).computeCumulativeRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2());
+			res = ((STPGModelChecker) this).computeCumulativeRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), disc);
 			break;
 		case SMG:
-			res = ((SMGModelChecker) this).computeCumulativeRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+			res = ((SMGModelChecker) this).computeCumulativeRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, timeInt, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition(), disc);
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeCumulativeRewards((CSG<Double>) model, (CSGRewards<Double>) modelRewards, minMax.getCoalition(), timeInt, minMax.isMin1(), minMax.isMin2(), false);
@@ -1573,6 +1570,13 @@ public class ProbModelChecker extends NonProbModelChecker
 		case IMDP:
 		case UMDP:
 			res = ((UMDPModelChecker) this).computeTotalRewards((UMDP<Double>) model, (MDPRewards<Double>) modelRewards, minMax, disc);
+			break;
+		case STPG:
+			res = ((STPGModelChecker) this).computeTotalRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, minMax.isMin1(), minMax.isMin2(), disc);
+			break;
+		case SMG:
+			// (undiscounted total rewards for SMGs are handled via multi-objective model checking)
+			res = ((SMGModelChecker) this).computeTotalRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition(), disc);
 			break;
 		case CSG:
 			res = ((CSGModelChecker) this).computeTotalRewards((CSG<Double>) model, (CSGRewards<Double>) modelRewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
@@ -1664,12 +1668,12 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((POMDPModelChecker) this).computeReachRewards((POMDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin(), statesOfInterest);
 			break;
 		case STPG:
-			res = ((STPGModelChecker) this).computeReachRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, target, minMax.isMin1(), minMax.isMin2());
+			res = ((STPGModelChecker) this).computeReachRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, target, minMax.isMin1(), minMax.isMin2(), null, null, STPGModelChecker.R_INFINITY, disc);
 			break;
 		case SMG:
 			switch (expr.getOperator()) {
 			case ExpressionTemporal.P_F:
-				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_INFINITY, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition(), disc);
 				break;
 			case ExpressionTemporal.R_Fc:
 				res = ((SMGModelChecker) this).computeReachRewards((SMG<Double>) model, (Rewards<Double>) modelRewards, target, STPGModelChecker.R_CUMULATIVE, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());

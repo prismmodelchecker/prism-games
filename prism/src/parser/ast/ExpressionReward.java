@@ -42,8 +42,6 @@ public class ExpressionReward extends ExpressionQuant
 	protected Object rewardStructIndex = null;
 	protected Object rewardStructIndexDiv = null;
 	
-	protected Object discount = null;
-	
 	// Constructors
 	
 	public ExpressionReward()
@@ -77,11 +75,6 @@ public class ExpressionReward extends ExpressionQuant
 		setBound(r);
 	}
 
-	public void setDiscount(Object o)
-	{
-		discount = o;
-	}
-	
 	// Get methods
 	
 	public Object getRewardStructIndex()
@@ -100,11 +93,6 @@ public class ExpressionReward extends ExpressionQuant
 	public Expression getReward()
 	{
 		return getBound();
-	}
-
-	public Object getDiscount()
-	{
-		return discount;
 	}
 
 	// Other methods
@@ -372,9 +360,8 @@ public class ExpressionReward extends ExpressionQuant
 		
 		s += "R" + getModifierString();
 		if (rewardStructIndex != null) {
-			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+(discount==null?"":",disc="+discount)+"}";
-			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\""+(discount==null?"":",disc="+discount) + "}";
-			else if (discount != null) s += "{disc="+discount+"}";
+			if (rewardStructIndex instanceof Expression) s += "{"+rewardStructIndex+"}";
+			else if (rewardStructIndex instanceof String) s += "{\""+rewardStructIndex+"\"}";
 			if (rewardStructIndexDiv != null) {
 				s += "/";
 				if (rewardStructIndexDiv instanceof Expression) s += "{"+rewardStructIndexDiv+"}";
