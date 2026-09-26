@@ -1,0 +1,32 @@
+csg
+
+// Two-player version of buchi_cycle.prism: transitions ignore both players' action
+// choices (every one of the four joint actions drives the same x=0 <-> x=1 alternation),
+// so the Buchi result is unaffected but the computation is now forced through the real
+// multi-action matrix-game construction (buildMatrixDist / Apre1 / Lpre1 over an actual
+// >1x1 matrix), not the 1-player pre1 shortcut that buchi_cycle.prism alone would allow.
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module st
+	x : [0..1] init 0;
+	[a,c] (x=0) -> (x'=1);
+	[a,d] (x=0) -> (x'=1);
+	[b,c] (x=0) -> (x'=1);
+	[b,d] (x=0) -> (x'=1);
+	[a,c] (x=1) -> (x'=0);
+	[a,d] (x=1) -> (x'=0);
+	[b,c] (x=1) -> (x'=0);
+	[b,d] (x=1) -> (x'=0);
+endmodule
+
+module m1
+	[a] true -> true;
+	[b] true -> true;
+endmodule
+
+module m2
+	[c] true -> true;
+	[d] true -> true;
+endmodule

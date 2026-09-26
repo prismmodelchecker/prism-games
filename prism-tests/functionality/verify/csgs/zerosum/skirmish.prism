@@ -1,0 +1,25 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module ob
+	s: [0..2] init 0; // 0 = hide, 1 = wet, 2 = home
+	[run,throw] (s=0) -> (s'=1);
+	[run,wait] (s=0) -> (s'=2);
+	[hide,throw] (s=0) -> (s'=2);
+	[hide,wait] (s=0) -> (s'=0);
+	[] (s=2) -> (s'=0);
+	[] (s=1) -> (s'=1);
+endmodule
+
+module m1
+	[run] (s=0) -> true;
+	[hide] (s=0) -> true;
+endmodule
+
+module m2
+	[throw] (s=0) -> true;
+	[wait] (s=0) -> true;
+endmodule
+

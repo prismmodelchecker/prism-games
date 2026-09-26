@@ -83,6 +83,7 @@ import io.PrismExplicitImporter;
 import symbolic.build.ExplicitModel2MTBDD;
 import symbolic.build.MTBDD2ExplicitModel;
 import symbolic.build.ModelGenerator2MTBDD;
+import symbolic.build.CSG2MTBDD;
 import symbolic.build.Modules2MTBDD;
 import symbolic.comp.ECComputer;
 import symbolic.comp.ModelChecker;
@@ -2330,7 +2331,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			case SMG:
 			case STPG:
 			case CTMDP:
-				if (getCurrentEngine() == PrismEngine.SYMBOLIC && !(getModelType() == ModelType.SMG && getEngine() == MTBDD)) {
+				if (getCurrentEngine() == PrismEngine.SYMBOLIC
+						&& !((getModelType() == ModelType.SMG || getModelType() == ModelType.CSG) && getEngine() == MTBDD)) {
 					mainLog.println("\nSwitching to explicit engine, which supports " + getModelType() + "s...");
 					engineOld = getEngine();
 					engineSwitched = true;
@@ -2384,8 +2386,13 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				symbolic.model.Model newModelSymb;
 				switch (getModelSource()) {
 				case PRISM_MODEL:
-					Modules2MTBDD mod2mtbdd = new Modules2MTBDD(this, getPRISMModel());
-					newModelSymb = mod2mtbdd.translate();
+					if (getModelType() == ModelType.CSG) {
+						CSG2MTBDD csg2mtbdd = new CSG2MTBDD(this, getPRISMModel());
+						newModelSymb = csg2mtbdd.translate();
+					} else {
+						Modules2MTBDD mod2mtbdd = new Modules2MTBDD(this, getPRISMModel());
+						newModelSymb = mod2mtbdd.translate();
+					}
 					setBuiltModel(ModelBuildType.SYMBOLIC, newModelSymb);
 					break;
 				case MODEL_GENERATOR:

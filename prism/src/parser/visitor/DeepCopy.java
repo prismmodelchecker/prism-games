@@ -61,6 +61,7 @@ import parser.ast.ExpressionProp;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
 import parser.ast.ExpressionStrategy;
+import parser.ast.ExpressionStrategyQual;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.ast.ExpressionVar;
@@ -442,6 +443,12 @@ public class DeepCopy implements ASTVisitor
 
 	@Override
 	public Object visit(ExpressionStrategy e) throws PrismLangException
+	{
+		return e.clone().deepCopy(this);
+	}
+
+	@Override
+	public Object visit(ExpressionStrategyQual e) throws PrismLangException
 	{
 		return e.clone().deepCopy(this);
 	}

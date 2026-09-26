@@ -54,6 +54,7 @@ import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
 import parser.ast.ExpressionSS;
 import parser.ast.ExpressionStrategy;
+import parser.ast.ExpressionStrategyQual;
 import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionUnaryOp;
 import parser.type.TypeBool;
@@ -111,6 +112,9 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Is non-convergence of an iterative method an error?
 	protected boolean errorOnNonConverge = true;
+	/** Whether the path formula being computed is the complement of the one asked for (e.g. F !a for G a), the
+	 *  probabilities being subtracted from 1 afterwards (so that, e.g., strategies can be reported accordingly) */
+	protected boolean negatedPath = false;
 
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
@@ -622,10 +626,6 @@ public class ProbModelChecker extends NonProbModelChecker
 	 */
 	protected StateValues checkExpressionStrategy(Model<?> model, ExpressionStrategy expr, BitSet statesOfInterest) throws PrismException
 	{
-		// Only support <<>> right now, not [[]]
-		if (!expr.isThereExists())
-			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is not yet supported");
-
 		// Only support <<>> for MDPs/SMGs right now
 		if (!(this instanceof MDPModelChecker || this instanceof SMGModelChecker || this instanceof CSGModelChecker))
 			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is only supported for MDPs and SMGs currently");
@@ -656,6 +656,14 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		Expression exprSub = exprs.get(0);
+
+		// [[]] (forAll) is only supported for the qualitative (sure/almost/limit) operator
+		// (see checkExpressionStrategyQual and the CSGModelChecker override); the rest
+		// handles <<>> only.
+		if (forAll && !(exprSub instanceof ExpressionStrategyQual)) {
+			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is not yet supported");
+		}
+
 		// Pass onto relevant method:
 		// P operator
 		if (exprSub instanceof ExpressionProb) {
@@ -673,10 +681,30 @@ public class ProbModelChecker extends NonProbModelChecker
 		else if (exprSub instanceof ExpressionMultiNash) {
 			return checkExpressionMultiNash(model, (ExpressionMultiNash) exprSub, expr.getCoalitions(), expr.getEquilibriumType(), expr.getEquilibriumCriterion());
 		}
+		// Qualitative (sure/almost/limit) strategy operator
+		else if (exprSub instanceof ExpressionStrategyQual) {
+			return checkExpressionStrategyQual(model, (ExpressionStrategyQual) exprSub, forAll, coalition, statesOfInterest);
+		}
 		// Anything else is treated as multi-objective
 		else {
 			return checkExpressionMultiObjective(model, expr, forAll, coalition);
 		}
+	}
+
+	/**
+	 * Compute the (Boolean) result of a qualitative (sure/almost/limit) strategy operator,
+	 * e.g. sure/almost/limit [ G phi ], [ F phi ], [ G F phi ] or [ F G phi ], for a single
+	 * coalition against its complement (strictly zero-sum, no equilibrium options).
+	 * To be overridden by subclasses (currently: CSGModelChecker).
+	 *
+	 * @param forAll Quantify "for all strategies" of the coalition ({@code [[C]]}, true)
+	 *               rather than "there exists a strategy" ({@code <<C>>}, false). The
+	 *               coalition itself is unchanged either way -- only which side of the
+	 *               zero-sum game it plays flips. See the CSGModelChecker override.
+	 */
+	protected StateValues checkExpressionStrategyQual(Model<?> model, ExpressionStrategyQual expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
+	{
+		throw new PrismNotSupportedException("The " + expr.getMode() + " operator is not yet supported for " + model.getModelType() + "s");
 	}
 
 	protected StateValues checkExpressionMultiNash(Model<?> model, ExpressionMultiNash expr, List<Coalition> coalitions, ExpressionStrategy.EquilibriumType equilibriumType, ExpressionStrategy.EquilibriumCriterion equilibriumCriterion) throws PrismException
@@ -695,6 +723,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		boolean type = true;
 		boolean rew = false;
 		boolean min = expr.getRelOp().isMin();
+
 		int eqType = CSGModelCheckerEquilibria.NASH;
 		if (equilibriumType == ExpressionStrategy.EquilibriumType.NASH) {
 			eqType = CSGModelCheckerEquilibria.NASH;
@@ -740,7 +769,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		if (!type)
-			throw new PrismException("Mixing P and R operators is not yet supported");
+			throw new PrismException("Mixing P and R operators is not supported");
 
 		List<ExpressionTemporal> exprs = new ArrayList<ExpressionTemporal>();
 
@@ -748,8 +777,15 @@ public class ProbModelChecker extends NonProbModelChecker
 			expr1 = formulae.get(p);
 			if (expr1 instanceof ExpressionMultiNashProb) {
 				expr1 = ((ExpressionMultiNashProb) (expr1)).getExpression();
-				expr1 = Expression.convertSimplePathFormulaToCanonicalForm(expr1);
 				if (expr1 instanceof ExpressionTemporal) {
+					int op = ((ExpressionTemporal) expr1).getOperator();
+					if (op == ExpressionTemporal.P_G || op == ExpressionTemporal.P_W || op == ExpressionTemporal.P_R)
+						throw new PrismNotSupportedException("The " + ((ExpressionTemporal) expr1).getOperatorSymbol() + " operator is not supported for equilibria-based properties");
+				}
+				expr1 = Expression.convertSimplePathFormulaToCanonicalForm(expr1);
+				if (!(expr1 instanceof ExpressionTemporal))
+					throw new PrismNotSupportedException("Only X, F and U path formulae are supported for equilibria-based properties");
+				else {
 		 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr1;
 		 			exprs.add(p, exprTemp);
 					switch (exprTemp.getOperator()) {
@@ -837,7 +873,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			}
 		}
 		else if (coalitions.size() > 2) {
-			throw new PrismNotSupportedException("Equilibria-based properties with more than two coalitions are not yet supported");
+			res = ((CSGModelChecker) this).computeMultiEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
 		}
 
 		result.setStrategy(res.strat);
@@ -972,17 +1008,23 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (expr instanceof ExpressionTemporal) {
  			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			// Next
-			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
-				probs = checkProbNext(model, exprTemp, minMax, statesOfInterest);
-			}
-			// Until
-			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
-				if (exprTemp.hasBounds()) {
-					probs = checkProbBoundedUntil(model, exprTemp, minMax, statesOfInterest);
-				} else {
-					probs = checkProbUntil(model, exprTemp, minMax, statesOfInterest);
+			boolean negatedPathSave = negatedPath;
+			negatedPath = negated;
+			try {
+				// Next
+				if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+					probs = checkProbNext(model, exprTemp, minMax, statesOfInterest);
 				}
+				// Until
+				else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+					if (exprTemp.hasBounds()) {
+						probs = checkProbBoundedUntil(model, exprTemp, minMax, statesOfInterest);
+					} else {
+						probs = checkProbUntil(model, exprTemp, minMax, statesOfInterest);
+					}
+				}
+			} finally {
+				negatedPath = negatedPathSave;
 			}
 		}
 

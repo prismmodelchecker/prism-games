@@ -1,0 +1,79 @@
+// Qualitative (sure/almost/limit) strategy-operator tests on the standard soldier/sniper
+// "skirmish" witness (Henzinger's example for sure/almost/limit divergence). Player 1
+// (soldier) wants to avoid "wet" (s=1) and/or eventually reach "home" (s=2); player 2
+// (sniper) is the adversarial complement. From "hide" (s=0), staying is always available
+// (hide,wait), so safety is trivially forceable; reaching/repeatedly-reaching "home"
+// requires exposing yourself to a "wet" trap, which is where the three qualitative modes
+// provably differ.
+
+// --- Safety (G): sure = almost = limit collapse (LICS 2000 Theorem 3(1)) ---
+// "hide,wait" stays at s=0 forever regardless of the opponent, so avoiding "wet" is
+// sure-forceable, and (per the collapse theorem) equally almost- and limit-forceable.
+
+// RESULT: true
+<<p1>> sure [ G !(s=1) ]
+
+// RESULT: true
+<<p1>> almost [ G !(s=1) ]
+
+// RESULT: true
+<<p1>> limit [ G !(s=1) ]
+
+// --- Safety (G), the FALSE case ---
+// "Always stay at hide" (s=0) is NOT forceable: from s=0, "hide,throw" and "run,*" all
+// leave s=0, so no single move keeps you there against every opponent response. A
+// non-trivial false case alongside the true case above, again collapsing across modes.
+
+// RESULT: false
+<<p1>> sure [ G s=0 ]
+
+// RESULT: false
+<<p1>> almost [ G s=0 ]
+
+// RESULT: false
+<<p1>> limit [ G s=0 ]
+
+// --- Reachability (F): the standard sure/almost vs. limit divergence ---
+// No pure positional strategy reaches "home" with certainty or even probability 1: every
+// attempt to make progress ("run") risks the "wet" trap, and "hide" alone can be stalled
+// forever by an opponent who always plays "wait". Only in the LIMIT (value -> 1, not
+// exactly 1, via a vanishing-risk retry schedule) does "eventually home" become forceable.
+
+// RESULT: false
+<<p1>> sure [ F s=2 ]
+
+// RESULT: false
+<<p1>> almost [ F s=2 ]
+
+// RESULT: true
+<<p1>> limit [ F s=2 ]
+
+// --- Co-Buchi (F G): eventually always avoid "wet" ---
+// Already true from the start in every mode, since "hide,wait" keeps you safe from s=0
+// immediately (so "eventually" is instantaneous here) -- a regression check that F G
+// doesn't regress relative to the safety result above.
+
+// RESULT: true
+<<p1>> sure [ F G !(s=1) ]
+
+// RESULT: true
+<<p1>> almost [ F G !(s=1) ]
+
+// RESULT: true
+<<p1>> limit [ F G !(s=1) ]
+
+// --- Buchi (G F): visit "home" infinitely often ---
+// Harder than plain reachability: repeating forever means repeatedly re-exposing yourself
+// to the "wet" trap risk, which (unlike a one-shot attempt) compounds to certain eventual
+// capture under any fixed or vanishing retry schedule in ALMOST mode -- so almost-sure
+// infinitely-often collapses to false here, matching plain reachability's "almost" result,
+// while LIMIT mode (value -> 1) still succeeds.
+
+// RESULT: false
+<<p1>> sure [ G F s=2 ]
+
+// RESULT: false
+<<p1>> almost [ G F s=2 ]
+
+// RESULT: true
+<<p1>> limit [ G F s=2 ]

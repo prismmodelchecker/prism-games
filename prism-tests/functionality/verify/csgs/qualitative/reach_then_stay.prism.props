@@ -1,0 +1,23 @@
+// Distinguishes co-Buchi (F G) from plain safety (G) on a deterministic model where the
+// only path to permanent safety passes through one unsafe step. Since there's no
+// adversary and no probability involved, all three qualitative modes agree throughout --
+// this is a regression check on the sure=almost=limit collapse (for G) on a second,
+// independent model from skirmish.prism, plus the SFG=SF(G) composition for F G.
+
+// RESULT: false
+<<p1>> sure [ G !(x=1) ]
+
+// RESULT: false
+<<p1>> almost [ G !(x=1) ]
+
+// RESULT: false
+<<p1>> limit [ G !(x=1) ]
+
+// RESULT: true
+<<p1>> sure [ F G !(x=1) ]
+
+// RESULT: true
+<<p1>> almost [ F G !(x=1) ]
+
+// RESULT: true
+<<p1>> limit [ F G !(x=1) ]

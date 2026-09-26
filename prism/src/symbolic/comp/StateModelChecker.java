@@ -189,6 +189,9 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		case SMG:
 			mc = new GamesModelChecker(prism, model, propertiesFile);
 			break;
+		case CSG:
+			mc = new CSGModelChecker(prism, model, propertiesFile);
+			break;
 		default:
 			throw new PrismException("Cannot create model checker for model type " + modelType);
 		}

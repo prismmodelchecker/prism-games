@@ -1,0 +1,34 @@
+csg
+
+// Minimal asymmetric witness for [[C]] (the "for all strategies" dual of <<C>>). Player 1
+// unilaterally controls whether "target" is ever reached -- player 2's only action ("idle")
+// has no effect on the transition at all. So <<1>> can force the target outright, but
+// [[1]] (== <<2>>, since 2 genuinely has no control) cannot, in all three modes: p1 just
+// plays "stay" forever, which is a single fixed pure strategy, so even almost/limit sit at
+// value 0, not just below 1.
+//
+// This is deliberately NOT symmetric like matching_pennies.prism: a broken/no-op [[]]
+// implementation (one that silently ignores forAll and always treats the named coalition as
+// the achiever) would still pass a symmetric model's [[]] tests by coincidence, since <<C>>
+// and [[C]] happen to agree there. Here they provably diverge in all three modes for both
+// coalitions, so a no-op bug is caught.
+
+player p1 controller endplayer
+player p2 bystander endplayer
+
+module controller
+	[go] true -> true;
+	[stay] true -> true;
+endmodule
+
+module bystander
+	[idle] true -> true;
+endmodule
+
+module state
+	s : [0..1] init 0; // 0 = start, 1 = target (absorbing)
+	[go,idle] s=0 -> (s'=1);
+	[stay,idle] s=0 -> (s'=0);
+	[go,idle] s=1 -> (s'=1);
+	[stay,idle] s=1 -> (s'=1);
+endmodule

@@ -1,0 +1,17 @@
+// Completes the taxonomy the rest of this qualitative suite left half-finished. skirmish.prism
+// demonstrates sure = almost < limit (Buchi/reachability needing an escalating, infinite-
+// memory retry schedule to approach probability 1). This model demonstrates the complementary
+// pattern, sure < almost = limit: no deterministic strategy forces a match against an
+// adversary who can always counter a *fixed* p1 action, but a single stationary 50/50 coin
+// flip each round matches with probability exactly 1/2 regardless of the opponent's choice
+// that round, so eventual success has probability exactly 1 -- achieved outright by a
+// memoryless strategy, not merely approached.
+
+// RESULT: false
+<<p1>> sure [ F s=1 ]
+
+// RESULT: true
+<<p1>> almost [ F s=1 ]
+
+// RESULT: true
+<<p1>> limit [ F s=1 ]

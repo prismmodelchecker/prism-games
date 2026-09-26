@@ -1,0 +1,16 @@
+csg
+
+// Deterministic 1-player "reach then stay" chain: a -> b -> c -> c -> c ..., with
+// safe = {a,c} (b is the only unsafe state). Built specifically to distinguish co-Buchi
+// (F G safe) from plain safety (G safe): the chain must pass through the unsafe state b
+// once on its way to permanently settling in c, so G safe is false from a while F G safe
+// is true.
+
+player p1 m1 endplayer
+
+module m1
+	x : [0..2] init 0; // a=0 (safe), b=1 (unsafe), c=2 (safe, absorbing)
+	[step] (x=0) -> (x'=1);
+	[step] (x=1) -> (x'=2);
+	[step] (x=2) -> (x'=2);
+endmodule

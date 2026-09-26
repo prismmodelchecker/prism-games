@@ -1,0 +1,15 @@
+// F is true (target is reached, trivially, in one step) but G F is false in every mode
+// (target can never be revisited after that single step) -- proves the Buchi operators
+// are not just inheriting the reachability operators' answer.
+
+// RESULT: true
+<<p1>> sure [ F x=1 ]
+
+// RESULT: false
+<<p1>> sure [ G F x=1 ]
+
+// RESULT: false
+<<p1>> almost [ G F x=1 ]
+
+// RESULT: false
+<<p1>> limit [ G F x=1 ]

@@ -27,68 +27,56 @@
 
 package strat;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import explicit.CSG;
 import explicit.Distribution;
+import explicit.DistributionOver;
+import explicit.MDPModelChecker;
 import explicit.MDPSimple;
-import explicit.ModelCheckerResult;
-import explicit.NondetModel;
+import explicit.rewards.CSGRewards;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
-import parser.VarList;
-import prism.PrismComponent;
+import prism.JointAction;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
-import strat.CSGStrategy.CSGStrategyType;
 
-public class CSGStrategy extends PrismComponent implements Strategy<Double> {
+/**
+ * Strategy of a coalition C in a zero-sum CSG (C against the other players N\C), memoryless (unbounded properties,
+ * and next). Its decisions are distributions over C's part of the joint actions (partial joint actions, with the
+ * other players' entries undefined): a joint action is chosen whenever its part for C is. The strategy induces an MDP,
+ * in which the other players' choices remain nondeterministic.
+ */
+public class CSGStrategy extends StrategyWithStates<Double> {
 
 	protected CSG<Double> model;
 	protected List<List<List<Map<BitSet, Double>>>> csgchoices; // player -> iteration -> state -> indexes -> value
-	protected ModelCheckerResult[] prechoices;
-	protected BitSet[] targets;
-	protected Map<BitSet, BitSet> subgames;
-	protected CSGStrategyType type;
 	protected BitSet no;
 	protected BitSet yes;
 	protected BitSet inf;
-	protected int numCoalitions;
 	
-	public enum CSGStrategyType {
-		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R, EQUILIBRIA_CE_P, EQUILIBRIA_CE_R, EQUILIBRIA_CE_M;
-	}
-
-	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, Map<BitSet, BitSet> subgames, int numCoalitions, CSGStrategyType type) {
+	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf) {
 		this.model = model;
 		this.csgchoices = csgchoices;
-		this.subgames = subgames;
-		this.numCoalitions = numCoalitions;
-		this.type = type;
-	}
-	
-	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, ModelCheckerResult[] prechoices, BitSet[] targets, CSGStrategyType type) {
-		this.model = model;
-		this.csgchoices = csgchoices;
-		this.prechoices = prechoices;
-		this.targets = targets;
-		this.type = type;
-	}
-
-	public CSGStrategy(CSG<Double> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
-		this.model = model;
-		this.csgchoices = csgchoices;
-		this.prechoices = null;
-		this.targets = null;
 		this.no = no;
 		this.yes = yes;
 		this.inf = inf;
-		this.type = type;
+		// state look-up (for the StrategyGenerator interface, e.g. the simulator)
+		Map<State, Integer> index = new HashMap<>();
+		List<State> states = model.getStatesList();
+		if (states != null) {
+			for (int s = 0; s < states.size(); s++)
+				index.put(states.get(s), s);
+		}
+		setStateLookUp(state -> index.getOrDefault(state, -1));
 	}
 
 	@Override
@@ -106,717 +94,345 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 	@Override
 	public Memory memory()
 	{
-		// TODO
-		throw new UnsupportedOperationException();
+		return Memory.NONE;
 	}
-	
+
+	@Override
+	public boolean isRandomised()
+	{
+		return true;
+	}
+
+	/** The players in C (derived from C's actions, set by setCoalitionActions) */
+	protected BitSet coalitionPlayers()
+	{
+		BitSet players = new BitSet();
+		if (coalitionActions != null) {
+			for (int p = 0; p < model.getNumPlayers(); p++)
+				if (coalitionActions.get(model.getIdleForPlayer(p)))
+					players.set(p);
+		}
+		return players;
+	}
+
+	/** C's part of a joint action (the other players' entries undefined) */
+	protected JointAction partOfC(JointAction joint)
+	{
+		BitSet players = coalitionPlayers();
+		JointAction part = new JointAction(joint.size());
+		for (int p = players.nextSetBit(0); p >= 0 && p < joint.size(); p = players.nextSetBit(p + 1))
+			part.set(p, joint.get(p));
+		return part;
+	}
+
+	/** C's action given as player action indices (idle actions included), as a partial joint action */
+	protected JointAction partOfC(BitSet actions)
+	{
+		int numPlayers = model.getNumPlayers();
+		JointAction part = new JointAction(numPlayers);
+		BitSet players = coalitionPlayers();
+		for (int p = players.nextSetBit(0); p >= 0; p = players.nextSetBit(p + 1)) {
+			int idle = model.getIdleForPlayer(p);
+			if (actions.get(idle)) {
+				part.set(p, JointAction.IDLE_ACTION);
+				continue;
+			}
+			BitSet own = (BitSet) model.getIndexes()[p].clone();
+			own.and(actions);
+			int i = own.nextSetBit(0);
+			part.set(p, i > 0 ? model.getActions().get(i - 1) : null);
+		}
+		return part;
+	}
+
+	/** Joint actions may also be given as arrays of (1-indexed) player action indices (-1 for idle), as by model generators */
+	protected JointAction toJointAction(Object act)
+	{
+		if (act instanceof int[])
+			return new JointAction((int[]) act, model.getActions());
+		return act instanceof JointAction ? (JointAction) act : null;
+	}
+
+	/**
+	 * The decision in state s: a distribution over C's (partial) joint actions, or UNDEFINED (states already decided,
+	 * or where no strategy was computed). The memory m is ignored (memoryless).
+	 */
 	@Override
 	public Object getChoiceAction(int s, int m)
 	{
-		// TODO
-		throw new UnsupportedOperationException();
+		if (s < 0 || yes.get(s) || no.get(s) || inf.get(s) || coalitionActions == null)
+			return UNDEFINED;
+		Map<BitSet, Double> strat = csgchoices.get(0).get(0).get(s);
+		if (strat == null)
+			return UNDEFINED;
+		Distribution<Double> d = new Distribution<>();
+		List<JointAction> parts = new ArrayList<>();
+		for (Map.Entry<BitSet, Double> e : strat.entrySet()) {
+			if (e.getValue() > 0.0) {
+				d.add(parts.size(), e.getValue());
+				parts.add(partOfC(e.getKey()));
+			}
+		}
+		return d.isEmpty() ? UNDEFINED : DistributionOver.create(d, parts::get);
 	}
-	
+
+	/** The probability of C's part of a joint action (or of a partial joint action for C) */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Double getChoiceActionProbability(Object decision, Object act)
+	{
+		JointAction joint = toJointAction(act);
+		if (!(decision instanceof DistributionOver) || joint == null)
+			return 0.0;
+		return ((DistributionOver<Double, Object>) decision).getProbability(partOfC(joint));
+	}
+
+	@Override
+	public boolean isActionChosen(Object decision, Object act)
+	{
+		return getChoiceActionProbability(decision, act) > 0.0;
+	}
+
+	/**
+	 * The choice picked in state s, if determined: C's decision deterministic and a single joint action matching it
+	 * (i.e. the other players have a single action); otherwise -1.
+	 */
 	@Override
 	public int getChoiceIndex(int s, int m)
 	{
-		// TODO
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public int getMemorySize()
-	{
-		// TODO
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public int getInitialMemory(int sInit)
-	{
-		// TODO
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public int getUpdatedMemory(int m, Object action, int sNext)
-	{
-		// TODO
-		throw new UnsupportedOperationException();
+		Object decision = getChoiceAction(s, m);
+		if (decision == UNDEFINED)
+			return -1;
+		int found = -1;
+		for (int i = 0; i < model.getNumChoices(s); i++) {
+			double p = getChoiceActionProbability(decision, model.getAction(s, i));
+			if (p > 0.0) {
+				if (p < 1.0 || found >= 0)
+					return -1;
+				found = i;
+			}
+		}
+		return found;
 	}
 
 	@Override
 	public prism.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
 	{
-		throw new PrismNotSupportedException("CSG strategy product not yet supported");
+		// the other players' choices remain nondeterministic: an MDP (in either mode)
+		return buildInducedMDP(0).mdp;
 	}
 
 	@Override
 	public void exportActions(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+		List<State> states = model.getStatesList();
+		boolean showStates = options.getShowStates() && states != null;
+		for (int s = 0; s < model.getNumStates(); s++) {
+			Object decision = getChoiceAction(s, -1);
+			if (decision != UNDEFINED)
+				out.println((showStates ? states.get(s) : s) + "=" + decision);
+		}
 	}
 
 	@Override
 	public void exportIndices(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+		throw new PrismNotSupportedException("Zero-sum CSG strategies fix only the coalition's part of each choice, so cannot be exported as choice indices");
 	}
 
 	@Override
 	public void exportInducedModel(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		throw new PrismNotSupportedException("CSG strategy export in this format not yet supported");
+		buildInducedMDP(0).mdp.exportToPrismExplicitTra(out, options.getModelPrecision());
 	}
-	
+
 	@Override
 	public void exportDotFile(PrismLog out, StrategyExportOptions options) throws PrismException
 	{
-		try {
-			switch(type) {
-				case ZERO_SUM:
-					exportZeroSumStrategy(out);
-					break;
-				case EQUILIBRIA_M:
-					exportMultiEquilibriaStrategy(out);
-					break;
-				case EQUILIBRIA_P:
-				case EQUILIBRIA_R:
-					exportEquilibriaStrategy(out);
-					break;
-				case EQUILIBRIA_CE_M:
-					exportMultiEquilibriaStrategy(out);
-					break;
-				case EQUILIBRIA_CE_P:
-				case EQUILIBRIA_CE_R:
-					exportEquilibriaStrategy(out);
-					break;
-			}
-		}
-		catch (InvalidStrategyStateException e) {
-			throw new PrismException("Error during strategy processing: " + e.getMessage());
-		}
+		exportZeroSumStrategy(out);
 	}
 	
-	public void exportZeroSumStrategy(PrismLog out) throws PrismException {
-		MDPSimple mdp = new MDPSimple();
-		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
-		List<State> statelist = new ArrayList<State>();
-		VarList varlist = null;
-		State initial;
-		BitSet explored =  new BitSet();
-		int n, s;
-		s = model.getFirstInitialState();
-		initial = model.getStatesList().get(s);
-		varlist = model.getVarList();
-		n = mdp.addState();
-		mdp.addInitialState(n);
-		mdp.setVarList(varlist);
-		statelist.add(n, initial);
-		onmap.put(s, n);
-		generateMDPZeroSum(mdp, onmap, statelist, explored, 0, 0, s);
-		mdp.setStatesList(statelist);
+	/** Whether the strategy was computed for the complement of the path formula asked for (e.g. F !a for G a) */
+	protected boolean complemented = false;
+
+	/**
+	 * Sets whether the strategy was computed for the complement of the path formula asked for (e.g. F !a for G a,
+	 * whose probabilities are subtracted from 1): the states labelled Sat/Unsat in the export are then swapped.
+	 */
+	public void setComplemented(boolean complemented)
+	{
+		this.complemented = complemented;
+	}
+
+	/** C's actions (player action indices, idle actions included): the coalition whose strategy this is */
+	protected BitSet coalitionActions = null;
+
+	/**
+	 * Sets the actions (player action indices, idle actions included) of the coalition C whose strategy this is;
+	 * required to build the MDP induced by the strategy (where the other players' choices remain nondeterministic).
+	 */
+	public void setCoalitionActions(BitSet coalitionActions)
+	{
+		this.coalitionActions = coalitionActions;
+	}
+
+	/** The MDP induced by the strategy of C (reachable part), with, per state and choice, the joint choices of the CSG and their weights */
+	protected static class InducedMDP
+	{
+		MDPSimple<Double> mdp = new MDPSimple<>();
+		List<Integer> stateOf = new ArrayList<>();
+		/** Per MDP state and choice: CSG choice index -> probability of C's part */
+		List<List<Map<Integer, Double>>> weights = new ArrayList<>();
+	}
+
+	/**
+	 * Builds the MDP induced by the strategy of C: in each state, one choice per action b of the other players, whose
+	 * distribution is the mixture, under C's local strategy, of the transitions of the joint actions (a, b). States
+	 * already decided (yes, no, inf) are absorbing.
+	 * @param k Iteration of the strategy (0 for unbounded properties)
+	 */
+	protected InducedMDP buildInducedMDP(int k) throws PrismException
+	{
+		if (coalitionActions == null)
+			throw new PrismException("The coalition's actions are needed to build the MDP induced by its strategy");
+		InducedMDP ind = new InducedMDP();
+		ind.mdp.setVarList(model.getVarList());
+		List<State> statelist = new ArrayList<>();
+		Map<Integer, Integer> index = new HashMap<>();
+		ArrayDeque<Integer> todo = new ArrayDeque<>();
+		int s0 = model.getFirstInitialState();
+		ind.mdp.addInitialState(inducedNode(ind, statelist, index, todo, s0));
+		while (!todo.isEmpty()) {
+			int x = todo.poll();
+			int s = ind.stateOf.get(x);
+			List<Map<Integer, Double>> ws = new ArrayList<>();
+			ind.weights.add(x, ws);
+			String end = yes.get(s) ? (complemented ? "Unsat" : "Sat") : no.get(s) ? (complemented ? "Sat" : "Unsat") : inf.get(s) ? "Infinity" : null;
+			Map<BitSet, Double> strat = csgchoices.get(0).get(k).get(s);
+			if (end != null || strat == null) {
+				Distribution<Double> d = new Distribution<>();
+				d.add(x, 1.0);
+				ind.mdp.addActionLabelledChoice(x, d, end != null ? end : "undefined");
+				ws.add(new HashMap<>());
+				continue;
+			}
+			// group the joint choices by the other players' part b
+			Map<BitSet, Map<Integer, Double>> byOthers = new LinkedHashMap<>();
+			for (int t = 0; t < model.getNumChoices(s); t++) {
+				BitSet joint = new BitSet();
+				int[] indexes = model.getIndexes(s, t);
+				for (int q = 0; q < indexes.length; q++)
+					joint.set(indexes[q] > 0 ? indexes[q] : model.getIdles()[q]);
+				BitSet a = (BitSet) joint.clone();
+				a.and(coalitionActions);
+				BitSet b = (BitSet) joint.clone();
+				b.andNot(coalitionActions);
+				Double p = strat.get(a);
+				byOthers.computeIfAbsent(b, __ -> new LinkedHashMap<>());
+				if (p != null && p > 0.0)
+					byOthers.get(b).put(t, p);
+			}
+			String cpart = mixtureString(strat);
+			for (Map.Entry<BitSet, Map<Integer, Double>> e : byOthers.entrySet()) {
+				Distribution<Double> d = new Distribution<>();
+				for (Map.Entry<Integer, Double> w : e.getValue().entrySet()) {
+					for (Iterator<Map.Entry<Integer, Double>> it = model.getTransitionsIterator(s, w.getKey()); it.hasNext();) {
+						Map.Entry<Integer, Double> tr = it.next();
+						d.add(inducedNode(ind, statelist, index, todo, tr.getKey()), w.getValue() * tr.getValue());
+					}
+				}
+				if (d.isEmpty())
+					continue;
+				ind.mdp.addActionLabelledChoice(x, d, cpart + " -- " + actionsString(e.getKey()));
+				ws.add(e.getValue());
+			}
+		}
+		ind.mdp.setStatesList(statelist);
+		return ind;
+	}
+
+	private int inducedNode(InducedMDP ind, List<State> statelist, Map<Integer, Integer> index, ArrayDeque<Integer> todo, int s)
+	{
+		Integer x = index.get(s);
+		if (x == null) {
+			x = ind.mdp.addState();
+			index.put(s, x);
+			ind.stateOf.add(s);
+			statelist.add(model.getStatesList().get(s));
+			todo.add(x);
+		}
+		return x;
+	}
+
+	private String actionsString(BitSet acts)
+	{
+		StringBuilder sb = new StringBuilder();
+		for (int i = acts.nextSetBit(0); i >= 0; i = acts.nextSetBit(i + 1))
+			sb.append("[").append(model.getActions().get(i - 1)).append("]");
+		return sb.toString();
+	}
+
+	/** C's local strategy, e.g. "0.5: [a1] + 0.5: [b1]" */
+	private String mixtureString(Map<BitSet, Double> strat)
+	{
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<BitSet, Double> e : strat.entrySet()) {
+			if (e.getValue() <= 0.0)
+				continue;
+			if (sb.length() > 0)
+				sb.append(" + ");
+			sb.append(e.getValue()).append(": ").append(actionsString(e.getKey()));
+		}
+		return sb.toString();
+	}
+
+	/** Exports the MDP induced by the strategy of C (choices labelled "C's mixture -- others' action") */
+	public void exportZeroSumStrategy(PrismLog out) throws PrismException
+	{
+		MDPSimple<Double> mdp = buildInducedMDP(0).mdp;
 		mdp.exportToDotFile(out, null, true);
 		out.print("\n/*");
 		out.print("\n -- Transitions --  \n");
-		mdp.exportToPrismExplicitTra(out);	
+		mdp.exportToPrismExplicitTra(out);
 		out.print("\n -- States --  \n");
 		mdp.exportStates(0, mdp.getVarList(), out);
 		out.print("*/\n");
-		mainLog.println("Additional info on transitions and states added to file.");
 	}
-	
-	public void exportEquilibriaStrategy(PrismLog out) throws PrismException, InvalidStrategyStateException {
-		MDPSimple mdp = new MDPSimple();
-		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
-		List<State> statelist = new ArrayList<State>();
-		VarList varlist = null;
-		State initial;
-		BitSet explored =  new BitSet();
-		int i, n, p, s;
-		s = model.getFirstInitialState();
-		initial = model.getStatesList().get(s);
-		varlist = model.getVarList();
-		n = mdp.addState();
-		mdp.addInitialState(n);		
-		mdp.setVarList(varlist);
-		statelist.add(n, initial);
-		onmap.put(s, n);
-		if (targets[0].isEmpty() && targets[1].isEmpty()) {
-			Distribution d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
-		}
-		else {
-			BitSet[] reach = new BitSet[targets.length];
-			for (p = 0; p < 2; p++) {
-				reach[p] = new BitSet();
-				for (i = 0; i < model.getNumStates(); i++) {
-					if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_CE_P) {
-						if (prechoices[p].soln[i] > 0)
-							reach[p].set(i);
-					}
-					if  (type == CSGStrategyType.EQUILIBRIA_R || type == CSGStrategyType.EQUILIBRIA_CE_R) {
-						if (prechoices[p].soln[i] < Double.POSITIVE_INFINITY)
-							reach[p].set(i);
-					}
-				}
-			}
-			if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_R)
-				generateMDPEquilibria(mdp, onmap, statelist, reach, explored, 0, s); 
-			if (type == CSGStrategyType.EQUILIBRIA_CE_P || type == CSGStrategyType.EQUILIBRIA_CE_R)
-				generateMDPCorrelatedEquilibria(mdp, onmap, statelist, reach, explored, 0, s); 
-			addPrecompStrategies(mdp, onmap, statelist, reach);		
-		}
-		mdp.setStatesList(statelist);
-		mdp.exportToDotFile(out, null, true);
-		out.print("\n/*");
-		out.print("\n -- Transitions --  \n");
-		mdp.exportToPrismExplicitTra(out);	
-		out.print("\n -- States --  \n");
-		mdp.exportStates(0, mdp.getVarList(), out);
-		out.print("*/\n");
-		mainLog.println("Additional info on transitions and states added to file.");
-	}
-	
-	public void exportMultiEquilibriaStrategy(PrismLog out) throws PrismException {
-		MDPSimple mdp = new MDPSimple();
-		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
-		List<State> statelist = new ArrayList<State>();
-		State initial;
-		BitSet explored =  new BitSet();
-		int n, s;
-		s = model.getFirstInitialState();
-		initial = model.getStatesList().get(s);
-		n = mdp.addState();
-		mdp.addInitialState(n);		
-		mdp.setVarList(model.getVarList());
-		statelist.add(n, initial);
-		onmap.put(s, n);
-		generateMDPMultiEquilibria(mdp, onmap, statelist, explored, 0, s);
-		mdp.setStatesList(statelist);
-		mdp.exportToDotFile(out, null, true);
-		out.print("\n/*");
-		out.print("\n -- Transitions --  \n");
-		mdp.exportToPrismExplicitTra(out);	
-		out.print("\n -- States --  \n");
-		mdp.exportStates(0, mdp.getVarList(), out);
-		out.print("*/\n");
-		mainLog.println("Additional info on transitions and states added to file.");
-	}
-	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach) throws PrismException, InvalidStrategyStateException {
-		BitSet[] minus = new BitSet[targets.length];
-		BitSet[] goals = new BitSet[targets.length];
-		BitSet explored = new BitSet();
-		int i, p;
-		for (p = 0; p < 2; p++) {
-			minus[p] = new BitSet();
-			minus[p].or(targets[p]);	
-			minus[p].andNot(targets[(p + 1) % 2]);
-			goals[p] = new BitSet();
-			goals[p].or(targets[p]);
-		}
-		for (p = 0; p < 2; p++) {
-			for (i = minus[p].nextSetBit(0); i >= 0; i = minus[p].nextSetBit(i + 1)) {
-				explored = new BitSet();
-				if (statelist.contains(model.getStatesList().get(i)) && !(goals[0].get(i) && goals[1].get(i))) {
-					addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, i);
-				}
+
+	/**
+	 * The value the strategy of C guarantees in the initial state (unbounded objectives): the optimal value of the
+	 * other players in the induced MDP (minimising if C maximises, and vice versa), for reaching the yes states or,
+	 * with rewards, the expected reward to reach them.
+	 * @param rewards C's rewards (null for probabilities)
+	 * @param min Whether C minimises
+	 */
+	public double guaranteedValue(MDPModelChecker mc, CSGRewards<Double> rewards, boolean min) throws PrismException
+	{
+		InducedMDP ind = buildInducedMDP(0);
+		int num = ind.mdp.getNumStates();
+		BitSet target = new BitSet();
+		for (int x = 0; x < num; x++)
+			if (yes.get(ind.stateOf.get(x)))
+				target.set(x);
+		if (rewards == null)
+			return mc.computeReachProbs(ind.mdp, target, !min).soln[0];
+		MDPRewardsSimple<Double> rew = new MDPRewardsSimple<>(num);
+		for (int x = 0; x < num; x++) {
+			int s = ind.stateOf.get(x);
+			rew.setStateReward(x, rewards.getStateReward(s));
+			List<Map<Integer, Double>> ws = ind.weights.get(x);
+			for (int i = 0; i < ws.size(); i++) {
+				double r = 0.0;
+				for (Map.Entry<Integer, Double> w : ws.get(i).entrySet())
+					r += w.getValue() * rewards.getTransitionReward(s, w.getKey());
+				rew.setTransitionReward(x, i, r);
 			}
 		}
-		
-	}
-	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] goals, BitSet[] reach, BitSet explored, int p, int s) throws PrismException, InvalidStrategyStateException {
-		Distribution d;
-		String label = "MDP: ";
-		String joint = "";
-		double v;
-		int c, i, m, n;
-		if (!onmap.containsKey(s)) {
-			n = mdp.addState();
-			onmap.put(s, n);
-			statelist.add(n, model.getStatesList().get(s));
-		}
-		else {
-			n = onmap.get(s);
-		}
-		for (Iterator<Integer> iter = model.getSuccessorsIterator(s); iter.hasNext(); ) {
-			int u = iter.next();
-			if (goals[0].get(s))
-				goals[0].set(u);
-			if (goals[1].get(s))
-				goals[1].set(u);
-		}
-		explored.set(s);
-		if (goals[p].get(s) && goals[(p + 1) % 2].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
-		}
-		else if (goals[p].get(s) && !goals[(p +1) % 2].get(s) && !reach[(p +1) % 2].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(" + p + ") -- Unsat(" + (p + 1) % 2 + ")");
-		}
-		else if (!goals[(p +1) % 2].get(s)) {
-			d = new Distribution();
-			//c = prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport().size();
-			c = 1;
-			//for (int t : prechoices[(p + 1) % 2].strat.getNextMove(s).getSupport()) {
-			int t = prechoices[(p + 1) % 2].strat.getChoiceIndex(s, -1);
-				//v = prechoices[(p + 1) % 2].strat.getNextMove(s).get(t);
-				v = 1.0;
-				for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
-					Map.Entry<Integer, Double> e = iter.next();
-					int u = e.getKey();
-					if (!onmap.containsKey(u)) {
-						m = mdp.addState();
-						onmap.put(u, m);
-						statelist.add(m, model.getStatesList().get(u));
-					}
-					else {
-						m = onmap.get(u);
-					}
-					if (!explored.get(u))
-						addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, u);							
-					d.add(m, v * e.getValue());
-				}
-				for (i = 0; i < model.getActions(s, t).length; i++) {
-					joint += "[" + model.getActions(s, t)[i] + "]";
-				}
-				c--;
-				label += v + ": " + joint + ((c > 0)? " + " : "");
-			//}
-			mdp.addActionLabelledChoice(n, d, label);
-		}
-	}
-	
-	public void localMixedProduct(Map<BitSet, Double> prods, BitSet prod, double v, int k, int p, int s) {
-		if (p < csgchoices.size() - 1) {
-			for (BitSet strat : csgchoices.get(p).get(k).get(s).keySet()) {
-				BitSet newprod = new BitSet();
-				double newv = v * csgchoices.get(p).get(k).get(s).get(strat);
-				newprod.or(prod);
-				newprod.or(strat);
-				localMixedProduct(prods, newprod, newv, k, p + 1, s);
-			}
-		}
-		else {
-			for (BitSet strat : csgchoices.get(p).get(k).get(s).keySet()) {
-				BitSet newprod = new BitSet();
-				newprod.or(prod);
-				newprod.or(strat);
-				double newv = v * csgchoices.get(p).get(k).get(s).get(strat);
-				prods.put(newprod, newv);
-			}	
-		}
-	}
-	
-	public void generateMDPMultiEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int s) {
-		Distribution d;
-		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		BitSet tmp = new BitSet();
-		BitSet sat = new BitSet();
-		String[] action = new String[csgchoices.size()];
-		String joint = null;
-		String label = null;
-		String lsubg = "";
-		int c, i, m, n, q, p, t;
-		boolean chck = true;
-		boolean loop = false;
-		explored.set(s);
-		n = onmap.get(s);
-		//System.out.println(subgames);
-		for (BitSet subgame : subgames.keySet()) {
-			if (subgames.get(subgame).get(s)) {
-				sat.or(subgame);
-			}
-		}
-		for (p = 0; p < numCoalitions; p++) {
-			if (sat.get(p)) {
-				lsubg += "Sat(" + p + ")";
-			}
-			else {
-				lsubg += "Unsat(" + p + ")";
-			}
-			if (p < numCoalitions - 1)
-				lsubg += " -- ";
-		}
-		if (sat.cardinality() == numCoalitions) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, lsubg);	
-		}
-		else {
-			for (p = 0; p < numCoalitions; p++) {
-				chck = chck && csgchoices.get(p).get(k).get(s) != null;
-				action[p] = "";
-			}
-			if (chck) {
-				localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
-				d = new Distribution();
-				for (t = 0; t < model.getNumChoices(s); t++) {
-					tmp.clear();
-					for (q = 0; q < model.getIndexes(s, t).length; q++) {
-						i = model.getIndexes(s, t)[q];						
-						tmp.set((i > 0)? i : model.getIdles()[q]);
-					}
-					if (prods.containsKey(tmp)) {						
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
-							Map.Entry<Integer, Double> e = iter.next();
-							int u = e.getKey();
-							if (!onmap.containsKey(u)) {
-								m = mdp.addState();
-								onmap.put(u, m);
-								statelist.add(m, model.getStatesList().get(u));
-								if (!explored.get(u))
-									generateMDPMultiEquilibria(mdp, onmap, statelist, explored, k, u);
-							}
-							else {
-								m = onmap.get(u);
-								if (m == n && model.getNumChoices(s) == 1 && model.getNumTransitions(s, t) == 1)
-									loop = true;
-							}
-							d.add(m, e.getValue() * prods.get(tmp));
-						}
-					}
-				}
-				if (loop) {
-					mdp.addActionLabelledChoice(n, d, lsubg);	
-				}
-				else if (!d.isEmpty()) {
-					label = "CSG: ";
-					for (p = 0; p < numCoalitions; p++) {
-						c = csgchoices.get(p).get(k).get(s).keySet().size();
-						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
-							joint = "";
-							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-								joint += "[" + model.getActions().get(i - 1) + "]";
-							}
-							c--;
-							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
-						}
-						label += (p + 1 < csgchoices.size())? action[p] + " -- " : action[p];
-					}
-					mdp.addActionLabelledChoice(n, d, label);
-				}
-			}
-		}
-	}
-	
-	public void generateMDPMultiCorrelatedEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int s) {
-		Distribution d;
-		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		BitSet tmp = new BitSet();
-		BitSet sat = new BitSet();
-		String joint = null;
-		String label = null;
-		String lsubg = "";
-		String prob = "";
-		int c, i, m, n, q, p, t;
-		boolean loop = false;
-		explored.set(s);
-		n = onmap.get(s);
-		for (BitSet subgame : subgames.keySet()) {
-			if (subgames.get(subgame).get(s)) {
-				sat.or(subgame);
-			}
-		}
-		for (p = 0; p < numCoalitions; p++) {
-			if (sat.get(p)) {
-				lsubg += "Sat(" + p + ")";
-			}
-			else {
-				lsubg += "Unsat(" + p + ")";
-			}
-			if (p < numCoalitions - 1)
-				lsubg += " -- ";
-		}
-		if (sat.cardinality() == numCoalitions) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, lsubg);	
-		}
-		else {
-			prods = csgchoices.get(0).get(k).get(s);
-			d = new Distribution();
-			for (t = 0; t < model.getNumChoices(s); t++) {
-				tmp.clear();
-				for (q = 0; q < model.getIndexes(s, t).length; q++) {
-					i = model.getIndexes(s, t)[q];						
-					tmp.set((i > 0)? i : model.getIdles()[q]);
-				}
-				if (prods.containsKey(tmp)) {						
-					for (int u : model.getChoice(s, t).getSupport()) {
-						if (!onmap.containsKey(u)) {
-							m = mdp.addState();
-							onmap.put(u, m);
-							statelist.add(m, model.getStatesList().get(u));
-							if (!explored.get(u))
-								generateMDPMultiCorrelatedEquilibria(mdp, onmap, statelist, explored, k, u);
-						}
-						else {
-							m = onmap.get(u);
-							if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
-								loop = true;
-						}
-						d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
-					}
-				}
-			}
-			if (loop) {
-				mdp.addActionLabelledChoice(n, d, lsubg);	
-			}
-			else if (!d.isEmpty()) {
-				label = "CSG: ";
-				c = csgchoices.get(0).get(k).get(s).keySet().size();
-				for (BitSet act : csgchoices.get(0).get(k).get(s).keySet()) {
-					prob += csgchoices.get(0).get(k).get(s).get(act) +": ";
-					joint = "";
-					for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-						joint += "[" + model.getActions().get(i - 1) + "]";
-					}
-					c--;
-					prob += joint + ((c > 0)? " + " : ""); 
-				}
-				label += prob;
-				mdp.addActionLabelledChoice(n, d, label);
-			}
-		}
-	}
-	
-	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
-		Distribution d;
-		String[] action = new String[csgchoices.size()];
-		String label = null;
-		String joint = null;
-		BitSet tmp = new BitSet();
-		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		int c, i, n, p, q, t;
-		boolean chck = true;
-		n = onmap.get(s);
-		explored.set(s);
-		if (targets[0].get(s) && targets[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
-		}
-		else if (targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Unsat(1)");
-		}
-		else if (!targets[0].get(s) && targets[1].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Sat(1)");
-		}
-		else if (!targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
-		}
-		else {
-			for (p = 0; p < 2; p++) {
-				chck = chck && csgchoices.get(p).get(k).get(s) != null;
-				action[p] = "";
-			}
-			if (chck) {
-				localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
-				d = new Distribution();
-				for (t = 0; t < model.getNumChoices(s); t++) {
-					tmp.clear();
-					for (q = 0; q < model.getIndexes(s, t).length; q++) {
-						i = model.getIndexes(s, t)[q];						
-						tmp.set((i > 0)? i : model.getIdles()[q]);
-					}
-					if (prods.containsKey(tmp)) {
-						model.forEachTransition(s, t, (__, u, pr) -> {
-							int m;
-							if (!onmap.containsKey(u)) {
-								m = mdp.addState();
-								onmap.put(u, m);
-								statelist.add(m, model.getStatesList().get(u));
-								if (!explored.get(u))
-									generateMDPEquilibria(mdp, onmap, statelist, reach, explored, k, u);  // should check for explored?
-							}
-							else {
-								m = onmap.get(u);
-							}
-							d.add(m, pr * prods.get(tmp));
-						});
-					}
-				}
-				if (!d.isEmpty()) {
-					label = "CSG: ";
-					for (p = 0; p < 2; p++) {
-						c = csgchoices.get(p).get(k).get(s).keySet().size();
-						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
-							joint = "";
-							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-								joint += "[" + model.getActions().get(i - 1) + "]";
-							}
-							c--;
-							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
-						}
-						label += (p + 1 < csgchoices.size())? action[p] + " -- " : action[p];
-					}
-					mdp.addActionLabelledChoice(n, d, label);
-				}
-			}
-		}
-	}
-	
-	public void generateMDPCorrelatedEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
-		Distribution d;
-		String prob = "";
-		String label = null;
-		String joint = null;
-		BitSet tmp = new BitSet();
-		Map<BitSet, Double> prods = new HashMap<BitSet, Double>();
-		int c, i, m, n, q, t;
-		n = onmap.get(s);
-		explored.set(s);
-		if (targets[0].get(s) && targets[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Sat(1)");
-		}
-		else if (targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Sat(0) -- Unsat(1)");
-		}
-		else if (!targets[0].get(s) && targets[1].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Sat(1)");
-		}
-		else if (!targets[0].get(s) && !targets[1].get(s) && !reach[0].get(s) && !reach[1].get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "CSG: Unsat(0) -- Unsat(1)");
-		}
-		else if (csgchoices.get(0).get(k).get(s) != null) {
-			prods = csgchoices.get(0).get(k).get(s);
-			d = new Distribution();
-			for (t = 0; t < model.getNumChoices(s); t++) {
-				tmp.clear();
-				for (q = 0; q < model.getIndexes(s, t).length; q++) {
-					i = model.getIndexes(s, t)[q];						
-					tmp.set((i > 0)? i : model.getIdles()[q]);
-				}
-				if (prods.containsKey(tmp)) {
-					for (int u : model.getChoice(s, t).getSupport()) {
-						if (!onmap.containsKey(u)) {
-							m = mdp.addState();
-							onmap.put(u, m);
-							statelist.add(m, model.getStatesList().get(u));
-							if (!explored.get(u))
-								generateMDPCorrelatedEquilibria(mdp, onmap, statelist, reach, explored, k, u);  // should check for explored?
-						}
-						else {
-							m = onmap.get(u);
-						}
-						d.add(m, model.getChoice(s, t).get(u) * prods.get(tmp));
-					}
-				}
-			}
-			if (!d.isEmpty()) {
-				label = "CSG: ";
-				c = csgchoices.get(0).get(k).get(s).keySet().size();
-				for (BitSet act : csgchoices.get(0).get(k).get(s).keySet()) {
-					prob += csgchoices.get(0).get(k).get(s).get(act) +": ";
-					joint = "";
-					for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-						joint += "[" + model.getActions().get(i - 1) + "]";
-					}
-					c--;
-					prob += joint + ((c > 0)? " + " : ""); 
-				}
-				label += prob;
-				mdp.addActionLabelledChoice(n, d, label);
-			}
-		}	
-	}
-	
-	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
-		Distribution d;
-		BitSet tmp1 = new BitSet();
-		BitSet tmp2 = new BitSet();
-		String act1 = null;
-		String act2 = null;
-		int i, m, n, q, t;
-		n = onmap.get(s);
-		explored.set(s);
-		if (yes.get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "Sat");
-		}
-		else if (no.get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "Unsat");
-		}
-		else if (inf.get(s)) {
-			d = new Distribution();
-			d.add(n, 1.0);
-			mdp.addActionLabelledChoice(n, d, "Infinity");
-		}
-		else if (csgchoices.get(p).get(k).get(s) != null) {
-			for (t = 0; t < model.getNumChoices(s); t++) { // goes through the transitions of the original model
-				tmp1.clear();
-				for (q = 0; q < model.getIndexes(s, t).length; q++) {
-					i = model.getIndexes(s, t)[q];						
-					tmp1.set((i > 0)? i : model.getIdles()[q]); // indexes of a transition in the original model
-				}
-				for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
-					d = null;
-					act1 = "";
-					act2 = "";
-					tmp2.clear();
-					tmp2.or(act);
-					tmp2.andNot(tmp1);
-					if (tmp2.isEmpty()) {
-						d = new Distribution();
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getTransitionsIterator(s, t); iter.hasNext(); ) {
-							Map.Entry<Integer, Double> e = iter.next();
-							int u = e.getKey();
-							if (!onmap.containsKey(u)) {
-								m = mdp.addState();
-								onmap.put(u, m);
-								statelist.add(m, model.getStatesList().get(u));
-								if (!explored.get(u))
-									generateMDPZeroSum(mdp, onmap, statelist, explored, k, p, u); // should check for explored?
-							}
-							else {
-								m = onmap.get(u);
-							}
-							d.add(m, e.getValue() * csgchoices.get(p).get(k).get(s).get(act));
-						}
-						for (i = tmp1.nextSetBit(0); i >= 0; i = tmp1.nextSetBit(i + 1)) {
-							if (act.get(i))
-								act1 += "[" + model.getActions().get(i - 1) + "]";
-							else
-								act2 += "[" + model.getActions().get(i - 1) + "]";
-						}
-						act1 = csgchoices.get(p).get(k).get(s).get(act) + ": " + act1;
-					}
-					if (d != null) {
-						mdp.addActionLabelledChoice(n, d, act1 + "--" + act2);
-					}
-				}
-			}
-		}
+		return mc.computeReachRewards(ind.mdp, rew, target, !min).soln[0];
 	}
 
 	@Override
 	public void clear() {
-		// TODO Auto-generated method stub
-		
 	}
 	
 	@Override
@@ -837,12 +453,12 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 			for (s = 0; s < model.getNumStates(); s++) {
 				action = new String[csgchoices.size()];
 				chck = true;
-				for (p = 0; p < numCoalitions; p++) {
+				for (p = 0; p < csgchoices.size(); p++) {
 					chck = chck && csgchoices.get(p).get(k).get(s) != null;
 					action[p] = "";
 				}
 				label += " $ s:" + s + " -> ";
-				for (p = 0; p < numCoalitions; p++) {
+				for (p = 0; p < csgchoices.size(); p++) {
 					if (csgchoices.get(p).get(k).get(s) != null) {
 						c = csgchoices.get(p).get(k).get(s).keySet().size();
 						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {

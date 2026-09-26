@@ -1,0 +1,15 @@
+csg
+
+// Deterministic 1-player 2-cycle: p <-> q, with target = {p}. Built specifically to
+// distinguish Buchi (G F target) from plain safety (G target): the cycle can never stay
+// in {p} forever (it alternates), so G target is false, but it visits p every other step
+// forever, so G F target is true. A minimal, hand-checkable witness that the Buchi
+// fixpoint (SGF/AGF/LGF) isn't degenerating into the safety fixpoint (G).
+
+player p1 m1 endplayer
+
+module m1
+	x : [0..1] init 0; // p=0 (target), q=1
+	[step] (x=0) -> (x'=1);
+	[step] (x=1) -> (x'=0);
+endmodule

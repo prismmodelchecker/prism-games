@@ -1,0 +1,17 @@
+csg
+
+// Deterministic 1-player "visit once, then trapped" chain: start -> target -> trap ->
+// trap -> ..., where target can structurally never be revisited once left. Built
+// specifically to distinguish Buchi (G F target) from plain reachability (F target):
+// reaching target once is trivial, but visiting it infinitely often is topologically
+// impossible by construction, regardless of strategy -- so this is a decisive check that
+// SGF/AGF/LGF are not silently aliasing SF/AF/LF.
+
+player p1 m1 endplayer
+
+module m1
+	x : [0..2] init 0; // 0=start, 1=target (visited exactly once, ever), 2=trap (absorbing)
+	[step] (x=0) -> (x'=1);
+	[step] (x=1) -> (x'=2);
+	[step] (x=2) -> (x'=2);
+endmodule

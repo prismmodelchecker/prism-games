@@ -1,0 +1,12 @@
+// Same result as buchi_cycle.prism (visiting x=0 infinitely often is forceable in every
+// mode), but exercised through the genuine two-player matrix-game codepath instead of the
+// degenerate 1-player case.
+
+// RESULT: true
+<<p1>> sure [ G F x=0 ]
+
+// RESULT: true
+<<p1>> almost [ G F x=0 ]
+
+// RESULT: true
+<<p1>> limit [ G F x=0 ]

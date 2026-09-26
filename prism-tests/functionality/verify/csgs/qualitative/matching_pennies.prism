@@ -1,0 +1,41 @@
+csg
+
+// Repeated MATCHING-PENNIES-style reachability witness -- the complementary divergence to
+// SKIRMISH's, and the one the qualitative suite left untested: SKIRMISH exhibits
+// sure = almost < limit (needs an escalating, infinite-memory retry schedule to approach 1).
+// This model exhibits sure < almost = limit instead (a single stationary coin flip already
+// achieves probability exactly 1, no escalation needed).
+//
+// p1 (guesser) and p2 (evader) pick heads/tails simultaneously each round; a match ends the
+// game at "win" (s=1), a mismatch retries at "try" (s=0). No PURE p1 action forces a match:
+// against either fixed p1 action, p2 has a mismatching reply, so sure = false. But the
+// STATIONARY mixed strategy "play h/t 50/50 every round" matches p2's simultaneous choice
+// with probability exactly 1/2 every round, regardless of what p2 plays (even adaptively
+// across rounds, since p2 can't see that round's coin before committing) -- so eventual
+// success has probability exactly 1 over infinitely many rounds, i.e. genuinely almost-sure,
+// witnessed by a memoryless strategy.
+
+player p1 guesser endplayer
+player p2 evader endplayer
+
+module guesser
+	[h1] true -> true;
+	[t1] true -> true;
+endmodule
+
+module evader
+	[h2] true -> true;
+	[t2] true -> true;
+endmodule
+
+module state
+	s : [0..1] init 0; // 0 = try, 1 = win (absorbing)
+	[h1,h2] s=0 -> (s'=1);
+	[h1,t2] s=0 -> (s'=0);
+	[t1,h2] s=0 -> (s'=0);
+	[t1,t2] s=0 -> (s'=1);
+	[h1,h2] s=1 -> (s'=1);
+	[h1,t2] s=1 -> (s'=1);
+	[t1,h2] s=1 -> (s'=1);
+	[t1,t2] s=1 -> (s'=1);
+endmodule

@@ -1,0 +1,17 @@
+// G is false (the play leaves {p} every other step) but G F is true (it returns to p
+// every other step, forever) -- the minimal distinguishing case for the Buchi
+// construction, checked here for sure mode and, since there's no adversary or
+// probability, almost/limit agree too (a regression check on the collapse for a genuinely
+// cyclic, not just settling, model).
+
+// RESULT: false
+<<p1>> sure [ G x=0 ]
+
+// RESULT: true
+<<p1>> sure [ G F x=0 ]
+
+// RESULT: true
+<<p1>> almost [ G F x=0 ]
+
+// RESULT: true
+<<p1>> limit [ G F x=0 ]

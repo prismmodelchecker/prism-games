@@ -47,6 +47,14 @@ public interface CSGCorrelated {
 												HashMap<BitSet, Integer> ce_var_map, int crit);
 	
 	/**
+	 * Sets the coalitions whose payoffs are part of the objectives (null: all). The others (in PRISM, those that
+	 * have reached their targets or failed) keep their actions but cooperate: in particular, the social fairness
+	 * gap is taken over the active coalitions only. Their incentive constraints are unaffected (their payoffs are
+	 * constant in such games, so they hold trivially).
+	 */
+	public void setActiveCoalitions(BitSet active);
+
+	/**
 	 * Gets the solver's name
 	 */
 	public String getSolverName();

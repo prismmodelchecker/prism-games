@@ -38,6 +38,7 @@ import java.util.Set;
 import parser.EvaluateContextState;
 import parser.State;
 import parser.VarList;
+import parser.ast.CSGPlayerActions;
 import parser.ast.Command;
 import parser.ast.Expression;
 import parser.ast.Module;
@@ -180,59 +181,19 @@ public class Updater<Value> extends PrismComponent
 	 */
 	public void initialiseCSG() throws PrismLangException
 	{
-		playersActionsIndexes = new BitSet[numPlayers];
-		actionIndexPlayerMap = new HashMap<Integer, Integer>();
 		expansions = new ArrayList<ArrayList<Set<BitSet>>>();
-		if (numPlayers > 0) {	
-			int index;
-			BitSet seen = new BitSet();
-			playersIndexes = new int[numModules];
-			Arrays.fill(playersIndexes, -1);
-			for (int p = 0; p < numPlayers; p++) {
-				playersActionsIndexes[p] = new BitSet();
-			}
-			for (int m = 0; m < numModules; m++) {
-				playersIndexes[m] = modulesFile.getPlayerForModule(modulesFile.getModuleName(m));
-				expansions.add(m, new ArrayList<Set<BitSet>>());
-				if (playersIndexes[m] != -1) {
-					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
-						if (modulesFile.getModule(m).getCommand(c).isUnlabelled()) {
-							throw new PrismLangException("Commands in a player-owned module cannot be unlabelled", modulesFile.getModule(m).getCommand(c));
-						}
-						expansions.get(m).add(c, new HashSet<BitSet>());
-						index = modulesFile.getModule(m).getCommand(c).getSynchIndices().get(0);
-						if (!seen.get(index) || playersActionsIndexes[playersIndexes[m]].get(index)) {
-							seen.set(index);
-							playersActionsIndexes[playersIndexes[m]].set(index);
-							actionIndexPlayerMap.put(index, playersIndexes[m]);
-						}
-						else
-							throw new PrismLangException("Action " + modulesFile.getModule(m).getCommand(c).getSynchs().get(0) + " of module "
-																   + modulesFile.getModule(m).getName() 
-																   + " had already been associated to a different module. Action sets must be disjoint");
-					}
-				}
-				else {
-					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
-						expansions.get(m).add(c, new HashSet<BitSet>());
-					}
-				}
-			}
-			//System.out.println("-- actionIndexPlayerMap");
-			//System.out.println(actionIndexPlayerMap);
-			//System.out.println("-- playersActionsIndexes");
-			//System.out.println(Arrays.toString(playersActionsIndexes));
-			for (int m = 0; m < numModules; m++) {
-				if (playersIndexes[m] == -1) {
-					for (int c = 0; c < modulesFile.getModule(m).getNumCommands(); c++) {
-						for (int i : modulesFile.getModule(m).getCommand(c).getSynchIndices()) {
-							if (!actionIndexPlayerMap.keySet().contains(i) && i != 0)
-								throw new PrismLangException("Label \"" + modulesFile.getSynch(i - 1) + "\" of commandd " + c  
-																+ " of module " + modulesFile.getModuleName(m) + " is not associated to any player." 
-																+ " Independent modules can only synchronize on players' actions.");
-						}
-					}
-				}
+		// Action ownership and the CSG-specific well-formedness checks it depends on are
+		// computed by CSGPlayerActions -- shared with the symbolic CSG builder -- rather
+		// than duplicated here. See its class doc for why.
+		CSGPlayerActions playerActions = new CSGPlayerActions(modulesFile);
+		playersIndexes = playerActions.getPlayersIndexes();
+		playersActionsIndexes = playerActions.getPlayersActionsIndexes();
+		actionIndexPlayerMap = new HashMap<Integer, Integer>(playerActions.getActionIndexPlayerMap());
+		for (int m = 0; m < numModules; m++) {
+			expansions.add(m, new ArrayList<Set<BitSet>>());
+			int numCommands = modulesFile.getModule(m).getNumCommands();
+			for (int c = 0; c < numCommands; c++) {
+				expansions.get(m).add(c, new HashSet<BitSet>());
 			}
 		}
 	}

@@ -1,0 +1,43 @@
+// Player 1 has unilateral control over reaching the target; player 2's single action is
+// inert. <<1>> forces it outright in all three modes; [[1]] (dual: 1 plays adversarial,
+// 2 -- who has no real control -- would need to be the achiever) fails in all three modes,
+// at value 0 exactly (p1's "stay" is one fixed pure strategy, so almost/limit don't even
+// get the usual approach-1-in-the-limit story: the value is flatly 0). <<2>>/[[2]] give the
+// mirror image, and are included as a cross-check: [[1]] and <<2>> must agree, and [[2]]
+// and <<1>> must agree, since each is the other's definition by construction.
+
+// RESULT: true
+<<p1>> sure [ F s=1 ]
+
+// RESULT: true
+<<p1>> almost [ F s=1 ]
+
+// RESULT: true
+<<p1>> limit [ F s=1 ]
+
+// RESULT: false
+[[p1]] sure [ F s=1 ]
+
+// RESULT: false
+[[p1]] almost [ F s=1 ]
+
+// RESULT: false
+[[p1]] limit [ F s=1 ]
+
+// RESULT: false
+<<p2>> sure [ F s=1 ]
+
+// RESULT: false
+<<p2>> almost [ F s=1 ]
+
+// RESULT: false
+<<p2>> limit [ F s=1 ]
+
+// RESULT: true
+[[p2]] sure [ F s=1 ]
+
+// RESULT: true
+[[p2]] almost [ F s=1 ]
+
+// RESULT: true
+[[p2]] limit [ F s=1 ]

@@ -1,0 +1,83 @@
+csg
+
+// Figure 3 from L. de Alfaro and T. Henzinger, "Concurrent Omega-Regular Games",
+// LICS 2000, p.11: a genuine two-pair Rabin-chain game, used in the paper itself as
+// the worked example for the general (m>0 pairs) construction of S5.2/Appendix 6.
+// The paper states the colors as B_0={}, B_1={s3}, B_2={s0,s2}, B_3={s1,s4,s5}, which
+// corresponds to the chain S=U_0=U_1 superseteq U_2=S\{s3} superseteq U_3={s1,s4,s5}
+// superseteq U_4={}. Player 1's moves are named a<N>,b<N>,c<N>; player 2's d<N>,e<N>,
+// f<N>,g<N>, suffixed by source state to keep each state's alphabet distinct.
+//
+// The paper's own stated ground truth (p.11): <<1>>_limit rho = Z* = {s0,s1,s2,s3,s4}
+// (s5 excluded). This is the strongest available cross-check for the general m-pair
+// rabinChainWin construction, since it comes directly from the paper rather than from
+// re-deriving an expected value locally. There is currently no PRISM property syntax
+// for general (m>1-pair) Rabin-chain conditions -- that requires the LTL-to-automaton
+// product wiring, which is still pending -- so this model is exercised via a standalone
+// Java driver (Figure3Test, kept locally, not part of the committed test tree) that
+// calls CSGModelChecker.rabinChainWin/rabinChainWinSure directly, bypassing the grammar
+// exactly as skirmish.prism's RabinChainTest driver does.
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// States: 0=s0, 1=s1, 2=s2, 3=s3, 4=s4, 5=s5 (matching Figure 3, LICS 2000 p.11)
+module ob
+	s: [0..5] init 2;
+
+	// s0: single move, self-loop
+	[] (s=0) -> (s'=0);
+
+	// s1: Gamma1={a1,b1}, Gamma2={c1,d1}
+	[a1,c1] (s=1) -> (s'=0);
+	[a1,d1] (s=1) -> (s'=4);
+	[b1,c1] (s=1) -> (s'=4);
+	[b1,d1] (s=1) -> (s'=0);
+
+	// s2: single move -> s3
+	[] (s=2) -> (s'=3);
+
+	// s3: Gamma1={a3,b3,c3}, Gamma2={d3,e3,f3,g3}
+	[a3,d3] (s=3) -> (s'=1);
+	[a3,e3] (s=3) -> (s'=4);
+	[a3,f3] (s=3) -> (s'=3);
+	[a3,g3] (s=3) -> (s'=3);
+	[b3,d3] (s=3) -> (s'=4);
+	[b3,e3] (s=3) -> (s'=1);
+	[b3,f3] (s=3) -> (s'=2);
+	[b3,g3] (s=3) -> (s'=3);
+	[c3,d3] (s=3) -> (s'=3);
+	[c3,e3] (s=3) -> (s'=3);
+	[c3,f3] (s=3) -> (s'=4);
+	[c3,g3] (s=3) -> (s'=2);
+
+	// s4: Gamma1={a4,b4}, Gamma2={c4,d4}
+	[a4,c4] (s=4) -> (s'=4);
+	[a4,d4] (s=4) -> (s'=3);
+	[b4,c4] (s=4) -> (s'=3);
+	[b4,d4] (s=4) -> (s'=5);
+
+	// s5: single move, self-loop
+	[] (s=5) -> (s'=5);
+endmodule
+
+module m1
+	[a1] (s=1) -> true;
+	[b1] (s=1) -> true;
+	[a3] (s=3) -> true;
+	[b3] (s=3) -> true;
+	[c3] (s=3) -> true;
+	[a4] (s=4) -> true;
+	[b4] (s=4) -> true;
+endmodule
+
+module m2
+	[c1] (s=1) -> true;
+	[d1] (s=1) -> true;
+	[d3] (s=3) -> true;
+	[e3] (s=3) -> true;
+	[f3] (s=3) -> true;
+	[g3] (s=3) -> true;
+	[c4] (s=4) -> true;
+	[d4] (s=4) -> true;
+endmodule

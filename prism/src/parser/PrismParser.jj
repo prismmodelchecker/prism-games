@@ -429,7 +429,13 @@ SPECIAL_TOKEN :
 TOKEN :
 {
 	// Keywords
-	< A:				"A" >
+	// 
+	< NASH: 			"NE">
+|	< CORR:				"CE">
+|	< SWEQ:				"SW">
+|	< FAIR:				"FR">
+  	//	
+|	< A:				"A" >
 //|	< ARRAY:			"array" >
 |	< BOOL:				"bool" >
 |	< CLOCK:			"clock" >
@@ -498,6 +504,9 @@ TOKEN :
 |	< RMINMIN:			"Rminmin" >
 |	< RMIN:				"Rmin" >
 |	< R:				"R" >
+|	< ALMOST:			"almost" >
+|	< LIMIT:			"limit" >
+|	< SURE:				"sure" >
 |	< S:				"S" >
 |	< STOCHASTIC:		"stochastic" >
 |	< STPG:				"stpg" >
@@ -1944,11 +1953,16 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) throws PrismLangE
 	String relOp = null;
 	boolean isBool;
 	int r;
+	int eq = 1; // default NE
+	int crit = 3; // default SW
 	int n = 0;
 }
 {
   	// This production is only allowed in expressions if the "prop" parameter is true
 	{ if (!prop) throw generateParseException(); }
+	(
+	<LBRACE> eq = EqType() <COMMA> crit = EqType() <RBRACE>
+	)?
 	(
 	<MIN> (r = LtGt() bound = Expression(false, false) { relOp = ExpressionBinaryOp.opSymbols[r]; isBool = true; } | <EQ> <QMARK> { relOp = "min="; isBool = false; } )
 	|
@@ -1971,8 +1985,22 @@ Expression ExpressionMultiNash(boolean prop, boolean pathprop) throws PrismLangE
 	{
 		ret.setBound(bound);
 		ret.setRelOp(relOp);
+		ret.setEqType(eq);
+		ret.setCrit(crit);
 		return ret;
 	}
+}
+
+// Types of Equilibria
+
+int EqType() :
+{
+}
+{
+	<NASH> {return ExpressionMultiNash.NASH; } |
+	<CORR> {return ExpressionMultiNash.CORR; } |
+	<SWEQ> {return ExpressionMultiNash.SWEQ; }|
+	<FAIR> {return ExpressionMultiNash.FAIR; }
 }
 
 // (Property) expression: probabilistic operator (n-player Nash)
@@ -2096,12 +2124,39 @@ Expression ExpressionStrategy(boolean prop, boolean pathprop) throws PrismLangEx
 	{ ret.processOptions(optionsSpec); }
 	// Child expression
 	(
-	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) | expr = ExpressionMultiNash(prop,pathprop) )
+	( expr = ExpressionProb(prop, pathprop) | expr = ExpressionReward(prop, pathprop) | expr = ExpressionMultiNash(prop,pathprop) | expr = ExpressionStrategyQual(prop, pathprop) )
 	{ ret.setSingleOperand(expr); }
 	| expr = ExpressionParenth(prop, pathprop)
 	{ ret.addOperand(expr); }
 	))
 	{
+		ret.setPosition(begin, getToken(0));
+		return ret;
+	}
+}
+
+// (Property) expression: qualitative (sure/almost/limit) strategy operator,
+// e.g. "sure [ G phi ]", "almost [ F phi ]", "limit [ G F phi ]" / "limit [ F G phi ]".
+// Only ever appears as the child expression of an ExpressionStrategy (<<C>>/[[C]]) node.
+// Strictly zero-sum: no min/max (see ExpressionProb), no equilibrium options.
+// Legality of the wrapped path formula's shape (safety/reachability/Buchi/co-Buchi only,
+// for now) is checked at model-check time, not here.
+Expression ExpressionStrategyQual(boolean prop, boolean pathprop) throws PrismLangException :
+{
+	ExpressionStrategyQual ret = new ExpressionStrategyQual();
+	Expression expr;
+	Token begin = null;
+}
+{
+	// This production is only allowed in expressions if the "prop" parameter is true
+	{ if (!prop) throw generateParseException(); }
+	( begin = <SURE> { ret.setMode(ExpressionStrategyQual.QualMode.SURE); }
+	| begin = <ALMOST> { ret.setMode(ExpressionStrategyQual.QualMode.ALMOST); }
+	| begin = <LIMIT> { ret.setMode(ExpressionStrategyQual.QualMode.LIMIT); } )
+	// Path formula (reuses the same production ExpressionProb uses)
+	<LBRACKET> expr = Expression(prop, true) <RBRACKET>
+	{
+		ret.setExpression(expr);
 		ret.setPosition(begin, getToken(0));
 		return ret;
 	}
