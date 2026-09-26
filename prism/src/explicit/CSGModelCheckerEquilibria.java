@@ -35,17 +35,10 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import org.apache.commons.math3.util.Precision;
 
@@ -54,18 +47,14 @@ import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewards;
 import parser.ast.Coalition;
 import parser.ast.ExpressionTemporal;
-import prism.Pair;
 import prism.PrismComponent;
+import prism.PrismDevNullLog;
 import prism.PrismException;
-import prism.PrismFileLog;
 import prism.PrismLangException;
-import prism.PrismLog;
 import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.CSGEquilibriumStrategy;
-import strat.CSGStrategy;
-import strat.CSGStrategy.CSGStrategyType;
 import strat.Strategy;
 
 public class CSGModelCheckerEquilibria extends CSGModelChecker
@@ -80,8 +69,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 
 	/** Dominated actions */
 	protected BitSet[] dominated;
-	/** Set with all the players */
-	protected BitSet players;
 	
 	/** Optimal two-player Nash equilibria (SW/SF) over the LCP encoding */
 	protected CSGNashLCP nashSolver;
@@ -112,13 +99,12 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 	 */
 	public CSGModelCheckerEquilibria(PrismComponent parent) throws PrismException {
 		super(parent);
-		players = new BitSet();
 		psupports = new ArrayList<BitSet>();
 		ceVarMap = new HashMap<BitSet, Integer>();
 		mdpmc = new MDPModelChecker(parent);
 		mdpmc.setVerbosity(0);
 		mdpmc.setSilentPrecomputations(true);		
-		//assumptionCheck = getSettings().getBoolean(PrismSettings.PRISM_EQ_ASSUMPTION_CHECK);
+		assumptionCheck = getSettings().getBoolean(PrismSettings.PRISM_EQ_ASSUMPTION_CHECK);
 		smtSolver = getSettings().getString(PrismSettings.PRISM_SMT_SOLVER);
 		switch (smtSolver) {
 			case "Z3":
@@ -217,8 +203,6 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		}
 		if (all != numPlayers)
 			throw new PrismLangException("All players must be in a coalition");
-		players.clear();
-		players.set(0, numCoalitions);
 	}
 	
 	/**
@@ -459,7 +443,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 			indx.and(support);
 			i = indx.nextSetBit(0);
 			eqstrat.add(p, new HashMap<BitSet, Double>());
-			eqstrat.get(p).put(mmap.get(p).get(strategies.get(p).indexOf(i)), 1.0); // indexOf should be changed
+			eqstrat.get(p).put(mmap.get(p).get(strategies.get(p).indexOf(i)), 1.0);
 		}
 	}
 	
@@ -663,7 +647,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 	 */
 	public ModelCheckerResult computeBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		if (genStrat) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismNotSupportedException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<CSGRewards<Double>> newRewards = null;
@@ -965,13 +949,22 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 				kind[c] = CSGMultiObjectives.OBJ_BOUNDED;
 		}
 
+		BitSet unboundedObjs = new BitSet();
+		unboundedObjs.set(0, numCoalitions);
+		unboundedObjs.andNot(bounded);
+		checkStopping(csg, targets, remain, unboundedObjs, rewards != null);
+
 		timeTaken = System.currentTimeMillis();
 		CSGMultiObjectives objectives = new CSGMultiObjectives(numCoalitions, rewards != null, kind, bound, targets, remain);
 		MultiSubgames subgames = new MultiSubgames(csg, rewards, objectives, eqType, crit, min);
 		sol = bounded.isEmpty() ? subgames.solve(new BitSet(), new BitSet(), true) : subgames.timed(new BitSet(), new BitSet(), 0);
 		timeTaken = System.currentTimeMillis() - timeTaken;
-		if (genStrat)
-			res.strat = new CSGEquilibriumStrategy(csg, objectives, eqType == CORR, subgames.localStrategies);
+		if (genStrat) {
+			CSGEquilibriumStrategy strat = new CSGEquilibriumStrategy(csg, objectives, eqType == CORR, subgames.localStrategies);
+			if (rewards == null)
+				strat.setHopeless(hopeless(csg, targets, remain));
+			res.strat = strat;
+		}
 
 		mainLog.println();
 		if (!bounded.isEmpty())
@@ -979,6 +972,16 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		mainLog.println("Unbounded subgames solved: " + subgames.memo.size() + " (value iteration: " + subgames.totalIters + " iterations in total)");
 		for (c = 0; c < numCoalitions; c++) {
 			mainLog.println("Result for coalition " + coalitions.get(c) + ": " + sol[c][csg.getFirstInitialState()] + " (value in the initial state).");
+		}
+		if (genStrat) {
+			DTMCModelChecker dtmcmc = new DTMCModelChecker(this);
+			dtmcmc.inheritSettings(this);
+			dtmcmc.setSilentPrecomputations(true);
+			dtmcmc.setLog(new PrismDevNullLog());
+			double[] computed = new double[numCoalitions];
+			for (c = 0; c < numCoalitions; c++)
+				computed[c] = sol[c][csg.getFirstInitialState()];
+			checkStrategyValues(coalitions, computed, ((CSGEquilibriumStrategy) res.strat).achievedValues(rewards, dtmcmc));
 		}
 		r = new double[csg.getNumStates()];
 		for (s = 0; s < csg.getNumStates(); s++) {
@@ -1203,8 +1206,13 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 				}
 				if (done && iters > 1)
 					break;
-				if (iters == maxIters)
-					throw new PrismException("Could not converge after " + iters + " iterations (subgame D=" + D + ", E=" + E + ")");
+				if (iters == maxIters) {
+					String msg = "Value iteration did not converge within " + iters + " iterations (subgame D=" + D + ", E=" + E + ")";
+					if (errorOnNonConverge)
+						throw new PrismException(msg);
+					mainLog.printWarning(msg + "; the values are those of the last iteration");
+					break;
+				}
 			}
 			totalIters += iters;
 			return sol;
@@ -1290,6 +1298,143 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		return false;
 	}
 	
+	/**
+	 * The strategy computed for two coalitions (unbounded objectives), as a CSGEquilibriumStrategy: with neither
+	 * coalition decided, the local strategies of the stage games (lstrat); once one is done or has failed, the
+	 * other's optimal strategy in the MDP where the coalitions choose actions jointly (from the precomputation obj),
+	 * as a (deterministic) joint action.
+	 */
+	@SuppressWarnings("unchecked")
+	private CSGEquilibriumStrategy twoPlayerStrategy(CSG<Double> csg, List<List<List<Map<BitSet, Double>>>> lstrat, ModelCheckerResult[] obj,
+			BitSet[] targets, BitSet[] remain, boolean rew, boolean corr)
+	{
+		int n = csg.getNumStates();
+		int[] kind = { CSGMultiObjectives.OBJ_UNBOUNDED, CSGMultiObjectives.OBJ_UNBOUNDED };
+		int[] bound = { -1, -1 };
+		CSGMultiObjectives objectives = new CSGMultiObjectives(2, rew, kind, bound, targets, rew ? null : remain);
+		Map<BitSet, List<Map<BitSet, Double>>[]> local = new HashMap<>();
+		// neither decided: stage game strategies
+		List<Map<BitSet, Double>>[] none = (List<Map<BitSet, Double>>[]) new List[n];
+		for (int s = 0; s < n; s++) {
+			List<Map<BitSet, Double>> ls = new ArrayList<>();
+			for (int c = 0; c < (corr ? 1 : 2); c++) {
+				Map<BitSet, Double> m = lstrat.get(c).get(0).get(s);
+				if (m == null) {
+					ls = null;
+					break;
+				}
+				ls.add(m);
+			}
+			none[s] = ls;
+		}
+		local.put(new BitSet(), none);
+		// one decided (done or failed): the other's MDP strategy
+		for (int p = 0; p < 2; p++) {
+			int q = 1 - p;
+			List<Map<BitSet, Double>>[] mdp = (List<Map<BitSet, Double>>[]) new List[n];
+			for (int s = 0; s < n; s++) {
+				int t = obj[q].strat == null ? -1 : obj[q].strat.getChoiceIndex(s, -1);
+				if (t < 0)
+					continue;
+				BitSet joint = new BitSet();
+				int[] indexes = csg.getIndexes(s, t);
+				for (int i = 0; i < indexes.length; i++)
+					joint.set(indexes[i] > 0 ? indexes[i] : csg.getIdles()[i]);
+				List<Map<BitSet, Double>> ls = new ArrayList<>();
+				if (corr) {
+					ls.add(Collections.singletonMap(joint, 1.0));
+				} else {
+					for (int c = 0; c < 2; c++) {
+						BitSet b = (BitSet) joint.clone();
+						b.and(actionIndexes[c]);
+						ls.add(Collections.singletonMap(b, 1.0));
+					}
+				}
+				mdp[s] = ls;
+			}
+			BitSet done = new BitSet(), failed = new BitSet();
+			done.set(p);
+			failed.set(2 + p);
+			local.put(done, mdp);
+			local.put(failed, mdp);
+		}
+		CSGEquilibriumStrategy strat = new CSGEquilibriumStrategy(csg, objectives, corr, local);
+		if (!rew)
+			strat.setHopeless(hopeless(csg, targets, remain));
+		return strat;
+	}
+
+	/** Per coalition, the states from which its (probabilistic) objective cannot be satisfied under any profile */
+	private BitSet[] hopeless(CSG<Double> csg, BitSet[] targets, BitSet[] remain)
+	{
+		BitSet[] h = new BitSet[targets.length];
+		for (int c = 0; c < targets.length; c++)
+			h[c] = mdpmc.prob0((MDP<Double>) csg, remain == null ? null : remain[c], targets[c], false, null);
+		return h;
+	}
+
+	/**
+	 * Compares the values achieved by a synthesised strategy (in the initial state) with the computed ones, warning if
+	 * they differ: the strategy then does not realise the equilibrium that was computed (e.g. in non-stopping games).
+	 */
+	protected void checkStrategyValues(List<Coalition> coalitions, double[] computed, double[] achieved)
+	{
+		double tol = Math.max(1e-6, 10 * termCritParam);
+		StringBuilder bad = new StringBuilder();
+		double maxDiff = 0.0;
+		mainLog.println("\nChecking the synthesised strategy (values achieved in the initial state):");
+		for (int c = 0; c < computed.length; c++) {
+			mainLog.println("Coalition " + coalitions.get(c) + ": achieved " + achieved[c] + " (computed " + computed[c] + ")");
+			double diff = (Double.isInfinite(computed[c]) || Double.isInfinite(achieved[c]))
+					? (computed[c] == achieved[c] ? 0.0 : Double.POSITIVE_INFINITY) : Math.abs(achieved[c] - computed[c]);
+			if (diff > tol * Math.max(1.0, Math.abs(computed[c]))) {
+				bad.append(bad.length() > 0 ? ", " : "").append(coalitions.get(c));
+				maxDiff = Math.max(maxDiff, diff);
+			}
+		}
+		if (bad.length() > 0) {
+			if (Double.isInfinite(maxDiff))
+				mainLog.printWarning("The synthesised strategy does not achieve the computed values for coalition(s) " + bad
+						+ ", so it may not be an equilibrium strategy");
+			else
+				mainLog.printWarning("The values achieved by the synthesised strategy differ from the computed ones for coalition(s) " + bad
+						+ " (by up to " + maxDiff + "): either value iteration stopped before converging (try a smaller -epsilon)"
+						+ " or the strategy does not realise the computed equilibrium");
+		}
+	}
+
+	/**
+	 * Stopping assumption for the unbounded objectives of an equilibria-based property: from every state, under all
+	 * profiles, each unbounded objective is decided (its target reached, or a state reached from which it can no longer
+	 * be satisfied) with probability 1. Bounded objectives are always decided by their bound. The check is optional
+	 * (-eqassumptioncheck) since it can be expensive and is stronger than needed (some non-stopping games converge);
+	 * in either case only warnings are issued.
+	 * @param unbounded The indices of the unbounded objectives
+	 */
+	protected void checkStopping(CSG<Double> csg, BitSet[] targets, BitSet[] remain, BitSet unbounded, boolean rew) throws PrismException
+	{
+		if (unbounded.isEmpty())
+			return;
+		if (!assumptionCheck) {
+			mainLog.printWarning("Equilibria computation assumes the game is stopping for this property (not checked; use -eqassumptioncheck)");
+			return;
+		}
+		mainLog.println("Checking whether the game is stopping for this property...");
+		int n = csg.getNumStates();
+		StringBuilder failed = new StringBuilder();
+		for (int i = unbounded.nextSetBit(0); i >= 0; i = unbounded.nextSetBit(i + 1)) {
+			BitSet rem = (!rew && remain != null) ? remain[i] : null;
+			// decided: target reached, or the objective can no longer be satisfied under any profile
+			BitSet decided = mdpmc.prob0((MDP<Double>) csg, rem, targets[i], false, null);
+			decided.or(targets[i]);
+			if (mdpmc.prob1((MDP<Double>) csg, null, decided, true, null).cardinality() != n)
+				failed.append(failed.length() > 0 ? ", " : "").append(i + 1);
+		}
+		if (failed.length() > 0)
+			mainLog.printWarning("The game is not stopping for this property: objective(s) " + failed
+					+ " not decided with probability 1 under all profiles, so the result may not correspond to an equilibrium");
+	}
+
 	/**
 	 * 
 	 * 
@@ -1377,25 +1522,10 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		findMaxRowsCols(csg);
 		
 		mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
-		mainLog.println("Checking whether all objctives are reachable...");
-		
-		if (assumptionCheck) {
-   			for (i = 0; i < targets.length; i++) {
-   				temp.clear();
-   				if (!rew) {
-   					if (remain[i] != null) {
-   						temp.or(remain[i]);
-   						temp.flip(0, csg.getNumStates());
-   						temp.andNot(targets[i]);
-   					}
-   				}
-				temp.or(mdpmc.prob0((MDP) csg, null, targets[i], false, null));
-   				temp.or(targets[i]);
-   				if (mdpmc.prob1((MDP) csg, null, temp, true, null).cardinality() != csg.getNumStates())
-   					throw new PrismException("At least one of the objectives is not reachable with probability 1 from all states");
-   			}
-		}
-		
+		BitSet unboundedObjs = new BitSet();
+		unboundedObjs.set(0, targets.length);
+		checkStopping(csg, targets, remain, unboundedObjs, rew);
+
 		k = 0;
 		if (rew) {			
 			// Precompuation for rewards
@@ -1525,7 +1655,11 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 				break;
 			}
 			else if (!done && k == maxIters) {
-				throw new PrismException("Could not converge after " + k + " iterations");
+				String msg = "Value iteration did not converge within " + k + " iterations";
+				if (errorOnNonConverge)
+					throw new PrismException(msg);
+				mainLog.printWarning(msg + "; the values are those of the last iteration");
+				break;
 			}
 			else {
 				done = true;
@@ -1534,27 +1668,21 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 			}
 			k++;
 		}
-		mainLog.println("\nValue iteration converged after " + k + " iterations.");
+		if (done)
+			mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
 		mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
 		res.soln = r;
 
-		if (genStrat) 	{
-			switch (eqType) {
-				case CORR: {
-					if (rew)
-						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_CE_R);
-					else
-						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_CE_P);
-					break;
-				}
-				default: {
-					if (rew)
-						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_R);
-					else
-						res.strat = new CSGStrategy(csg, lstrat, obj, targets, CSGStrategyType.EQUILIBRIA_P);
-				}
-			}
+		if (genStrat) {
+			CSGEquilibriumStrategy strat = twoPlayerStrategy(csg, lstrat, obj, targets, remain, rew, eqType == CORR);
+			res.strat = strat;
+			DTMCModelChecker dtmcmc = new DTMCModelChecker(this);
+			dtmcmc.inheritSettings(this);
+			dtmcmc.setSilentPrecomputations(true);
+			dtmcmc.setLog(new PrismDevNullLog());
+			double[] computed = { sol[0][csg.getFirstInitialState()], sol[1][csg.getFirstInitialState()] };
+			checkStrategyValues(coalitions, computed, strat.achievedValues(rewards, dtmcmc));
 		}
 		res.numIters = k;
 		return res;		

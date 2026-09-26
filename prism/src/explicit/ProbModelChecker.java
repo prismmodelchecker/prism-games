@@ -112,6 +112,9 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected SolnMethod solnMethod = SolnMethod.VALUE_ITERATION;
 	// Is non-convergence of an iterative method an error?
 	protected boolean errorOnNonConverge = true;
+	/** Whether the path formula being computed is the complement of the one asked for (e.g. F !a for G a), the
+	 *  probabilities being subtracted from 1 afterwards (so that, e.g., strategies can be reported accordingly) */
+	protected boolean negatedPath = false;
 
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
@@ -654,9 +657,9 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		Expression exprSub = exprs.get(0);
 
-		// [[]] (forAll) is only supported for the qualitative (sure/almost/limit) operator so
-		// far -- see checkExpressionStrategyQual and the CSGModelChecker override. Everything
-		// else below is unchanged <<>>-only rPATL machinery, kept exactly as before.
+		// [[]] (forAll) is only supported for the qualitative (sure/almost/limit) operator
+		// (see checkExpressionStrategyQual and the CSGModelChecker override); the rest
+		// handles <<>> only.
 		if (forAll && !(exprSub instanceof ExpressionStrategyQual)) {
 			throw new PrismNotSupportedException("The " + expr.getOperatorString() + " operator is not yet supported");
 		}
@@ -774,8 +777,15 @@ public class ProbModelChecker extends NonProbModelChecker
 			expr1 = formulae.get(p);
 			if (expr1 instanceof ExpressionMultiNashProb) {
 				expr1 = ((ExpressionMultiNashProb) (expr1)).getExpression();
-				expr1 = Expression.convertSimplePathFormulaToCanonicalForm(expr1);
 				if (expr1 instanceof ExpressionTemporal) {
+					int op = ((ExpressionTemporal) expr1).getOperator();
+					if (op == ExpressionTemporal.P_G || op == ExpressionTemporal.P_W || op == ExpressionTemporal.P_R)
+						throw new PrismNotSupportedException("The " + ((ExpressionTemporal) expr1).getOperatorSymbol() + " operator is not supported for equilibria-based properties");
+				}
+				expr1 = Expression.convertSimplePathFormulaToCanonicalForm(expr1);
+				if (!(expr1 instanceof ExpressionTemporal))
+					throw new PrismNotSupportedException("Only X, F and U path formulae are supported for equilibria-based properties");
+				else {
 		 			ExpressionTemporal exprTemp = (ExpressionTemporal) expr1;
 		 			exprs.add(p, exprTemp);
 					switch (exprTemp.getOperator()) {
@@ -998,17 +1008,23 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		if (expr instanceof ExpressionTemporal) {
  			ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
-			// Next
-			if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
-				probs = checkProbNext(model, exprTemp, minMax, statesOfInterest);
-			}
-			// Until
-			else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
-				if (exprTemp.hasBounds()) {
-					probs = checkProbBoundedUntil(model, exprTemp, minMax, statesOfInterest);
-				} else {
-					probs = checkProbUntil(model, exprTemp, minMax, statesOfInterest);
+			boolean negatedPathSave = negatedPath;
+			negatedPath = negated;
+			try {
+				// Next
+				if (exprTemp.getOperator() == ExpressionTemporal.P_X) {
+					probs = checkProbNext(model, exprTemp, minMax, statesOfInterest);
 				}
+				// Until
+				else if (exprTemp.getOperator() == ExpressionTemporal.P_U) {
+					if (exprTemp.hasBounds()) {
+						probs = checkProbBoundedUntil(model, exprTemp, minMax, statesOfInterest);
+					} else {
+						probs = checkProbUntil(model, exprTemp, minMax, statesOfInterest);
+					}
+				}
+			} finally {
+				negatedPath = negatedPathSave;
 			}
 		}
 

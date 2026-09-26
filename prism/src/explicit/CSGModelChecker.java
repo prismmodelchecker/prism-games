@@ -65,10 +65,10 @@ import prism.PrismNotSupportedException;
 import parser.ast.ExpressionTemporal;
 import prism.IntegerBound;
 import prism.PrismComponent;
+import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismSettings;
 import prism.PrismUtils;
-import strat.CSGStrategy.CSGStrategyType;
 import strat.CSGStrategy;
 
 /**
@@ -209,8 +209,12 @@ public class CSGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 
-		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
+		if (genStrat) {
+			CSGStrategy strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet());
+			strat.setCoalitionActions(actionIndexes[min1 ? 1 : 0]);
+			strat.setComplemented(negatedPath);
+			res.strat = strat;
+		}
 		return res;
 	}
 
@@ -313,6 +317,8 @@ public class CSGModelChecker extends ProbModelChecker
 		int n, numYes, numNo;
 		long timerProb0, timerProb1;
 		boolean bounded = (bound != maxIters);
+		if (bounded && genStrat)
+			throw new PrismNotSupportedException("Strategy synthesis for bounded properties is not supported yet");
 		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability...");
@@ -400,6 +406,8 @@ public class CSGModelChecker extends ProbModelChecker
 		long timerProb0, timerProb1;
 
 		boolean bounded = (bound != maxIters);
+		if (bounded && genStrat)
+			throw new PrismNotSupportedException("Strategy synthesis for bounded properties is not supported yet");
 		
 		if (verbosity >= 1)
 			mainLog.println("\nStarting probabilistic reachability (until)...");
@@ -484,7 +492,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachProbsValIter(CSG<Double> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
 		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismNotSupportedException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		LpSolve lp;
 		ArrayList<ArrayList<Double>> mgame;
@@ -543,26 +551,37 @@ public class CSGModelChecker extends ProbModelChecker
 						updateStrategy(kstrat, lstrat, k, s, bounded);
 					}
 				} else if (genStrat) {
-					lstrat.get(0).get(0).add(s, null);
+					lstrat.get(0).get(0).set(s, null);
 				}
 			}
 			k++;
 			done = PrismUtils.doublesAreClose(nsol, ntmp, termCritParam, termCrit == TermCrit.RELATIVE);
 			if (!done && k == maxIters) {
-				throw new PrismException("Could not converge after " + maxIters + " iterations");
+				String msg = "Value iteration did not converge within " + k + " iterations";
+				if (errorOnNonConverge)
+					throw new PrismException(msg);
+				mainLog.printWarning(msg + "; the values are those of the last iteration");
+				done = true;
 			} else if (k == limit) {
 				done = true;
 			} else {
 				ntmp = Arrays.copyOf(nsol, nsol.length);
 			}
 		}
-		mainLog.println("\nValue iteration converged after " + k + " iterations.");
+		if (k < maxIters)
+			mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		timer = System.currentTimeMillis() - timer;
 		ModelCheckerResult res = new ModelCheckerResult();
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
+		if (genStrat) {
+			CSGStrategy strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet());
+			strat.setCoalitionActions(actionIndexes[min ? 1 : 0]);
+			strat.setComplemented(negatedPath);
+			res.strat = strat;
+			if (limit == maxIters)
+				checkZeroSumStrategy(strat, null, nsol[csg.getFirstInitialState()], min);
+		}
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -864,7 +883,14 @@ public class CSGModelChecker extends ProbModelChecker
 			// Computes the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1).soln;
+				// (no strategy needed for the over-approximation)
+				boolean genStratSave = genStrat;
+				genStrat = false;
+				try {
+					init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1).soln;
+				} finally {
+					genStrat = genStratSave;
+				}
 				break;
 			default:
 				throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -1011,7 +1037,7 @@ public class CSGModelChecker extends ProbModelChecker
 			boolean bounded, boolean min) throws PrismException
 	{
 		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismNotSupportedException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
@@ -1086,19 +1112,29 @@ public class CSGModelChecker extends ProbModelChecker
 			k++;
 			done = PrismUtils.doublesAreClose(nsol, ntmp, termCritParam, termCrit == TermCrit.RELATIVE);
 			if (!done && k == maxIters) {
-				throw new PrismException("Could not converge after " + maxIters + " iterations");
+				String msg = "Value iteration did not converge within " + k + " iterations";
+				if (errorOnNonConverge)
+					throw new PrismException(msg);
+				mainLog.printWarning(msg + "; the values are those of the last iteration");
+				done = true;
 			} else if (k == limit) {
 				done = true;
 			} else {
 				ntmp = Arrays.copyOf(nsol, nsol.length);
 			}
 		}
-		mainLog.println("\nValue iteration converged after " + k + " iterations.");
+		if (k < maxIters)
+			mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		timer = System.currentTimeMillis() - timer;
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat)
-			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
+		if (genStrat) {
+			CSGStrategy strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf);
+			strat.setCoalitionActions(actionIndexes[min ? 1 : 0]);
+			res.strat = strat;
+			if (limit == maxIters)
+				checkZeroSumStrategy(strat, rewards, nsol[csg.getFirstInitialState()], min);
+		}
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -1622,10 +1658,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 *   Y = nu Y. mu X. [ (not B and Apre1(Y,X)) or (B and Pre1(Y)) ]
 	 * The B-branch uses plain Pre1(Y) (not Apre1) to bank a completed visit and return to
 	 * Y with certainty; the not-B branch uses apreXY (almost-surely progress toward the
-	 * next visit while staying in Y). Empirically verified: on SKIRMISH, AGF({home}) is a
-	 * strict subset of AF({home}) as it must be (visiting infinitely often is at least as
-	 * hard as visiting once), and G(csg,b) subseteq AGF(csg,b) subseteq LGF(csg,b) holds
-	 * as the monotonicity across qualitative modes requires.
+	 * next visit while staying in Y).
 	 */
 	public BitSet AGF(CSG<Double> csg, BitSet b) throws PrismException
 	{
@@ -1767,12 +1800,6 @@ public class CSGModelChecker extends ProbModelChecker
 	 * the growing X attractor, not a separate "stay safe" argument the way Apre1(Y,X)
 	 * tracks):
 	 *   Y = nu Y. mu X. [ (B and Pre1(Y)) or (not B and Pre1(X)) ]
-	 * Hand-checked on a 2-state cycle (p<->q, B={p}): gives the full state set (both
-	 * states force infinitely-many B-visits), and distinctly from G(csg,b) (safety),
-	 * which is false on that same model since neither state can stay in B forever --
-	 * confirming this isn't degenerating into the safety formula. Also verified on
-	 * SKIRMISH, where a worst-case opponent (wait-forever against hide, or throw-to-trap
-	 * against run) defeats every pure positional strategy, giving SGF({home}) = empty.
 	 */
 	public BitSet SGF(CSG<Double> csg, BitSet b) throws PrismException
 	{
@@ -1935,11 +1962,9 @@ public class CSGModelChecker extends ProbModelChecker
 	
 	/*
 	 * Limit-sure Buchi (G F b): visit b infinitely often, forced in the limit. Mirrors
-	 * AGF exactly, with lpreXY (Lpre1) substituted for apreXY (Apre1) -- the same
-	 * substitution already validated by LF/LFG relative to AF/AFG:
+	 * AGF exactly, with lpreXY (Lpre1) substituted for apreXY (Apre1), as LF/LFG do
+	 * relative to AF/AFG:
 	 *   Y = nu Y. mu X. [ (not B and Lpre1(Y,X)) or (B and Pre1(Y)) ]
-	 * Verified LGF(csg,b) superseteq AGF(csg,b) superseteq SGF(csg,b) on SKIRMISH, the
-	 * same subset ordering AF/LF already exhibit for plain reachability.
 	 */
 	public BitSet LGF(CSG<Double> csg, BitSet b) throws PrismException
 	{
@@ -2190,9 +2215,8 @@ public class CSGModelChecker extends ProbModelChecker
 	 * nu Y_{2m}. mu X_{2m-1}. nu Y_{2m-2}. ... mu X_1. nu Y_0. [ OR_k (B_k and
 	 * lambdaRpre_{k,1}^m) ], computed via the same "innermost level does the real
 	 * combine-and-check, every level above it just copies the converged value one level
-	 * down" pattern already used by AGF/AFG/LGF/LFG's own nested while-loops (verified
-	 * below to literally be that same pattern, just written as recursion instead of
-	 * hand-unrolled loops, so it generalizes to any chain depth).
+	 * down" pattern used by AGF/AFG/LGF/LFG's nested while-loops, written as recursion
+	 * so that it generalises to any chain depth.
 	 */
 	public BitSet rabinChainWin(CSG<Double> csg, List<BitSet> L, List<BitSet> K, boolean almost) throws PrismException
 	{
@@ -2260,7 +2284,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * the whole construction collapses to a direct analogue of SGF's coupled
 	 * attractor-of-attractor, generalized from 1 to m pairs: mu X_{2m-1}. nu Y_{2m-2}.
 	 * ... mu X_1. nu Y_0. [ OR_k (B_k and Pre1(var_k)) ], with no extra outer Y_{2m}
-	 * (matching the earlier-session reading of the sure-mode formula) and each color's
+	 * and each color's
 	 * predecessor being plain Pre1 of *that color's own* bound variable (Y_k if k even,
 	 * X_k if k odd) rather than a cross-pair combinator.
 	 */
@@ -2324,6 +2348,35 @@ public class CSGModelChecker extends ProbModelChecker
 			result.or(term);
 		}
 		return result;
+	}
+
+	/**
+	 * Checks that the synthesised strategy of the coalition guarantees the computed value (in the initial state):
+	 * the optimal value of the other players in the MDP induced by the strategy. Warns if they differ.
+	 */
+	protected void checkZeroSumStrategy(CSGStrategy strat, CSGRewards<Double> rewards, double computed, boolean min) throws PrismException
+	{
+		MDPModelChecker mc = new MDPModelChecker(this);
+		mc.inheritSettings(this);
+		mc.setSilentPrecomputations(true);
+		mc.setLog(new PrismDevNullLog());
+		double guaranteed = strat.guaranteedValue(mc, rewards, min);
+		// for complemented path formulae (e.g. G a, computed as 1 - F !a), report the values of the one asked for
+		boolean flip = rewards == null && negatedPath;
+		double gShown = flip ? 1.0 - guaranteed : guaranteed, cShown = flip ? 1.0 - computed : computed;
+		mainLog.println("\nChecking the synthesised strategy: it guarantees " + gShown + " (computed " + cShown + ")");
+		double tol = Math.max(1e-6, 10 * termCritParam);
+		double diff = (Double.isInfinite(computed) || Double.isInfinite(guaranteed)) ? (computed == guaranteed ? 0.0 : Double.POSITIVE_INFINITY)
+				: Math.abs(guaranteed - computed);
+		if (diff > tol * Math.max(1.0, Math.abs(computed))) {
+			boolean worse = min ? guaranteed > computed : guaranteed < computed;
+			if (worse)
+				mainLog.printWarning("The synthesised strategy does not guarantee the computed value (it guarantees " + gShown
+						+ "): value iteration may not have converged (try a smaller -epsilon), or optimal strategies may not exist (only near-optimal ones)");
+			else
+				mainLog.printWarning("The synthesised strategy guarantees more than the computed value (" + gShown
+						+ "): value iteration may have stopped before converging (try a smaller -epsilon)");
+		}
 	}
 
 	// Utility methods for CSG solving
@@ -2393,9 +2446,9 @@ public class CSGModelChecker extends ProbModelChecker
 	 *
 	 * Strictly zero-sum: the coalition C is the achieving (maximising) role for <<C>>
 	 * ({@code forAll == false}), or the adversarial (minimising) role for [[C]]
-	 * ({@code forAll == true}) -- buildCoalitions is called with min=forAll below, reusing
-	 * the same convention already verified against buildMatrixDist/buildMatrixGame's "rows
-	 * correspond to the maximising coalition" convention. This is a role flip only: C's own
+	 * ({@code forAll == true}) -- buildCoalitions is called with min=forAll below,
+	 * consistent with buildMatrixDist/buildMatrixGame's convention that rows correspond to
+	 * the maximising coalition. This is a role flip only: C's own
 	 * membership is untouched, and every downstream fixpoint operator (Apre1/Lpre1,
 	 * rabinChainWin/rabinChainWinSure, ...) consumes coalitionIndexes[0]/[1] generically, so
 	 * nothing else in this method changes between the two operators. [[C]] Op[phi] is
@@ -3061,11 +3114,30 @@ public class CSGModelChecker extends ProbModelChecker
 			}
 		}
 		double[] strat = new double[min ? ncols : nrows];
-		double vlb = rew ? -SoPlex.INFINITY : 0.0;
-		double vub = rew ? SoPlex.INFINITY : 1.0;
+		// Normalise the game to entries in [0,1] (an affine change of the payoffs, which leaves the optimal
+		// strategies unchanged): games whose entries differ only slightly (e.g. all close to 1, as in the late
+		// iterations of value iteration) are otherwise badly conditioned, and SoPlex can fail on them
+		double lo = Double.POSITIVE_INFINITY, hi = Double.NEGATIVE_INFINITY;
+		for (double a : A) {
+			lo = Math.min(lo, a);
+			hi = Math.max(hi, a);
+		}
+		double range = hi - lo;
+		if (range == 0.0) {
+			// constant game: any strategy is optimal
+			strat[0] = 1.0;
+			if (genStrat)
+				d.put(rmap.get(0), 1.0);
+			return lo;
+		}
+		for (int i = 0; i < A.length; i++)
+			A[i] = (A[i] - lo) / range;
+		double vlb = rew ? -SoPlex.INFINITY : (0.0 - lo) / range;
+		double vub = rew ? SoPlex.INFINITY : (1.0 - lo) / range;
 		double res = soplex.matrixGame(A, nrows, ncols, min, vlb, vub, strat);
 		if (Double.isNaN(res))
 			throw new PrismException("SoPlex could not find an optimal solution for state " + s + " (status " + soplex.getStatus() + ")");
+		res = lo + range * res;
 		if (genStrat) {
 			for (int k = 0; k < strat.length; k++) {
 				if (strat[k] > 0)

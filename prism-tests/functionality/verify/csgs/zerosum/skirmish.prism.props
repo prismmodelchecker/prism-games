@@ -1,0 +1,18 @@
+// Zero-sum properties of the soldier/sniper "skirmish" (hide-or-run) game (see also ../qualitative/skirmish.prism).
+// Reaching "home" (s=2) has value 1 for the soldier only in the limit: no optimal strategy exists, only
+// near-optimal ones (run with a small probability). Value iteration converges slowly (about 1/k), so the
+// expected results are PRISM's values at the default -epsilon, not the limit 1.
+
+// RESULT: 0.999000999005989
+<<p1>>Pmax=? [ F s=2 ]
+
+// the sniper now plays the runner's role (the value is again 1 in the limit)
+// RESULT: 0.999000999005989
+<<p1>>Pmin=? [ F s=2 ]
+
+// the sniper cannot force "wet": the soldier just never runs
+// RESULT: 0.0
+<<p2>>Pmax=? [ F s=1 ]
+
+// RESULT: 1.0
+<<p1>>Pmax=? [ G !(s=1) ]

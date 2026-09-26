@@ -367,8 +367,6 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 	
 	@Override
 	public void printModel() {
-		// TODO Auto-generated method stub
-		
 	}
 	
 }

@@ -75,8 +75,7 @@ public class StageGameSolverScip implements StageGameSolver<Double>
 	/** Social fairness tie-breaking: false = gap, then each coalition's payoff (as for correlated equilibria);
 	 *  true = gap, then the sum of payoffs, then each coalition's payoff (as for Nash equilibria) */
 	private boolean fairnessWelfareTieBreak = false;
-	/** Switch off SCIP's primal heuristics: for the small stage games solved here they cost more than they save
-	 *  (25-50% faster on 2-player games from 2x2 to 8x8); may be worth revisiting for large multi-player games */
+	/** Whether SCIP's primal heuristics are switched off (default: true) */
 	private boolean heuristicsOff = true;
 
 	public StageGameSolverScip() throws PrismException
