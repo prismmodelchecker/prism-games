@@ -69,6 +69,19 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 	
 	private String name;
 	private int n_coalitions;
+	/** Coalitions in the objectives (null: all) */
+	private BitSet active = null;
+
+	@Override
+	public void setActiveCoalitions(BitSet active)
+	{
+		this.active = active;
+	}
+
+	private boolean isActive(int c)
+	{
+		return active == null || active.get(c);
+	}
 
 	/**
 	 * Creates a new CSGCorrelatedZ3 (without initialisation)
@@ -224,10 +237,12 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 				BoolExpr bl;
 				// Additional constraints for fair
 				for (int i = 0; i < n_coalitions; i++) {
+					if (!isActive(i))
+						continue;
 					bh = ctx.mkTrue();
 					bl = ctx.mkTrue();
 					for (int j = 0; j < n_coalitions; j++) {
-						if (i != j) {
+						if (i != j && isActive(j)) {
 							bh = ctx.mkAnd(bh, ctx.mkGe(payoffs[i], payoffs[j]));
 							bl = ctx.mkAnd(bl, ctx.mkLe(payoffs[i], payoffs[j]));
 						}
@@ -247,16 +262,17 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 	
 		// Lower priority objectives of maximising the payoff of each player in decreasing order
 		for (c = 0; c < n_coalitions; c++) {
-			s.MkMaximize(payoffs[(c)]);
+			if (isActive(c))
+				s.MkMaximize(payoffs[(c)]);
 		}
 		
 		// Constraints for correlated equilibria
 		for (c = 0; c < n_coalitions; c++) {
 			for (q = 0; q < strategies.get(c).size(); q++) {
-				expr = zero;
 				is.clear();
 				is.set(strategies.get(c).get(q));
 				for (r = 0; r < strategies.get(c).size(); r++) {
+					expr = zero; // one constraint per deviation r (not cumulative)
 					js.clear();
 					for (BitSet e : ce_constraints.get(c).get(q).keySet()) {
 						is.or(e);
@@ -315,273 +331,6 @@ public class CSGCorrelatedZ3 implements CSGCorrelated {
 		}
 		
 		s.Pop();
-		return result;
-	}
-	
-	public EquilibriumResult __computeEquilibrium(HashMap<BitSet, ArrayList<Double>> utilities, 
-												ArrayList<ArrayList<HashMap<BitSet, Double>>> ce_constraints,
-												ArrayList<ArrayList<Integer>> strategies,
-												HashMap<BitSet, Integer> ce_var_map, int type) {
-		EquilibriumResult result = new EquilibriumResult();
-		ArrayList<Double> payoffs_result = new ArrayList<Double>();
-		ArrayList<Distribution<Double>> strategy_result = new ArrayList<Distribution<Double>>();
-		Distribution d = new Distribution();
-		ArithExpr expr;
-		BitSet is, js, ts;
-		double u;
-		int i, c, n, q, r;
-		is = new BitSet();
-		js = new BitSet();
-		
-		s.Push();
-		
-		/// Print-outs
-		System.out.println("\n# utilities");
-		System.out.println(utilities); 
-		System.out.println("\n# strategies");
-		System.out.println(strategies); 
-		System.out.println("\n# ce_var_map");
-		System.out.println(ce_var_map);
-		System.out.println("\n# ce_constraints");
-		System.out.println(ce_constraints);
-		
-		// Utilities with vectors
-		HashMap<ArrayList<Integer>, ArrayList<Double>> vectorised_utilities = 
-															new HashMap<ArrayList<Integer>, ArrayList<Double>>();
-		ArrayList<BitSet> strategy_sets = new ArrayList<BitSet>();
-		ArrayList<Integer> strategy_vector = null;
-		for (c = 0; c < n_coalitions; c++) {
-			ts = new BitSet();
-			for (q = 0; q < strategies.get(c).size(); q++) {
-				ts.set( strategies.get(c).get(q));
-			}
-			strategy_sets.add(ts);
-		}
-		for (Entry<BitSet, ArrayList<Double>> entry : utilities.entrySet()) {
-			strategy_vector = new ArrayList<Integer>();
-			for (c = 0; c < n_coalitions; c++) { 
-				ts = new BitSet();
-				ts.or(strategy_sets.get(c));
-				ts.and(entry.getKey());
-				strategy_vector.add(ts.nextSetBit(0));
-			}
-			vectorised_utilities.put(strategy_vector, entry.getValue());
-		}
-		
-		// Constraints with vectors
-		ArrayList<ArrayList<HashMap<ArrayList<Integer>, Double>>> vectorised_constraints = 
-															new ArrayList<ArrayList<HashMap<ArrayList<Integer>, Double>>>();
-		for (c = 0; c < n_coalitions; c++) {
-			vectorised_constraints.add(new ArrayList<HashMap<ArrayList<Integer>, Double>>());
-			for (q = 0; q < strategies.get(c).size(); q++) {
-				vectorised_constraints.get(c).add(new HashMap<ArrayList<Integer>, Double>());
-				for (Entry<BitSet, Double> e : ce_constraints.get(c).get(q).entrySet()) {
-					strategy_vector = buildStrategyVector(strategy_sets, e.getKey());
-					strategy_vector.set(c, strategies.get(c).get(q));
-					vectorised_constraints.get(c).get(q).put(strategy_vector, e.getValue());
-				}
-			}
-		}
-		
-		// Builds subsets S \in N
-		BitSet players = new BitSet();
-		HashSet<BitSet> ss = new HashSet<BitSet>();
-		for (c = 0; c < n_coalitions; c++) {
-			players.set(c);
-		}
-		
-		for (c = 0; c < n_coalitions; c++) {
-			ts = (BitSet) players.clone();
-			ts.clear(c);
-			buildSubGames(ss, ts, c);
-		}	
-		System.out.println("\n# Ss");
-		ss.add(new BitSet());
-		System.out.println(ss);
-		
-		// Builds all possible cs in Cs
-		HashMap<BitSet, ArrayList<ArrayList<Integer>>> cs = new HashMap<BitSet, ArrayList<ArrayList<Integer>>>();
-		
-		for (BitSet se : ss) {
-			cs.put(se, new ArrayList<ArrayList<Integer>>());
-			for (ArrayList<Integer> e : buildAllSupports(strategies, se)) {
-				cs.get(se).add(e);
-			} 
-		}
-		cs.get(new BitSet()).add(new ArrayList<Integer>());
-		System.out.println(cs);
-		
-		// Builds a payoff expression for each player, and one for the sum of all payoffs
-		for (i = 0; i < n_coalitions; i++) {
-			payoffs[i] = zero;
-		}
-		
-		// Builds the set of eta variables
-		HashMap<Pair<BitSet, ArrayList<Integer>>, RealExpr> eta = new HashMap<Pair<BitSet, ArrayList<Integer>>, RealExpr>();
-		HashMap<String, Pair<BitSet, ArrayList<Integer>>> eta_names = new HashMap<String, Pair<BitSet, ArrayList<Integer>>>();
-		RealExpr eta_var;
-		n = 0;
-		expr = zero;
-		for (Entry<BitSet, ArrayList<ArrayList<Integer>>> ce : cs.entrySet()) {
-			// System.out.println("# " + ce.getValue());
-			for (Entry<BitSet, Integer> joint_action : ce_var_map.entrySet()) {
-				for (ArrayList<Integer> e : ce.getValue()) {
-					// System.out.println(e);
-					eta_var = ctx.mkRealConst("n" + n);
-					eta.put(new Pair<BitSet, ArrayList<Integer>>(joint_action.getKey(), e), eta_var);	
-					eta_names.put("n" + n, new Pair<BitSet, ArrayList<Integer>>(joint_action.getKey(), e));
-					s.Add(ctx.mkLe(eta_var, one));
-					s.Add(ctx.mkGe(eta_var, zero));
-					expr = ctx.mkAdd(expr, eta_var);
-					n++;
-					for (c = 0; c < n_coalitions; c++) {
-						payoffs[c] = ctx.mkAdd(payoffs[c], ctx.mkMul(eta_var, ctx.mkReal(String.valueOf(utilities.get(joint_action.getKey()).get(c)))));
-					}
-				}
-			}
-		}
-		s.Add(ctx.mkEq(expr, one));
-		
-		expr = zero;
-		for (c = 0; c < n_coalitions; c++) {
-			payoff_vars[c] = ctx.mkRealConst("p " + c);
-			expr = ctx.mkAdd(expr, payoffs[c]);
-			s.Add(ctx.mkEq(payoff_vars[c], payoffs[c]));
-		}
-		s.MkMinimize(expr);
-		
-		System.out.println("\n# eta");
-		System.out.println(n + " variables");
-		System.out.println(eta);
-		System.out.println();
-		
-		// Adds constraints for epsilon-correlated equilibria
-		Pair<BitSet, ArrayList<Integer>> eta_index;
-		ArrayList<Integer> is_v;
-		ArrayList<Integer> js_v;
-		ArrayList<Integer> c1_es;
-		ArrayList<Integer> c2_es;
-				
-		for (c = 0; c < n_coalitions; c++) {
-			System.out.println("-- player " + c);
-			for (q = 0; q < strategies.get(c).size(); q++) { // c_i
-				expr = zero;
-				is.clear();
-				is.set(strategies.get(c).get(q));				
-				for (r = 0; r < strategies.get(c).size(); r++) {// e_i
-					js.clear();
-					for (BitSet e : ce_constraints.get(c).get(q).keySet()) {
-						is.or(e);
-						js.or(e);
-						
-						is_v = buildStrategyVector(strategy_sets, is);
-						c1_es = buildStrategyVector(strategy_sets, is);
-						c2_es = buildStrategyVector(strategy_sets, is);
-						if (q != r) {
-							js.set(strategies.get(c).get(r));
-							
-							js_v =  buildStrategyVector(strategy_sets, js);
-							System.out.println("is " + is.toString() + ", js " + js.toString());
-							System.out.println("is_v " + is_v.toString() + ", js_v " + js_v.toString());
-							for (Entry<BitSet, ArrayList<ArrayList<Integer>>> ce : cs.entrySet()) {
-								if (!ce.getKey().get(c)) {
-									System.out.println(ce);
-									for (ArrayList<Integer> es : ce.getValue()) {
-										eta_index = new Pair<BitSet, ArrayList<Integer>>(is, es);
-										eta_var = eta.get(eta_index);
-										System.out.println(eta_var);
-										// "is" is c, the joint action
-										// replacement
-										
-										System.out.println("es " + es.toString());
-										for (i = 0; i < n_coalitions; i++) {
-											if (!es.isEmpty() && es.get(i) != -1) {
-												c1_es.set(i, es.get(i));
-												c2_es.set(i, es.get(i));
-											}
-											if (i == c) 
-												c2_es.set(i, strategies.get(c).get(r));
-										}
-										
-										System.out.println("c1_es " + c1_es.toString() + ", c2_es " + c2_es.toString());										
-										expr = ctx.mkAdd(expr, ctx.mkMul(eta_var, 
-															ctx.mkSub(ctx.mkReal(String.valueOf(vectorised_utilities.get(c1_es).get(c))),
-																	  ctx.mkReal(String.valueOf(vectorised_utilities.get(c2_es).get(c))))));
-									}
-								}
-							}
-						}
-						is.andNot(e);
-						js.andNot(e);
-					}
-					if (q != r) {
-						s.Add(ctx.mkGe(expr, zero));
-					}
-				}
-			}
-		}
-		
-		// Constraints for 2.4
-		BitSet sui;
-		for (Entry<BitSet, ArrayList<Double>> o : utilities.entrySet()) {
-			for (c = 0; c < n_coalitions; c++) {
-				for (Entry<BitSet, ArrayList<ArrayList<Integer>>> ce : cs.entrySet()) {
-					if (!ce.getKey().get(c)) {
-						sui = new BitSet();
-						sui.or(ce.getKey());
-						sui.set(c);
-						for (ArrayList<Integer> esui : cs.get(sui)) {
-							for (ArrayList<Integer> es : ce.getValue()) {
-								s.Add(ctx.mkImplies(
-									ctx.mkGt(eta.get(new Pair<BitSet, ArrayList<Integer>>(o.getKey(), es)), zero), 
-									ctx.mkGt(eta.get(new Pair<BitSet, ArrayList<Integer>>(o.getKey(), esui)), zero)));
-							}	
-						}
-					}
-				}
-			}
-		}
-		
-		// Constraints for 2.3
-		RealExpr epsilon = ctx.mkRealConst("e");
-		expr = zero;
-		for (Entry<BitSet, ArrayList<Double>> o : utilities.entrySet()) {
-			for (c = 0; c < n_coalitions; c++) {
-				for (Entry<BitSet, ArrayList<ArrayList<Integer>>> ce : cs.entrySet()) {
-					if (!ce.getKey().get(c)) {
-						
-						for (q = 0; q < strategies.get(c).size(); q++) { // c_i
-							
-						}
-						
-					}
-				}
-			}
-		}
-		
-		// s.Add(ctx.mkEq(eta.get(eta_names.get("n15")), zero));
-		// s.Add(ctx.mkEq(eta.get(eta_names.get("n22")), one));
-		
-		if (s.Check() == Status.SATISFIABLE) {
-			System.out.println("sat\n");			
-			System.out.println(s.getModel());
-			for (c = 0; c < vars.length; c++) {
-				d.add(c, getDoubleValue(s.getModel(), vars[c]));
-			}
-			for (c = 0; c < payoff_vars.length; c++) {
-				payoffs_result.add(getDoubleValue(s.getModel(), payoff_vars[c]));
-			}
-			result.setStatus(CSGModelCheckerEquilibria.CSGResultStatus.SAT);
-			result.setPayoffVector(payoffs_result);
-			strategy_result.add(d);
-			result.setStrategy(strategy_result);
-		}	
-		
-		// System.out.println(eta_names.get("n15"));
-		// System.out.println(eta_names.get("n22"));
-		
-		System.out.println();
-		
 		return result;
 	}
 

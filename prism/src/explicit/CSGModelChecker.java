@@ -53,6 +53,7 @@ import explicit.rewards.CSGRewardsSimple;
 import explicit.rewards.StateRewardsConstant;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
+import soplex.SoPlex;
 import parser.State;
 import parser.ast.Coalition;
 import parser.ast.Expression;
@@ -125,6 +126,10 @@ public class CSGModelChecker extends ProbModelChecker
 
 	/** Which solver to use for linear programming */
 	protected String lpSolver;
+	/** SoPlex instance reused for all matrix games (created on first use when -lpsolver soplex) */
+	protected SoPlex soplex = null;
+	/** SoPlex scaling method (see PrismSettings.PRISM_CSG_SOPLEX_SCALING) */
+	protected String soplexScaling;
 
 	protected long timerVal;
 
@@ -140,6 +145,7 @@ public class CSGModelChecker extends ProbModelChecker
 		actions = new ArrayList<ArrayList<String>>();
 		strategies = new ArrayList<ArrayList<Integer>>();
 		lpSolver = getSettings().getString(PrismSettings.PRISM_CSG_LPSOLVER);
+		soplexScaling = getSettings().getString(PrismSettings.PRISM_CSG_SOPLEX_SCALING);
 	}
 
 	// Numerical computation functions
@@ -1185,89 +1191,25 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 	/**
-	 * Deals with multi-player bounded probabilistic formulae
-	 * 
-	 * @param csg
-	 * @param coalitions
-	 * @param targets
-	 * @param remain
-	 * @param bounds
-	 * @param eqType
-	 * @param crit
-	 * @param min
-	 * @return
-	 * @throws PrismException
-	 */
-	public ModelCheckerResult computeMultiProbBoundedEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, 
-			int [] bounds, int eqType, int crit, boolean min) throws PrismException {
-		ModelCheckerResult res = new ModelCheckerResult();
-		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		res = csgeq.computeMultiBoundedEquilibria(csg, coalitions, null, null, null, null, bounds, eqType, crit, min);
-		return res;
-	}
-	
-	/**
-	 * Deal with multi-player bounded reward formulae
-	 * 
-	 * @param csg
-	 * @param coalitions
-	 * @param rewards
-	 * @param exprs
-	 * @param bounds
-	 * @param eqType
-	 * @param crit
-	 * @param min
-	 * @return
-	 * @throws PrismException
-	 */
-	public ModelCheckerResult computeMultiRewBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, 
-			int[] bounds, int eqType, int crit, boolean min) throws PrismException {
-		ModelCheckerResult res = new ModelCheckerResult();
-		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		res = csgeq.computeMultiBoundedEquilibria(csg, coalitions, rewards, exprs, null, null, bounds, eqType, crit, min);
-		return res;
-	}
-	
-	/**
-	 * Deal with multi-player probabilistic reachability formulae
+	 * Equilibria for more than two coalitions: reachability, until and reachability rewards, bounded or not
+	 * (including different bounds and mixtures of bounded and unbounded objectives).
 	 * 
 	 * @param csg The CSG
 	 * @param coalitions The list of coalitions
-	 * @param targets The list of sets of target states
-	 * @param remain The list of sets of states we need to remain in (in case of until)
-	 * @param min Whether we're minimising for the first coalition
-	 * @return
-	 * @throws PrismException
+	 * @param rewards The list of reward structures (null for probabilistic objectives)
+	 * @param exprs The objectives (temporal operators)
+	 * @param bounded The objectives which are bounded
+	 * @param targets The target states of each objective (null for cumulative/instantaneous rewards)
+	 * @param remain The states to remain in (until), or null
+	 * @param bounds The bounds of the bounded objectives
+	 * @param min Whether minimising
 	 */
-	public ModelCheckerResult computeMultiProbReachEquilibria(CSG csg, List<Coalition> coalitions, BitSet[] targets, BitSet[] remain, 
-			int eqType, int crit, boolean min)
-			throws PrismException
+	public ModelCheckerResult computeMultiEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs,
+			BitSet bounded, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException
 	{
-		ModelCheckerResult res = new ModelCheckerResult();
 		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		res = csgeq.computeMultiReachEquilibria(csg, coalitions, null, targets, remain, eqType, crit, min);
-		return res;
-	}
-
-	/**
-	 * Deal with multi-player reachability rewards formulae
-	 * 
-	 * @param csg The CSG
-	 * @param coalitions The list of coalitions
-	 * @param rewards The list of reward structures
-	 * @param targets The list of sets of target states
-	 * @param min Whether we're minimising for the first coalition
-	 * @return
-	 * @throws PrismException
-	 */
-	public ModelCheckerResult computeMultiRewReachEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, BitSet[] targets, 
-			int eqType, int crit, boolean min)
-			throws PrismException
-	{
-		ModelCheckerResult res = new ModelCheckerResult();
-		CSGModelCheckerEquilibria csgeq = new CSGModelCheckerEquilibria(this);
-		res = csgeq.computeMultiReachEquilibria(csg, coalitions, rewards, targets, null, eqType, crit, min);
-		return res;
+		csgeq.inheritSettings(this);
+		return csgeq.computeMultiEquilibria(csg, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
 	}
 
 	/**
@@ -1455,36 +1397,6 @@ public class CSGModelChecker extends ProbModelChecker
 				}
 				newrewards.add(i, reward);
 			}
-			/*** Optional filtering ***/
-			/*
-			CSG csg_rm = new CSG(csg.getPlayers());
-			List<CSGRewards> csg_rew_rm = new ArrayList<CSGRewards>();
-			map_state = new HashMap<Integer, Integer>();
-			list_state = new ArrayList<State>();
-			map_state.put(product.productModel.getFirstInitialState(), csg_rm.addState());
-			csg_rm.addInitialState(map_state.get(product.productModel.getFirstInitialState()));
-			for (i = 0; i < rewards.size(); i++) {
-				csg_rew_rm.add(i, new CSGRewardsSimple(product.productModel.getNumStates()));
-			}
-			filterStates(product.productModel, csg_rm, newrewards, csg_rew_rm, product.productModel.getFirstInitialState());
-			csg_rm.setVarList(csg.getVarList());
-			csg_rm.setStatesList(list_state);
-			csg_rm.setActions(csg.getActions());
-			csg_rm.setPlayers(csg.getPlayers());
-			csg_rm.setIndexes(csg.getIndexes());
-			csg_rm.setIdles(csg.getIdles());
-			csg_rm.exportToDotFile(path + "/filtered.dot");
-			BitSet[] filtered_targets = new BitSet[targets.length];
-			for (i = 0; i < targets.length; i++) {
-				filtered_targets[i] = new BitSet();
-				for (s = newtargets[i].nextSetBit(0); s >= 0; s = newtargets[i].nextSetBit(s + 1)) {
-					if (map_state.get(s) != null)
-						filtered_targets[i].set(map_state.get(s));
-					System.out.println(map_state.get(s));
-				}
-			}
-			res = csgeq.computeReachEquilibria(csg_rm, coalitions, csg_rew_rm, filtered_targets, null);			
-			*/
 			res = csgeq.computeReachEquilibria(product.productModel, coalitions, newrewards, newtargets, null, eqType, crit, min);
 		} else {
 			res = csgeq.computeReachEquilibria(product.productModel, coalitions, null, newtargets, newremain, eqType, crit, min);
@@ -3040,6 +2952,10 @@ public class CSGModelChecker extends ProbModelChecker
 					d.put(rmap.get(infty), 1.0);
 				}
 				return res;
+			} else if ("SoPlex".equals(lpSolver)) {
+				res = valSoPlex(mgame, d, rmap, s, rew, min);
+				if (genStrat)
+					strat.set(s, d);
 			} else {
 				try {
 					if (min)
@@ -3067,7 +2983,7 @@ public class CSGModelChecker extends ProbModelChecker
 						double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 						lp.getVariables(values);
 						if (genStrat) {
-							for (int row = 1; row <= nrows; row++) {
+							for (int row = 1; row <= ((min) ? ncols : nrows); row++) { // C's actions: columns when min
 								if (values[row] > 0)
 									d.put(rmap.get(row - 1), values[row]);
 							}
@@ -3101,7 +3017,7 @@ public class CSGModelChecker extends ProbModelChecker
 							double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 							lp.getVariables(values);
 							if (genStrat) {
-								for (int row = 1; row <= nrows; row++) {
+								for (int row = 1; row <= ((min) ? ncols : nrows); row++) { // C's actions: columns when min
 									if (values[row] > 0)
 										d.put(rmap.get(row - 1), values[row]);
 								}
@@ -3119,6 +3035,43 @@ public class CSGModelChecker extends ProbModelChecker
 		}
 		timer = System.currentTimeMillis() - timer;
 		timerVal += timer;
+		return res;
+	}
+
+	/**
+	 * Solve a matrix game with SoPlex (reusing one SoPlex object across states).
+	 * Same LP as {@link #buildLPLpsolve}: the value is bounded to [0,1] for probabilities, free for rewards;
+	 * if {@code min} the LP is solved for the column (minimising) coalition, otherwise for the row coalition.
+	 * The optimal strategy of that coalition is stored in {@code d} (keys from {@code rmap}).
+	 */
+	public double valSoPlex(ArrayList<ArrayList<Double>> mgame, Map<BitSet, Double> d, Map<Integer, BitSet> rmap, int s, boolean rew, boolean min) throws PrismException
+	{
+		int nrows = mgame.size();
+		int ncols = mgame.get(0).size();
+		double[] A = new double[nrows * ncols];
+		for (int i = 0; i < nrows; i++)
+			for (int j = 0; j < ncols; j++)
+				A[i * ncols + j] = mgame.get(i).get(j);
+		if (soplex == null) {
+			try {
+				soplex = new SoPlex();
+				soplex.setScaler(SoPlex.scalerFromName(soplexScaling));
+			} catch (UnsatisfiedLinkError | IllegalStateException e) {
+				throw new PrismException("Could not load SoPlex (native library soplexj): " + e.getMessage());
+			}
+		}
+		double[] strat = new double[min ? ncols : nrows];
+		double vlb = rew ? -SoPlex.INFINITY : 0.0;
+		double vub = rew ? SoPlex.INFINITY : 1.0;
+		double res = soplex.matrixGame(A, nrows, ncols, min, vlb, vub, strat);
+		if (Double.isNaN(res))
+			throw new PrismException("SoPlex could not find an optimal solution for state " + s + " (status " + soplex.getStatus() + ")");
+		if (genStrat) {
+			for (int k = 0; k < strat.length; k++) {
+				if (strat[k] > 0)
+					d.put(rmap.get(k), strat[k]);
+			}
+		}
 		return res;
 	}
 
@@ -3340,36 +3293,5 @@ public class CSGModelChecker extends ProbModelChecker
 		return dra;
 	}
 
-	protected HashMap<Integer, Integer> map_state;
-	protected List<State> list_state;
 
-	public void filterStates(CSG<Double> csg, CSGSimple<Double> csg_rm, List<CSGRewards<Double>> rewards, List<CSGRewards<Double>> rew_rm, int s)
-	{
-		int i;
-		list_state.add(csg.getStatesList().get(s));
-		for (int c = 0; c < csg.getNumChoices(s); c++) { // gets all choices
-			Distribution<Double> d = new Distribution<>();
-			csg.forEachTransition(s, c, (__, t, pr) -> { // gets all targets
-				if (!map_state.keySet().contains(t)) { // if not yet explored
-					map_state.put(t, csg_rm.addState());
-					filterStates(csg, csg_rm, rewards, rew_rm, t);
-				}
-				d.add(map_state.get(t), pr); // adds target to distribution
-			});
-			i = csg_rm.addActionLabelledChoice(map_state.get(s), d, csg.getAction(s, c));
-			csg_rm.setIndexes(map_state.get(s), i, csg.getIndexes(s, c));
-			if (rewards != null && rew_rm != null) {
-				for (int r = 0; r < rewards.size(); r++) {
-					if (rewards.get(r) != null && rew_rm.get(r) != null)
-						((CSGRewardsSimple<Double>) rew_rm.get(r)).addToTransitionReward(map_state.get(s), i, rewards.get(r).getTransitionReward(s, c));
-				}
-			}
-		}
-		if (rewards != null && rew_rm != null) {
-			for (int r = 0; r < rewards.size(); r++) {
-				if (rewards.get(r) != null && rew_rm.get(r) != null)
-					((CSGRewardsSimple<Double>) rew_rm.get(r)).addToStateReward(map_state.get(s), rewards.get(r).getStateReward(s));
-			}
-		}
-	}
 }

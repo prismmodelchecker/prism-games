@@ -133,6 +133,7 @@ public class PrismSettings implements Observer
 	public static final String PRISM_ZS_LP_SCALE_FACTOR			= "prism.lpscalefactor";
 	public static final String PRISM_EQ_ASSUMPTION_CHECK 			= "prism.eqassumptioncheck";
 	public static final String PRISM_CSG_LPSOLVER				= "prism.csglpsolver";
+	public static final String PRISM_CSG_SOPLEX_SCALING			= "prism.csgsoplexscaling";
 
 	// Multi-objective synthesis for stochastic games
 	public static final String PRISM_STPG_SOLN_METHOD				= "prism.stpgSolnMethod";
@@ -273,8 +274,8 @@ public class PrismSettings implements Observer
 																			"Which method to use for model checking of PTAs." },
 			{ CHOICE_TYPE,		PRISM_TRANSIENT_METHOD,					"Transient probability computation method",	"3.3",		"Uniformisation",															"Uniformisation,Fast adaptive uniformisation",
 																			"Which method to use for computing transient probabilities in CTMCs." },
-			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",							"4.5",			"Z3",																		"Z3,Yices",
-																			"Which external solver to use for SMT problems." },
+			{ CHOICE_TYPE,		PRISM_SMT_SOLVER,						"SMT solver",							"4.5",			"Z3",																		"Z3,Yices,SCIP",
+																			"Which external solver to use for SMT problems (SCIP: MILP, for two-player Nash equilibria)." },
 			// NUMERICAL SOLUTION OPTIONS:
 			{ CHOICE_TYPE,		PRISM_LIN_EQ_METHOD,					"Linear equations method",				"2.1",			"Jacobi",																	"Power,Jacobi,Gauss-Seidel,Backwards Gauss-Seidel,Pseudo-Gauss-Seidel,Backwards Pseudo-Gauss-Seidel,JOR,SOR,Backwards SOR,Pseudo-SOR,Backwards Pseudo-SOR",
 																			"Which iterative method to use when solving linear equation systems." },
@@ -372,8 +373,11 @@ public class PrismSettings implements Observer
 			{ DOUBLE_TYPE,		PRISM_ZS_LP_SCALE_FACTOR,				"Scale factor for LPs",						"4.5",		Double.valueOf(1.0),	"1,",
 																			"Scale factor used when building linear programs for solving matrix games." },
 			// CSG SOLVER FOR LPS
-			{ CHOICE_TYPE,		PRISM_CSG_LPSOLVER, 						"LP solver for CSGs",			"4.5", 				"Z3", 			"LpSolve,Z3,Gurobi",
+			{ CHOICE_TYPE,		PRISM_CSG_LPSOLVER, 						"LP solver for CSGs",			"4.5", 				"Z3", 			"LpSolve,Z3,SoPlex",
 													"Solver used when computing solutions for linear programs in CSG model checking"},
+			// CSG SOPLEX SCALING
+			{ CHOICE_TYPE,		PRISM_CSG_SOPLEX_SCALING, 					"SoPlex scaling for CSGs",			"4.5", 				"BiEqui", 			"Off,UniEqui,BiEqui,Geo1,Geo8,LeastSq,GeoEqui",
+													"Scaling method used by SoPlex when solving linear programs in CSG model checking (-lpsolver soplex)"},
 			// CSG ASSUMPTION CHECK
 			{ BOOLEAN_TYPE,		PRISM_EQ_ASSUMPTION_CHECK, 					"Assumption check for equilirbia",			"4.5", 				Boolean.valueOf(false), 			"",
 													"Assumption check for unbouded equilibria formulae."},
@@ -1090,8 +1094,9 @@ public class PrismSettings implements Observer
 			"<mode>", "Automatic choice of engines/settings (none, speed, memory) [default: none]");
 		reg.addSwitch("smtsolver", new EnumSwitch()
 			.when("z3",    () -> set(PRISM_SMT_SOLVER, "Z3"))
-			.when("yices", () -> set(PRISM_SMT_SOLVER, "Yices")),
-			"<name>", "Specify SMT solver (z3, yices) [default: z3]");
+			.when("yices", () -> set(PRISM_SMT_SOLVER, "Yices"))
+			.when("scip",  () -> set(PRISM_SMT_SOLVER, "SCIP")),
+			"<name>", "Specify SMT solver (z3, yices, scip) [default: z3]");
 
 		// ── SOLUTION METHODS (LINEAR EQUATIONS) ──────────────────────────────
 		reg.beginGroup("SOLUTION METHODS (LINEAR EQUATIONS)");
@@ -1335,8 +1340,17 @@ public class PrismSettings implements Observer
 		reg.addSwitch("lpsolver", new EnumSwitch()
 			.when("lpsolve", () -> set(PRISM_CSG_LPSOLVER, "LpSolve"))
 			.when("z3",      () -> set(PRISM_CSG_LPSOLVER, "Z3"))
-			.when("gurobi",  () -> set(PRISM_CSG_LPSOLVER, "Gurobi")),
-			"<name>", "LP solver for CSGs (lpsolve, z3, gurobi) [default: z3]");
+			.when("soplex",  () -> set(PRISM_CSG_LPSOLVER, "SoPlex")),
+			"<name>", "LP solver for CSGs (lpsolve, z3, soplex) [default: z3]");
+		reg.addSwitch("soplexscaling", new EnumSwitch()
+			.when("off",     () -> set(PRISM_CSG_SOPLEX_SCALING, "Off"))
+			.when("uniequi", () -> set(PRISM_CSG_SOPLEX_SCALING, "UniEqui"))
+			.when("biequi",  () -> set(PRISM_CSG_SOPLEX_SCALING, "BiEqui"))
+			.when("geo1",    () -> set(PRISM_CSG_SOPLEX_SCALING, "Geo1"))
+			.when("geo8",    () -> set(PRISM_CSG_SOPLEX_SCALING, "Geo8"))
+			.when("leastsq", () -> set(PRISM_CSG_SOPLEX_SCALING, "LeastSq"))
+			.when("geoequi", () -> set(PRISM_CSG_SOPLEX_SCALING, "GeoEqui")),
+			"<name>", "Scaling used by SoPlex for CSG linear programs (off, uniequi, biequi, geo1, geo8, leastsq, geoequi) [default: biequi]");
 		reg.addSwitch("eqassumptioncheck", new FlagSwitch(() -> set(PRISM_EQ_ASSUMPTION_CHECK, true)),
 			"", "Enable assumption check for unbounded equilibria formulae");
 

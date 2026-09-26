@@ -116,3 +116,55 @@ public class CSGStackelbergZ3MILP {
 	}
 	
 }
+
+/*
+ * Stage-level use of this solver, formerly CSGModelCheckerEquilibria.stepStackelbergEquilibria (never called;
+ * removed there because the semantics for the whole game/logic were never worked out). Kept for reference:
+
+	public double[] stepStackelbergEquilibria(CSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap,
+											  List<List<Map<BitSet, Double>>> strats, double[][] val, int s, boolean min) throws PrismException {
+		EquilibriumResult result;
+		ArrayList<ArrayList<Integer>> nmap;
+		ArrayList<ArrayList<ArrayList<Double>>> bmgame;
+		double[] eqs = new double[3];
+		int i, p;
+		
+		mmap = new ArrayList<Map<Integer, BitSet>>();
+		nmap = new ArrayList<ArrayList<Integer>>();
+		for (p = 0; p < 2; p++) {
+			mmap.add(p, new HashMap<Integer, BitSet>());
+			nmap.add(p, new ArrayList<Integer>());
+		}
+		bmgame = buildBimatrixGame(csg, rewards.get(0), rewards.get(1), mmap, nmap, val, s, min);	
+		
+		CSGStackelbergZ3MILP stackelbergSolver = new CSGStackelbergZ3MILP();
+		result = stackelbergSolver.computeEquilibrium(bmgame);
+		
+		if (result.getStatus() == CSGResultStatus.SAT) {
+			eqs[0] = 0.0;
+			for (Double d : result.getPayoffVector()) {
+				eqs[0] += d;
+			}
+			for (p = 0; p < numCoalitions; p++) {
+				eqs[p+1] = result.getPayoffVector().get(p);
+			}
+		}
+		else {
+			throw new PrismException(stackelbergSolver.getSolverName() + " could not find an optimal solution for state " + s);
+		}
+		
+		if (rewards != null) {
+			addStateRewards(eqs, rewards, s, min);
+			// keep eqs[0] = sum of the payoffs
+			eqs[0] = 0.0;
+			for (i = 1; i < eqs.length; i++)
+				eqs[0] += eqs[i];
+		}
+		if (min) {
+			for (i = 0; i < eqs.length; i++)
+				eqs[i] = -1.0 * eqs[i];
+		}
+		return eqs;
+	}
+
+*/
