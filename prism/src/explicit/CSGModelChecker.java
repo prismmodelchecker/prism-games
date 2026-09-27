@@ -1778,10 +1778,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * holding forever, exhibit a B-invariant set closed under the strategy's moves --
 	 * every such set is a subset of the *maximal* B-invariant G(csg,b), so s must sure-
 	 * reach G(csg,b); conversely sure-reaching G(csg,b) and then following its own
-	 * safety-fixpoint witness clearly forces F G B. Hand-checked on a 3-state
-	 * reach-then-stay example (a->b->c->c->c..., B={a,c}) against both this decomposed
-	 * form and the coupled mu X.nu Y.((not B and Pre(X)) or (B and Pre(Y))) form --
-	 * both give the same winning region, as expected since no probability is involved.)
+	 * safety-fixpoint witness clearly forces F G B.)
 	 * Reuses G and SF directly -- no new fixpoint code needed.
 	 */
 	public BitSet SFG(CSG<Double> csg, BitSet b) throws PrismException
@@ -2006,13 +2003,8 @@ public class CSGModelChecker extends ProbModelChecker
 	// Concurrent Omega-Regular Games, S5.2 "General Rabin-chain games" and Appendix 6
 	// "Computation of Predecessor Operators" -- generalizes SF/SFG/SGF, AF/AFG/AGF,
 	// LF/LFG/LGF (all special/degenerate 1-pair cases of the construction below) to an
-	// arbitrary number m of Rabin pairs. Verification strategy (per plan): m=1 encodings
-	// cross-checked directly against the already-validated SGF/AGF/LGF (Buchi encoding:
-	// K_0=b, L_0=empty) and SFG/AFG/LFG (co-Buchi encoding: K_0=S, L_0=notB) results, then
-	// a genuine m=2 case exercising the recursive ARpre/LRpre composition that 1-pair
-	// chains never touch. No LTL-to-automaton product is needed for this: pairs are
-	// hand-specified directly as BitSets over the CSG's own states, exactly as SGF/AGF/LGF
-	// were themselves validated.
+	// arbitrary number m of Rabin pairs. Pairs are given directly as BitSets over the CSG's
+	// states (no LTL-to-automaton product).
 	//
 	// A Rabin-chain condition with m pairs is defined by a chain of state-sets
 	// S = U_0 superseteq U_1 superseteq ... superseteq U_{2m-1} superseteq U_{2m} = emptyset,
@@ -2102,9 +2094,8 @@ public class CSGModelChecker extends ProbModelChecker
 	 * obtained by re-evaluating the single shared body rpreCombine (fresh every
 	 * iteration, folding in every other triple's *current* value); at every level above
 	 * it, each candidate is simply the just-converged value returned by the recursive
-	 * call one level down -- exactly the "v <- converged w" pattern the existing
-	 * apreXYZ/lpreXYZ already use for their 2-triple case (verified against both below),
-	 * generalized here to an arbitrary chain length.
+	 * call one level down -- the "v <- converged w" pattern apreXYZ/lpreXYZ use for their
+	 * 2-triple case, generalised to an arbitrary chain length.
 	 */
 	private BitSet rpreResolve(ArrayList<ArrayList<Distribution<Double>>> mdist, RabinPreTriple[] theta, int level, int innermost, BitSet[] vars)
 	{
@@ -2441,8 +2432,8 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Qualitative (sure/almost/limit) strategy operator for CSGs -- {@code <<C>> sure/almost/
 	 * limit [ phi ]}. Restricted for now to safety (G psi), reachability (F psi), Buchi
-	 * (G F psi) and co-Buchi (F G psi), for a state (non-path) formula psi -- see the plan
-	 * doc's S5.3/5.5 for why (no rPATL/LTL surface syntax for CSGs beyond this).
+	 * (G F psi) and co-Buchi (F G psi), for a state (non-path) formula psi (no rPATL/LTL
+	 * surface syntax for CSGs beyond this).
 	 *
 	 * Strictly zero-sum: the coalition C is the achieving (maximising) role for <<C>>
 	 * ({@code forAll == false}), or the adversarial (minimising) role for [[C]]
@@ -2459,8 +2450,8 @@ public class CSGModelChecker extends ProbModelChecker
 	 *
 	 * Dispatch by (mode, shape) covers all twelve combinations: G is Pre1/G for all three
 	 * modes (safety provably collapses sure=almost=limit, LICS 2000 Theorem 3(1)); F is
-	 * SF/AF/LF; F G (co-Buchi) is SFG/AFG/LFG; G F (Buchi) is SGF/AGF/LGF. See the dispatch
-	 * block below for the operator-by-operator justification and verification notes.
+	 * SF/AF/LF; F G (co-Buchi) is SFG/AFG/LFG; G F (Buchi) is SGF/AGF/LGF (see the dispatch
+	 * block below).
 	 */
 	@Override
 	protected StateValues checkExpressionStrategyQual(Model<?> model, ExpressionStrategyQual expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
@@ -2606,7 +2597,7 @@ public class CSGModelChecker extends ProbModelChecker
 		//
 		// (ALMOST, G) and (LIMIT, G) reuse the same G/pre1 fixpoint as (SURE, G), rather
 		// than needing Apre1/Lpre1-based operators of their own, because safety winning
-		// regions provably coincide across all three qualitative modes -- confirmed as
+		// regions provably coincide across all three qualitative modes, by
 		// Theorem 3(1) of the LICS 2000 paper (S3.1): sure/almost/limit safety all reduce to
 		// Pre1 alone, with Spre1/Apre1/Lpre1 collapsing to the same operator, and Table 1(a)
 		// gives winning and spoiling strategies the same restricted class across all three

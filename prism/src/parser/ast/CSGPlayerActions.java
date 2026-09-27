@@ -31,10 +31,8 @@ import prism.PrismLangException;
  * ownership of a synchronising action genuinely ambiguous from module structure alone, a
  * situation CSG's disjointness requirement rules out by construction.
  *
- * <br>Ported out of {@code simulator.Updater#initialiseCSG()}, which previously computed
- * this independently; both now delegate to this single implementation so that the
- * explicit-state engine and the (future) symbolic CSG builder cannot silently disagree about
- * action ownership or well-formedness.
+ * <br>Used by both the explicit-state engine (via {@code simulator.Updater}) and the symbolic
+ * CSG builder, so that they agree on action ownership and well-formedness.
  */
 public class CSGPlayerActions
 {

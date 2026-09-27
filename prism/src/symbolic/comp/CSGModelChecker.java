@@ -49,51 +49,26 @@ import symbolic.states.StateValues;
 import symbolic.states.StateValuesMTBDD;
 
 /**
- * Model checker for CSGs (concurrent stochastic games), symbolic engine.
- *
- * <p><b>Still not a full CSG model checker.</b> rPATL-style {@code <<coalition>> P/R} property
- * syntax remains separate, not-yet-done work.
- * What this class now provides, as direct Java entry points over a coalition fixed via
- * {@link #setCoalition}, mirroring {@code explicit.CSGModelChecker}'s own methods of the same
- * name (that class is the ground truth these were derived from, including the "legality
- * guard convention" that makes them
- * correct, re-derived per primitive rather than assumed from a sibling each time):
+ * Model checker for CSGs (concurrent stochastic games), symbolic engine: qualitative strategy
+ * operators {@code <<coalition>>}/{@code [[coalition]] sure/almost/limit [ G psi | F psi |
+ * F G psi | G F psi ]}, for a Boolean state formula {@code psi}, over a coalition fixed via
+ * {@link #setCoalition}, with the same methods as {@code explicit.CSGModelChecker}:
  * <ul>
- * <li><b>sure mode</b>: {@link #G}/{@link #SF}/{@link #SFG}/{@link #SGF}, built from the shared
+ * <li><b>sure mode</b>: {@link #G}/{@link #SF}/{@link #SFG}/{@link #SGF}, built from
  *     {@link #pre1};</li>
- * <li><b>almost-sure mode</b>: {@link #AF}/{@link #AFG}/{@link #AGF}, built from the shared
+ * <li><b>almost-sure mode</b>: {@link #AF}/{@link #AFG}/{@link #AGF}, built from
  *     {@link #apreXY}/{@link #apreXYZ};</li>
- * <li><b>limit-sure mode</b>: {@link #LF}/{@link #LFG}/{@link #LGF}, built from the shared
- *     {@link #lpreXY}/{@link #lpreXYZ} -- {@code G} is reused as-is for both
- *     almost and limit mode (safety provably coincides across all three qualitative modes).</li>
+ * <li><b>limit-sure mode</b>: {@link #LF}/{@link #LFG}/{@link #LGF}, built from
+ *     {@link #lpreXY}/{@link #lpreXYZ}; {@code G} is shared by all three modes (safety
+ *     coincides across them).</li>
  * </ul>
- * All ten qualitative operators are now implemented, and reachable from real property syntax:
- * {@code <<coalition>>}/{@code [[coalition]]
- * sure/almost/limit [ G psi | F psi | F G psi | G F psi ]} for a Boolean state formula
- * {@code psi}, via {@link #checkExpression}'s override recognising {@link ExpressionStrategy}
- * -- mirroring {@code symbolic.comp.GamesModelChecker}'s own precedent for the *shape* of that
- * override (this is the pattern actually used elsewhere in this package for recognising
- * {@code <<>>}/{@code [[]]}, not {@code ProbModelChecker}, which has no such logic on the
- * symbolic side at all), and {@code explicit.CSGModelChecker.checkExpressionStrategyQual} for
- * the mode/shape dispatch logic itself. Not supported: rPATL {@code P}/{@code R} strategy
- * queries, and the "combo" (G F & F G) non-atomic shape the explicit engine handles via
- * Rabin-chain machinery this class doesn't have -- both rejected with a clear
- * {@link PrismNotSupportedException} rather than silently mishandled.
- *
- * <p>Boolean state formulas/labels/filters still work via {@link StateModelChecker}'s own
- * generic {@code checkExpression} dispatch, which this class's own override falls back to for
- * anything that isn't an {@link ExpressionStrategy}.
- *
- * <p>Deliberately does NOT extend {@link NonProbModelChecker}: that class's CTL {@code E}/
- * {@code A} operators quantify over the <i>whole</i> joint transition relation with no
- * per-player distinction ("does some/every combined choice of every player lead to..."),
- * which is not a meaningful semantics for a genuinely multi-player, simultaneous-move game --
- * it would silently answer a different question than the one a CSG property is actually
- * asking, rather than admitting it can't yet. Anything beyond the generic base dispatch and
- * this class's own methods (temporal operators, {@code ExpressionProb}, rPATL-style
- * {@code ExpressionStrategy} operands) instead falls through to
- * {@link StateModelChecker#checkExpression}'s own honest {@code "Couldn't check <class>"}
- * fallback.
+ * Not supported (rejected with a {@link PrismNotSupportedException}): rPATL {@code P}/{@code R}
+ * strategy queries, and the non-atomic (G F & F G) shape the explicit engine handles with its
+ * Rabin-chain operators. Boolean state formulas, labels and filters go through
+ * {@link StateModelChecker}'s generic {@code checkExpression}. The class does not extend
+ * {@link NonProbModelChecker}, whose CTL {@code E}/{@code A} operators quantify over the joint
+ * transition relation without distinguishing players; other expressions fall through to
+ * {@link StateModelChecker#checkExpression}.
  */
 public class CSGModelChecker extends StateModelChecker
 {
@@ -306,19 +281,15 @@ public class CSGModelChecker extends StateModelChecker
 	 * Release the current coalition context ({@link #actC}/{@link #actNC}/{@link #enabled}/
 	 * {@link #legalC}/{@link #legalNC}), if any -- a no-op if {@link #setCoalition} was never
 	 * called. Called both from {@link #setCoalition} itself (releasing the *previous* context
-	 * before rebuilding, for a checker instance that gets reused across coalitions -- e.g.
-	 * {@code CSGQualitativeValidationTest}) and from {@link #checkExpressionStrategyQual} once
+	 * before rebuilding, for a checker instance that gets reused across coalitions) and from
+	 * {@link #checkExpressionStrategyQual} once
 	 * the operator's result has been computed and the context is no longer needed.
 	 *
 	 * <p>The latter call site is not optional cleanliness: {@code Prism.modelCheck} creates a
-	 * <i>fresh</i> {@code CSGModelChecker} instance for every single property checked (confirmed
-	 * against {@code Prism.java}'s own model-checking driver), so a checker used via property
+	 * <i>fresh</i> {@code CSGModelChecker} instance for every property checked, so a checker used via property
 	 * syntax only ever calls {@link #setCoalition} once before being discarded -- the "release
 	 * the previous context" branch here never fires for that path, and without this explicit
-	 * end-of-query release, every property check leaks its own coalition context permanently.
-	 * Caught empirically as a real, reproducible leak under {@code -dddebug}:
-	 * checking N properties against the same model left exactly N sets of coalition-context
-	 * nodes with nonzero references at shutdown.
+	 * end-of-query release, every property check would leak its own coalition context.
 	 */
 	private void clearCoalition()
 	{
@@ -398,7 +369,7 @@ public class CSGModelChecker extends StateModelChecker
 	 * {@code A(V2,Y)(s,āC)}: coalition move {@code āC} is "good" w.r.t.
 	 * {@code (V2,Y)} -- every legal complement response either keeps the resulting
 	 * distribution's support entirely within {@code Y}, or is already excluded via
-	 * {@code V2}. Ground truth: {@code explicit.CSGModelChecker.A}.
+	 * {@code V2}. Symbolic counterpart of {@code explicit.CSGModelChecker.A}.
 	 *
 	 * <p>Unlike {@link #pre1}'s outer existential, this needs no separate {@link #legalC}
 	 * guard: {@code A}'s own quantifier ranges over {@link #actNC} alone, guarded by the
@@ -416,7 +387,7 @@ public class CSGModelChecker extends StateModelChecker
 	/**
 	 * {@code B(V1,X)(s,āNC)}: complement move {@code āNC} is "threatened" --
 	 * some coalition move {@code āC} in {@code V1} has a positive-probability chance of
-	 * reaching {@code X} against it. Ground truth: {@code explicit.CSGModelChecker.B}. The
+	 * reaching {@code X} against it. Symbolic counterpart of {@code explicit.CSGModelChecker.B}. The
 	 * existential over {@link #actC} is guarded directly by the joint {@link #enabled} as a
 	 * plain conjunct -- sufficient on its own (no separate {@link #legalC} needed) since
 	 * {@code enabled} already excludes illegal {@code āC} regardless of what {@code v1} claims
@@ -434,7 +405,7 @@ public class CSGModelChecker extends StateModelChecker
 	 * using, in general, a different {@code Y}-safe row per complement response (this is what
 	 * makes the guarantee <i>almost</i>-sure rather than sure: repeating the game lets the
 	 * coalition eventually pick whichever safe row threatens whatever the complement actually
-	 * played). Ground truth: {@code explicit.CSGModelChecker.apreXY}.
+	 * played). Symbolic counterpart of {@code explicit.CSGModelChecker.apreXY}.
 	 *
 	 * <p>The outer {@code ForAll} needs its own {@link #legalNC} guard: by this point
 	 * {@code enabled} has already been quantified away inside {@link #B}, so the vacuous-truth
@@ -452,8 +423,8 @@ public class CSGModelChecker extends StateModelChecker
 	/**
 	 * {@code apreXYZ(X,Y,Z)(s)}: the almost-sure co-Buchi one-step operator (AFpre1).
 	 * Unlike {@link #apreXY}, this needs its own inner fixpoint over the
-	 * coalition's own action dimension, parameterised by state -- ground truth:
-	 * {@code explicit.CSGModelChecker.apreXYZ}'s own per-state {@code v} while-loop,
+	 * coalition's own action dimension, parameterised by state -- the counterpart of
+	 * {@code explicit.CSGModelChecker.apreXYZ}'s per-state {@code v} while-loop,
 	 * generalised here to an {@code (S,ActC)}-shaped BDD fixpoint covering every state at
 	 * once. Still just the same "iterate a BDD to a fixed point" idiom used throughout this
 	 * class (e.g. {@link #G}/{@link #SF}), not a fundamentally new technique -- no extra
@@ -478,9 +449,7 @@ public class CSGModelChecker extends StateModelChecker
 	 * either one. Without the extra conjunct, those spurious illegal-{@code āC} bits creep
 	 * into {@code v} on the very first round (overwriting the clean {@code v_0 = legalC}) and
 	 * corrupt the final {@code ThereExists(v_final, actC)} into reading true at states that
-	 * have no genuine legal witness at all -- caught empirically as a real bug during
-	 * validation via a direct {@code A}/{@code B}/{@code apreXYZ} minterm
-	 * trace on {@code skirmish.prism}, not spotted by inspection alone.
+	 * have no genuine legal witness at all.
 	 */
 	public JDDNode apreXYZ(JDDNode x, JDDNode y, JDDNode z)
 	{
@@ -506,14 +475,12 @@ public class CSGModelChecker extends StateModelChecker
 	/**
 	 * {@code lpreXY(X,Y)(s)}: {@code Lpre1(Y,X)}, the limit-sure one-step operator. Unlike
 	 * {@link #apreXY}, this needs its own inner fixpoint over the coalition's own
-	 * action dimension -- ground truth: {@code explicit.CSGModelChecker.lpreXY}'s per-state
+	 * action dimension -- the counterpart of {@code explicit.CSGModelChecker.lpreXY}'s per-state
 	 * {@code w} while-loop, generalised to an {@code (S,ActC)}-shaped BDD fixpoint as usual.
 	 * {@code w_0 = 0}; {@code w_(k+1) = A(B(w_k,X),Y)}, until it stabilises; result =
 	 * {@code ForAll(actNC, Implies(legalNC, B(w_final,X)))}.
 	 *
-	 * <p><b>No extra {@code legalC} conjunct needed here, unlike {@link #apreXYZ}</b> -- the
-	 * legality-guard placement has to be re-derived per primitive, not
-	 * assumed from a sibling. Every use of {@code A}'s raw output in this method (both
+	 * <p><b>No extra {@code legalC} conjunct needed here, unlike {@link #apreXYZ}</b>. Every use of {@code A}'s raw output in this method (both
 	 * {@code w} feeding the next round's {@code B(w,X)}, and the final {@code B(w_final,X)})
 	 * is immediately re-consumed by another {@link #B} call, whose own {@code enabled} conjunct
 	 * washes out {@code A}'s illegal-{@code āC} vacuous-truth artifact regardless of what
@@ -541,7 +508,7 @@ public class CSGModelChecker extends StateModelChecker
 
 	/**
 	 * {@code lpreXYZ(X,Y,Z)(s)}: the limit-sure co-Buchi one-step operator.
-	 * Ground truth: {@code explicit.CSGModelChecker.lpreXYZ}'s doubly-nested {@code v}/{@code w}
+	 * Counterpart of {@code explicit.CSGModelChecker.lpreXYZ}'s doubly-nested {@code v}/{@code w}
 	 * while-loop -- an outer {@code v} fixpoint (starting at {@link #legalC}, matching
 	 * {@link #apreXYZ}'s own {@code v_0}), each round of which runs a full inner {@code w}
 	 * fixpoint (starting at {@code 0} every outer round) using an {@code ay = A(B(v,X),Y)} term
@@ -549,8 +516,8 @@ public class CSGModelChecker extends StateModelChecker
 	 * {@code v <- w_final} once the inner fixpoint stabilises, until <i>that</i> stabilises too.
 	 * Result: {@code ThereExists(v_final, actC)}.
 	 *
-	 * <p><b>The extra {@code legalC} conjunct on the inner {@code sol} is mandatory</b>, exactly
-	 * {@link #apreXYZ}'s fix, re-derived fresh here rather than assumed: {@code sol = az AND ay}
+	 * <p><b>The extra {@code legalC} conjunct on the inner {@code sol} is mandatory</b>, as in
+	 * {@link #apreXYZ}: {@code sol = az AND ay}
 	 * (both raw {@link #A} outputs) becomes {@code w} directly, with no intervening {@link #B}
 	 * call, and {@code w} eventually becomes {@code v} -- whose <i>final</i> value feeds the
 	 * same raw, unwashed {@code ThereExists(v, actC)} that {@link #apreXYZ} does. Without the

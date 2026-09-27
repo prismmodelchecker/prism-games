@@ -37,58 +37,28 @@ import symbolic.model.ModelVariablesDD;
 /**
  * Symbolic (ADD/BDD) builder for CSG models.
  *
- * <p><b>Not a subclass of {@link Modules2MTBDD}.</b> The existing {@code *2MTBDD} builders in
- * this package ({@link Modules2MTBDD}, {@link ExplicitFiles2MTBDD}, {@link
- * ModelGenerator2MTBDD}) are siblings, each extending {@link PrismNativeComponent} directly,
- * not each other, and {@code Modules2MTBDD} has no extension points built for subclassing. It
- * also has no useful CSG behaviour to inherit: its nondeterminism combination
- * ({@code combineCommandsNondet}) and SMG's one-hot turn encoding ({@code buildDDGame}) are
- * both incompatible with CSG's simultaneous per-player action structure.
- * What genuinely is reused is called out inline below: {@link ModelVariablesDD} for variable
- * allocation, and {@link CSGStateModelChecker} (a small subclass of {@code StateModelChecker},
- * itself reused as-is) for guard/expression translation.
+ * <p>Not a subclass of {@link Modules2MTBDD}: its nondeterminism combination
+ * ({@code combineCommandsNondet}) and SMG's turn encoding ({@code buildDDGame}) do not fit CSGs'
+ * simultaneous per-player actions. {@link ModelVariablesDD} is used for variable allocation and
+ * {@link CSGStateModelChecker} for guard/expression translation.
  *
- * <h2>Scope of this first slice</h2>
+ * <h2>Scope</h2>
  * Builds the state and {@code Act_p} ADD variables, the per-command action-list BDD
  * (see {@link #buildActionListBDD}), the transition ADD {@code T} for player-owned and
- * independent modules, the {@code Enabled} BDD (idle-action support) that
- * gates which joint action tuples are legal, and reachability restricted to it.
- * <b>Deliberately not yet implemented</b>, and not silently assumed correct -- flagged at the
- * relevant point below, not just here:
- * <ul>
- * <li>reward structures.</li>
- * </ul>
- * Idle-action handling and the module-identity fallback ARE
- * implemented -- see {@link #translateModule} and {@link #buildEnabled}. So is local
- * rectangularity (including the precedence/"shadowing" resolution it turned out
- * {@code translateModule} itself needed -- see {@link #buildEffectiveMatchSets}), global
- * completeness (the global, multi-command companion to local rectangularity, once the
- * row-sum formulation stopped being a useful proxy for it -- see
- * {@link #checkGlobalCompleteness}) and primed-variable dependency acyclicity
- * ({@link #checkPrimedVarAcyclicity}). None of these are restricted to models like
- * {@code unilateral.prism}/{@code idle_forced.prism} that happen not to need them.
+ * independent modules, the {@code Enabled} BDD (idle-action support) that gates which joint
+ * action tuples are legal, and reachability restricted to it. Also handles idle actions and the
+ * module-identity fallback ({@link #translateModule}, {@link #buildEnabled}), and checks local
+ * rectangularity (with precedence resolution, {@link #buildEffectiveMatchSets}), global
+ * completeness ({@link #checkGlobalCompleteness}) and primed-variable dependency acyclicity
+ * ({@link #checkPrimedVarAcyclicity}). Reward structures are not supported.
  *
- * <h2>CUDD reference-counting lifecycle</h2>
- * CUDD nodes are refcounted, not garbage-collected, so this class follows the same
- * two-tier discipline {@link Modules2MTBDD#translate} and {@code symbolic.model.ModelSymbolic}
- * already use elsewhere in this codebase (worth restating explicitly, since getting this
- * wrong is exactly what silently exhausts memory across a batch of builds rather than
- * failing loudly on the first one): DDs that exist only as build-time scaffolding (the
- * per-variable identity/range ADDs, {@code range} itself, the per-action enabled-action BDDs)
- * are derefed automatically and unconditionally at the end of {@link #build}, success or
- * failure, exactly like {@code Modules2MTBDD.cleanup()} and its
- * {@code expr2mtbdd.clearDummyModel()} call (this class makes the identical call, for the
- * identical reason -- {@link CSGStateModelChecker}'s abbreviated constructor, like
- * {@code Modules2MTBDD}'s own use of it, creates a throwaway dummy {@code ProbModel} purely
- * to have somewhere to hang expression translation, and that dummy model's DDs are never
- * otherwise released). The final artifacts -- {@link #getTrans}, {@link #getEnabled},
- * {@link #getStart}, {@link #getReach}, and the DD variables needed to interpret them -- are
- * NOT touched by that automatic cleanup, since build() can't know when the caller is done
- * with them; call {@link #clear} explicitly once finished with this object, the same
- * "build, use, then clear()" lifecycle {@code ModelSymbolic.clear()} follows. This matters
- * most exactly where it's easy to overlook: a loop that builds many models in one
- * JVM/CUDD session (e.g. batch experiments) will leak every one of them for the life of
- * that session if {@link #clear} is never called.
+ * <h2>CUDD reference counting</h2>
+ * Build-time DDs (per-variable identity/range ADDs, {@code range}, the per-action enabled-action
+ * BDDs, and the dummy model used for expression translation) are released at the end of
+ * {@link #build}, whether it succeeds or fails. The results ({@link #getTrans},
+ * {@link #getEnabled}, {@link #getStart}, {@link #getReach} and the DD variables needed to
+ * interpret them) are kept until {@link #clear} is called, which callers must do once finished
+ * with this object.
  */
 public class CSG2MTBDD extends PrismNativeComponent
 {
@@ -402,11 +372,9 @@ public class CSG2MTBDD extends PrismNativeComponent
 			varDDRowVars[i] = new JDDVars();
 			varDDColVars[i] = new JDDVars();
 		}
-		// State variables: interleaved row/col, in declaration order. Variable-ordering
-		// EXPERIMENTATION -- including whether Act_p belongs before, after or interleaved with
-		// these -- is explicitly deferred; this is a reasonable starting point, not a
-		// claimed-optimal default. Act_p is NOT required to sit after every state variable
-		// here, since nothing downstream of this slice needs that (no hybrid solver).
+		// State variables: interleaved row/col, in declaration order (not necessarily an
+		// optimal ordering). Act_p is not required to sit after every state variable here,
+		// since nothing downstream needs that (no hybrid solver).
 		for (int i = 0; i < numVars; i++) {
 			int n = varList.getRangeLogTwo(i);
 			for (int j = 0; j < n; j++) {
@@ -601,10 +569,9 @@ public class CSG2MTBDD extends PrismNativeComponent
 	 * and Enabled is what excludes the combinations where "no command reacts" would otherwise be
 	 * wrong (e.g. a player choosing an action that isn't actually available). This is not the
 	 * same thing as the global completeness *check* ({@link #checkGlobalCompleteness}) --
-	 * this is unconditional construction, not validation; it cannot mask the specific bug that
-	 * check is for (two commands sharing a primary label failing to jointly cover the
-	 * co-action space), only the (fine, expected) case of a module simply not being party to
-	 * the tuple at all.
+	 * this is unconditional construction, not a check; it cannot mask what that check detects
+	 * (two commands sharing a primary label failing to jointly cover the co-action space),
+	 * only the case of a module simply not being party to the tuple at all.
 	 */
 	private JDDNode translateModule(int m, Module module) throws PrismException
 	{
@@ -1096,7 +1063,7 @@ public class CSG2MTBDD extends PrismNativeComponent
 
 	// -------------------------------------------------------------------------------
 	// Identities/ranges (same construction as Modules2MTBDD.sortIdentities/sortRanges,
-	// at variable granularity only -- module-level identities are not needed by this slice)
+	// at variable granularity only -- module-level identities are not needed here)
 	// -------------------------------------------------------------------------------
 
 	private void buildIdentitiesAndRanges()
@@ -1172,8 +1139,7 @@ public class CSG2MTBDD extends PrismNativeComponent
 	}
 
 	// -------------------------------------------------------------------------------
-	// Accessors, including the state/transition counts used for cross-checking against the
-	// explicit engine (an oracle-style comparison).
+	// Accessors
 	// -------------------------------------------------------------------------------
 
 	public JDDNode getTrans()
