@@ -31,6 +31,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.PrimitiveIterator;
 
 import explicit.graphviz.StateOwnerDecorator;
 import explicit.rewards.STPGRewards;
@@ -199,6 +200,67 @@ public interface STPG<Value> extends MDP<Value>, TurnBasedGame
 	 * @param disc Discount factor
 	 */
 	void mvMultRewMinMax(double[] vect, STPGRewards<Double> rewards, boolean min1, boolean min2, double[] result, BitSet subset, boolean complement, int[] adv, double disc);
+
+	/**
+	 * Do a matrix-vector multiplication followed by two min/max ops, i.e. one step of value iteration,
+	 * i.e. for all s: result[s] = min/max_{k1,k2} { sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param vect Vector to multiply by
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param result Vector to store result in
+	 * @param states Perform computation for these rows, in the iteration order
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 */
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[]);
+
+	/**
+	 * Do a Gauss-Seidel-style matrix-vector multiplication followed by min/max.
+	 * i.e. for all s: vect[s] = min/max_{k1,k2} { (sum_{j!=s} P_{k1,k2}(s,j)*vect[j]) / P_{k1,k2}(s,s) }
+	 * and store new values directly in {@code vect} as computed.
+	 * The maximum (absolute/relative) difference between old/new
+	 * elements of {@code vect} is also returned.
+	 * @param vect Vector to multiply by (and store the result in)
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param states Perform computation for these rows, in the iteration order
+	 * @param absolute If true, compute absolute, rather than relative, difference
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @return The maximum difference between old/new elements of {@code vect}
+	 */
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[]);
+
+	/**
+	 * Do a (discounted) matrix-vector multiplication and sum of rewards followed by min/max, i.e. one step of value iteration.
+	 * i.e. for all s: result[s] = min/max_{k1,k2} { rew(s) + disc * sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * @param vect Vector to multiply by
+	 * @param rewards The rewards
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param result Vector to store result in
+	 * @param states Perform computation for these rows, in the iteration order
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc Discount factor (1.0 = no discounting)
+	 */
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[], double disc);
+
+	/**
+	 * Do a (discounted) Gauss-Seidel-style matrix-vector multiplication and sum of rewards followed by min/max.
+	 * i.e. for all s: vect[s] = min/max_{k1,k2} { rew(s) + disc * sum_j P_{k1,k2}(s,j)*vect[j] }
+	 * (possibly with the self-loop probability factored out, Jacobi-style),
+	 * and store new values directly in {@code vect} as computed.
+	 * The maximum (absolute/relative) difference between old/new
+	 * elements of {@code vect} is also returned.
+	 * @param vect Vector to multiply by (and store the result in)
+	 * @param rewards The rewards
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param states Perform computation for these rows, in the iteration order
+	 * @param absolute If true, compute absolute, rather than relative, difference
+	 * @param adv Storage for adversary choice indices (ignored if null)
+	 * @param disc Discount factor (1.0 = no discounting)
+	 * @return The maximum difference between old/new elements of {@code vect}
+	 */
+	public double mvMultRewGSMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[], double disc);
 
 	/**
 	 * Checks  whether all successors of action c in state s are in a given set

@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PrimitiveIterator;
 
 import common.IterableStateSet;
 import explicit.rewards.STPGRewards;
@@ -795,6 +796,59 @@ public class STPGAbstrSimple<Value> extends ModelExplicit<Value> implements STPG
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[])
+	{
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			result[s] = mvMultMinMaxSingle(s, vect, min1, min2);
+		}
+	}
+
+	@Override
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[])
+	{
+		double d, diff, maxDiff = 0.0;
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			d = mvMultJacMinMaxSingle(s, vect, min1, min2, adv);
+			diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+			maxDiff = diff > maxDiff ? diff : maxDiff;
+			vect[s] = d;
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[], double disc)
+	{
+		if (disc != 1.0) {
+			throw new UnsupportedOperationException();
+		}
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			result[s] = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
+		}
+	}
+
+	@Override
+	public double mvMultRewGSMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[], double disc)
+	{
+		if (disc != 1.0) {
+			throw new UnsupportedOperationException();
+		}
+		// (Plain) Gauss-Seidel: new values are stored in vect immediately and used for subsequent states
+		double d, diff, maxDiff = 0.0;
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			d = mvMultRewMinMaxSingle(s, vect, rewards, min1, min2, adv);
+			diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / Math.abs(d));
+			maxDiff = diff > maxDiff ? diff : maxDiff;
+			vect[s] = d;
+		}
+		return maxDiff;
+	}
+
 	// Additional accessor that extended STPG with a "nested view"
 
 	/**

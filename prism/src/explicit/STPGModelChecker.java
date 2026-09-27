@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import acceptance.AcceptanceReach;
+import common.IntSet;
 import common.IterableBitSet;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.RewardsSimple;
@@ -50,6 +51,7 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import prism.PrismNotSupportedException;
+import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.BoundedRewardDeterministicStrategy;
 import strat.FMDStrategyProduct;
@@ -523,110 +525,8 @@ public class STPGModelChecker extends ProbModelChecker
 	protected ModelCheckerResult computeReachProbsValIter(STPG<Double> stpg, BitSet no, BitSet yes, boolean min1, boolean min2, double init[], BitSet known)
 			throws PrismException
 	{
-		ModelCheckerResult res = null;
-		BitSet unknown;
-		int i, n, iters;
-		double soln[], soln2[], tmpsoln[], initVal;
-		boolean done;
-		long timer;
-
-		// Start value iteration
-		timer = System.currentTimeMillis();
-		if (verbosity >= 1)
-			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
-
-		// Store num states
-		n = stpg.getNumStates();
-
-		// Create solution vector(s)
-		soln = new double[n];
-		soln2 = (init == null) ? new double[n] : init;
-
-		// Initialise solution vectors. Use (where available) the following in order of preference:
-		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3) passed in initial value; (4) initVal
-		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above. 
-		initVal = (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
-		if (init != null) {
-			if (known != null) {
-				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
-			} else {
-				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
-			}
-		} else {
-			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
-		}
-
-		// Determine set of states actually need to compute values for
-		unknown = new BitSet();
-		unknown.set(0, n);
-		unknown.andNot(yes);
-		unknown.andNot(no);
-		if (known != null)
-			unknown.andNot(known);
-
-		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		int strat[] = null;
-		if (genStrat) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = -1;
-			}
-			for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
-				int numChoices = stpg.getNumChoices(i);
-				for (int k = 0; k < numChoices; k++) {
-					if (stpg.allSuccessorsInSet(i, k, no)) {
-						strat[i] = k;
-						break;
-					}
-				}
-			}
-		}
-
-		// Start iterations
-		iters = 0;
-		done = false;
-		while (!done && iters < maxIters) {
-			iters++;
-			// Matrix-vector multiply and min/max ops
-			stpg.mvMultMinMax(soln, min1, min2, soln2, unknown, false, strat);
-			// Check termination
-			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
-			// Swap vectors for next iter
-			tmpsoln = soln;
-			soln = soln2;
-			soln2 = tmpsoln;
-		}
-
-		// Finished value iteration
-		timer = System.currentTimeMillis() - timer;
-		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-		}
-
-		// Non-convergence is an error (usually)
-		if (!done && errorOnNonConverge) {
-			String msg = "Iterative method did not converge within " + iters + " iterations.";
-			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
-			throw new PrismException(msg);
-		}
-
-		// Store results/strategy
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		double maxDiff = PrismUtils.measureSupNorm(soln, soln2, termCrit == TermCrit.ABSOLUTE);
-		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
-		res.numIters = iters;
-		res.timeTaken = timer / 1000.0;
-		if (genStrat) {
-			res.strat = new MDStrategyArray<>(stpg, strat);
-		}
-
-		return res;
+		IterationMethod iterationMethod = new IterationMethodPower(termCrit == TermCrit.ABSOLUTE, termCritParam);
+		return doValueIterationReachProbs(stpg, no, yes, min1, min2, init, known, iterationMethod);
 	}
 
 	/**
@@ -643,39 +543,62 @@ public class STPGModelChecker extends ProbModelChecker
 	protected ModelCheckerResult computeReachProbsGaussSeidel(STPG<Double> stpg, BitSet no, BitSet yes, boolean min1, boolean min2, double init[], BitSet known)
 			throws PrismException
 	{
-		ModelCheckerResult res;
+		IterationMethod iterationMethod = new IterationMethodGS(termCrit == TermCrit.ABSOLUTE, termCritParam, false);
+		return doValueIterationReachProbs(stpg, no, yes, min1, min2, init, known, iterationMethod);
+	}
+
+	/**
+	 * Compute reachability probabilities using value iteration,
+	 * with the specified iteration method (power or Gauss-Seidel).
+	 * @param stpg The STPG
+	 * @param no Probability 0 states
+	 * @param yes Probability 1 states
+	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
+	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param iterationMethod The iteration method
+	 */
+	protected ModelCheckerResult doValueIterationReachProbs(STPG<Double> stpg, BitSet no, BitSet yes, boolean min1, boolean min2, double init[], BitSet known, IterationMethod iterationMethod)
+			throws PrismException
+	{
 		BitSet unknown;
-		int i, n, iters;
-		double soln[], initVal, maxDiff = Double.POSITIVE_INFINITY;
-		boolean done;
+		int i, n;
+		double initVal;
 		long timer;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
+		String description = (min1 ? "min" : "max") + (min2 ? "min" : "max") + ", with " + iterationMethod.getDescriptionShort();
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration (Gauss-Seidel, " + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")...");
+			mainLog.println("Starting value iteration (" + description + ")...");
+
+		ExportIterations iterationsExport = null;
+		if (settings != null && settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			iterationsExport = new ExportIterations("Explicit STPG ReachProbs value iteration (" + description + ")");
+			mainLog.println("Exporting iterations to " + iterationsExport.getFileName());
+		}
 
 		// Store num states
 		n = stpg.getNumStates();
 
-		// Create solution vector
-		soln = (init == null) ? new double[n] : init;
-
 		// Initialise solution vector. Use (where available) the following in order of preference:
 		// (1) exact answer, if already known; (2) 1.0/0.0 if in yes/no; (3) passed in initial value; (4) initVal
-		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above.
+		// where initVal is 0.0 or 1.0, depending on whether we converge from below/above. 
 		initVal = (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
-					soln[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+					init[i] = known.get(i) ? init[i] : yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
 			} else {
 				for (i = 0; i < n; i++)
-					soln[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
+					init[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : init[i];
 			}
 		} else {
+			init = new double[n];
 			for (i = 0; i < n; i++)
-				soln[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
+				init[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initVal;
 		}
 
 		// Determine set of states actually need to compute values for
@@ -705,37 +628,15 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
-		// Start iterations
-		iters = 0;
-		done = false;
-		while (!done && iters < maxIters) {
-			iters++;
-			// Matrix-vector multiply and min/max ops
-			maxDiff = stpg.mvMultGSMinMax(soln, min1, min2, unknown, false, termCrit == TermCrit.ABSOLUTE, strat);
-			// Check termination
-			done = maxDiff < termCritParam;
-		}
+		if (iterationsExport != null)
+			iterationsExport.exportVector(init, 0);
 
-		// Finished Gauss-Seidel
-		timer = System.currentTimeMillis() - timer;
-		if (verbosity >= 1) {
-			mainLog.print("Value iteration (Gauss-Seidel, " + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-		}
+		// Run the actual value iteration
+		IterationMethod.IterationValIter iteration = IterationMethodGames.forMvMultMinMax(iterationMethod, stpg, min1, min2, strat);
+		iteration.init(init);
+		ModelCheckerResult res = iterationMethod.doValueIteration(this, description, iteration, IntSet.asIntSet(unknown), timer, iterationsExport);
 
-		// Non-convergence is an error (usually)
-		if (!done && errorOnNonConverge) {
-			String msg = "Iterative method did not converge within " + iters + " iterations.";
-			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
-			throw new PrismException(msg);
-		}
-
-		// Store results/strategy
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
-		res.numIters = iters;
-		res.timeTaken = timer / 1000.0;
+		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
 		}
@@ -989,6 +890,33 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Compute expected reachability rewards using the currently selected solution method
+	 * (value iteration or Gauss-Seidel).
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param inf States for which reward is infinite
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	protected ModelCheckerResult computeReachRewardsNumeric(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
+			double init[], BitSet known, double disc) throws PrismException
+	{
+		switch (stpgSolnMethod) {
+		case VALUE_ITERATION:
+			return computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known, disc);
+		case GAUSS_SEIDEL:
+			return computeReachRewardsGaussSeidel(stpg, rewards, target, inf, min1, min2, init, known, disc);
+		default:
+			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
+		}
+	}
+
+	/**
 	 * Compute expected reachability rewards using value iteration.
 	 * @param stpg The STPG
 	 * @param rewards The rewards
@@ -1022,38 +950,81 @@ public class STPGModelChecker extends ProbModelChecker
 	protected ModelCheckerResult computeReachRewardsValIter(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
 			double init[], BitSet known, double disc) throws PrismException
 	{
-		ModelCheckerResult res;
-		BitSet unknown, notInf;
-		int i, n, iters;
-		double soln[], soln2[], tmpsoln[];
-		boolean done;
+		IterationMethod iterationMethod = new IterationMethodPower(termCrit == TermCrit.ABSOLUTE, termCritParam);
+		return doValueIterationReachRewards(stpg, rewards, target, inf, min1, min2, init, known, disc, iterationMethod);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected reachability rewards using Gauss-Seidel.
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param inf States for which reward is infinite
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 */
+	protected ModelCheckerResult computeReachRewardsGaussSeidel(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
+			double init[], BitSet known, double disc) throws PrismException
+	{
+		IterationMethod iterationMethod = new IterationMethodGS(termCrit == TermCrit.ABSOLUTE, termCritParam, false);
+		return doValueIterationReachRewards(stpg, rewards, target, inf, min1, min2, init, known, disc, iterationMethod);
+	}
+
+	/**
+	 * Compute (optionally discounted) expected reachability rewards using value iteration,
+	 * with the specified iteration method (power or Gauss-Seidel).
+	 * @param stpg The STPG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param inf States for which reward is infinite
+	 * @param min1 Min or max rewards for player 1 (true=min, false=max)
+	 * @param min2 Min or max rewards for player 2 (true=min, false=max)
+	 * @param init Optionally, an initial solution vector (will be overwritten) 
+	 * @param known Optionally, a set of states for which the exact answer is known
+	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.
+	 * @param disc Discount factor for future rewards (1.0 = no discounting)
+	 * @param iterationMethod The iteration method
+	 */
+	protected ModelCheckerResult doValueIterationReachRewards(STPG<Double> stpg, STPGRewards<Double> rewards, BitSet target, BitSet inf, boolean min1, boolean min2,
+			double init[], BitSet known, double disc, IterationMethod iterationMethod) throws PrismException
+	{
+		BitSet unknown;
+		int i, n;
 		long timer;
 
 		// Start value iteration
 		timer = System.currentTimeMillis();
+		String description = (min1 ? "min" : "max") + (min2 ? "min" : "max") + ", with " + iterationMethod.getDescriptionShort() + (disc < 1.0 ? ", discount=" + disc : "");
 		if (verbosity >= 1)
-			mainLog.println("Starting value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + (disc < 1.0 ? ", discount=" + disc : "") + ")...");
+			mainLog.println("Starting value iteration (" + description + ")...");
+
+		ExportIterations iterationsExport = null;
+		if (settings != null && settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
+			iterationsExport = new ExportIterations("Explicit STPG ReachRewards value iteration (" + description + ")");
+			mainLog.println("Exporting iterations to " + iterationsExport.getFileName());
+		}
 
 		// Store num states
 		n = stpg.getNumStates();
 
-		// Create solution vector(s)
-		soln = new double[n];
-		soln2 = (init == null) ? new double[n] : init;
-
-		// Initialise solution vectors. Use (where available) the following in order of preference:
+		// Initialise solution vector. Use (where available) the following in order of preference:
 		// (1) exact answer, if already known; (2) 0.0/infinity if in target/inf; (3) passed in initial value; (4) 0.0
 		if (init != null) {
 			if (known != null) {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = known.get(i) ? init[i] : target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
+					init[i] = known.get(i) ? init[i] : target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
 			} else {
 				for (i = 0; i < n; i++)
-					soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
+					init[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : init[i];
 			}
 		} else {
+			init = new double[n];
 			for (i = 0; i < n; i++)
-				soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+				init[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
 		}
 
 		// Determine set of states actually need to compute values for
@@ -1063,10 +1034,6 @@ public class STPGModelChecker extends ProbModelChecker
 		unknown.andNot(inf);
 		if (known != null)
 			unknown.andNot(known);
-
-		// constructing not infinity set
-		notInf = (BitSet) inf.clone();
-		notInf.flip(0, n);
 
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
@@ -1078,52 +1045,15 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 		}
 
-		// Start iterations
-		iters = 0;
-		done = false;
-		while (!done && iters < maxIters) {
+		if (iterationsExport != null)
+			iterationsExport.exportVector(init, 0);
 
-		        //mainLog.println(soln);
-			//mainLog.println(rewards);
-			//mainLog.println(min1);
-			//mainLog.println(min2);
-			//mainLog.println(soln2);
-			//mainLog.println(unknown);
-			//mainLog.println(genAdv);
+		// Run the actual value iteration
+		IterationMethod.IterationValIter iteration = IterationMethodGames.forMvMultRewMinMax(iterationMethod, stpg, rewards, min1, min2, strat, disc);
+		iteration.init(init);
+		ModelCheckerResult res = iterationMethod.doValueIteration(this, description, iteration, IntSet.asIntSet(unknown), timer, iterationsExport);
 
-			iters++;
-			// Matrix-vector multiply and min/max ops
-			stpg.mvMultRewMinMax(soln, rewards, min1, min2, soln2, unknown, false, strat, disc);
-
-			// Check termination
-			done = PrismUtils.doublesAreClose(soln, soln2, termCritParam, termCrit == TermCrit.ABSOLUTE);
-			// Swap vectors for next iter
-			tmpsoln = soln;
-			soln = soln2;
-			soln2 = tmpsoln;
-		}
-
-		// Finished value iteration
-		timer = System.currentTimeMillis() - timer;
-		if (verbosity >= 1) {
-			mainLog.print("Value iteration (" + (min1 ? "min" : "max") + (min2 ? "min" : "max") + ")");
-			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
-		}
-
-		// Non-convergence is an error (usually)
-		if (!done && errorOnNonConverge) {
-			String msg = "Iterative method did not converge within " + iters + " iterations.";
-			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
-			throw new PrismException(msg);
-		}
-
-		// Store results/strategy
-		res = new ModelCheckerResult();
-		res.soln = soln;
-		double maxDiff = PrismUtils.measureSupNorm(soln, soln2, termCrit == TermCrit.ABSOLUTE);
-		res.accuracy = AccuracyFactory.valueIteration(termCritParam, maxDiff, termCrit == TermCrit.ABSOLUTE);
-		res.numIters = iters;
-		res.timeTaken = timer / 1000.0;
+		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
 		}
@@ -1233,14 +1163,7 @@ public class STPGModelChecker extends ProbModelChecker
 			}
 
 			// Compute the value when rewards are nonzero
-			switch (stpgSolnMethod) {
-			case VALUE_ITERATION:
-			case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
-				res = computeReachRewardsValIter(stpg, replaceZeroRewards(rewards, epsilon), target, inf, min1, min2, init, known);
-				break;
-			default:
-				throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
-			}
+			res = computeReachRewardsNumeric(stpg, replaceZeroRewards(rewards, epsilon), target, inf, min1, min2, init, known, 1.0);
 
 			// Set the value iteration result to be the initial solution for the
 			// next part
@@ -1256,14 +1179,7 @@ public class STPGModelChecker extends ProbModelChecker
 		}
 
 		// Compute real rewards
-		switch (stpgSolnMethod) {
-		case VALUE_ITERATION:
-		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
-			break;
-		default:
-			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
-		}
+		res = computeReachRewardsNumeric(stpg, rewards, target, inf, min1, min2, init, known, 1.0);
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;
@@ -1308,14 +1224,7 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("target=" + target.cardinality() + ", inf=0, rest=" + (stpg.getNumStates() - target.cardinality()));
 
-		switch (stpgSolnMethod) {
-		case VALUE_ITERATION:
-		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
-			res = computeReachRewardsValIter(stpg, rewards, target, new BitSet(), min1, min2, init, known, disc);
-			break;
-		default:
-			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
-		}
+		res = computeReachRewardsNumeric(stpg, rewards, target, new BitSet(), min1, min2, init, known, disc);
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;
@@ -1444,14 +1353,7 @@ public class STPGModelChecker extends ProbModelChecker
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// Compute real rewards
-		switch (stpgSolnMethod) {
-		case VALUE_ITERATION:
-		case GAUSS_SEIDEL: // Fall back to VI (no GS implemented)
-			res = computeReachRewardsValIter(stpg, rewards, target, inf, min1, min2, init, known);
-			break;
-		default:
-			throw new PrismException("Unknown STPG solution method " + stpgSolnMethod);
-		}
+		res = computeReachRewardsNumeric(stpg, rewards, target, inf, min1, min2, init, known, 1.0);
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;

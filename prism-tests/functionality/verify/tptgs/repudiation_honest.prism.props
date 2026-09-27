@@ -18,11 +18,11 @@ const int K = 10;
 // RESULT (p=0.1): 0.271
 <<o,r>>Pmax=? [ F<=K "terminated_successfully" ]
 
-// RESULT (p=0.1): 140.01127612925964
+// RESULT (p=0.1): 140.00785346897072
 <<>>Rmin=? [ F "terminated_successfully" ]
-// RESULT (p=0.1): 70.00350223861956
+// RESULT (p=0.1): 70.00238641900947
 <<o>>Rmin=? [ F "terminated_successfully" ]
-// RESULT (p=0.1): 100.00626795308528
+// RESULT (p=0.1): 100.00440146931501
 <<r>>Rmin=? [ F "terminated_successfully" ]
 // RESULT (p=0.1): 30.000945017864343
 <<o,r>>Rmin=? [ F "terminated_successfully" ]

@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator;
 import java.util.Set;
 
 import explicit.rewards.Rewards;
@@ -392,6 +393,55 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 				result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
 			}
 		}
+	}
+
+	@Override
+	public void mvMultMinMax(double vect[], boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[])
+	{
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			boolean min = (getPlayer(s) == 0) ? min1 : min2;
+			result[s] = mvMultMinMaxSingle(s, vect, min, adv);
+		}
+	}
+
+	@Override
+	public double mvMultGSMinMax(double vect[], boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[])
+	{
+		double d, diff, maxDiff = 0.0;
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			d = mvMultJacMinMaxSingle(s, vect, min1, min2, adv);
+			diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / d);
+			maxDiff = diff > maxDiff ? diff : maxDiff;
+			vect[s] = d;
+		}
+		return maxDiff;
+	}
+
+	@Override
+	public void mvMultRewMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, double result[], PrimitiveIterator.OfInt states, int adv[], double disc)
+	{
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			boolean min = (getPlayer(s) == 0) ? min1 : min2;
+			result[s] = smgMvMultRewMinMaxSingle(s, vect, rewards, min, adv, disc);
+		}
+	}
+
+	@Override
+	public double mvMultRewGSMinMax(double vect[], STPGRewards<Double> rewards, boolean min1, boolean min2, PrimitiveIterator.OfInt states, boolean absolute, int adv[], double disc)
+	{
+		double d, diff, maxDiff = 0.0;
+		while (states.hasNext()) {
+			int s = states.nextInt();
+			boolean min = (getPlayer(s) == 0) ? min1 : min2;
+			d = mvMultRewJacMinMaxSingle(s, vect, rewards, min, adv, disc);
+			diff = absolute ? (Math.abs(d - vect[s])) : (Math.abs(d - vect[s]) / Math.abs(d));
+			maxDiff = diff > maxDiff ? diff : maxDiff;
+			vect[s] = d;
+		}
+		return maxDiff;
 	}
 
 	/**
