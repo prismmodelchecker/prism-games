@@ -1,27 +1,27 @@
 //==============================================================================
-//	
+//
 //	Copyright (c) 2002-
 //	Authors:
 //	* Dave Parker <david.parker@comlab.ox.ac.uk> (University of Oxford)
-//	
+//
 //------------------------------------------------------------------------------
-//	
+//
 //	This file is part of PRISM.
-//	
+//
 //	PRISM is free software; you can redistribute it and/or modify
 //	it under the terms of the GNU General Public License as published by
 //	the Free Software Foundation; either version 2 of the License, or
 //	(at your option) any later version.
-//	
+//
 //	PRISM is distributed in the hope that it will be useful,
 //	but WITHOUT ANY WARRANTY; without even the implied warranty of
 //	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //	GNU General Public License for more details.
-//	
+//
 //	You should have received a copy of the GNU General Public License
 //	along with PRISM; if not, write to the Free Software Foundation,
 //	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//	
+//
 //==============================================================================
 
 package parser;
@@ -36,11 +36,11 @@ import prism.PrismLangException;
 
 /**
  * Class to store a model state, i.e. a mapping from variables to values.
- * Stores as an array of Objects, where indexing is defined by a model. 
+ * Stores as an array of Objects, where indexing is defined by a model.
  */
 public class State implements Comparable<State>, Serializable
 {
-	public Object varValues[];
+	public final Object varValues[];
 
 	/**
 	 * Construct empty (uninitialised) state.
@@ -57,8 +57,7 @@ public class State implements Comparable<State>, Serializable
 	 */
 	public State(State s)
 	{
-		this(s.varValues.length);
-		copy(s);
+		varValues = Arrays.copyOf(s.varValues, s.varValues.length);
 	}
 
 	/**
@@ -68,18 +67,14 @@ public class State implements Comparable<State>, Serializable
 	{
 		Object[] arr1 = (Object[]) s1.varValues;
 		Object[] arr2 = (Object[]) s2.varValues;
-		varValues = new Object[arr1.length + arr2.length];
-		int i;
-		for (i = 0; i < arr1.length; i++)
-			varValues[i] = arr1[i];
-		for (i = 0; i < arr2.length; i++)
-			varValues[arr1.length + i] = arr2[i];
+		varValues = Arrays.copyOf(arr1, arr1.length + arr2.length);
+		System.arraycopy(arr2, 0, varValues, arr1.length, arr2.length);
 	}
 
 	/**
 	 * Construct by copying existing Values object.
 	 * Need access to model info in case variables are not ordered correctly.
-	 * Throws an exception if any variables are undefined. 
+	 * Throws an exception if any variables are undefined.
 	 * @param v Values object to copy.
 	 * @param modelInfo Model info (for variable info/ordering)
 	 */
@@ -91,7 +86,7 @@ public class State implements Comparable<State>, Serializable
 	/**
 	 * Construct by copying existing Values object.
 	 * Need access to model info in case variables are not ordered correctly.
-	 * If requested, throws an exception if any variables are undefined. 
+	 * If requested, throws an exception if any variables are undefined.
 	 * @param v Values object to copy.
 	 * @param modelInfo Model info (for variable info/ordering)
 	 * @param checkAllDef If true, check all variables are present
@@ -104,9 +99,6 @@ public class State implements Comparable<State>, Serializable
 			throw new PrismLangException("Wrong number of variables in state");
 		}
 		varValues = new Object[n];
-		for (i = 0; i < n; i++) {
-			varValues[i] = null;
-		}
 		for (i = 0; i < n; i++) {
 			j = modelInfo.getVarIndex(v.getName(i));
 			if (j == -1) {
@@ -124,20 +116,17 @@ public class State implements Comparable<State>, Serializable
 	 */
 	public void clear()
 	{
-		int i, n;
-		n = varValues.length;
-		for (i = 0; i < n; i++)
-			varValues[i] = null;
+		Arrays.fill(varValues, null);
 	}
 
 	public void intersect(State s)
 	{
-	    int n = varValues.length;
-	    for(int i = 0; i < n; i++) {
-		if(varValues[i] == null || !varValues[i].equals(s.varValues[i])) {
-		    varValues[i] = null;
+		int n = varValues.length;
+		for (int i = 0; i < n; i++) {
+			if (varValues[i] != null && !varValues[i].equals(s.varValues[i])) {
+				varValues[i] = null;
+			}
 		}
-	    }
 	}
 
 	/**
@@ -155,10 +144,7 @@ public class State implements Comparable<State>, Serializable
 	 */
 	public void copy(State s)
 	{
-		int i, n;
-		n = varValues.length;
-		for (i = 0; i < n; i++)
-			varValues[i] = s.varValues[i];
+		System.arraycopy(s.varValues, 0, varValues, 0, varValues.length);
 	}
 
 	@Override
@@ -170,19 +156,22 @@ public class State implements Comparable<State>, Serializable
 	@Override
 	public boolean equals(Object o)
 	{
-		if (o == this)
+		if (o == this) {
 			return true;
-		if (!(o instanceof State))
+		}
+		if (!(o instanceof State)) {
 			return false;
-
-		int i, n;
+		}
 		State s = (State) o;
-		n = varValues.length;
-		if (n != s.varValues.length)
+		int n = varValues.length;
+		if (n != s.varValues.length) {
 			return false;
-		for (i = 0; i < n; i++) {
-			if (!(varValues[i]).equals(s.varValues[i]))
+		}
+		for (int i = 0; i < n; i++) {
+			// Assumes non-null values
+			if (!varValues[i].equals(s.varValues[i])) {
 				return false;
+			}
 		}
 		return true;
 	}
@@ -192,7 +181,7 @@ public class State implements Comparable<State>, Serializable
 	{
 		return compareTo(s, 0);
 	}
-	
+
 	/**
 	 * Compare this state to another state {@code s} (in the style of {@link #compareTo(State)},
 	 * first comparing variables with index greater than or equal to {@code j},
@@ -202,22 +191,22 @@ public class State implements Comparable<State>, Serializable
 	{
 		int i, c, n;
 		Object svv[];
-		
+
 		// Can't compare to null
 		if (s == null)
 			throw new NullPointerException();
-		
-		// States of different size are incomparable 
+
+		// States of different size are incomparable
 		svv = s.varValues;
 		n = varValues.length;
 		if (varValues.length != svv.length)
 			throw new ClassCastException("States are of different size");
 		if (n > svv.length)
 			throw new ClassCastException("States do not contain enough values");
-		
+
 		if (j > n-1)
 			throw new ClassCastException("Variable index is incorrect");
-		
+
 		// Go through variables j...n-1
 		for (i = j; i < n; i++) {
 			c = compareObjects(varValues[i], svv[i]);
@@ -226,7 +215,7 @@ public class State implements Comparable<State>, Serializable
 			else
 				continue;
 		}
-		
+
 		// Go through variables 0...j
 		for (i = 0; i < j; i++) {
 			c = compareObjects(varValues[i], svv[i]);
@@ -235,12 +224,12 @@ public class State implements Comparable<State>, Serializable
 			else
 				continue;
 		}
-		
+
 		return 0;
 	}
 
 	/**
-	 * Get string representation, e.g. "(0,true,5)". 
+	 * Get string representation, e.g. "(0,true,5)".
 	 */
 	@Override
 	public String toString()
@@ -258,7 +247,7 @@ public class State implements Comparable<State>, Serializable
 	}
 
 	/**
-	 * Get string representation, without outer parentheses, e.g. "0,true,5". 
+	 * Get string representation, without outer parentheses, e.g. "0,true,5".
 	 */
 	public String toStringNoParentheses()
 	{
@@ -274,8 +263,8 @@ public class State implements Comparable<State>, Serializable
 	}
 
 	/**
-	 * Get string representation, e.g. "(a=0,b=true,c=5)", 
-	 * with variables names (taken from a String list). 
+	 * Get string representation, e.g. "(a=0,b=true,c=5)",
+	 * with variables names (taken from a String list).
 	 */
 	public String toString(List<String> varNames)
 	{
@@ -292,8 +281,8 @@ public class State implements Comparable<State>, Serializable
 	}
 
 	/**
-	 * Get string representation, e.g. "(a=0,b=true,c=5)", 
-	 * with variables names (taken from model info). 
+	 * Get string representation, e.g. "(a=0,b=true,c=5)",
+	 * with variables names (taken from model info).
 	 */
 	public String toString(ModelInfo modelInfo)
 	{
