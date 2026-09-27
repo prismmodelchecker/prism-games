@@ -1,0 +1,2 @@
+-exportstrat exportstratinduced-smg.prism.props.restrict.pexp:type=induced,mode=restrict
+-exportstrat exportstratinduced-smg.prism.props.reduce.pexp:type=induced,mode=reduce

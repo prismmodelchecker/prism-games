@@ -1,0 +1,31 @@
+// Test for -exportstrat induced-model export for SMGs with mode=restrict
+// (which keeps the induced model as an SMG, rather than reducing it to a DTMC).
+// Player 2 has a choice in state 1, only one of which is kept by the strategy.
+// Reward structure "r" has transition rewards, to check they are copied too.
+
+smg
+
+player p1 [a1], [b1] endplayer
+player p2 [a2], [b2] endplayer
+
+module M
+
+s : [0..3];
+
+[a1] s=0 -> (s'=1);
+[b1] s=0 -> 0.5:(s'=0) + 0.5:(s'=3);
+[a2] s=1 -> (s'=2);
+[b2] s=1 -> 0.5:(s'=2) + 0.5:(s'=3);
+[] s>=2 -> true;
+
+endmodule
+
+label "goal" = s=2;
+
+rewards "r"
+	s=0 : 1;
+	[a1] true : 1;
+	[b1] true : 2;
+	[a2] true : 5;
+	[b2] true : 7;
+endrewards

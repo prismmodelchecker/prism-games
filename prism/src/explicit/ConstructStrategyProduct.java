@@ -46,6 +46,7 @@ import parser.ast.DeclarationInt;
 import parser.ast.Expression;
 import prism.Evaluator;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismNotSupportedException;
 import strat.Strategy;
@@ -160,6 +161,12 @@ public class ConstructStrategyProduct
 
 		// Create a (simple, mutable) model of the appropriate type
 		ModelSimple<Value> prodModel = (ModelSimple<Value>) ModelSimple.forModelType(productModelType);
+
+		// Attach player info, if needed
+		// (a game-typed product model has the same players as the original model)
+		if (prodModel instanceof PlayerInfoOwner && model instanceof PlayerInfoOwner) {
+			((PlayerInfoOwner) prodModel).setPlayerNames(((PlayerInfoOwner) model).getPlayerNames());
+		}
 
 		// Attach evaluator and variable info
 		((ModelExplicit<Value>) prodModel).setEvaluator(model.getEvaluator());

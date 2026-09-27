@@ -32,6 +32,7 @@ import explicit.rewards.RewardsSimple;
 import parser.State;
 import prism.Evaluator;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismNotSupportedException;
 import strat.Strategy;
@@ -150,6 +151,12 @@ public class ConstructInducedModel
 
 		// Create a (simple, mutable) model of the appropriate type
 		ModelSimple<Value> inducedModel = (ModelSimple<Value>) ModelSimple.forModelType(inducedModelType);
+
+		// Attach player info, if needed
+		// (a game-typed induced model has the same players as the original model)
+		if (inducedModel instanceof PlayerInfoOwner && model instanceof PlayerInfoOwner) {
+			((PlayerInfoOwner) inducedModel).setPlayerNames(((PlayerInfoOwner) model).getPlayerNames());
+		}
 
 		// Attach evaluator and copy variable info
 		((ModelExplicit<Value>) inducedModel).setEvaluator(model.getEvaluator());
@@ -441,7 +448,7 @@ public class ConstructInducedModel
 						((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
 						break;
 					case SMG:
-						((STPGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
+						((SMGSimple<Value>) inducedModel).addActionLabelledChoice(map[s], prodDistr, inducedAction);
 						break;
 					default:
 						break;

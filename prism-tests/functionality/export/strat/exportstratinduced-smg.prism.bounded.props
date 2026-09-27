@@ -1,0 +1,3 @@
+// Step-bounded, so the strategy has memory (induced model built as a product)
+// RESULT: 0.5
+<<p1>> Pmax=? [ F<=2 "goal" ];
