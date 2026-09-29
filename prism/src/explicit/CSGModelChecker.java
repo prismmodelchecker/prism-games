@@ -858,7 +858,7 @@ public class CSGModelChecker extends ProbModelChecker
 		// Compute real rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(csg, rewards, target, null, inf, init, maxIters, false, min1);
+			res = computeReachRewardsValIter(csg, rewards, target, null, inf, init, maxIters, false, min1, true);
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -982,6 +982,25 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
+		return computeReachRewardsValIter(csg, rewards, target, known, inf, init, limit, bounded, min, false);
+	}
+
+	/**
+	 * Compute expected reachability rewards using value iteration.
+	 * @param csg The CSG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param known States whose value is known
+	 * @param inf States whose value is infinite
+	 * @param limit Bound
+	 * @param bounded Is the problem (step) bounded?
+	 * @param min Min or max probabilities for player 1 (true=min, false=max)
+	 * @param infAvoidsTarget Are "inf" states those which (for max) can avoid the target
+	 *                        with positive probability? If so, generate strategy choices for them.
+	 **/
+	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
+			boolean bounded, boolean min, boolean infAvoidsTarget) throws PrismException
+	{
 		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
@@ -1064,6 +1083,10 @@ public class CSGModelChecker extends ProbModelChecker
 			} else {
 				ntmp = Arrays.copyOf(nsol, nsol.length);
 			}
+		}
+		// For max, also generate strategy choices for the "inf" states, if needed
+		if (genStrat && !min && infAvoidsTarget) {
+			addStrategyChoicesForInfStates(csg, target, inf, lstrat.get(0).get(0));
 		}
 		mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		timer = System.currentTimeMillis() - timer;
@@ -1641,11 +1664,82 @@ public class CSGModelChecker extends ProbModelChecker
 	 */
 	public Map<BitSet, Double> findChoiceStayingInSet(CSG<Double> csg, int s, BitSet x, int c) throws PrismException
 	{
+		return findChoiceForSet(csg, s, x, c, true);
+	}
+
+	/**
+	 * Find a coalition action for coalition {@code c} (0 or 1, as built by
+	 * {@link #buildCoalitions(CSG, Coalition, boolean)}) in state {@code s} which ensures
+	 * that some transition goes to the set {@code x} (i.e., with positive probability),
+	 * whatever the other coalition does.
+	 * If there is such an action, the first one is returned, as a (deterministic) strategy choice,
+	 * i.e., a map from the coalition action (a BitSet of action indices) to 1.0.
+	 * Otherwise, this may still be possible by randomising (e.g., in matching pennies),
+	 * so a uniform choice is returned over all coalition actions that move to {@code x}
+	 * for some action of the other coalition, if this covers all of the latter's actions.
+	 * If not, null is returned.
+	 * @param csg The CSG
+	 * @param s Index of state
+	 * @param x Set of states to move to
+	 * @param c Coalition (0 or 1)
+	 */
+	public Map<BitSet, Double> findChoiceReachingSet(CSG<Double> csg, int s, BitSet x, int c) throws PrismException
+	{
+		// Use a deterministic choice, if there is one
+		Map<BitSet, Double> d = findChoiceForSet(csg, s, x, c, false);
+		if (d != null) {
+			return d;
+		}
+		// Otherwise, find coalition actions that move to x for some other coalition action,
+		// and check whether, together, they cover all other coalition actions
+		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
+		BitSet action = new BitSet();
+		buildStepGame(csg, null, imap, null, s);
+		List<Integer> others = strategies.get(1 - c);
+		List<Integer> reaching = new ArrayList<Integer>();
+		BitSet covered = new BitSet();
+		for (int i : strategies.get(c)) {
+			boolean reaches = false;
+			for (int jj = 0; jj < others.size(); jj++) {
+				action.clear();
+				action.set(i);
+				action.set(others.get(jj));
+				if (!probabilities.containsKey(action)) {
+					throw new PrismException("Error in building distribution matrix");
+				}
+				if (probabilities.get(action).get(0).containsOneOf(x)) {
+					covered.set(jj);
+					reaches = true;
+				}
+			}
+			if (reaches) {
+				reaching.add(i);
+			}
+		}
+		if (covered.cardinality() < others.size()) {
+			return null;
+		}
+		Map<Integer, BitSet> rmap = imap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+		d = new HashMap<BitSet, Double>();
+		for (int i : reaching) {
+			d.put(rmap.get(i), 1.0 / reaching.size());
+		}
+		return d;
+	}
+
+	/**
+	 * Find a coalition action for coalition {@code c} in state {@code s} which ensures that
+	 * all transitions ({@code all}=true) or some transition ({@code all}=false) go to the set
+	 * {@code x}, whatever the other coalition does. See {@link #findChoiceStayingInSet}
+	 * and {@link #findChoiceReachingSet}.
+	 */
+	private Map<BitSet, Double> findChoiceForSet(CSG<Double> csg, int s, BitSet x, int c, boolean all) throws PrismException
+	{
 		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
 		BitSet action = new BitSet();
 		buildStepGame(csg, null, imap, null, s);
 		for (int i : strategies.get(c)) {
-			boolean allStay = true;
+			boolean ok = true;
 			for (int j : strategies.get(1 - c)) {
 				action.clear();
 				action.set(i);
@@ -1653,12 +1747,13 @@ public class CSGModelChecker extends ProbModelChecker
 				if (!probabilities.containsKey(action)) {
 					throw new PrismException("Error in building distribution matrix");
 				}
-				if (!probabilities.get(action).get(0).isSubsetOf(x)) {
-					allStay = false;
+				Distribution<Double> distr = probabilities.get(action).get(0);
+				if (!(all ? distr.isSubsetOf(x) : distr.containsOneOf(x))) {
+					ok = false;
 					break;
 				}
 			}
-			if (allStay) {
+			if (ok) {
 				Map<Integer, BitSet> rmap = imap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
 				Map<BitSet, Double> d = new HashMap<BitSet, Double>();
 				d.put(rmap.get(i), 1.0);
@@ -1666,6 +1761,52 @@ public class CSGModelChecker extends ProbModelChecker
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * For max expected reachability rewards, where not reaching the target
+	 * gives infinite reward, generate strategy choices for coalition 0 (the maximising one)
+	 * in the "inf" states, i.e., those from which it can avoid {@code target}
+	 * with positive probability. First, find the states from which the target
+	 * can be surely avoided forever and pick choices that stay there. Then, working backwards,
+	 * pick, for each remaining "inf" state, a (possibly randomised) choice which, whatever the
+	 * other coalition does, moves with positive probability to a state that has already been dealt with.
+	 * Any "inf" states not dealt with like this are left unchanged.
+	 * NB: Picking any choice that stays in "inf" with positive probability (as for MDPs)
+	 * is not enough: it may still reach the target with probability 1.
+	 * @param csg The CSG
+	 * @param target Target states
+	 * @param inf States whose value is infinite
+	 * @param stratChoices Strategy choices for each state, to be updated
+	 */
+	public void addStrategyChoicesForInfStates(CSG<Double> csg, BitSet target, BitSet inf, List<Map<BitSet, Double>> stratChoices) throws PrismException
+	{
+		int n = csg.getNumStates();
+		// States from which the target can be surely avoided: stay there
+		BitSet notTarget = new BitSet();
+		notTarget.set(0, n);
+		notTarget.andNot(target);
+		BitSet done = G(csg, notTarget);
+		done.and(inf);
+		for (int s = done.nextSetBit(0); s >= 0; s = done.nextSetBit(s + 1)) {
+			stratChoices.set(s, findChoiceStayingInSet(csg, s, done, 0));
+		}
+		// Other "inf" states: move towards those dealt with already
+		boolean changed = true;
+		while (changed) {
+			BitSet doneNew = new BitSet();
+			BitSet todo = (BitSet) inf.clone();
+			todo.andNot(done);
+			for (int s = todo.nextSetBit(0); s >= 0; s = todo.nextSetBit(s + 1)) {
+				Map<BitSet, Double> choice = findChoiceReachingSet(csg, s, done, 0);
+				if (choice != null) {
+					stratChoices.set(s, choice);
+					doneNew.set(s);
+				}
+			}
+			changed = !doneNew.isEmpty();
+			done.or(doneNew);
+		}
 	}
 
 	// Utility methods for CSG solving
