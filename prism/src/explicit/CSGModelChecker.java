@@ -524,6 +524,14 @@ public class CSGModelChecker extends ProbModelChecker
 				ntmp = Arrays.copyOf(nsol, nsol.length);
 			}
 		}
+		// For min, also generate strategy choices for the "no" states (where the
+		// minimising coalition is coalition 1): as for MDPs, pick, for each one,
+		// the first coalition action for which all transitions stay in "no"
+		if (genStrat && min) {
+			for (s = no.nextSetBit(0); s >= 0; s = no.nextSetBit(s + 1)) {
+				lstrat.get(0).get(0).set(s, findChoiceStayingInSet(csg, s, no, 1));
+			}
+		}
 		mainLog.println("\nValue iteration converged after " + k + " iterations.");
 		timer = System.currentTimeMillis() - timer;
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -1617,6 +1625,47 @@ public class CSGModelChecker extends ProbModelChecker
 			x.or(sol1);
 		}
 		return x;
+	}
+
+	/**
+	 * Find a coalition action for coalition {@code c} (0 or 1, as built by
+	 * {@link #buildCoalitions(CSG, Coalition, boolean)}) in state {@code s} which ensures
+	 * that all transitions stay in the set {@code x}, whatever the other coalition does.
+	 * The first such action is returned, as a (deterministic) strategy choice,
+	 * i.e., a map from the coalition action (a BitSet of action indices) to 1.0,
+	 * or null if there is none.
+	 * @param csg The CSG
+	 * @param s Index of state
+	 * @param x Set of states to stay in
+	 * @param c Coalition (0 or 1)
+	 */
+	public Map<BitSet, Double> findChoiceStayingInSet(CSG<Double> csg, int s, BitSet x, int c) throws PrismException
+	{
+		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
+		BitSet action = new BitSet();
+		buildStepGame(csg, null, imap, null, s);
+		for (int i : strategies.get(c)) {
+			boolean allStay = true;
+			for (int j : strategies.get(1 - c)) {
+				action.clear();
+				action.set(i);
+				action.set(j);
+				if (!probabilities.containsKey(action)) {
+					throw new PrismException("Error in building distribution matrix");
+				}
+				if (!probabilities.get(action).get(0).isSubsetOf(x)) {
+					allStay = false;
+					break;
+				}
+			}
+			if (allStay) {
+				Map<Integer, BitSet> rmap = imap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+				Map<BitSet, Double> d = new HashMap<BitSet, Double>();
+				d.put(rmap.get(i), 1.0);
+				return d;
+			}
+		}
+		return null;
 	}
 
 	// Utility methods for CSG solving
