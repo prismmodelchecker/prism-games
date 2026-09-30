@@ -701,6 +701,12 @@ public class CSGModelChecker extends ProbModelChecker
 		timerPrecomp = System.currentTimeMillis() - timerPrecomp;
 		buildCoalitions(csg, coalition, min1);
 
+		// Strategy synthesis for max is not supported if some values are infinite
+		// (we would need strategy choices for the "inf" states that ensure this)
+		if (genStrat && !min1 && !inf.isEmpty()) {
+			throw new PrismException("Strategy synthesis for max total rewards with infinite values is not supported yet");
+		}
+
 		// Standard max reward calculation, but with empty target set
 		switch (solnMethod) {
 		case VALUE_ITERATION:
@@ -951,6 +957,12 @@ public class CSGModelChecker extends ProbModelChecker
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		buildCoalitions(csg, coalition, min1);
+
+		// Strategy synthesis for max is not supported if some values are infinite
+		// (we would need strategy choices for the "inf" states that ensure this)
+		if (genStrat && !min1 && !inf.isEmpty()) {
+			throw new PrismException("Strategy synthesis for max cumulative reachability rewards (Fc) with infinite values is not supported yet");
+		}
 
 		switch (solnMethod) {
 		case VALUE_ITERATION:
