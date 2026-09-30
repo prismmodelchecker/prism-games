@@ -1,0 +1,11 @@
+const int k; // step bound
+
+// Reward property with transition rewards, with strategy generation enabled via -exportstrat
+// (which attaches reward structures to the model; this previously crashed for CSGs
+// with an IndexOutOfBoundsException during reward construction).
+// Strategy synthesis for bounded properties is not supported (yet), so we expect
+// that error, rather than a crash. Unbounded properties (e.g. R[F]) are not tested here
+// since CSG strategy export itself is not yet supported.
+
+// RESULT: Error:not supported
+<<robot1>>R{"time1"}min=? [ C<=k ]

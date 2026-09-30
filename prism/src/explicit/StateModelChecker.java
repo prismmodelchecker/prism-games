@@ -1687,6 +1687,10 @@ public class StateModelChecker extends PrismComponent
 			if (attached != null) {
 				int i;
 				if (model instanceof NondetModel) {
+					// For CSGs, actions may be passed as player action indices; convert to JointAction
+					if (model instanceof CSG && action instanceof int[]) {
+						action = new JointAction((int[]) action, ((CSG<Value>) model).getActions());
+					}
 					i = ((NondetModel<Value>) model).getChoiceByAction(s, action);
 				} else if (model instanceof DTMC) {
 					i = ((DTMC<Value>) model).getTransitionByAction(s, action);
