@@ -372,35 +372,67 @@ public class CSG2MTBDD extends PrismNativeComponent
 			varDDRowVars[i] = new JDDVars();
 			varDDColVars[i] = new JDDVars();
 		}
-		// State variables: interleaved row/col, in declaration order (not necessarily an
-		// optimal ordering). Act_p is not required to sit after every state variable here,
-		// since nothing downstream needs that (no hybrid solver).
-		for (int i = 0; i < numVars; i++) {
-			int n = varList.getRangeLogTwo(i);
-			for (int j = 0; j < n; j++) {
-				varDDRowVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "." + j));
-				varDDColVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "'." + j));
-			}
-		}
-		allDDRowVars = new JDDVars();
-		allDDColVars = new JDDVars();
-		for (int i = 0; i < numVars; i++) {
-			allDDRowVars.mergeVarsFrom(varDDRowVars[i]);
-			allDDColVars.mergeVarsFrom(varDDColVars[i]);
-		}
-
-		// Act_p: one block per player, sized to n_p = (named actions) + 1 for ⊥_p.
-		// No row/col pairing -- an action is chosen once per transition step, not carried
-		// across it.
 		actDDVars = new JDDVars[numPlayers];
 		for (int p = 0; p < numPlayers; p++) {
 			actDDVars[p] = new JDDVars();
+		}
+		allDDRowVars = new JDDVars();
+		allDDColVars = new JDDVars();
+
+		// Owner player of each state variable: the player owning its module, or -1 for a
+		// global or a variable in an unowned (passive/shared) module.
+		int[] varOwner = new int[numVars];
+		for (int i = 0; i < numVars; i++) {
+			int m = varList.getModule(i);
+			varOwner[i] = (m == -1) ? -1 : playerActions.getPlayerForModule(m);
+		}
+
+		// DD variable ordering is the order of allocateVariable() calls below. We interleave
+		// per player -- each player's own state variables immediately followed by that player's
+		// action bits -- so that legalActForPlayer(p) (a guard over p's state ANDed with
+		// isAction over p's action bits) has contiguous support. buildEnabled()'s conjunction
+		// over players then stays a linear product instead of forcing the BDD to carry the whole
+		// joint state across a state->action block boundary. The old ordering allocated all state
+		// variables first and all action bits after, so every legalActForPlayer(p) spanned that
+		// boundary and the running conjunction blew up to ~2^(all state bits).
+		//
+		// Leading block: globals and unowned-module (passive/shared) state variables. These are
+		// read by more than one player's guards, so they cannot be localised to a single player.
+		for (int i = 0; i < numVars; i++) {
+			if (varOwner[i] == -1) {
+				allocateStateVar(i);
+			}
+		}
+		// Per player: p's state variables, then p's action bits (n_p = named actions + 1 for the
+		// idle action; no row/col pairing -- an action is chosen once per step, not carried).
+		for (int p = 0; p < numPlayers; p++) {
+			for (int i = 0; i < numVars; i++) {
+				if (varOwner[i] == p) {
+					allocateStateVar(i);
+				}
+			}
 			int nBits = (int) Math.ceil(PrismUtils.log2(numActionsForPlayer(p)));
 			String playerName = modulesFile.getPlayer(p).getName();
 			for (int j = 0; j < nBits; j++) {
 				actDDVars[p].addVar(modelVariables.allocateVariable(playerName + ".a" + j));
 			}
 		}
+	}
+
+	/**
+	 * Allocate the interleaved row/col DD variables for state variable {@code i} and merge them
+	 * into {@link #allDDRowVars}/{@link #allDDColVars} in allocation (level) order, keeping the
+	 * row and col lists positionally aligned for row&lt;-&gt;col swaps.
+	 */
+	private void allocateStateVar(int i)
+	{
+		int n = varList.getRangeLogTwo(i);
+		for (int j = 0; j < n; j++) {
+			varDDRowVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "." + j));
+			varDDColVars[i].addVar(modelVariables.allocateVariable(varList.getName(i) + "'." + j));
+		}
+		allDDRowVars.mergeVarsFrom(varDDRowVars[i]);
+		allDDColVars.mergeVarsFrom(varDDColVars[i]);
 	}
 
 	private JDDVars allActDDVars()
