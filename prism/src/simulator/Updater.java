@@ -490,7 +490,7 @@ public class Updater<Value> extends PrismComponent
 						if (i != j) {
 							for (BitSet prod : expansions.get(m).get(i)) {
 								if (!(cmd2.getSynchIndices().get(0) == 0)) {
-									if (cmd2.getSynchIndices().get(0) == cmd1.getSynchIndices().get(0)) {
+									if (cmd2.getSynchIndices().get(0).equals(cmd1.getSynchIndices().get(0))) {
 										if (cmd2.getSynchIndices().size() < cmd1.getSynchIndices().size()) {
 											expansions.get(m).get(j).remove(prod);
 										}
