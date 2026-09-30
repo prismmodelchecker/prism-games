@@ -452,7 +452,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachProbsValIter(CSG<Double> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
 		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		LpSolve lp;
 		ArrayList<ArrayList<Double>> mgame;
@@ -558,7 +558,7 @@ public class CSGModelChecker extends ProbModelChecker
 	{
 		// TODO: confirm that the case min1==min2 is not handled
 		if (genStrat) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		LpSolve lp;
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -739,7 +739,7 @@ public class CSGModelChecker extends ProbModelChecker
 		case R_CUMULATIVE:
 			return computeReachRewardsCumulative(csg, coalition, rewards, target, min1, min2, false);
 		case R_ZERO:
-			throw new PrismException("F0 is not yet supported for CSGs.");
+			throw new PrismException("F0 is not yet supported for CSGs");
 		default:
 			throw new PrismException("Unknown semantics for runs unreaching the target in CSGModelChecker: " + unreachingSemantics);
 		}
@@ -1002,7 +1002,7 @@ public class CSGModelChecker extends ProbModelChecker
 			boolean bounded, boolean min, boolean infAvoidsTarget) throws PrismException
 	{
 		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
