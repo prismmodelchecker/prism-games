@@ -1,0 +1,45 @@
+// One-shot CSG with non-square matrix game in the initial state,
+// where one column of the minimiser (p2) gives infinite reward.
+// Matrix of expected rewards to reach "goal" (rows p1, columns p2):
+//        b1   b2   b3
+//   a1   4   inf   1
+//   a2   1   inf   2
+// Optimal: value 1.75; p1 plays a1:0.25,a2:0.75; p2 plays b1:0.25,b3:0.75
+
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+	[a1] s=0 -> true;
+	[a2] s=0 -> true;
+	[l1] s>0 -> true;
+endmodule
+
+module m2
+	[b1] s=0 -> true;
+	[b2] s=0 -> true;
+	[b3] s=0 -> true;
+	[l2] s>0 -> true;
+endmodule
+
+module game
+	s : [0..2] init 0; // 0: initial, 1: goal, 2: sink (goal unreachable)
+	[a1,b1] true -> (s'=1);
+	[a1,b2] true -> (s'=2);
+	[a1,b3] true -> (s'=1);
+	[a2,b1] true -> (s'=1);
+	[a2,b2] true -> (s'=2);
+	[a2,b3] true -> (s'=1);
+	[l1,l2] true -> true;
+endmodule
+
+rewards "r"
+	[a1,b1] true : 4;
+	[a1,b3] true : 1;
+	[a2,b1] true : 1;
+	[a2,b3] true : 2;
+endrewards
+
+label "goal" = s=1;

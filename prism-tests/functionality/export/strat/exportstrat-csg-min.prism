@@ -1,0 +1,35 @@
+// One-shot CSG with non-square matrix games in the initial state:
+// the minimiser (p2) has 3 actions and the maximiser (p1) has 2.
+// Matrix of probabilities of reaching "goal" (rows p1, columns p2):
+//        b1   b2   b3
+//   a1  0.6  1.0  0.2
+//   a2  0.2  1.0  0.8
+// Optimal: value 0.44; p1 plays a1:0.6,a2:0.4; p2 plays b1:0.6,b3:0.4
+
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+	[a1] s=0 -> true;
+	[a2] s=0 -> true;
+endmodule
+
+module m2
+	[b1] s=0 -> true;
+	[b2] s=0 -> true;
+	[b3] s=0 -> true;
+endmodule
+
+module game
+	s : [0..2] init 0; // 0: initial, 1: goal, 2: fail
+	[a1,b1] true -> 0.6:(s'=1) + 0.4:(s'=2);
+	[a1,b2] true -> (s'=1);
+	[a1,b3] true -> 0.2:(s'=1) + 0.8:(s'=2);
+	[a2,b1] true -> 0.2:(s'=1) + 0.8:(s'=2);
+	[a2,b2] true -> (s'=1);
+	[a2,b3] true -> 0.8:(s'=1) + 0.2:(s'=2);
+endmodule
+
+label "goal" = s=1;

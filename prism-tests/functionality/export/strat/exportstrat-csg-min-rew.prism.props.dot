@@ -1,0 +1,37 @@
+digraph M {
+node [label="",shape="box"];
+0 [label="0\n(0)"];
+0 -> n0_0  [label="0:0.25: [b1]--[a1]",arrowhead="none"];
+n0_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_0 -> 1 [label="0.25"];
+0 -> n0_1  [label="1:0.75: [b3]--[a1]",arrowhead="none"];
+n0_1 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_1 -> 1 [label="0.75"];
+0 -> n0_2  [label="2:0.25: [b1]--[a2]",arrowhead="none"];
+n0_2 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_2 -> 1 [label="0.25"];
+0 -> n0_3  [label="3:0.75: [b3]--[a2]",arrowhead="none"];
+n0_3 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_3 -> 1 [label="0.75"];
+1 [label="1\n(1)"];
+1 -> n1_0  [label="0:Sat",arrowhead="none"];
+n1_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n1_0 -> 1 [label="1"];
+}
+
+/*
+ -- Transitions --  
+# Transitions (MDP)
+2 5 5
+0 0 1 0.25 0.25: [b1]--[a1]
+0 1 1 0.75 0.75: [b3]--[a1]
+0 2 1 0.25 0.25: [b1]--[a2]
+0 3 1 0.75 0.75: [b3]--[a2]
+1 0 1 1 Sat
+
+ -- States --  
+# States
+(s)
+0:(0)
+1:(1)
+*/

@@ -1,0 +1,3 @@
+// Strategy for minimiser in a non-square matrix game with an infinite column
+// RESULT: 1.75
+<<p2>> R{"r"}min=? [ F "goal" ];
