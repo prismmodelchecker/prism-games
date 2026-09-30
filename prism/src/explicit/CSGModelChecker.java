@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -182,7 +183,7 @@ public class CSGModelChecker extends ProbModelChecker
 			mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
 			nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
 			if (genStrat) {
-				updateStrategy(kstrat, lstrat, 0, s, false);
+				updateStrategy(kstrat, lstrat, 0, s, false, mgame, mmap, min1);
 			}
 		}
 		timer = System.currentTimeMillis() - timer;
@@ -508,10 +509,8 @@ public class CSGModelChecker extends ProbModelChecker
 					nsol[s] = val(lp, mgame, kstrat, mmap, s, false, min);
 					// player -> iteration -> state -> indexes -> value
 					if (genStrat) {
-						updateStrategy(kstrat, lstrat, k, s, bounded);
+						updateStrategy(kstrat, lstrat, k, s, bounded, mgame, mmap, min);
 					}
-				} else if (genStrat) {
-					lstrat.get(0).get(0).add(s, null);
 				}
 			}
 			k++;
@@ -831,6 +830,14 @@ public class CSGModelChecker extends ProbModelChecker
 			}
 		}
 
+		// For strategy generation, the strategy found in the first computation (if needed, see below)
+		// is used as the initial strategy for the second one, and then only changed where strictly
+		// better; this avoids picking choices in zero-reward loops that never reach the target
+		List<Map<BitSet, Double>> stratChoices = null;
+		if (genStrat) {
+			stratChoices = new ArrayList<Map<BitSet, Double>>(Collections.nCopies(n, (Map<BitSet, Double>) null));
+		}
+
 		if (!allNonzero && !(rewards instanceof StateRewardsConstant)) {
 			timerApprox = System.currentTimeMillis();
 			// A simple heuristic that gives small epsilon, but still is
@@ -844,7 +851,7 @@ public class CSGModelChecker extends ProbModelChecker
 			// Computes the value when rewards are nonzero
 			switch (solnMethod) {
 			case VALUE_ITERATION:
-				init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1).soln;
+				init = computeReachRewardsValIter(csg, replaceZeroRewards(rewards, epsilon), target, null, inf, null, maxIters, false, min1, false, stratChoices).soln;
 				break;
 			default:
 				throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -864,7 +871,7 @@ public class CSGModelChecker extends ProbModelChecker
 		// Compute real rewards
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachRewardsValIter(csg, rewards, target, null, inf, init, maxIters, false, min1, true);
+			res = computeReachRewardsValIter(csg, rewards, target, null, inf, init, maxIters, false, min1, true, stratChoices);
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -1013,6 +1020,27 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min, boolean infAvoidsTarget) throws PrismException
 	{
+		return computeReachRewardsValIter(csg, rewards, target, known, inf, init, limit, bounded, min, infAvoidsTarget, null);
+	}
+
+	/**
+	 * Compute expected reachability rewards using value iteration.
+	 * @param csg The CSG
+	 * @param rewards The rewards
+	 * @param target Target states
+	 * @param known States whose value is known
+	 * @param inf States whose value is infinite
+	 * @param limit Bound
+	 * @param bounded Is the problem (step) bounded?
+	 * @param min Min or max probabilities for player 1 (true=min, false=max)
+	 * @param infAvoidsTarget Are "inf" states those which (for max) can avoid the target
+	 *                        with positive probability? If so, generate strategy choices for them.
+	 * @param stratChoices Optionally, storage for the (unbounded) strategy choices for each state:
+	 *                     these are used as the initial strategy and are updated in place (ignored if null)
+	 **/
+	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
+			boolean bounded, boolean min, boolean infAvoidsTarget, List<Map<BitSet, Double>> stratChoices) throws PrismException
+	{
 		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet");
 		}
@@ -1034,9 +1062,11 @@ public class CSGModelChecker extends ProbModelChecker
 			// player -> iteration -> state -> indexes -> value
 			lstrat = new ArrayList<List<List<Map<BitSet, Double>>>>();
 			lstrat.add(0, new ArrayList<List<Map<BitSet, Double>>>());
-			lstrat.get(0).add(0, new ArrayList<Map<BitSet, Double>>());
+			lstrat.get(0).add(0, stratChoices != null ? stratChoices : new ArrayList<Map<BitSet, Double>>());
 			for (i = 0; i < csg.getNumStates(); i++) {
-				lstrat.get(0).get(0).add(i, null);
+				if (stratChoices == null) {
+					lstrat.get(0).get(0).add(i, null);
+				}
 				kstrat.add(i, null);
 			}
 			if (bounded) {
@@ -1082,7 +1112,7 @@ public class CSGModelChecker extends ProbModelChecker
 					nsol[s] += rewards.getStateReward(s);
 					if (genStrat) {
 						// player -> iteration -> state -> indexes -> value
-						updateStrategy(kstrat, lstrat, k, s, bounded);
+						updateStrategy(kstrat, lstrat, k, s, bounded, mgame, mmap, min);
 					}
 				}
 			}
@@ -2182,6 +2212,9 @@ public class CSGModelChecker extends ProbModelChecker
 			// Should add check for trivial games
 			int infty;
 			BitSet infCols = new BitSet();
+			// Work on a (shallow) copy of the matrix, since it may be modified below
+			// (by valInfinity or rounding) and the caller may still need the original
+			mgame = new ArrayList<ArrayList<Double>>(mgame);
 			infty = valInfinity(mgame, infCols);
 			if (infty != -1) {
 				res = Double.POSITIVE_INFINITY;
@@ -2405,14 +2438,23 @@ public class CSGModelChecker extends ProbModelChecker
 
 	/**
 	 * Update the strategy
+	 * <br><br>
+	 * For the unbounded case, the stored choice for state {@code s} is only replaced
+	 * if the new one is strictly better (up to a relative tolerance of {@link #STRAT_IMPROVEMENT_TOL}),
+	 * as evaluated on the current matrix game. Otherwise, at convergence, a choice that
+	 * makes no progress (e.g., a self-loop) may be picked in place of one that ties with it.
 	 *
 	 * @param kstrat The strategies for all states computed in iteration k
 	 * @param lstrat The overall strategy
 	 * @param k Iteration k, if bounded
 	 * @param s The index of the state
 	 * @param bounded
+	 * @param mgame The matrix game for state s used in iteration k
+	 * @param mmap Coalition actions for the rows (max) or columns (min) of {@code mgame}
+	 * @param min Min or max values for the coalition (true=min, false=max)
 	 */
-	public void updateStrategy(List<Map<BitSet, Double>> kstrat, List<List<List<Map<BitSet, Double>>>> lstrat, int k, int s, boolean bounded)
+	public void updateStrategy(List<Map<BitSet, Double>> kstrat, List<List<List<Map<BitSet, Double>>>> lstrat, int k, int s, boolean bounded,
+			ArrayList<ArrayList<Double>> mgame, Map<Integer, BitSet> mmap, boolean min)
 	{
 		// player -> iteration -> state -> indexes -> value
 		if (bounded) {
@@ -2422,11 +2464,96 @@ public class CSGModelChecker extends ProbModelChecker
 				lstrat.get(0).get(k).set(s, lstrat.get(0).get(k - 1).get(s));
 			}
 		} else {
-			if (lstrat.get(0).get(0).get(s) == null) {
-				lstrat.get(0).get(0).set(s, kstrat.get(s));
-			} else if (!lstrat.get(0).get(0).get(s).equals(kstrat.get(s))) {
-				lstrat.get(0).get(0).set(s, kstrat.get(s));
+			Map<BitSet, Double> oldChoice = lstrat.get(0).get(0).get(s);
+			Map<BitSet, Double> newChoice = kstrat.get(s);
+			if (oldChoice == null || isStrictlyBetterChoice(newChoice, oldChoice, mgame, mmap, min)) {
+				lstrat.get(0).get(0).set(s, newChoice);
 			}
+		}
+	}
+
+	/** Relative tolerance used to decide whether one strategy choice is strictly better than another */
+	public static final double STRAT_IMPROVEMENT_TOL = 1e-10;
+
+	/**
+	 * Is strategy choice {@code choice1} strictly better than {@code choice2} for the coalition
+	 * that picks the rows (max) or columns (min) of matrix game {@code mgame},
+	 * i.e., does it guarantee a strictly better value (up to a relative
+	 * tolerance of {@link #STRAT_IMPROVEMENT_TOL}), whatever the other coalition does?
+	 * @param choice1 Strategy choice (map from coalition actions to probabilities)
+	 * @param choice2 Strategy choice (map from coalition actions to probabilities)
+	 * @param mgame The matrix game
+	 * @param mmap Coalition actions for the rows (max) or columns (min) of {@code mgame}
+	 * @param min Min or max values for the coalition (true=min, false=max)
+	 */
+	protected boolean isStrictlyBetterChoice(Map<BitSet, Double> choice1, Map<BitSet, Double> choice2, ArrayList<ArrayList<Double>> mgame, Map<Integer, BitSet> mmap, boolean min)
+	{
+		double v1 = getGuaranteedValue(choice1, mgame, mmap, min);
+		double v2 = getGuaranteedValue(choice2, mgame, mmap, min);
+		// If the old choice cannot be evaluated (not expected), use the new one
+		if (Double.isNaN(v2)) {
+			return true;
+		}
+		if (Double.isNaN(v1)) {
+			return false;
+		}
+		double diff = min ? v2 - v1 : v1 - v2;
+		return diff > STRAT_IMPROVEMENT_TOL * Math.max(Math.abs(v1), Math.abs(v2));
+	}
+
+	/**
+	 * Get the value guaranteed by a strategy choice for the coalition that picks
+	 * the rows (max) or columns (min) of matrix game {@code mgame}, i.e., the worst
+	 * value for it, over all actions of the other coalition.
+	 * Returns NaN if the choice uses actions not in the matrix game.
+	 * @param choice Strategy choice (map from coalition actions to probabilities)
+	 * @param mgame The matrix game
+	 * @param mmap Coalition actions for the rows (max) or columns (min) of {@code mgame}
+	 * @param min Min or max values for the coalition (true=min, false=max)
+	 */
+	protected double getGuaranteedValue(Map<BitSet, Double> choice, ArrayList<ArrayList<Double>> mgame, Map<Integer, BitSet> mmap, boolean min)
+	{
+		int nrows = mgame.size();
+		int ncols = mgame.get(0).size();
+		int n = min ? ncols : nrows;
+		Map<BitSet, Integer> index = new HashMap<BitSet, Integer>();
+		for (int i = 0; i < n; i++) {
+			index.put(mmap.get(i), i);
+		}
+		double[] probs = new double[n];
+		for (Map.Entry<BitSet, Double> e : choice.entrySet()) {
+			Integer i = index.get(e.getKey());
+			if (i == null) {
+				return Double.NaN;
+			}
+			probs[i] = e.getValue();
+		}
+		if (!min) {
+			// Coalition picks rows (maximising), other coalition picks columns
+			double g = Double.POSITIVE_INFINITY;
+			for (int col = 0; col < ncols; col++) {
+				double v = 0.0;
+				for (int row = 0; row < nrows; row++) {
+					if (probs[row] > 0) {
+						v += probs[row] * mgame.get(row).get(col);
+					}
+				}
+				g = Math.min(g, v);
+			}
+			return g;
+		} else {
+			// Coalition picks columns (minimising), other coalition picks rows
+			double g = Double.NEGATIVE_INFINITY;
+			for (int row = 0; row < nrows; row++) {
+				double v = 0.0;
+				for (int col = 0; col < ncols; col++) {
+					if (probs[col] > 0) {
+						v += probs[col] * mgame.get(row).get(col);
+					}
+				}
+				g = Math.max(g, v);
+			}
+			return g;
 		}
 	}
 
