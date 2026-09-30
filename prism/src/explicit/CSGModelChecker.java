@@ -2169,14 +2169,26 @@ public class CSGModelChecker extends ProbModelChecker
 		} else {
 			// Should add check for trivial games
 			int infty;
-			infty = valInfinity(mgame);
+			BitSet infCols = new BitSet();
+			infty = valInfinity(mgame, infCols);
 			if (infty != -1) {
 				res = Double.POSITIVE_INFINITY;
 				if (genStrat) {
-					d.put(rmap.get(infty), 1.0);
+					// Row infty is optimal for max; in case of min, rmap maps columns
+					// not rows, and any column is optimal (value is +inf regardless)
+					d.put(rmap.get(min ? 0 : infty), 1.0);
+					strat.set(s, d);
 				}
 				return res;
 			} else {
+				// LP variables (after v) are for rows (max) or columns (min);
+				// store their indices in rmap, skipping any columns removed by valInfinity
+				ncols = mgame.get(0).size();
+				int[] lpVars = new int[min ? ncols : nrows];
+				for (int i = 0, j = -1; i < lpVars.length; i++) {
+					j = min ? infCols.nextClearBit(j + 1) : i;
+					lpVars[i] = j;
+				}
 				try {
 					if (min)
 						lp.resizeLp(0, maxCols + 1);
@@ -2203,9 +2215,9 @@ public class CSGModelChecker extends ProbModelChecker
 						double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 						lp.getVariables(values);
 						if (genStrat) {
-							for (int row = 1; row <= nrows; row++) {
-								if (values[row] > 0)
-									d.put(rmap.get(row - 1), values[row]);
+							for (int i = 1; i <= lpVars.length; i++) {
+								if (values[i] > 0)
+									d.put(rmap.get(lpVars[i - 1]), values[i]);
 							}
 							strat.set(s, d);
 						}
@@ -2237,9 +2249,9 @@ public class CSGModelChecker extends ProbModelChecker
 							double[] values = (min) ? new double[maxCols + 1] : new double[maxRows + 1];
 							lp.getVariables(values);
 							if (genStrat) {
-								for (int row = 1; row <= nrows; row++) {
-									if (values[row] > 0)
-										d.put(rmap.get(row - 1), values[row]);
+								for (int i = 1; i <= lpVars.length; i++) {
+									if (values[i] > 0)
+										d.put(rmap.get(lpVars[i - 1]), values[i]);
 								}
 								strat.set(s, d);
 							}
@@ -2261,11 +2273,12 @@ public class CSGModelChecker extends ProbModelChecker
 	/**
 	 * Deal with infinite cases in solving a matrix game.
 	 * If all values in some row are +inf, return the index of that row (it's optimal).
-	 * Then remove any column containing a +inf and return -1. 
+	 * Then remove any column containing a +inf and return -1,
+	 * storing the (original) indices of the removed columns in {@code hasInf}.
 	 */
-	public int valInfinity(ArrayList<ArrayList<Double>> mgame)
+	public int valInfinity(ArrayList<ArrayList<Double>> mgame, BitSet hasInf)
 	{
-		BitSet hasInf = new BitSet();
+		hasInf.clear();
 		int row, col;
 		boolean infRow;
 		// Check which columns have a +inf value,
