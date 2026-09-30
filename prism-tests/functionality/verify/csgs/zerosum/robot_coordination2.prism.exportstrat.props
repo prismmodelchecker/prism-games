@@ -9,3 +9,8 @@ const int k; // step bound
 
 // RESULT: Error:not supported
 <<robot1>>R{"time1"}min=? [ C<=k ]
+
+// Likewise for instantaneous rewards (this previously gave a NullPointerException)
+
+// RESULT: Error:not supported
+<<robot1>>R{"time1"}min=? [ I=k ]

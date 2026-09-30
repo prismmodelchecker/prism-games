@@ -548,7 +548,10 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeInstantaneousRewards(CSG<Double> csg, CSGRewards<Double> csgRewards, Coalition coalition, int k, boolean min1, boolean min2)
 			throws PrismException
 	{
-		// TODO: confirm that the case min1==min2 is not handled  
+		// TODO: confirm that the case min1==min2 is not handled
+		if (genStrat) {
+			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+		}
 		LpSolve lp;
 		ModelCheckerResult res = new ModelCheckerResult();
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
