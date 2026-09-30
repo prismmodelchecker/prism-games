@@ -1,0 +1,36 @@
+// Values from the initial state (s=0); see the model file for details
+
+// RESULT: 2
+<<p1>>R{"r"}min=? [ C ];
+// RESULT: 5
+<<p1>>R{"r"}max=? [ C ];
+// RESULT: 2
+<<p1>>R{"r"}min=? [ Fc "goal" ];
+// RESULT: 5
+<<p1>>R{"r"}max=? [ Fc "goal" ];
+// RESULT: Infinity
+<<p1>>R{"r"}min=? [ F "goal" ];
+// RESULT: Infinity
+<<p1>>R{"r"}max=? [ F "goal" ];
+
+// Values for the other player (from s=0)
+
+// RESULT: 5
+<<p2>>R{"r"}min=? [ C ];
+// RESULT: 2
+<<p2>>R{"r"}max=? [ C ];
+
+// Values from state s=3
+
+// RESULT: 4
+filter(state, <<p2>>R{"r"}min=? [ C ], s=3);
+// RESULT: Infinity
+filter(state, <<p2>>R{"r"}max=? [ C ], s=3);
+// RESULT: 4
+filter(state, <<p2>>R{"r"}min=? [ Fc "goal" ], s=3);
+// RESULT: Infinity
+filter(state, <<p2>>R{"r"}max=? [ Fc "goal" ], s=3);
+// RESULT: 4
+filter(state, <<p2>>R{"r"}min=? [ F "goal" ], s=3);
+// RESULT: Infinity
+filter(state, <<p2>>R{"r"}max=? [ F "goal" ], s=3);

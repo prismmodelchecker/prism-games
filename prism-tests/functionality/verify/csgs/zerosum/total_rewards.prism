@@ -1,0 +1,52 @@
+// Small CSG for testing total rewards (C) and cumulative
+// reachability rewards (Fc), alongside reachability rewards (F).
+// In s=0, p1 picks a1 (reward 2), reaching the goal (s=1) or a dead end (s=2)
+// with probability 0.5 each, or b1 (reward 1), moving to s=3. In s=3, p2 picks
+// g2 (reward 4) or h2 (reward 6), both reaching the goal, or k2 (reward 1),
+// moving to s=4, which loops forever with reward 1. Other rewards are zero.
+// Values (from s=0), where p1 minimises/maximises and p2 does the opposite:
+// C:  min: a1, 2; max: b1, then g2, 1+4 = 5
+// Fc: the same as C, since the goal is absorbing with zero reward
+// F:  min: infinite (a1 may not reach the goal, nor may b1, due to k2);
+//     max: infinite (a1)
+// Values (from s=3), for p2: min: g2, 4 (C, Fc and F); max: k2, infinite (C and Fc)
+
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+	[a1] s=0 -> true;
+	[b1] s=0 -> true;
+	[e1] s=3 -> true;
+	[d1] s=1|s=2|s=4 -> true;
+endmodule
+
+module m2
+	[c2] s!=3 -> true;
+	[g2] s=3 -> true;
+	[h2] s=3 -> true;
+	[k2] s=3 -> true;
+endmodule
+
+module game
+	s : [0..4] init 0;
+	[a1,c2] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+	[b1,c2] s=0 -> (s'=3);
+	[e1,g2] s=3 -> (s'=1);
+	[e1,h2] s=3 -> (s'=1);
+	[e1,k2] s=3 -> (s'=4);
+	[d1,c2] s=1|s=2|s=4 -> true;
+endmodule
+
+label "goal" = s=1;
+
+rewards "r"
+	[a1,c2] true : 2;
+	[b1,c2] true : 1;
+	[e1,g2] true : 4;
+	[e1,h2] true : 6;
+	[e1,k2] true : 1;
+	[d1,c2] s=4 : 1;
+endrewards
