@@ -335,7 +335,7 @@ public class CSGModelChecker extends ProbModelChecker
 
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachProbsValIter(csg, no, yes, bound, false, min1);
+			res = computeReachProbsValIter(csg, no, yes, bound, bounded, min1);
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -427,7 +427,7 @@ public class CSGModelChecker extends ProbModelChecker
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 		switch (solnMethod) {
 		case VALUE_ITERATION:
-			res = computeReachProbsValIter(csg, no, yes, bound, false, min1);
+			res = computeReachProbsValIter(csg, no, yes, bound, bounded, min1);
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
