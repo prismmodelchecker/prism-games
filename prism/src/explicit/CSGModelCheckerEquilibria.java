@@ -944,7 +944,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 	 */
 	public ModelCheckerResult computeBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		if (genStrat) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			throw new PrismException("Strategy synthesis for bounded properties is not supported yet");
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<CSGRewards<Double>> newRewards = null;
@@ -2188,7 +2188,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 						if (eqsresult.getStatus() != eqsresultnlp.getStatus()) {
 							System.out.println("SMT: " + eqsresult.getStatus());
 							System.out.println("NLP: " + eqsresultnlp.getStatus());
-							throw new PrismException("Solvers differ.");
+							throw new PrismException("Solvers differ");
 						}
 						*/
 						//System.out.println("sat");
@@ -2211,7 +2211,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 						if (eqsresult.getStatus() != eqsresultnlp.getStatus()) {
 							System.out.println("SMT: " + eqsresult.getStatus());
 							System.out.println("NLP: " + eqsresultnlp.getStatus());
-							throw new PrismException("Solvers differ.");
+							throw new PrismException("Solvers differ");
 						}
 						*/
 					}
