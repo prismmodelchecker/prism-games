@@ -30,17 +30,13 @@ import common.Interval;
 import common.iterable.SingletonIterator;
 import explicit.*;
 import explicit.rewards.Rewards;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleIterators;
-import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntIterators;
-import param.BigRational;
 import prism.Evaluator;
 import prism.ModelType;
 import prism.PlayerInfoOwner;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 /**
  * Interface for (read-only) access to model data, unified across all model types.
@@ -436,6 +432,114 @@ public interface ModelAccess<Value>
 				}
 			}
 
+			// Overrides of default implementations, for efficiency
+
+			@Override
+			public int getNumChoices()
+			{
+				if (model instanceof NondetModel) {
+					return ((NondetModel<Value>) model).getNumChoices();
+				} else {
+					return ModelAccess.super.getNumChoices();
+				}
+			}
+
+			@Override
+			public int getNumTransitions()
+			{
+				return model.getNumTransitions();
+			}
+
+			// For sparse matrix storage, provide transition info directly from the underlying arrays
+
+			@Override
+			public PrimitiveIterator.OfInt getStateChoiceOffsets()
+			{
+				if (model instanceof MDPSparse) {
+					return IntIterators.wrap(((MDPSparse) model).getSparseTransitions().rowStarts, 0, getNumStates() + 1);
+				} else {
+					return ModelAccess.super.getStateChoiceOffsets();
+				}
+			}
+
+			@Override
+			public PrimitiveIterator.OfInt getStateTransitionOffsets()
+			{
+				if (model instanceof DTMCSparse) {
+					return IntIterators.wrap(((DTMCSparse) model).getSparseTransitions().rowStarts, 0, getNumStates() + 1);
+				} else {
+					return ModelAccess.super.getStateTransitionOffsets();
+				}
+			}
+
+			@Override
+			public PrimitiveIterator.OfInt getChoiceTransitionOffsets()
+			{
+				if (model instanceof MDPSparse) {
+					return IntIterators.wrap(((MDPSparse) model).getSparseTransitions().choiceStarts, 0, getNumChoices() + 1);
+				} else {
+					return ModelAccess.super.getChoiceTransitionOffsets();
+				}
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public Iterator<Value> getTransitionProbabilities()
+			{
+				if (model instanceof DTMCSparse) {
+					return (Iterator<Value>) DoubleIterators.wrap(((DTMCSparse) model).getSparseTransitions().probabilities, 0, model.getNumTransitions());
+				} else if (model instanceof MDPSparse) {
+					return (Iterator<Value>) DoubleIterators.wrap(((MDPSparse) model).getSparseTransitions().probabilities, 0, model.getNumTransitions());
+				} else {
+					return ModelAccess.super.getTransitionProbabilities();
+				}
+			}
+
+			@Override
+			public PrimitiveIterator.OfInt getTransitionSuccessors()
+			{
+				if (model instanceof DTMCSparse) {
+					return IntIterators.wrap(((DTMCSparse) model).getSparseTransitions().successors, 0, model.getNumTransitions());
+				} else if (model instanceof MDPSparse) {
+					return IntIterators.wrap(((MDPSparse) model).getSparseTransitions().successors, 0, model.getNumTransitions());
+				} else if (model instanceof CTMCSimple) {
+					// For CTMCs, avoid the embedded DTMC transitions (used by default),
+					// which compute exit rates and probabilities that are not needed here
+					CTMCSimple<Value> ctmc = (CTMCSimple<Value>) model;
+					int numStates = getNumStates();
+					return new PrimitiveIterator.OfInt()
+					{
+						int s = 0;
+						Iterator<Integer> it = numStates > 0 ? ctmc.getSuccessorsIterator(0) : null;
+
+						@Override
+						public boolean hasNext()
+						{
+							while (s < numStates) {
+								if (it.hasNext()) {
+									return true;
+								}
+								if (++s < numStates) {
+									it = ctmc.getSuccessorsIterator(s);
+								}
+							}
+							return false;
+						}
+
+						@Override
+						public int nextInt()
+						{
+							if (!hasNext()) {
+								throw new NoSuchElementException();
+							}
+							return it.next();
+						}
+					};
+				} else {
+					return ModelAccess.super.getTransitionSuccessors();
+				}
+			}
+
 		};
 	}
 
@@ -537,16 +641,6 @@ public interface ModelAccess<Value>
 	}
 
 	/**
-	 * Get the probabilities for all transitions, as an iterator,
-	 * encoded into primitive types (see {@link #valuesToPrimitives(Iterator)}).
-	 * For interval models, this returns two probabilities (lower then upper bound) for each transition.
-	 */
-	default Iterator<?> getTransitionProbabilitiesAsPrimitives()
-	{
-		return valuesToPrimitives(getTransitionProbabilities());
-	}
-
-	/**
 	 * Get the successor states for all transitions, as an iterator.
 	 */
 	default PrimitiveIterator.OfInt getTransitionSuccessors()
@@ -574,15 +668,6 @@ public interface ModelAccess<Value>
 				return model.getExitRate(s);
 			}
 		};
-	}
-
-	/**
-	 * Get the exit rates for all states, as an iterator,
-	 * encoded into primitive types (see {@link #valuesToPrimitives(Iterator)}).
-	 */
-	default Iterator<?> getExitRatesAsPrimitives()
-	{
-		return valuesToPrimitives(getExitRates());
 	}
 
 	/**
@@ -686,16 +771,6 @@ public interface ModelAccess<Value>
 	}
 
 	/**
-	 * Get all state rewards from a {@link Rewards} object, as an iterator,
-	 * encoded into primitive types (see {@link #valuesToPrimitives(Iterator)}).
-	 * @param rewards The rewards
-	 */
-	default <E> Iterator<?> getStateRewardsAsPrimitives(Rewards<E> rewards)
-	{
-		return valuesToPrimitives(getStateRewards(rewards));
-	}
-
-	/**
 	 * Get all transition rewards from a {@link Rewards} object, as an iterator.
 	 * @param rewards The rewards
 	 */
@@ -719,77 +794,6 @@ public interface ModelAccess<Value>
 					return rewards.getTransitionReward(s, j);
 				}
 			};
-		}
-	}
-
-	/**
-	 * Get all transition rewards from a {@link Rewards} object, as an iterator,
-	 * encoded into primitive types (see {@link #valuesToPrimitives(Iterator)}).
-	 * @param rewards The rewards
-	 */
-	default <E> Iterator<?> getTransitionRewardsAsPrimitives(Rewards<E> rewards)
-	{
-		return valuesToPrimitives(getTransitionRewards(rewards));
-	}
-
-	// Utility methods
-
-	/**
-	 * Convert (continuous numerical) values, supplied via an iterator,
-	 * to an encoding into primitive types, also as an iterator.
-	 * Double values are returned as-is, while BigRational values are unpacked into pairs of longs
-	 * @param values The values to encode
-	 */
-	default Iterator<?> valuesToPrimitives(Iterator<?> values)
-	{
-		if (getEvaluator().exact()) {
-			return new ModelAccessIterators.UnpackBigRationals((Iterator<BigRational>) values);
-		} else {
-			return DoubleIterators.asDoubleIterator(values);
-		}
-	}
-
-	/**
-	 * Decode (continuous numerical) values, supplied via a consumer,
-	 * from an encoding into primitive types, and pass to a Value consumer.
-	 * Double values are passed as-is, while BigRational values are converted to pairs of longs
-	 * @param eval Evaluator for the values
-	 * @param valueConsumer The consumer for the values to encode
-	 */
-	static <Value> Consumer<?> primitivesToValues(Evaluator<Value> eval, Consumer<Value> valueConsumer)
-	{
-		if (eval.exact()) {
-			Consumer<BigRational> consumerBigRationals = (Consumer<BigRational>) valueConsumer;
-			return new ModelAccessIterators.PackBigRationals(consumerBigRationals);
-		} else {
-			return valueConsumer;
-		}
-	}
-
-	// Utility classes
-
-	/**
-	 * Helper class to create a list of Values, decoded from their
-	 * encoding into primitives (see {@link #valuesToPrimitives(Iterator)}).
-	 */
-	class ValueListFromPrimitives<Value>
-	{
-		List<Value> valueList;
-		Consumer<?> primitiveConsumer;
-
-		@SuppressWarnings("unchecked")
-		ValueListFromPrimitives(Evaluator<Value> eval, int size)
-		{
-			if (eval.exact()) {
-				//LongList valueListLongs = new LongArrayList(numTransitions);
-				List<BigRational> valueListBigRationals = new ArrayList<>(size);
-				valueList = (List<Value>) valueListBigRationals;
-				primitiveConsumer = new ModelAccessIterators.PackBigRationals(valueListBigRationals::add);
-			} else {
-				DoubleList valueListDoubles = new DoubleArrayList(size);
-				valueList = (List<Value>) valueListDoubles;
-				primitiveConsumer = (it.unimi.dsi.fastutil.doubles.DoubleConsumer) valueListDoubles::add;
-			}
 		}
 	}
 }

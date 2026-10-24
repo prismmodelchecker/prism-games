@@ -1195,7 +1195,9 @@ public class PrismCL implements PrismModelListener
 		registry.addSwitch("nobuild", new FlagSwitch(() -> nobuild = true),
 			"", "Skip model construction (just do parse/export)");
 		registry.addSwitch("test", new OptionsOnlySwitch(
-				new OptionParser().flag("umb", "Enable UMB round trip test", () -> prism.setTestUMB(true)),
+				new OptionParser()
+						.flag("umb", "Enable UMB round trip test", () -> prism.setTestRoundTrip(ModelExportFormat.UMB))
+						.flag("pexp", "Enable explicit (.pexp) round trip test", () -> prism.setTestRoundTrip(ModelExportFormat.EXPLICIT)),
 				parse -> { test = true; parse.run(); }),
 				"[:<options>]", "Enable \"test\" mode");
 		registry.addSwitch("testall", new FlagSwitch(() -> { test = true; testExitsOnFail = false; }),
@@ -1869,7 +1871,7 @@ public class PrismCL implements PrismModelListener
 			ModelExportTask task = new ModelExportTask(entity, file);
 			task.getExportOptions().apply(pendingExportOptions);
 			if (zip != null) {
-				task.setZipFileExtension(zip[1]);
+				task.setRequestedZipFileExtension(zip[1]);
 			}
 			postProcess.accept(task);
 			modelExportTasks.add(task);
@@ -1927,7 +1929,7 @@ public class PrismCL implements PrismModelListener
 		for (ModelExportTask exportTask : newModelExportTasks) {
 			exportTask.getExportOptions().apply(pendingExportOptions);
 			if (zip != null) {
-				exportTask.setZipFileExtension(zip[1]);
+				exportTask.setRequestedZipFileExtension(zip[1]);
 			}
 		}
 		// Add export tasks to the main list

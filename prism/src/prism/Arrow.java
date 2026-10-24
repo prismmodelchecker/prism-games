@@ -43,9 +43,9 @@ public class Arrow
 	this.tail = tail;
     }
 
-    public Arrow toRealProperties(OpsAndBoundsList obl)
+    public Arrow toRealProperties(MultiObjQuery query)
     {
-	return new Arrow(tip.toRealProperties(obl), tail.toRealProperties(obl));
+	return new Arrow(tip.toRealProperties(query), tail.toRealProperties(query));
     }
 
     public double getTipX()

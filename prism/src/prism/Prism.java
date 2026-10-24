@@ -204,8 +204,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected boolean storeVector = false;
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
-	// Should any generated strategies should be restricted to the states reachable under them?
-	protected boolean restrictStratToReach = true;
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 	// Compute Pareto curve for SMG multi-objective?
@@ -232,7 +230,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	private int reachMethod = REACH_BFS;
 
 	// Test mode(s)
-	private boolean testUMB = false;
+	// Format for export/import roundtrip testing of built models (null if off)
+	private ModelExportFormat testRoundTripFormat = null;
+	// In roundtrip test mode, the reward generator installed after a roundtrip (from the imported model),
+	// and the one it replaced (from the original model), so that the latter can be restored
+	private RewardGenerator<?> testRoundTripImportedRewardGenerator = null;
+	private RewardGenerator<?> testRoundTripOrigRewardGenerator = null;
 
 	//------------------------------------------------------------------------------
 	// Parsers/translators/model checkers/simulators/etc.
@@ -570,6 +573,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		settings.set(PrismSettings.PRISM_DO_PROB_CHECKS, b);
 	}
 
+	public void setBuildAll(boolean b) throws PrismException
+	{
+		settings.set(PrismSettings.PRISM_BUILD_ALL, b);
+	}
+
 	public void setSumRoundOff(double d) throws PrismException
 	{
 		settings.set(PrismSettings.PRISM_SUM_ROUND_OFF, d);
@@ -765,14 +773,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Specify whether or not any generated strategies should be restricted to the states reachable under them.
-	 */
-	public void setRestrictStratToReach(boolean restrictStratToReach)
-	{
-		this.restrictStratToReach = restrictStratToReach;
-	}
-
-	/**
 	 * Specify whether or not to do bisimulation minimisation before model checking.
 	 */
 	public void setDoBisim(boolean doBisim)
@@ -816,9 +816,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		this.reachMethod = reachMethod;
 	}
 
-	public void setTestUMB(boolean testUMB)
+	/**
+	 * Enable (or disable, if {@code format} is null) roundtrip test mode, in which each built model
+	 * is exported in the specified format (currently UMB or explicit), and then re-imported and rebuilt.
+	 */
+	public void setTestRoundTrip(ModelExportFormat format) throws PrismException
 	{
-		this.testUMB = testUMB;
+		if (format != null && format != ModelExportFormat.UMB && format != ModelExportFormat.EXPLICIT) {
+			throw new PrismNotSupportedException("Roundtrip testing is not supported for " + format.description() + " format");
+		}
+		this.testRoundTripFormat = format;
 	}
 
 	// Get methods
@@ -901,6 +908,14 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean getDoProbChecks()
 	{
 		return settings.getBoolean(PrismSettings.PRISM_DO_PROB_CHECKS);
+	}
+
+	/**
+	 * Whether to build and store all labels and reward structures at model construction time.
+	 */
+	public boolean getBuildAll()
+	{
+		return settings.getBoolean(PrismSettings.PRISM_BUILD_ALL);
 	}
 
 	public double getSumRoundOff()
@@ -1099,14 +1114,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean getGenStrat()
 	{
 		return genStrat;
-	}
-
-	/**
-	 * Whether or not any generated strategies should be restricted to the states reachable under them.
-	 */
-	public boolean getRestrictStratToReach()
-	{
-		return restrictStratToReach;
 	}
 
 	/**
@@ -2393,11 +2400,17 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				default:
 					throw new PrismException("Cannot do symbolic model construction for model source " + getModelSource());
 				}
+				// If requested, build/store all labels now (rewards are always built)
+				if (getBuildAll()) {
+					attachLabelsToModel(newModelSymb);
+				}
 				break;
 			case EXPLICIT:
 			case EXACT:
 			case PARAM:
 				explicit.Model<?> newModelExpl;
+				// Will reward structures be attached to the model straight after building? (see below)
+				boolean attachRewards = getGenStrat() || (getBuildAll() && getCurrentEngine() != PrismEngine.PARAM);
 				switch (getModelSource()) {
 				case PRISM_MODEL:
 				case MODEL_GENERATOR:
@@ -2413,8 +2426,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					break;
 				case EXPLICIT_FILES:
 					ExplicitFiles2Model expf2model = new ExplicitFiles2Model(this);
+					// If rewards are to be attached straight after building (see below),
+					// only notify the importer that we are done after that
+					expf2model.setImportDoneOnBuild(!attachRewards);
 					Evaluator<?> eval = (getCurrentEngine() == PrismEngine.EXACT) ? Evaluator.forBigRational() : Evaluator.forDouble();
-					newModelExpl = expf2model.build(modelImporter, eval);
+					try {
+						newModelExpl = expf2model.build(modelImporter, eval);
+					} catch (PrismException e) {
+						if (attachRewards) {
+							modelImporter.importDone();
+						}
+						throw e;
+					}
 					setBuiltModel(getModelBuildTypeForEngine(getCurrentEngine()), newModelExpl);
 					// Also build a Model/RewardGenerator
 					// (the latter since rewards are built later, the former e.g. for simulation)
@@ -2430,8 +2453,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				// This needs to happen here, rather than later just before strategy export, since
 				// e.g. LTL automaton product construction (during model checking, before export)
 				// already lifts rewards from this model onto the product if/when present.
-				if (getGenStrat()) {
-					attachRewardsToModel(newModelExpl);
+				// Also do this if building/storing of everything was requested
+				// (no need to do this for labels, which are always attached during construction),
+				// except for the parametric engine, which does not use rewards attached to the model.
+				if (attachRewards) {
+					try {
+						attachRewardsToModel(newModelExpl);
+					} finally {
+						// For models built from files, notify importer that we are now done (see above)
+						if (getModelSource() == ModelSource.EXPLICIT_FILES) {
+							modelImporter.importDone();
+						}
+					}
 				}
 				break;
 			default:
@@ -2441,26 +2474,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			l = System.currentTimeMillis() - l;
 			mainLog.println("\nTime for model construction: " + l / 1000.0 + " seconds.");
 
-			// In UMB test mode, to an export/import roundtrip
-			if (testUMB && !(getModelSource() == ModelSource.EXPLICIT_FILES)) {
-				File umbTestFile;
-				try {
-					umbTestFile = File.createTempFile("built", ".umb");
-					exportBuiltModel(umbTestFile, ModelExportFormat.UMB);
-				} catch(java.io.IOException | PrismNotSupportedException e){
-					umbTestFile = null;
-					mainLog.printWarning("UMB export failed; skipping testing");
-				}
-				if (umbTestFile != null) {
-					Values constantsCached = getModelInfo().getConstantValues();
-					clearBuiltModel();
-					loadModelFromUMBFile(umbTestFile);
-					buildModel();
-					getModelInfo().setSomeUndefinedConstants(constantsCached);
-					if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
-						((ModelSymbolic) getBuiltModelSymbolic()).setConstantValues(constantsCached);
-					}
-				}
+			// In roundtrip test mode, do an export/import roundtrip
+			if (testRoundTripFormat != null && !(getModelSource() == ModelSource.EXPLICIT_FILES)) {
+				doRoundTrip(testRoundTripFormat);
 			}
 
 			// For digital clocks, do some extra checks on the built model
@@ -2533,6 +2549,70 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			}
 			// Throw exception anyway
 			throw e;
+		}
+	}
+
+	/**
+	 * In roundtrip test mode, do an export/import roundtrip for the just-built model:
+	 * export it to a (temporary) file in the specified format (UMB or explicit), then import
+	 * and build from that, keeping the imported built model (and its rewards) for subsequent model checking.
+	 */
+	private void doRoundTrip(ModelExportFormat format) throws PrismException
+	{
+		// Parametric models cannot (yet) be imported, so skip these
+		if (getCurrentEngine() == PrismEngine.PARAM) {
+			mainLog.printWarning("Roundtrip testing not supported for parametric models; skipping testing");
+			return;
+		}
+		// Restore the original model's reward generator, if replaced by a previous roundtrip
+		if (testRoundTripImportedRewardGenerator != null && getRewardGenerator() == testRoundTripImportedRewardGenerator) {
+			setRewardGenerator(testRoundTripOrigRewardGenerator);
+		}
+		testRoundTripImportedRewardGenerator = testRoundTripOrigRewardGenerator = null;
+		File testFile = null;
+		try {
+			testFile = File.createTempFile("built", format == ModelExportFormat.UMB ? ".umb" : ".pexp");
+			// The file is read lazily (e.g. for rewards) so can only be deleted on exit
+			testFile.deleteOnExit();
+			ModelExportOptions exportOptions = new ModelExportOptions(format);
+			if (format == ModelExportFormat.EXPLICIT) {
+				// Use maximum precision, so that (double) values are preserved exactly
+				exportOptions.setModelPrecision(PrismSettings.RANGE_EXPORT_DOUBLE_PRECISION.max().getAsInt());
+			}
+			exportBuiltModel(testFile, exportOptions);
+		} catch(java.io.IOException | PrismNotSupportedException e){
+			if (testFile != null) {
+				testFile.delete();
+			}
+			testFile = null;
+			mainLog.printWarning(format.description() + " export failed (" + e.getMessage() + "); skipping testing");
+		}
+		if (testFile != null) {
+			// Store details of the original model, to restore after the roundtrip
+			ModelDetails origModelDetails = new ModelDetails(currentModelDetails);
+			clearBuiltModel();
+			if (format == ModelExportFormat.UMB) {
+				loadModelFromUMBFile(testFile);
+			} else {
+				PrismExplicitImporter importer = new PrismExplicitImporter((ModelType) null);
+				importer.addCombinedFile(testFile);
+				loadModelFromExplicitFiles(importer);
+			}
+			buildModel();
+			// Restore the original model details (so that, e.g., the model can be rebuilt
+			// for other constant values), but keep the imported built model and its rewards
+			ModelDetails importedModelDetails = currentModelDetails;
+			currentModelDetails = new ModelDetails(origModelDetails);
+			currentModelDetails.model = importedModelDetails.model;
+			currentModelDetails.modelSymb = importedModelDetails.modelSymb;
+			currentModelDetails.modelExpl = importedModelDetails.modelExpl;
+			currentModelDetails.modelBuildType = importedModelDetails.modelBuildType;
+			currentModelDetails.rewardGenerator = importedModelDetails.rewardGenerator;
+			testRoundTripImportedRewardGenerator = importedModelDetails.rewardGenerator;
+			testRoundTripOrigRewardGenerator = origModelDetails.rewardGenerator;
+			if (getBuiltModelType() == ModelBuildType.SYMBOLIC) {
+				((ModelSymbolic) getBuiltModelSymbolic()).setConstantValues(getModelInfo().getConstantValues());
+			}
 		}
 	}
 
@@ -2920,7 +3000,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			if (exportTask.getExportOptions().getFormat() == ModelExportFormat.DRN || exportTask.getExportOptions().getFormat() == ModelExportFormat.UMB) {
 				MTBDD2ExplicitModel m2m = new MTBDD2ExplicitModel(this);
 				explicit.Model<Double> modelExpl = m2m.convertModel(getBuiltModelSymbolic());
-				explicit.StateModelChecker mcExpl = explicit.StateModelChecker.createModelChecker(getModelType(), this);
+				// Export only needs a basic (explicit) model checker; using one for the model type
+				// would fail if the engine settings are unsupported by the explicit engine (e.g. -fair)
+				explicit.StateModelChecker mcExpl = new explicit.StateModelChecker(this);
 				RewardGenerator<Double> rewardGen = m2m.getRewardConverter(getBuiltModelSymbolic(), modelExpl, getRewardInfo());
 				mcExpl.setModelCheckingInfo(getModelInfo(), propertiesFile, rewardGen);
 				mcExpl.exportModel(modelExpl, exportTask);
@@ -3875,6 +3957,29 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * Attach the labels defined by the currently loaded model directly to a (symbolic)
+	 * model, for any that are not already present.
+	 * @param model The model
+	 */
+	private void attachLabelsToModel(symbolic.model.Model model) throws PrismException
+	{
+		StateModelChecker mc = StateModelChecker.createModelChecker(model.getModelType(), this, model, parsePropertiesString(""));
+		mc.attachLabels();
+	}
+
+	/**
+	 * Attach the labels defined by the currently loaded model directly to an (explicit)
+	 * model, for any that are not already present.
+	 * @param model The model
+	 */
+	private void attachLabelsToModel(explicit.Model<?> model) throws PrismException
+	{
+		explicit.StateModelChecker mc = explicit.StateModelChecker.createModelChecker(model.getModelType(), this);
+		mc.setModelCheckingInfo(getModelInfo(), null, getRewardGenerator());
+		mc.attachLabels(model);
+	}
+
+	/**
 	 * Attach reward structures (from the currently stored reward generator, if any) directly
 	 * to a model, if not already present. Does nothing if no reward generator is available.
 	 * @param model The model
@@ -4561,7 +4666,6 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setExportProductVectorFilename(exportProductVectorFilename);
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
-		mc.setRestrictStratToReach(restrictStratToReach);
 		mc.setDoBisim(doBisim);
 		mc.setComputeParetoSet(smgPareto);
 

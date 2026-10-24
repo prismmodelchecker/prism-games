@@ -98,11 +98,11 @@ public class StateModelChecker extends PrismComponent
 
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
-	// Should any generated strategies should be restricted to the states reachable under them?
-	protected boolean restrictStratToReach = true;
 
 	// Stored Pareto sets
 	protected Pareto pareto_set = null;
+	// Stored Pareto set, for display (returned as the result)
+	protected PointList pareto_point_list = null;
 	// Stored parameters
 	protected MultiParameters parsed_params = null;
 	// Computing Pareto sets?
@@ -246,7 +246,6 @@ public class StateModelChecker extends PrismComponent
 		setExportProductVectorFilename(other.getExportProductVectorFilename());
 		setStoreVector(other.getStoreVector());
 		setGenStrat(other.getGenStrat());
-		setRestrictStratToReach(other.getRestrictStratToReach());
 		setDoBisim(other.getDoBisim());
 		tolerance = other.tolerance;
 		setDoIntervalIteration(other.getDoIntervalIteration());
@@ -331,14 +330,6 @@ public class StateModelChecker extends PrismComponent
 	public void setGenStrat(boolean genStrat)
 	{
 		this.genStrat = genStrat;
-	}
-
-	/**
-	 * Specify whether or not any generated strategies should be restricted to the states reachable under them.
-	 */
-	public void setRestrictStratToReach(boolean restrictStratToReach)
-	{
-		this.restrictStratToReach = restrictStratToReach;
 	}
 
 	/**
@@ -437,14 +428,6 @@ public class StateModelChecker extends PrismComponent
 	}
 
 	/**
-	 * Whether or not any generated strategies should be restricted to the states reachable under them.
-	 */
-	public boolean getRestrictStratToReach()
-	{
-		return restrictStratToReach;
-	}
-
-	/**
 	 * Whether or not to do bisimulation minimisation before model checking.
 	 */
 	public boolean getDoBisim()
@@ -538,16 +521,10 @@ public class StateModelChecker extends PrismComponent
 		// Remove any existing filter info
 		currentFilter = null;
 
-		// If we need to store a copy of the results vector, add a "store" filter to represent this
-		if (storeVector) {
-			ExpressionFilter exprFilter = new ExpressionFilter("store", expr);
-			exprFilter.setInvisible(true);
-			exprFilter.typeCheck();
-			expr = exprFilter;
-		}
 		// Wrap a filter round the property, if needed
-		// (in order to extract the final result of model checking) 
-		expr = ExpressionFilter.addDefaultFilterIfNeeded(expr, model.getNumInitialStates() == 1);
+		// (in order to extract the final result of model checking)
+		// and, if we need to store a copy of the results vector, add a "store" filter to represent this
+		expr = ExpressionFilter.addDefaultAndStoreFiltersIfNeeded(expr, model.getNumInitialStates() == 1, storeVector);
 
 		// If required, do bisimulation minimisation
 		if (doBisim) {
@@ -1176,7 +1153,7 @@ public class StateModelChecker extends PrismComponent
 				// Print some info to log
 				mainLog.print("\nPareto set computation result evaluated");
 				// default is true
-				resObj = vals.getParetoArray();
+				resObj = pareto_point_list != null ? pareto_point_list : vals.getParetoArray();
 				resVals = StateValues.createFromSingleValue(expr.getType(), true, model);
 			} else {
 				// Check "for all" over filter
@@ -1257,14 +1234,17 @@ public class StateModelChecker extends PrismComponent
 		}
 
 		// Store result
-		result.setResult(resObj);
-		result.setParameterString(parsed_params != null ? parsed_params.getParameterString() : null);
-		result.setAccuracy(resAcc);
-		// Set result explanation (if none or disabled, clear)
-		if (expr.getExplanationEnabled() && resultExpl != null) {
-			result.setExplanation(resultExpl.toLowerCase());
-		} else {
-			result.setExplanation(null);
+		// (except for STORE, which leaves any result from the operand (e.g., a filter) unchanged)
+		if (op != FilterOperator.STORE) {
+			result.setResult(resObj);
+			result.setParameterString(parsed_params != null ? parsed_params.getParameterString() : null);
+			result.setAccuracy(resAcc);
+			// Set result explanation (if none or disabled, clear)
+			if (expr.getExplanationEnabled() && resultExpl != null) {
+				result.setExplanation(resultExpl.toLowerCase());
+			} else {
+				result.setExplanation(null);
+			}
 		}
 		// Store vector if requested
 		if (op == FilterOperator.STORE) {
@@ -1915,8 +1895,32 @@ public class StateModelChecker extends PrismComponent
 		ModelExplicit<Value> modelExplicit = (ModelExplicit<Value>) model;
 		List<Rewards<Value>> rewardsList = allRewards.first;
 		List<String> rewardNames = allRewards.second;
+		// Store positions too (no rewards were attached, so these are all from rewardGen),
+		// so that unnamed reward structures can be matched up with rewardGen's later
 		for (int r = 0; r < rewardsList.size(); r++) {
-			modelExplicit.addRewards(rewardNames.get(r), rewardsList.get(r));
+			modelExplicit.addRewards(rewardNames.get(r), r, rewardsList.get(r));
+		}
+	}
+
+	/**
+	 * Attach the labels defined by the model (from the currently stored model info, if any;
+	 * see {@link #setModelCheckingInfo}) directly to a model, for any that are not already present,
+	 * e.g. so that they are computed at model construction time, rather than on demand later.
+	 * Labels are computed by checking the corresponding {@link ExpressionLabel}, so must be
+	 * resolvable via the model checker's label list (see {@link #getLabelList()}).
+	 * Does nothing if the model is not mutable ({@link ModelExplicit}) or if no model info is available.
+	 * @param model The model
+	 */
+	public <Value> void attachLabels(Model<Value> model) throws PrismException
+	{
+		if (!(model instanceof ModelExplicit) || modelInfo == null) {
+			return;
+		}
+		ModelExplicit<Value> modelExplicit = (ModelExplicit<Value>) model;
+		for (String label : modelInfo.getLabelNames()) {
+			if (model.getLabelStates(label) == null) {
+				modelExplicit.addLabel(label, checkExpression(model, new ExpressionLabel(label), null).getBitSet());
+			}
 		}
 	}
 

@@ -43,6 +43,22 @@ import java.util.function.IntConsumer;
 
 /**
  * Base class for importers from explicit model sources.
+ * <p>
+ * An importer is first queried for information about the model,
+ * e.g. {@link #getModelInfo()} and {@link #getRewardInfo()}, and then the model
+ * itself is extracted from it, via the various {@code extract...} methods.
+ * This is typically done by a class that builds a model from the importer,
+ * e.g. {@link explicit.ExplicitFiles2Model} or {@link symbolic.build.ExplicitFiles2MTBDD}.
+ * Extraction methods can be called more than once, and an importer can be retained
+ * after a model has been built, to extract further data later on.
+ * <p>
+ * To make extraction more efficient, an importer may hold data in memory between calls.
+ * When a caller has finished importing (e.g., once it has built a model),
+ * it should call {@link #importDone()} so that this can be freed.
+ * Doing so never affects the correctness of the data subsequently extracted:
+ * the importer remains fully usable, but later extraction (or re-extraction) may be slower.
+ * An importer may also free some data itself, once it has been extracted (e.g., all transitions),
+ * again with no effect on correctness, only on the speed of any later re-extraction.
  */
 public abstract class ExplicitModelImporter
 {
@@ -90,15 +106,6 @@ public abstract class ExplicitModelImporter
 	}
 
 	// Methods to be implemented by an importer
-
-	/**
-	 * Is this model represented exactly (rationals), rather than doubles?
-	 */
-	public boolean modelIsExact()
-	{
-		// By default, assume not exact
-		return false;
-	}
 
 	/**
 	 * Does this importer provide info about state definitions?
@@ -258,6 +265,97 @@ public abstract class ExplicitModelImporter
 	public abstract void extractLTSTransitions(IOUtils.LTSTransitionConsumer storeTransition) throws PrismException;
 
 	/**
+	 * Extract the (Markov chain) transitions, as doubles, all at once, in sparse matrix form.
+	 * By default, this is built using {@link #extractMCTransitions(IOUtils.MCTransitionConsumer)},
+	 * but importers can override this if they can do so more efficiently.
+	 */
+	public IOUtils.SparseMCTransitions extractMCTransitionsSparse() throws PrismException
+	{
+		int numStates = getNumStates();
+		int numTransitions = getNumTransitions();
+		IOUtils.SparseMCTransitions trans = new IOUtils.SparseMCTransitions();
+		trans.rowStarts = new int[numStates + 1];
+		trans.successors = new int[numTransitions];
+		trans.probabilities = new double[numTransitions];
+		trans.actions = new Object[numTransitions];
+		IOUtils.MCTransitionConsumer<Double> cons = new IOUtils.MCTransitionConsumer<>() {
+			int sLast = -1;
+			int count = 0;
+			@Override
+			public void accept(int s, int s2, Double d, Object a) throws PrismException
+			{
+				if (s < sLast) {
+					throw new PrismException("Imported states/transitions must be in ascending order");
+				}
+				if (s != sLast) {
+					trans.rowStarts[s] = count;
+					sLast = s;
+				}
+				trans.successors[count] = s2;
+				trans.probabilities[count] = d;
+				trans.actions[count] = a;
+				count++;
+			}
+		};
+		trans.rowStarts[numStates] = numTransitions;
+		extractMCTransitions(cons);
+		return trans;
+	}
+
+	/**
+	 * Extract the (Markov decision process) transitions, as doubles, all at once, in sparse matrix form.
+	 * By default, this is built using {@link #extractMDPTransitions(IOUtils.MDPTransitionConsumer)},
+	 * but importers can override this if they can do so more efficiently.
+	 */
+	public IOUtils.SparseMDPTransitions extractMDPTransitionsSparse() throws PrismException
+	{
+		int numStates = getNumStates();
+		int numChoices = getNumChoices();
+		int numTransitions = getNumTransitions();
+		IOUtils.SparseMDPTransitions trans = new IOUtils.SparseMDPTransitions();
+		trans.rowStarts = new int[numStates + 1];
+		trans.choiceStarts = new int[numChoices + 1];
+		trans.successors = new int[numTransitions];
+		trans.probabilities = new double[numTransitions];
+		trans.actions = new Object[numChoices];
+		IOUtils.MDPTransitionConsumer<Double> cons = new IOUtils.MDPTransitionConsumer<>() {
+			int sLast = -1;
+			int iLast = -1;
+			int count = 0;
+			int countCh = 0;
+
+			@Override
+			public void accept(int s, int i, int s2, Double d, Object a) throws PrismException
+			{
+				if (s < sLast) {
+					throw new PrismException("Imported states/transitions must be in ascending order");
+				}
+				if (s != sLast) {
+					trans.rowStarts[s] = countCh;
+					sLast = s;
+					iLast = -1;
+				}
+				if (i < iLast) {
+					throw new PrismException("Imported states/transitions must be in ascending order");
+				}
+				if (i != iLast) {
+					trans.choiceStarts[countCh] = count;
+					trans.actions[countCh] = a;
+					countCh++;
+					iLast = i;
+				}
+				trans.successors[count] = s2;
+				trans.probabilities[count] = d;
+				count++;
+			}
+		};
+		trans.rowStarts[numStates] = numChoices;
+		trans.choiceStarts[numChoices] = numTransitions;
+		extractMDPTransitions(cons);
+		return trans;
+	}
+
+	/**
 	 * Extract info about state labellings and initial states.
 	 * Calls {@code storeLabel(s, i)} for each state s satisfying label l,
 	 * where l is 0-indexed and matches the label list from {@link #getModelInfo()}.
@@ -360,6 +458,17 @@ public abstract class ExplicitModelImporter
 	 * @param eval Evaluator for Value objects
 	 */
 	public abstract <Value> void extractMDPTransitionRewards(int rewardIndex, IOUtils.TransitionRewardConsumer<Value> storeReward, Evaluator<Value> eval) throws PrismException;
+
+	/**
+	 * Notify the importer that the caller has finished importing (e.g., a model has been built),
+	 * so that it can free any data it is holding to make extraction more efficient.
+	 * This does not affect the correctness of any data extracted afterwards:
+	 * later extraction (or re-extraction) remains possible, but may be slower.
+	 */
+	public void importDone()
+	{
+		// By default, do nothing
+	}
 
 	// Defaults for a single variable when none is specified
 

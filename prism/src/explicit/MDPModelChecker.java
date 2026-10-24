@@ -104,17 +104,28 @@ public class MDPModelChecker extends ProbModelChecker
 				AcceptanceType.GENERALIZED_RABIN,
 				AcceptanceType.REACH
 		};
+		// Strategy generation is not supported for all acceptance types
+		if (getGenStrat()) {
+			allowedAcceptance = mcLtl.restrictAcceptanceForStrategyGeneration(allowedAcceptance);
+		}
 		LTLModelChecker.LTLProduct<MDP<Double>> product = mcLtl.constructDAProductForLTLFormula(this, (MDP<Double>) model, expr, statesOfInterest, allowedAcceptance);
 		doProductExports(product);
 		
 		// Find accepting states + compute reachability probabilities
 		BitSet acc;
+		int accStrat[] = null;
 		if (product.getAcceptance() instanceof AcceptanceReach) {
 			mainLog.println("\nSkipping accepting MEC computation since acceptance is defined via goal states...");
 			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
 		} else {
 			mainLog.println("\nFinding accepting MECs...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
+			// If required, generate strategy choices for accepting MECs: these need
+			// to stay there, visiting accepting states, rather than being arbitrary
+			if (getGenStrat()) {
+				accStrat = new int[product.getProductModel().getNumStates()];
+				Arrays.fill(accStrat, -1);
+			}
+			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance(), accStrat);
 		}
 		mainLog.println("\nComputing reachability probabilities...");
 		MDPModelChecker mcProduct = new MDPModelChecker(this);
@@ -136,8 +147,13 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 		
 		// If a strategy was generated, lift it to the product and store
+		// (using the choices for accepting MECs, if generated)
 		if (res.strat != null) {
-			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, (MDStrategy<Double>) res.strat);
+			MDStrategy<Double> stratProd = (MDStrategy<Double>) res.strat;
+			if (accStrat != null) {
+				stratProd = LTLModelChecker.combineStrategyChoices((MDP<Double>) product.getProductModel(), stratProd, acc, accStrat);
+			}
+			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, stratProd);
 			result.setStrategy(stratProduct);
 		}
 		
@@ -217,12 +233,12 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// If required, create/initialise strategy storage
 		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
+		// (unlike for reachability, the choice in target states matters too)
 		int strat[] = null;
 		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
+				strat[i] = -1;
 			}
 		}
 
@@ -255,6 +271,16 @@ public class MDPModelChecker extends ProbModelChecker
 	 */
 	public double[] computeRestrictedNext(MDP<Double> mdp, BitSet a, double[] x, boolean min)
 	{
+		return computeRestrictedNext(mdp, a, x, min, null);
+	}
+
+	/**
+	 * As {@link #computeRestrictedNext(MDP, BitSet, double[], boolean)},
+	 * optionally storing the optimal choice for each state in {@code a} in {@code strat}
+	 * (if non-null; entries for other states are not changed).
+	 */
+	protected double[] computeRestrictedNext(MDP<Double> mdp, BitSet a, double[] x, boolean min, int strat[])
+	{
 		int n;
 		double soln[];
 
@@ -266,9 +292,72 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Next-step probabilities multiplication
 		// restricted to a states
-		mdp.mvMultMinMax(x, min, soln, a, false, null);
+		mdp.mvMultMinMax(x, min, soln, a, false, strat);
 
 		return soln;
+	}
+
+	/**
+	 * Perform the lower-bound phase of the computation of probabilities for an
+	 * interval-bounded until, i.e., given the probabilities {@code x} for the
+	 * remaining (window) steps, do {@code lowerBound} steps of
+	 * {@link #computeRestrictedNext(MDP, BitSet, double[], boolean)}.
+	 * If required, also build a strategy, comprising the choices for the first
+	 * {@code lowerBound} steps, followed by those from {@code windowStrat},
+	 * the strategy (if any) for the window steps: either step-dependent
+	 * (an FMDStrategyStep, for a bounded window) or memoryless (for an unbounded one).
+	 * @param mdp The MDP
+	 * @param remain Remain in these states
+	 * @param x Probabilities for the window steps
+	 * @param lowerBound Lower bound on steps
+	 * @param min Min or max probabilities (true=min, false=max)
+	 * @param windowStrat Strategy for the window steps (null if none)
+	 */
+	public ModelCheckerResult computeBoundedUntilLowerBoundProbs(MDP<Double> mdp, BitSet remain, double[] x, int lowerBound, boolean min, Strategy<Double> windowStrat)
+	{
+		int n = mdp.getNumStates();
+		double[] soln = x;
+
+		// Store strategy choices for each of the first lowerBound steps, if required
+		FMDStrategyStep<Double> strat = null;
+		int stepChoices[] = null;
+		if (genStrat) {
+			int windowSteps = windowStrat instanceof FMDStrategyStep ? ((FMDStrategyStep<Double>) windowStrat).getNumSteps() : 0;
+			strat = new FMDStrategyStep<>(mdp, lowerBound + windowSteps);
+			stepChoices = new int[n];
+		}
+
+		// Do lowerBound restricted next-step computations
+		// (computed backwards, from the last of the lowerBound steps)
+		for (int i = lowerBound - 1; i >= 0; i--) {
+			if (genStrat) {
+				Arrays.fill(stepChoices, -1);
+			}
+			soln = computeRestrictedNext(mdp, remain, soln, min, stepChoices);
+			if (genStrat) {
+				// States outside "remain" have probability 0, so any choice is fine there
+				for (int s = remain.nextClearBit(0); s < n; s = remain.nextClearBit(s + 1)) {
+					stepChoices[s] = -2;
+				}
+				strat.setStepChoices(i, stepChoices);
+			}
+		}
+
+		// Return results
+		// (accuracy is not set: it is that of the window values, which are passed in)
+		ModelCheckerResult res = new ModelCheckerResult();
+		res.soln = soln;
+		res.numIters = lowerBound;
+		if (genStrat) {
+			// Append the strategy for the window steps
+			if (windowStrat instanceof FMDStrategyStep) {
+				strat.setStepChoicesFrom((FMDStrategyStep<Double>) windowStrat, lowerBound);
+			} else if (windowStrat instanceof MDStrategy) {
+				strat.setTail((MDStrategy<Double>) windowStrat);
+			}
+			res.strat = strat;
+		}
+		return res;
 	}
 
 	/**
@@ -362,6 +451,13 @@ public class MDPModelChecker extends ProbModelChecker
 
 		if (doPmaxQuotient && min) {
 			// for Pmin, don't do quotient
+			doPmaxQuotient = false;
+		}
+		if (doPmaxQuotient && genStrat) {
+			// A strategy computed on the quotient would refer to its choices,
+			// not those of the original MDP, so don't use the quotient
+			// (for interval iteration, where it is needed, strategy generation is not supported, see above)
+			mainLog.printWarning("Not using the Pmax quotient since strategy generation is enabled");
 			doPmaxQuotient = false;
 		}
 
@@ -642,18 +738,224 @@ public class MDPModelChecker extends ProbModelChecker
 		// so it can be done *after* the main prob0 algorithm (unlike for prob1).
 		// We simply pick, for all "no" states, the first choice for which all transitions stay in "no"
 		if (strat != null) {
-			for (int i = u.nextSetBit(0); i >= 0; i = u.nextSetBit(i + 1)) {
-				int numChoices = mdp.getNumChoices(i);
+			addStayChoices(mdp, u, u, strat);
+		}
+
+		return u;
+	}
+
+	/**
+	 * For max expected reachability rewards, where not reaching the target
+	 * gives infinite reward, generate strategy choices for the "inf" states,
+	 * i.e., those from which the target can be avoided with positive probability.
+	 * First, find the states from which the target can be avoided forever
+	 * with probability 1 (Prob0E) and pick choices that stay there. Then, working backwards,
+	 * pick, for each remaining "inf" state, a choice which moves with positive probability
+	 * to a state that has already been dealt with.
+	 * Since the target is reached with probability 1 from all other states,
+	 * the Prob0E states are those from which it is possible to stay in "inf" forever,
+	 * so they are found within "inf", rather than with a full Prob0 computation.
+	 * NB: Picking any choice that stays in "inf" with positive probability is not enough:
+	 * it may still reach the target with probability 1.
+	 * @param model The MDP (or other nondeterministic model with a fixed graph structure)
+	 * @param inf States whose (max) value is infinite
+	 * @param strat Strategy choice indices, to be updated for "inf" states
+	 */
+	public void addStrategyChoicesForInfStates(NondetModel<?> model, BitSet inf, int strat[])
+	{
+		PredecessorRelation pre = preRel ? model.getPredecessorRelation(this, true) : null;
+		// States from which the target can be avoided with probability 1: stay there
+		BitSet done = findStayStates(model, inf, pre);
+		addStayChoices(model, done, done, strat);
+		// Other "inf" states: move towards those dealt with already
+		addAttractorChoices(model, done, inf, null, strat, pre);
+	}
+
+	/**
+	 * Find the largest subset of {@code states} from which it is possible to stay
+	 * in that subset forever, i.e., in which each state has a choice whose successors
+	 * all lie in the subset. If a predecessor relation {@code pre} is provided,
+	 * a worklist is used (only rechecking predecessors of removed states);
+	 * otherwise, the states are repeatedly scanned.
+	 * @param model The model
+	 * @param states The states
+	 * @param pre Optionally, the predecessor relation of the model (null if not available)
+	 */
+	public static BitSet findStayStates(NondetModel<?> model, BitSet states, PredecessorRelation pre)
+	{
+		BitSet stay = (BitSet) states.clone();
+		if (pre == null) {
+			boolean changed = true;
+			while (changed) {
+				changed = false;
+				for (int s = stay.nextSetBit(0); s >= 0; s = stay.nextSetBit(s + 1)) {
+					if (!hasStayChoice(model, s, stay)) {
+						stay.clear(s);
+						changed = true;
+					}
+				}
+			}
+			return stay;
+		}
+		// Worklist of removed states, whose predecessors need rechecking
+		int removed[] = new int[16];
+		int numRemoved = 0;
+		for (int s = states.nextSetBit(0); s >= 0; s = states.nextSetBit(s + 1)) {
+			if (!hasStayChoice(model, s, stay)) {
+				stay.clear(s);
+				if (numRemoved == removed.length) {
+					removed = Arrays.copyOf(removed, 2 * removed.length);
+				}
+				removed[numRemoved++] = s;
+			}
+		}
+		while (numRemoved > 0) {
+			int t = removed[--numRemoved];
+			for (int p : pre.getPre(t)) {
+				if (stay.get(p) && !hasStayChoice(model, p, stay)) {
+					stay.clear(p);
+					if (numRemoved == removed.length) {
+						removed = Arrays.copyOf(removed, 2 * removed.length);
+					}
+					removed[numRemoved++] = p;
+				}
+			}
+		}
+		return stay;
+	}
+
+	/**
+	 * Check whether state {@code s} has a choice whose successors all lie in {@code set}.
+	 */
+	private static boolean hasStayChoice(NondetModel<?> model, int s, BitSet set)
+	{
+		int numChoices = model.getNumChoices(s);
+		for (int k = 0; k < numChoices; k++) {
+			if (model.allSuccessorsInSet(s, k, set)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Generate strategy choices which stay within a set of states: for each state in {@code states},
+	 * pick the first choice whose successors all lie in {@code stayIn}.
+	 * States in {@code states} for which no such choice exists are left unchanged.
+	 * @param model The model
+	 * @param states States to generate choices for
+	 * @param stayIn States that choices must stay within
+	 * @param strat Strategy choice indices, to be updated
+	 */
+	public static void addStayChoices(NondetModel<?> model, BitSet states, BitSet stayIn, int strat[])
+	{
+		for (int s = states.nextSetBit(0); s >= 0; s = states.nextSetBit(s + 1)) {
+			int numChoices = model.getNumChoices(s);
+			for (int k = 0; k < numChoices; k++) {
+				if (model.allSuccessorsInSet(s, k, stayIn)) {
+					strat[s] = k;
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Generate strategy choices which move towards a set of states: working backwards from
+	 * the states in {@code done}, pick, for each state in {@code todo} not dealt with yet,
+	 * a choice which moves with positive probability to a state that has already been dealt with
+	 * (and, if {@code stayIn} is non-null, whose successors all stay in {@code stayIn}).
+	 * States in {@code todo} for which no such choice is found are left unchanged.
+	 * If a predecessor relation {@code pre} is provided, this is done by a backward search,
+	 * in time linear in the size of the relevant part of the model; otherwise,
+	 * the states of {@code todo} are repeatedly scanned, which can take quadratic time.
+	 * Both give the same choices.
+	 * @param model The model
+	 * @param done States already dealt with (updated with those dealt with here)
+	 * @param todo States to generate choices for
+	 * @param stayIn Optionally, states that choices must stay within (null means "all")
+	 * @param strat Strategy choice indices, to be updated
+	 * @param pre Optionally, the predecessor relation of the model (null if not available)
+	 */
+	public static void addAttractorChoices(NondetModel<?> model, BitSet done, BitSet todo, BitSet stayIn, int strat[], PredecessorRelation pre)
+	{
+		if (pre == null) {
+			addAttractorChoicesNoPre(model, done, todo, stayIn, strat);
+			return;
+		}
+		// Backward search, layer by layer: in each round, states not dealt with yet whose choice
+		// moves to the states dealt with so far (as in the forward version) can only be predecessors
+		// of the states newly dealt with in the previous round, so only these need checking.
+		// Layers are stored as lists of states; candidates are marked in a BitSet, cleared after use.
+		int layer[] = new int[Math.max(done.cardinality(), 16)];
+		int layerSize = 0;
+		for (int s = done.nextSetBit(0); s >= 0; s = done.nextSetBit(s + 1)) {
+			layer[layerSize++] = s;
+		}
+		BitSet candidate = new BitSet();
+		int candidates[] = new int[16];
+		while (layerSize > 0) {
+			// Find candidates: predecessors (in todo, not done) of the states in the last layer
+			int numCandidates = 0;
+			for (int i = 0; i < layerSize; i++) {
+				for (int p : pre.getPre(layer[i])) {
+					if (todo.get(p) && !done.get(p) && !candidate.get(p)) {
+						candidate.set(p);
+						if (numCandidates == candidates.length) {
+							candidates = Arrays.copyOf(candidates, 2 * candidates.length);
+						}
+						candidates[numCandidates++] = p;
+					}
+				}
+			}
+			// Pick choices for candidates (wrt the states done before this round)
+			// and store those found as the next layer
+			layerSize = 0;
+			for (int i = 0; i < numCandidates; i++) {
+				int s = candidates[i];
+				candidate.clear(s);
+				int numChoices = model.getNumChoices(s);
 				for (int k = 0; k < numChoices; k++) {
-					if (mdp.allSuccessorsInSet(i, k, u)) {
-						strat[i] = k;
+					if (model.someSuccessorsInSet(s, k, done) && (stayIn == null || model.allSuccessorsInSet(s, k, stayIn))) {
+						strat[s] = k;
+						if (layerSize == layer.length) {
+							layer = Arrays.copyOf(layer, 2 * layer.length);
+						}
+						layer[layerSize++] = s;
 						break;
 					}
 				}
 			}
+			for (int i = 0; i < layerSize; i++) {
+				done.set(layer[i]);
+			}
 		}
+	}
 
-		return u;
+	/**
+	 * Version of {@link #addAttractorChoices(NondetModel, BitSet, BitSet, BitSet, int[], PredecessorRelation)}
+	 * without a predecessor relation: repeatedly scan the states in {@code todo}.
+	 */
+	private static void addAttractorChoicesNoPre(NondetModel<?> model, BitSet done, BitSet todo, BitSet stayIn, int strat[])
+	{
+		boolean changed = true;
+		while (changed) {
+			BitSet doneNew = new BitSet();
+			BitSet todoNow = (BitSet) todo.clone();
+			todoNow.andNot(done);
+			for (int s = todoNow.nextSetBit(0); s >= 0; s = todoNow.nextSetBit(s + 1)) {
+				int numChoices = model.getNumChoices(s);
+				for (int k = 0; k < numChoices; k++) {
+					if (model.someSuccessorsInSet(s, k, done) && (stayIn == null || model.allSuccessorsInSet(s, k, stayIn))) {
+						strat[s] = k;
+						doneNew.set(s);
+						break;
+					}
+				}
+			}
+			changed = !doneNew.isEmpty();
+			done.or(doneNew);
+		}
 	}
 
 	/**
@@ -2137,6 +2439,12 @@ public class MDPModelChecker extends ProbModelChecker
 			BitSet z = computeZeroRewardMECStates(mdp, mdpRewards);
 			mainLog.println("States in zero-reward MECs: " + z.cardinality());
 			res = computeReachRewards(mdp, mdpRewards, z, true, null, null);
+			// If a strategy was generated, the states in zero-reward MECs are targets,
+			// where any choice is considered fine; but here the strategy needs to stay
+			// in them, without gaining reward, so pick a zero-reward choice that does so
+			if (res.strat != null) {
+				res.strat = addZeroRewardStayChoices(mdp, mdpRewards, z, (MDStrategy<Double>) res.strat);
+			}
 		}
 
 		// Finished expected total reward
@@ -2145,6 +2453,35 @@ public class MDPModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 
 		return res;
+	}
+
+	/**
+	 * For min total rewards, reduced to reachability rewards for a set {@code z} of states
+	 * from which it is possible to stay forever without gaining reward: adapt a strategy for the
+	 * latter, in which the states of {@code z} are targets (where any choice is considered fine),
+	 * so that, in {@code z}, it picks a zero-reward choice that stays in {@code z}.
+	 * @param model The model
+	 * @param rewards The rewards
+	 * @param z The zero-reward states
+	 * @param strat The strategy
+	 */
+	public static <Value> MDStrategy<Value> addZeroRewardStayChoices(NondetModel<Value> model, MDPRewards<Double> rewards, BitSet z, MDStrategy<Value> strat)
+	{
+		int n = model.getNumStates();
+		int choices[] = new int[n];
+		for (int s = 0; s < n; s++) {
+			choices[s] = strat.getChoiceIndex(s);
+		}
+		for (int s = z.nextSetBit(0); s >= 0; s = z.nextSetBit(s + 1)) {
+			int numChoices = model.getNumChoices(s);
+			for (int k = 0; k < numChoices; k++) {
+				if (rewards.getStateReward(s) == 0 && rewards.getTransitionReward(s, k) == 0 && model.allSuccessorsInSet(s, k, z)) {
+					choices[s] = k;
+					break;
+				}
+			}
+		}
+		return new MDStrategyArray<>(model, choices);
 	}
 
 	/**
@@ -2239,47 +2576,24 @@ public class MDPModelChecker extends ProbModelChecker
 
 			timerPre = System.currentTimeMillis();
 
-			ECComputer ecs = ECComputer.createECComputer(this, mdp);
-			BitSet positiveECs = new BitSet();
-			int[] mecCount = {0};
-			StopWatch mecTimer = new StopWatch(getLog());
-			mecTimer.start("MEC computation");
-			ecs.computeMECStatesStreaming(ec -> {
-				mecCount[0]++;
-				// check if this MEC is positive
-				boolean positiveEC = false;
-				for (int state : new IterableStateSet(ec, n)) {
-					if (mdpRewards.getStateReward(state) > 0) {
-						// state with positive reward in this MEC
-						positiveEC = true;
-						break;
-					}
-					for (int choice = 0, numChoices = mdp.getNumChoices(state); choice < numChoices; choice++) {
-						if (mdpRewards.getTransitionReward(state, choice) > 0 &&
-								mdp.allSuccessorsInSet(state, choice, ec)) {
-							// choice from this state with positive reward back into this MEC
-							positiveEC = true;
-							break;
-						}
-					}
-				}
-				if (positiveEC) {
-					positiveECs.or(ec);
-				}
-				// ec is eligible for GC once this callback returns
-			});
-			mecTimer.stop("found " + mecCount[0] + " MECs");
+			// Find positive ECs (and, for strategy generation, choices for their states)
+			BitSet positiveECs = findPositiveECStates(mdp, mdpRewards, strat);
 
 			// inf = Pmax[ <> positiveECs ] > 0
 			//     = ! (Pmax[ <> positiveECs ] = 0)
 			inf = prob0(mdp, null, positiveECs, false, strat);  // Pmax[ <> positiveECs ] = 0
 			inf.flip(0,n);  // !(Pmax[ <> positive ECs ] = 0) = Pmax[ <> positiveECs ] > 0
 
+			// For strategy generation, the choices for states in positive ECs were generated above;
+			// for other "inf" states, move towards these (with positive probability)
+			if (strat != null) {
+				addAttractorChoices(mdp, (BitSet) positiveECs.clone(), inf, null, strat, preRel ? mdp.getPredecessorRelation(this, true) : null);
+			}
+
 			timerPre = System.currentTimeMillis() - timerPre;
 			mainLog.println("Precomputation took " + timerPre / 1000.0 + " seconds, " + inf.cardinality() + " infinite states, " + (n - inf.cardinality()) + " states remaining.");
 		}
 
-		// TODO: generate strategy for "inf" state (possibility to reach +ve EC)
 
 		// Compute rewards
 		// do standard max reward calculation, but with empty target set
@@ -2314,6 +2628,69 @@ public class MDPModelChecker extends ProbModelChecker
 		return res;
 	}
 
+
+	/**
+	 * Find the union of the states of maximal end components (MECs) that contain a positive
+	 * reward, i.e., a state with positive reward, or a choice with positive reward that stays in the MEC.
+	 * Optionally, also generate strategy choices for these states that collect positive reward
+	 * infinitely often: take a positive-reward choice that stays in the MEC, and, in other
+	 * states of the MEC, move towards it while staying in the MEC. These are stored in {@code strat}
+	 * (if non-null), which should have an entry for each state of the model;
+	 * entries for other states are not changed.
+	 * @param model The model (an MDP or other nondeterministic model with a fixed graph structure)
+	 * @param rewards The rewards
+	 * @param strat Optionally, storage for strategy choice indices (null if not needed)
+	 */
+	public BitSet findPositiveECStates(NondetModel<?> model, MDPRewards<Double> rewards, int strat[]) throws PrismException
+	{
+		int n = model.getNumStates();
+		ECComputer ecs = ECComputer.createECComputer(this, model);
+		BitSet positiveECs = new BitSet();
+		PredecessorRelation pre = (strat != null && preRel) ? model.getPredecessorRelation(this, true) : null;
+		int[] mecCount = {0};
+		StopWatch mecTimer = new StopWatch(getLog());
+		mecTimer.start("MEC computation");
+		ecs.computeMECStatesStreaming(ec -> {
+			mecCount[0]++;
+			// check if this MEC is positive
+			// (and, for strategy generation, store a choice that gains positive reward and stays in it)
+			boolean positiveEC = false;
+			int posState = -1, posChoice = -1;
+			for (int state : new IterableStateSet(ec, n)) {
+				for (int choice = 0, numChoices = model.getNumChoices(state); choice < numChoices; choice++) {
+					if (!model.allSuccessorsInSet(state, choice, ec)) {
+						continue;
+					}
+					if (rewards.getStateReward(state) > 0 || rewards.getTransitionReward(state, choice) > 0) {
+						// state with positive reward in this MEC, or
+						// choice from this state with positive reward back into this MEC
+						positiveEC = true;
+						posState = state;
+						posChoice = choice;
+						break;
+					}
+				}
+				if (positiveEC) {
+					break;
+				}
+			}
+			if (positiveEC) {
+				positiveECs.or(ec);
+				// For strategy generation: take the positive-reward choice, and
+				// in other states of the MEC, move towards it while staying in the MEC
+				// (so that it is taken infinitely often)
+				if (strat != null) {
+					strat[posState] = posChoice;
+					BitSet done = new BitSet();
+					done.set(posState);
+					addAttractorChoices(model, done, ec, ec, strat, pre);
+				}
+			}
+			// ec is eligible for GC once this callback returns
+		});
+		mecTimer.stop("found " + mecCount[0] + " MECs");
+		return positiveECs;
+	}
 
 	/**
 	 * Compute expected reachability rewards.
@@ -2485,17 +2862,9 @@ public class MDPModelChecker extends ProbModelChecker
 					strat[i] = -2;
 				}
 			} else {
-				// If max reward is infinite, there is at least one choice giving infinity.
-				// So we pick, for all "inf" states, the first choice for which some transitions stays in "inf".
-				for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
-					int numChoices = mdp.getNumChoices(i);
-					for (int k = 0; k < numChoices; k++) {
-						if (mdp.someSuccessorsInSet(i, k, inf)) {
-							strat[i] = k;
-							break;
-						}
-					}
-				}
+				// If max reward is infinite, there is at least one choice giving infinity,
+				// i.e., avoiding the target with positive probability
+				addStrategyChoicesForInfStates(mdp, inf, strat);
 			}
 		}
 
@@ -3084,48 +3453,6 @@ public class MDPModelChecker extends ProbModelChecker
 	{
 		double val = mdp.mvMultRewMinMaxSingle(state, lastSoln, mdpRewards, min, null);
 		return mdp.mvMultRewMinMaxSingleChoices(state, lastSoln, mdpRewards, min, val);
-	}
-
-	/**
-	 * Restrict a (memoryless) strategy for an MDP, stored as an integer array of choice indices,
-	 * to the states of the MDP that are reachable under that strategy.  
-	 * @param mdp The MDP
-	 * @param strat The strategy
-	 */
-	public <Value> void restrictStrategyToReachableStates(MDP<Value> mdp, int strat[])
-	{
-		BitSet restrict = new BitSet();
-		BitSet explore = new BitSet();
-		// Get initial states
-		for (int is : mdp.getInitialStates()) {
-			restrict.set(is);
-			explore.set(is);
-		}
-		// Compute reachable states (store in 'restrict') 
-		boolean foundMore = true;
-		while (foundMore) {
-			foundMore = false;
-			for (int s = explore.nextSetBit(0); s >= 0; s = explore.nextSetBit(s + 1)) {
-				explore.set(s, false);
-				if (strat[s] >= 0) {
-					Iterator<Map.Entry<Integer, Value>> iter = mdp.getTransitionsIterator(s, strat[s]);
-					while (iter.hasNext()) {
-						Map.Entry<Integer, Value> e = iter.next();
-						int dest = e.getKey();
-						if (!restrict.get(dest)) {
-							foundMore = true;
-							restrict.set(dest);
-							explore.set(dest);
-						}
-					}
-				}
-			}
-		}
-		// Set strategy choice for non-reachable state to -1
-		int n = mdp.getNumStates();
-		for (int s = restrict.nextClearBit(0); s < n; s = restrict.nextClearBit(s + 1)) {
-			strat[s] = -3;
-		}
 	}
 
 	/**

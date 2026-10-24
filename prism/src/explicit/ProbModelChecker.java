@@ -62,6 +62,7 @@ import parser.type.TypeDouble;
 import parser.type.TypePathBool;
 import parser.type.TypePathDouble;
 import parser.visitor.ASTTraverse;
+import prism.Accuracy;
 import prism.AccuracyFactory;
 import prism.Evaluator;
 import prism.IntegerBound;
@@ -75,6 +76,7 @@ import prism.PrismNotSupportedException;
 import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.RewardGenerator;
+import strat.Strategy;
 
 /**
  * Super class for explicit-state probabilistic model checkers.
@@ -1079,6 +1081,8 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// compute probabilities for Until<=windowSize
 		StateValues sv = null;
+		// (and the strategy for this, if generated)
+		Strategy<?> windowStrat = null;
 
 		if (windowSize == null) {
 			// unbounded
@@ -1111,6 +1115,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 			result.setStrategy(res.strat);
+			windowStrat = res.strat;
 			sv = StateValues.createFromArrayResult(res, model);
 		} else if (windowSize == 0) {
 			// A trivial case: windowSize=0 (prob is 1 in target states, 0 otherwise)
@@ -1146,6 +1151,7 @@ public class ProbModelChecker extends NonProbModelChecker
 				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 			result.setStrategy(res.strat);
+			windowStrat = res.strat;
 			sv = StateValues.createFromArrayResult(res, model);
 		}
 
@@ -1153,26 +1159,32 @@ public class ProbModelChecker extends NonProbModelChecker
 		// deal with lower bound.
 		if (lowerBound > 0) {
 			double[] probs = sv.getDoubleArray();
-			for (i = 0; i < lowerBound; i++) {
-				switch (model.getModelType()) {
-				case DTMC:
+
+			switch (model.getModelType()) {
+			case DTMC:
+				for (i = 0; i < lowerBound; i++) {
 					probs = ((DTMCModelChecker) this).computeRestrictedNext((DTMC<Double>) model, remain, probs);
-					break;
-				case MDP:
-					probs = ((MDPModelChecker) this).computeRestrictedNext((MDP<Double>) model, remain, probs, minMax.isMin());
-					break;
-				case STPG:
-					// TODO (JK): Figure out if we can handle lower bounds for STPG in the same way
-					throw new PrismNotSupportedException("Lower bounds not yet supported for STPGModelChecker");
-				case SMG:
-					throw new PrismException("Lower bounds not yet supported for SMGs");
-				default:
-					throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 				}
+				break;
+			case MDP:
+				ModelCheckerResult res = ((MDPModelChecker) this).computeBoundedUntilLowerBoundProbs((MDP<Double>) model, remain, probs, lowerBound, minMax.isMin(), (Strategy<Double>) windowStrat);
+				probs = res.soln;
+				result.setStrategy(res.strat);
+				break;
+			case STPG:
+				// TODO (JK): Figure out if we can handle lower bounds for STPG in the same way
+				throw new PrismNotSupportedException("Lower bounds not yet supported for STPGModelChecker");
+			case SMG:
+				throw new PrismException("Lower bounds not yet supported for SMGs");
+			default:
+				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
 
+			// The lower-bound steps are computed exactly (up to floating point) and do not
+			// increase any (absolute or relative) error, so keep the accuracy of the window values
+			Accuracy windowAccuracy = sv.getAccuracy();
 			sv = StateValues.createFromDoubleArray(probs, model);
-			sv.setAccuracy(AccuracyFactory.boundedNumericalIterations());
+			sv.setAccuracy(windowAccuracy != null ? windowAccuracy : AccuracyFactory.boundedNumericalIterations());
 		}
 
 		return sv;

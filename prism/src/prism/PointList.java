@@ -150,7 +150,7 @@ public class PointList extends TileList
 
 	public PointList()
 	{
-		super(2, null, 0);
+		super(2, 0);
 	}
 	
 	/**
@@ -162,8 +162,8 @@ public class PointList extends TileList
 	 **/
 	public PointList(Pareto pareto, List<Expression> expressions, List<Double> bounds) throws PrismException
 	{
-		// initialise as TileList to be registered correctly in the static TileList.storedTileLists for displaying
-		super(2, null, 0);
+		// initialise as (2D) TileList, so that it can be returned as a result and displayed
+		super(2, 0);
 
 		// Check that Pareto set is not empty
 		if (pareto == null || pareto.size() == 0 || pareto.get(0) == null)
@@ -386,23 +386,10 @@ public class PointList extends TileList
 		sortPoints();
 	}
 
-	public static void addStoredPointList(String name, PointList pointList)
-	{
-		// some edits in pointList itself
-		pointList.name = name;
-
-		// add point list statically to TileList - also fill up the stored formulae to keep indices of TileLists intact
-		addStoredFormula(null);
-		addStoredFormulaX(null);
-		addStoredFormulaY(null);
-		storedTileLists.add(pointList);
-	}
-
 	@Override
 	public String toString()
 	{
-		// TODO
-		return "Point List";
+		return "Pareto Set";
 	}
 
 	/**

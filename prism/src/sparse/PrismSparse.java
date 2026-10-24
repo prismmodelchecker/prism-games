@@ -35,7 +35,7 @@ import jdd.JDDVars;
 import odd.ODDNode;
 import odd.ODDUtils;
 import prism.NativeIntArray;
-import prism.OpsAndBoundsList;
+import prism.MultiObjQuery;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismNative;
@@ -280,8 +280,30 @@ public class PrismSparse
 		return new DoubleVector(ptr, (int)(odd.getEOff() + odd.getTOff()));
 	}
 
-	private static native double[] PS_NondetMultiObj(long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, boolean minmax, long start, long ptr_adversary, long ptr_TransSparseMatrix, List<String> synchs, long[] ptr_yes_vec, int[] probStepBounds, long[] ptr_RewSparseMatrix, double[] rewardWeights, int[] rewardStepBounds);
-	public static double[] NondetMultiObj(ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, boolean minmax, JDDNode start, NativeIntArray adversary, NDSparseMatrix transSparseMatrix, List<String> synchs, DoubleVector[] yes_vec, int[] probStepBounds, NDSparseMatrix[] rewSparseMatrix, double[] rewardWeights, int[] rewardStepBounds) throws PrismException
+	private static native double[] PS_NondetMultiObj(long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, boolean min, long start, long ptr_adversary, long ptr_TransSparseMatrix, List<String> synchs, long[] ptr_yes_vec, int[] probStepBounds, long[] ptr_RewSparseMatrix, double[] rewardWeights, int[] rewardStepBounds);
+	/**
+	 * Optimise a weighted sum of probability/reward objectives for an MDP using value iteration.
+	 * Probabilistic objectives are specified by the set of target states to reach,
+	 * provided as 0.0/1.0 vectors in the yes_vec array.
+	 * Reward objectives are specified by reward structures in rewSparseMatrix.
+	 * Both probability/reward objectives can be step-bounded (i.e., F<=k/C<=k).
+	 *
+	 * @param odd The ODD
+	 * @param rows DD row variables
+	 * @param cols DD column variables
+	 * @param nondet DD nondet variables
+	 * @param min Minimise (true) or maximise (false) the weighted sum
+	 * @param start DD for the initial state (to report value for)
+	 * @param adversary Storage for an optimal strategy (currently unused)
+	 * @param transSparseMatrix Pre-built sparse matrix or the MDP
+	 * @param synchs Action names for the MDP
+	 * @param yes_vec Target states for probabilistic objectives, as 0.0/1.0 vectors
+	 * @param probStepBounds Step bounds for probabilistic objectives (-1 for unbounded)
+	 * @param rewSparseMatrix Pre-built sparse matrices for the (transition) rewards
+	 * @param rewardWeights The weights
+	 * @param rewardStepBounds Step bounds for reward objectives (-1 for unbounded)
+	 */
+	public static double[] NondetMultiObj(ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, boolean min, JDDNode start, NativeIntArray adversary, NDSparseMatrix transSparseMatrix, List<String> synchs, DoubleVector[] yes_vec, int[] probStepBounds, NDSparseMatrix[] rewSparseMatrix, double[] rewardWeights, int[] rewardStepBounds) throws PrismException
 	{
 		checkNumStates(odd);
 		PrismNative.resetModelCheckingInfo();
@@ -299,7 +321,7 @@ public class PrismSparse
 				ptr_yes_vec[i] = (yes_vec[i]!=null) ? yes_vec[i].getPtr() : 0;
 		}
 		
-		double[] ret = PS_NondetMultiObj(odd.ptr(), rows.array(), rows.n(), cols.array(), cols.n(), nondet.array(), nondet.n(), minmax, start.ptr(), adversary.getPtr(), transSparseMatrix.getPtr(), synchs, ptr_yes_vec, probStepBounds, ptr_ndsp_r, rewardWeights, rewardStepBounds);
+		double[] ret = PS_NondetMultiObj(odd.ptr(), rows.array(), rows.n(), cols.array(), cols.n(), nondet.array(), nondet.n(), min, start.ptr(), adversary.getPtr(), transSparseMatrix.getPtr(), synchs, ptr_yes_vec, probStepBounds, ptr_ndsp_r, rewardWeights, rewardStepBounds);
 		if (ret == null)
 			throw new PrismException(getErrorMessage());
 		else
@@ -307,8 +329,26 @@ public class PrismSparse
 	
 	}
 	
-	private static native double[] PS_NondetMultiObjGS(long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, boolean minmax, long start, long ptr_adversary, long ptr_TransSparseMatrix, long[] ptr_yes_vec, long[] ptr_RewSparseMatrix, double[] rewardWeights);
-	public static double[] NondetMultiObjGS(ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, boolean minmax, JDDNode start, NativeIntArray adversary, NDSparseMatrix transSparseMatrix, DoubleVector[] yes_vec, NDSparseMatrix[] rewSparseMatrix, double[] rewardWeights) throws PrismException
+	private static native double[] PS_NondetMultiObjGS(long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, boolean min, long start, long ptr_adversary, long ptr_TransSparseMatrix, long[] ptr_yes_vec, long[] ptr_RewSparseMatrix, double[] rewardWeights);
+	/**
+	 * Optimise a weighted sum of probability/reward objectives for an MDP using (Gauss-Seidel) value iteration.
+	 * Probabilistic objectives are specified by the set of target states to reach,
+	 * provided as 0.0/1.0 vectors in the yes_vec array.
+	 * Reward objectives are specified by reward structures in rewSparseMatrix.
+	 *
+	 * @param odd The ODD
+	 * @param rows DD row variables
+	 * @param cols DD column variables
+	 * @param nondet DD nondet variables
+	 * @param min Minimise (true) or maximise (false) the weighted sum
+	 * @param start DD for the initial state (to report value for)
+	 * @param adversary Storage for an optimal strategy (currently unused)
+	 * @param transSparseMatrix Pre-built sparse matrix or the MDP
+	 * @param yes_vec Target states for probabilistic objectives, as 0.0/1.0 vectors
+	 * @param rewSparseMatrix Pre-built sparse matrices for the (transition) rewards
+	 * @param rewardWeights The weights
+	 */
+	public static double[] NondetMultiObjGS(ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, boolean min, JDDNode start, NativeIntArray adversary, NDSparseMatrix transSparseMatrix, DoubleVector[] yes_vec, NDSparseMatrix[] rewSparseMatrix, double[] rewardWeights) throws PrismException
 	{
 		checkNumStates(odd);
 		PrismNative.resetModelCheckingInfo();
@@ -326,7 +366,7 @@ public class PrismSparse
 				ptr_yes_vec[i] = (yes_vec[i]!=null) ? yes_vec[i].getPtr() : 0;
 		}
 		
-		double[] ret = PS_NondetMultiObjGS(odd.ptr(), rows.array(), rows.n(), cols.array(), cols.n(), nondet.array(), nondet.n(), minmax, start.ptr(), adversary.getPtr(), transSparseMatrix.getPtr(), ptr_yes_vec, ptr_ndsp_r, rewardWeights);
+		double[] ret = PS_NondetMultiObjGS(odd.ptr(), rows.array(), rows.n(), cols.array(), cols.n(), nondet.array(), nondet.n(), min, start.ptr(), adversary.getPtr(), transSparseMatrix.getPtr(), ptr_yes_vec, ptr_ndsp_r, rewardWeights);
 		if (ret == null)
 			throw new PrismException(getErrorMessage());
 		else
@@ -335,7 +375,7 @@ public class PrismSparse
 
 	// multi-objective (nondeterministic/mdp)
 	private static native double PS_NondetMultiReach(long trans, long trans_actions, List<String> synchs, long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, long targets[], int relops[], double bounds[], long maybe, long start);
-	public static double NondetMultiReach(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, OpsAndBoundsList opsAndBounds, JDDNode maybe, JDDNode start) throws PrismException
+	public static double NondetMultiReach(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, MultiObjQuery moQuery, JDDNode maybe, JDDNode start) throws PrismException
 	{
 		checkNumStates(odd);
 		PrismNative.resetModelCheckingInfo();
@@ -346,8 +386,8 @@ public class PrismSparse
 		double boundsArr[] = new double[n];
 		for (i = 0; i < n; i++) {
 			targetsArr[i] = targets.get(i).ptr();
-			relOpsArr[i] = opsAndBounds.getProbOperator(i).toNumber();
-			boundsArr[i] = opsAndBounds.getProbBound(i);
+			relOpsArr[i] = moQuery.getProbOperator(i).toNumber();
+			boundsArr[i] = moQuery.getProbBound(i);
 		}
 		double res = //relOps.get(0).intValue()>2 ? 
 				PS_NondetMultiReach(trans.ptr(), (transActions == null) ? 0 : transActions.ptr(), synchs, odd.ptr(), rows.array(), rows.n(), cols.array(), cols.n(), nondet.array(), nondet.n(), targetsArr, relOpsArr, boundsArr, maybe.ptr(), start.ptr()); //:
@@ -358,7 +398,7 @@ public class PrismSparse
 	}
 	
 	private static native double PS_NondetMultiReach1(long trans, long trans_actions, List<String> synchs, long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, long targets[], long combinations[], int combinationIDs[], int relops[], double bounds[], long maybe, long start);
-	public static double NondetMultiReach1(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, List<JDDNode> combinations, List<Integer> combinationIDs, OpsAndBoundsList opsAndBounds, JDDNode maybe, JDDNode start) throws PrismException
+	public static double NondetMultiReach1(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, List<JDDNode> combinations, List<Integer> combinationIDs, MultiObjQuery moQuery, JDDNode maybe, JDDNode start) throws PrismException
 	{
 		checkNumStates(odd);
 		PrismNative.resetModelCheckingInfo();
@@ -369,8 +409,8 @@ public class PrismSparse
 		double boundsArr[] = new double[n];
 		for (i = 0; i < n; i++) {
 			targetsArr[i] = targets.get(i).ptr();
-			relOpsArr[i] = opsAndBounds.getProbOperator(i).toNumber();
-			boundsArr[i] = opsAndBounds.getProbBound(i);
+			relOpsArr[i] = moQuery.getProbOperator(i).toNumber();
+			boundsArr[i] = moQuery.getProbBound(i);
 		}
 		long combinationsArr[] = new long[combinations.size()];
 		int combinationIDsArr[] = new int[combinationIDs.size()];
@@ -389,7 +429,7 @@ public class PrismSparse
 	
 	// multi-objective (nondeterministic/mdp)
 	private static native double PS_NondetMultiReachReward(long trans, long trans_actions, List<String> synchs, long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, long targets[], int relopsProb[], double boundsProb[], int relopsReward[], double boundsReward[], long maybe, long start, long trr[], long becs);
-	public static double NondetMultiReachReward(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, OpsAndBoundsList opsAndBounds, JDDNode maybe, JDDNode start,
+	public static double NondetMultiReachReward(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, MultiObjQuery moQuery, JDDNode maybe, JDDNode start,
 			List<JDDNode> trr, JDDNode becs) throws PrismException
 	{
 		checkNumStates(odd);
@@ -397,21 +437,21 @@ public class PrismSparse
 		// Convert lists to arrays for passing to JNI
 		int i;//, n = targets.size();
 		long targetsArr[] = new long[targets.size()];
-		int relOpsProbArr[] = new int[opsAndBounds.probSize()];
-		double boundsProbArr[] = new double[opsAndBounds.probSize()];
-		int relOpsRewardArr[] = new int[opsAndBounds.rewardSize()];
-		double boundsRewardArr[] = new double[opsAndBounds.rewardSize()];
+		int relOpsProbArr[] = new int[moQuery.numProbObjectives()];
+		double boundsProbArr[] = new double[moQuery.numProbObjectives()];
+		int relOpsRewardArr[] = new int[moQuery.numRewardObjectives()];
+		double boundsRewardArr[] = new double[moQuery.numRewardObjectives()];
 		long trrArr[] = new long[trr.size()];
 		long becsArr = becs.ptr();
 		for (i = 0; i < targets.size(); i++) 
 			targetsArr[i] = targets.get(i).ptr();
-		for (i = 0; i < opsAndBounds.probSize(); i++) {
-			relOpsProbArr[i] = opsAndBounds.getProbOperator(i).toNumber();
-			boundsProbArr[i] = opsAndBounds.getProbBound(i);
+		for (i = 0; i < moQuery.numProbObjectives(); i++) {
+			relOpsProbArr[i] = moQuery.getProbOperator(i).toNumber();
+			boundsProbArr[i] = moQuery.getProbBound(i);
 		}
-		for (i = 0; i < opsAndBounds.rewardSize(); i++) {
-			relOpsRewardArr[i] = opsAndBounds.getRewardOperator(i).toNumber();
-			boundsRewardArr[i] = opsAndBounds.getRewardBound(i);
+		for (i = 0; i < moQuery.numRewardObjectives(); i++) {
+			relOpsRewardArr[i] = moQuery.getRewardOperator(i).toNumber();
+			boundsRewardArr[i] = moQuery.getRewardBound(i);
 		}
 		for (i = 0; i < trr.size(); i++) 
 			trrArr[i] = trr.get(i).ptr();
@@ -425,7 +465,7 @@ public class PrismSparse
 		return res;
 	}
 	private static native double PS_NondetMultiReachReward1(long trans, long trans_actions, List<String> synchs, long odd, long rv, int nrv, long cv, int ncv, long ndv, int nndv, long targets[], long combinations[], int combinationIDs[], int relopsProb[], double boundsProb[], int relopsReward[], double boundsReward[], long maybe, long start, long trr[], long becs);
-	public static double NondetMultiReachReward1(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, List<JDDNode> combinations, List<Integer> combinationIDs, OpsAndBoundsList opsAndBounds, JDDNode maybe, JDDNode start,
+	public static double NondetMultiReachReward1(JDDNode trans, JDDNode transActions, List<String> synchs, ODDNode odd, JDDVars rows, JDDVars cols, JDDVars nondet, List<JDDNode> targets, List<JDDNode> combinations, List<Integer> combinationIDs, MultiObjQuery moQuery, JDDNode maybe, JDDNode start,
 			List<JDDNode> trr, JDDNode becs) throws PrismException
 	{
 		checkNumStates(odd);
@@ -433,21 +473,21 @@ public class PrismSparse
 		// Convert lists to arrays for passing to JNI
 		int i;//, n = targets.size();
 		long targetsArr[] = new long[targets.size()];
-		int relOpsProbArr[] = new int[opsAndBounds.probSize()];
-		double boundsProbArr[] = new double[opsAndBounds.probSize()];
-		int relOpsRewardArr[] = new int[opsAndBounds.rewardSize()];
-		double boundsRewardArr[] = new double[opsAndBounds.rewardSize()];
+		int relOpsProbArr[] = new int[moQuery.numProbObjectives()];
+		double boundsProbArr[] = new double[moQuery.numProbObjectives()];
+		int relOpsRewardArr[] = new int[moQuery.numRewardObjectives()];
+		double boundsRewardArr[] = new double[moQuery.numRewardObjectives()];
 		long trrArr[] = new long[trr.size()];
 		long becsArr = becs.ptr();
 		for (i = 0; i < targets.size(); i++) 
 			targetsArr[i] = targets.get(i).ptr();
-		for (i = 0; i < opsAndBounds.probSize(); i++) {
-			relOpsProbArr[i] = opsAndBounds.getProbOperator(i).toNumber();
-			boundsProbArr[i] = opsAndBounds.getProbBound(i);
+		for (i = 0; i < moQuery.numProbObjectives(); i++) {
+			relOpsProbArr[i] = moQuery.getProbOperator(i).toNumber();
+			boundsProbArr[i] = moQuery.getProbBound(i);
 		}
-		for (i = 0; i < opsAndBounds.rewardSize(); i++) {
-			relOpsRewardArr[i] = opsAndBounds.getRewardOperator(i).toNumber(); 
-			boundsRewardArr[i] = opsAndBounds.getRewardBound(i);
+		for (i = 0; i < moQuery.numRewardObjectives(); i++) {
+			relOpsRewardArr[i] = moQuery.getRewardOperator(i).toNumber();
+			boundsRewardArr[i] = moQuery.getRewardBound(i);
 		}
 		for (i = 0; i < trr.size(); i++) 
 			trrArr[i] = trr.get(i).ptr();

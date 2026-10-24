@@ -24,6 +24,7 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,11 +33,17 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongConsumer;
+import java.util.function.Predicate;
 
 /**
  * Class to handle reading from UMB files.
@@ -53,10 +60,37 @@ public class UMBReader
 	 */
 	private UMBIndex umbIndex;
 
+	// Contents of the archive are read into memory, to avoid decompressing it repeatedly.
+	// This is done lazily, in (at most) two passes through the archive:
+	// - a "metadata" pass, on the first request for metadata (see isMetadataEntry)
+	//   or for whether an entry exists, which reads all entry names but only the metadata entries
+	// - a full pass, on the first request for any other entry, which reads all (remaining) entries
+	// Retrieving only metadata (e.g. variables or action names) thus avoids reading everything.
+
 	/**
-	 * Default buffer size (in bytes) for reading from UMB file.
+	 * Names of all entries (files) in the archive; null until the archive has been scanned.
 	 */
-	private static int BUFFER_SIZE = 64 * 1024;
+	private Set<String> entryNames = null;
+
+	/**
+	 * Contents of entries (files) in the archive that have been read into memory, keyed by name.
+	 */
+	private Map<String, byte[]> entryData = new HashMap<>();
+
+	/**
+	 * Have all entries been read into memory?
+	 */
+	private boolean allEntriesLoaded = false;
+
+	/**
+	 * Has the in-memory copy of the contents been released (see {@link #releaseData()})?
+	 */
+	private boolean dataReleased = false;
+
+	/**
+	 * Names of individual entries whose in-memory copies have been released (see {@link #releaseTransitionData()}).
+	 */
+	private Set<String> releasedEntries = new HashSet<>();
 
 	/**
 	 * Construct a new {@link UMBReader} reading from the specified file.
@@ -92,6 +126,47 @@ public class UMBReader
 	public UMBIndex getUMBIndex()
 	{
 		return umbIndex;
+	}
+
+	/**
+	 * Release the in-memory copy of the contents of the archive.
+	 * Subsequent extraction remains possible, but each one re-reads its entry from the file.
+	 */
+	public void releaseData()
+	{
+		entryData = new HashMap<>();
+		dataReleased = true;
+	}
+
+	/**
+	 * Release the in-memory copy of the archive entries storing the model's transitions,
+	 * i.e., choice/branch offsets, branch targets/probabilities, exit rates and actions.
+	 * This can be used once they have been extracted, to avoid holding them twice.
+	 * Subsequent extraction remains possible, but each one re-reads its entry from the file.
+	 */
+	public void releaseTransitionData()
+	{
+		releaseEntries(List.of(
+				UMBFormat.STATE_CHOICE_OFFSETS_FILE,
+				UMBFormat.CHOICE_BRANCH_OFFSETS_FILE,
+				UMBFormat.BRANCH_TARGETS_FILE,
+				UMBFormat.BRANCH_PROBABILITIES_FILE,
+				UMBFormat.STATE_EXIT_RATES_FILE,
+				umbIndex.actionsAnnotation.getFilename(UMBIndex.UMBEntity.CHOICES),
+				umbIndex.actionsAnnotation.getFilename(UMBIndex.UMBEntity.BRANCHES)
+		));
+	}
+
+	/**
+	 * Release the in-memory copies of the specified archive entries.
+	 * Subsequent extraction remains possible, but each one re-reads its entry from the file.
+	 */
+	private void releaseEntries(Collection<String> filenames)
+	{
+		for (String filename : filenames) {
+			entryData.remove(filename);
+			releasedEntries.add(filename);
+		}
 	}
 
 	// Methods to extract core model info
@@ -567,203 +642,218 @@ public class UMBReader
 		return varRange;
 	}
 
+	/**
+	 * Compute the ranges of all (signed or unsigned) integer variables, from the values stored for them in a list of valuations,
+	 * in a single pass over the valuations. This assumes that the min/max values need at most 64 bits.
+	 * The returned array is indexed by variable (in the bit-packing); entries for non-integer variables are null.
+	 * @param entity The entity to which the valuations apply
+	 * @param bitPacking The bit-packing for the valuations
+	 */
+	public UMBReader.LongRange[] getValuationLongRanges(UMBIndex.UMBEntity entity, UMBBitPacking bitPacking) throws UMBException
+	{
+		int numVars = bitPacking.getNumVariables();
+		UMBReader.LongRangeComputer[] varRanges = new UMBReader.LongRangeComputer[numVars];
+		// Store offsets/sizes/signedness of the integer variables to process
+		int numIntVars = 0;
+		int[] intVars = new int[numVars];
+		int[] offsets = new int[numVars];
+		int[] sizes = new int[numVars];
+		boolean[] signed = new boolean[numVars];
+		for (int i = 0; i < numVars; i++) {
+			UMBType.Type type = bitPacking.getVariable(i).getType().type;
+			if (type == UMBType.Type.INT || type == UMBType.Type.UINT) {
+				varRanges[i] = new UMBReader.LongRangeComputer();
+				intVars[numIntVars] = i;
+				offsets[numIntVars] = bitPacking.getVariableOffset(i);
+				sizes[numIntVars] = bitPacking.getVariableSize(i);
+				signed[numIntVars] = type == UMBType.Type.INT;
+				numIntVars++;
+			}
+		}
+		// Nothing to compute if there are no integer variables
+		if (numIntVars == 0) {
+			return varRanges;
+		}
+		int finalNumIntVars = numIntVars;
+		try {
+			extractValuations(entity, bitString -> {
+				try {
+					for (int j = 0; j < finalNumIntVars; j++) {
+						long value = signed[j] ? bitString.getLong(offsets[j], sizes[j]) : bitString.getULong(offsets[j], sizes[j]);
+						varRanges[intVars[j]].accept(value);
+					}
+				} catch (UMBException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		} catch (UMBException | RuntimeException e) {
+			throw new UMBException("UMB import problem: " + e.getMessage());
+		}
+		return varRanges;
+	}
+
 	// Local methods for extracting data
+
+	/**
+	 * Is an entry (file) in the archive "metadata", i.e., describing the model's variables or
+	 * strings (e.g. action names), rather than its transition structure or annotation values?
+	 * These are read in an initial lighter pass of the archive, before any other data is requested.
+	 */
+	private static boolean isMetadataEntry(String filename)
+	{
+		return filename.startsWith(UMBFormat.VALUATIONS_FOLDER + "/")
+				|| filename.endsWith("/" + UMBFormat.STRINGS_FILE)
+				|| filename.endsWith("/" + UMBFormat.STRING_OFFSETS_FILE);
+	}
+
+	/**
+	 * Do a single pass through the archive, recording the names of all entries (files)
+	 * and reading the contents of those entries satisfying {@code toRead} into {@code data}.
+	 */
+	private void scanEntries(Predicate<String> toRead, Map<String, byte[]> data) throws UMBException
+	{
+		Set<String> names = new HashSet<>();
+		UMBIn umbIn = open();
+		try {
+			umbIn.readEntries(toRead, names, data);
+		} finally {
+			umbIn.close();
+		}
+		entryNames = names;
+	}
 
 	private boolean fileExists(String filename) throws UMBException
 	{
-		UMBIn umbIn = open();
-		boolean exists = umbIn.archiveEntryExists(filename);
-		umbIn.close();
-		return exists;
+		if (entryNames == null) {
+			// Read metadata at the same time, unless the data has been released
+			scanEntries(dataReleased ? name -> false : UMBReader::isMetadataEntry, entryData);
+		}
+		return entryNames.contains(filename);
+	}
+
+	/**
+	 * Get the contents of an entry (file) in the archive, checking that it has the expected size (in bytes).
+	 * If needed, the contents are read into memory, along with other entries (see above).
+	 * If the in-memory copy has been released, the entry is re-read from the file.
+	 */
+	private byte[] getEntryBytes(String filename, long expectedSize) throws UMBException
+	{
+		byte[] bytes = entryData.get(filename);
+		if (bytes == null && (entryNames == null || entryNames.contains(filename))) {
+			if (dataReleased || releasedEntries.contains(filename)) {
+				// Read just this entry (not retained)
+				Map<String, byte[]> data = new HashMap<>();
+				scanEntries(filename::equals, data);
+				bytes = data.get(filename);
+			} else if (!allEntriesLoaded) {
+				if (entryNames == null && isMetadataEntry(filename)) {
+					scanEntries(UMBReader::isMetadataEntry, entryData);
+				} else {
+					// Read all entries not already read (or released)
+					scanEntries(name -> !entryData.containsKey(name) && !releasedEntries.contains(name), entryData);
+					allEntriesLoaded = true;
+				}
+				bytes = entryData.get(filename);
+			}
+		}
+		if (bytes == null) {
+			throw new UMBException("UMB archive entry \"" + filename + "\" not found");
+		}
+		if (bytes.length != expectedSize) {
+			throw new UMBException("File " + filename + " has unexpected size (" + bytes.length + " bytes, not " + expectedSize + ")");
+		}
+		return bytes;
+	}
+
+	/**
+	 * Get the contents of an entry (file) in the archive, as a (little-endian) {@link ByteBuffer},
+	 * checking that it has the expected size (in bytes).
+	 */
+	private ByteBuffer getEntryBuffer(String filename, long expectedSize) throws UMBException
+	{
+		return ByteBuffer.wrap(getEntryBytes(filename, expectedSize)).order(ByteOrder.LITTLE_ENDIAN);
 	}
 
 	private void extractBooleanArraySparse(String filename, long size, LongConsumer longConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		long numLongs = (size + 63) / 64;
+		ByteBuffer bytes = getEntryBuffer(filename, numLongs * Long.BYTES);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			//long minExpectedSize = (size + 7) / 8;
-			long expectedSize = ((size + 63) / 64) * 8;
-			if (entrySize != expectedSize) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes)");
-			}
-			ByteBuffer bytes;
-			int numBytes = Long.BYTES;
-			long leftToRead = ((size + 63) / 64);
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			long[] cache = new long[cacheSize];
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
 			long index = 0;
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					cache[i] = bytes.getLong();
-				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					long l = cache[i];
-					// Find local index j of each 1 bit within 64-bit block
-					int blockSize = index + Long.BYTES * 8 <= size ? Long.BYTES * 8 : (int) (size - index);
-					for (int j = 0; j < blockSize; j++) {
-						if ((l & (1L << j)) != 0) {
-							longConsumer.accept(index + j);
-						}
+			for (long i = 0; i < numLongs; i++) {
+				long l = bytes.getLong();
+				// Find local index j of each 1 bit within 64-bit block
+				int blockSize = index + Long.BYTES * 8 <= size ? Long.BYTES * 8 : (int) (size - index);
+				for (int j = 0; j < blockSize; j++) {
+					if ((l & (1L << j)) != 0) {
+						longConsumer.accept(index + j);
 					}
-					index += Long.BYTES * 8;
 				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+				index += Long.BYTES * 8;
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
 	private void extractBooleanArray(String filename, long size, BooleanConsumer booleanConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		long numLongs = (size + 63) / 64;
+		ByteBuffer bytes = getEntryBuffer(filename, numLongs * Long.BYTES);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			//long minExpectedSize = (size + 7) / 8;
-			long expectedSize = ((size + 63) / 64) * 8;
-			if (entrySize != expectedSize) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes)");
-			}
-			ByteBuffer bytes;
-			int numBytes = Long.BYTES;
-			long leftToRead = ((size + 63) / 64);
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			long[] cache = new long[cacheSize];
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
 			long index = 0;
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					cache[i] = bytes.getLong();
+			for (long i = 0; i < numLongs; i++) {
+				long l = bytes.getLong();
+				// Find local index j of each 1 bit within 64-bit block
+				int blockSize = index + Long.BYTES * 8 <= size ? Long.BYTES * 8 : (int) (size - index);
+				for (int j = 0; j < blockSize; j++) {
+					booleanConsumer.accept((l & (1L << j)) != 0);
 				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					long l = cache[i];
-					// Find local index j of each 1 bit within 64-bit block
-					int blockSize = index + Long.BYTES * 8 <= size ? Long.BYTES * 8 : (int) (size - index);
-					for (int j = 0; j < blockSize; j++) {
-						booleanConsumer.accept((l & (1L << j)) != 0);
-					}
-					index += Long.BYTES * 8;
-				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+				index += Long.BYTES * 8;
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
 	private void extractIntArray(String filename, long size, IntConsumer intConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		ByteBuffer bytes = getEntryBuffer(filename, size * Integer.BYTES);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			if (entrySize != size * Integer.BYTES) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes, not " + (size * Integer.BYTES) + ")");
-			}
-			ByteBuffer bytes;
-			int numBytes = Integer.BYTES;
-			long leftToRead = size;
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			int[] cache = new int[cacheSize];
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					cache[i] = bytes.getInt();
-				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					intConsumer.accept(cache[i]);
-				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+			for (long i = 0; i < size; i++) {
+				intConsumer.accept(bytes.getInt());
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
 	private void extractLongArray(String filename, long size, LongConsumer longConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		ByteBuffer bytes = getEntryBuffer(filename, size * Long.BYTES);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			if (entrySize != size * Long.BYTES) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes, not " + (size * Long.BYTES) + ")");
-			}
-			ByteBuffer bytes;
-			int numBytes = Long.BYTES;
-			long leftToRead = size;
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			long[] cache = new long[cacheSize];
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					cache[i] = bytes.getLong();
-				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					longConsumer.accept(cache[i]);
-				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+			for (long i = 0; i < size; i++) {
+				longConsumer.accept(bytes.getLong());
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
 	private void extractDoubleArray(String filename, long size, DoubleConsumer doubleConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		ByteBuffer bytes = getEntryBuffer(filename, size * Double.BYTES);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			if (entrySize != size * Double.BYTES) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes, not " + (size * Double.BYTES) + ")");
-			}
-			ByteBuffer bytes;
-			int numBytes = Double.BYTES;
-			long leftToRead = size;
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			double[] cache = new double[cacheSize];
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					cache[i] = bytes.getDouble();
-				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					doubleConsumer.accept(cache[i]);
-				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+			for (long i = 0; i < size; i++) {
+				doubleConsumer.accept(bytes.getDouble());
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
@@ -771,12 +861,12 @@ public class UMBReader
 	{
 		long sizeNew = type.type.isInterval() ? size * 2 : size;
 		if (type.type.isDouble()) {
-			extractDoubleArray(filename, sizeNew, (it.unimi.dsi.fastutil.doubles.DoubleConsumer) ((Consumer<Double>) consumer)::accept);
+			extractDoubleArray(filename, sizeNew, asDoubleConsumer(consumer));
 		} else if (type.type.isRational()) {
 			if (!type.isDefaultSize()) {
 				throw new UMBException("Non-default sized rationals are not yet supported");
 			}
-			extractLongArray(filename, sizeNew * 2, (it.unimi.dsi.fastutil.longs.LongConsumer) ((Consumer<Long>) consumer)::accept);
+			extractLongArray(filename, sizeNew * 2, asLongConsumer(consumer));
 		} else {
 			throw new UMBException("Unsupported continuous numeric type " + type);
 		}
@@ -784,37 +874,17 @@ public class UMBReader
 
 	private void extractBitStringArray(String filename, long size, int numBytes, Consumer<UMBBitString> bitstringConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		ByteBuffer bytes = getEntryBuffer(filename, size * numBytes);
 		try {
-			long entrySize = umbIn.findArchiveEntry(filename);
-			if (entrySize != size * numBytes) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes, not " + (size * numBytes) + ")");
-			}
-			ByteBuffer bytes;
-			long leftToRead = size;
-			int cacheSize = (int) Math.min((BUFFER_SIZE) / numBytes, leftToRead);
-			UMBBitString[] cache = new UMBBitString[cacheSize];
-			for (int i = 0; i < cacheSize; i++) {
-				cache[i] = new UMBBitString(numBytes);
-			}
-			int toRead = (int) (Math.min(leftToRead, cacheSize));
-			while (toRead > 0 && (bytes = umbIn.readBytes(toRead * numBytes)) != null) {
-				// Cache data
-				for (int i = 0; i < toRead; i++) {
-					bytes.get(cache[i].bytes);
-				}
-				// Pass data to consumer
-				for (int i = 0; i < toRead; i++) {
-					bitstringConsumer.accept(cache[i]);
-				}
-				leftToRead -= toRead;
-				toRead = (int) (Math.min(leftToRead, cacheSize));
+			// Note: the same bitstring object is reused for each value
+			UMBBitString bitString = new UMBBitString(numBytes);
+			for (long i = 0; i < size; i++) {
+				bytes.get(bitString.bytes);
+				bitstringConsumer.accept(bitString);
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
@@ -830,29 +900,20 @@ public class UMBReader
 
 	private void extractStringList(String filename, List<Long> stringOffsets, Consumer<String> stringConsumer) throws UMBException
 	{
-		UMBIn umbIn = open();
+		int numStrings = stringOffsets.size() - 1;
+		byte[] bytes = getEntryBytes(filename, stringOffsets.get(numStrings));
 		try {
-			int numStrings = stringOffsets.size() - 1;
-			long entrySize = umbIn.findArchiveEntry(filename);
-			if (entrySize != stringOffsets.get(numStrings)) {
-				throw new UMBException("File " + filename + " has unexpected size (" + entrySize + " bytes, not " + stringOffsets.get(numStrings) + ")");
-			}
 			for (int i = 0; i < numStrings; i++) {
-				long sLen = stringOffsets.get(i + 1) - stringOffsets.get(i);
-				if (sLen > Integer.MAX_VALUE) {
-					throw new UMBException("Could not read overlength string (" + sLen + "bytes) from file " + filename);
+				long sStart = stringOffsets.get(i);
+				long sEnd = stringOffsets.get(i + 1);
+				if (sStart < 0 || sEnd < sStart || sEnd > bytes.length) {
+					throw new UMBException("Invalid string offsets (" + sStart + ", " + sEnd + ") for file " + filename);
 				}
-				String s = umbIn.readString((int) sLen);
-				if (s == null) {
-					throw new UMBException("Could not read string of length " + sLen + " from file " + filename);
-				}
-				stringConsumer.accept(s);
+				stringConsumer.accept(new String(bytes, (int) sStart, (int) (sEnd - sStart), StandardCharsets.UTF_8));
 			}
 		} catch (RuntimeException e) {
 			// Errors may occur in consumers so catch runtime exceptions here
 			throw new UMBException("Error extracting from UMB file: " + e.getMessage());
-		} finally {
-			umbIn.close();
 		}
 	}
 
@@ -915,7 +976,7 @@ public class UMBReader
 	{
 		long sizeNew = type.type.isInterval() ? size * 2 : size;
 		if (type.type.isDouble()) {
-			DoubleConsumer doubleConsumer = (DoubleConsumer) consumer;
+			DoubleConsumer doubleConsumer = asDoubleConsumer(consumer);
 			double doubleValue;
 			switch (value) {
 				case ZERO:
@@ -934,7 +995,7 @@ public class UMBReader
 			if (!type.isDefaultSize()) {
 				throw new UMBException("Non-default sized rationals are not yet supported");
 			}
-			LongConsumer longConsumer = (it.unimi.dsi.fastutil.longs.LongConsumer) consumer;
+			LongConsumer longConsumer = asLongConsumer(consumer);
 			long longValue1;
 			long longValue2;
 			switch (value) {
@@ -989,6 +1050,8 @@ public class UMBReader
 		private ByteBuffer byteBuffer;
 		/** Initial size of byte buffer */
 		private static final int DEFAULT_BUFFER_SIZE = 1024;
+		/** Maximum size (in bytes) of an entry that can be read into memory (Java array limit) */
+		private static final long MAX_ENTRY_SIZE = Integer.MAX_VALUE - 8;
 
 		/**
 		 * Open a new UMB file for reading
@@ -1014,10 +1077,12 @@ public class UMBReader
 		}
 
 		/**
-		 * Check if an entry (file) exists within the archive.
-		 * @param name Name of the file
+		 * Read through all entries (files) in the archive, in a single pass.
+		 * The names of all (readable) entries are added to {@code names}.
+		 * The contents of entries whose names satisfy {@code toRead}
+		 * are read into memory and stored in {@code data}.
 		 */
-		public boolean archiveEntryExists(String name) throws UMBException
+		public void readEntries(Predicate<String> toRead, Set<String> names, Map<String, byte[]> data) throws UMBException
 		{
 			try {
 				TarArchiveEntry entry;
@@ -1025,14 +1090,22 @@ public class UMBReader
 					if (!tarIn.canReadEntryData(entry)) {
 						continue;
 					}
-					if (entry.getName().equals(name)) {
-						return true;
+					names.add(entry.getName());
+					if (toRead.test(entry.getName())) {
+						long size = entry.getSize();
+						if (size > MAX_ENTRY_SIZE) {
+							throw new UMBException("UMB archive entry \"" + entry.getName() + "\" is too large (" + size + " bytes) to be read");
+						}
+						byte[] bytes = new byte[(int) size];
+						if (readFully(bytes, (int) size) < size) {
+							throw new UMBException("Unexpected end of UMB archive entry \"" + entry.getName() + "\"");
+						}
+						data.put(entry.getName(), bytes);
 					}
 				}
 			} catch (IOException e) {
 				throw new UMBException("I/O error extracting from UMB file");
 			}
-			return false;
 		}
 
 		/**
@@ -1059,87 +1132,22 @@ public class UMBReader
 			throw new UMBException("UMB archive entry \"" + name + "\" not found");
 		}
 
-		public TarArchiveInputStream getInputStream()
-		{
-			return tarIn;
-		}
-
 		/**
-		 * Read the specified number of bytes from the current entry (file) of the archive.
-		 * Returns the bytes in a {@link ByteBuffer}, or returns null if no or too few bytes are available.
+		 * Read up to {@code numBytes} bytes from the current entry (file) of the archive into {@code bytes}.
+		 * Unlike a single call to {@code read}, this only stops early if the end of the entry is reached.
+		 * Returns the number of bytes actually read.
 		 */
-		public ByteBuffer readBytes(int numBytes) throws UMBException
+		private int readFully(byte[] bytes, int numBytes) throws IOException
 		{
-			// Ensure buffer is big enough
-			if (numBytes > byteBuffer.capacity()) {
-				byteBuffer = ByteBuffer.allocate(numBytes).order(ByteOrder.LITTLE_ENDIAN);
-			}
-			try {
-				byte[] bytes = byteBuffer.array();
-				int bytesRead = tarIn.read(bytes, 0, numBytes);
-				byteBuffer.position(numBytes);
-				if (bytesRead < numBytes) {
-					return null;
+			int offset = 0;
+			while (offset < numBytes) {
+				int n = tarIn.read(bytes, offset, numBytes - offset);
+				if (n == -1) {
+					break;
 				}
-				// Prepare buffer for reading and return
-				byteBuffer.flip();
-				return byteBuffer;
-			} catch (IOException e) {
-				throw new UMBException("I/O error extracting " + numBytes + " bytes from UMB entry \"" + tarIn.getCurrentEntry().getName() + "\"");
+				offset += n;
 			}
-		}
-
-		/**
-		 * Read the specified number of bytes from the current entry (file) of the archive.
-		 * Returns the bytes in a {@link ByteBuffer}. Returns null if there are no bytes
-		 * to read (or none were requested). If there are less than {@code numBytes} bytes,
-		 * the result is padded with zero bytes.
-		 */
-		public ByteBuffer readBytesPadded(int numBytes) throws UMBException
-		{
-			// Ensure buffer is big enough
-			if (numBytes > byteBuffer.capacity()) {
-				byteBuffer = ByteBuffer.allocate(numBytes).order(ByteOrder.LITTLE_ENDIAN);
-			}
-			try {
-				byte[] bytes = byteBuffer.array();
-				int bytesRead = tarIn.read(bytes, 0, numBytes);
-				byteBuffer.position(numBytes);
-				if (bytesRead <= 0) {
-					return null;
-				} else if (bytesRead < numBytes) {
-					for (int i = bytesRead; i < numBytes; i++) {
-						bytes[i] = (byte) 0;
-					}
-				}
-				// Prepare buffer for reading and return
-				byteBuffer.flip();
-				return byteBuffer;
-			} catch (IOException e) {
-				throw new UMBException("I/O error extracting " + numBytes + " bytes from UMB entry \"" + tarIn.getCurrentEntry().getName() + "\"");
-			}
-		}
-
-		/**
-		 * Read a string of the specified length from the current entry (file) of the archive.
-		 */
-		public String readString(int length) throws UMBException
-		{
-			// Ensure buffer is big enough
-			if (length > byteBuffer.capacity()) {
-				byteBuffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
-			}
-			try {
-				byte[] bytes = byteBuffer.array();
-				int bytesRead = tarIn.read(bytes, 0, length);
-				byteBuffer.position(length);
-				if (bytesRead < length) {
-					return null;
-				}
-				return new String(bytes, 0, bytesRead, StandardCharsets.UTF_8);
-			} catch (IOException e) {
-				throw new UMBException("I/O error extracting string from UMB entry \"" + tarIn.getCurrentEntry().getName() + "\"");
-			}
+			return offset;
 		}
 
 		/**
@@ -1147,14 +1155,15 @@ public class UMBReader
 		 */
 		public String readAsString() throws UMBException
 		{
-			StringBuilder sb = new StringBuilder();
+			// Decode only once all bytes are read, since multi-byte characters may span chunks
+			ByteArrayOutputStream allBytes = new ByteArrayOutputStream();
 			try {
 				byte[] bytes = byteBuffer.array();
 				int bytesRead;
 				while ((bytesRead = tarIn.read(bytes)) != -1) {
-					sb.append(new String(bytes, 0, bytesRead, StandardCharsets.UTF_8));
+					allBytes.write(bytes, 0, bytesRead);
 				}
-				return sb.toString();
+				return allBytes.toString(StandardCharsets.UTF_8);
 			} catch (IOException e) {
 				throw new UMBException("I/O error extracting string from UMB entry \"" + tarIn.getCurrentEntry().getName() + "\"");
 			}
@@ -1179,6 +1188,36 @@ public class UMBReader
 				throw new UMBException("I/O error closing UMB file");
 			}
 		}
+	}
+
+	// Utility methods
+
+	/**
+	 * Convert a consumer passed for (continuous numeric) double values to a {@link DoubleConsumer}.
+	 * If it is already a {@link DoubleConsumer} (e.g., a fastutil one), values are passed to it directly;
+	 * otherwise, it should be a {@code Consumer<Double>}, and values are boxed.
+	 */
+	@SuppressWarnings("unchecked")
+	private static DoubleConsumer asDoubleConsumer(Consumer<?> consumer)
+	{
+		if (consumer instanceof DoubleConsumer) {
+			return (DoubleConsumer) consumer;
+		}
+		return ((Consumer<Double>) consumer)::accept;
+	}
+
+	/**
+	 * Convert a consumer passed for (continuous numeric) long values (e.g., rationals) to a {@link LongConsumer}.
+	 * If it is already a {@link LongConsumer} (e.g., a fastutil one), values are passed to it directly;
+	 * otherwise, it should be a {@code Consumer<Long>}, and values are boxed.
+	 */
+	@SuppressWarnings("unchecked")
+	private static LongConsumer asLongConsumer(Consumer<?> consumer)
+	{
+		if (consumer instanceof LongConsumer) {
+			return (LongConsumer) consumer;
+		}
+		return ((Consumer<Long>) consumer)::accept;
 	}
 
 	// Utility classes

@@ -588,8 +588,11 @@ public class SMGModelChecker extends ProbModelChecker
 			// display Pareto set
 			pareto_set = pareto[init]; // register Pareto set - for compositional mainly
 			parsed_params = params; // register parameters
+			// store point list for display, which is returned as the result
+			pareto_point_list = null;
 			if (!checkBounds) {
-				PointList.addStoredPointList("M", new PointList(pareto_set, params.expressions, params.bounds));
+				pareto_point_list = new PointList(pareto_set, params.expressions, params.bounds);
+				pareto_point_list.setName("M");
 			}
 			mainLog.print("Resulting Pareto set:\n");
 			PPLSupport.printReachabilityPolyhedron(pareto, params.rewards.size(), init, mainLog);

@@ -29,8 +29,11 @@ package io;
 import common.Interval;
 import common.SafeCast;
 import io.github.pmctools.umbj.*;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import param.BigRational;
 import parser.EvaluateContext;
 import parser.VarList;
 import parser.ast.DeclarationBool;
@@ -49,10 +52,10 @@ import prism.RewardInfo;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
@@ -103,13 +106,6 @@ public class UMBImporter extends ExplicitModelImporter
 		} catch (UMBException e) {
 			throw new PrismException("Error importing from UMB: " + e.getMessage());
 		}
-	}
-
-	@Override
-	public boolean modelIsExact()
-	{
-		// For now, assume that if transition probabilities are rationals, so is everything else
-		return umbIndex.getBranchProbabilityType() != null && umbIndex.getBranchProbabilityType().type.isRational();
 	}
 
 	@Override
@@ -341,6 +337,8 @@ public class UMBImporter extends ExplicitModelImporter
 			}
 			UMBBitPacking bitPacking = umbIndex.getValuationBitPacking(entity);
 			int numVars = bitPacking.getNumVariables();
+			// Compute ranges of all integer variables (in a single pass)
+			UMBReader.LongRange[] varLongRanges = umbReader.getValuationLongRanges(entity, bitPacking);
 			for (int i = 0; i < numVars; i++) {
 				UMBBitPacking.BitPackedVariable var = bitPacking.getVariable(i);
 				// Get valid, unique variable name (usually just the provided variable name)
@@ -360,7 +358,7 @@ public class UMBImporter extends ExplicitModelImporter
 						int varIntMin;
 						int varIntMax;
 						if (computeRange) {
-							UMBReader.LongRange varLongRange = umbReader.getValuationLongRange(entity, bitPacking, i);
+							UMBReader.LongRange varLongRange = varLongRanges[i];
 							long varLongMin = varLongRange.getMin();
 							long varLongMax = varLongRange.getMax();
 							try {
@@ -413,24 +411,7 @@ public class UMBImporter extends ExplicitModelImporter
 			return;
 		}
 		// Otherwise, extract state variable info
-		try {
-			UMBBitPacking bitPacking = umbIndex.getValuationBitPacking(UMBIndex.UMBEntity.STATES);
-			AtomicInteger s = new AtomicInteger(0);
-			int numVars = bitPacking.getNumVariables();
-			umbReader.extractStateValuations(bitString -> {
-				try {
-					//System.out.println(s + ":" + bitPacking.decodeBitString(bitString));
-					for (int i = 0; i < numVars; i++) {
-						storeStateDefn.accept(s.get(), i, getBitStringValue(bitPacking, bitString, i));
-					}
-					s.incrementAndGet();
-				} catch (UMBException | PrismException e) {
-					throw new RuntimeException(e.getMessage());
-				}
-			});
-		} catch (UMBException | RuntimeException e) {
-			throw new PrismException("UMB import problem: " + e.getMessage());
-		}
+		extractValuationDefinitions(UMBIndex.UMBEntity.STATES, storeStateDefn);
 	}
 
 	@Override
@@ -442,17 +423,35 @@ public class UMBImporter extends ExplicitModelImporter
 			return;
 		}
 		// Otherwise, extract observation observable info
+		extractValuationDefinitions(UMBIndex.UMBEntity.OBSERVATIONS, storeObservationDefn);
+	}
+
+	/**
+	 * Extract the values of all variables from the valuations for an entity (states or observations).
+	 * @param entity States or observations?
+	 * @param storeDefn Consumer for (entity index, variable index, value) triples
+	 */
+	private void extractValuationDefinitions(UMBIndex.UMBEntity entity, IOUtils.StateDefnConsumer storeDefn) throws PrismException
+	{
 		try {
-			UMBBitPacking bitPacking = umbIndex.getValuationBitPacking(UMBIndex.UMBEntity.OBSERVATIONS);
-			AtomicInteger s = new AtomicInteger(0);
+			// Look up variable info once, rather than for each valuation
+			UMBBitPacking bitPacking = umbIndex.getValuationBitPacking(entity);
 			int numVars = bitPacking.getNumVariables();
-			umbReader.extractObservationValuations(bitString -> {
+			UMBType.Type[] types = new UMBType.Type[numVars];
+			int[] offsets = new int[numVars];
+			int[] sizes = new int[numVars];
+			for (int i = 0; i < numVars; i++) {
+				types[i] = bitPacking.getVariable(i).getType().type;
+				offsets[i] = bitPacking.getVariableOffset(i);
+				sizes[i] = bitPacking.getVariableSize(i);
+			}
+			int[] index = new int[1];
+			umbReader.extractValuations(entity, bitString -> {
 				try {
-					//System.out.println(s + ":" + bitPacking.decodeBitString(bitString));
+					int s = index[0]++;
 					for (int i = 0; i < numVars; i++) {
-						storeObservationDefn.accept(s.get(), i, getBitStringValue(bitPacking, bitString, i));
+						storeDefn.accept(s, i, getBitStringValue(bitString, types[i], offsets[i], sizes[i], bitPacking, i));
 					}
-					s.incrementAndGet();
 				} catch (UMBException | PrismException e) {
 					throw new RuntimeException(e.getMessage());
 				}
@@ -463,30 +462,30 @@ public class UMBImporter extends ExplicitModelImporter
 	}
 
 	/**
-	 * Get the value of the {@code i}th variable, from a bit string, as an Object
+	 * Get the value of a variable, of the given type, offset and size, from a bit string, as an Object.
+	 * The bit packing and variable index are only used for error messages.
 	 */
-	private Object getBitStringValue(UMBBitPacking bitPacking, UMBBitString bitString, int i) throws UMBException
+	private static Object getBitStringValue(UMBBitString bitString, UMBType.Type type, int offset, int size, UMBBitPacking bitPacking, int i) throws UMBException
 	{
-		UMBBitPacking.BitPackedVariable var = bitPacking.getVariable(i);
-		switch (var.getType().type) {
+		switch (type) {
 			case BOOL:
-				return bitPacking.getBooleanVariableValue(bitString, i);
+				return bitString.getBoolean(offset, size);
 			case INT:
 				try {
-					return SafeCast.toIntExact(bitPacking.getLongVariableValue(bitString, i));
+					return SafeCast.toIntExact(bitString.getLong(offset, size));
 				} catch (ArithmeticException e) {
-					throw new UMBException("UMB variable " + var.name + " exceeds the range of an int");
+					throw new UMBException("UMB variable " + bitPacking.getVariable(i).name + " exceeds the range of an int");
 				}
 			case UINT:
 				try {
-					return SafeCast.toIntExact(bitPacking.getULongVariableValue(bitString, i));
+					return SafeCast.toIntExact(bitString.getULong(offset, size));
 				} catch (ArithmeticException e) {
-					throw new UMBException("UMB variable " + var.name + " exceeds the range of an int");
+					throw new UMBException("UMB variable " + bitPacking.getVariable(i).name + " exceeds the range of an int");
 				}
 			case DOUBLE:
-				return bitPacking.getDoubleVariableValue(bitString, i);
+				return bitString.getDouble(offset, size);
 			default:
-				throw new UMBException("Unknown UMB variable type: " + var.getType().type);
+				throw new UMBException("Unknown UMB variable type: " + type);
 		}
 	}
 
@@ -525,7 +524,7 @@ public class UMBImporter extends ExplicitModelImporter
 			umbReader.extractChoiceBranchOffsets(l -> choiceTransitionOffsets.add((int) l));
 			IntList transitionSuccessors = new IntArrayList(numTransitions);
 			umbReader.extractBranchTargets(l -> transitionSuccessors.add((int) l));
-			ModelAccess.ValueListFromPrimitives<Value> valueListFromPrimitives = new ModelAccess.ValueListFromPrimitives<>(eval, numTransitions);
+			ValueListFromPrimitives<Value> valueListFromPrimitives = new ValueListFromPrimitives<>(eval, numTransitions, umbIndex.getBranchProbabilityType());
 			List<Value> transitionProbabilities = valueListFromPrimitives.valueList;
 			umbReader.extractBranchProbabilities(valueListFromPrimitives.primitiveConsumer);
 
@@ -533,7 +532,7 @@ public class UMBImporter extends ExplicitModelImporter
 			List<Value> exitRates = null;
 			boolean ctmc = getModelInfo().getModelType() == ModelType.CTMC;
 			if (ctmc) {
-				valueListFromPrimitives = new ModelAccess.ValueListFromPrimitives<>(eval, numStates);
+				valueListFromPrimitives = new ValueListFromPrimitives<>(eval, numStates, umbIndex.getExitRateType());
 				exitRates = valueListFromPrimitives.valueList;
 				umbReader.extractExitRates(valueListFromPrimitives.primitiveConsumer);
 			}
@@ -567,6 +566,8 @@ public class UMBImporter extends ExplicitModelImporter
 				}
 			}
 
+			// Transitions now extracted, so the UMB reader no longer needs to hold them
+			umbReader.releaseTransitionData();
 		} catch (UMBException e) {
 			throw new PrismException("UMB import problem: " + e.getMessage());
 		}
@@ -583,7 +584,7 @@ public class UMBImporter extends ExplicitModelImporter
 			umbReader.extractChoiceBranchOffsets(l -> choiceTransitionOffsets.add((int) l));
 			IntList transitionSuccessors = new IntArrayList(numTransitions);
 			umbReader.extractBranchTargets(l -> transitionSuccessors.add((int) l));
-			ModelAccess.ValueListFromPrimitives<Value> valueListFromPrimitives = new ModelAccess.ValueListFromPrimitives<>(eval, numTransitions);
+			ValueListFromPrimitives<Value> valueListFromPrimitives = new ValueListFromPrimitives<>(eval, numTransitions, umbIndex.getBranchProbabilityType());
 			List<Value> transitionProbabilities = valueListFromPrimitives.valueList;
 			umbReader.extractBranchProbabilities(valueListFromPrimitives.primitiveConsumer);
 
@@ -621,7 +622,59 @@ public class UMBImporter extends ExplicitModelImporter
 				}
 			}
 
+			// Transitions now extracted, so the UMB reader no longer needs to hold them
+			umbReader.releaseTransitionData();
 		} catch (UMBException e) {
+			throw new PrismException("UMB import problem: " + e.getMessage());
+		}
+	}
+
+	@Override
+	public IOUtils.SparseMCTransitions extractMCTransitionsSparse() throws PrismException
+	{
+		// We can extract directly from the UMB file for (double-valued) DTMCs
+		// (assuming, as for extractMCTransitions, one choice per state)
+		UMBType probType = umbIndex.getBranchProbabilityType();
+		boolean direct = getModelInfo().getModelType() == ModelType.DTMC && numChoices == numStates
+				&& probType != null && probType.type.isDouble() && !probType.type.isInterval();
+		if (!direct) {
+			return super.extractMCTransitionsSparse();
+		}
+		try {
+			IOUtils.SparseMCTransitions trans = new IOUtils.SparseMCTransitions();
+			trans.rowStarts = extractIntArray(numChoices + 1, umbReader::extractChoiceBranchOffsets);
+			trans.successors = extractIntArray(numTransitions, umbReader::extractBranchTargets);
+			trans.probabilities = extractDoubleArray(numTransitions, umbReader::extractBranchProbabilities);
+			trans.actions = extractActions(numTransitions, umbReader.hasBranchActionIndices() ? umbReader::extractBranchActionIndices : null);
+			// Transitions now extracted, so the UMB reader no longer needs to hold them
+			umbReader.releaseTransitionData();
+			return trans;
+		} catch (UMBException | RuntimeException e) {
+			throw new PrismException("UMB import problem: " + e.getMessage());
+		}
+	}
+
+	@Override
+	public IOUtils.SparseMDPTransitions extractMDPTransitionsSparse() throws PrismException
+	{
+		// We can extract directly from the UMB file for (double-valued) MDPs
+		UMBType probType = umbIndex.getBranchProbabilityType();
+		boolean direct = getModelInfo().getModelType() == ModelType.MDP
+				&& probType != null && probType.type.isDouble() && !probType.type.isInterval();
+		if (!direct) {
+			return super.extractMDPTransitionsSparse();
+		}
+		try {
+			IOUtils.SparseMDPTransitions trans = new IOUtils.SparseMDPTransitions();
+			trans.rowStarts = extractIntArray(numStates + 1, umbReader::extractStateChoiceOffsets);
+			trans.choiceStarts = extractIntArray(numChoices + 1, umbReader::extractChoiceBranchOffsets);
+			trans.successors = extractIntArray(numTransitions, umbReader::extractBranchTargets);
+			trans.probabilities = extractDoubleArray(numTransitions, umbReader::extractBranchProbabilities);
+			trans.actions = extractActions(numChoices, umbReader.hasChoiceActionIndices() ? umbReader::extractChoiceActionIndices : null);
+			// Transitions now extracted, so the UMB reader no longer needs to hold them
+			umbReader.releaseTransitionData();
+			return trans;
+		} catch (UMBException | RuntimeException e) {
 			throw new PrismException("UMB import problem: " + e.getMessage());
 		}
 	}
@@ -658,6 +711,8 @@ public class UMBImporter extends ExplicitModelImporter
 				}
 			}
 
+			// Transitions now extracted, so the UMB reader no longer needs to hold them
+			umbReader.releaseTransitionData();
 		} catch (UMBException e) {
 			throw new PrismException("UMB import problem: " + e.getMessage());
 		}
@@ -715,7 +770,7 @@ public class UMBImporter extends ExplicitModelImporter
 			if (!basicRewardInfo.rewardStructHasStateRewards(rewardIndex)) {
 				return;
 			}
-			umbReader.extractStateRewards(rewardIndex, ModelAccess.primitivesToValues(eval, new IndexedConsumer<>(storeReward)));
+			umbReader.extractStateRewards(rewardIndex, primitivesToValues(eval, new IndexedConsumer<>(storeReward), umbIndex.getRewardAnnotation(rewardIndex).getType()));
 		} catch (UMBException e) {
 			throw new PrismException("UMB import problem: " + e.getMessage());
 		}
@@ -730,7 +785,7 @@ public class UMBImporter extends ExplicitModelImporter
 
 		try {
 			// Extract transition rewards from UMB
-			ModelAccess.ValueListFromPrimitives<Value> valueListFromPrimitives = new ModelAccess.ValueListFromPrimitives<>(eval, numTransitions);
+			ValueListFromPrimitives<Value> valueListFromPrimitives = new ValueListFromPrimitives<>(eval, numTransitions, umbIndex.getRewardAnnotation(rewardIndex).getType());
 			List<Value> transRewards = valueListFromPrimitives.valueList;
 			umbReader.extractBranchRewards(rewardIndex, valueListFromPrimitives.primitiveConsumer);
 
@@ -806,7 +861,7 @@ public class UMBImporter extends ExplicitModelImporter
 
 		try {
 			// Extract transition rewards from UMB
-			ModelAccess.ValueListFromPrimitives<Value> valueListFromPrimitives = new ModelAccess.ValueListFromPrimitives<>(eval, numChoices);
+			ValueListFromPrimitives<Value> valueListFromPrimitives = new ValueListFromPrimitives<>(eval, numChoices, umbIndex.getRewardAnnotation(rewardIndex).getType());
 			List<Value> transRewards = valueListFromPrimitives.valueList;
 			umbReader.extractChoiceRewards(rewardIndex, valueListFromPrimitives.primitiveConsumer);
 
@@ -845,7 +900,166 @@ public class UMBImporter extends ExplicitModelImporter
 		}
 	}
 
+	@Override
+	public void importDone()
+	{
+		umbReader.releaseData();
+	}
+
+	// Utility methods
+
+	/**
+	 * Something that extracts (long) values from a UMB file and passes them to a consumer.
+	 */
+	@FunctionalInterface
+	private interface UMBLongExtractor
+	{
+		void extract(LongConsumer longConsumer) throws UMBException;
+	}
+
+	/**
+	 * Something that extracts (int) values from a UMB file and passes them to a consumer.
+	 */
+	@FunctionalInterface
+	private interface UMBIntExtractor
+	{
+		void extract(IntConsumer intConsumer) throws UMBException;
+	}
+
+	/**
+	 * Something that extracts (double) values from a UMB file and passes them to a consumer.
+	 */
+	@FunctionalInterface
+	private interface UMBDoubleExtractor
+	{
+		void extract(it.unimi.dsi.fastutil.doubles.DoubleConsumer doubleConsumer) throws UMBException;
+	}
+
+	/**
+	 * Extract (long) values from a UMB file into a new int array of the specified size.
+	 */
+	private static int[] extractIntArray(int size, UMBLongExtractor extractor) throws UMBException
+	{
+		int[] array = new int[size];
+		int[] count = new int[1];
+		extractor.extract(l -> array[count[0]++] = SafeCast.toIntExact(l));
+		if (count[0] != size) {
+			throw new UMBException("Expected " + size + " values but found " + count[0]);
+		}
+		return array;
+	}
+
+	/**
+	 * Extract (double) values from a UMB file into a new double array of the specified size.
+	 */
+	private static double[] extractDoubleArray(int size, UMBDoubleExtractor extractor) throws UMBException
+	{
+		double[] array = new double[size];
+		int[] count = new int[1];
+		extractor.extract(d -> array[count[0]++] = d);
+		if (count[0] != size) {
+			throw new UMBException("Expected " + size + " values but found " + count[0]);
+		}
+		return array;
+	}
+
+	/**
+	 * Extract action indices from a UMB file and convert them to a new array of action objects,
+	 * or, if {@code extractor} is null, create an array storing the first (default) action.
+	 */
+	private Object[] extractActions(int size, UMBIntExtractor extractor) throws UMBException, PrismException
+	{
+		List<Object> actionList = getModelInfo().getActions();
+		Object[] actions = new Object[size];
+		if (extractor == null) {
+			Arrays.fill(actions, actionList.get(0));
+		} else {
+			int[] count = new int[1];
+			extractor.extract(i -> actions[count[0]++] = actionList.get(i));
+			if (count[0] != size) {
+				throw new UMBException("Expected " + size + " actions but found " + count[0]);
+			}
+		}
+		return actions;
+	}
+
+	/**
+	 * Decode (continuous numerical) values, supplied via a consumer,
+	 * from an encoding into primitive types, and pass to a Value consumer.
+	 * The primitives are either doubles or BigRationals encoded as pairs of longs
+	 * (as done for export by UMBExporter), as specified by the
+	 * UMB type of the values, and they are converted if needed to match the evaluator:
+	 * doubles become BigRationals via their (shortest) decimal representation, e.g.,
+	 * 0.4 becomes 2/5, matching how decimal values in text files are interpreted;
+	 * BigRationals become the closest double.
+	 * @param eval Evaluator for the values
+	 * @param valueConsumer The consumer for the values to encode
+	 * @param type The UMB type of the values
+	 */
+	@SuppressWarnings("unchecked")
+	private static <Value> Consumer<?> primitivesToValues(Evaluator<Value> eval, Consumer<Value> valueConsumer, UMBType type)
+	{
+		boolean fromRationals = type.type.isRational();
+		if (eval.exact()) {
+			Consumer<BigRational> consumerBigRationals = (Consumer<BigRational>) valueConsumer;
+			if (fromRationals) {
+				return new ModelAccessIterators.PackBigRationals(consumerBigRationals);
+			} else {
+				return (it.unimi.dsi.fastutil.doubles.DoubleConsumer) d -> consumerBigRationals.accept(doubleToBigRational(d));
+			}
+		} else {
+			if (fromRationals) {
+				Consumer<Double> consumerDoubles = (Consumer<Double>) valueConsumer;
+				return new ModelAccessIterators.PackBigRationals(r -> consumerDoubles.accept(r.doubleValue()));
+			} else {
+				return valueConsumer;
+			}
+		}
+	}
+
+	/**
+	 * Convert a double to a BigRational, via its (shortest) decimal representation,
+	 * e.g., 0.4 becomes 2/5, rather than the exact (binary) value of the double.
+	 */
+	private static BigRational doubleToBigRational(double d)
+	{
+		return new BigRational(Double.toString(d));
+	}
+
 	// Utility classes
+
+	/**
+	 * Helper class to create a list of Values, decoded from their encoding into primitives
+	 * (see {@link #primitivesToValues(Evaluator, Consumer, UMBType)}).
+	 */
+	private static class ValueListFromPrimitives<Value>
+	{
+		List<Value> valueList;
+		Consumer<?> primitiveConsumer;
+
+		@SuppressWarnings("unchecked")
+		ValueListFromPrimitives(Evaluator<Value> eval, int size, UMBType type)
+		{
+			boolean fromRationals = type.type.isRational();
+			if (eval.exact()) {
+				List<BigRational> valueListBigRationals = new ArrayList<>(size);
+				valueList = (List<Value>) valueListBigRationals;
+				if (fromRationals) {
+					primitiveConsumer = new ModelAccessIterators.PackBigRationals(valueListBigRationals::add);
+				} else {
+					primitiveConsumer = (it.unimi.dsi.fastutil.doubles.DoubleConsumer) d -> valueListBigRationals.add(doubleToBigRational(d));
+				}
+			} else {
+				DoubleList valueListDoubles = new DoubleArrayList(size);
+				valueList = (List<Value>) valueListDoubles;
+				if (fromRationals) {
+					primitiveConsumer = new ModelAccessIterators.PackBigRationals(r -> valueListDoubles.add(r.doubleValue()));
+				} else {
+					primitiveConsumer = (it.unimi.dsi.fastutil.doubles.DoubleConsumer) valueListDoubles::add;
+				}
+			}
+		}
+	}
 
 	/**
 	 * Class to map a long consumer to an int consumer.

@@ -111,6 +111,19 @@ public class ExplicitFiles2MTBDD extends PrismNativeComponent
 	 */
 	public Model build(ExplicitModelImporter importer) throws PrismException
 	{
+		try {
+			return doBuild(importer);
+		} finally {
+			// Notify importer that we are done, whether or not the build succeeded
+			importer.importDone();
+		}
+	}
+
+	/**
+	 * Build a Model corresponding to the passed in importer (see {@link #build(ExplicitModelImporter)}).
+	 */
+	private Model doBuild(ExplicitModelImporter importer) throws PrismException
+	{
 		this.importer = importer;
 		modelInfo = importer.getModelInfo();
 		modelType = modelInfo.getModelType();
@@ -119,11 +132,6 @@ public class ExplicitFiles2MTBDD extends PrismNativeComponent
 		numStates = importer.getNumStates();
 		modelVariables = new ModelVariablesDD();
 		rewardInfo = importer.getRewardInfo();
-
-		// Check model is defined as doubles
-		if (importer.modelIsExact()) {
-			throw new PrismException("Cannot import an exact model unless in exact mode");
-		}
 
 		// Check model type is supported
 		switch (modelType) {

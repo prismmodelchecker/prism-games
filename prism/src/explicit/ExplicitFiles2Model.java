@@ -29,7 +29,11 @@ package explicit;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.ExplicitModelImporter;
 import parser.EvaluateContext;
@@ -49,6 +53,9 @@ public class ExplicitFiles2Model extends PrismComponent
 {
 	// Should deadlocks be fixed (by adding a self-loop) when detected?
 	private boolean fixdl;
+
+	// Should the importer be notified that importing is done at the end of building?
+	private boolean importDoneOnBuild = true;
 
 	// Label bitsets
 	private List<BitSet> labelBitSets;
@@ -79,6 +86,18 @@ public class ExplicitFiles2Model extends PrismComponent
 	}
 
 	/**
+	 * Should the importer be notified that importing is done
+	 * (see {@link ExplicitModelImporter#importDone()}) at the end of building?
+	 * This is true by default. A caller that will extract further data from the
+	 * importer straight away (e.g. rewards) can disable it, and then call
+	 * {@link ExplicitModelImporter#importDone()} itself afterwards.
+	 */
+	public void setImportDoneOnBuild(boolean importDoneOnBuild)
+	{
+		this.importDoneOnBuild = importDoneOnBuild;
+	}
+
+	/**
 	 * Build a Model corresponding to the passed in explicit files importer.
 	 * The transition probabilities/rates are assumed to be of type double.
 	 * @param  modelImporter Importer from files
@@ -96,11 +115,22 @@ public class ExplicitFiles2Model extends PrismComponent
 	 */
 	public <Value> Model<Value> build(ExplicitModelImporter modelImporter, Evaluator<Value> eval) throws PrismException
 	{
-		// Check model is defined as doubles
-		if (modelImporter.modelIsExact() && !eval.exact()) {
-			throw new PrismException("Cannot import an exact model unless in exact mode");
+		try {
+			return doBuild(modelImporter, eval);
+		} finally {
+			// Notify importer that we are done (if required), whether or not the build succeeded
+			if (importDoneOnBuild) {
+				modelImporter.importDone();
+			}
 		}
+	}
 
+	/**
+	 * Build a Model corresponding to the passed in explicit files importer
+	 * (see {@link #build(ExplicitModelImporter, Evaluator)}).
+	 */
+	private <Value> Model<Value> doBuild(ExplicitModelImporter modelImporter, Evaluator<Value> eval) throws PrismException
+	{
 		modelImporter.setFixDeadlocks(fixdl);
 		ModelExplicit<Value> model = null;
 		ModelInfo modelInfo = modelImporter.getModelInfo();
@@ -240,10 +270,62 @@ public class ExplicitFiles2Model extends PrismComponent
 		modelImporter.extractObservationDefinitions((o, i, v) -> observationsList.get(o).setValue(i, v));
 		model.setObservationsList(observationsList);
 		List<State> statesList = model.getStatesList();
-		if (statesList != null) {
-			model.setUnobservationsList(new ArrayList<>(statesList));
-		} else {
+		if (statesList == null) {
 			throw new PrismException("Can't load observation definitions without a states list");
+		}
+		loadUnobservations(modelImporter.getModelInfo(), model, statesList);
+	}
+
+	/**
+	 * Compute and store the unobservations for the model's states.
+	 * As for models built from PRISM models, the unobservation of a state comprises
+	 * the values of all variables that are not observable (see {@link ModelInfo#isVarObservable(int)}),
+	 * provided that these, together with observations, identify states uniquely.
+	 * Otherwise, each state is taken to be its own unobservation.
+	 */
+	private void loadUnobservations(ModelInfo modelInfo, PartiallyObservableModel<?> model, List<State> statesList) throws PrismException
+	{
+		// Find the variables that are not observable
+		int numVars = modelInfo.getNumVars();
+		List<Integer> unobsVars = new ArrayList<>();
+		for (int i = 0; i < numVars; i++) {
+			if (!modelInfo.isVarObservable(i)) {
+				unobsVars.add(i);
+			}
+		}
+		// Build the (distinct) unobservations, and check that states are identified uniquely
+		int numStates = statesList.size();
+		List<State> unobservationsList = new ArrayList<>();
+		Map<State, Integer> unobservationIndices = new HashMap<>();
+		int[] stateUnobservations = new int[numStates];
+		Set<Long> obsUnobsPairs = new HashSet<>();
+		boolean unique = true;
+		for (int s = 0; s < numStates && unique; s++) {
+			State state = statesList.get(s);
+			State unobs = new State(unobsVars.size());
+			for (int j = 0; j < unobsVars.size(); j++) {
+				unobs.setValue(j, state.varValues[unobsVars.get(j)]);
+			}
+			Integer u = unobservationIndices.get(unobs);
+			if (u == null) {
+				u = unobservationsList.size();
+				unobservationsList.add(unobs);
+				unobservationIndices.put(unobs, u);
+			}
+			stateUnobservations[s] = u;
+			unique = obsUnobsPairs.add(((long) model.getObservation(s) << 32) | u);
+		}
+		if (unique) {
+			model.setUnobservationsList(unobservationsList);
+			for (int s = 0; s < numStates; s++) {
+				model.setUnobservation(s, stateUnobservations[s]);
+			}
+		} else {
+			// Fall back to each state being its own unobservation
+			model.setUnobservationsList(new ArrayList<>(statesList));
+			for (int s = 0; s < numStates; s++) {
+				model.setUnobservation(s, s);
+			}
 		}
 	}
 }

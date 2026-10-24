@@ -148,7 +148,8 @@ public class ConstructStrategyProduct
 				memVar = "_" + memVar;
 			}
 			newVarList = (VarList) varList.clone();
-			Declaration decl = new Declaration(memVar, new DeclarationInt(Expression.Int(0), Expression.Int(strat.getMemorySize())));
+			// NB: if the strategy has only one memory state, we add an extra dummy state
+			Declaration decl = new Declaration(memVar, new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(strat.getMemorySize() - 1, 1))));
 			newVarList.addVarAtStart(decl, 1);
 		}
 
@@ -286,7 +287,8 @@ public class ConstructStrategyProduct
 				map[s_2 * memSize + q_2] = prodModel.getNumStates() - 1;
 				if (prodStatesList != null) {
 					// Store state information for the product
-					prodStatesList.add(new State(model.getStatesList().get(s_2), memStatesList.get(q_2)));
+					// (memory first, since the memory variable is added at the start of the VarList)
+					prodStatesList.add(new State(memStatesList.get(q_2), model.getStatesList().get(s_2)));
 				}
 			}
 			return map[s_2 * memSize + q_2];

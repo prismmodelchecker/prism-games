@@ -26,6 +26,7 @@
 
 package explicit;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.PrimitiveIterator;
 
@@ -87,17 +88,28 @@ public class UMDPModelChecker extends ProbModelChecker
 				AcceptanceType.GENERALIZED_RABIN,
 				AcceptanceType.REACH
 		};
+		// Strategy generation is not supported for all acceptance types
+		if (getGenStrat()) {
+			allowedAcceptance = mcLtl.restrictAcceptanceForStrategyGeneration(allowedAcceptance);
+		}
 		LTLModelChecker.LTLProduct<UMDP<Double>> product = mcLtl.constructDAProductForLTLFormula(this, (UMDP<Double>) model, expr, statesOfInterest, allowedAcceptance);
 		doProductExports(product);
 
 		// Find accepting states + compute reachability probabilities
 		BitSet acc;
+		int accStrat[] = null;
 		if (product.getAcceptance() instanceof AcceptanceReach) {
 			mainLog.println("\nSkipping accepting MEC computation since acceptance is defined via goal states...");
 			acc = ((AcceptanceReach)product.getAcceptance()).getGoalStates();
 		} else {
 			mainLog.println("\nFinding accepting MECs...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
+			// If required, generate strategy choices for accepting MECs: these need
+			// to stay there, visiting accepting states, rather than being arbitrary
+			if (getGenStrat()) {
+				accStrat = new int[product.getProductModel().getNumStates()];
+				Arrays.fill(accStrat, -1);
+			}
+			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance(), accStrat);
 		}
 		mainLog.println("\nComputing reachability probabilities...");
 		UMDPModelChecker mcProduct = new UMDPModelChecker(this);
@@ -119,8 +131,13 @@ public class UMDPModelChecker extends ProbModelChecker
 		}
 
 		// If a strategy was generated, lift it to the product and store
+		// (using the choices for accepting MECs, if generated)
 		if (res.strat != null) {
-			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, (MDStrategy<Double>) res.strat);
+			MDStrategy<Double> stratProd = (MDStrategy<Double>) res.strat;
+			if (accStrat != null) {
+				stratProd = LTLModelChecker.combineStrategyChoices((UMDP<Double>) product.getProductModel(), stratProd, acc, accStrat);
+			}
+			Strategy<Double> stratProduct = new FMDStrategyProduct<>(product, stratProd);
 			result.setStrategy(stratProduct);
 		}
 
@@ -587,26 +604,8 @@ public class UMDPModelChecker extends ProbModelChecker
 		}
 
 		// Find end components containing a positive reward
-		ECComputer ecs = ECComputer.createECComputer(this, umdp);
-		BitSet positiveECs = new BitSet();
-		ecs.computeMECStatesStreaming(ec -> {
-			boolean positiveEC = false;
-			for (int state : new IterableStateSet(ec, n)) {
-				if (umdpRewards.getStateReward(state) > 0) {
-					positiveEC = true;
-					break;
-				}
-				for (int choice = 0, numChoices = umdp.getNumChoices(state); choice < numChoices; choice++) {
-					if (umdpRewards.getTransitionReward(state, choice) > 0 && umdp.allSuccessorsInSet(state, choice, ec)) {
-						positiveEC = true;
-						break;
-					}
-				}
-			}
-			if (positiveEC) {
-				positiveECs.or(ec);
-			}
-		});
+		// (and, for strategy generation, store a choice that gains positive reward and stays in it)
+		BitSet positiveECs = mcMDP.findPositiveECStates(umdp, umdpRewards, strat);
 		mainLog.print("States in positive end components: " + positiveECs.cardinality() + "\n");
 
 		// Find states with infinite reward (those reach a positive end component with prob > 0).
@@ -615,16 +614,10 @@ public class UMDPModelChecker extends ProbModelChecker
 		inf.flip(0, n);
 		mainLog.println("inf=" + inf.cardinality() + ", maybe=" + (n - inf.cardinality()));
 
+		// For strategy generation, the choices for states in positive ECs were generated above;
+		// for other "inf" states, move towards these (with positive probability)
 		if (genStrat) {
-			for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
-				int numChoices = umdp.getNumChoices(i);
-				for (int k = 0; k < numChoices; k++) {
-					if (umdp.someSuccessorsInSet(i, k, inf)) {
-						strat[i] = k;
-						break;
-					}
-				}
-			}
+			MDPModelChecker.addAttractorChoices(umdp, (BitSet) positiveECs.clone(), inf, null, strat, preRel ? umdp.getPredecessorRelation(this, true) : null);
 		}
 
 		res = computeTotalRewardsNumeric(umdp, umdpRewards, minMax, inf, strat, 1.0);
@@ -765,7 +758,13 @@ public class UMDPModelChecker extends ProbModelChecker
 		mainLog.println("\nStarting total reward computation (min)...");
 		BitSet z = computeZeroRewardSafeStates(umdp, umdpRewards);
 		mainLog.println("States in zero-reward safe region: " + z.cardinality());
-		return computeReachRewards(umdp, umdpRewards, z, minMax);
+		ModelCheckerResult res = computeReachRewards(umdp, umdpRewards, z, minMax);
+		// If a strategy was generated, the states in Z are targets, where any choice
+		// is considered fine; but here the strategy needs to stay in Z, without gaining reward
+		if (res.strat != null) {
+			res.strat = MDPModelChecker.addZeroRewardStayChoices(umdp, umdpRewards, z, (MDStrategy<Double>) res.strat);
+		}
+		return res;
 	}
 
 	/**
@@ -870,17 +869,9 @@ public class UMDPModelChecker extends ProbModelChecker
 					strat[i] = -2;
 				}
 			} else {
-				// If max reward is infinite, there is at least one choice giving infinity.
-				// So we pick, for all "inf" states, the first choice for which some transitions stays in "inf".
-				for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
-					int numChoices = umdp.getNumChoices(i);
-					for (int k = 0; k < numChoices; k++) {
-						if (umdp.someSuccessorsInSet(i, k, inf)) {
-							strat[i] = k;
-							break;
-						}
-					}
-				}
+				// If max reward is infinite, there is at least one choice giving infinity,
+				// i.e., avoiding the target with positive probability
+				mcMDP.addStrategyChoicesForInfStates(umdp, inf, strat);
 			}
 		}
 

@@ -156,8 +156,14 @@ public class Point
 	}
 
 	/**
- 	 * Determines if this point is pointwise smaller than {@code p+SMALL_NUMBER}.
- 	 * 
+ 	 * Determines if this point is pointwise smaller than {@code p+tolerance}, where the
+ 	 * per-dimension tolerance is {@link #SMALL_NUMBER} scaled by the magnitude of
+ 	 * {@code p}'s coordinate. A fixed absolute tolerance is too tight to absorb the
+ 	 * numerical noise between two independently-converged solver values once their
+ 	 * magnitude grows beyond roughly 1, which can let a genuinely-dominated point
+ 	 * (e.g. two solves of what is really the same value, off by slightly more than
+ 	 * {@link #SMALL_NUMBER} purely due to different convergence paths) spuriously
+ 	 * escape this check.
  	 */
 	public boolean isCoveredBy(Point p)
 	{
@@ -165,7 +171,8 @@ public class Point
 			return false;
 
 		for (int i = 0; i < this.getDimension(); i++) {
-			if (p.getCoord(i) + SMALL_NUMBER - this.getCoord(i) < 0)
+			double tolerance = SMALL_NUMBER * Math.max(1.0, Math.abs(p.getCoord(i)));
+			if (p.getCoord(i) + tolerance - this.getCoord(i) < 0)
 				return false;
 		}
 		//System.err.println("comparing " + this + " and " + second + " with the result " + (x == second.getX() && y == second.getY()));
@@ -269,37 +276,28 @@ public class Point
 	}
 
 	/**
-	 *  This methods ensures that the point's values corresponds to the properties
-	 *  the user did input. Namely, (i) the order of properties is restored, and
-	 *  (ii) when the rewards were minimizing, the value
-	 *  is multiplied by -1, and when the probabilities were minimizing,
-	 *  a new value is obtained by 1-value.
-	 * @return
+	 * Converts this solver-space point back to user-space: restores the original
+	 * objective ordering and undoes sign flips introduced by canonicalisation
+	 * (1−value for negated prob, −value for negated reward).
 	 */
-	public Point toRealProperties(OpsAndBoundsList obl)
+	public Point toRealProperties(MultiObjQuery query)
 	{
 		double[] oldCoords = coords.clone();
 		double[] newCoords = new double[oldCoords.length];
 
-		for (int i = 0; i < obl.probSize(); i++) {
-			int newIndex = obl.getOrigPositionProb(i);
-			if (obl.isProbNegated(i))
-				newCoords[newIndex] = 1-oldCoords[i];
-			else
-				newCoords[newIndex] = oldCoords[i];
-
+		for (int i = 0; i < query.numProbObjectives(); i++) {
+			int newIndex = query.getOrigPositionProb(i);
+			newCoords[newIndex] = query.isProbNegated(i) ? 1 - oldCoords[i] : oldCoords[i];
 		}
 
-		for (int i = 0; i < obl.rewardSize(); i++) {
-			int newIndex = obl.getOrigPositionReward(i);
-			if (obl.getRewardOperator(i) == Operator.R_MIN
-					|| obl.getRewardOperator(i) == Operator.R_LE)
-				newCoords[newIndex] = -oldCoords[i + obl.probSize()];			
-			else
-				newCoords[newIndex] = oldCoords[i + obl.probSize()];			
-
+		for (int i = 0; i < query.numRewardObjectives(); i++) {
+			int newIndex = query.getOrigPositionReward(i);
+			// (0.0 - x rather than -x, so that zero is not displayed as -0.0)
+			newCoords[newIndex] = query.isRewardNegated(i)
+					? 0.0 - oldCoords[i + query.numProbObjectives()]
+					: oldCoords[i + query.numProbObjectives()];
 		}
-		
+
 		return new Point(newCoords);
 	}
 	

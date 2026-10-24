@@ -45,13 +45,7 @@ public class UMBBitString
 		if (n > 32) {
 			throw new UMBException("Cannot store integer of " + n + " bits (too large for Java int)");
 		}
-		// Store bits into the byte array
-		for (int i = 0; i < n; i++) {
-			// Copy the i-th (least significant) bit of value to the appropriate bit in bytes
-			char valueBitShifted = (char) (((value >>> i) & 1) << ((offset + i) & 7));
-			char byteMask = (char) ('\u0001' << ((offset + i) & 7));
-			bytes[(offset + i) >> 3] = (byte) ((bytes[(offset + i) >> 3] & ~(byteMask)) | (valueBitShifted));
-		}
+		setBits(offset, n, value);
 	}
 
 	/**
@@ -82,13 +76,7 @@ public class UMBBitString
 		if (n > 64) {
 			throw new UMBException("Cannot store integer of " + n + " bits (too large for Java long)");
 		}
-		// Store bits into the byte array
-		for (int i = 0; i < n; i++) {
-			// Copy the i-th (least significant) bit of value to the appropriate bit in bytes
-			char valueBitShifted = (char) (((value >>> i) & 1) << ((offset + i) & 7));
-			char byteMask = (char) ('\u0001' << ((offset + i) & 7));
-			bytes[(offset + i) >> 3] = (byte) ((bytes[(offset + i) >> 3] & ~(byteMask)) | (valueBitShifted));
-		}
+		setBits(offset, n, value);
 	}
 
 	/**
@@ -118,14 +106,7 @@ public class UMBBitString
 		if (n != 64) {
 			throw new UMBException("Cannot store double of " + n + " bits (should be 64)");
 		}
-		// Store bits in a long and then copy to the byte array
-		long valueLong = Double.doubleToLongBits(value);
-		for (int i = 0; i < n; i++) {
-			// Copy the i-th (least significant) bit of valueLong to the appropriate bit in bytes
-			char valueBitShifted = (char) (((valueLong >>> i) & 1) << ((offset + i) & 7));
-			char byteMask = (char) ('\u0001' << ((offset + i) & 7));
-			bytes[(offset + i) >> 3] = (byte) ((bytes[(offset + i) >> 3] & ~(byteMask)) | (valueBitShifted));
-		}
+		setBits(offset, n, Double.doubleToLongBits(value));
 	}
 
 	/**
@@ -154,16 +135,8 @@ public class UMBBitString
 		if (n > 32) {
 			throw new UMBException("Cannot extract integer of " + n + " bits (too large for Java int)");
 		}
-		// Extract bits into an int
-		int value = 0;
-		for (int i = offset + n - 1; i >= offset; i--) {
-			value = (value << 1) | ((bytes[i >> 3] & (1L << (i & 7))) != 0 ? 1 : 0);
-		}
-		// Sign extend if necessary
-		if ((value & (1 << (n - 1))) != 0) {
-			value -= (1 << n);
-		}
-		return value;
+		// Extract bits and sign extend
+		return (int) signExtend(getBits(offset, n), n);
 	}
 
 	/**
@@ -177,12 +150,7 @@ public class UMBBitString
 		if (n >= 32) {
 			throw new UMBException("Cannot extract unsigned integer of " + n + " bits (too large for Java int)");
 		}
-		// Extract bits into an int
-		int value = 0;
-		for (int i = offset + n - 1; i >= offset; i--) {
-			value = (value << 1) | ((bytes[i >> 3] & (1L << (i & 7))) != 0 ? 1 : 0);
-		}
-		return value;
+		return (int) getBits(offset, n);
 	}
 
 	/**
@@ -196,16 +164,8 @@ public class UMBBitString
 		if (n > 64) {
 			throw new UMBException("Cannot extract integer of " + n + " bits (too large for Java long)");
 		}
-		// Extract bits into a long
-		long value = 0;
-		for (int i = offset + n - 1; i >= offset; i--) {
-			value = (value << 1) | ((bytes[i >> 3] & (1L << (i & 7))) != 0 ? 1 : 0);
-		}
-		// Sign extend if necessary
-		if (n < 64 && (value & (1L << (n - 1))) != 0) {
-			value -= (1L << n);
-		}
-		return value;
+		// Extract bits and sign extend
+		return signExtend(getBits(offset, n), n);
 	}
 
 	/**
@@ -219,12 +179,7 @@ public class UMBBitString
 		if (n >= 64) {
 			throw new UMBException("Cannot extract unsigned integer of " + n + " bits (too large for Java long)");
 		}
-		// Extract bits into a long
-		long value = 0;
-		for (int i = offset + n - 1; i >= offset; i--) {
-			value = (value << 1) | ((bytes[i >> 3] & (1L << (i & 7))) != 0 ? 1 : 0);
-		}
-		return value;
+		return getBits(offset, n);
 	}
 
 	/**
@@ -237,12 +192,7 @@ public class UMBBitString
 		if (n != 64) {
 			throw new UMBException("Cannot extract double of " + n + " bits (should be 64)");
 		}
-		// Extract bits into a long
-		long value = 0;
-		for (int i = offset + n - 1; i >= offset; i--) {
-			value = (value << 1) | ((bytes[i >> 3] & (1L << (i & 7))) != 0 ? 1 : 0);
-		}
-		return Double.longBitsToDouble(value);
+		return Double.longBitsToDouble(getBits(offset, n));
 	}
 
 	/**
@@ -257,6 +207,69 @@ public class UMBBitString
 			throw new UMBException("Cannot extract boolean of " + n + " bits (too large for Java int)");
 		}
 		return getUInt(offset, n) != 0;
+	}
+
+	/**
+	 * Store the low {@code n} bits of a {@code long} in a portion of the bit string
+	 * (the least significant bit goes to bit {@code offset} of the bit string).
+	 * Other bits of the bit string are left unchanged.
+	 * @param offset The first bit of the bitstring portion
+	 * @param n The size (in bits) of the bitstring portion (at most 64)
+	 * @param value The bits to store
+	 */
+	private void setBits(int offset, int n, long value)
+	{
+		// Write (part of) a byte at a time
+		while (n > 0) {
+			int byteIndex = offset >> 3;
+			int shift = offset & 7;
+			int numBits = Math.min(8 - shift, n);
+			int mask = ((1 << numBits) - 1) << shift;
+			bytes[byteIndex] = (byte) ((bytes[byteIndex] & ~mask) | (((int) value << shift) & mask));
+			value >>>= numBits;
+			offset += numBits;
+			n -= numBits;
+		}
+	}
+
+	/**
+	 * Get the bits from a portion of the bit string, as the low {@code n} bits of a {@code long}
+	 * (bit {@code offset} of the bit string becomes the least significant bit). Higher bits are zero.
+	 * @param offset The first bit of the bitstring portion
+	 * @param n The size (in bits) of the bitstring portion (at most 64)
+	 */
+	private long getBits(int offset, int n)
+	{
+		if (n == 0) {
+			return 0;
+		}
+		int firstByte = offset >> 3;
+		int shift = offset & 7;
+		// Number of bytes spanned (up to 9, for 64 bits not aligned to a byte)
+		int numBytes = ((offset + n - 1) >> 3) - firstByte + 1;
+		// Assemble (up to) the first 8 bytes, little-endian
+		long value = 0;
+		for (int b = Math.min(numBytes, 8) - 1; b >= 0; b--) {
+			value = (value << 8) | (bytes[firstByte + b] & 0xFF);
+		}
+		value >>>= shift;
+		// Add any bits from a 9th byte
+		if (numBytes > 8) {
+			value |= (long) (bytes[firstByte + 8] & 0xFF) << (64 - shift);
+		}
+		// Mask off bits beyond the portion
+		if (n < 64) {
+			value &= (1L << n) - 1;
+		}
+		return value;
+	}
+
+	/**
+	 * Sign extend the {@code n}-bit two's complement value stored in the low bits of {@code value}.
+	 */
+	private static long signExtend(long value, int n)
+	{
+		return n == 0 ? 0 : (value << (64 - n)) >> (64 - n);
 	}
 
 	/**

@@ -226,16 +226,10 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		// Remove any existing filter info
 		currentFilter = null;
 
-		// If we need to store a copy of the results vector, add a "store" filter to represent this
-		if (storeVector) {
-			ExpressionFilter exprFilter = new ExpressionFilter("store", expr);
-			exprFilter.setInvisible(true);
-			exprFilter.typeCheck();
-			expr = exprFilter;
-		}
 		// Wrap a filter round the property, if needed
-		// (in order to extract the final result of model checking) 
-		expr = ExpressionFilter.addDefaultFilterIfNeeded(expr, model.getNumInitialStates() == 1);
+		// (in order to extract the final result of model checking)
+		// and, if we need to store a copy of the results vector, add a "store" filter to represent this
+		expr = ExpressionFilter.addDefaultAndStoreFiltersIfNeeded(expr, model.getNumInitialStates() == 1, storeVector);
 		
 		// Do model checking and store result vector
 		timer = System.currentTimeMillis();
@@ -251,8 +245,10 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		resultString += ": " + result.getResultAndAccuracy();
 		mainLog.print("\n" + resultString + "\n");
 
-		// Clean up
-		vals.clear();
+		// Clean up (unless this vector has been stored in the Result object, e.g. for export)
+		if (vals != result.getVector()) {
+			vals.clear();
+		}
 
 		// Return result
 		return result;
@@ -1483,13 +1479,16 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 		}
 
 		// Store result
-		result.setResult(resObj);
-		result.setAccuracy(resAcc);
-		// Set result explanation (if none or disabled, clear)
-		if (expr.getExplanationEnabled() && resultExpl != null) {
-			result.setExplanation(resultExpl.toLowerCase());
-		} else {
-			result.setExplanation(null);
+		// (except for STORE, which leaves any result from the operand (e.g., a filter) unchanged)
+		if (op != FilterOperator.STORE) {
+			result.setResult(resObj);
+			result.setAccuracy(resAcc);
+			// Set result explanation (if none or disabled, clear)
+			if (expr.getExplanationEnabled() && resultExpl != null) {
+				result.setExplanation(resultExpl.toLowerCase());
+			} else {
+				result.setExplanation(null);
+			}
 		}
 		// Store vector if requested
 		if (op == FilterOperator.STORE) {
@@ -1741,6 +1740,27 @@ public class StateModelChecker extends PrismNativeComponent implements ModelChec
 			return propertiesFile.getCombinedLabelList(); // combined list from properties and modules file
 		} else {
 			return null;
+		}
+	}
+
+	/**
+	 * Attach the labels defined by the currently loaded model (see {@link Prism#getModelInfo()})
+	 * directly to the model, for any that are not already present, e.g. so that they are
+	 * computed at model construction time, rather than on demand later.
+	 * Labels are computed by checking the corresponding {@link ExpressionLabel}, so must be
+	 * resolvable via the model checker's label list (see {@link #getLabelList()}).
+	 * Does nothing if the model is not mutable ({@link ModelSymbolic}).
+	 */
+	public void attachLabels() throws PrismException
+	{
+		if (!(model instanceof ModelSymbolic)) {
+			return;
+		}
+		ModelSymbolic modelSymb = (ModelSymbolic) model;
+		for (String label : prism.getModelInfo().getLabelNames()) {
+			if (!modelSymb.hasLabelDD(label)) {
+				modelSymb.addLabelDD(label, checkExpressionDD(new ExpressionLabel(label), reach.copy()));
+			}
 		}
 	}
 

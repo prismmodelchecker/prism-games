@@ -26,11 +26,8 @@
 
 package prism;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
 
 import parser.ast.Expression;
 
@@ -40,109 +37,42 @@ import parser.ast.Expression;
  */
 public class TileList
 {
-    protected String name = "Pareto curve";
+	/** Name (e.g. for display as a series in a graph). */
+	protected String name = "Pareto curve";
 
 	/**
 	 * Threshold for approximation of the Pareto curve.
 	 */
 	private double tolerance;
 
-	/**
-	 * This is used when printing the tileList to the user. The information
-	 * we need are whether the reward is min (to multiply by -1) and
-	 * whether the probability is min (to do 1-value) 
-	 */
-	private OpsAndBoundsList opsAndBoundsList;
-
-	public OpsAndBoundsList getOpsAndBoundsList()
-	{
-		return this.opsAndBoundsList;
-	}
-        protected void setOpsAndBoundsList(OpsAndBoundsList ops) {
-	        this.opsAndBoundsList = ops;
-        }
+	/** Query spec used to convert solver-space points to user-space in {@link #getRealPoints()}. */
+	private MultiObjQuery query;
 
 	/**
-	 * This is where a TileLists are stored to be later retrieved in GUI.
-	 * It is a workaround for the fact that Pareto curve can't be 
-	 * returned in any reasonable way.
-	 * 
-	 * To ensure correct concurrent behaviour, object accessing any stored tile lists
-	 * or elements should synchronise on this object;
+	 * The objective formulas (expressions) corresponding to each axis of this Pareto curve.
+	 * For a 2D curve, index 0 is the X-axis formula and index 1 is the Y-axis formula.
+	 * Set after construction by the engine that computed the curve.
 	 */
-	public static List<TileList> storedTileLists;
+	private List<Expression> formulas;
 
-	public static List<TileList> getStoredTileLists()
+	public List<Expression> getFormulas()
 	{
-		return storedTileLists;
+		return formulas;
 	}
 
-	/**
-	 * Formulas for X and Y axes (or multi-obj formulas) of the corresponding
-	 * elements of storedTileLists.
-	 */
-	public static List<Expression> storedFormulasX;
-	public static List<Expression> storedFormulasY;
-	public static List<List<Expression>> storedFormulas;
-
-	public static List<Expression> getStoredFormulasX()
+	public void setFormulas(List<Expression> formulas)
 	{
-		return storedFormulasX;
+		this.formulas = formulas;
 	}
 
-	public static List<Expression> getStoredFormulasY()
+	public void setName(String name)
 	{
-		return storedFormulasY;
+		this.name = name;
 	}
 
-	public static List<List<Expression>> getStoredFormulas()
+	public String getName()
 	{
-		return storedFormulas;
-	}
-
-        public static void addStoredTileList(TileList tileList)
-        {
-	        storedTileLists.add(tileList);
-        }
-
-        public static void addStoredFormulaX(Expression expr)
-        {
-	        storedFormulasX.add(expr);
-	}
-
-        public static void addStoredFormulaY(Expression expr)
-        {
-	        storedFormulasY.add(expr);
-	}
-
-        public static void addStoredFormula(List<Expression> expr)
-        {
-	        storedFormulas.add(expr);
-	}
-
-    public void setName(String name)
-    {
-	this.name = name;
-    }
-    public String getName()
-    {
-	return this.name;
-    }
-
-	/** Removes all stored tile list and associated formulas */
-	public static void clearStoredTileLists()
-	{
-		TileList.storedFormulasX.clear();
-		TileList.storedFormulasY.clear();
-		TileList.storedFormulas.clear();
-		TileList.storedTileLists.clear();
-	}
-
-	static {
-		storedFormulasX = new ArrayList<Expression>();
-		storedFormulasY = new ArrayList<Expression>();
-		storedFormulas = new ArrayList<List<Expression>>();
-		storedTileLists = new ArrayList<TileList>();
+		return this.name;
 	}
 
 	protected int currentProjectionIndex = 0;
@@ -160,27 +90,29 @@ public class TileList
 	 */
 	protected int dim;
 
-
-
-        public TileList(int dim, OpsAndBoundsList opsAndBounds, double tolerance)
-        {
-	        this.dim = dim;
-		this.opsAndBoundsList = opsAndBounds;
+	/**
+	 * Creates a new, empty instance of the TileList of dimension {@code dim}
+	 * (for subclasses that manage their own points, e.g. {@link PointList}).
+	 */
+	protected TileList(int dim, double tolerance)
+	{
+		this.dim = dim;
+		this.list = new ArrayList<Tile>();
 		this.tolerance = tolerance;
-        }
+	}
 
 	/**
 	 * Creates a new instance of the TileList, originally containing only one
 	 * tile, {@code initialTile}.
 	 * @param initialTile The first {@link Tile} to put in a list.
 	 */
-	public TileList(Tile initialTile, OpsAndBoundsList opsAndBounds, double tolerance)
+	public TileList(Tile initialTile, MultiObjQuery query, double tolerance)
 	{
 		this.dim = initialTile.cornerPoints.get(0).getDimension();
 		this.initialTile = initialTile;
 		this.list = new ArrayList<Tile>();
 		this.list.add(initialTile);
-		this.opsAndBoundsList = opsAndBounds;
+		this.query = query;
 		this.tolerance = tolerance;
 
 		//this is a HACK so that we don't try projections in 2 dimensions.
@@ -271,15 +203,14 @@ public class TileList
 	 */
 	public List<Point> getPoints()
 	{
-	    ArrayList<Point> a = new ArrayList<Point>();
-	    for (Tile t : this.list) {
-		for (Point p : t.cornerPoints)
-		    if (!a.contains(p))
-			a.add(p);
-	    }
-	    return a;
+		ArrayList<Point> a = new ArrayList<Point>();
+		for (Tile t : this.list) {
+			for (Point p : t.cornerPoints)
+				if (!a.contains(p))
+					a.add(p);
+		}
+		return a;
 	}
-
 
 	/**
 	 * Returns the points that form the tiles of this
@@ -326,10 +257,10 @@ public class TileList
 	public List<Point> getRealPoints()
 	{
 		List<Point> a = this.getPointsWithoutCovered();
-		if (this.opsAndBoundsList != null) {
+		if (this.query != null) {
 			for (int i = 0; i < a.size(); i++) {
-				Point p = a.get(i).toRealProperties(this.opsAndBoundsList);
-				a.set(i,p);
+				Point p = a.get(i).toRealProperties(this.query);
+				a.set(i, p);
 			}
 		}
 		return a;
@@ -342,14 +273,14 @@ public class TileList
 	 */
 	public void addNewPoint(Point point) throws PrismException
 	{
-	    //first create the projection to the boundary
-	    if (this.currentProjectionIndex < this.dim && point.getCoord(this.currentProjectionIndex) > 0.0) {
-		Point projectionPoint = point.clone();
-		projectionPoint.setCoord(this.currentProjectionIndex, 0.0);
-		splitTilesByPoint(projectionPoint, false);
-	    } else {
-		splitTilesByPoint(point, this.currentProjectionIndex == dim);
-	    }
+		//first create the projection to the boundary
+		if (this.currentProjectionIndex < this.dim && point.getCoord(this.currentProjectionIndex) > 0.0) {
+			Point projectionPoint = point.clone();
+			projectionPoint.setCoord(this.currentProjectionIndex, 0.0);
+			splitTilesByPoint(projectionPoint, false);
+		} else {
+			splitTilesByPoint(point, this.currentProjectionIndex == dim);
+		}
 	}
 
 	/**
