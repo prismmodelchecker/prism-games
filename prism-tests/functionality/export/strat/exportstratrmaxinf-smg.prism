@@ -1,0 +1,31 @@
+// Test of strategy generation for Rmax (reachability rewards) in an SMG,
+// in states where the (max) value is infinite, i.e., the target can be avoided.
+// The chosen action must avoid the target with positive probability.
+// In s=0, a stays in the "inf" states with positive probability,
+// but reaches the target (s=3) with probability 1; b must be picked instead.
+// In s=1, player p2 (minimising) has value infinity for both choices,
+// so its choice is arbitrary (and the first, d, is used in the induced model).
+
+smg
+
+player p1 [a], [b], [c] endplayer
+player p2 [d], [e] endplayer
+
+module M
+
+s : [0..3];
+
+[a] s=0 -> 0.5:(s'=0) + 0.5:(s'=3);
+[b] s=0 -> (s'=1);
+[d] s=1 -> (s'=2);
+[e] s=1 -> 0.5:(s'=2) + 0.5:(s'=0);
+[c] s=2 -> (s'=2);
+[c] s=3 -> (s'=3);
+
+endmodule
+
+label "goal" = s=3;
+
+rewards
+	true : 1;
+endrewards

@@ -58,6 +58,7 @@ import strat.FMDStrategyProduct;
 import strat.FMDStrategyStep;
 import strat.MDStrategy;
 import strat.MDStrategyArray;
+import strat.StrategyInfo.UndefinedReason;
 import strat.Strategy;
 
 /**
@@ -610,14 +611,18 @@ public class STPGModelChecker extends ProbModelChecker
 			unknown.andNot(known);
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
+		// Set choices to unknown, except for yes states (which are just the targets
+		// when generating strategies, since Prob1 is then not used: objective satisfied)
+		// and no states (pick a choice that remains in the no states, if there is one:
+		// needed for a player minimising; otherwise, the objective is unsatisfiable)
 		int strat[] = null;
 		if (genStrat) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
-				strat[i] = -1;
+				strat[i] = yes.get(i) ? UndefinedReason.SATISFIED.getCode() : UndefinedReason.UNKNOWN.getCode();
 			}
 			for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
+				strat[i] = UndefinedReason.UNSATISFIABLE.getCode();
 				int numChoices = stpg.getNumChoices(i);
 				for (int k = 0; k < numChoices; k++) {
 					if (stpg.allSuccessorsInSet(i, k, no)) {
@@ -728,13 +733,12 @@ public class STPGModelChecker extends ProbModelChecker
 		soln2 = (init == null) ? new double[n] : init;
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
+		// Set choices to unknown, except for target states (objective satisfied)
 		int strat[] = null;
 		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
+				strat[i] = target.get(i) ? UndefinedReason.SATISFIED.getCode() : UndefinedReason.UNKNOWN.getCode();
 			}
 			fmdStrat = new FMDStrategyStep<>(stpg, k);
 		}
@@ -890,6 +894,102 @@ public class STPGModelChecker extends ProbModelChecker
 	}
 
 	/**
+	 * Is state {@code s} of an STPG owned by a player who is minimising?
+	 * @param stpg The STPG
+	 * @param s State
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 */
+	protected boolean isMinState(STPG<?> stpg, int s, boolean min1, boolean min2)
+	{
+		return stpg.getPlayer(s) == 0 ? min1 : min2;
+	}
+
+	/**
+	 * Generate strategy choices, for states owned by a player maximising, in states whose
+	 * (max) expected reward is infinite, i.e., from which that player can ensure that
+	 * the target is not reached with probability 1, whatever the other player does.
+	 * Picking any choice that stays in "inf" with positive probability is not enough:
+	 * the target may still be reached with probability 1. Instead, first find the states
+	 * of "inf" in which play can be kept forever by the maximising player
+	 * (in its states, some choice has all successors there; in the minimising player's states,
+	 * all choices do) and pick choices that stay there. Then, working backwards, deal with
+	 * the remaining "inf" states: in a maximising player's state, pick a choice which moves
+	 * with positive probability to a state already dealt with; a minimising player's state
+	 * is dealt with once all of its choices do so.
+	 * @param stpg The STPG
+	 * @param inf States whose value is infinite
+	 * @param min1 Min or max for player 1 (true=min, false=max)
+	 * @param min2 Min or max for player 2 (true=min, false=max)
+	 * @param strat Strategy choice indices, to be updated for "inf" states
+	 */
+	protected void addStrategyChoicesForInfStates(STPG<?> stpg, BitSet inf, boolean min1, boolean min2, int strat[])
+	{
+		// Find the states in which play can be kept forever
+		BitSet stay = (BitSet) inf.clone();
+		boolean changed = true;
+		while (changed) {
+			changed = false;
+			for (int s = stay.nextSetBit(0); s >= 0; s = stay.nextSetBit(s + 1)) {
+				// Minimising player: all choices must stay; maximising player: some choice must
+				boolean min = isMinState(stpg, s, min1, min2);
+				boolean ok = min;
+				int numChoices = stpg.getNumChoices(s);
+				for (int j = 0; j < numChoices && ok == min; j++) {
+					ok = stpg.allSuccessorsInSet(s, j, stay);
+				}
+				if (!ok) {
+					stay.clear(s);
+					changed = true;
+				}
+			}
+		}
+		// Pick choices that stay there
+		for (int s = stay.nextSetBit(0); s >= 0; s = stay.nextSetBit(s + 1)) {
+			if (!isMinState(stpg, s, min1, min2)) {
+				int numChoices = stpg.getNumChoices(s);
+				for (int j = 0; j < numChoices; j++) {
+					if (stpg.allSuccessorsInSet(s, j, stay)) {
+						strat[s] = j;
+						break;
+					}
+				}
+			}
+		}
+		// Other "inf" states: move towards those dealt with already
+		BitSet done = stay;
+		changed = true;
+		while (changed) {
+			changed = false;
+			for (int s = inf.nextSetBit(0); s >= 0; s = inf.nextSetBit(s + 1)) {
+				if (done.get(s)) {
+					continue;
+				}
+				int numChoices = stpg.getNumChoices(s);
+				if (isMinState(stpg, s, min1, min2)) {
+					boolean all = true;
+					for (int j = 0; j < numChoices && all; j++) {
+						all = stpg.someSuccessorsInSet(s, j, done);
+					}
+					if (all) {
+						done.set(s);
+						changed = true;
+					}
+				} else {
+					for (int j = 0; j < numChoices; j++) {
+						if (stpg.someSuccessorsInSet(s, j, done)) {
+							strat[s] = j;
+							done.set(s);
+							changed = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Compute expected reachability rewards using the currently selected solution method
 	 * (value iteration or Gauss-Seidel).
 	 * @param stpg The STPG
@@ -1036,13 +1136,23 @@ public class STPGModelChecker extends ProbModelChecker
 			unknown.andNot(known);
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
+		// Set choices to unknown, except for target states (objective satisfied)
+		// and states with infinite reward: for a player minimising, all choices
+		// give infinite reward, so any choice can be taken; for a player maximising,
+		// a choice is needed that avoids reaching the target with probability 1
 		int strat[] = null;
 		if (genStrat) {
 			strat = new int[n];
 			for (i = 0; i < n; i++) {
-				strat[i] = -1;
+				if (target.get(i)) {
+					strat[i] = UndefinedReason.SATISFIED.getCode();
+				} else if (inf.get(i) && isMinState(stpg, i, min1, min2)) {
+					strat[i] = UndefinedReason.ARBITRARY.getCode();
+				} else {
+					strat[i] = UndefinedReason.UNKNOWN.getCode();
+				}
 			}
+			addStrategyChoicesForInfStates(stpg, inf, min1, min2, strat);
 		}
 
 		if (iterationsExport != null)
