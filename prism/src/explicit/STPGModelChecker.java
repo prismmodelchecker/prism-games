@@ -2049,6 +2049,11 @@ public class STPGModelChecker extends ProbModelChecker
 		// Store num states
 		n = stpg.getNumStates();
 
+		// Strategy generation not supported
+		if (genStrat) {
+			throw new PrismNotSupportedException("Currently, explicit engine does not support strategy generation for instantaneous reward (I=k) properties");
+		}
+
 		// Start backwards transient computation
 		timer = System.currentTimeMillis();
 		mainLog.println("\nStarting backwards instantaneous rewards computation...");
@@ -2136,6 +2141,11 @@ public class STPGModelChecker extends ProbModelChecker
 		int i, n, iters;
 		long timer;
 		double soln[], soln2[], tmpsoln[];
+
+		// Strategy generation not supported
+		if (genStrat) {
+			throw new PrismNotSupportedException("Currently, explicit engine does not support strategy generation for cumulative reward (C<=k) properties");
+		}
 
 		// Start expected cumulative reward
 		timer = System.currentTimeMillis();
