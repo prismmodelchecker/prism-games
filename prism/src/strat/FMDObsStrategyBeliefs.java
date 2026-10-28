@@ -34,6 +34,7 @@ import prism.PrismException;
 import prism.PrismLog;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,6 +57,9 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 
 	/** List of beliefs over unobservables, as stored in MDP states */
 	protected List<double[]> unobsBeliefs;
+
+	/** Reason why the choice is undefined in (unexplored) states of the MDP that are not targets */
+	protected UndefinedReason reasonNonTarget = UndefinedReason.UNKNOWN;
 
 	/**
 	 * Creates an FMDObsStrategyBeliefs.
@@ -102,6 +106,42 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 		return actIndex;
 	}
 	
+	/**
+	 * Set the reason why the choice is undefined in states of the belief MDP fragment
+	 * that are not explored, other than target states (which are SATISFIED),
+	 * i.e., those whose value is known (e.g., UNSATISFIABLE if the target can no longer be reached).
+	 */
+	public void setReasonNonTarget(UndefinedReason reasonNonTarget)
+	{
+		this.reasonNonTarget = reasonNonTarget;
+	}
+
+	@Override
+	public UndefinedReason whyUndefined(int s, int m)
+	{
+		// Unknown memory value: no information
+		if (m == -1) {
+			return UndefinedReason.UNKNOWN;
+		}
+		// No matching state in the MDP: (s,m) cannot be reached
+		int o = pomdp.getObservation(s);
+		int i = findMatchingMDPState(o, m);
+		if (i == -1) {
+			return UndefinedReason.UNREACHABLE;
+		}
+		return getActionPickedByMDP(i) == UNDEFINED ? whyUndefinedInMDP(i) : null;
+	}
+
+	/**
+	 * Get the reason why the choice is undefined in state i of the belief MDP fragment,
+	 * assuming that it is: states not explored are either targets or known-value states.
+	 */
+	private UndefinedReason whyUndefinedInMDP(int i)
+	{
+		BitSet target = mdpStrat.getLabelStates("target");
+		return (target != null && target.get(i)) ? UndefinedReason.SATISFIED : reasonNonTarget;
+	}
+
 	@Override
 	public int getMemorySize()
 	{
@@ -170,6 +210,14 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 					out.print(mdpState[0] + "," + mdpState[1]);
 				}
 				out.println("=" + (act == null ? "" : act));
+			} else if (options.getShowUndefined()) {
+				int[] mdpState = mdpStates.get(i);
+				if (options.getShowStates()) {
+					out.print(Belief.toString(mdpState[0], unobsBeliefs.get(mdpState[1]), pomdp));
+				} else {
+					out.print(mdpState[0] + "," + mdpState[1]);
+				}
+				out.println("=?" + whyUndefinedInMDP(i).toString().toLowerCase());
 			}
 		}
 	}
@@ -184,6 +232,9 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 				int[] mdpState = mdpStates.get(i);
 				int actIndex = pomdp.getChoiceByActionForObservation(mdpState[0], act);
 				out.println(mdpState[0] + "," + mdpState[1] + "=" + actIndex);
+			} else if (options.getShowUndefined()) {
+				int[] mdpState = mdpStates.get(i);
+				out.println(mdpState[0] + "," + mdpState[1] + "=?" + whyUndefinedInMDP(i).toString().toLowerCase());
 			}
 		}
 	}

@@ -151,20 +151,11 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 	@Override
 	public UndefinedReason whyUndefined(int s, int m)
 	{
-		// After k steps, use the tail strategy, if present; otherwise, any choice is fine
+		// After k steps, use the tail strategy, if present; otherwise, the step bound has passed
 		if (m >= k) {
-			return tail != null ? tail.whyUndefined(s, -1) : UndefinedReason.ARBITRARY;
+			return tail != null ? tail.whyUndefined(s, -1) : UndefinedReason.HORIZON;
 		}
-		switch (getChoiceIndex(s, m)) {
-		case -1:
-			return UndefinedReason.UNKNOWN;
-		case -2:
-			return UndefinedReason.ARBITRARY;
-		case -3:
-			return UndefinedReason.UNREACHABLE;
-		default:
-			return null;
-		}
+		return UndefinedReason.fromCode(getChoiceIndex(s, m));
 	}
 
 	@Override
@@ -204,6 +195,8 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 			for (int m = 0; m < (tail != null ? k + 1 : k); m++) {
 				if (isChoiceDefined(s, m)) {
 					out.println((showStates ? states.get(s) : s) + "," + m + "=" + getChoiceActionString(s, m));
+				} else if (options.getShowUndefined()) {
+					out.println((showStates ? states.get(s) : s) + "," + m + "=" + getUndefinedChoiceString(s, m));
 				}
 			}
 		}
@@ -216,6 +209,8 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 			for (int m = 0; m < (tail != null ? k + 1 : k); m++) {
 				if (isChoiceDefined(s, m)) {
 					out.println(s + "," + m + "=" + getChoiceIndex(s, m));
+				} else if (options.getShowUndefined()) {
+					out.println(s + "," + m + "=" + getUndefinedChoiceString(s, m));
 				}
 			}
 		}

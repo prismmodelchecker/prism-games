@@ -84,6 +84,22 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 		return i == -1 ? -1 : strat.getChoiceIndex(i);
 	}
 	
+	@Override
+	public UndefinedReason whyUndefined(int s, int m)
+	{
+		// Unknown memory value: no information
+		if (m == -1) {
+			return UndefinedReason.UNKNOWN;
+		}
+		// No matching product state: (s,m) cannot be reached
+		int i = findMatchingProductState(s, m);
+		if (i == -1) {
+			return UndefinedReason.UNREACHABLE;
+		}
+		// Otherwise, use the reason from the strategy for the product
+		return strat.whyUndefined(i, -1);
+	}
+
 	/**
 	 * Find the index of a state (s,m) in the product, if there is one
 	 */
@@ -183,6 +199,8 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 			Object act = strat.getChoiceAction(i);
 			if (act != UNDEFINED) {
 				out.println((showStates ? states.get(s) : s) + "," + m + "=" + (act == null ? "" : act.toString()));
+			} else if (options.getShowUndefined()) {
+				out.println((showStates ? states.get(s) : s) + "," + m + "=" + strat.getUndefinedChoiceString(i, -1));
 			}
 		}
 	}
@@ -194,7 +212,11 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 		for (int i = 0; i < n; i++) {
 			int s = product.getModelState(i);
 			int m = product.getAutomatonState(i);
-			out.println(s + "," + m + "=" + strat.getChoiceIndex(i));
+			if (strat.isChoiceDefined(i)) {
+				out.println(s + "," + m + "=" + strat.getChoiceIndex(i));
+			} else if (options.getShowUndefined()) {
+				out.println(s + "," + m + "=" + strat.getUndefinedChoiceString(i, -1));
+			}
 		}
 	}
 

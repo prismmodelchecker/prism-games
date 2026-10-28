@@ -117,6 +117,12 @@ public class IMDPSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	}
 
 	@Override
+	public void addSelfLoop(int s)
+	{
+		mdp.addSelfLoop(s);
+	}
+
+	@Override
 	public int addState()
 	{
 		return mdp.addState();
@@ -146,6 +152,14 @@ public class IMDPSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	public int addChoice(int s, Distribution<Interval<Value>> udistr)
 	{
 		return mdp.addChoice(s, udistr);
+	}
+
+	/**
+	 * Set whether to allow duplicate choices in a state (see {@link MDPSimple#setAllowDupes(boolean)}).
+	 */
+	public void setAllowDupes(boolean allowDupes)
+	{
+		mdp.setAllowDupes(allowDupes);
 	}
 
 	/**

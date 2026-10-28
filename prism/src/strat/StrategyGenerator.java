@@ -42,6 +42,9 @@ import simulator.RandomNumberGenerator;
  * <br><br>
  * This is a generic class where {@code Value} should match the accompanying model.
  * This is also needed for probabilities when the strategy is randomised.
+ * <br><br>
+ * Decisions are action-based, and assume that the actions picked are unique
+ * in each state: see {@link StrategyInfo} for details.
  */
 public interface StrategyGenerator<Value> extends StrategyInfo<Value>
 {
@@ -102,6 +105,16 @@ public interface StrategyGenerator<Value> extends StrategyInfo<Value>
 		return sampleChoiceAction(getCurrentChoiceAction(), rng);
 	}
 	
+	/**
+	 * Optionally, get the reason why the choice of the strategy in the current state is undefined,
+	 * if it is (see {@link StrategyInfo.UndefinedReason}). Returns null if there is no reason.
+	 */
+	public default UndefinedReason getCurrentUndefinedReason()
+	{
+		// No reason provided by default
+		return null;
+	}
+
 	/**
 	 * Get the current value of the memory for the strategy (-1 if not applicable).
 	 */

@@ -69,6 +69,7 @@ import strat.FMDStrategyProduct;
 import strat.FMDStrategyStep;
 import strat.MDStrategy;
 import strat.MDStrategyArray;
+import strat.StrategyInfo.UndefinedReason;
 import strat.Strategy;
 
 /**
@@ -335,9 +336,9 @@ public class MDPModelChecker extends ProbModelChecker
 			}
 			soln = computeRestrictedNext(mdp, remain, soln, min, stepChoices);
 			if (genStrat) {
-				// States outside "remain" have probability 0, so any choice is fine there
+				// States outside "remain" have probability 0, so the objective is unsatisfiable there
 				for (int s = remain.nextClearBit(0); s < n; s = remain.nextClearBit(s + 1)) {
-					stepChoices[s] = -2;
+					stepChoices[s] = UndefinedReason.UNSATISFIABLE.getCode();
 				}
 				strat.setStepChoices(i, stepChoices);
 			}
@@ -496,12 +497,12 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
+		// Set choices to unknown, except for target states (objective satisfied)
+		// and those outside target/remain (objective unsatisfiable)
 		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
+				strat[i] = target.get(i) ? UndefinedReason.SATISFIED.getCode() : (remain != null && !remain.get(i)) ? UndefinedReason.UNSATISFIABLE.getCode() : UndefinedReason.UNKNOWN.getCode();
 			}
 		}
 
@@ -533,16 +534,25 @@ public class MDPModelChecker extends ProbModelChecker
 			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// If still required, store strategy for no/yes (0/1) states.
-		// This is just for the cases max=0 and min=1, where arbitrary choices suffice (denoted by -2)
+		// This is just for the cases max=0 and min=1, where any choice suffices:
+		// for min=1, all choices are equally good (arbitrary), for max=0
+		// the target can no longer be reached (unsatisfiable)
+		// (also, states outside target/remain are unsatisfiable, whatever precomputation did)
 		if (genStrat) {
 			if (min) {
 				for (int i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
 					if (!target.get(i))
-						strat[i] = -2;
+						strat[i] = UndefinedReason.ARBITRARY.getCode();
 				}
 			} else {
 				for (int i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
-					strat[i] = -2;
+					strat[i] = UndefinedReason.UNSATISFIABLE.getCode();
+				}
+			}
+			if (remain != null) {
+				for (int i = remain.nextClearBit(0); i < n; i = remain.nextClearBit(i + 1)) {
+					if (!target.get(i))
+						strat[i] = UndefinedReason.UNSATISFIABLE.getCode();
 				}
 			}
 		}
@@ -687,9 +697,9 @@ public class MDPModelChecker extends ProbModelChecker
 			soln = new BitSet(mdp.getNumStates());
 			soln.set(0, mdp.getNumStates());
 
-			// for min, generate strategy, any choice (-2) is fine
+			// for min, generate strategy: any choice is fine (target unreachable)
 			if (min && strat != null) {
-				Arrays.fill(strat, -2);
+				Arrays.fill(strat, UndefinedReason.UNSATISFIABLE.getCode());
 			}
 			return soln;
 		}
@@ -1676,12 +1686,12 @@ public class MDPModelChecker extends ProbModelChecker
 		soln2 = (init == null) ? new double[n] : init;
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
+		// Set choices to unknown, except for target states (objective satisfied)
+		// and those outside target/remain (objective unsatisfiable)
 		if (genStrat) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
+				strat[i] = target.get(i) ? UndefinedReason.SATISFIED.getCode() : (remain != null && !remain.get(i)) ? UndefinedReason.UNSATISFIABLE.getCode() : UndefinedReason.UNKNOWN.getCode();
 			}
 			fmdStrat = new FMDStrategyStep<Double>(mdp, k);
 		}
@@ -1778,6 +1788,11 @@ public class MDPModelChecker extends ProbModelChecker
 		int i, n, iters;
 		long timer;
 		double soln[], soln2[], tmpsoln[];
+
+		// Strategy generation not supported
+		if (genStrat) {
+			throw new PrismNotSupportedException("Currently, explicit engine does not support strategy generation for cumulative reward (C<=k) properties");
+		}
 
 		// Start expected cumulative reward
 		timer = System.currentTimeMillis();
@@ -2280,12 +2295,17 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param k the number of steps
 	 * @param min Min or max rewards (true=min, false=max)
 	 */
-	public ModelCheckerResult computeInstantaneousRewards(MDP<Double> mdp, MDPRewards<Double> mdpRewards, final int k, boolean min)
+	public ModelCheckerResult computeInstantaneousRewards(MDP<Double> mdp, MDPRewards<Double> mdpRewards, final int k, boolean min) throws PrismException
 	{
 		ModelCheckerResult res = null;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
+
+		// Strategy generation not supported
+		if (genStrat) {
+			throw new PrismNotSupportedException("Currently, explicit engine does not support strategy generation for instantaneous reward (I=k) properties");
+		}
 
 		// Store num states
 		n = mdp.getNumStates();
@@ -2826,12 +2846,11 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 
 		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
+		// Set choices to unknown, except for target states (objective satisfied)
 		if (genStrat || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
 			strat = new int[n];
 			for (int i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
+				strat[i] = target.get(i) ? UndefinedReason.SATISFIED.getCode() : UndefinedReason.UNKNOWN.getCode();
 			}
 		}
 		
@@ -2857,9 +2876,9 @@ public class MDPModelChecker extends ProbModelChecker
 		if (genStrat || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
 			if (min) {
 				// If min reward is infinite, all choices give infinity
-				// So the choice can be arbitrary, denoted by -2; 
+				// So the choice can be arbitrary
 				for (int i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
-					strat[i] = -2;
+					strat[i] = UndefinedReason.ARBITRARY.getCode();
 				}
 			} else {
 				// If max reward is infinite, there is at least one choice giving infinity,
@@ -3317,6 +3336,16 @@ public class MDPModelChecker extends ProbModelChecker
 					if (!opt.contains(strat[i]))
 						strat[i] = opt.get(0);
 				}
+			}
+		}
+
+		// The strategy passed in may have undefined choices initially (e.g., unknown),
+		// which are only replaced above for states where they are not optimal;
+		// pick an optimal choice for any (non-target/inf) states still left undefined
+		for (i = 0; i < n; i++) {
+			if (strat[i] < 0 && !(target.get(i) || inf.get(i)) && mdp.getNumChoices(i) > 0) {
+				double val = mdp.mvMultRewMinMaxSingle(i, soln, mdpRewards, min, null);
+				strat[i] = mdp.mvMultRewMinMaxSingleChoices(i, soln, mdpRewards, min, val).get(0);
 			}
 		}
 

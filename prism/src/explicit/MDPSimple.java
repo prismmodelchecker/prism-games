@@ -278,6 +278,16 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 	// Mutators (other)
 
 	/**
+	 * Set whether to allow duplicate choices in a state (i.e., with identical distributions
+	 * and actions): if so, {@link #addChoice} and {@link #addActionLabelledChoice} always
+	 * add a new choice, rather than returning the index of an existing identical one.
+	 */
+	public void setAllowDupes(boolean allowDupes)
+	{
+		this.allowDupes = allowDupes;
+	}
+
+	/**
 	 * Add a choice (distribution {@code distr}) to state {@code s} (which must exist).
 	 * Distribution is only actually added if it does not already exists for state {@code s}.
 	 * (Assuming {@code allowDupes} flag is not enabled.)
@@ -383,23 +393,25 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 	@Override
 	public void findDeadlocks(boolean fix) throws PrismException
 	{
-		int fixed = 0;
 		for (int i = 0; i < numStates; i++) {
 			// Note that no distributions is a deadlock, not an empty distribution
 			if (trans.get(i).isEmpty()) {
 				addDeadlockState(i);
 				if (fix) {
-					Distribution<Value> distr = new Distribution<>(getEvaluator());
-					distr.add(i, getEvaluator().one());
-					addChoice(i, distr);
-					fixed++;
+					addSelfLoop(i);
 				}
 			}
 		}
+	}
+
+	@Override
+	public void addSelfLoop(int s)
+	{
+		Distribution<Value> distr = new Distribution<>(getEvaluator());
+		distr.add(s, getEvaluator().one());
+		addChoice(s, distr);
 		// Add the empty action (if missing), regardless of whether actionList needs recomputing
-		if (fixed > 0) {
-			actionList.addAction(null);
-		}
+		actionList.addAction(null);
 	}
 
 	@Override

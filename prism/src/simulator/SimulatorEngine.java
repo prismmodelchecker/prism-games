@@ -29,7 +29,10 @@ package simulator;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import parser.State;
 import parser.Values;
@@ -47,6 +50,8 @@ import simulator.method.SimulationMethod;
 import simulator.sampler.Sampler;
 import strat.Strategy;
 import strat.StrategyGenerator;
+import strat.StrategyInfo.UndefinedReason;
+import strat.UndefinedChoicePolicy;
 import userinterface.graph.Graph;
 
 /**
@@ -108,6 +113,8 @@ public class SimulatorEngine extends PrismComponent
 
 	// Loaded strategy
 	private StrategyGenerator<Double> stratGen;
+	// Policy for resolving undefined choices of a strategy
+	private UndefinedChoicePolicy undefinedChoicePolicy = new UndefinedChoicePolicy();
 	// Whether the strategy should be enforced
 	private boolean stratEnforced;
 
@@ -291,6 +298,23 @@ public class SimulatorEngine extends PrismComponent
 	}
 
 	/**
+	 * Set the policy for resolving undefined choices of a strategy, when following it
+	 * (by default, the first choice is used, except for UNKNOWN reasons, which give an error).
+	 */
+	public void setUndefinedChoicePolicy(UndefinedChoicePolicy undefinedChoicePolicy)
+	{
+		this.undefinedChoicePolicy = undefinedChoicePolicy;
+	}
+
+	/**
+	 * Get the policy for resolving undefined choices of a strategy, when following it.
+	 */
+	public UndefinedChoicePolicy getUndefinedChoicePolicy()
+	{
+		return undefinedChoicePolicy;
+	}
+
+	/**
 	 * Get the strategy currently loaded into the simulator, if present.
 	 * Returns null if none loaded.
 	 */
@@ -431,7 +455,11 @@ public class SimulatorEngine extends PrismComponent
 		case SMG:
 		case CSG:
 			// Pick choice (from strategy or randomly) and random transition
+			// (if the strategy says to stop, no transition is taken)
 			i = getAutomaticChoiceIndex();
+			if (i == -1) {
+				return false;
+			}
 			d = rng.randomUnifDouble();
 			j = getTransitionIndexByProbabilitySum(i, d);
 			// Execute
@@ -449,7 +477,11 @@ public class SimulatorEngine extends PrismComponent
 			break;
 		case LTS:
 			// Pick choice (from strategy or randomly)
+			// (if the strategy says to stop, no transition is taken)
 			i = getAutomaticChoiceIndex();
+			if (i == -1) {
+				return false;
+			}
 			// Execute
 			executeTransition(i, 0, -1);
 			break;
@@ -463,7 +495,11 @@ public class SimulatorEngine extends PrismComponent
 	/**
 	 * Get the index of the choice to be automatically selected in the current state.
 	 * If a strategy is loaded (and to be enforced, and defined for the current state), this will be used.
-	 * If not, a choice is sampled (uniformly) at random.
+	 * If the strategy is undefined in the current state, this is resolved according to the
+	 * policy for undefined choices (see {@link #setUndefinedChoicePolicy(UndefinedChoicePolicy)}):
+	 * the (projected) action of the first choice is used as the decision (FIRST), one is sampled (uniformly) at random (ALL),
+	 * -1 is returned to indicate that no choice should be made (STOP, LOOP), or an exception is thrown (ERROR).
+	 * If there is no strategy, a choice is sampled (uniformly) at random.
 	 */
 	private int getAutomaticChoiceIndex() throws PrismException
 	{
@@ -472,8 +508,32 @@ public class SimulatorEngine extends PrismComponent
 		if (hasStrategyInfo() && isStrategyEnforced()) {
 			Object decision = path.getCurrentStrategyDecision();
 			Object act = stratGen.sampleChoiceAction(decision, rng);
+			// Undefined choice: resolve according to the policy
+			boolean first = false;
+			if (act == Strategy.UNDEFINED) {
+				UndefinedReason why = stratGen.getCurrentUndefinedReason();
+				switch (undefinedChoicePolicy.get(why)) {
+				case STOP:
+				case LOOP:
+					// (for LOOP, the path would remain in this state forever, so just stop too)
+					return -1;
+				case FIRST:
+					// Use the (projected) action of the first choice as the decision
+					act = stratGen.projectAction(getStrategyChoiceAction(0));
+					first = true;
+					break;
+				case ERROR:
+					throw new PrismException("Strategy choice is undefined in state " + getCurrentState() + " (reason: "
+							+ (why == null ? UndefinedReason.UNKNOWN : why).toString().toLowerCase() + ")");
+				case ALL:
+				default:
+					// Sample randomly, below
+					break;
+				}
+			}
 			if (act != Strategy.UNDEFINED) {
-				i = modelGen.getChoiceIndexByAction(act);
+				// (for FIRST, any choice with this action is fine, so ambiguity does not matter)
+				i = first ? getChoiceIndexByStrategyAction(act) : getChoiceIndexForStrategyAction(act);
 				if (i == -1) {
 					throw new PrismException("Action " + act + " requested by strategy is unavailable");
 				}
@@ -486,6 +546,96 @@ public class SimulatorEngine extends PrismComponent
 		return i;
 	}
 	
+	/**
+	 * Get the index of the choice in the current state with an action label
+	 * picked by a strategy. Returns -1 if there is no such choice.
+	 * Strategies are action-based, so if several (different) choices have
+	 * this action label, it is not clear which is meant, and an exception is thrown.
+	 * If they are identical (same transitions), it does not matter, so the first is used.
+	 * @param act The action picked by the strategy
+	 */
+	private int getChoiceIndexForStrategyAction(Object act) throws PrismException
+	{
+		int i = getChoiceIndexByStrategyAction(act);
+		if (i != -1 && isStrategyActionAmbiguous(act)) {
+			throw new PrismException("Strategy is ambiguous in state " + getCurrentState() + ": action \"" + (act == null ? "" : act)
+					+ "\" labels several choices, so it is not clear which is picked (action labels need to be unique in each state)");
+		}
+		return i;
+	}
+
+	/**
+	 * Get the index of the first choice in the current state with an action label
+	 * picked by a strategy (comparing actions as seen by the strategy,
+	 * see {@link #getStrategyChoiceAction(int)}). Returns -1 if there is no such choice.
+	 * @param act The action picked by the strategy
+	 */
+	private int getChoiceIndexByStrategyAction(Object act) throws PrismException
+	{
+		int numChoices = modelGen.getNumChoices();
+		for (int i = 0; i < numChoices; i++) {
+			if (Objects.equals(getStrategyChoiceAction(i), act)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * Get the action of the {@code i}th choice in the current state, as seen by the strategy,
+	 * i.e., in the form used for the actions in its decisions. This is used for all
+	 * comparisons between the model's actions and the strategy's decisions.
+	 * By default, this is just the model's action for the choice;
+	 * subclasses can override this to convert to a different representation.
+	 * @param i Choice index
+	 */
+	protected Object getStrategyChoiceAction(int i) throws PrismException
+	{
+		return modelGen.getChoiceAction(i);
+	}
+
+	/**
+	 * Check whether an action picked by a strategy is ambiguous in the current state,
+	 * i.e., whether it labels several choices which are not identical (same transitions).
+	 * @param act The action picked by the strategy
+	 */
+	private boolean isStrategyActionAmbiguous(Object act) throws PrismException
+	{
+		// Find the choices with this action (cheap): there is no ambiguity unless there are several
+		List<Integer> matching = new ArrayList<>();
+		int numChoices = modelGen.getNumChoices();
+		for (int i = 0; i < numChoices; i++) {
+			if (Objects.equals(getStrategyChoiceAction(i), act)) {
+				matching.add(i);
+			}
+		}
+		if (matching.size() < 2) {
+			return false;
+		}
+		// Otherwise, compare their transitions (which requires computing successor states)
+		Map<State, Double> first = getChoiceTransitionsMap(matching.get(0));
+		for (int k = 1; k < matching.size(); k++) {
+			if (!first.equals(getChoiceTransitionsMap(matching.get(k)))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Get the transitions of the {@code i}th choice in the current state, as a map from successor states to probabilities.
+	 * @param i Choice index
+	 */
+	private Map<State, Double> getChoiceTransitionsMap(int i) throws PrismException
+	{
+		Map<State, Double> trans = new HashMap<>();
+		int numTransitions = modelGen.getNumTransitions(i);
+		for (int j = 0; j < numTransitions; j++) {
+			trans.merge(modelGen.computeTransitionTarget(i, j), modelGen.getTransitionProbability(i, j), Double::sum);
+		}
+		return trans;
+	}
+
 	/**
 	 * Get a reference to a transition according to a total probability (or rate) sum, x.
 	 * i.e.the first transition for which the sum of probabilities/rates of that and all prior
@@ -1379,7 +1529,11 @@ public class SimulatorEngine extends PrismComponent
 		// Otherwise interpret decision stored from strategy
 		else {
 			int i = modelGen.getChoiceIndexOfTransition(index);
-			Object act = modelGen.getChoiceAction(i);
+			Object act = getStrategyChoiceAction(i);
+			// Ambiguous (several choices with this action) - assume enabled
+			if (stratGen.isActionChosen(decision, act) && isStrategyActionAmbiguous(act)) {
+				return true;
+			}
 			return stratGen.isActionChosen(decision, act);
 		}
 	}
@@ -1398,17 +1552,22 @@ public class SimulatorEngine extends PrismComponent
 			return "";
 		}
 		Object decision = transitionListStep == path.size() ? path.getCurrentStrategyDecision() : ((PathFull) path).getStrategyDecision(transitionListStep);
-		// Undefined by strategy
+		// Undefined by strategy (show reason, if available, for the current state)
 		if (decision == Strategy.UNDEFINED) {
-			return "?";
+			UndefinedReason why = transitionListStep == path.size() ? stratGen.getCurrentUndefinedReason() : null;
+			return "?" + (why == null ? "" : why.toString().toLowerCase());
 		}
 		else {
 			// Otherwise interpret decision stored from strategy
 			int i = modelGen.getChoiceIndexOfTransition(index);
-			Object act = modelGen.getChoiceAction(i);
-			// Randomised strategy: show probability
+			Object act = getStrategyChoiceAction(i);
+			// Ambiguous (several choices with this action): show "?"
+			if (stratGen.isActionChosen(decision, act) && isStrategyActionAmbiguous(act)) {
+				return "?";
+			}
+			// Randomised strategy: show probability (or nothing, if the choice is not picked)
 			if (stratGen.isRandomised()) {
-				return stratGen.getChoiceActionProbability(decision, act) + "";
+				return stratGen.isActionChosen(decision, act) ? stratGen.getChoiceActionProbability(decision, act) + "" : "";
 			}
 			// Deterministic strategy: mark selected choice with an arrow ("->")
 			else {
@@ -2026,6 +2185,8 @@ public class SimulatorEngine extends PrismComponent
 		boolean stoppedEarly = false;
 		boolean deadlocksFound = false;
 		State deadlockState = null;
+		boolean strategyStopped = false;
+		State strategyStopState = null;
 		boolean allDone = false;
 		boolean allKnown = false;
 		boolean someUnknownButBounded = false;
@@ -2102,8 +2263,15 @@ public class SimulatorEngine extends PrismComponent
 				if ((allKnown || i >= maxPathLength) && !someUnknownButBounded)
 					break;
 				// Make a random transition
-				// (ignore return value; need to check deadlocks separately above)
-				automaticTransition();
+				// (deadlocks are checked separately above, so if no transition is taken,
+				// a strategy being followed says to stop here, e.g. for an undefined choice:
+				// the path cannot be extended, so stop and report an error, as for deadlocks)
+				if (!automaticTransition()) {
+					strategyStopped = true;
+					strategyStopState = new State(path.getCurrentState());
+					shouldStopSampling = true;
+					break;
+				}
 				i++;
 			}
 
@@ -2143,6 +2311,11 @@ public class SimulatorEngine extends PrismComponent
 		if (deadlocksFound) {
 			mainLog.println("\nDeadlock found in state " + deadlockState);
 			throw new PrismException("Deadlock state found");
+		}
+
+		// If a strategy being followed stopped a path, report error
+		if (strategyStopped) {
+			throw new PrismException("Path stopped in state " + strategyStopState + " by the strategy being followed (undefined choice resolved as stop or loop)");
 		}
 
 		// Print a warning if simulation was stopped by the user

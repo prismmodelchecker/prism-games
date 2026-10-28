@@ -73,16 +73,7 @@ public class MDStrategyArray<Value> extends StrategyExplicit<Value> implements M
 	@Override
 	public UndefinedReason whyUndefined(int s, int m)
 	{
-		switch (choices[s]) {
-		case -1:
-			return UndefinedReason.UNKNOWN;
-		case -2:
-			return UndefinedReason.ARBITRARY;
-		case -3:
-			return UndefinedReason.UNREACHABLE;
-		default:
-			return null;
-		}
+		return UndefinedReason.fromCode(choices[s]);
 	}
 
 	@Override
@@ -104,6 +95,8 @@ public class MDStrategyArray<Value> extends StrategyExplicit<Value> implements M
 		for (int s = 0; s < n; s++) {
 			if (isChoiceDefined(s)) {
 				out.println((showStates ? states.get(s) : s) + "=" + getChoiceActionString(s));
+			} else if (options.getShowUndefined()) {
+				out.println((showStates ? states.get(s) : s) + "=" + getUndefinedChoiceString(s, -1));
 			}
 		}
 	}

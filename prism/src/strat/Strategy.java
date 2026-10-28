@@ -53,6 +53,9 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	 * For a randomised strategy (and if defined), this method returns
 	 * an instance of DistributionOver&lt;Object&gt; instead of Object.
 	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
+	 * <br><br>
+	 * This (action-based) decision is the primary way to query a strategy;
+	 * see {@link StrategyInfo} for how it is matched to choices of a model.
 	 */
 	public Object getChoiceAction(int s, int m);
 	
@@ -94,7 +97,10 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	 * Get the index of the choice picked by the strategy in the state index s
 	 * and where the current memory of the strategy (if applicable) is m
 	 * (assuming it is deterministic).
-	 * The index is defined with respect to a particular model, stored locally.
+	 * The index is defined with respect to a particular model, stored locally
+	 * (see {@link #getModel()}), and is not meaningful for other representations
+	 * of the model, whose choices may be ordered differently. Some strategies
+	 * (e.g., randomised ones) do not support this; use {@link #getChoiceAction(int, int)}.
 	 * Returns a negative value (not necessarily -1) if undefined.
 	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
@@ -143,6 +149,9 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 			case UNKNOWN:
 				return "?";
 			case ARBITRARY:
+			case SATISFIED:
+			case UNSATISFIABLE:
+			case HORIZON:
 				return "";
 			case UNREACHABLE:
 				return "-";
@@ -152,6 +161,18 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 		}
 	}
 	
+	/**
+	 * Get a string representing an undefined choice in the state index s
+	 * and where the current memory of the strategy (if applicable) is m, for export:
+	 * "?" followed by the reason why it is undefined (in lower case), if known.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
+	 */
+	public default String getUndefinedChoiceString(int s, int m)
+	{
+		UndefinedReason why = whyUndefined(s, m);
+		return "?" + (why == null ? "" : why.toString().toLowerCase());
+	}
+
 	/**
 	 * For a strategy with memory, get the size of the memory
 	 * (memory values are then assumed to be 0...memSize-1.
