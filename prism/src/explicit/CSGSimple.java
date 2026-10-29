@@ -153,7 +153,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 				this.indexes[p].set(indexes[p]);
 			}
 		}
-		transIndexes.get(s).add(i, indexes);
+		storeIndexes(s, i, indexes);
 		return i;
 	}
 
@@ -178,7 +178,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 				this.indexes[p].set(indexes[p]);
 			}
 		}
-		transIndexes.get(s).add(i, indexes);
+		storeIndexes(s, i, indexes);
 		return i;
 	}
 
@@ -193,7 +193,23 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	public void setIndexes(int s, int i, int[] indexes)
 	{
 		// TODO: call setAction too?
-		this.transIndexes.get(s).add(i, indexes);
+		storeIndexes(s, i, indexes);
+	}
+
+	/**
+	 * Store the list of player action indices for choice {@code i} of state {@code s},
+	 * either replacing an existing one or, for a newly added choice, appending it.
+	 * (NB: a choice is not added if it duplicates an existing one, in which case
+	 * its index is that of the existing choice, whose indices are then just replaced)
+	 */
+	private void storeIndexes(int s, int i, int[] indexes)
+	{
+		List<int[]> list = transIndexes.get(s);
+		if (i < list.size()) {
+			list.set(i, indexes);
+		} else {
+			list.add(indexes);
+		}
 	}
 
 	public void setIndexes(BitSet[] indexes)
