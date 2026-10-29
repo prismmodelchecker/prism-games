@@ -30,6 +30,7 @@ package explicit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -241,16 +242,21 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		}
 	}
 
-	public void fixDeadlock(int s)
+	/**
+	 * Add a self-loop to state {@code s}, as done when fixing deadlocks:
+	 * a new choice comprising a transition from {@code s} to itself with probability 1,
+	 * in which all players idle.
+	 */
+	@Override
+	public void addSelfLoop(int s)
 	{
-		int numPlayers = getNumPlayers();
-		Distribution<Value> distr = new Distribution<>();
+		Distribution<Value> distr = new Distribution<>(getEvaluator());
 		distr.add(s, getEvaluator().one());
-		int[] indexes = new int[numPlayers];
-		for (int p = 0; p < numPlayers; p++) {
-			indexes[p] = -1;
-		}
-		addActionLabelledChoice(s, distr, indexes);
+		// Build the (all idle) joint action directly, to avoid
+		// recomputing the action list, which may be out of date
+		JointAction jointAction = new JointAction(getNumPlayers());
+		Collections.fill(jointAction, JointAction.IDLE_ACTION);
+		addActionLabelledChoice(s, distr, jointAction);
 	}
 
 	// Accessors (for PlayerInfoOwner)

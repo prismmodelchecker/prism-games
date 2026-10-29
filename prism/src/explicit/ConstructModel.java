@@ -481,20 +481,9 @@ public class ConstructModel extends PrismComponent
 
 		// Find/fix deadlocks (if required)
 		if (!justReach && findDeadlocks) {
-			if (modelType != ModelType.CSG) {
-				modelSimple.findDeadlocks(fixDeadlocks);
-			}
-			else {
-				modelSimple.findDeadlocks(false);
-				// Fixes deadlocks for concurrent games...this may have to be changed though
-				if(modelSimple.getNumDeadlockStates() > 0) {
-					for(Integer s : modelSimple.getDeadlockStates()) {
-						csg.fixDeadlock(s);
-					}			
-				}
-			}
+			modelSimple.findDeadlocks(fixDeadlocks);
 		}
-				
+
 		int permut[] = null;
 
 		if (sortStates) {
