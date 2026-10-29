@@ -1,0 +1,3 @@
+// Strategy for minimiser in a non-square matrix game
+// RESULT: 0.44
+<<p2>> Pmin=? [ F "goal" ];
