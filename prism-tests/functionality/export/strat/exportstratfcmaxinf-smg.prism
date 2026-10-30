@@ -1,0 +1,30 @@
+// Test of strategy generation for Rmax [ Fc ] (cumulative reachability rewards)
+// in an SMG, in states where the (max) value is infinite. A strategy would need
+// to keep accumulating reward, not just avoid the target: e.g., in s=0, a and
+// then loop in s=1 never reaches the target but gets zero reward. Since this is
+// not implemented, strategy synthesis should be reported as unsupported.
+
+smg
+
+player p1 [a], [b], [loop], [go] endplayer
+player p2 [d], [e] endplayer
+
+module M
+
+s : [0..3];
+
+[a] s=0 -> (s'=1);
+[b] s=0 -> (s'=2);
+[loop] s=1 -> (s'=1);
+[go] s=1 -> (s'=2);
+[d] s=2 -> (s'=2);
+[e] s=2 -> 0.5:(s'=2) + 0.5:(s'=1);
+[loop] s=3 -> (s'=3);
+
+endmodule
+
+label "goal" = s=3;
+
+rewards
+	s=2 : 1;
+endrewards

@@ -1,0 +1,5 @@
+// RESULT: Error:not supported
+<<p1>> Rmax=? [ Fc "goal" ];
+
+// RESULT: 0.0
+<<p1>> Rmin=? [ Fc "goal" ];

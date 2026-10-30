@@ -1462,6 +1462,18 @@ public class STPGModelChecker extends ProbModelChecker
 		if (verbosity >= 1)
 			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
+		// Strategy synthesis for max is not supported if some values are infinite
+		// in player 1 states: addStrategyChoicesForInfStates only ensures that
+		// the target is avoided, not that infinite reward is accumulated
+		// (for player 2, the strategy is only a counter-strategy, so this is not checked)
+		if (genStrat && !min1) {
+			for (i = inf.nextSetBit(0); i >= 0; i = inf.nextSetBit(i + 1)) {
+				if (stpg.getPlayer(i) == 0) {
+					throw new PrismNotSupportedException("Strategy synthesis for max cumulative reachability rewards (Fc) with infinite values is not supported yet");
+				}
+			}
+		}
+
 		// Compute real rewards
 		res = computeReachRewardsNumeric(stpg, rewards, target, inf, min1, min2, init, known, 1.0);
 
