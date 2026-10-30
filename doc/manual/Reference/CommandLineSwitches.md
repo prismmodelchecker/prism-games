@@ -253,7 +253,7 @@ Switches are typed with a single `-`, as shown, but `--` also works, e.g., `--ve
   - `unsatisfiable` (=stop/loop/first/all/error): how to resolve undefined choices when the objective can no longer be satisfied
   - `horizon` (=stop/loop/first/all/error): how to resolve undefined choices after a step bound
   - `unreachable` (=stop/loop/first/all/error): how to resolve undefined choices in states not reachable under the strategy
-  - `showundef` (=true/false, or bare for true): whether to also show undefined choices (and why) when exporting actions/indices
+  - `showundef` (=true/false, or bare for true): whether to also show states without a strategy choice when exporting actions/indices: undefined choices (as ? and the reason) and, for games, other players' choices (as \*)
   - `format` (=explicit/dot/drn/umb): model export format for induced model export
   - `rewards` (=true/false, or bare for true): whether to include rewards for induced model export
   - `labels` (=true/false, or bare for true): whether to include labels for induced model export

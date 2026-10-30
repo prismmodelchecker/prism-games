@@ -26,6 +26,10 @@
 
 package strat;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,6 +70,20 @@ public interface StrategyInfo<Value>
 	
 	/** Action returned when choice is undefined by strategy */
 	public static final Object UNDEFINED = "?";
+	
+	/**
+	 * Decision returned, for a game, in a state where the choice is made by a player
+	 * that this strategy does not decide for (see {@link #players()}).
+	 * The strategy does not restrict the choices in such a state.
+	 */
+	public static final Object OTHER_PLAYER = "*";
+	
+	/**
+	 * Choice index used to represent {@link #OTHER_PLAYER}, e.g. as returned by
+	 * {@code Strategy.getChoiceIndex()}, or when choices are stored in an array.
+	 * This is distinct from the codes used for undefined choices (see {@link UndefinedReason}).
+	 */
+	public static final int OTHER_PLAYER_INDEX = -10;
 	
 	/**
 	 * Possible reasons for a choice being undefined by a strategy.
@@ -149,15 +167,58 @@ public interface StrategyInfo<Value>
 	}
 
 	/**
+	 * How many players does this provide actions for?
+	 */
+	public default int numPlayers()
+	{
+		return players().cardinality();
+	}
+
+	/**
+	 * Which players does this strategy decide for (i.e., provide actions for)?
+	 * Returns a set of 0-indexed player indices, stored as a BitSet.
+	 * In states where the choice is made by another player, the strategy's decision
+	 * is {@link #OTHER_PLAYER}. A strategy contains decisions only for these players.
+	 * For a model with one player (e.g., an MDP), this is just player 1 (index 0).
+	 * The set returned is a new copy, which the caller can modify.
+	 */
+	public default BitSet players()
+	{
+		// Default to one player: player 1 (index 0)
+		BitSet onePlayer = new BitSet(1);
+		onePlayer.set(0);
+		return onePlayer;
+	}
+
+	/**
+	 * Get the coalitions of players that this strategy decides for,
+	 * i.e., a partition of {@link #players()}, which also records where it came from.
+	 * For a strategy generated for a zero-sum game with a coalition C, this is [C] if
+	 * the strategy is just for C, [P \ C] if it is just for the other players (P \ C),
+	 * or [C, P \ C] if it is for all players. For an equilibrium, it is one coalition per
+	 * coalition of the property. By default, this is a single coalition, {@link #players()}.
+	 * The list and sets returned are new copies, which the caller can modify.
+	 */
+	public default List<BitSet> coalitions()
+	{
+		return new ArrayList<>(Collections.singletonList(players()));
+	}
+
+	/**
 	 * Get the probability with which an action is chosen by the strategy,
 	 * extracting this information from a decision taken by the strategy,
 	 * as returned by getChoiceAction().
+	 * Returns null if the choice is made by another player ({@link #OTHER_PLAYER}),
+	 * since the probabilities are then not determined by the strategy.
 	 * @param decision The decision taken by the strategy
 	 * @param act The action to check
 	 */
 	@SuppressWarnings("unchecked")
 	public default Value getChoiceActionProbability(Object decision, Object act)
 	{
+		if (decision == OTHER_PLAYER) {
+			return null;
+		}
 		if (decision instanceof DistributionOver) {
 			return ((DistributionOver<Value,Object>) decision).getProbability(act);
 		} else {
@@ -170,12 +231,16 @@ public interface StrategyInfo<Value>
 	 * extracting this information from a decision taken by the strategy,
 	 * as returned by getChoiceAction()?
 	 * For a randomised strategy: is the action chosen with positive probability?
+	 * If the choice is made by another player ({@link #OTHER_PLAYER}), any action can be chosen.
 	 * @param decision The decision taken by the strategy
 	 * @param act The action to check
 	 */
 	@SuppressWarnings("unchecked")
 	public default boolean isActionChosen(Object decision, Object act)
 	{
+		if (decision == OTHER_PLAYER) {
+			return true;
+		}
 		if (decision instanceof DistributionOver) {
 			// Randomised strategy: check positive probability
 			Value prob = ((DistributionOver<Value,Object>) decision).getProbability(act);
@@ -251,6 +316,10 @@ public interface StrategyInfo<Value>
 		if (decision == UNDEFINED) {
 			return null;
 		}
+		// Choice made by another player: the action is unchanged
+		if (decision == OTHER_PLAYER) {
+			return act;
+		}
 		if (decision instanceof DistributionOver) {
 			return combineActionSupport(((DistributionOver<?, ?>) decision).getSupport());
 		} else {
@@ -308,9 +377,20 @@ public interface StrategyInfo<Value>
 			switch (modelType) {
 				case MDP:
 				case POMDP:
+					inducedModelType = ModelType.DTMC;
+					break;
 				case STPG:
 				case SMG:
-					inducedModelType = ModelType.DTMC;
+				case CSG:
+					// The players of this strategy are removed
+					int numPlayersInduced = numPlayers - numPlayers();
+					if (numPlayersInduced > 1) {
+						inducedModelType = modelType;
+					} else if (numPlayersInduced == 1) {
+						inducedModelType = ModelType.MDP;
+					} else {
+						inducedModelType = ModelType.DTMC;
+					}
 					break;
 				case IMDP:
 					inducedModelType = ModelType.IDTMC;
@@ -320,6 +400,27 @@ public interface StrategyInfo<Value>
 			inducedModelType = modelType;
 		}
 		return inducedModelType;
+	}
+
+	/**
+	 * Get a list of names of the players for the model induced by this strategy
+	 * based on a list of player names for the model on which this strategy is defined.
+	 */
+	public default List<String> getInducedPlayerNames(List<String> playerNames, InducedModelMode mode)
+	{
+		if (mode == InducedModelMode.REDUCE) {
+			// Reduce list by removing indices in player bitset
+			List<String> newPlayerNames = new ArrayList<>();
+			for (int p = 0; p < playerNames.size(); p++) {
+				if (!players().get(p)) {
+					newPlayerNames.add(playerNames.get(p));
+				}
+			}
+			return newPlayerNames;
+		} else {
+			// Unchanged for "restrict" mode
+			return playerNames;
+		}
 	}
 
 	/**

@@ -1474,7 +1474,7 @@ public class PrismCL implements PrismModelListener
 					undefinedResolutionChoice(r -> exportStratOptions.setUndefinedChoiceResolution(UndefinedReason.HORIZON, r)))
 				.choice("unreachable", "how to resolve undefined choices in states not reachable under the strategy",
 					undefinedResolutionChoice(r -> exportStratOptions.setUndefinedChoiceResolution(UndefinedReason.UNREACHABLE, r)))
-				.bool("showundef", "whether to also show undefined choices (and why) when exporting actions/indices",
+				.bool("showundef", "whether to also show states without a strategy choice when exporting actions/indices: undefined choices (as ? and the reason) and, for games, other players' choices (as *)",
 					v -> exportStratOptions.setShowUndefined(v))
 				// The following options only apply to induced model export, mirroring the
 				// corresponding -exportmodel options (see exportModelSwitch above)

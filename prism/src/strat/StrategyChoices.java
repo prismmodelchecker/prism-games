@@ -52,7 +52,10 @@ public class StrategyChoices
 	{
 		/** Indices of the picked choices */
 		public final BitSet choices;
-		/** How an undefined decision was resolved (null if the decision was defined) */
+		/**
+		 * How an undefined decision was resolved (null if the decision was defined);
+		 * ALL is also used when the choice is made by another player (see {@link StrategyInfo#OTHER_PLAYER})
+		 */
 		public final UndefinedChoicePolicy.Resolution resolution;
 		/**
 		 * The decision used to pick the choices: the strategy's decision, if defined;
@@ -82,6 +85,11 @@ public class StrategyChoices
 	 * (only the first of these, if there are several); ALL picks all choices;
 	 * and ERROR throws an exception.
 	 * <br><br>
+	 * In a state of a turn-based game where the choice is made by a player that the strategy
+	 * is not defined for ({@link StrategyInfo#OTHER_PLAYER}), all choices are picked,
+	 * which is treated in the same way as the ALL resolution of an undefined choice
+	 * (they are kept as separate choices, with their original actions).
+	 * <br><br>
 	 * A (defined) decision is ambiguous if it picks several choices with the same action label,
 	 * since it is then unclear which of them is meant: an exception is thrown in this case.
 	 * @param model The model
@@ -99,6 +107,10 @@ public class StrategyChoices
 		}
 		Object decision = strat.getChoiceAction(s, m);
 		UndefinedChoicePolicy.Resolution resolution = null;
+		if (decision == StrategyInfo.OTHER_PLAYER) {
+			chosen.set(0, numChoices);
+			return new Chosen(chosen, UndefinedChoicePolicy.Resolution.ALL, null);
+		}
 		if (decision == StrategyInfo.UNDEFINED) {
 			UndefinedReason why = strat.whyUndefined(s, m);
 			resolution = policy.get(why);
@@ -152,7 +164,8 @@ public class StrategyChoices
 	/**
 	 * Find the states of a model in which the decisions of a memoryless strategy
 	 * are ambiguous, i.e., in which an action picked by the strategy labels several choices
-	 * (see {@link #getChosenChoices}). States where the strategy is undefined are ignored.
+	 * (see {@link #getChosenChoices}). States where the strategy is undefined,
+	 * or where the choice is made by another player, are ignored.
 	 * @param model The model
 	 * @param strat The (memoryless) strategy
 	 * @return The ambiguous states
@@ -166,7 +179,7 @@ public class StrategyChoices
 		int numStates = model.getNumStates();
 		for (int s = 0; s < numStates; s++) {
 			Object decision = strat.getChoiceAction(s, -1);
-			if (decision == StrategyInfo.UNDEFINED) {
+			if (decision == StrategyInfo.UNDEFINED || decision == StrategyInfo.OTHER_PLAYER) {
 				continue;
 			}
 			Set<Object> chosenActions = new HashSet<>();

@@ -60,6 +60,9 @@ public class MDStrategyArray<Value> extends StrategyExplicit<Value> implements M
 	@Override
 	public Object getChoiceAction(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER;
+		}
 		int c = choices[s];
 		return c >= 0 ? model.getAction(s, c) : Strategy.UNDEFINED;
 	}
@@ -67,13 +70,13 @@ public class MDStrategyArray<Value> extends StrategyExplicit<Value> implements M
 	@Override
 	public int getChoiceIndex(int s, int m)
 	{
-		return choices[s];
+		return isPlayerState(s) ? choices[s] : OTHER_PLAYER_INDEX;
 	}
 
 	@Override
 	public UndefinedReason whyUndefined(int s, int m)
 	{
-		return UndefinedReason.fromCode(choices[s]);
+		return isPlayerState(s) ? UndefinedReason.fromCode(choices[s]) : null;
 	}
 
 	@Override

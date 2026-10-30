@@ -85,6 +85,8 @@ public class CSGModelChecker extends ProbModelChecker
 	protected int numCoalitions;
 	/** For each coalition, which players are in it (BitSet over 0-indexed player indices) */
 	protected BitSet[] coalitionIndexes;
+	/** For a zero-sum property, the players in its coalition (BitSet over 0-indexed player indices) */
+	protected BitSet coalitionPlayers;
 	/** For each coalition, which actions are used by players in it
 	 * (BitSet over 1-indexed action indices, and including "idle" actions) */
 	protected BitSet[] actionIndexes;
@@ -192,8 +194,11 @@ public class CSGModelChecker extends ProbModelChecker
 		res.numIters = 1;
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
-		if (genStrat)
+		if (genStrat) {
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
+			// The strategy is for the coalition of the property
+			((CSGStrategy) res.strat).setCoalitions(Collections.singletonList(coalitionPlayers));
+		}
 		return res;
 	}
 
@@ -536,8 +541,11 @@ public class CSGModelChecker extends ProbModelChecker
 		ModelCheckerResult res = new ModelCheckerResult();
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat)
+		if (genStrat) {
 			res.strat = new CSGStrategy(csg, lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
+			// The strategy is for the coalition of the property
+			((CSGStrategy) res.strat).setCoalitions(Collections.singletonList(coalitionPlayers));
+		}
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -1134,8 +1142,11 @@ public class CSGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis() - timer;
 		res.soln = nsol;
 		res.numIters = k;
-		if (genStrat)
+		if (genStrat) {
 			res.strat = new CSGStrategy(csg, lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
+			// The strategy is for the coalition of the property
+			((CSGStrategy) res.strat).setCoalitions(Collections.singletonList(coalitionPlayers));
+		}
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -1907,6 +1918,7 @@ public class CSGModelChecker extends ProbModelChecker
 				}
 			}
 		}
+		coalitionPlayers = (BitSet) (min ? coalitionIndexes[1] : coalitionIndexes[0]).clone();
 		findMaxRowsCols(csg);
 	}
 

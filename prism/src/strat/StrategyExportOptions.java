@@ -115,7 +115,8 @@ public class StrategyExportOptions implements Cloneable
 	private Optional<UndefinedChoicePolicy> undefinedChoicePolicy = Optional.empty();
 
 	/**
-	 * Whether to show (reasons for) undefined strategy choices (for export of actions/indices)
+	 * Whether to show states without a strategy choice (for export of actions/indices):
+	 * undefined choices, with the reason, and (for games) choices made by other players
 	 */
 	private Optional<Boolean> showUndefined = Optional.empty();
 
@@ -275,7 +276,9 @@ public class StrategyExportOptions implements Cloneable
 	}
 
 	/**
-	 * Whether to show (reasons for) undefined strategy choices (for export of actions/indices).
+	 * Whether to show states without a strategy choice (for export of actions/indices):
+	 * undefined choices (shown as "?" and the reason, see {@link Strategy#getUndefinedChoiceString(int, int)})
+	 * and, for games, choices made by players that the strategy does not decide for (shown as "*").
 	 */
 	public boolean getShowUndefined()
 	{
@@ -283,7 +286,9 @@ public class StrategyExportOptions implements Cloneable
 	}
 
 	/**
-	 * Set whether to show (reasons for) undefined strategy choices (for export of actions/indices).
+	 * Set whether to show states without a strategy choice (for export of actions/indices):
+	 * undefined choices (shown as "?" and the reason) and, for games,
+	 * choices made by players that the strategy does not decide for (shown as "*").
 	 */
 	public StrategyExportOptions setShowUndefined(boolean showUndefined)
 	{

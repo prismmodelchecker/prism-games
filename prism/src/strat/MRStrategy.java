@@ -64,7 +64,7 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 	@Override
 	public UndefinedReason whyUndefined(int s, int m)
 	{
-		if (!choiceProbs.get(s).isEmpty()) {
+		if (!isPlayerState(s) || !choiceProbs.get(s).isEmpty()) {
 			return null;
 		}
 		UndefinedReason reason = undefinedReasons == null ? null : undefinedReasons[s];
@@ -80,6 +80,9 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 	@Override
 	public Object getChoiceAction(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER;
+		}
 		Distribution<Value> probs = choiceProbs.get(s);
 		return probs.isEmpty() ? Strategy.UNDEFINED : DistributionOver.create(probs, i -> model.getAction(s, i));
 	}
@@ -88,7 +91,7 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 	public int getChoiceIndex(int s, int m)
 	{
 		// N/A for randomised strategy
-		return -1;
+		return isPlayerState(s) ? -1 : OTHER_PLAYER_INDEX;
 	}
 
 	@Override
@@ -107,7 +110,7 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
 			Object probs = getChoiceAction(s, -1);
-			if (probs != UNDEFINED) {
+			if (probs != UNDEFINED && probs != OTHER_PLAYER) {
 				out.println((showStates ? states.get(s) : s) + "=" + probs);
 			} else if (options.getShowUndefined()) {
 				out.println((showStates ? states.get(s) : s) + "=" + getUndefinedChoiceString(s, -1));
@@ -123,7 +126,7 @@ public class MRStrategy<Value> extends StrategyExplicit<Value>
 		int n = getNumStates();
 		for (int s = 0; s < n; s++) {
 			Distribution<Value> probs = choiceProbs.get(s);
-			if (!probs.isEmpty()) {
+			if (isPlayerState(s) && !probs.isEmpty()) {
 				out.println((showStates ? states.get(s) : s) + "=" + probs);
 			} else if (options.getShowUndefined()) {
 				out.println((showStates ? states.get(s) : s) + "=" + getUndefinedChoiceString(s, -1));

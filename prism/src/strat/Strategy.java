@@ -27,9 +27,15 @@
 
 package strat;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+
 import explicit.Distribution;
 import explicit.MDPSimple;
 import prism.ModelType;
+import prism.PlayerInfoOwner;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.PrismPrintStreamLog;
@@ -101,7 +107,9 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	 * (see {@link #getModel()}), and is not meaningful for other representations
 	 * of the model, whose choices may be ordered differently. Some strategies
 	 * (e.g., randomised ones) do not support this; use {@link #getChoiceAction(int, int)}.
-	 * Returns a negative value (not necessarily -1) if undefined.
+	 * Returns a negative value (not necessarily -1) if undefined,
+	 * and {@link #OTHER_PLAYER_INDEX} if the choice is made by another player
+	 * (see {@link #decidesFor(int, int)}).
 	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
 	public int getChoiceIndex(int s, int m);
@@ -109,11 +117,25 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	/**
 	 * Is a choice defined by the strategy in the state index s
 	 * and where the current memory of the strategy (if applicable) is m.
+	 * This is false if the choice is undefined, or if it is made by
+	 * a player that this strategy does not decide for (see {@link #decidesFor(int, int)}).
 	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
 	public default boolean isChoiceDefined(int s, int m)
 	{
-		return getChoiceAction(s, m) != UNDEFINED;
+		Object decision = getChoiceAction(s, m);
+		return decision != UNDEFINED && decision != OTHER_PLAYER;
+	}
+	
+	/**
+	 * Is the choice in the state index s, where the current memory of the strategy
+	 * (if applicable) is m, made by one of the players that this strategy decides for
+	 * (see {@link #players()})? If not, its decision is {@link #OTHER_PLAYER}.
+	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
+	 */
+	public default boolean decidesFor(int s, int m)
+	{
+		return getChoiceAction(s, m) != OTHER_PLAYER;
 	}
 	
 	/**
@@ -164,11 +186,16 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	/**
 	 * Get a string representing an undefined choice in the state index s
 	 * and where the current memory of the strategy (if applicable) is m, for export:
-	 * "?" followed by the reason why it is undefined (in lower case), if known.
+	 * "?" followed by the reason why it is undefined (in lower case), if known,
+	 * or "*" if the choice is made by a player that this strategy does not decide for.
 	 * Pass an arbitrary value (e.g. -1) for m if memory is not relevant.
 	 */
 	public default String getUndefinedChoiceString(int s, int m)
 	{
+		// Choice made by another player
+		if (!decidesFor(s, m)) {
+			return OTHER_PLAYER.toString();
+		}
 		UndefinedReason why = whyUndefined(s, m);
 		return "?" + (why == null ? "" : why.toString().toLowerCase());
 	}
@@ -228,6 +255,32 @@ public interface Strategy<Value> extends StrategyInfo<Value>
 	public default int getNumModelPlayers()
 	{
 		return getModel().getNumPlayers();
+	}
+
+	/**
+	 * Does this strategy decide for all players of its model, i.e., is it a strategy profile?
+	 * This is true for any strategy for a model with one player (e.g., an MDP).
+	 */
+	public default boolean isProfile()
+	{
+		return numPlayers() >= Math.max(1, getNumModelPlayers());
+	}
+
+	/**
+	 * Get the names of the players that this strategy decides for (see {@link #players()}),
+	 * in order of their indices, taken from the model, so there is one per player.
+	 * A player without a name (e.g., the single player of an MDP) is "".
+	 */
+	public default List<String> playerNames()
+	{
+		List<String> modelPlayerNames = (getModel() instanceof PlayerInfoOwner) ? ((PlayerInfoOwner) getModel()).getPlayerNames() : Collections.emptyList();
+		List<String> names = new ArrayList<>();
+		BitSet players = players();
+		for (int p = players.nextSetBit(0); p >= 0; p = players.nextSetBit(p + 1)) {
+			String name = p < modelPlayerNames.size() ? modelPlayerNames.get(p) : null;
+			names.add(name == null ? "" : name);
+		}
+		return names;
 	}
 
 	/**

@@ -121,6 +121,9 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	@Override
 	public Object getChoiceAction(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER;
+		}
 		int c = getChoiceIndex(s, m);
 		return c >= 0 ? model.getAction(s, c) : Strategy.UNDEFINED;
 	}
@@ -128,6 +131,9 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	@Override
 	public int getChoiceIndex(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER_INDEX;
+		}
 		int[] actions = choices[s];
 		int c = 0;
 		for (int i = 0; i < actions.length; i += 2)
@@ -231,7 +237,7 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 		for (int s = 0; s < n; s++) {
 			for (int m = 0; m <= bound; m++) {
 				Object action = getChoiceAction(s, m);
-				if (action!=null)
+				if (action!=null && (action != OTHER_PLAYER || options.getShowUndefined()))
 					out.println(s + "," + m + ":" + action.toString() + "," + (m<bound ? m+1 : m));
 			}
 		}
@@ -258,6 +264,8 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 				int c = getChoiceIndex(s, m);
 				if (c>=0)
 					out.println(s + "," + m + ":" + c + "," + (m<bound ? m+1 : m));
+				else if (c == OTHER_PLAYER_INDEX && options.getShowUndefined())
+					out.println(s + "," + m + ":" + OTHER_PLAYER + "," + (m<bound ? m+1 : m));
 			}
 		}
 	}

@@ -1699,6 +1699,10 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 				}
 			}
 		}
+		if (genStrat) {
+			// The strategy is for all players, partitioned into the coalitions of the property
+			((CSGStrategy) res.strat).setCoalitions(Arrays.asList(coalitionIndexes));
+		}
 		res.numIters = k;
 		return res;		
 	}

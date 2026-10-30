@@ -115,6 +115,9 @@ class InducedModelBuilder<Value>
 	private final UndefinedChoicePolicy undefinedChoicePolicy;
 	// Description of the construction, for error messages
 	private final String description;
+	// For a (turn-based) game-typed induced model built in "reduce" mode: map from
+	// the players of the original model to those of the induced model (null if not needed)
+	private int[] inducedPlayerMap = null;
 	// Labels of the original/induced models (null if not copied)
 	private Map<String, BitSet> origLabels = null;
 	private Map<String, BitSet> inducedLabels = null;
@@ -158,6 +161,17 @@ class InducedModelBuilder<Value>
 		} else if (inducedModel instanceof IMDPSimple) {
 			((IMDPSimple<Value>) inducedModel).setAllowDupes(true);
 		}
+		// For a game-typed induced model in "reduce" mode, the players of the strategy are removed.
+		// Their states (which now have a single choice) are assigned to the first remaining player.
+		if (mode == InducedModelMode.REDUCE && (inducedModelType == ModelType.STPG || inducedModelType == ModelType.SMG)) {
+			BitSet stratPlayers = strat.players();
+			int numPlayers = model.getNumPlayers();
+			inducedPlayerMap = new int[numPlayers];
+			int count = 0;
+			for (int p = 0; p < numPlayers; p++) {
+				inducedPlayerMap[p] = stratPlayers.get(p) ? 0 : count++;
+			}
+		}
 		// Create empty label bitsets for the induced model, if needed
 		if (copyLabels) {
 			origLabels = model.getLabelToStatesMap();
@@ -190,16 +204,25 @@ class InducedModelBuilder<Value>
 	{
 		switch (inducedModelType) {
 		case STPG:
-			((STPGSimple<Value>) inducedModel).addState(((STPG<Value>) model).getPlayer(s));
+			((STPGSimple<Value>) inducedModel).addState(getInducedPlayer(((STPG<Value>) model).getPlayerIgnoringCoalition(s)));
 			break;
 		case SMG:
-			((SMGSimple<Value>) inducedModel).addState(((SMG<Value>) model).getPlayer(s));
+			((SMGSimple<Value>) inducedModel).addState(getInducedPlayer(((SMG<Value>) model).getPlayerIgnoringCoalition(s)));
 			break;
 		default:
 			inducedModel.addState();
 			break;
 		}
 		return inducedModel.getNumStates() - 1;
+	}
+
+	/**
+	 * Get the player of the induced model corresponding to player {@code p} of the original model
+	 * (for a state owned by p; -1 denotes no owner).
+	 */
+	private int getInducedPlayer(int p)
+	{
+		return (inducedPlayerMap == null || p < 0) ? p : inducedPlayerMap[p];
 	}
 
 	/**

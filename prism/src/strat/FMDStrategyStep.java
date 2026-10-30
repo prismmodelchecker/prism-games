@@ -130,6 +130,9 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 	@Override
 	public Object getChoiceAction(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER;
+		}
 		// After k steps, use the tail strategy, if present
 		if (m >= k && tail != null) {
 			return tail.getChoiceAction(s);
@@ -141,6 +144,9 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 	@Override
 	public int getChoiceIndex(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return OTHER_PLAYER_INDEX;
+		}
 		// After k steps, use the tail strategy, if present
 		if (m >= k) {
 			return tail != null ? tail.getChoiceIndex(s) : -1;
@@ -151,6 +157,9 @@ public class FMDStrategyStep<Value> extends StrategyExplicit<Value>
 	@Override
 	public UndefinedReason whyUndefined(int s, int m)
 	{
+		if (!isPlayerState(s)) {
+			return null;
+		}
 		// After k steps, use the tail strategy, if present; otherwise, the step bound has passed
 		if (m >= k) {
 			return tail != null ? tail.whyUndefined(s, -1) : UndefinedReason.HORIZON;
