@@ -12,7 +12,8 @@ repo-root/
   prism-tests/   ← regression test suite
   prism-examples/ ← example models and properties
   cudd/          ← CUDD BDD library (C source)
-  manual/        ← HTML user manual
+  doc/manual/    ← user manual (Markdown)
+  manual/        ← HTML copy of the manual, built by `make doc` (not in git)
 ```
 
 Inside `prism/`:
@@ -153,6 +154,14 @@ of commit messages for the former type should be prefixed "umbj: ".
 - Avoid introducing new dependencies unless explicitly requested.
 - Java language level 11 is required — do not use features from Java 12+.
 
+## Documentation
+
+The user manual is in `../doc/manual/`, in Markdown, and `../doc/README.md` describes its layout and conventions.
+
+- When a change adds or alters something users see (the modelling or property languages, command-line switches, settings, the GUI, file formats), update the manual in the same change.
+- Say which version a feature appeared in ("Since PRISM x.y"): the website publishes the manual from master, ahead of the release.
+- Edit `doc/manual/`, never the generated top-level `manual/`.
+
 ## Bug Fix Workflow
 
 1. Reproduce the issue with an exact `./bin/prism` command.
@@ -178,10 +187,10 @@ When summarising a bug fix, include:
 ## Pull Requests
 
 - Feature branches are usually pushed to the user's own fork of the repository (a separate git remote), not to `origin`.
-- PRs should target `origin` (`prismmodelchecker/prism`), with `--head <user>:<branch>` pointing at the branch on the fork.
+- PRs should target the repository of the `origin` remote (e.g. `prismmodelchecker/prism`, or `prismmodelchecker/prism-games` in prism-games), with `--head <user>:<branch>` pointing at the branch on the fork.
 - Merge locally and push, rather than merging via the GitHub UI or `gh pr merge`. A local fast-forward preserves the commit hash; GitHub's squash/rebase merge creates a new hash, which forces rebasing of any dependent branches.
 
-For example, for GitHub user `davexparker`, whose fork is set up as a remote also named `davexparker`:
+For example, for GitHub user `davexparker`, whose fork is set up as a remote also named `davexparker`, in the `prismmodelchecker/prism` repository:
 
 ```bash
 git push davexparker <branch>

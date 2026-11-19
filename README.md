@@ -8,7 +8,7 @@ for verification and strategy synthesis for stochastic multi-player games.
 
 Up-to-date installation instructions can be found here:
 
-http://www.prismmodelchecker.org/games/installation.php
+  https://www.prismmodelchecker.org/games/installation.php
 
 Very abbreviated instructions for installing/running PRISM are as follows:
 
@@ -38,7 +38,13 @@ on which PRISM-games is based.
 
 Documentation specifically for PRISM-games can be found here:
 
-  http://www.prismmodelchecker.org/games/
+  https://www.prismmodelchecker.org/games/
+
+You can view the (PRISM) manual's local copy included in distributions:
+
+  * `manual/index.html`
+
+or, from source code versions, browse the (Markdown) manual source in `doc/manual/`.
 
 For other PRISM-related information, see the website:
 

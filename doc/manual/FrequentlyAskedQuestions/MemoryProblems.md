@@ -1,0 +1,114 @@
+# Memory problems
+
+Click on a question to see its answer.
+
+<details id="crash">
+<summary>PRISM crashed or stopped responding. Why?</summary>
+
+When PRISM crashes, the most likely cause is that it has run out of memory.
+Similarly, if PRISM (or the machine you are running it on) becomes very slow or seems to have stopped responding, this is probably because it is using too much of your machine's memory. Probabilistic model checking, much like other formal verification techniques, can be a very resource-intensive process. It is very easy to create a seemingly simple PRISM model that requires a large amount of time and/or memory to construct and analyse. See the other questions on this page for tips on how to avoid this.
+
+The other possibility is that you have found a bug.
+If PRISM crashes or freezes whilst not using all/most of the available memory (you can check this with the `top` command in a Unix/Linux terminal or the Task Manager (via Ctrl-Alt-Delete) on Windows) then please file a [bug report](https://github.com/prismmodelchecker/prism/issues).
+
+</details>
+
+<details id="memout">
+<summary>I ran out of memory. What can I do?</summary>
+
+First, note that PRISM's different [computation engines](../ConfiguringPRISM/ComputationEngines.md)
+and [solution methods](../ConfiguringPRISM/SolutionMethodsAndOptions.md) can vary significantly in performance.
+
+It also helps to establish at what point in PRISM's operation, you ran out of memory. If you are running the command-line version of PRISM then the output from the tool so far should give an indication of this. If using the GUI, check the log tab for this information. If PRISM crashed because of its memory usage, the error message can be helpful. If using the GUI, you may need to start the GUI from the command-line to see any error messages.
+
+The two main steps that PRISM typically has to perform are:
+
+1. **Model construction** (conversion of a PRISM language description to the corresponding probabilistic model)
+1. **Model checking/analysis** (processing/analysis of a constructed probabilistic model in order to determine the result of a property or to compute steady-state/transient probabilities)
+
+Memory usage issues for each of these steps are discussed in the questions on [model construction](#memout_constr) and [model checking](#memout_check) below. In some cases the process performed prior to step 1 (**model parsing** - reading in a model description in the PRISM language and checking it for correctness) can also be resource intensive. This is discussed under [model parsing](#memout_parse).
+
+If you are using the **simulator** to generate approximate model checking results then step 1 (model construction) is not performed and step 2 is carried out very differently. Memory consumption is not usually a problem in this case.
+
+</details>
+
+<details id="memout_constr">
+<summary>I ran out of memory during model construction. What can I do?</summary>
+
+If PRISM has already output this:
+
+```text
+Building model (engine:symbolic)...
+```
+
+but there is no line of the form:
+
+```text
+Time for model construction: 34.3 seconds.
+```
+
+and then you get an error like this:
+
+```text
+CUDD internal error detected, from the following stack trace:
+  ...
+Error: Out of memory (or other internal error) in the CUDD library.
+Tip: Try using the -cuddmaxmem switch to increase the memory available to CUDD.
+```
+
+then PRISM ran out of memory whilst trying to construct the model.
+With the symbolic engines (MTBDD, hybrid and sparse), model construction is performed using BDDs (binary decision diagrams) and MTBDDs (multi-terminal BDDs), which are implemented in the CUDD library.
+The first thing to try in this case is to increase the amount of memory available to CUDD. See "[CUDD memory](../ConfiguringPRISM/MemoryAndModelSize.md#settings)" for details of this.
+
+If increasing this memory limit does not resolve the problem, then you will need to consider ways to reduce the size of your model. You can find some tips on this in the [PRISM modelling](PRISMModelling.md) section. Bear in mind also that if you are having to increase the CUDD memory limit too high (e.g. close to the physical memory available on your computer) just for model construction, then it is unlikely that you will have enough memory for subsequent model checking operations.
+
+It is also worth considering the ordering of the modules and variables in your model since this can have a (in some cases dramatic) effect on the size of MTBDD representation of the model. This topic is covered in the "[PRISM modelling](PRISMModelling.md)" section.
+
+With the explicit engine, the model is built in Java, and running out of memory gives an error like this:
+
+```text
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+```
+
+In this case, increase the memory available to Java instead (see "[Java memory](../ConfiguringPRISM/MemoryAndModelSize.md#javamaxmem)").
+
+</details>
+
+<details id="memout_check">
+<summary>I ran out of memory during model checking. What can I do?</summary>
+
+If model construction was successfully completed (see the [previous question](#memout_constr)) but model checking was not, there are several things you can try. First of all, if the error message you see is the CUDD one in the previous question,
+then it may be worth increasing the memory limit for CUDD (as described there).
+If it is a Java `OutOfMemoryError`, increase the memory available to Java.
+However, if PRISM is killed or aborts with no such message,
+then increasing these limits probably will not help: PRISM is just trying to allocate more memory than is physically available on your system.
+
+Here are some general tips:
+
+- Try experimenting with using the different *engines* in PRISM. Read the section "[Computation engines](../ConfiguringPRISM/ComputationEngines.md)" for details.
+
+- Look at the detailed output of PRISM for information about memory usage. If you are using the hybrid (or sparse) engine and the limiting factor in terms of memory is creation of the vectors, then you have no choice but to try and reduce the size (number of states) of your model. If you are using the MTBDD engine, it is also well worth considering the variable ordering of your model. Both topics are discussed in the "[PRISM modelling](PRISMModelling.md)" section.
+
+- Finally, if you can find no way to reduce the size of your model and are happy to consider an approximate (rather than exact) analysis, you may wish to try using PRISM's [discrete-event simulation engine](../RunningPRISM/StatisticalModelChecking.md) for analysis.
+
+</details>
+
+<details id="memout_parse">
+<summary>I ran out of memory during model parsing. What can I do?</summary>
+
+This is a less common problem and will only occur if the actual PRISM language description of your model is very large. This may be the case, for example, if you are automatically generating PRISM models in some way. Errors due to lack of memory during parsing usually look like:
+
+```text
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+```
+
+or:
+
+```text
+Exception in thread "main" java.lang.StackOverflowError
+```
+
+You can resolve this problem by increasing the memory (for `OutOfMemoryError`) or the stack size (for `StackOverflowError`) allocated to Java.
+See "[Java memory](../ConfiguringPRISM/MemoryAndModelSize.md#javamaxmem)" for details of both.
+
+</details>

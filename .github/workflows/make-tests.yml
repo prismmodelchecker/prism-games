@@ -8,6 +8,20 @@ on:
 
 jobs:
 
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Build manual
+      shell: bash
+      working-directory: ./prism
+      run: |
+        make doc
+
   build:
     strategy:
       matrix:
@@ -32,6 +46,13 @@ jobs:
         make unittests
         make test testz3 testyices
         make tests
+    # The manual's generated parts (keywords, switch reference) must match this build of PRISM:
+    # if not, run doc/update-generated.py and commit the result
+    - name: Check generated parts of the manual
+      if: matrix.os == 'ubuntu-latest' && matrix.java == 21
+      shell: bash
+      run: |
+        python3 doc/update-generated.py --check
 
   build-win:
     strategy:
