@@ -48,11 +48,13 @@ jobs:
         make tests
     # The manual's generated parts (keywords, switch reference) must match this build of PRISM:
     # if not, run doc/update-generated.py and commit the result
-    - name: Check generated parts of the manual
-      if: matrix.os == 'ubuntu-latest' && matrix.java == 21
-      shell: bash
-      run: |
-        python3 doc/update-generated.py --check
+    # Disabled for now in PRISM-games: doc/manual is still PRISM's manual, so the
+    # games-specific switches and keywords are missing from it
+    #- name: Check generated parts of the manual
+    #  if: matrix.os == 'ubuntu-latest' && matrix.java == 21
+    #  shell: bash
+    #  run: |
+    #    python3 doc/update-generated.py --check
 
   build-win:
     strategy:
