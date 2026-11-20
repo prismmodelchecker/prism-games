@@ -1,0 +1,2 @@
+-exportstrat exportstratcoalition-smg.prism.props.txt
+-exportstrat exportstratcoalition-smg.prism.props.reduce.pexp:type=induced,mode=reduce

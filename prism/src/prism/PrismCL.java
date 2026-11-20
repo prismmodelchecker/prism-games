@@ -58,6 +58,7 @@ import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
 import strat.StrategyExportOptions;
+import strat.StrategyInfo.StrategyPlayers;
 import strat.StrategyInfo.UndefinedReason;
 import strat.UndefinedChoicePolicy;
 import prism.ResultsExporter.ResultsExportShape;
@@ -1476,6 +1477,10 @@ public class PrismCL implements PrismModelListener
 					undefinedResolutionChoice(r -> exportStratOptions.setUndefinedChoiceResolution(UndefinedReason.UNREACHABLE, r)))
 				.bool("showundef", "whether to also show states without a strategy choice when exporting actions/indices: undefined choices (as ? and the reason) and, for games, other players' choices (as *)",
 					v -> exportStratOptions.setShowUndefined(v))
+				.choice("players", "for games, which players to generate the strategy for (default: the coalition; for equilibria, all)", new OptionParser.Choice()
+					.when("coalition", () -> prism.setGenStratPlayers(StrategyPlayers.COALITION))
+					.when("opponents", () -> prism.setGenStratPlayers(StrategyPlayers.OPPONENTS))
+					.when("all",       () -> prism.setGenStratPlayers(StrategyPlayers.ALL)))
 				// The following options only apply to induced model export, mirroring the
 				// corresponding -exportmodel options (see exportModelSwitch above)
 				.choice("format",   "model export format for induced model export", new OptionParser.Choice()
@@ -1999,6 +2004,7 @@ public class PrismCL implements PrismModelListener
 		exportStratFilename = basename.equals("stdout") ? "stdout" : fileString;
 		exportStratOptions = new StrategyExportOptions();
 		prism.setGenStrat(true);
+		prism.setGenStratPlayers(null);
 		ModelExportOptions inducedModelOptions = null;
 		// Default strategy export type is based on filename extension
 		if (ext.equals("tra") || ext.equals("pexp") || ext.equals("umb") || ext.equals("umbt")) {

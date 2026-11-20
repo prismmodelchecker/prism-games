@@ -1,1 +1,2 @@
 -exportstrat exportstratrmaxinf-smg.prism.props.reduce.pexp:type=induced,mode=reduce
+-exportstrat exportstratrmaxinf-smg.prism.props.all.reduce.pexp:type=induced,mode=reduce,players=all

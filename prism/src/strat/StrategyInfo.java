@@ -86,6 +86,39 @@ public interface StrategyInfo<Value>
 	public static final int OTHER_PLAYER_INDEX = -10;
 	
 	/**
+	 * For a game, which players a strategy should be generated for, requested before
+	 * model checking, since the cost of generating a strategy for some players depends
+	 * on the solution method (e.g., it is free for the opponents in turn-based zero-sum
+	 * games, but needs extra work for concurrent games, or is not possible at all).
+	 * For a model with one player (e.g., an MDP), this has no effect.
+	 */
+	public enum StrategyPlayers {
+		/** The players in the coalition of the property (e.g., C in {@code <<C>>}) */
+		COALITION,
+		/** The players not in the coalition of the property */
+		OPPONENTS,
+		/** All players, i.e., a strategy profile */
+		ALL;
+
+		/**
+		 * Get a description of this request, e.g. for error messages.
+		 */
+		public String description()
+		{
+			switch (this) {
+			case COALITION:
+				return "the coalition";
+			case OPPONENTS:
+				return "the opponents of the coalition";
+			case ALL:
+				return "all players";
+			default:
+				return this.toString();
+			}
+		}
+	};
+	
+	/**
 	 * Possible reasons for a choice being undefined by a strategy.
 	 * When strategy choices are stored as (non-negative) choice indices in an array,
 	 * these are represented by the negative integers given by {@link #getCode()}.

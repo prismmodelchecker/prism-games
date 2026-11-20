@@ -1,6 +1,9 @@
 // Test for -exportstrat induced-model export for SMGs with mode=restrict
-// (which keeps the induced model as an SMG, rather than reducing it to a DTMC).
-// Player 2 has a choice in state 1, only one of which is kept by the strategy.
+// (which keeps the induced model as an SMG) and mode=reduce.
+// Player 2 has a choice in state 1: by default, the strategy is for the coalition (p1),
+// so both are kept (and mode=reduce gives an MDP); with players=all, it is for
+// both players, and only p2's optimal choice (b2, which is unique) is kept
+// (and mode=reduce gives a DTMC).
 // Reward structure "r" has transition rewards, to check they are copied too.
 
 smg

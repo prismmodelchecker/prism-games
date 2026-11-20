@@ -77,6 +77,8 @@ import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.RewardGenerator;
 import strat.Strategy;
+import strat.StrategyExplicit;
+import strat.StrategyInfo.StrategyPlayers;
 
 /**
  * Super class for explicit-state probabilistic model checkers.
@@ -658,6 +660,16 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 
 		Expression exprSub = exprs.get(0);
+		// Check that a strategy can be generated for the requested players (if any)
+		if (genStrat && genStratPlayers != null && model.getModelType().multiplePlayers()) {
+			boolean equilibrium = exprSub instanceof ExpressionMultiNash;
+			if (equilibrium && genStratPlayers != StrategyPlayers.ALL) {
+				throw new PrismNotSupportedException("Strategy generation for " + genStratPlayers.description() + " is not yet supported for equilibria (only for all players)");
+			}
+			if (!equilibrium && model.getModelType() == ModelType.CSG && genStratPlayers != StrategyPlayers.COALITION) {
+				throw new PrismNotSupportedException("Strategy generation for " + genStratPlayers.description() + " is not yet supported for concurrent games (only for the coalition)");
+			}
+		}
 		// Pass onto relevant method:
 		// P operator
 		if (exprSub instanceof ExpressionProb) {
@@ -679,6 +691,47 @@ public class ProbModelChecker extends NonProbModelChecker
 			checkNoTemporalDiscountForGames(model, exprSub);
 			return checkExpressionMultiObjective(model, expr, forAll, coalition);
 		}
+	}
+
+	/**
+	 * For a strategy generated for a turn-based game (an SMG, treated as an STPG for a coalition),
+	 * record which players it decides for, as requested by {@link #getGenStratPlayers()}:
+	 * by default, the coalition. The strategy then has no decisions in the states of other players.
+	 * This must be called while the coalition is still set for the game (the coalition's players
+	 * are player 1, index 0, of the STPG). For a native STPG (no coalition), the coalition is player 1 (index 0).
+	 * Strategies that do not store player information, or for other models, are left unchanged.
+	 * @param strat The strategy
+	 * @param stpg The game (viewed as an STPG)
+	 */
+	protected void setStrategyPlayers(Strategy<?> strat, STPG<?> stpg)
+	{
+		if (!(strat instanceof StrategyExplicit && stpg instanceof SMG)) {
+			return;
+		}
+		// Players of the model in the coalition, and the others
+		int numPlayers = stpg.getNumPlayers();
+		if (stpg.getModelType() == ModelType.STPG) {
+			numPlayers = Math.max(numPlayers, 2);
+		}
+		BitSet coalition = ((SMG<?>) stpg).getPlayerInfo().getCoalitionPlayers();
+		if (coalition == null) {
+			// No coalition: player 1 (index 0)
+			coalition = new BitSet();
+			coalition.set(0);
+		}
+		BitSet others = new BitSet();
+		others.set(0, numPlayers);
+		others.andNot(coalition);
+		// Coalitions decided for
+		StrategyPlayers request = genStratPlayers == null ? StrategyPlayers.COALITION : genStratPlayers;
+		List<BitSet> coalitions = new ArrayList<>();
+		if (request != StrategyPlayers.OPPONENTS) {
+			coalitions.add(coalition);
+		}
+		if (request != StrategyPlayers.COALITION && !others.isEmpty()) {
+			coalitions.add(others);
+		}
+		((StrategyExplicit<?>) strat).setPlayers(coalitions);
 	}
 
 	protected StateValues checkExpressionMultiNash(Model<?> model, ExpressionMultiNash expr, List<Coalition> coalitions, ExpressionStrategy.EquilibriumType equilibriumType, ExpressionStrategy.EquilibriumCriterion equilibriumCriterion) throws PrismException

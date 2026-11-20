@@ -3,8 +3,9 @@
 // The chosen action must avoid the target with positive probability.
 // In s=0, a stays in the "inf" states with positive probability,
 // but reaches the target (s=3) with probability 1; b must be picked instead.
-// In s=1, player p2 (minimising) has value infinity for both choices,
-// so its choice is arbitrary (and the first, d, is used in the induced model).
+// In s=1, player p2 (minimising) has value infinity for both choices.
+// By default, the strategy is for the coalition (p1), so both are kept;
+// with players=all, p2's choice is arbitrary (and the first, d, is used in the induced model).
 
 smg
 

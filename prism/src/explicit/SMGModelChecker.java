@@ -76,12 +76,14 @@ import prism.PointList;
 import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.FMDStrategyProduct;
 import strat.MDStrategy;
 import strat.StochasticUpdateStrategy;
 import strat.Strategy;
+import strat.StrategyInfo.StrategyPlayers;
 
 /**
  * Explicit-state model checker for multi-player stochastic games (SMGs).
@@ -153,6 +155,10 @@ public class SMGModelChecker extends ProbModelChecker
 	@Override
 	public StateValues checkExpressionMultiObjective(Model<?> model, List<List<Expression>> cnf, Coalition coalition) throws PrismException
         {
+		// Strategies can only be generated for the coalition here
+		if (genStrat && genStratPlayers != null && genStratPlayers != StrategyPlayers.COALITION) {
+			throw new PrismNotSupportedException("Strategy generation for " + genStratPlayers.description() + " is not supported for multi-objective properties (only for the coalition)");
+		}
 	        // initialise the Parma Polyhedra Library
 	        PPLSupport.initPPL();
 
@@ -609,6 +615,10 @@ public class SMGModelChecker extends ProbModelChecker
 			mainLog.print(String.format("%s took %f s\n", genStrat ? "Synthesis" : "Verification", ((double) (System.nanoTime() - t0)) / 1e9));
 
 			parsed_params = params; // register parameters
+			// The strategy is for the coalition
+			if (SvS.getValue() != null) {
+				setStrategyPlayers(SvS.getValue(), (SMG<Double>) model);
+			}
 			result.setStrategy(SvS.getValue()); // register strategy
 			mainLog.print(String.format("strategy: %s\n", result.getStrategy()));
 

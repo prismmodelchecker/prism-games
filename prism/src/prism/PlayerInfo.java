@@ -27,6 +27,7 @@
 package prism;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -183,6 +184,24 @@ public class PlayerInfo
 			// (note: undefined players are mapped to player 1)
 			return origPlayer == -1 ? 0 : coalitionPlayerMap[origPlayer];
 		}
+	}
+
+	/**
+	 * Get the players (0-indexed) in the current coalition, if there is one
+	 * (i.e., those mapped to player 1, index 0), stored as a BitSet. Returns null if there is no coalition.
+	 */
+	public BitSet getCoalitionPlayers()
+	{
+		if (coalitionPlayerMap == null) {
+			return null;
+		}
+		BitSet bs = new BitSet(coalitionPlayerMap.length);
+		for (int p = 0; p < coalitionPlayerMap.length; p++) {
+			if (coalitionPlayerMap[p] == 0) {
+				bs.set(p);
+			}
+		}
+		return bs;
 	}
 
 	// Utility functions

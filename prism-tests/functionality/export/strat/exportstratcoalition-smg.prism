@@ -1,0 +1,32 @@
+// Test of -exportstrat for strategies in an SMG with three players, generated for
+// the coalition (the default), for its opponents (players=opponents) or for all
+// players (players=all). A strategy only has decisions for the players it is generated
+// for: for mode=reduce, their choices are removed, giving an SMG for the other two
+// players (coalition {p1}) or an MDP for the other player (coalition {p1,p3}, or
+// its opponent p2); and actions are only exported for those players' states.
+// The optimal choices tested are unique: in s=0, a1 for p1 (b1 never reaches the goal);
+// for {p1,p3}, in s=2, a3 for p3 (b3 only does so w.p. 0.5); and, against {p1,p3},
+// in s=1, a2 for p2 (b2 would reach the goal w.p. 1). In s>=3, there is a single choice.
+// (Against {p1}, p2's choices are not unique, so its opponents are not tested.)
+
+smg
+
+player p1 [a1], [b1] endplayer
+player p2 [a2], [b2] endplayer
+player p3 [a3], [b3] endplayer
+
+module M
+
+s : [0..4];
+
+[a1] s=0 -> (s'=1);
+[b1] s=0 -> (s'=4);
+[a2] s=1 -> 0.5:(s'=3) + 0.5:(s'=4);
+[b2] s=1 -> (s'=2);
+[a3] s=2 -> (s'=3);
+[b3] s=2 -> 0.5:(s'=3) + 0.5:(s'=4);
+[a2] s>=3 -> true;
+
+endmodule
+
+label "goal" = s=3;
