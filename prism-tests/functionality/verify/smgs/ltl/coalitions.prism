@@ -1,0 +1,27 @@
+// Co-safe LTL for an SMG with three players, for coalitions other than {p1}:
+// the product with the automaton must keep the original owner of each state.
+// In s=0, p1 reaches the goal w.p. 0 (b1) or as for p2 and p3 from s=1 (a1);
+// in s=1, p2 reaches it w.p. 0.5 (a2) or as for p3 (b2);
+// in s=2, p3 reaches it w.p. 1 (a3) or 0.5 (b3).
+
+smg
+
+player p1 [a1], [b1] endplayer
+player p2 [a2], [b2] endplayer
+player p3 [a3], [b3] endplayer
+
+module M
+
+s : [0..4];
+
+[a1] s=0 -> (s'=1);
+[b1] s=0 -> (s'=4);
+[a2] s=1 -> 0.5:(s'=3) + 0.5:(s'=4);
+[b2] s=1 -> (s'=2);
+[a3] s=2 -> (s'=3);
+[b3] s=2 -> 0.5:(s'=3) + 0.5:(s'=4);
+[a2] s>=3 -> true;
+
+endmodule
+
+label "goal" = s=3;
