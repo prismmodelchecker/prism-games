@@ -26,8 +26,14 @@
 
 package strat;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+
 import explicit.Model;
 import explicit.NondetModel;
+import explicit.TurnBasedGame;
 import io.ModelExportFormat;
 import prism.Evaluator;
 import prism.PrismException;
@@ -41,6 +47,14 @@ public abstract class StrategyExplicit<Value> extends StrategyWithStates<Value>
 	// Model associated with the strategy
 	protected NondetModel<Value> model;
 
+	// For a game, the players (0-indexed) that the strategy decides for, the coalitions
+	// they are partitioned into, and the states in which they make the choice
+	// (all null if the strategy decides for all players of the model, as one coalition;
+	// the states are also null if the choices in all states are made by these players)
+	protected BitSet players = null;
+	protected List<BitSet> coalitions = null;
+	protected BitSet playerStates = null;
+
 	public StrategyExplicit(NondetModel<Value> model)
 	{
 		this.model = model;
@@ -49,6 +63,75 @@ public abstract class StrategyExplicit<Value> extends StrategyWithStates<Value>
 		} else {
 			setStateLookUp(state -> -1);
 		}
+	}
+
+	/**
+	 * For a game, specify the players that this strategy decides for, as a list of coalitions
+	 * (see {@link #coalitions()}); the players are their union. In the states of other players,
+	 * its decision is {@link #OTHER_PLAYER}: the strategy has no decision there (and any choice
+	 * information stored for them is not used). For a turn-based game, these are the
+	 * states owned by other players; states owned by no player keep their decisions.
+	 * Otherwise (e.g., for a model with one player), the strategy decides in all states.
+	 * @param coalitions The coalitions of players (0-indexed) that this strategy decides for
+	 */
+	public void setPlayers(List<BitSet> coalitions)
+	{
+		this.coalitions = new ArrayList<>();
+		this.players = new BitSet();
+		for (BitSet coalition : coalitions) {
+			this.coalitions.add((BitSet) coalition.clone());
+			this.players.or(coalition);
+		}
+		// For a turn-based game, find the states owned by these players (or by no player)
+		playerStates = null;
+		if (model instanceof TurnBasedGame) {
+			TurnBasedGame game = (TurnBasedGame) model;
+			playerStates = new BitSet();
+			int n = model.getNumStates();
+			for (int s = 0; s < n; s++) {
+				int p = game.getPlayerIgnoringCoalition(s);
+				if (p == -1 || players.get(p)) {
+					playerStates.set(s);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Is the choice in state s made by one of the players that this strategy decides for?
+	 * If not, the strategy's decision is {@link #OTHER_PLAYER}.
+	 */
+	protected boolean isPlayerState(int s)
+	{
+		return playerStates == null || playerStates.get(s);
+	}
+
+	@Override
+	public BitSet players()
+	{
+		if (players == null) {
+			// By default, all players of the model (or just player 1, index 0, if it has none)
+			BitSet all = new BitSet();
+			all.set(0, Math.max(1, getNumModelPlayers()));
+			return all;
+		}
+		// Return a copy: BitSets are mutable, and a caller modifying the stored set would change
+		// the strategy, and make it inconsistent with its coalitions and player states
+		return (BitSet) players.clone();
+	}
+
+	@Override
+	public List<BitSet> coalitions()
+	{
+		if (coalitions == null) {
+			return new ArrayList<>(Collections.singletonList(players()));
+		}
+		// Return copies, as for players(), since BitSets are mutable
+		List<BitSet> copies = new ArrayList<>(coalitions.size());
+		for (BitSet coalition : coalitions) {
+			copies.add((BitSet) coalition.clone());
+		}
+		return copies;
 	}
 
 	@Override

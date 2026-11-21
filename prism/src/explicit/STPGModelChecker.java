@@ -185,6 +185,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
+			setStrategyPlayers(res.strat, stpg);
 		}
 
 		return res;
@@ -644,6 +645,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
+			setStrategyPlayers(res.strat, stpg);
 		}
 
 		return res;
@@ -798,6 +800,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.timePre = 0.0;
 		if (genStrat) {
 			res.strat = fmdStrat;
+			setStrategyPlayers(res.strat, stpg);
 		}
 		return res;
 	}
@@ -1166,6 +1169,7 @@ public class STPGModelChecker extends ProbModelChecker
 		// Store strategy
 		if (genStrat) {
 			res.strat = new MDStrategyArray<>(stpg, strat);
+			setStrategyPlayers(res.strat, stpg);
 		}
 
 		return res;
@@ -1950,6 +1954,7 @@ public class STPGModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		if (genStrat) {
 			res.strat = new BoundedRewardDeterministicStrategy<Double>(stpg, choices, lastSwitch, rewards);
+			setStrategyPlayers(res.strat, stpg);
 		}
 
 		return res;

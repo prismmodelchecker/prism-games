@@ -1,0 +1,6 @@
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.txt
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.reduce.pexp:type=induced,mode=reduce
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.opponents.txt:players=opponents
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.opponents.reduce.pexp:type=induced,mode=reduce,players=opponents
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.all.txt:players=all
+-exportstrat exportstratcoalition-smg.prism.coalition2.props.all.reduce.pexp:type=induced,mode=reduce,players=all

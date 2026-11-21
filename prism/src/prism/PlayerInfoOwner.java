@@ -68,6 +68,7 @@ public interface PlayerInfoOwner
 	 * Set the names of all players, provided as a list.
 	 * Names are optional and can be null or "" if undefined,
 	 * but all normally defined names should be unique.
+	 * The length of the list dictates the number of players.
 	 */
 	public default void setPlayerNames(List<String> playerNames)
 	{

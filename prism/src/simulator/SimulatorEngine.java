@@ -499,7 +499,8 @@ public class SimulatorEngine extends PrismComponent
 	 * policy for undefined choices (see {@link #setUndefinedChoicePolicy(UndefinedChoicePolicy)}):
 	 * the (projected) action of the first choice is used as the decision (FIRST), one is sampled (uniformly) at random (ALL),
 	 * -1 is returned to indicate that no choice should be made (STOP, LOOP), or an exception is thrown (ERROR).
-	 * If there is no strategy, a choice is sampled (uniformly) at random.
+	 * If there is no strategy, or the choice is made by a player that the strategy
+	 * is not defined for (in a turn-based game), a choice is sampled (uniformly) at random.
 	 */
 	private int getAutomaticChoiceIndex() throws PrismException
 	{
@@ -531,7 +532,8 @@ public class SimulatorEngine extends PrismComponent
 					break;
 				}
 			}
-			if (act != Strategy.UNDEFINED) {
+			// Choice made by another player (turn-based game): sample randomly, below
+			if (act != Strategy.UNDEFINED && act != Strategy.OTHER_PLAYER) {
 				// (for FIRST, any choice with this action is fine, so ambiguity does not matter)
 				i = first ? getChoiceIndexByStrategyAction(act) : getChoiceIndexForStrategyAction(act);
 				if (i == -1) {
@@ -1556,6 +1558,10 @@ public class SimulatorEngine extends PrismComponent
 		if (decision == Strategy.UNDEFINED) {
 			UndefinedReason why = transitionListStep == path.size() ? stratGen.getCurrentUndefinedReason() : null;
 			return "?" + (why == null ? "" : why.toString().toLowerCase());
+		}
+		// Choice made by another player (turn-based game): nothing to show
+		else if (decision == Strategy.OTHER_PLAYER) {
+			return "";
 		}
 		else {
 			// Otherwise interpret decision stored from strategy

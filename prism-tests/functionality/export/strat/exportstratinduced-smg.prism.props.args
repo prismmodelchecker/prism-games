@@ -1,2 +1,4 @@
 -exportstrat exportstratinduced-smg.prism.props.restrict.pexp:type=induced,mode=restrict
 -exportstrat exportstratinduced-smg.prism.props.reduce.pexp:type=induced,mode=reduce
+-exportstrat exportstratinduced-smg.prism.props.all.restrict.pexp:type=induced,mode=restrict,players=all
+-exportstrat exportstratinduced-smg.prism.props.all.reduce.pexp:type=induced,mode=reduce,players=all

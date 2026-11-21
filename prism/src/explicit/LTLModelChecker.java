@@ -666,12 +666,13 @@ public class LTLModelChecker extends PrismComponent
 			// Add state/transition to model
 			if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
 				queue.add(new Point(s_2, q_2));
+				// (for games, use the original state owners: any coalition is copied to the product above)
 				switch (modelType) {
 					case STPG:
-						((STPGSimple<Value>) prodModel).addState(((STPG<Value>) model).getPlayer(s_2));
+						((STPGSimple<Value>) prodModel).addState(((STPG<Value>) model).getPlayerIgnoringCoalition(s_2));
 						break;
 					case SMG:
-						((SMGSimple<Value>) prodModel).addState(((SMG<Value>) model).getPlayer(s_2));
+						((SMGSimple<Value>) prodModel).addState(((SMG<Value>) model).getPlayerIgnoringCoalition(s_2));
 						break;
 					default:
 						prodModel.addState();

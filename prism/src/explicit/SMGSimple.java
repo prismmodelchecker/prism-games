@@ -197,6 +197,12 @@ public class SMGSimple<Value> extends MDPSimple<Value> implements SMG<Value>
 	}
 	
 	@Override
+	public int getPlayerIgnoringCoalition(int s)
+	{
+		return stateOwners.getPlayer(s);
+	}
+	
+	@Override
 	public void prob0step(BitSet subset, BitSet u, boolean forall1, boolean forall2, BitSet result)
 	{
 		int i;

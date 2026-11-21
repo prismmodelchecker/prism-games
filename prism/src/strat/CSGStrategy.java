@@ -29,6 +29,7 @@ package strat;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -60,6 +61,8 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 	protected BitSet yes;
 	protected BitSet inf;
 	protected int numCoalitions;
+	// Coalitions of (0-indexed) players that the strategy decides for (null: all players, as one coalition)
+	protected List<BitSet> coalitions = null;
 	
 	public enum CSGStrategyType {
 		ZERO_SUM, EQUILIBRIA_M, EQUILIBRIA_P, EQUILIBRIA_R, EQUILIBRIA_CE_P, EQUILIBRIA_CE_R, EQUILIBRIA_CE_M;
@@ -90,6 +93,47 @@ public class CSGStrategy extends PrismComponent implements Strategy<Double> {
 		this.yes = yes;
 		this.inf = inf;
 		this.type = type;
+	}
+
+	/**
+	 * Specify the coalitions of (0-indexed) players that this strategy decides for
+	 * (see {@link #coalitions()}); the players it decides for are their union.
+	 */
+	public void setCoalitions(List<BitSet> coalitions)
+	{
+		this.coalitions = new ArrayList<>();
+		for (BitSet coalition : coalitions) {
+			this.coalitions.add((BitSet) coalition.clone());
+		}
+	}
+
+	@Override
+	public BitSet players()
+	{
+		// A new set each time (so the caller can modify it), as for coalitions()
+		BitSet players = new BitSet();
+		if (coalitions == null) {
+			players.set(0, getNumModelPlayers());
+		} else {
+			for (BitSet coalition : coalitions) {
+				players.or(coalition);
+			}
+		}
+		return players;
+	}
+
+	@Override
+	public List<BitSet> coalitions()
+	{
+		if (coalitions == null) {
+			return new ArrayList<>(Collections.singletonList(players()));
+		}
+		// Return copies, as for players(), since BitSets are mutable
+		List<BitSet> copies = new ArrayList<>(coalitions.size());
+		for (BitSet coalition : coalitions) {
+			copies.add((BitSet) coalition.clone());
+		}
+		return copies;
 	}
 
 	@Override

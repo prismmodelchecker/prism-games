@@ -27,6 +27,7 @@
 package prism;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -99,6 +100,7 @@ public class PlayerInfo
 	 * Set the names of all players, provided as a list.
 	 * Names are optional and can be null or "" if undefined,
 	 * but all normally defined names should be unique.
+	 * The length of the list dictates the number of players.
 	 */
 	public void setPlayerNames(List<String> playerNames)
 	{
@@ -124,13 +126,7 @@ public class PlayerInfo
 			return;
 		}
 		// Construct mapping
-		int numPlayers = getNumPlayers();
-		coalitionPlayerMap = new int[numPlayers];
-		for (int p = 0; p < numPlayers; p++) {
-			boolean inCoalition = coalition.isPlayerIndexInCoalition(p, playerNames);
-			// In coalition => player 0; not in coalition (or undefined) => player 1
-			coalitionPlayerMap[p] = inCoalition ? 0 : 1;
-		}
+		coalitionPlayerMap = coalitionAsMap(coalition);
 	}
 
 	/**
@@ -189,4 +185,42 @@ public class PlayerInfo
 			return origPlayer == -1 ? 0 : coalitionPlayerMap[origPlayer];
 		}
 	}
+
+	/**
+	 * Get the players (0-indexed) in the current coalition, if there is one
+	 * (i.e., those mapped to player 1, index 0), stored as a BitSet. Returns null if there is no coalition.
+	 */
+	public BitSet getCoalitionPlayers()
+	{
+		if (coalitionPlayerMap == null) {
+			return null;
+		}
+		BitSet bs = new BitSet(coalitionPlayerMap.length);
+		for (int p = 0; p < coalitionPlayerMap.length; p++) {
+			if (coalitionPlayerMap[p] == 0) {
+				bs.set(p);
+			}
+		}
+		return bs;
+	}
+
+	// Utility functions
+
+	/**
+	 * Create an integer-valued player map representing a coalition,
+	 * i.e., an array {@code map} for which {@code map[p]} is 0
+	 * if player {@code p} (0-indexed) is in the coalition, and 1 otherwise
+	 */
+	public int[] coalitionAsMap(Coalition coalition)
+	{
+		int numPlayers = getNumPlayers();
+		int[] map = new int[numPlayers];
+		for (int p = 0; p < numPlayers; p++) {
+			boolean inCoalition = coalition.isPlayerIndexInCoalition(p, playerNames);
+			// In coalition => player 1 (index 0); not in coalition (or undefined) => player 2 (index 1)
+			map[p] = inCoalition ? 0 : 1;
+		}
+		return map;
+	}
+
 }

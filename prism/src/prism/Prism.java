@@ -80,6 +80,7 @@ import strat.StrategyChoices;
 import strat.StrategyExportOptions;
 import strat.StrategyExportOptions.StrategyExportType;
 import strat.StrategyGenerator;
+import strat.StrategyInfo.StrategyPlayers;
 import symbolic.build.ExplicitFiles2MTBDD;
 import io.PrismExplicitImporter;
 import symbolic.build.ExplicitModel2MTBDD;
@@ -206,6 +207,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	protected boolean storeVector = false;
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
+	// For games, which players to generate a strategy for (null = default)
+	protected StrategyPlayers genStratPlayers = null;
 	// Do bisimulation minimisation before model checking?
 	protected boolean doBisim = false;
 	// Compute Pareto curve for SMG multi-objective?
@@ -775,6 +778,16 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
+	 * For games, specify which players a strategy should be generated for
+	 * (if a strategy is generated). Pass null for the default: the coalition
+	 * of the property, or all players for an equilibrium.
+	 */
+	public void setGenStratPlayers(StrategyPlayers genStratPlayers)
+	{
+		this.genStratPlayers = genStratPlayers;
+	}
+
+	/**
 	 * Specify whether or not to do bisimulation minimisation before model checking.
 	 */
 	public void setDoBisim(boolean doBisim)
@@ -1116,6 +1129,15 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	public boolean getGenStrat()
 	{
 		return genStrat;
+	}
+
+	/**
+	 * For games, which players a strategy should be generated for
+	 * (null denotes the default: the coalition of the property, or all players for an equilibrium).
+	 */
+	public StrategyPlayers getGenStratPlayers()
+	{
+		return genStratPlayers;
 	}
 
 	/**
@@ -4725,6 +4747,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setExportProductVectorFilename(exportProductVectorFilename);
 		mc.setStoreVector(storeVector);
 		mc.setGenStrat(genStrat);
+		mc.setGenStratPlayers(genStratPlayers);
 		mc.setDoBisim(doBisim);
 		mc.setComputeParetoSet(smgPareto);
 

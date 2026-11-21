@@ -172,9 +172,8 @@ public class ConstructStrategyProduct
 		ModelSimple<Value> prodModel = (ModelSimple<Value>) ModelSimple.forModelType(productModelType);
 
 		// Attach player info, if needed
-		// (a game-typed product model has the same players as the original model)
-		if (prodModel instanceof PlayerInfoOwner && model instanceof PlayerInfoOwner) {
-			((PlayerInfoOwner) prodModel).setPlayerNames(((PlayerInfoOwner) model).getPlayerNames());
+		if (prodModel instanceof PlayerInfoOwner) {
+			((PlayerInfoOwner) prodModel).setPlayerNames(strat.getInducedPlayerNames(((PlayerInfoOwner) model).getPlayerNames(), mode));
 		}
 
 		// Attach evaluator and variable info
@@ -183,6 +182,9 @@ public class ConstructStrategyProduct
 			((IntervalModelExplicit<Value>) prodModel).setIntervalEvaluator(((IntervalModel<Value>) model).getIntervalEvaluator());
 		}
 		((ModelExplicit<Value>) prodModel).setVarList(newVarList);
+
+		// NB: Do _not_ copy the action list. It may get smaller (e.g. restriction)
+		// or bigger (e.g. combined actions due to randomisation).
 
 		// Now do the actual product model construction
 		return doConstructProductModel(modelType, productModelType, prodModel, model, strat);

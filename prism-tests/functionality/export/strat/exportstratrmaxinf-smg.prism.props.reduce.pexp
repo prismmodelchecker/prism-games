@@ -1,8 +1,10 @@
-# Transitions (DTMC)
-3 3
-0 1 1 b
-1 2 1 d
-2 2 1 c
+# Transitions (MDP)
+3 4 5
+0 0 1 1 b
+1 0 2 1 d
+1 1 0 0.5 e
+1 1 2 0.5 e
+2 0 2 1 c
 
 # States
 (s)
@@ -23,4 +25,4 @@
 
 # Reward structure
 # Transition rewards
-3 0
+3 4 0

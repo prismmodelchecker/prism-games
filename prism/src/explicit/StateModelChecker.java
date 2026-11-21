@@ -63,6 +63,7 @@ import parser.visitor.ASTTraverseModify;
 import parser.visitor.ReplaceLabels;
 import prism.*;
 import prism.Filter;
+import strat.StrategyInfo.StrategyPlayers;
 
 /**
  * Super class for explicit-state model checkers.
@@ -98,6 +99,8 @@ public class StateModelChecker extends PrismComponent
 
 	// Generate/store a strategy during model checking?
 	protected boolean genStrat = false;
+	// For games, which players to generate a strategy for (null = default)
+	protected StrategyPlayers genStratPlayers = null;
 
 	// Stored Pareto sets
 	protected Pareto pareto_set = null;
@@ -246,6 +249,7 @@ public class StateModelChecker extends PrismComponent
 		setExportProductVectorFilename(other.getExportProductVectorFilename());
 		setStoreVector(other.getStoreVector());
 		setGenStrat(other.getGenStrat());
+		setGenStratPlayers(other.getGenStratPlayers());
 		setDoBisim(other.getDoBisim());
 		tolerance = other.tolerance;
 		setDoIntervalIteration(other.getDoIntervalIteration());
@@ -330,6 +334,16 @@ public class StateModelChecker extends PrismComponent
 	public void setGenStrat(boolean genStrat)
 	{
 		this.genStrat = genStrat;
+	}
+
+	/**
+	 * For games, specify which players a strategy should be generated for
+	 * (if a strategy is generated). Pass null for the default: the coalition
+	 * of the property, or all players for an equilibrium.
+	 */
+	public void setGenStratPlayers(StrategyPlayers genStratPlayers)
+	{
+		this.genStratPlayers = genStratPlayers;
 	}
 
 	/**
@@ -425,6 +439,15 @@ public class StateModelChecker extends PrismComponent
 	public boolean getGenStrat()
 	{
 		return genStrat;
+	}
+
+	/**
+	 * For games, which players a strategy should be generated for
+	 * (null denotes the default: the coalition of the property, or all players for an equilibrium).
+	 */
+	public StrategyPlayers getGenStratPlayers()
+	{
+		return genStratPlayers;
 	}
 
 	/**

@@ -1,1 +1,2 @@
 -exportstrat exportstratinduced-smg.prism.bounded.props.restrict.pexp:type=induced,mode=restrict
+-exportstrat exportstratinduced-smg.prism.bounded.props.all.restrict.pexp:type=induced,mode=restrict,players=all

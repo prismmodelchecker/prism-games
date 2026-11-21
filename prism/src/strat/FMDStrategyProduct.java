@@ -36,6 +36,7 @@ import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
 
+import java.util.BitSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -66,6 +67,20 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 	public Memory memory()
 	{
 		return Memory.FINITE;
+	}
+	
+	@Override
+	public BitSet players()
+	{
+		// Players are those of the strategy for the product
+		return strat.players();
+	}
+	
+	@Override
+	public List<BitSet> coalitions()
+	{
+		// Coalitions are those of the strategy for the product
+		return strat.coalitions();
 	}
 	
 	@Override
@@ -197,7 +212,7 @@ public class FMDStrategyProduct<Value> extends StrategyExplicit<Value>
 			int s = product.getModelState(i);
 			int m = product.getAutomatonState(i);
 			Object act = strat.getChoiceAction(i);
-			if (act != UNDEFINED) {
+			if (strat.isChoiceDefined(i)) {
 				out.println((showStates ? states.get(s) : s) + "," + m + "=" + (act == null ? "" : act.toString()));
 			} else if (options.getShowUndefined()) {
 				out.println((showStates ? states.get(s) : s) + "," + m + "=" + strat.getUndefinedChoiceString(i, -1));

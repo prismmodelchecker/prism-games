@@ -165,9 +165,8 @@ public class ConstructInducedModel
 		ModelSimple<Value> inducedModel = (ModelSimple<Value>) ModelSimple.forModelType(inducedModelType);
 
 		// Attach player info, if needed
-		// (a game-typed induced model has the same players as the original model)
-		if (inducedModel instanceof PlayerInfoOwner && model instanceof PlayerInfoOwner) {
-			((PlayerInfoOwner) inducedModel).setPlayerNames(((PlayerInfoOwner) model).getPlayerNames());
+		if (inducedModel instanceof PlayerInfoOwner) {
+			((PlayerInfoOwner) inducedModel).setPlayerNames(strat.getInducedPlayerNames(((PlayerInfoOwner) model).getPlayerNames(), mode));
 		}
 		
 		// Attach evaluator and copy variable info
@@ -176,6 +175,9 @@ public class ConstructInducedModel
 			((IntervalModelExplicit<Value>) inducedModel).setIntervalEvaluator(((IntervalModel<Value>) model).getIntervalEvaluator());
 		}
 		((ModelExplicit<Value>) inducedModel).setVarList(model.getVarList());
+
+		// NB: Do _not_ copy the action list. It may get smaller (e.g. restriction)
+		// or bigger (e.g. combined actions due to randomisation).
 
 		// Now do the actual induced model construction
 		return doConstructInducedModel(modelType, inducedModelType, inducedModel, model, strat);

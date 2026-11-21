@@ -39,4 +39,16 @@ public interface TurnBasedGame
 	 * @param s Index of state (0-indexed)
 	 */
 	public int getPlayer(int s);
+
+	/**
+	 * Get the player that owns state {@code s}, ignoring any coalition that is currently set
+	 * (e.g., see {@link SMG#setCoalition(parser.ast.Coalition)}), unlike {@link #getPlayer(int)}.
+	 * Returns the index of the player (0-indexed, so player 1 is 0), or -1 if no player owns the state.
+	 * By default, this is the same as {@link #getPlayer(int)}, for games without coalitions.
+	 * @param s Index of state (0-indexed)
+	 */
+	public default int getPlayerIgnoringCoalition(int s)
+	{
+		return getPlayer(s);
+	}
 }
