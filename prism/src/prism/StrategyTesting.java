@@ -110,6 +110,23 @@ public class StrategyTesting
 		}
 	}
 
+	/**
+	 * Combine the results of testing a coalition's strategy and a strategy profile (for all players),
+	 * for a game: FAIL if either fails, otherwise PASS if either passes, otherwise the coalition's outcome.
+	 */
+	public static TestResult combineCoalitionAndProfile(TestResult resCoalition, TestResult resProfile)
+	{
+		Outcome outcome;
+		if (resCoalition.outcome == Outcome.FAIL || resProfile.outcome == Outcome.FAIL) {
+			outcome = Outcome.FAIL;
+		} else if (resCoalition.outcome == Outcome.PASS || resProfile.outcome == Outcome.PASS) {
+			outcome = Outcome.PASS;
+		} else {
+			outcome = resCoalition.outcome;
+		}
+		return new TestResult(outcome, "coalition " + resCoalition + "; profile " + resProfile);
+	}
+
 	private static TestResult doTestStrategy(Prism prism, PropertiesFile propertiesFile, Property prop, Result res) throws PrismException
 	{
 		ModelType modelType = prism.getModelType();

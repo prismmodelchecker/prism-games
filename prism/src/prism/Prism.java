@@ -3756,8 +3756,39 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		} else {
 			res = doModelCheck(propertiesFile, prop);
 		}
-		res.setStrategyTestResult(StrategyTesting.testStrategy(this, propertiesFile, prop, res));
+		StrategyTesting.TestResult testRes = StrategyTesting.testStrategy(this, propertiesFile, prop, res);
+		// For turn-based games, if the strategy was for the coalition (the default),
+		// also test a strategy profile (for all players), whose opponents' part should be optimal too
+		if (getModelType().multiplePlayers() && getModelType() != ModelType.CSG && !genStratOld && genStratPlayers == null
+				&& res.getStrategy() != null && res.getStrategy().numPlayers() < res.getStrategy().getNumModelPlayers()) {
+			testRes = StrategyTesting.combineCoalitionAndProfile(testRes, testStrategyProfile(propertiesFile, prop));
+		}
+		res.setStrategyTestResult(testRes);
 		return res;
+	}
+
+	/**
+	 * Model check a property for a turn-based game, generating a strategy profile (for all players),
+	 * and test it (helper method for {@link #modelCheckAndTestStrategy(PropertiesFile, Property)}).
+	 */
+	private StrategyTesting.TestResult testStrategyProfile(PropertiesFile propertiesFile, Property prop)
+	{
+		boolean genStratOld = genStrat;
+		StrategyPlayers genStratPlayersOld = genStratPlayers;
+		Result resProfile;
+		try {
+			mainLog.printSeparator();
+			mainLog.println("\nRe-checking property, with a strategy profile (for all players)...");
+			genStrat = true;
+			genStratPlayers = StrategyPlayers.ALL;
+			resProfile = doModelCheck(propertiesFile, prop);
+		} catch (PrismException e) {
+			return new StrategyTesting.TestResult(StrategyTesting.Outcome.UNSUPPORTED, "strategy generation failed: " + e.getMessage());
+		} finally {
+			genStrat = genStratOld;
+			genStratPlayers = genStratPlayersOld;
+		}
+		return StrategyTesting.testStrategy(this, propertiesFile, prop, resProfile);
 	}
 
 	/**
