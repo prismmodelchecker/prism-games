@@ -43,6 +43,7 @@ import parser.ast.Property;
 import parser.type.TypeBool;
 import strat.Strategy;
 import strat.StrategyExportOptions;
+import strat.StrategyInfo;
 import strat.StrategyInfo.UndefinedReason;
 import strat.UndefinedChoicePolicy;
 
@@ -118,7 +119,7 @@ public class StrategyTesting
 		if (!modelType.nondeterministic() || modelType.realTime()) {
 			return new TestResult(Outcome.SKIPPED, "not applicable for " + modelType + "s");
 		}
-		if (modelType.multiplePlayers()) {
+		if (modelType == ModelType.CSG) {
 			return new TestResult(Outcome.UNSUPPORTED, "strategy testing not yet supported for " + modelType + "s");
 		}
 		// Strip any (invisible) default filter, and a "state" filter (the value for a single state)
@@ -317,7 +318,8 @@ public class StrategyTesting
 		for (int i = 0; i < n; i++) {
 			int s = applied.getOriginalState(i);
 			int m = applied.getMemory(i);
-			if (!strat.isChoiceDefined(s, m)) {
+			// (states of other players, in a game, are not undefined)
+			if (!strat.isChoiceDefined(s, m) && strat.getChoiceAction(s, m) != StrategyInfo.OTHER_PLAYER) {
 				UndefinedReason why = strat.whyUndefined(s, m);
 				if (!choiceDoesNotMatter(why) && numUndefined++ == 0) {
 					example = (statesList != null ? statesList.get(s).toString() : Integer.toString(s));

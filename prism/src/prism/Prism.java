@@ -74,6 +74,7 @@ import parser.ast.PropertiesFile;
 import parser.ast.Property;
 import parser.type.TypeBool;
 import parser.visitor.ExpandPropRefsAndLabels;
+import parser.visitor.RemoveStrategyCoalition;
 import parser.visitor.RemoveStrategyOptimisation;
 import parser.visitor.ReplaceNestedOperatorsByLabels;
 import parser.visitor.ReplaceObservablesByLabels;
@@ -4021,7 +4022,20 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			expr = (Expression) expr.findAllVars(inducedModelInfo.getVarNames(), inducedModelInfo.getVarTypes());
 			// Remove optimisation over strategies, if none are left
 			if (!getModelType().nondeterministic()) {
+				if (applied.getOriginalModel().getModelType().multiplePlayers() && RemoveStrategyCoalition.containsFc(expr)) {
+					throw new PrismNotSupportedException("The Fc reward operator is not supported for " + getModelType() + "s");
+				}
 				expr = (Expression) expr.accept(new RemoveStrategyOptimisation(getModelType().uncertain()));
+			}
+			// For a game, and a strategy for some of its players, the property is for the others
+			else if (applied.getOriginalModel().getModelType().multiplePlayers()) {
+				List<String> playerNames = ((PlayerInfoOwner) applied.getOriginalModel()).getPlayerNames();
+				boolean inducedMDP = !getModelType().multiplePlayers();
+				try {
+					expr = (Expression) expr.accept(new RemoveStrategyCoalition(applied.getStrategy().players(), playerNames, inducedMDP));
+				} catch (PrismLangException e) {
+					throw new PrismNotSupportedException("Can't check this property under the strategy: " + e.getMessage());
+				}
 			}
 			expr.typeCheck();
 			genStrat = false;
