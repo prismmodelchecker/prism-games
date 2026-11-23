@@ -1,0 +1,21 @@
+// One player in the coalition: checked on an SMG for the other two
+
+// RESULT: 0.5
+<<p1>> Pmax=? [ F "goal" ];
+
+// RESULT: 0.2
+<<p3>> Pmax=? [ F "goal" ];
+
+// Two players in the coalition: checked on an MDP for the third
+
+// RESULT: 0.5
+<<p1,p3>> Pmax=? [ F "goal" ];
+
+// RESULT: 0.2
+<<p2,p3>> Pmax=? [ F "goal" ];
+
+// RESULT: 0.2
+<<p1,p2>> Pmin=? [ F "goal" ];
+
+// RESULT: true
+<<p1>> P>=0.5 [ F "goal" ];

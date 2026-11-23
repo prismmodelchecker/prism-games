@@ -1,0 +1,40 @@
+// The coalition's strategy is checked on the MDP for the other player
+// (e.g. <<p1>>Pmax=? becomes Pmin=?), and the profile on a DTMC
+
+// RESULT: 0.9
+<<p1>> Pmax=? [ F "goal" ];
+
+// RESULT: 0.9
+<<p2>> Pmin=? [ F "goal" ];
+
+// RESULT: 0.5
+<<p1>> Pmin=? [ F "goal" ];
+
+// RESULT: 0.5
+<<p2>> Pmax=? [ F "goal" ];
+
+// A bound: the strategy should be a witness if it holds, a counterexample if not
+// RESULT: true
+<<p1>> P>=0.9 [ F "goal" ];
+
+// RESULT: false
+<<p1>> P>0.9 [ F "goal" ];
+
+// Rewards
+// RESULT: 2.0
+<<p1>> R{"steps"}max=? [ F "end" ];
+
+// RESULT: 1.0
+<<p1>> R{"steps"}min=? [ F "end" ];
+
+// A state filter, for a non-initial state
+// RESULT: 0.9
+filter(state, <<p1>> Pmax=? [ F "goal" ], s=2);
+
+// Both players in the coalition: the strategy is already a profile
+// RESULT: 1.0
+<<p1,p2>> Pmax=? [ F "goal" ];
+
+// Co-safe LTL: a strategy with memory
+// RESULT: 0.9
+<<p1>> Pmax=? [ (F s=1) & (F "goal") ];

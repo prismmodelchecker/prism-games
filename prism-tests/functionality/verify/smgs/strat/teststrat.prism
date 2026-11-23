@@ -1,0 +1,33 @@
+// SMG for testing the strategy test mode (-test:strat) for games,
+// which checks each property under the strategy generated for its coalition
+// (on the MDP left for the other player) and under a strategy profile (on a DTMC).
+// In s=0, p1 goes to s=1 (a1) or reaches the goal w.p. 0.5 (b1);
+// in s=1, p2 reaches the goal (a2) or goes to s=2 (b2);
+// in s=2, p1 reaches the goal w.p. 0.9 (c1) or goes back to s=0 (d1).
+// Actions are all labelled, so that strategies are not ambiguous.
+
+smg
+
+player p1 [a1], [b1], [c1], [d1], [done] endplayer
+player p2 [a2], [b2] endplayer
+
+module M
+
+	s : [0..4];
+
+	[a1] s=0 -> (s'=1);
+	[b1] s=0 -> 0.5:(s'=3) + 0.5:(s'=4);
+	[a2] s=1 -> (s'=3);
+	[b2] s=1 -> (s'=2);
+	[c1] s=2 -> 0.9:(s'=3) + 0.1:(s'=4);
+	[d1] s=2 -> (s'=0);
+	[done] s>=3 -> true;
+
+endmodule
+
+label "goal" = s=3;
+label "end" = s>=3;
+
+rewards "steps"
+	s<3 : 1;
+endrewards

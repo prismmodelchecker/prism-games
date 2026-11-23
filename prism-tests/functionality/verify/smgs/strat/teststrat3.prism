@@ -1,0 +1,28 @@
+// SMG with three players for testing the strategy test mode (-test:strat) for games.
+// For a coalition of one player, its strategy is checked on the SMG left for the
+// other two (e.g. <<p1>>Pmax=? becomes <<>>Pmax=?); for two players, on an MDP.
+// In s=0, p1 goes to s=1 (a1) or reaches the goal w.p. 0.2 (b1);
+// in s=1, p2 reaches it w.p. 0.5 (a2) or goes to s=2 (b2);
+// in s=2, p3 reaches it w.p. 1 (a3) or 0.5 (b3).
+
+smg
+
+player p1 [a1], [b1], [done] endplayer
+player p2 [a2], [b2] endplayer
+player p3 [a3], [b3] endplayer
+
+module M
+
+	s : [0..4];
+
+	[a1] s=0 -> (s'=1);
+	[b1] s=0 -> 0.2:(s'=3) + 0.8:(s'=4);
+	[a2] s=1 -> 0.5:(s'=3) + 0.5:(s'=4);
+	[b2] s=1 -> (s'=2);
+	[a3] s=2 -> (s'=3);
+	[b3] s=2 -> 0.5:(s'=3) + 0.5:(s'=4);
+	[done] s>=3 -> true;
+
+endmodule
+
+label "goal" = s=3;

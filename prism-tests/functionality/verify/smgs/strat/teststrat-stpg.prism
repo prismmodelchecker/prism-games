@@ -1,0 +1,26 @@
+// STPG for testing the strategy test mode (-test:strat) for games.
+// STPG properties have no coalition, but give both players' optimisation
+// (e.g. Pmaxmin=?: p1 maximises, p2 minimises). The strategy generated is for p1,
+// so on the induced MDP only p2's part is kept (e.g. Pmaxmin=? becomes Pmin=?).
+// The model is as for teststrat.prism.
+
+stpg
+
+player p1 [a1], [b1], [c1], [d1], [done] endplayer
+player p2 [a2], [b2] endplayer
+
+module M
+
+	s : [0..4];
+
+	[a1] s=0 -> (s'=1);
+	[b1] s=0 -> 0.5:(s'=3) + 0.5:(s'=4);
+	[a2] s=1 -> (s'=3);
+	[b2] s=1 -> (s'=2);
+	[c1] s=2 -> 0.9:(s'=3) + 0.1:(s'=4);
+	[d1] s=2 -> (s'=0);
+	[done] s>=3 -> true;
+
+endmodule
+
+label "goal" = s=3;
