@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 
 import explicit.rewards.RewardsExplicit;
 import explicit.rewards.RewardsSimple;
@@ -70,6 +71,7 @@ import parser.ast.ExpressionTemporal;
 import parser.ast.ExpressionVar;
 import parser.ast.RelOp;
 import parser.type.TypePareto;
+import prism.Evaluator;
 import prism.ModelType;
 import prism.OpRelOpBound;
 import prism.PointList;
@@ -898,7 +900,10 @@ public class SMGModelChecker extends ProbModelChecker
 		// Get reward structures from expression
 
 		int r1 = exprReward.getRewardStructIndexByIndexObject(rewardGen, constantValues);
-		RewardsExplicit<Double> reward = (RewardsExplicit<Double>) constructExpectedRewards(model, r1);
+		// Take a copy, since the rewards are modified in place below (negated for minimisation)
+		// and during model checking (shifted), and the rewards object obtained may be shared,
+		// e.g., if attached to the model (as it is when strategy generation is on)
+		RewardsExplicit<Double> reward = new RewardsSimple<>((Rewards<Double>) constructExpectedRewards(model, r1), model, Function.identity(), Evaluator.forDouble());
 		params.reward_names.add(exprReward.getRewardStructIndex().toString());
 		int r2 = exprReward.getRewardStructDivIndexByIndexObject(rewardGen, constantValues);
 		RewardsExplicit<Double> divisor = r2 == -1 ? null : (RewardsExplicit<Double>) constructExpectedRewards(model, r2);
