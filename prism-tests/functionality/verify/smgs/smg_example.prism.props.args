@@ -1,2 +1,2 @@
--ex -const k=0:5
+-ex -const k=0:5 -test:strat
 -m -const k=0:5
