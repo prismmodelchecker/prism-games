@@ -34,6 +34,7 @@ import odd.*;
 import parser.VarList;
 import parser.ast.RelOp;
 import prism.Accuracy;
+import prism.AccuracyFactory;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.StateAndValueConsumer;
@@ -234,6 +235,7 @@ public class StateValuesDV implements StateValues
 	public void subtractFromOne()
 	{
 		values.subtractFromOne();
+		setAccuracy(AccuracyFactory.complementOfProbs(getAccuracy()));
 	}
 
 	@Override
@@ -356,7 +358,7 @@ public class StateValuesDV implements StateValues
 
 		tmp = values.sumOverDDVars(model.getAllDDRowVars(), odd, newModel.getODD(), sumVars.getMinVarIndex(), sumVars.getMaxVarIndex());
 
-		return (StateValues) new StateValuesDV(tmp, newModel);
+		return (StateValues) new StateValuesDV(tmp, newModel, accuracy);
 	}
 
 	@Override

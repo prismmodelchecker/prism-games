@@ -72,6 +72,22 @@ public class ConstructInducedModel
 	private UndefinedChoicePolicy undefinedChoicePolicy = new UndefinedChoicePolicy();
 
 	/**
+	 * States of the original model to start from (null: its initial states)
+	 */
+	private BitSet initialStates = null;
+
+	/**
+	 * Whether to store, for each state of the induced model, the corresponding original state
+	 */
+	private boolean storeStateMap = false;
+
+	/**
+	 * For the last induced model constructed (if storeStateMap is true):
+	 * the original state for each induced state
+	 */
+	private int[] origStates = null;
+
+	/**
 	 * Construct a ConstructInducedModel with default options.
 	 */
 	public ConstructInducedModel()
@@ -89,6 +105,7 @@ public class ConstructInducedModel
 		setCopyLabels(options.getInducedModelExportOptions().getShowLabels());
 		setCopyRewards(options.getInducedModelExportOptions().getShowRewards());
 		setUndefinedChoicePolicy(options.getUndefinedChoicePolicy());
+		setInitialStates(options.getInitialStates());
 	}
 
 	/**
@@ -138,6 +155,50 @@ public class ConstructInducedModel
 	{
 		this.undefinedChoicePolicy = undefinedChoicePolicy;
 		return this;
+	}
+
+	/**
+	 * Set the states of the original model from which to construct the induced model
+	 * (which become its initial states), instead of the model's initial states.
+	 * Null means the initial states of the original model (the default).
+	 */
+	public ConstructInducedModel setInitialStates(BitSet initialStates)
+	{
+		this.initialStates = initialStates;
+		return this;
+	}
+
+	/**
+	 * Set whether to store, for each state of the induced model, the corresponding state
+	 * of the original model, available afterwards via {@link #getOriginalState(int)}.
+	 * This is off by default; it needs one int per induced state.
+	 */
+	public ConstructInducedModel setStoreStateMap(boolean storeStateMap)
+	{
+		this.storeStateMap = storeStateMap;
+		return this;
+	}
+
+	/**
+	 * Get the state of the original model corresponding to state {@code inducedState}
+	 * of the last induced model constructed. This needs {@link #setStoreStateMap(boolean)}
+	 * to have been set to true before construction.
+	 */
+	public int getOriginalState(int inducedState)
+	{
+		if (origStates == null) {
+			throw new IllegalStateException("State map not stored for induced model");
+		}
+		return origStates[inducedState];
+	}
+
+	/**
+	 * Get the map from states of the last induced model constructed to states of the original
+	 * model, or null if it was not stored (see {@link #setStoreStateMap(boolean)}).
+	 */
+	public InducedStateMap getStateMap()
+	{
+		return origStates == null ? null : new InducedStateMap(origStates, null);
 	}
 
 	/**
@@ -198,6 +259,7 @@ public class ConstructInducedModel
 	public <Value> Model<Value> doConstructInducedModel(ModelType modelType, ModelType inducedModelType, ModelSimple<Value> inducedModel, NondetModel<Value> model, Strategy<Value> strat) throws PrismException
 	{
 		InducedModelBuilder<Value> builder = new InducedModelBuilder<>(model, strat, inducedModel, inducedModelType, mode, undefinedChoicePolicy, copyLabels, copyRewards, "Induced model construction");
+		origStates = null;
 
 		// Create new states list if needed
 		List<State> inducedStatesList = model.getStatesList();
@@ -208,11 +270,12 @@ public class ConstructInducedModel
 		// Initially create an array with 0s for reachable state indices and -1s for unreachable ones
 		int numStates = model.getNumStates();
 		int[] map = new int[numStates];
+		int numInducedStates = numStates;
 		if (reachOnly) {
 			Arrays.fill(map, -1);
 			BitSet explore = new BitSet();
 			// Get initial states
-			for (int is : model.getInitialStates()) {
+			for (int is : getInitialStates(model)) {
 				map[is] = 0;
 				explore.set(is);
 			}
@@ -242,11 +305,18 @@ public class ConstructInducedModel
 					map[s] = count++;
 				}
 			}
+			numInducedStates = count;
 		} else {
 			// Skip reachability
 			for (int s = 0; s < numStates; s++) {
 				map[s] = s;
 			}
+		}
+
+		// Store the original state of each induced state, if required
+		// (the number of induced states is known by now)
+		if (storeStateMap) {
+			builder.setStoreStateMap(false, numInducedStates);
 		}
 
 		// Iterate through reachable states to create new model
@@ -256,7 +326,7 @@ public class ConstructInducedModel
 			}
 			// Add state to model, with its labels/rewards and the choices/transitions picked by the strategy
 			builder.addState(s);
-			if (model.isInitialState(s)) {
+			if (initialStates == null ? model.isInitialState(s) : initialStates.get(s)) {
 				inducedModel.addInitialState(map[s]);
 			}
 			if (reachOnly && inducedStatesList != null) {
@@ -266,6 +336,16 @@ public class ConstructInducedModel
 			builder.addChoices(s, -1, map[s], (act, s2) -> map[s2]);
 		}
 
-		return builder.finish(inducedStatesList);
+		Model<Value> res = builder.finish(inducedStatesList);
+		origStates = builder.getOriginalStates();
+		return res;
+	}
+
+	/**
+	 * Get the states of the original model to start construction from.
+	 */
+	private Iterable<Integer> getInitialStates(Model<?> model)
+	{
+		return initialStates == null ? model.getInitialStates() : () -> initialStates.stream().iterator();
 	}
 }

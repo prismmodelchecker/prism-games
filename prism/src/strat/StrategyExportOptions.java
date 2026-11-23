@@ -28,6 +28,7 @@ package strat;
 
 import io.ModelExportOptions;
 
+import java.util.BitSet;
 import java.util.Optional;
 
 import strat.StrategyInfo.UndefinedReason;
@@ -119,6 +120,12 @@ public class StrategyExportOptions implements Cloneable
 	 * undefined choices, with the reason, and (for games) choices made by other players
 	 */
 	private Optional<Boolean> showUndefined = Optional.empty();
+
+	/**
+	 * For induced model construction, the states to start from (and to be initial in the induced model),
+	 * instead of the initial states of the original model
+	 */
+	private Optional<BitSet> initialStates = Optional.empty();
 
 	// Constructors
 
@@ -225,6 +232,19 @@ public class StrategyExportOptions implements Cloneable
 		return this;
 	}
 
+	/**
+	 * Set the states of the original model from which to construct an induced model
+	 * (which become its initial states), instead of the model's initial states.
+	 * Null means the initial states of the original model (the default).
+	 * For a strategy with memory, each of these states starts with the strategy's
+	 * initial memory for it, even if it is not an initial state of the original model.
+	 */
+	public StrategyExportOptions setInitialStates(BitSet initialStates)
+	{
+		this.initialStates = Optional.ofNullable(initialStates);
+		return this;
+	}
+
 	// Get methods
 
 	/**
@@ -273,6 +293,15 @@ public class StrategyExportOptions implements Cloneable
 	public UndefinedChoicePolicy getUndefinedChoicePolicy()
 	{
 		return undefinedChoicePolicy.orElseGet(UndefinedChoicePolicy::new);
+	}
+
+	/**
+	 * Get the states of the original model from which to construct an induced model,
+	 * or null if this is its initial states (the default).
+	 */
+	public BitSet getInitialStates()
+	{
+		return initialStates.orElse(null);
 	}
 
 	/**
@@ -333,6 +362,7 @@ public class StrategyExportOptions implements Cloneable
 		try {
 			StrategyExportOptions copy = (StrategyExportOptions) super.clone();
 			copy.undefinedChoicePolicy = undefinedChoicePolicy.map(UndefinedChoicePolicy::clone);
+			copy.initialStates = initialStates.map(bs -> (BitSet) bs.clone());
 			return copy;
 		} catch (CloneNotSupportedException e) {
 			throw new InternalError("Object#clone is expected to work for Cloneable objects", e);

@@ -150,7 +150,6 @@ public class PrismCL implements PrismModelListener
 	private String exportVectorFilename = null;
 	private String exportSteadyStateFilename = null;
 	private String exportTransientFilename = null;
-	private String exportStratFilename = null;
 	private String simpathFilename = null;
 
 	// Unified CLI switch map (handler + help metadata), populated by initSwitchHandlers
@@ -206,7 +205,9 @@ public class PrismCL implements PrismModelListener
 	private boolean simManual = false;
 	private SimulationMethod simMethod = null;
 
-	// strategy export info
+	// strategy export info: (filename, options) for each -exportstrat switch
+	private List<Pair<String, StrategyExportOptions>> exportStratTasks = new ArrayList<>();
+	// options for the -exportstrat switch currently being parsed
 	private StrategyExportOptions exportStratOptions = null;
 
 	// transient state used during option parsing for complex switches
@@ -328,6 +329,8 @@ public class PrismCL implements PrismModelListener
 			}
 			// may need to remove some constants if they are used for parametric methods
 			if (param) {
+				// Parameters must be undefined constants (of the model or properties)
+				Prism.checkParameterNames(paramNames, modulesFile, propertiesFile);
 				undefinedMFConstants.removeConstants(paramNames);
 				for (i = 0; i < numPropertiesToCheck; i++) {
 					undefinedConstants[i].removeConstants(paramNames);
@@ -496,14 +499,17 @@ public class PrismCL implements PrismModelListener
 
 						// if a strategy was generated, and we need to export it, do so
 						if (exportstrat && res.getStrategy() != null) {
-							try {
-								prism.exportStrategy(res.getStrategy(), exportStratOptions, exportStratFilename.equals("stdout") ? null : new File(exportStratFilename));
-							}
-							// in case of error, report it and proceed
-							catch (FileNotFoundException e) {
-								error("Couldn't open file \"" + exportStratFilename + "\" for output");
-							} catch (PrismException e) {
-								error(e.getMessage());
+							for (Pair<String, StrategyExportOptions> exportStratTask : exportStratTasks) {
+								String exportStratFilename = exportStratTask.first;
+								try {
+									prism.exportStrategy(res.getStrategy(), exportStratTask.second, exportStratFilename.equals("stdout") ? null : new File(exportStratFilename));
+								}
+								// in case of error, report it and proceed
+								catch (FileNotFoundException e) {
+									error("Couldn't open file \"" + exportStratFilename + "\" for output");
+								} catch (PrismException e) {
+									error(e.getMessage());
+								}
 							}
 						}
 
@@ -527,6 +533,11 @@ public class PrismCL implements PrismModelListener
 						// if required, check result against expected value
 						if (test) {
 							doResultTest(propertiesToCheck.get(j), res, prism.getModelInfo().getConstantValues(), propertiesFile.getConstantValues());
+						}
+
+						// if required, test the generated strategy too
+						if (test && prism.getTestStrat() && !simulate) {
+							doStrategyTest(res);
 						}
 
 						// iterate to next property
@@ -1031,6 +1042,25 @@ public class PrismCL implements PrismModelListener
 	}
 
 	/**
+	 * Report the outcome of testing the strategy generated when model checking a property
+	 * (strategy test mode, {@code -test:strat}), see {@link Prism#setTestStrat(boolean)}.
+	 * Test results are output to the log.
+	 * If a test fails and {@code testExitsOnFail} is {@code true} then {@code errorAndExit} is called.
+	 * @param res the result of model checking the property
+	 */
+	private void doStrategyTest(Result res)
+	{
+		StrategyTesting.TestResult testRes = res.getStrategyTestResult();
+		if (testRes == null) {
+			testRes = new StrategyTesting.TestResult(StrategyTesting.Outcome.SKIPPED, res.getResult() instanceof Exception ? "no result" : "not tested");
+		}
+		mainLog.println("\nTesting result: strategy " + testRes);
+		if (testRes.outcome == StrategyTesting.Outcome.FAIL && testExitsOnFail) {
+			errorAndExit("Testing failed");
+		}
+	}
+
+	/**
 	 * Close down.
 	 */
 	private void closeDown()
@@ -1200,7 +1230,8 @@ public class PrismCL implements PrismModelListener
 		registry.addSwitch("test", new OptionsOnlySwitch(
 				new OptionParser()
 						.flag("umb", "Enable UMB round trip test", () -> prism.setTestRoundTrip(ModelExportFormat.UMB))
-						.flag("pexp", "Enable explicit (.pexp) round trip test", () -> prism.setTestRoundTrip(ModelExportFormat.EXPLICIT)),
+						.flag("pexp", "Enable explicit (.pexp) round trip test", () -> prism.setTestRoundTrip(ModelExportFormat.EXPLICIT))
+						.flag("strat", "Also test generated strategies, by checking properties under them", () -> prism.setTestStrat(true)),
 				parse -> { test = true; parse.run(); }),
 				"[:<options>]", "Enable \"test\" mode");
 		registry.addSwitch("testall", new FlagSwitch(() -> { test = true; testExitsOnFail = false; }),
@@ -2001,8 +2032,9 @@ public class PrismCL implements PrismModelListener
 		String ext = i == -1 ? "" : fileString.substring(i + 1);
 		// Store some settings (here and in PRISM)
 		exportstrat = true;
-		exportStratFilename = basename.equals("stdout") ? "stdout" : fileString;
+		String exportStratFilename = basename.equals("stdout") ? "stdout" : fileString;
 		exportStratOptions = new StrategyExportOptions();
+		exportStratTasks.add(new Pair<>(exportStratFilename, exportStratOptions));
 		prism.setGenStrat(true);
 		prism.setGenStratPlayers(null);
 		ModelExportOptions inducedModelOptions = null;

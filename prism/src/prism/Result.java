@@ -54,6 +54,9 @@ public class Result
         // parameter string (optional)
         private String parameterString;
 
+	// Outcome of testing the strategy (optional, for strategy test mode)
+	private StrategyTesting.TestResult strategyTestResult;
+	
 	/**
 	 * Construct an empty Result object.
 	 */
@@ -124,6 +127,14 @@ public class Result
 	}
 
 	/**
+	 * Set the outcome of testing the strategy, in strategy test mode (null denotes n/a).
+	 */
+	public void setStrategyTestResult(StrategyTesting.TestResult strategyTestResult)
+	{
+		this.strategyTestResult = strategyTestResult;
+	}
+
+	/**
 	 * Set the result vector (null denotes n/a).
 	 */
 	public void setVector(StateVector vect)
@@ -181,6 +192,14 @@ public class Result
         public String getParameterString()
 	{
 		return parameterString;
+	}
+
+	/**
+	 * Get the outcome of testing the strategy, in strategy test mode (null denotes n/a).
+	 */
+	public StrategyTesting.TestResult getStrategyTestResult()
+	{
+		return strategyTestResult;
 	}
 
 	/**

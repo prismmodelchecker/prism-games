@@ -65,7 +65,7 @@ For more information, see:
 PRISM-games also uses various other libraries (mainly to be found in the lib directory).
 For details of those, including licenses and links to downloads and source code, see:
 
-https://www.prismmodelchecker.org/other-downloads.php
+https://www.prismmodelchecker.org/other-downloads/
 
 
 ## Acknowledgements
@@ -123,14 +123,14 @@ We also gratefully acknowledge contributions to the PRISM code-base from
 
 For more details see:
 
-  https://www.prismmodelchecker.org/people.php
+  https://www.prismmodelchecker.org/people/
 
 
 ## Contact
 
 If you have problems or questions regarding PRISM, please use the help forum provided. See:
 
-  https://www.prismmodelchecker.org/support.php
+  https://www.prismmodelchecker.org/support/
 
 Other comments and feedback about any aspect of PRISM are also very welcome. Please contact:
 

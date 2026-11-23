@@ -159,7 +159,7 @@ of commit messages for the former type should be prefixed "umbj: ".
 The user manual is in `../doc/manual/`, in Markdown, and `../doc/README.md` describes its layout and conventions.
 
 - When a change adds or alters something users see (the modelling or property languages, command-line switches, settings, the GUI, file formats), update the manual in the same change.
-- Say which version a feature appeared in ("Since PRISM x.y"): the website publishes the manual from master, ahead of the release.
+- Describe PRISM as it is on master, without "Since PRISM x.y" notes or words like "now" and "currently": the website publishes the manual from master and says so, and each release ships its own copy.
 - Edit `doc/manual/`, never the generated top-level `manual/`.
 
 ## Bug Fix Workflow
@@ -183,6 +183,12 @@ When summarising a bug fix, include:
 - Keep edits scoped to the task.
 - Avoid destructive commands (`reset --hard`, `checkout --`) unless explicitly asked.
 - If the tree is dirty, work around unrelated files and do not clean them up automatically.
+
+## Commit Messages
+
+- The first line is a short sentence summarising the change (aim for 72 characters or fewer), ending with a full stop.
+- Put any further detail (qualifications, examples, lists of changes) in a body, after a blank line, rather than lengthening the first line.
+- Keep the usual prefixes where they apply, e.g. "Manual: " or "umbj: " (see above).
 
 ## Pull Requests
 

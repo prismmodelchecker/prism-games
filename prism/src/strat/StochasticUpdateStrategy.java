@@ -1723,7 +1723,7 @@ public class StochasticUpdateStrategy extends StrategyExplicit<Double>
 	}
 
 	@Override
-	public explicit.Model<Double> constructInducedModel(StrategyExportOptions options) throws PrismException
+	public explicit.Model<Double> constructInducedModel(StrategyExportOptions options, java.util.function.Consumer<explicit.InducedStateMap> stateMapConsumer) throws PrismException
 	{
 		throw new PrismNotSupportedException("Strategy product not yet supported");
 	}

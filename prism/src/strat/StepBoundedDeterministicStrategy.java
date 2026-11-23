@@ -250,7 +250,7 @@ public class StepBoundedDeterministicStrategy<Value> extends StrategyExplicit<Va
 	}
 
 	@Override
-	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
+	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options, java.util.function.Consumer<explicit.InducedStateMap> stateMapConsumer) throws PrismException
 	{
 		throw new PrismNotSupportedException("Strategy product not yet supported");
 	}

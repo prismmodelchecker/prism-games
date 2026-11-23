@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -58,6 +59,18 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 	/** List of beliefs over unobservables, as stored in MDP states */
 	protected List<double[]> unobsBeliefs;
 
+	// Memory values are indices of MDP states (i.e., an observation and a belief over unobservables),
+	// plus two extra values for when the model has left the part of the belief space explored by the MDP,
+	// via a state where the choice is undefined (and resolved in some other way,
+	// e.g., when building the induced model). Later choices are then undefined too,
+	// for the same reason: SATISFIED if the state left was a target, reasonNonTarget otherwise.
+
+	/** Memory value: left the explored belief space via a target state */
+	protected int memLeftTarget;
+
+	/** Memory value: left the explored belief space via a non-target state */
+	protected int memLeftNonTarget;
+
 	/** Reason why the choice is undefined in (unexplored) states of the MDP that are not targets */
 	protected UndefinedReason reasonNonTarget = UndefinedReason.UNKNOWN;
 
@@ -71,6 +84,8 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 		this.mdpStrat = mdpStrat;
 		this.mdpStates = mdpStates;
 		this.unobsBeliefs = unobsBeliefs;
+		memLeftTarget = mdpStates.size();
+		memLeftNonTarget = mdpStates.size() + 1;
 	}
 
 	@Override
@@ -123,6 +138,10 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 		if (m == -1) {
 			return UndefinedReason.UNKNOWN;
 		}
+		// Left the explored belief space: same reason as for the state left
+		if (isMemLeft(m)) {
+			return whyUndefinedLeft(m);
+		}
 		// No matching state in the MDP: (s,m) cannot be reached
 		int o = pomdp.getObservation(s);
 		int i = findMatchingMDPState(o, m);
@@ -138,14 +157,40 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 	 */
 	private UndefinedReason whyUndefinedInMDP(int i)
 	{
+		return isTargetInMDP(i) ? UndefinedReason.SATISFIED : reasonNonTarget;
+	}
+
+	/**
+	 * Check whether memory value m denotes having left the explored belief space.
+	 */
+	private boolean isMemLeft(int m)
+	{
+		return m == memLeftTarget || m == memLeftNonTarget;
+	}
+
+	/**
+	 * Get the reason why the choice is undefined for a memory value m
+	 * denoting having left the explored belief space.
+	 */
+	private UndefinedReason whyUndefinedLeft(int m)
+	{
+		return m == memLeftTarget ? UndefinedReason.SATISFIED : reasonNonTarget;
+	}
+
+	/**
+	 * Check whether state i of the belief MDP fragment is a target state.
+	 */
+	private boolean isTargetInMDP(int i)
+	{
 		BitSet target = mdpStrat.getLabelStates("target");
-		return (target != null && target.get(i)) ? UndefinedReason.SATISFIED : reasonNonTarget;
+		return target != null && target.get(i);
 	}
 
 	@Override
 	public int getMemorySize()
 	{
-		return unobsBeliefs.size();
+		// MDP states, plus two values for having left the explored belief space
+		return mdpStates.size() + 2;
 	}
 	
 	@Override
@@ -153,11 +198,7 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 	{
 		int oInit = pomdp.getObservation(sInit);
 		int i = mdpStrat.getFirstInitialState();
-		if (mdpStates.get(i)[0] != oInit) {
-			return -1;
-		} else {
-			return mdpStates.get(i)[1];
-		}
+		return mdpStates.get(i)[0] != oInit ? -1 : i;
 	}
 	
 	@Override
@@ -167,32 +208,45 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 		if (m == -1) {
 			return -1;
 		}
-		// Look for a matching transition in the MDP and find the memory update
-		// (inefficiently, since they are not sorted)
-		int oNext = pomdp.getObservation(sNext);
-		int n = mdpStates.size();
-		for (int i = 0; i < n; i++) {
-			if (mdpStates.get(i)[1] == m) {
-				int j = findMatchingMemoryUpdate(i, oNext);
-				if (j != -1) {
-					return j;
-				}
-			}
+		// Once the explored belief space has been left, stay outside it
+		if (isMemLeft(m)) {
+			return m;
 		}
-		return -1;
+		// If the choice is undefined in MDP state m (it is unexplored),
+		// the action was picked in some other way, and the explored belief space is left
+		Object act = getActionPickedByMDP(m);
+		if (act == UNDEFINED) {
+			return isTargetInMDP(m) ? memLeftTarget : memLeftNonTarget;
+		}
+		// Otherwise, if the action taken is the one picked in MDP state m,
+		// find the successor MDP state matching the next observation
+		if (!isActionChosen(act, action)) {
+			return -1;
+		}
+		return findMatchingMemoryUpdate(m, pomdp.getObservation(sNext));
 	}
 	
 	@Override
     public String getMemoryString(int m)
     {
-		return m == -1 ? "?" : Belief.toStringUnobs(unobsBeliefs.get(m), pomdp);
+		if (m == -1) {
+			return "?";
+		}
+		if (isMemLeft(m)) {
+			return "?" + whyUndefinedLeft(m).toString().toLowerCase();
+		}
+		return Belief.toStringUnobs(unobsBeliefs.get(mdpStates.get(m)[1]), pomdp);
     }
 
 	@Override
-	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options) throws PrismException
+	public explicit.Model<Value> constructInducedModel(StrategyExportOptions options, Consumer<InducedStateMap> stateMapConsumer) throws PrismException
 	{
 		ConstructStrategyProduct csp = new ConstructStrategyProduct(options);
+		csp.setStoreStateMap(stateMapConsumer != null);
 		Model<Value> prodModel = csp.constructProductModel(model, this);
+		if (stateMapConsumer != null) {
+			stateMapConsumer.accept(csp.getStateMap());
+		}
 		return prodModel;
 	}
 
@@ -283,7 +337,7 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 		Model<Value> prodModel = constructInducedModel(options);
 		List<State> stateList = prodModel.getStatesList();
 		// Export product model to dot file, with (if needed) a custom decorator
-		// to extract the final value of each state and convert to a belief
+		// to extract the memory value of each state (the first variable) and convert to a belief
 		List<Decorator> decorators = new ArrayList<>();
 		if (options.getShowStates()) {
 			decorators.add(new Decorator()
@@ -294,13 +348,13 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 					Object[] varValues = stateList.get(state).varValues;
 					int numVars = varValues.length;
 					String s = "(";
-					for (int i = 0; i < numVars - 1; i++) {
-						if (i > 0)
+					for (int i = 1; i < numVars; i++) {
+						if (i > 1)
 							s += ",";
 						s += State.valueToString(varValues[i]);
 					}
 					s += "),";
-					int m = (int) varValues[numVars - 1];
+					int m = (int) varValues[0];
 					s += getMemoryString(m);
 					d.labelAddBelow(s);
 					return d;
@@ -321,36 +375,27 @@ public class FMDObsStrategyBeliefs<Value> extends StrategyExplicit<Value>
 	// Utility methods
 
 	/**
-	 * Find the index of a state (o,m) in the MDP, if there is one
+	 * Get the index of the state of the MDP for observation o and memory value m,
+	 * i.e., m itself, if it is an MDP state with observation o; otherwise -1
 	 */
 	private int findMatchingMDPState(int o, int m)
 	{
-		// If memory value is unknown, there are no matching states
-		if (m == -1) {
+		if (m < 0 || m >= mdpStates.size() || mdpStates.get(m)[0] != o) {
 			return -1;
 		}
-		// Look for a matching state in the MDP
-		// (inefficiently, since they are not sorted)
-		int n = mdpStates.size();
-		for (int i = 0; i < n; i++) {
-			if (mdpStates.get(i)[0] == o && mdpStates.get(i)[1] == m) {
-				return i;
-			}
-		}
-		// No match
-		return -1;
+		return m;
 	}
 
 	/**
 	 * Find a transition in the i-th state of the MDP whose destination state
-	 * has observable oNext, if there is one, and return the automaton state
+	 * has observable oNext, if there is one, and return its index (the new memory value)
 	 */
 	private int findMatchingMemoryUpdate(int i, int oNext)
 	{
 		for (SuccessorsIterator succ = mdpStrat.getSuccessors(i); succ.hasNext();) {
 			int j = succ.nextInt();
 			if (mdpStates.get(j)[0] == oNext) {
-				return mdpStates.get(j)[1];
+				return j;
 			}
 		}
 		// No match

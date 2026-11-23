@@ -79,7 +79,11 @@ public interface StateValues extends StateVector
 	/** Round the values of this vector to the given number of decimal places. */
 	void roundOff(int places);
 
-	/** Subtract all values of this vector from 1 */
+	/**
+	 * Subtract all values of this vector from 1.
+	 * The values are assumed to be probabilities, for the purposes of updating
+	 * the accuracy, if present (see {@link prism.AccuracyFactory#complementOfProbs(prism.Accuracy)}).
+	 */
 	void subtractFromOne();
 
 	/**
@@ -176,6 +180,9 @@ public interface StateValues extends StateVector
 	/**
 	* Sum up the elements of the vector, over a subset of its DD vars,
 	* store the result in a new StateValues (for newModel).
+	* The accuracy info is copied across unchanged, which assumes
+	* (as when projecting from a product model) that at most one
+	* of the summed values is non-zero for each state of newModel.
 	* <br>[ DEREFS: <i>none</i> ]
 	*/
 	StateValues sumOverDDVars(JDDVars sumVars, Model newModel) throws PrismException;
@@ -206,15 +213,14 @@ public interface StateValues extends StateVector
 
 	/**
 	 * Generate BDD for states whose value is close to 'value'
-	 * (if present, accuracy info used to determine closeness)
+	 * (if present, accuracy info used to determine closeness,
+	 * as for testing results, around 'value': see {@link ResultTesting#getTestingAccuracy(Accuracy, double)})
 	 * <br>[ REFS: <i>result</i> ]
 	 * @param val the value
-	 * @param epsilon the error bound
-	 * @param abs true for absolute error calculation
 	 */
 	default JDDNode getBDDFromCloseValue(double val)
 	{
-		Accuracy accuracy = ResultTesting.getTestingAccuracy(getAccuracy());
+		Accuracy accuracy = ResultTesting.getTestingAccuracy(getAccuracy(), val);
 		return getBDDFromCloseValue(val, accuracy.getErrorBound(), accuracy.getType() == AccuracyType.ABSOLUTE);
 	}
 
