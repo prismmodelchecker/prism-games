@@ -1,0 +1,22 @@
+// Values from the initial state (s=0)
+
+// RESULT: 0.5
+<<p1>>Pmax=? [ X "goal" ];
+// RESULT: 0.5
+<<p1>>Pmin=? [ X "goal" ];
+
+// Values from state s=2 (no successor is a goal state)
+
+// RESULT: 0
+filter(state, <<p1>>Pmax=? [ X "goal" ], s=2);
+// RESULT: 0
+filter(state, <<p2>>Pmax=? [ X "goal" ], s=2);
+
+// Values in all states
+
+// RESULT: 1.5
+filter(sum, <<p1>>Pmax=? [ X "goal" ]);
+// RESULT: 2.5
+filter(sum, <<p2>>Pmax=? [ X "goal" ]);
+// RESULT: true
+filter(forall, <<p1>>P>=0.5 [ X "goal" ] <=> (s=0|s=1));

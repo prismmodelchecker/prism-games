@@ -1,0 +1,43 @@
+// Test for next-step (X) properties for (zero-sum) CSGs.
+// State s=0 is matching pennies: the goal (s=1) is reached if actions match,
+// otherwise s=2, where p1 picks between a1 (back to s=0 or to sink s=3,
+// with probability 0.5 each) or b1 (to s=4, where p2 picks the goal or s=4).
+// The value of X "goal" in a state depends only on its successors, so it is
+// 0 in s=2 (none of s=0, s=3, s=4 is a goal), even though states are solved
+// in order and s=0 (which has a non-zero value) is solved first.
+
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+	[h1] s=0 -> true;
+	[t1] s=0 -> true;
+	[a1] s=2 -> true;
+	[b1] s=2 -> true;
+	[d1] s=1|s=3|s=4 -> true;
+endmodule
+
+module m2
+	[h2] s=0 -> true;
+	[t2] s=0 -> true;
+	[c2] s=1|s=2|s=3 -> true;
+	[y2] s=4 -> true;
+	[x2] s=4 -> true;
+endmodule
+
+module game
+	s : [0..4] init 0;
+	[h1,h2] s=0 -> (s'=1);
+	[t1,t2] s=0 -> (s'=1);
+	[h1,t2] s=0 -> (s'=2);
+	[t1,h2] s=0 -> (s'=2);
+	[a1,c2] s=2 -> 0.5:(s'=0) + 0.5:(s'=3);
+	[b1,c2] s=2 -> (s'=4);
+	[d1,c2] s=1|s=3 -> true;
+	[d1,y2] s=4 -> (s'=1);
+	[d1,x2] s=4 -> true;
+endmodule
+
+label "goal" = s=1;

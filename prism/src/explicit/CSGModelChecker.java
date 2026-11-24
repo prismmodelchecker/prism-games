@@ -156,6 +156,7 @@ public class CSGModelChecker extends ProbModelChecker
 		List<List<List<Map<BitSet, Double>>>> lstrat = null;
 		List<Map<BitSet, Double>> kstrat = null;
 		double[] nsol = new double[csg.getNumStates()];
+		double[] tsol = new double[csg.getNumStates()];
 		long timer;
 		int s, i;
 		if (genStrat) {
@@ -172,7 +173,7 @@ public class CSGModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis();
 		buildCoalitions(csg, coalition, min1);
 		for (s = 0; s < csg.getNumStates(); s++) {
-			nsol[s] = target.get(s) ? 1.0 : 0.0;
+			tsol[s] = target.get(s) ? 1.0 : 0.0;
 		}
 		try {
 			lp = LpSolve.makeLp(maxCols + 1, maxRows + 1);
@@ -182,7 +183,8 @@ public class CSGModelChecker extends ProbModelChecker
 			throw new PrismException(e.toString());
 		}
 		for (s = 0; s < csg.getNumStates(); s++) {
-			mgame = buildMatrixGame(csg, null, mmap, nsol, s, min1);
+			// Read from the target indicator vector, not from nsol (which is being overwritten)
+			mgame = buildMatrixGame(csg, null, mmap, tsol, s, min1);
 			nsol[s] = val(lp, mgame, kstrat, mmap, s, true, min1);
 			if (genStrat) {
 				updateStrategy(kstrat, lstrat, 0, s, false, mgame, mmap, min1);
