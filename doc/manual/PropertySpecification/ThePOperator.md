@@ -280,18 +280,22 @@ Note that logical operators have precedence over temporal ones, so you will ofte
 P=? [ (F "error1") & (F "error2") ]
 ```
 
-For temporal operators, unary operators (such as `F`, `G` and `X`) have precedence over binary ones (such as `U`). Unary operators can be nested, without parentheses, but binary ones cannot.
+A unary temporal operator can appear as the operand of a logical operator without parentheses,
+as in `"a" & F "b"`, which means `"a" & (F "b")`.
+But PRISM reports an error, asking for parentheses, if the scope of the temporal operator would be unclear:
+if its operand contains a logical operator outside parentheses, as in `"a" & F "b" & "c"`,
+or if it is within the operand of another temporal operator, as in `F "error1" & F "error2"`.
+Note that `F "error1" & "error2"` means `F ("error1" & "error2")`.
 
-So, these are allowed:
+For temporal operators, unary operators (such as `F`, `G` and `X`) have precedence over binary ones (such as `U`).
+Both can be nested without parentheses, and binary operators are right associative.
+So, for example:
 
 ```prism
 P=? [ F X X X "a" ]
 P=? [ "a" U X X X "error" ]
-P=? [ ("a" U "b") U "c" ]
-```
-
-but this is not:
-
-```prism
 P=? [ "a" U "b" U "c" ]
 ```
+
+where the last one means `"a" U ("b" U "c")`.
+Note also that `F "a" U "b"` means `(F "a") U "b"`.
